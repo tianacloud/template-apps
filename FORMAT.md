@@ -41,7 +41,7 @@ pack 从明确的 Git commit 导出选定模板目录，而非读取作者工作
 
 每个模板额外提供 `showcase/preview.html`、`showcase/cover.webp`、`showcase/prompt.md`。preview 是自包含 HTML 原型，使用合成数据、内联 CSS/JS 和内嵌资源；在无账号、无数据库连接的 iframe 中可以浏览主要界面和体验示例交互。cover 是该预览的 1280×800 WebP 截图，可运行 `node scripts/render-showcase.mjs NAME` 生成。prompt 描述用途、要保留的功能和可继续修改的需求，明确模板名称以及 `tiana web init-template NAME` 拉取源码的入口。
 
-`npm run pack -- NAME COMMIT` 从指定提交导出源码，并在临时目录执行该源码的 `npm ci` 和 `npm run build -- COMMIT`。构建脚本保持现有 `TIANA_PROJECT_PARAMS` 输出，打包器读取 entry；应用通过 `window.tiana.connection()` 取得数据库连接，通过 `window.tiana.appId` 取得 Web 身份。一次编译的 site.tweb 可用于多个独立安装。
+`npm run pack -- NAME COMMIT` 从指定提交导出源码，并在临时目录执行该源码的 `npm ci` 和 `npm run build -- COMMIT`。构建脚本保持现有 `TIANA_PROJECT_PARAMS` 输出，打包器读取 entry；应用通过 `window.tiana.connection()` 取得数据库连接，通过 `window.tiana.appId` 取得 Web 身份。一次编译的 site.tweb 可用于多个独立安装。打包器设置 `TIANA_TEMPLATE_BUILD=1`，使需要检查 source.json 资源回执的构建脚本跳过该检查；模板产物在运行时取得实际绑定，源码包仍保留变量声明。
 
 输出的 `.install.zip` 固定包含：
 

@@ -56,7 +56,7 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
       await mkdir(path.dirname(path.join(buildRoot, name)), { recursive: true });
       await writeFile(path.join(buildRoot, name), data);
     }
-    const run = (args) => execFileSync("npm", args, { cwd: buildRoot, encoding: "utf8", stdio: "pipe", maxBuffer: 64 * 1024 * 1024 });
+    const run = (args) => execFileSync("npm", args, { cwd: buildRoot, env: { ...process.env, TIANA_TEMPLATE_BUILD: "1" }, encoding: "utf8", stdio: "pipe", maxBuffer: 64 * 1024 * 1024 });
     run(["ci", "--no-audit", "--no-fund"]);
     const output = run(["run", "build", "--", source.source_commit]);
     const paramsLine = output.split("\n").find(line => line.startsWith("TIANA_PROJECT_PARAMS "));
