@@ -37,6 +37,8 @@ Gaia 将 ZIP 同步交给 MGR，30 秒超时，失败后人工重试。上传更
 打包测试验证确定提交导出、元信息与所有占位符位置、ZIP 内容及确定性；应用测试使用 SQLite／HTTP 和浏览器夹具验证模板构建及日常应用业务。夹具成功不能代替真实 Tiana 实例、OSS、Gaia、CLI 和宿主 Agent 验收。
 
 
+bedtime-talk（睡前聊聊）提供亲子问题卡与对话记录；zhiji（知己）提供个人周期与身体感受记录。本次以各自已公开来源提交 `2a572775` 和 `d9eaac38` 收入统一材料构建。
+
 ## 灵光一闪发布材料
 
 每个模板的 `showcase/` 提供独立 HTML 示例、WebP 封面和做同款提示词。先核对预览，再运行 `node scripts/render-showcase.mjs NAME` 更新截图；将源码和展示材料提交后，运行 `npm run pack -- NAME COMMIT` 生成 `.install.zip`。上传此包到 Gaia，编辑分组／标签／提示词后发布。包结构及一键安装说明见 [FORMAT.md](FORMAT.md#灵光一闪展示源码与可安装产物)。
