@@ -42,3 +42,9 @@ bedtime-talk（睡前聊聊）提供亲子问题卡与对话记录；zhiji（知
 ## 灵光一闪发布材料
 
 每个模板的 `showcase/` 提供独立 HTML 示例、WebP 封面和做同款提示词。先核对预览，再运行 `node scripts/render-showcase.mjs NAME` 更新截图；将源码和展示材料提交后，运行 `npm run pack -- NAME COMMIT` 生成 `.install.zip`。上传此包到 Gaia，编辑分组／标签／提示词后发布。包结构及一键安装说明见 [FORMAT.md](FORMAT.md#灵光一闪展示源码与可安装产物)。
+
+### 从实际应用生成可操作预览
+
+运行 `node scripts/build-live-showcase.mjs <模板名>`，使用应用自己的构建入口和页面组件，仅在预览构建中将数据库传输替换为本页内存 SQLite 和示例文件数据。生成的 HTML 内联脚本、样式、图片与运行依赖，可在 Console 隔离预览中操作；重新打开恢复初始数据。正常安装包会重新执行干净构建，连接真实应用资源。
+
+运行 `node scripts/check-live-showcases.mjs <模板名> ...`，在实际 sandbox/CSP 下检查页面与手机布局，验证常用模板的输入保存，并从同一预览生成封面。验证截图与结果保存在 `dist/showcase-validation/`。示例内容维护在 `scripts/showcase-runtime.js`，页面和交互修改继续维护各应用自身源码。
