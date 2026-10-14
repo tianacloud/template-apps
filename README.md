@@ -1,6 +1,6 @@
 # Tiana Web 模板应用
 
-每个顶层模板目录都是完整、可编辑的应用源码工程：two-to-three、study、whiteboard、ledger、notes、calendar、team-building、neon-coast、sunlit-album、nes-loader。team-building 是团建聚餐应用，支持餐厅候选、投票、活动安排、评论与历史复制；使用要求见[应用说明](team-building/README.md)。前六个模板的原始工程来自 agent-skills 提交 `8da60f0` 中对应 `skills/tiana-*/assets/app/`，模板专属参考资料随工程迁入 docs/。
+每个顶层模板目录都是完整、可编辑的应用源码工程：two-to-three、study、whiteboard、ledger、notes、calendar、team-building、neon-coast、sunlit-album、nes-loader、bedtime-talk。team-building 是团建聚餐应用，支持餐厅候选、投票、活动安排、评论与历史复制；使用要求见[应用说明](team-building/README.md)。前六个模板的原始工程来自 agent-skills 提交 `8da60f0` 中对应 `skills/tiana-*/assets/app/`，模板专属参考资料随工程迁入 docs/。
 
 Tiana 自有代码统一采用 [Apache-2.0](LICENSE) 许可证；第三方代码与素材遵循各模板保留的许可及署名说明。
 
@@ -11,6 +11,8 @@ sunlit-album 是轻盈的照片相册，支持文件存储、自动缩略图、�
 nes-loader 是支持 ROM 文件上传、独立 SQLite 存档、卡带搜索与整理、键盘及手机摇杆的红白机模拟器，包含默认图标，不附带游戏 ROM；使用要求见[应用说明](nes-loader/README.md)。
 
 客户 Agent 每次应用任务运行 `tiana web list-template --json`，根据 name／description 选择合适起点。`tiana web init-template <name> --dir <目录> --json` 下载 MGR 配置的私有 OSS 包并原样解压；Agent 根据根目录 metadata.json 替换变量、初始化数据库、定制应用并交付。模板的 MGR 版本由上传时自动分配，客户 CLI 按名称取得当前可用包。
+
+bedtime-talk 是家长与孩子轮流抽卡的睡前聊天应用，支持可编辑的问题库和不可修改、不可删除的历史回答；使用要求见[应用说明](bedtime-talk/README.md)。
 
 ## 制作和维护
 
