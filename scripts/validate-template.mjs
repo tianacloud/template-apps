@@ -24,6 +24,9 @@ export function validateTemplateFiles(files, templateName) {
   const metadata = JSON.parse(files["metadata.json"]?.toString() ?? "null");
   if (!metadata || metadata.name !== templateName || !metadata.display_name?.trim() || !metadata.description?.trim())
     throw new Error("metadata.json requires the template name, display_name and description");
+  for (const name of ["showcase/preview.html", "showcase/cover.webp", "showcase/prompt.md"]) {
+    if (!files[name]?.length) throw new Error(`Missing showcase material: ${name}`);
+  }
   const variables = metadata.variables ?? [];
   for (const variable of variables) {
     if (!variable.name || !variable.description?.trim() || !/^__TIANA_[A-Z0-9_]+_[a-f0-9]+__$/.test(variable.placeholder ?? "") || !variable.files?.length)

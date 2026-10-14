@@ -18,6 +18,10 @@ async function fixture(t) {
     variables: [{name: "WEB_ID", placeholder: "__TIANA_WEB_ID_abc139fd__", description: "The current web ID", files: ["src/config.json"]}],
     schema: "missing.sql",
   };
+  await mkdir(path.join(directory, "showcase"));
+  await writeFile(path.join(directory, "showcase/preview.html"), "<!doctype html><p>Demo</p>");
+  await writeFile(path.join(directory, "showcase/cover.webp"), "webp-fixture");
+  await writeFile(path.join(directory, "showcase/prompt.md"), "Make a notes app from demo.");
   await writeFile(path.join(directory, "metadata.json"), JSON.stringify(metadata));
   await writeFile(path.join(directory, "src/config.json"), '{"web":"__TIANA_WEB_ID_abc139fd__"}\n');
   await writeFile(path.join(directory, ".gitignore"), "node_modules/\ndist/\n");
@@ -79,4 +83,35 @@ test("pack preserves photo assets larger than one MiB", async t => {
   const result = await packTemplate(f.root, "demo", git("rev-parse", "HEAD").trim());
   const zip = unzipSync(new Uint8Array(await readFile(result.file)));
   assert.deepEqual(Buffer.from(zip["photo.jpg"]), photo);
+});
+
+test("installation package builds the selected source and separates preview and SQL", async t => {
+  const f = await fixture(t);
+  await mkdir(path.join(f.directory, "showcase"), { recursive: true });
+  for (const [name, data] of Object.entries({"preview.html":"<h1>Demo</h1>","cover.webp":"fixture-cover","prompt.md":"Use the demo template"}))
+    await writeFile(path.join(f.directory, "showcase", name), data);
+  await writeFile(path.join(f.directory, "package.json"), JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
+  await writeFile(path.join(f.directory, "package-lock.json"), JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));
+  await writeFile(path.join(f.directory, "build.cjs"), `const fs=require('fs'); fs.mkdirSync('dist',{recursive:true}); fs.writeFileSync('dist/app.js','console.log("selected source")'); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'app.js'}));`);
+  await writeFile(path.join(f.directory, "seed.sql"), "INSERT OR IGNORE INTO apps(id) VALUES ('__TIANA_WEB_ID_abc139fd__');");
+  f.metadata.seeds = "seed.sql";
+  f.metadata.variables[0].files.push("seed.sql");
+  await writeFile(path.join(f.directory, "metadata.json"), JSON.stringify(f.metadata));
+  const git = (...args) => execFileSync("git",args,{cwd:f.root,encoding:"utf8",stdio:"pipe"});
+  git("add", "."); git("-c","user.name=Fixture","-c","user.email=fixture@example.test","commit","-qm","Add installation materials");
+  const commit = git("rev-parse","HEAD").trim();
+  await writeFile(path.join(f.directory, "build.cjs"), "throw Error('uncommitted')");
+  const {packInstallTemplate} = await import("./pack-template.mjs");
+  const result = await packInstallTemplate(f.root,"demo",commit);
+  const files = unzipSync(await readFile(result.file));
+  const source = unzipSync(files["source.zip"]);
+  const site = unzipSync(files["site.tweb"]);
+  assert.match(strFromU8(site["data/app.js"]), /selected source/);
+  assert.ok("web.yaml" in site);
+  assert.equal(strFromU8(files["showcase/preview.html"]),"<h1>Demo</h1>");
+  assert.equal(JSON.parse(strFromU8(source["metadata.json"])).source.commit,commit);
+  assert.deepEqual(JSON.parse(strFromU8(files["install.json"])), {entry:"app.js",variables:[{...f.metadata.variables[0],files:["seed.sql"]}]});
+  assert.equal(strFromU8(files["seed.sql"]),await readFile(path.join(f.directory,"seed.sql"),"utf8"));
+  const again = await packInstallTemplate(f.root,"demo",commit);
+  assert.equal(again.sha256,result.sha256);
 });
