@@ -15,7 +15,12 @@ try {
     const page = await browser.newPage({
       viewport: { width: 1280, height: 800 },
     });
-    page.setDefaultTimeout(name === "neon-coast" ? 90000 : 8000);
+    page.setDefaultTimeout(8000);
+    const requests = [];
+    page.on("request", (r) => requests.push(r.url()));
+    const size = (await readFile(path.resolve(name, "showcase/preview.html")))
+      .length;
+    assert.ok(size <= 500000, `${name}: preview exceeds 500 KB`);
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (e) => {
@@ -44,9 +49,7 @@ try {
         waitUntil: "domcontentloaded",
       });
       const ui = page.frameLocator("iframe");
-      await ui
-        .getByText("示例体验 · 数据仅保留在本页", { exact: false })
-        .waitFor();
+      await ui.locator("#preview-reset").waitFor();
       await page.waitForTimeout(800);
       const body = await ui.locator("body").innerText();
       assert.ok(body.length > 160, "application must render");
@@ -97,7 +100,10 @@ try {
         await ui.getByRole("button", { name: "保存日程" }).click();
         await ui.locator("dialog").waitFor({ state: "hidden" });
         await ui.locator("[data-view=agenda]").click();
-        await ui.getByText("预览日程", { exact: true }).waitFor();
+        await ui
+          .locator("#preview-records")
+          .getByText("预览日程", { exact: true })
+          .waitFor();
         flow.push("添加日程并切换列表找到");
       } else if (name === "ledger") {
         await ui.locator('[data-quick-ledger="餐饮"]').click();
@@ -105,9 +111,14 @@ try {
         await ui.locator("[name=title]").fill("预览午餐");
         await ui.getByRole("button", { name: "保存账单" }).click();
         await ui.locator("dialog").waitFor({ state: "hidden" });
-        await ui.locator("tr").filter({ hasText: "预览午餐" }).waitFor();
-        assert.ok((await ui.locator("body").innerText()).includes("108.30"));
-        flow.push("新增账单及金额更新");
+        await ui
+          .locator("#preview-records")
+          .filter({ hasText: "预览午餐" })
+          .waitFor();
+        assert.ok(
+          (await ui.locator("#preview-records").innerText()).includes("12.30"),
+        );
+        flow.push("填写账单并查看本页记录");
       } else if (name === "bumang") {
         await ui.getByRole("button", { name: "新建", exact: true }).click();
         await ui.getByRole("textbox", { name: "事项名称" }).fill("预览新事项");
@@ -115,6 +126,28 @@ try {
         await ui.getByText("预览新事项", { exact: true }).waitFor();
         flow.push("新建事项并保存到象限");
       }
+      if (name === "sunlit-album") {
+        await ui.locator(".favorite-button").first().click();
+        assert.equal(
+          await ui
+            .locator(".favorite-button")
+            .first()
+            .getAttribute("aria-pressed"),
+          "true",
+        );
+        flow.push("收藏照片");
+      }
+      const beforeReset = requests.length;
+      await ui.locator("#preview-reset").click();
+      await ui.locator("#preview-reset").click();
+      assert.equal(await ui.locator("#preview-records").count(), 0);
+      assert.equal(await ui.locator("body").innerText(), body);
+      assert.equal(
+        requests.length,
+        beforeReset,
+        "reset stays in the current document",
+      );
+      flow.push("连续恢复示例两次，恢复初始界面");
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForTimeout(150);
       await page.screenshot({
@@ -122,7 +155,7 @@ try {
         timeout: 60000,
       });
       assert.deepEqual(errors, []);
-      receipts.push({ name, passed: true, flow });
+      receipts.push({ name, passed: true, bytes: size, flow });
       console.log(name, "PASS", flow.join("、"));
     } catch (e) {
       receipts.push({ name, passed: false, error: e.message, errors });

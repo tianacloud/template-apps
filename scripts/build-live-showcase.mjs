@@ -124,6 +124,6 @@ const license = await readFile(
   "utf8",
 );
 const html = `<!-- sql.js / SQLite preview runtime\n${license}\n-->\n<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${metadata.display_name}</title><style>${css}</style></head><body><div id="app"></div><script>${safe(asm)}</script><script>const showcase=${JSON.stringify({ name, schema, seed, assets })};\n${safe(fixture)}\nready.then(async()=>{${safe(js)}}).catch(error=>{console.error(error);document.body.append(document.createTextNode(error.message))});</script></body></html>`;
-await mkdir(path.join(root, "showcase"), { recursive: true });
-await writeFile(path.join(root, "showcase/preview.html"), html);
+await mkdir(path.resolve("dist/live-showcases"), { recursive: true });
+await writeFile(path.resolve("dist/live-showcases", name + ".html"), html);
 console.log(name, html.length);

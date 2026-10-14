@@ -45,6 +45,6 @@ bedtime-talk（睡前聊聊）提供亲子问题卡与对话记录；zhiji（知
 
 ### 从实际应用生成可操作预览
 
-运行 `node scripts/build-live-showcase.mjs <模板名>`，使用应用自己的构建入口和页面组件，仅在预览构建中将数据库传输替换为本页内存 SQLite 和示例文件数据。生成的 HTML 内联脚本、样式、图片与运行依赖，可在 Console 隔离预览中操作；重新打开恢复初始数据。正常安装包会重新执行干净构建，连接真实应用资源。
+运行 `node scripts/build-live-showcase.mjs <模板名>`，先在 `dist/live-showcases/` 生成仅供本地提取界面的真实应用演示。再运行 `node scripts/build-light-showcase.mjs <模板名> ...`，从实际渲染页面提取结构、样式和选中的展示状态，生成可发布的轻量预览。页面内交互由 `scripts/light-showcase-runtime.js` 维护；大型游戏展示真实界面与操作指南，完整游戏通过安装体验。
 
-运行 `node scripts/check-live-showcases.mjs <模板名> ...`，在实际 sandbox/CSP 下检查页面与手机布局，验证常用模板的输入保存，并从同一预览生成封面。验证截图与结果保存在 `dist/showcase-validation/`。示例内容维护在 `scripts/showcase-runtime.js`，页面和交互修改继续维护各应用自身源码。
+发布的 `showcase/preview.html` 压缩前不超过 500,000 字节，所有展示资源自包含；恢复示例直接重置页内状态。使用 `node scripts/check-live-showcases.mjs <模板名> ...` 在 Console 的 sandbox/CSP 下检查展示、选定流程、连续恢复及手机布局，并生成同份预览的封面。结果保存在 `dist/showcase-validation/`。完整应用的安装构建仍使用原应用源码；图标统一为 `public/icon.png`，256×256 PNG，构建根目录输出 `icon.png`。
