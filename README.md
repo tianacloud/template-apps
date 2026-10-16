@@ -12,6 +12,8 @@ nes-loader 是支持 ROM 文件上传、独立 SQLite 存档、卡带搜索与�
 
 客户 Agent 每次应用任务运行 `tiana web list-template --json`，根据 name／description 选择合适起点。`tiana web init-template <name> --dir <目录> --json` 下载 MGR 配置的私有 OSS 包并原样解压；Agent 根据根目录 metadata.json 替换变量、初始化数据库、定制应用并交付。模板的 MGR 版本由上传时自动分配，客户 CLI 按名称取得当前可用包。
 
+baby-growth 是面向新生儿家庭的「宝贝成长记」，提供宝宝档案、身高体重曲线和卫健委标准参考、辅食日历、家庭收支、每日事项、疫苗、乳牙萌出和成长里程碑；以手机为主，兼容桌面。使用要求见[应用说明](baby-growth/README.md)。
+
 ## 制作和维护
 
 1. 在独立工程中，用自己的 SQLite、Git 和 Web 应用调试产品功能。
