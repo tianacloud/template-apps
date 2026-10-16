@@ -1,7 +1,1 @@
-请基于 Tiana 的「备孕及家庭陪伴」模板，为我制作一个可以使用的 Web 应用。
-
-模板名称：`two-to-three`。先读取当前 Tiana 技能和 CLI 帮助，通过 `tiana web init-template two-to-three --dir two-to-three-app --json` 拉取源码工程，阅读 README 和 metadata.json，再使用实际创建的资源回执填写变量并完成构建和发布。
-
-希望保留的功能：适合备孕、孕期和家庭陪伴应用，包含阶段与周数、任务进度、家庭留言；适合作为家庭记录工程起点。
-
-沿用模板的界面风格和移动端交互，使用自己的 SQLite 数据库保存数据。先确认我的具体修改需求，再围绕这些需求调整。按工程说明初始化数据，验证核心操作和刷新后的持久化，最后给我可打开的应用地址。
+请基于 Tiana 模板 two-to-three（备孕及家庭陪伴）制作我的家庭陪伴应用。先运行 tiana web init-template two-to-three --dir <新目录> 拉取完整源码，按 metadata.json 创建并绑定独立 SQLite/Git，执行 schema.sql、seed.sql。保留备孕与孕期每周清单、角色筛选、任务打卡、报喜及末次月经参考孕周/预产期、周数浏览、家庭留言、称呼设置和纪念奖励，以及温暖柔和的响应式界面。请按我的需要定制名称与陪伴内容；不导入原作者个人记录。

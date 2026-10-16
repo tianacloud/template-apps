@@ -25,3 +25,10 @@ CREATE TABLE IF NOT EXISTS journey_comments (
 
 CREATE INDEX IF NOT EXISTS journey_comments_recent
   ON journey_comments (journey_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS journey_pregnancy (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'prepare',
+  lmp_date TEXT,
+  updated_at TEXT
+);
