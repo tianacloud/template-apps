@@ -48,4 +48,14 @@ npm test
 
 浏览器测试用内存 SQLite 夹具（`tests/fixture.mjs`）覆盖新建、换象限、完成与撤销、刷新后数据、托盘拖入时间轴、移动、调整时长、拖回托盘、拖到其他日期、手机长按拖动与布局，以及写入响应丢失后的核实。夹具不代替真实 Tiana 实例验收。
 
+## 预览
+
+`showcase/preview.html` 由真实界面代码构建，只把 `src/store.js` 换成内存版 `src/preview-store.js`（示例数据围绕打开时的当前时间生成），并内联全部脚本与样式，可在 `sandbox="allow-scripts"` 中运行，不连接数据库或网络。入口 `src/preview.js` 加入「示例体验」提示条与恢复示例，并代为提交表单（该 sandbox 不允许原生表单提交）。修改界面后重新生成：
+
+```sh
+npm run build:preview
+```
+
+预览文件与 `showcase/cover.webp` 一并提交；封面在 template-apps 根目录用 `node scripts/render-showcase.mjs bumang` 从同份预览生成。
+
 产品说明见 [docs/product.md](docs/product.md)。

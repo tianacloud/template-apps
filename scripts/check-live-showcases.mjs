@@ -125,6 +125,20 @@ try {
         await ui.getByRole("button", { name: "保存", exact: true }).click();
         await ui.getByText("预览新事项", { exact: true }).waitFor();
         flow.push("新建事项并保存到象限");
+        await ui.locator("[data-tab=timeline]").first().click();
+        const chip = await ui.locator(".chip", { hasText: "整理本周计划" }).boundingBox();
+        const grid = await ui.locator(".scroller").boundingBox();
+        await page.mouse.move(chip.x + chip.width / 2, chip.y + chip.height / 2);
+        await page.mouse.down();
+        for (let i = 1; i <= 8; i++)
+          await page.mouse.move(
+            chip.x + chip.width / 2 + ((grid.x + grid.width * 0.7 - chip.x - chip.width / 2) * i) / 8,
+            chip.y + chip.height / 2 + ((grid.y + grid.height / 2 - chip.y - chip.height / 2) * i) / 8,
+          );
+        await page.mouse.up();
+        await ui.locator(".block", { hasText: "整理本周计划" }).waitFor();
+        assert.equal(await ui.locator(".chip", { hasText: "整理本周计划" }).count(), 0);
+        flow.push("把待安排事项拖到时间轴");
       }
       if (name === "sunlit-album") {
         await ui.locator(".favorite-button").first().click();

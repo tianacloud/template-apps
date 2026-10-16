@@ -40,10 +40,6 @@ const configs = {
     ["#quick-add", "new"],
     ["#help", "帮助"],
   ],
-  bumang: [
-    ['[data-tab="timeline"]', "时间轴"],
-    ['[data-action="new"]', "new"],
-  ],
   "bedtime-talk": [
     ["nav a:nth-child(2)", "问题库"],
     ["nav a:nth-child(3)", "聊过的时光"],
@@ -64,6 +60,11 @@ const configs = {
 const browser = await chromium.launch();
 try {
   for (const name of process.argv.slice(2)) {
+    // Templates with their own preview build keep it; snapshots would replace real interactions.
+    if (!configs[name]) {
+      console.log(`${name}: no light preview config; use the template's own preview build`);
+      continue;
+    }
     const p = await browser.newPage({ viewport: { width: 1100, height: 780 } });
     if (name === "neon-coast")
       await p.addInitScript(() => {
