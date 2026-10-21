@@ -48,3 +48,6 @@ bedtime-talk（睡前聊聊）提供亲子问题卡与对话记录；zhiji（知
 运行 `node scripts/build-live-showcase.mjs <模板名>`，先在 `dist/live-showcases/` 生成仅供本地提取界面的真实应用演示。再运行 `node scripts/build-light-showcase.mjs <模板名> ...`，从实际渲染页面提取结构、样式和选中的展示状态，生成可发布的轻量预览。页面内交互由 `scripts/light-showcase-runtime.js` 维护；大型游戏展示真实界面与操作指南，完整游戏通过安装体验。
 
 发布的 `showcase/preview.html` 压缩前不超过 500,000 字节，所有展示资源自包含；恢复示例直接重置页内状态。使用 `node scripts/check-live-showcases.mjs <模板名> ...` 在 Console 的 sandbox/CSP 下检查展示、选定流程、连续恢复及手机布局，并生成同份预览的封面。结果保存在 `dist/showcase-validation/`。完整应用的安装构建仍使用原应用源码；图标统一为 `public/icon.png`，256×256 PNG，构建根目录输出 `icon.png`。
+
+
+dayecho（日有回响 · 倒推计划）提供桌面三栏日历、任务池与手机周日期条，包含截止日项目、每日安全线、实际用时、随记、回响之书、统计及本地导出；安装与使用见[应用说明](dayecho/README.md)。

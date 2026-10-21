@@ -1,0 +1,15 @@
+import { build } from 'esbuild';
+import { mkdir, readFile, readdir, rm, cp, writeFile } from 'node:fs/promises';
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(source.entry!=='assets/app.js')throw new Error('Entry must be assets/app.js');
+await mkdir('dist',{recursive:true});
+for(const entry of await readdir('dist'))await rm(`dist/${entry}`,{recursive:true,force:true});
+await mkdir('dist/assets',{recursive:true});
+const options={bundle:true,format:'esm',platform:'browser',target:['es2022'],minify:true,legalComments:'eof',loader:{'.css':'text'},define:{'process.env.NODE_ENV':JSON.stringify('production')}};
+await build({...options,entryPoints:['src/main.tsx'],outfile:'dist/assets/app.js'});
+await build({...options,entryPoints:['src/local.tsx'],outfile:'.preview/assets/local.js'});
+await cp('public','dist',{recursive:true});
+await cp('public','.preview',{recursive:true});
+await writeFile('.preview/index.html','<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#fcfaf7"><link rel="icon" href="./icon.png"><title>日有回响 DayEcho</title></head><body><div id="app"></div><script type="module" src="./assets/local.js"></script></body></html>');
+console.log('Built cloud entry assets/app.js and independent local preview.');
+console.log(`TIANA_PROJECT_PARAMS ${JSON.stringify(source)}`);
