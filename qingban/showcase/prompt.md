@@ -1,0 +1,1 @@
+请以「青班 · 轮班日历」（模板标识 qingban）为起点，使用 `tiana web init-template qingban --dir 我的青班 --json` 拉取源码。为本次个人应用创建 SQLite 与 Git，按 metadata.json 替换绑定并执行 schema，再构建和发布。保留月周日历、手动排班和备注、跨日班次、循环及附加规则预览、优先级与冲突说明、续排、工时统计与 CSV/ICS/JSON 文件能力。采用清爽的鼠尾草绿配色和手机底部导航。请按我的轮班节奏调整默认班次与布局，继续使用 Tiana 身份和运行时连接。
