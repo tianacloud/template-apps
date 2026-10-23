@@ -1,0 +1,5 @@
+# wb-hanzi-mahjong
+
+制作个人汉字组词练习：编辑二至四字词库、牌面份数与起手张数，和三位电脑摸牌、组词、碰吃胡，按规则结算并保存练习方案和学习报告。保留手动选字判断、重复字多重集与完整拆分、弃牌来源结算。
+
+执行 `tiana web init-template wb-hanzi-mahjong --dir my-app --json` 拉取完整源码。按 metadata.json 为新应用替换SQLite和Git实例变量，先执行schema.sql，再构建并配置固定入口。使用Tiana运行时的动态账号鉴权和参数化SQL，保留个人数据记录与响应式界面；按自己的偏好修改默认内容、配色和排版。
