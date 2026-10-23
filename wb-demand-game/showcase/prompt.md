@@ -1,0 +1,5 @@
+# wb-demand-game
+
+制作45秒需求变更挑战：8×8画布、五种颜色与橡皮，按位置/尺寸/图形/颜色涂目标，旧图保留；交付按缺失和多余格计还原度，连续90%以上连击加分，自动改需求与主动扣时改需求，保存个人Top5与结算。
+
+执行 `tiana web init-template wb-demand-game --dir my-app --json` 拉取完整源码。按 metadata.json 为新应用替换SQLite和Git实例变量，先执行schema.sql，再构建并配置固定入口。使用Tiana运行时的动态账号鉴权和参数化SQL，保留个人数据记录与响应式界面；按自己的偏好修改默认内容、配色和排版。

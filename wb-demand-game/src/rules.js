@@ -1,0 +1,15 @@
+export const colors=['#e5484d','#e8a317','#1fa564','#2f7fe0','#8b5cf6'];
+export const labels=['红','黄','绿','蓝','紫'];
+export const shapeNames={solid:'实心方块',frame:'空心方框',cross:'十字',diag:'斜线',L:'L形',checker:'棋盘格',heart:'爱心'};
+export function shape(kind,w,h){const a=[];const heart=['0110110','1111111','1111111','1111111','0111110','0011100','0001000'];for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(kind==='solid'||kind==='frame'&&(x===0||y===0||x===w-1||y===h-1)||kind==='cross'&&(x===Math.floor(w/2)||y===Math.floor(h/2))||kind==='diag'&&y===x||kind==='L'&&(x===0||y===h-1)||kind==='checker'&&(x+y)%2===0||kind==='heart'&&heart[y]?.[x]==='1')a.push([y,x])}return a}
+export function requirement(rng=Math.random){const pick=a=>a[Math.floor(rng()*a.length)];const kind=pick(['solid','solid','frame','cross','diag','L','checker','heart']);let w,h;if(kind==='heart')w=h=7;else if(kind==='solid'){w=pick([2,3,4]);h=pick([2,3,4])}else if(kind==='cross')w=h=pick([3,5]);else if(kind==='checker')w=h=pick([4,6]);else if(kind==='diag')w=h=pick([3,4,5]);else{w=pick([3,4]);h=pick([3,4])}const row=pick([0,8-h,Math.floor((8-h)/2)]),col=pick([0,8-w,Math.floor((8-w)/2)]);const cells=shape(kind,w,h).map(([y,x])=>(y+row)*8+x+col);const v=row===0?'上':row+h===8?'下':'中',u=col===0?'左':col+w===8?'右':'中';return {kind,w,h,row,col,color:pick([0,1,2,3,4]),cells,position:u+v}}
+export function evaluate(board,req){const target=new Set(req.cells),union=new Set(req.cells);let missing=0,extra=0;for(const i of target)if(board[i]!==req.color)missing++;board.forEach((c,i)=>{if(c!==null){union.add(i);if(!target.has(i))extra++}});const pct=Math.round(Math.max(0,1-(missing+extra)/(union.size||1))*100);return {pct,missing,extra}}
+export class Session{constructor(now=0,rng=Math.random){this.rng=rng;this.start=now;this.changed=now;this.board=Array(64).fill(null);this.req=requirement(rng);this.score=0;this.deliveries=0;this.combo=0;this.bestCombo=0;this.totalAccuracy=0;this.forced=0;this.over=false;this.ticket=1}
+ remaining(now){return Math.max(0,45000-(now-this.start))}
+ next(now){this.req=requirement(this.rng);this.changed=now;this.ticket++}
+ tick(now){if(this.remaining(now)<=0){this.over=true;return 'end'}if(now-this.changed>Math.max(7000,14000-this.deliveries*900)){this.forced++;this.next(now);return 'changed'}return ''}
+ deliver(now){if(this.over||this.remaining(now)<=0){this.over=true;return null}const result=evaluate(this.board,this.req);this.combo=result.pct>=90?this.combo+1:0;this.bestCombo=Math.max(this.bestCombo,this.combo);result.gain=result.pct+Math.max(0,this.combo-1)*15;this.score+=result.gain;this.totalAccuracy+=result.pct;this.deliveries++;this.next(now);return result}
+ reroll(now){if(this.over)return;this.start=Math.max(this.start-3000,now-45000+1200);this.next(now)}
+ summary(){return {score:this.score,deliveries:this.deliveries,accuracy:this.deliveries?Math.round(this.totalAccuracy/this.deliveries):0,bestCombo:this.bestCombo,forced:this.forced}}
+}
+export function rank(score){return score>=1200?'需求终结者':score>=900?'资深接单人':score>=600?'熟练开发者':score>=300?'新晋交付者':'实习挑战者'}
