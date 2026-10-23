@@ -1,0 +1,16 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import App from './App.jsx';
+import catalogue from './catalogue.js';
+import {GymStore,connectDatabase} from './storage.js';
+import {ExerciseMedia} from './exercise-media.js';
+import styles from './styles.css';
+import baseStyles from './opengym.css';
+import adaptationStyles from './adaptation.css';
+const style=document.createElement('style');style.textContent=styles+'\n'+baseStyles+'\n'+adaptationStyles;document.head.append(style);
+const store=new GymStore();store.ready=false;store.demo=false;
+const media=new ExerciseMedia(window.tiana?.files);
+window.addEventListener('pagehide',e=>{if(!e.persisted)media.dispose();},{once:true});
+store.boot=async()=>{store.error='';store.emit();try{store.execute=await connectDatabase();await store.load();}catch(e){store.error=e.message||'暂时无法连接数据库，请检查登录和网络';store.emit();}};
+createRoot(document.getElementById('app')).render(<App store={store} catalogue={catalogue} media={media}/>);
+store.boot();
