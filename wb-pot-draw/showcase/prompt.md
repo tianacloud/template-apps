@@ -1,0 +1,5 @@
+# wb-pot-draw
+
+制作个人砸罐抽签游戏：十个陶罐和每轮三块砖，按住1.15秒蓄满、松手按轨迹判定命中，命中揭示去重的趣味签卡，砸空也耗砖，三砖后汇总结算、复制和保存战报。签文只作娱乐。
+
+执行 `tiana web init-template wb-pot-draw --dir my-app --json` 拉取完整源码。按 metadata.json 为新应用替换SQLite和Git实例变量，先执行schema.sql，再构建并配置固定入口。使用Tiana运行时的动态账号鉴权和参数化SQL，保留个人数据记录与响应式界面；按自己的偏好修改默认内容、配色和排版。
