@@ -1,0 +1,1 @@
+使用 `wb-dev-first-aid` 模板制作码农急救包。通过 `tiana web init-template wb-dev-first-aid --dir my-app --json` 取得源码并按 metadata.json 配置。保留深色终端页面、黑话词典解读、840×590娱乐许可证PNG、随机符签、打字、符文粒子与彩蛋动画，以及手机单栏布局。业务使用浏览器能力；抽签累计保留在当前浏览器。提示词和示例只描述实际产品能力。
