@@ -1,4 +1,4 @@
-const CACHE='qinghe-offline-v1';
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.add(new URL('assets/assets/app.js',self.registration.scope).href)).then(()=>self.skipWaiting())));
+const CACHE='qinghe-offline-v2';
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['app.html','app.js'])).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
-self.addEventListener('fetch',event=>{if(event.request.mode==='navigate'){event.respondWith(fetch(event.request).catch(()=>new Response('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="app"></div><script type="module" src="assets/assets/app.js"></script></body></html>',{headers:{'Content-Type':'text/html; charset=utf-8'}})));return}if(event.request.url.endsWith('/assets/assets/app.js'))event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));});
+self.addEventListener('fetch',event=>{if(event.request.url.startsWith(self.registration.scope))event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));});

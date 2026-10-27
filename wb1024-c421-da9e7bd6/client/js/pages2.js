@@ -616,7 +616,7 @@
             '</div>' +
             '<p>把整个应用存成一个 .html 文件，双击就能用——不用联网，也不依赖这个网址以后还能不能打开。</p>' +
           '</div>' +
-          '<a class="btn primary" href="assets/standalone.html" download="青禾记账.html">' +
+          '<a class="btn primary" href="standalone.html" download="青禾记账.html">' +
             QH.icon('download', 17) + '下载单文件版</a>' +
         '</div>' +
       '</div>' +
@@ -989,7 +989,7 @@
         '</div>' +
         '<p class="help-p portable-hint">想把账本带走，可以在设置页下载<b>单文件版</b>——' +
           '整个应用就是一个 .html 文件，双击打开就能用，不依赖这个网址。' +
-          '<a href="assets/standalone.html" download="青禾记账.html">现在就下载 →</a></p>' +
+          '<a href="standalone.html" download="青禾记账.html">现在就下载 →</a></p>' +
       '</div>' +
 
       '<div class="sec"><h2><span class="mark">④</span>不信？断网试试</h2></div>' +
