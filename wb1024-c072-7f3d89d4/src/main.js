@@ -2,6 +2,7 @@ import './style.css';
 import body from './body.html?raw';
 import { createTianaFetch } from '@tianacloud/serverless';
 import './data-meta.js';
+import { makeUpdate } from './merge.js';
 const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = new URL('./app.css', import.meta.url).href; document.head.appendChild(css);
 document.getElementById('app').innerHTML = body;
 async function setup() {
@@ -16,9 +17,27 @@ async function setup() {
     return result.response.result;
   }
   let queue = Promise.resolve();
+  let baseline = null;
+  let failed = false;
   window.cet6Store = {
-    async read() { const result = await execute('SELECT payload FROM progress WHERE id = 1'); const value = result.rows?.[0]?.[0]?.value; return value ? JSON.parse(value) : null; },
-    write(value) { const op = queue.then(() => execute('INSERT INTO progress (id,payload) VALUES (1,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload', [{type:'text',value}])); queue = op.catch(() => {}); return op; }
+    async read() {
+      const result = await execute('SELECT payload FROM progress WHERE id = 1');
+      const value = result.rows?.[0]?.[0]?.value;
+      baseline = value ? JSON.parse(value) : {archive:{}, favorites:{}, stats:{answered:0,correct:0,rounds:0}, theme:'light'};
+      return value ? structuredClone(baseline) : null;
+    },
+    write(value) {
+      const next = JSON.parse(value);
+      const change = makeUpdate(baseline, next);
+      baseline = structuredClone(next);
+      if (!change) return queue;
+      const operation = queue.then(() => {
+        if (failed) throw new Error('保存状态不明，请重新加载后检查');
+        return execute(change.sql, change.args);
+      });
+      queue = operation.catch(() => { failed = true; });
+      return operation;
+    }
   };
   await import('./app.js');
 }
