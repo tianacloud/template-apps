@@ -127,4 +127,5 @@ function endSim(){
   $('endcard').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-window.genCard=genCard; window.startSim=startSim;
+document.getElementById("generate-card").addEventListener("click",genCard);
+document.querySelectorAll("[data-start-sim]").forEach(button=>button.addEventListener("click",startSim));
