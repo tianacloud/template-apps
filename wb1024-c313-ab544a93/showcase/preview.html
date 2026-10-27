@@ -1,0 +1,2713 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>/* ==========================================================================
+   宝贝请起身 —— 设计令牌
+   延续 macOS Sonoma 视觉语言：灰底、大圆角、极细描边、无边框分段控件
+   网页版额外补充：窗口悬浮投影、响应式断点相关变量
+   ========================================================================== */
+
+:root {
+  /* 背景层 */
+  --bg-window:     #F5F5F7;
+  --bg-chrome:     #EDEDF0;
+  --bg-card:       #FFFFFF;
+  --bg-fill:       #E8E8ED;
+  --bg-fill-hover: #DEDEE3;
+  --bg-stage:      #E7E7EC;
+
+  /* 文字层 */
+  --text-primary:   #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary:  #86868B;
+  --text-onaccent:  #FFFFFF;
+
+  /* 描边 */
+  --hairline:        rgba(0, 0, 0, 0.10);
+  --hairline-strong: rgba(0, 0, 0, 0.16);
+
+  /* 强调色（Apple systemBlue 及其语义延伸） */
+  --accent:        #0071E3;
+  --accent-hover:  #0077ED;
+  --accent-soft:   rgba(0, 113, 227, 0.10);
+  --green:         #34C759;
+  --green-soft:    rgba(52, 199, 89, 0.12);
+  --orange:        #FF9500;
+  --orange-soft:   rgba(255, 149, 0, 0.12);
+  --purple:        #AF52DE;
+  --purple-soft:   rgba(175, 82, 222, 0.12);
+  --pink:          #FF2D55;
+  --teal:          #30B0C7;
+  --gray-fill:     #E3E3E6;
+
+  /* 圆角 */
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+
+  /* 字号（SF 阶梯） */
+  --fs-title:    19px;
+  --fs-headline: 17px;
+  --fs-body:     13px;
+  --fs-caption:  12px;
+  --fs-micro:    11px;
+  --fs-display:  27px;
+
+  /* 间距 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+
+  /* 字体栈：优先 SF，回落到 Segoe UI Variable Display（Windows 上观感几乎一致） */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Display',
+               'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+
+  /* 动效：Apple 的缓动曲线 */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* 网页版：窗口悬浮 */
+  --app-radius: 12px;
+  --app-shadow: 0 28px 70px -18px rgba(0, 0, 0, 0.30),
+                0 8px 22px -8px rgba(0, 0, 0, 0.10),
+                0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  background-color: var(--bg-stage);
+  background-image:
+    radial-gradient(900px 520px at 18% 0%, rgba(255, 255, 255, 0.85), transparent 62%),
+    radial-gradient(760px 480px at 88% 100%, rgba(214, 224, 240, 0.55), transparent 66%);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button, input, select { font-family: inherit; font-size: inherit; }
+
+/* 数字使用等宽变体，避免计时跳动时宽度抖动 */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* 隐藏数字输入框的原生 spinner 箭头（与 Apple 风格冲突） */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+[hidden] { display: none !important; }
+
+/* 滚动条：细、浅、不抢戏 */
+.content::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar { width: 8px; height: 8px; }
+.content::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.16); border-radius: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ==========================================================================
+   宝贝请起身 —— 主界面布局与组件
+   ========================================================================== */
+
+/* ---------- 窗口外壳（网页版：悬浮卡片） ---------- */
+.app {
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, calc(100% - 48px));
+  height: min(860px, calc(100dvh - 48px));
+  margin: 0 auto;
+  border-radius: var(--app-radius);
+  overflow: hidden;
+  background: var(--bg-window);
+  box-shadow: var(--app-shadow);
+}
+
+/* 让窗口在视口中垂直居中，同时不影响小屏 */
+body { display: grid; place-items: center; }
+
+/* ---------- 标题栏 ---------- */
+.titlebar {
+  height: 38px;
+  flex-shrink: 0;
+  background: var(--bg-chrome);
+  border-bottom: 0.5px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.titlebar-title {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.1px;
+}
+
+.titlebar-right {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.next-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 9px;
+  border-radius: var(--r-full);
+  background: rgba(0, 0, 0, 0.055);
+  color: var(--text-secondary);
+  font-size: var(--fs-micro);
+  white-space: nowrap;
+}
+
+/* 交通灯（网页版为装饰，保留原视觉语言） */
+.lights {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+}
+.light {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: filter 0.14s;
+}
+.light:hover { filter: brightness(1.12); }
+.light:active { filter: brightness(0.88); }
+.light.close { background: #FF5F57; }
+.light.min   { background: #FEBC2E; }
+.light.max   { background: #28C840; }
+.light::after {
+  content: '';
+  width: 6px; height: 1.5px;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.light.min::after { height: 6px; width: 1.5px; }
+.light.max::after { height: 5px; width: 5px; border: 1.5px solid rgba(0, 0, 0, 0.5); background: transparent; }
+.lights:hover .light::after { opacity: 1; }
+.lights:hover .light.close::after {
+  opacity: 1;
+  width: 8px; height: 8px;
+  background: transparent;
+  background-image: linear-gradient(45deg, transparent 44%, rgba(0,0,0,0.55) 44%, rgba(0,0,0,0.55) 56%, transparent 56%),
+                    linear-gradient(-45deg, transparent 44%, rgba(0,0,0,0.55) 44%, rgba(0,0,0,0.55) 56%, transparent 56%);
+}
+
+/* ---------- 主体 ---------- */
+.body { display: flex; flex: 1; min-height: 0; }
+
+/* ---------- 侧边栏 ---------- */
+.sidebar {
+  width: 172px;
+  flex-shrink: 0;
+  background: var(--bg-chrome);
+  border-right: 0.5px solid var(--hairline);
+  padding: var(--sp-3) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-soft);
+  margin-bottom: 1px;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(0, 0, 0, 0.05); }
+.nav-item.active { background: var(--accent); color: var(--text-onaccent); }
+.nav-item.active svg { color: var(--text-onaccent); }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-tertiary); }
+
+.nav-sep {
+  height: 0.5px;
+  background: var(--hairline);
+  margin: var(--sp-3) 9px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: var(--sp-3) 9px 0;
+  border-top: 0.5px solid var(--hairline);
+}
+.sidebar-footer .k { font-size: var(--fs-micro); color: var(--text-tertiary); }
+.sidebar-footer .v { font-size: var(--fs-headline); font-weight: 500; margin-top: 1px; }
+
+/* ---------- 内容区 ---------- */
+.content { flex: 1; overflow-y: auto; padding: var(--sp-5) var(--sp-6); }
+
+.page { display: none; }
+.page.active { display: block; animation: pageIn 0.24s var(--ease-out); }
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-head { margin-bottom: var(--sp-4); }
+.page-title { font-size: var(--fs-title); font-weight: 500; letter-spacing: -0.2px; }
+.page-sub { font-size: var(--fs-caption); color: var(--text-secondary); margin-top: 2px; }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+.card-gap { margin-top: var(--sp-3); }
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-3);
+  gap: var(--sp-3);
+}
+.card-title { font-size: var(--fs-body); font-weight: 500; }
+.card-title-sub { font-size: var(--fs-micro); color: var(--text-tertiary); margin-top: 2px; }
+.card-unit { font-size: var(--fs-caption); color: var(--text-tertiary); }
+.card-desc { font-size: var(--fs-caption); color: var(--text-tertiary); margin-bottom: var(--sp-2); }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--r-sm);
+  border: 0.5px solid var(--hairline-strong);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.14s var(--ease-soft), border-color 0.14s, color 0.14s;
+}
+.btn:hover { background: var(--bg-fill); }
+.btn:active { background: var(--bg-fill-hover); }
+.btn.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--text-onaccent);
+  font-weight: 500;
+}
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.big { padding: 9px 18px; }
+.btn.full { width: 100%; }
+.btn-row { display: flex; gap: var(--sp-2); }
+.btn-row .btn { flex: 1; }
+
+/* ---------- 分段控件 ---------- */
+.segmented {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: var(--r-sm);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.segmented .seg {
+  padding: 4px 13px;
+  border-radius: 5px;
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.16s var(--ease-soft);
+}
+.segmented .seg.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 500;
+  box-shadow: 0 0.5px 1.5px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- 开关 ---------- */
+.switch {
+  width: 40px;
+  height: 24px;
+  border-radius: var(--r-full);
+  background: var(--gray-fill);
+  position: relative;
+  transition: background 0.2s var(--ease-soft);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.switch.on { background: var(--green); }
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s var(--ease-out);
+}
+.switch.on::after { transform: translateX(16px); }
+
+.badge-ok {
+  font-size: var(--fs-micro);
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+/* ---------- 设置行 ---------- */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--hairline);
+}
+.row:last-child { border-bottom: none; }
+.row .grow { flex: 1; min-width: 0; }
+.row .label { font-size: var(--fs-body); }
+.row .hint { font-size: var(--fs-micro); color: var(--text-tertiary); margin-top: 1px; }
+.unit { font-size: var(--fs-body); color: var(--text-tertiary); width: 26px; flex-shrink: 0; }
+.unit.wide-unit { width: 32px; }
+
+.field {
+  background: var(--bg-card);
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  padding: 5px 9px;
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  width: 74px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.field:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.field.wide { width: 110px; text-align: left; }
+.field.time { width: 96px; text-align: center; padding: 5px 6px; }
+.dash { color: var(--text-tertiary); flex-shrink: 0; }
+
+.kbd {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace;
+  font-size: var(--fs-micro);
+  color: var(--text-secondary);
+  background: var(--bg-fill);
+  border: 0.5px solid var(--hairline);
+  border-radius: 5px;
+  padding: 3px 7px;
+  flex-shrink: 0;
+}
+
+/* ---------- 统计卡 ---------- */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.metrics.two { grid-template-columns: 1fr 1fr; margin-bottom: var(--sp-3); }
+.metric {
+  background: var(--bg-card);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+}
+.metric .k { font-size: var(--fs-micro); color: var(--text-tertiary); }
+.metric .v { font-size: 25px; font-weight: 500; letter-spacing: -0.5px; margin-top: 2px; }
+.metric .v small { font-size: var(--fs-caption); color: var(--text-tertiary); font-weight: 400; }
+
+/* ---------- 番茄钟主区 ---------- */
+.pomo-main { display: flex; gap: var(--sp-5); align-items: center; }
+.pomo-side { flex: 1; min-width: 0; }
+
+/* ---------- 计时环 ---------- */
+.ring-wrap { position: relative; width: 156px; height: 156px; flex-shrink: 0; }
+.ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--bg-fill); stroke-width: 8; }
+.ring-fg {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+}
+.ring-fg.short { stroke: var(--green); }
+.ring-fg.long  { stroke: var(--accent); }
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.ring-time { font-size: 23px; font-weight: 500; letter-spacing: -0.6px; }
+.ring-label { font-size: var(--fs-micro); color: var(--text-tertiary); }
+
+/* ---------- 喝水主区 ---------- */
+.water-main { display: flex; align-items: center; gap: var(--sp-5); }
+.water-left { flex: 1; min-width: 0; }
+.water-count { display: flex; align-items: baseline; gap: 7px; }
+.water-num { font-size: 42px; font-weight: 500; letter-spacing: -1.4px; line-height: 1.1; }
+.water-target { font-size: var(--fs-body); color: var(--text-tertiary); }
+.water-volume { font-size: var(--fs-caption); color: var(--text-secondary); margin-top: 2px; }
+.v-divider { width: 1px; align-self: stretch; background: var(--hairline); flex-shrink: 0; }
+.water-actions { width: 132px; flex-shrink: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* ---------- 圆点进度（喝水） ---------- */
+.cups { display: flex; gap: 5px; flex-wrap: wrap; margin-top: var(--sp-3); }
+.cup {
+  width: 27px; height: 27px;
+  border-radius: var(--r-sm);
+  background: var(--bg-fill);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.cup.filled { background: var(--accent); transform: scale(1.04); }
+.cup.filled svg { color: #fff; }
+.cup svg { width: 17px; height: 17px; color: var(--text-tertiary); }
+
+/* ---------- 说明框 ---------- */
+.note-box {
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.note-title { font-size: var(--fs-caption); font-weight: 500; color: var(--accent); margin-bottom: 3px; }
+.note-text { font-size: var(--fs-caption); color: var(--text-secondary); line-height: 1.55; }
+
+/* ---------- 提示音选择 ---------- */
+.sound-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--sp-2); }
+.sound-item {
+  background: var(--bg-card);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: border-color 0.16s, opacity 0.2s;
+  min-width: 0;
+}
+.sound-item:hover { border-color: var(--hairline-strong); }
+.sound-item.playing { border-color: var(--accent); }
+.sound-play {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--gray-fill);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.sound-play:hover { background: var(--bg-fill-hover); }
+.sound-play:active { transform: scale(0.94); }
+.sound-play svg { width: 15px; height: 15px; color: var(--text-primary); }
+.sound-meta { min-width: 0; flex: 1; }
+.sound-name { font-size: var(--fs-body); font-weight: 500; line-height: 1.25; }
+.sound-desc {
+  font-size: var(--fs-micro);
+  color: var(--text-tertiary);
+  margin-top: 1px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sound-tag {
+  font-size: var(--fs-micro);
+  padding: 2px 7px;
+  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.sound-tag.calm   { background: var(--green-soft);  color: var(--green); }
+.sound-tag.bright { background: var(--accent-soft); color: var(--accent); }
+.sound-tag.sharp  { background: var(--orange-soft); color: var(--orange); }
+
+/* ---------- 提醒日志 ---------- */
+.log-list { display: flex; flex-direction: column; }
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--hairline);
+}
+.log-row:last-child { border-bottom: none; }
+.log-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.log-time { font-size: var(--fs-caption); color: var(--text-tertiary); width: 46px; flex-shrink: 0; }
+.log-text { flex: 1; font-size: var(--fs-body); }
+.log-state { font-size: var(--fs-micro); color: var(--text-tertiary); flex-shrink: 0; }
+.log-state.ok { color: var(--green); }
+
+/* ---------- 柱状图 ---------- */
+.chart { display: flex; align-items: flex-end; gap: var(--sp-2); height: 118px; padding-top: var(--sp-3); }
+.chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.chart-bar {
+  width: 100%;
+  max-width: 26px;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--accent);
+  min-height: 3px;
+  transition: height 0.5s var(--ease-out);
+}
+.chart-bar.alt { background: var(--teal); }
+.chart-x { font-size: var(--fs-micro); color: var(--text-tertiary); }
+.chart-empty {
+  align-self: center;
+  width: 100%;
+  text-align: center;
+  font-size: var(--fs-caption);
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+
+/* ---------- 角标呼吸提示 ---------- */
+.badge-hint {
+  position: fixed;
+  right: 22px; bottom: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 0.5px solid var(--hairline-strong);
+  border-radius: var(--r-full);
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-caption);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.10);
+  animation: breathe 2.4s var(--ease-soft) infinite;
+  z-index: 50;
+  cursor: pointer;
+  user-select: none;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.035); opacity: 0.86; }
+}
+.badge-hint .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--orange);
+  animation: pulse 1.7s var(--ease-soft) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
+}
+
+/* ---------- 提示条 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(29, 29, 31, 0.92);
+  color: #fff;
+  font-size: var(--fs-caption);
+  padding: 9px 16px;
+  border-radius: var(--r-full);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s var(--ease-out);
+  z-index: 80;
+  pointer-events: none;
+  max-width: 70vw;
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- 滑块 ---------- */
+.slider { width: 108px; accent-color: var(--accent); flex-shrink: 0; }
+
+/* ---------- 空状态 ---------- */
+.empty {
+  text-align: center;
+  padding: var(--sp-5) var(--sp-4);
+  color: var(--text-tertiary);
+  font-size: var(--fs-body);
+}
+
+/* ==========================================================================
+   响应式：窄屏把侧边栏变成横向标签条
+   ========================================================================== */
+@media (max-width: 820px) {
+  body { display: block; }
+  .app {
+    position: static;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: none;
+    margin: 0;
+  }
+  .titlebar { height: 34px; }
+  .next-chip { display: none; }
+  .body { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 10px;
+    gap: 2px;
+    border-right: none;
+    border-bottom: 0.5px solid var(--hairline);
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 10px;
+    font-size: 10px;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+  .nav-item svg { width: 18px; height: 18px; }
+  .nav-sep { width: 0.5px; height: 26px; margin: 0 4px; flex-shrink: 0; }
+  .sidebar-footer { display: none; }
+  .content { padding: var(--sp-4); }
+  .pomo-main { flex-direction: column; align-items: stretch; gap: var(--sp-4); }
+  .ring-wrap { margin: 0 auto; }
+  .water-main { flex-direction: column; align-items: stretch; gap: var(--sp-4); }
+  .v-divider { width: 100%; height: 1px; }
+  .water-actions { width: 100%; flex-direction: row; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .badge-hint { right: 12px; bottom: 12px; }
+}
+
+@media (max-width: 420px) {
+  .page-title { font-size: 17px; }
+  .water-num { font-size: 36px; }
+  .btn.big { padding: 9px 10px; }
+}
+
+/* ==========================================================================
+   提醒弹窗 —— 圆角卡片 + 毛玻璃遮罩 + 呼吸动效
+   网页版：原先是独立的 Electron 小窗口，这里改为应用内浮层
+   ========================================================================== */
+
+.pump-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 20, 22, 0.28);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  animation: maskIn 0.24s var(--ease-out);
+}
+@keyframes maskIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pump-card {
+  width: 348px;
+  max-width: 100%;
+  background: rgba(252, 252, 254, 0.97);
+  border: 0.5px solid rgba(0, 0, 0, 0.14);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  text-align: center;
+  box-shadow: 0 26px 70px -12px rgba(0, 0, 0, 0.34), 0 6px 18px rgba(0, 0, 0, 0.10);
+  animation: cardIn 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- 图标 ---------- */
+.pump-card .icon-wrap {
+  width: 52px; height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: iconBreathe 2.6s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+@keyframes iconBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.pump-card .icon-wrap svg { width: 26px; height: 26px; }
+.bg-blue   { background: rgba(0, 113, 227, 0.12); }   .bg-blue svg   { color: #0071E3; }
+.bg-green  { background: rgba(52, 199, 89, 0.13); }   .bg-green svg  { color: #34C759; }
+.bg-orange { background: rgba(255, 149, 0, 0.13); }   .bg-orange svg { color: #FF9500; }
+.bg-purple { background: rgba(175, 82, 222, 0.13); }  .bg-purple svg { color: #AF52DE; }
+
+/* ---------- 文本 ---------- */
+.pump-title { font-size: 17px; font-weight: 500; letter-spacing: -0.2px; margin-bottom: 5px; }
+.pump-body {
+  font-size: 13px;
+  color: #6E6E73;
+  line-height: 1.55;
+  white-space: pre-line;
+  margin-bottom: 16px;
+}
+
+/* ---------- 进度条（喝水） ---------- */
+.progress {
+  height: 5px; border-radius: 3px;
+  background: #E8E8ED; overflow: hidden; margin-bottom: 16px;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  background: #0071E3;
+  transition: width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ---------- 音效条 ---------- */
+.sound-bar {
+  background: #F5F5F7;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 9px;
+}
+.sound-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #0071E3; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; position: relative;
+  cursor: pointer;
+}
+.sound-btn svg { width: 13px; height: 13px; }
+.sound-btn .ring {
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid #0071E3;
+  opacity: 0;
+}
+.sound-btn.playing .ring { animation: ripple 1.6s cubic-bezier(0.25, 0.1, 0.25, 1) infinite; }
+@keyframes ripple {
+  0%   { opacity: 0.7; transform: scale(0.9); }
+  100% { opacity: 0;   transform: scale(1.35); }
+}
+.sound-meta { flex: 1; min-width: 0; text-align: left; }
+.sound-state { font-size: 12px; color: #86868B; }
+.sound-name { font-size: 13px; font-weight: 500; margin-top: 1px; }
+.sound-ctl { display: flex; gap: 3px; }
+.sound-ctl div {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #E3E3E6;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.14s, background 0.14s;
+}
+.sound-ctl div:hover { background: #D6D6DB; }
+.sound-ctl svg { width: 11px; height: 11px; }
+
+/* ---------- 按钮 ---------- */
+.pbtn-row { display: flex; gap: 8px; margin-bottom: 9px; }
+.pbtn {
+  flex: 1; text-align: center;
+  padding: 8px 0; border-radius: 9px;
+  font-size: 13px;
+  background: #E3E3E6; color: #1D1D1F;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.14s;
+}
+.pbtn:hover { background: #D6D6DB; }
+.pbtn:active { transform: translateY(0.5px); }
+.pbtn.primary { background: #0071E3; color: #fff; font-weight: 500; }
+.pbtn.primary:hover { background: #0077ED; }
+.pbtn-row.sub .pbtn {
+  background: transparent;
+  border: 0.5px solid rgba(0, 0, 0, 0.16);
+  color: #6E6E73; font-size: 12px; padding: 7px 0;
+}
+.pbtn-row.sub .pbtn:hover { background: rgba(0, 0, 0, 0.04); }
+
+.hint-row { font-size: 11px; color: #86868B; margin-top: 12px; }
+
+@media (max-width: 420px) {
+  .pump-card { padding: 20px 16px 16px; }
+  .pump-mask { padding: 16px; }
+}
+</style></head><body>
+<div data-page-node-id="Sw5tK87l3IPn9ISkoYBxMd" class="app" id="app">
+
+  <div data-page-node-id="VPTTK76EY7dkvjMzbOMiE2" class="titlebar">
+    <div data-page-node-id="42FIc8AkwWImLqSkXuoaiB" aria-hidden="true" class="lights">
+      <div data-page-node-id="cjo77yt94x4fXKGlIZwTGx" class="light close"></div>
+      <div data-page-node-id="QdzsYnfKQfNzanV5l4Uptt" class="light min"></div>
+      <div data-page-node-id="QZhyzODILamFQEJZkq9MLD" class="light max"></div>
+    </div>
+    <div data-page-node-id="JSG7HOyweUgYt7d7GRJE6C" class="titlebar-title"><!--pnid:m3ucZda4kXPOMy9baGcUs1-->宝贝请起身</div>
+    <div data-page-node-id="Giv79CADmrUAkncc4oxU9I" class="titlebar-right">
+      <span data-page-node-id="FJUJyRjRdnOrHteNy7DR6k" class="next-chip tnum" id="nextChip"><!--pnid:3ohPA02hG467F6FIO8tAQe-->计算中…</span>
+    </div>
+  </div>
+
+  <div data-page-node-id="TaJqouZRPj9wDK7QC7Bv2F" class="body">
+
+    <!--pnid:W01QWdIYKSfZ9uJ0IiOgP0--><!-- ============ 侧边栏 ============ -->
+    <div data-page-node-id="QsS1i4cW3i7LE1atyXKxDd" class="sidebar">
+      <div data-page-node-id="msB67jOhPOHhM1OVPVMMry" class="nav-item active" data-page="pomodoro">
+        <svg data-page-node-id="7dAdsT39idYKHfzzP2gKEK" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <circle data-page-node-id="CGEaKq8Fice3biK5jHwxgU" cx="12" cy="13" r="8"></circle><path data-page-node-id="7xIMWwbO8K4ikjtQNb4Ltm" d="M12 9v4l2.5 2"></path>
+          <path data-page-node-id="FVCYBafS3oEpfgJd0JDQZt" d="M9 2h6"></path>
+        </svg>
+        <span data-page-node-id="aTNm7jW1fzFwL95o0bNVYn"><!--pnid:zsSiBRVTorjLbSTbjsTL6s-->番茄钟</span>
+      </div>
+      <div data-page-node-id="evFfv40FOHPeqWcQYS8ehh" class="nav-item" data-page="water">
+        <svg data-page-node-id="Rc56TjhUKPtW0Tcry4Fayr" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <path data-page-node-id="XWPCAcbH4b6Yij0tI5tzvf" d="M12 3c-3.3 4-5 6.6-5 9.2A5 5 0 0 0 12 17a5 5 0 0 0 5-4.8C17 9.6 15.3 7 12 3z"></path>
+          <path data-page-node-id="EaeE03ifGiUP4saI6yg8mo" d="M12 20a2.5 2.5 0 0 0 2.5-2.5"></path>
+        </svg>
+        <span data-page-node-id="VKGY3YK2z1Thc8rb9Ii5Ma"><!--pnid:fqTK81lWIT5ie6gz1UghNS-->喝水打卡</span>
+      </div>
+      <div data-page-node-id="UdbwxCDVWsdppyLfrVuLJQ" class="nav-item" data-page="care">
+        <svg data-page-node-id="GR2d6LU5SS4K8ChcQf1JbW" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <path data-page-node-id="z84hnTgAYuk3lrtBcK7c5U" d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path>
+          <circle data-page-node-id="JlFpyh1vHErxF61EnH5IOA" cx="12" cy="12" r="2.6"></circle>
+        </svg>
+        <span data-page-node-id="Dk0mgx3mbJmfRdyQMDVzkX"><!--pnid:1RtSLk4J0zPXBbCFWaoMpD-->护眼久坐</span>
+      </div>
+      <div data-page-node-id="kJb02Qgsu7akc0ZeyhHcZq" class="nav-item" data-page="stats">
+        <svg data-page-node-id="zWf5CkAwItqGbWAaKOgrwS" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <path data-page-node-id="2JufOoPedtUJtzl56lYxZc" d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>
+        </svg>
+        <span data-page-node-id="uSoXKxFdiReFKQJCYGOh0k"><!--pnid:xZgskurh2wJJUlriHun7uY-->统计</span>
+      </div>
+
+      <div data-page-node-id="WI3EVcbNHj3WecJThHFEqu" class="nav-sep"></div>
+
+      <div data-page-node-id="qu8jBdMxhZlNCEVNUZjDes" class="nav-item" data-page="sound">
+        <svg data-page-node-id="8ccbzahI1CUxEiUm1Q1YE6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <path data-page-node-id="DoVCF765yudH9pzV2GmMI4" d="M4 10v4h3l4 4V6L7 10H4z"></path><path data-page-node-id="QKQJdnDc9rowUjQyJDhd9h" d="M16 9a4 4 0 0 1 0 6"></path>
+          <path data-page-node-id="uZdlOa1hiuaQfSIMq0sTjX" d="M19 6a8 8 0 0 1 0 12"></path>
+        </svg>
+        <span data-page-node-id="HrvgVdMwKjB2qflnspSuq6"><!--pnid:OxOGbJIFbXDbpTh1AemuGZ-->提示音</span>
+      </div>
+      <div data-page-node-id="vmxgpNdqZrxpb3lH41PsPR" class="nav-item" data-page="settings">
+        <svg data-page-node-id="ky1JRhj1wbiF0EJgbvBdJA" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.9" viewBox="0 0 24 24">
+          <circle data-page-node-id="ZIjX6pjWFayFPSCygpfsXa" cx="12" cy="12" r="3.2"></circle>
+          <path data-page-node-id="hdpyhD9mNZJkFI0zWx6xrC" d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"></path>
+        </svg>
+        <span data-page-node-id="OwoGykCxsTgV135qCSheqy"><!--pnid:IV8fD0WOuDxlWJgur59IXT-->设置</span>
+      </div>
+
+      <div data-page-node-id="MmfbIvcIiM2RXN4iNvPGNT" class="sidebar-footer">
+        <div data-page-node-id="so3d08HIRDcLF66MPM1nCm" class="k"><!--pnid:2pxufGcUGSg63j8XBWcRft-->连续达标</div>
+        <div data-page-node-id="Xuv4bZeyNV0EjC5SFzJ7XF" class="v tnum" id="streakDays"><!--pnid:lRkYx2XdWTbtQPsFxjZQl9-->0 天</div>
+      </div>
+    </div>
+
+    <!--pnid:84HDSia6Icq1t7miFx3zZ2--><!-- ============ 内容区 ============ -->
+    <div data-page-node-id="0XL5jZFLYZLeOcblTLzyon" class="content" id="content">
+
+      <!--pnid:0bjZMtiKtbhrHDRtuUX1Cu--><!-- ---------- 番茄钟 ---------- -->
+      <div data-page-node-id="vcrjr96lV9rbUe40jTM1uO" class="page active" id="page-pomodoro">
+        <div data-page-node-id="bklWFXdWI0xs948cF5EaY4" class="page-head">
+          <div data-page-node-id="veWab6dSgpXORBpWg27pv9" class="page-title"><!--pnid:YgjsVU2DOOBGT8KfRaGuvv-->番茄钟</div>
+          <div data-page-node-id="wE3yldrvNSSrPSSbnbZohS" class="page-sub"><!--pnid:BH8JLK2AEXSIZWKkt5DTmy-->专注与休息交替进行，累计真实专注时长</div>
+        </div>
+
+        <div data-page-node-id="jlH5o1n4q725hgHjCekWBU" class="card">
+          <div data-page-node-id="5v9aYqYw60jgcL354ODaLM" class="card-head">
+            <div data-page-node-id="mFqEg2tsylA77zGkWvGjdo">
+              <div data-page-node-id="1KdA4keRnZR94eaumZx1Ob" class="card-title" id="pomoStatus"><!--pnid:tp1oTw1gPyokot1lGU8uKr-->准备开始</div>
+              <div data-page-node-id="7wgUuGVKlCllofHTsNEuHm" class="card-title-sub" id="pomoRound"><!--pnid:qp0jErumtXy4XbVOG6Z88K-->第 0 轮 · 共 4 轮</div>
+            </div>
+            <div data-page-node-id="1axs4BK9TX9fS2QsVpHoT1" class="segmented" id="pomoSeg">
+              <div data-page-node-id="epsp0UnQu8n1rhPtdCoNXA" class="seg active" data-phase="focus"><!--pnid:ywW2j9I554kDTElmtlqsdU-->专注</div>
+              <div data-page-node-id="UWsnZfk5Yy4gLMm4ha69pU" class="seg" data-phase="short"><!--pnid:0DFD1VruHfr6vcbDfg64GN-->短休</div>
+              <div data-page-node-id="74UKWdCLtvTR0ma0cHJ42T" class="seg" data-phase="long"><!--pnid:yLKUEX0L1Qe27VC0jEG0nK-->长休</div>
+            </div>
+          </div>
+
+          <div data-page-node-id="ZKXkZtx9xvIcrHTbg69hcE" class="pomo-main">
+            <div data-page-node-id="k3kp5kF54yXWmB4hHHjmLK" class="ring-wrap">
+              <svg data-page-node-id="YaK9IGvP9ZPRDwYYHeeGmV" viewBox="0 0 120 120">
+                <circle data-page-node-id="LQCh65qfM33xqIUT440UpJ" class="ring-bg" cx="60" cy="60" r="52"></circle>
+                <circle data-page-node-id="VGz4kChsNTcOIzlR5B6ZAR" class="ring-fg" cx="60" cy="60" id="pomoRing" r="52" stroke-dasharray="326.7" stroke-dashoffset="0"></circle>
+              </svg>
+              <div data-page-node-id="EaPaXx8XAAZvqXrjg6Sq9R" class="ring-center">
+                <div data-page-node-id="viRoeylFBK6cxdgAmn3XBg" class="ring-time tnum" id="pomoTime"><!--pnid:2XHAgKELhEJd034rJbXqYW-->25:00</div>
+                <div data-page-node-id="8yiogI1NKjXQvwlDBgKM7W" class="ring-label"><!--pnid:eIddp2xKQtwTy1OTtP64Uv-->剩余</div>
+              </div>
+            </div>
+
+            <div data-page-node-id="lXfg12QtFvXty8W5og2RqS" class="pomo-side">
+              <div data-page-node-id="P6CVoOFezkuVNk6Hu5OD6h" class="metrics two">
+                <div data-page-node-id="vJOXZkuyuNktIJMm24FzuS" class="metric">
+                  <div data-page-node-id="lq8PHfmbrUrQ75h6ibIdLC" class="k"><!--pnid:OtHDMhHGufkIjP1IxQvGqG-->今日饮水</div>
+                  <div data-page-node-id="FWNSU93xAvOkuLIJcFqXE5" class="v tnum"><span data-page-node-id="GxBQIDepSgqcEj85NKT2PE" id="mWater"><!--pnid:mkgB0ceZEdUIVEB9kaTi2x-->0</span><small data-page-node-id="wYH4yYXvFAaPnCHqct8bvQ"><!--pnid:3wIVo7NTr9EcNjFAm8Tgig--> / 8 杯</small></div>
+                </div>
+                <div data-page-node-id="2H1r7co7vCO7TxTxW4Dtp4" class="metric">
+                  <div data-page-node-id="AGsq23HiRmJ9I6A9LSyyNw" class="k"><!--pnid:DTUEp6xhWWFRsjwOxHOTJW-->专注时长</div>
+                  <div data-page-node-id="1f668uhsj6dF9SzEMYKurl" class="v tnum"><span data-page-node-id="8963t30swvdNXu8oKgwGCR" id="mFocus"><!--pnid:GsDh9J9UXsEc36SBCWxzp2-->0</span><small data-page-node-id="Gp2tmblOnxy8cJCdm0ouK6"><!--pnid:dgR7nXPxmfgTOZDTtrCfFs--> 分钟</small></div>
+                </div>
+              </div>
+              <div data-page-node-id="TY2WkM5v4r7APMvj8p0nom" class="btn-row">
+                <div data-page-node-id="4iqFzTbl6Qxmi0zLBl58iE" class="btn primary big" id="pomoToggle"><!--pnid:3Aq4rIUzBXhUWBJTdROXQB-->开始</div>
+                <div data-page-node-id="QGIg06czTS3qPvnUqGoomj" class="btn big" id="pomoSkip"><!--pnid:jZaYDRVrBn43td0L5PzMxZ-->跳过</div>
+                <div data-page-node-id="jGbaSgrq2g51pTdpChbuNF" class="btn big" id="pomoReset"><!--pnid:bSucs21ta6NmrDdJteMM7i-->重置</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div data-page-node-id="cX0PFRrWmJIR0p3PJ57IVN" class="card">
+          <div data-page-node-id="xsjg2LSsc0ND76Kusak0c0" class="card-head"><div data-page-node-id="ncM85XRBJW8u4cI3oDWDAP" class="card-title"><!--pnid:KEmjA5SqTktzcY3AzaDsLY-->专注参数</div></div>
+          <div data-page-node-id="kKKOq7v05QfJy1deLizCrI" class="row">
+            <div data-page-node-id="SttjWNcdopto151jHm7kWU" class="grow">
+              <div data-page-node-id="mjgH4ojoS1piDb0YL1BLDm" class="label"><!--pnid:lG4nZNwgM3S2QHym1EGFwu-->专注时长</div>
+              <div data-page-node-id="EncVztF8HyWHy8LpOl5vxI" class="hint"><!--pnid:hojQIfgrIXRduCo8Fk6h5Q-->每轮专注的分钟数</div>
+            </div>
+            <input data-page-node-id="oixF9QVLPb2OdKkI20Tigu" class="field tnum" id="pomoFocus" max="180" min="1" type="number">
+            <div data-page-node-id="Dy4YfBf21x0VASEoIYyv2A" class="unit"><!--pnid:blCuQZ5ldj1nASQMaFEK2e-->分</div>
+          </div>
+          <div data-page-node-id="wxvHwLs3sJgTW0va7TpkIO" class="row">
+            <div data-page-node-id="wlbDOJAyaq3GRton3pNt2f" class="grow">
+              <div data-page-node-id="qDWTwEcL5Ek1koZNvNXdAN" class="label"><!--pnid:e7592tPeZnAEBWXjA6VGXK-->短休息</div>
+              <div data-page-node-id="GR4qFwO3e7cE4nOaDJRnEp" class="hint"><!--pnid:FXVAujo8CBuoMhsiMZP7RA-->两轮之间的休息</div>
+            </div>
+            <input data-page-node-id="tn4Q67mHqN8446Ak53va7H" class="field tnum" id="pomoShort" max="60" min="1" type="number">
+            <div data-page-node-id="Hbec7WmBXfEW3XAohAz6Ev" class="unit"><!--pnid:wa66zgUybTTlea959LT9RB-->分</div>
+          </div>
+          <div data-page-node-id="TSg6NDQz9gyJpZufypf54g" class="row">
+            <div data-page-node-id="XhiPmfCs6J2KDlnv7LiN0C" class="grow">
+              <div data-page-node-id="pNu5XrxHE1aEXCACZxj5sG" class="label"><!--pnid:rnsUrFqmDaLKHmsdzHTtau-->长休息</div>
+              <div data-page-node-id="2dy5KQIyPi8FH8rVei7smB" class="hint"><!--pnid:U9nIEenHYq6PrYY84kA3r1-->完成全部轮次后的休息</div>
+            </div>
+            <input data-page-node-id="aRWWpQd5RvnbYJwYmTCdBn" class="field tnum" id="pomoLong" max="60" min="1" type="number">
+            <div data-page-node-id="P4ZEppK99TArz7HJjrUYo3" class="unit"><!--pnid:rMn2v3ErcMa7sAmtxk6DRP-->分</div>
+          </div>
+          <div data-page-node-id="tdgCFjoamjquIQz4fNG6I2" class="row">
+            <div data-page-node-id="ieQd7kI8MzinBTXsQQ8VyA" class="grow">
+              <div data-page-node-id="SkDU6vIvZ4o0GOL7Ypm2Vs" class="label"><!--pnid:eSP4AebtpYoUezbWDw0fbJ-->轮次数量</div>
+              <div data-page-node-id="3VFO69KU5ys93Sue7WbY2D" class="hint"><!--pnid:sfhGvjyhoyClqYrDCv5A14-->达到该轮数后进入长休息</div>
+            </div>
+            <input data-page-node-id="3Ki3cjei1bIx8DJea6efy6" class="field tnum" id="pomoRounds" max="12" min="1" type="number">
+            <div data-page-node-id="cAIN918AWGCfOtwCVh11C4" class="unit"><!--pnid:JH8j5NI4myvilrqWE5hHT4-->轮</div>
+          </div>
+        </div>
+      </div>
+
+      <!--pnid:497A4pSpFimYMVkhjusxvH--><!-- ---------- 喝水 ---------- -->
+      <div data-page-node-id="UUinxXTZYpUM4g2MJg1fTW" class="page" id="page-water">
+        <div data-page-node-id="fZhh0MbyIqvZ3wazbXWl0T" class="page-head">
+          <div data-page-node-id="c7BieeU8nwCtvrWmxw4yqi" class="page-title"><!--pnid:wXEp0BhbWVMs3Oqr88X2Bb-->喝水打卡</div>
+          <div data-page-node-id="Sik1FHxG2gbgCCdNh0tBaY" class="page-sub"><!--pnid:YirSUr4h2VxLlAdrzNpniV-->记录每一杯，达标后自动提示</div>
+        </div>
+
+        <div data-page-node-id="cKEZGMDBWqY1vetZyZFSMV" class="card">
+          <div data-page-node-id="JMBsHxqiF5UuGCNZpRfckV" class="water-main">
+            <div data-page-node-id="cXtZVYkBTc3FrdKgyR7YVs" class="water-left">
+              <div data-page-node-id="vwWhU0NA2s9UQGPorMuzLp" class="water-count">
+                <div data-page-node-id="Ip4XjQsQzlSMt9PTv5BhGp" class="tnum water-num" id="wCount"><!--pnid:XsGDIHTJGXmLKUQb5GmpRO-->0</div>
+                <div data-page-node-id="AI8WQoVXDdxPNRNa4e9Zy2" class="water-target"><!--pnid:JfGNHw70drIu5oxBOqbsCB-->/ <span data-page-node-id="v26AKrVlLQ83ZIRjM1jUwb" id="wTarget"><!--pnid:rFsENalrufLd8oO1YzTG1a-->8</span><!--pnid:bEZPuo6MTcpb6cmnomrYuF--> 杯</div>
+              </div>
+              <div data-page-node-id="TRH7fuSBwJHTaMJ01HsZaO" class="water-volume" id="wVolume"><!--pnid:GxQpp36HapPuZOiv8I35OL-->按 250 ml 计，今日约 0 ml</div>
+              <div data-page-node-id="5BWBCVtRxicQNopfT0ZP26" class="cups" id="wCups"></div>
+            </div>
+            <div data-page-node-id="xoDgLbXydimEvfp1v79RWB" class="v-divider"></div>
+            <div data-page-node-id="DfTl4zDUyu2ehUl6nx2Aem" class="water-actions">
+              <div data-page-node-id="iA8jfXSsrSVpKj6VyERmSY" class="btn primary big full" id="wAdd"><!--pnid:I3Jh0zBb7DwWpr22zMxMOB-->喝了一杯</div>
+              <div data-page-node-id="PvnPWHRAs3P7nJBvCfYWIp" class="btn full" id="wUndo"><!--pnid:CTfk2DurFbt7K0HoqfTGmO-->撤销一杯</div>
+            </div>
+          </div>
+        </div>
+
+        <div data-page-node-id="yxwN7JxqVtOGCrLQi4VzwD" class="card">
+          <div data-page-node-id="FLyBae0uumZEgvCV1wwxmE" class="card-head"><div data-page-node-id="6BZcqCL0CeMyOSj34U3KtP" class="card-title"><!--pnid:59jmGZK6hSwnyFrOT4ka1b-->提醒设置</div></div>
+          <div data-page-node-id="xjJLenhPR43PPEtB0TvG99" class="row">
+            <div data-page-node-id="aLE25QHkESkw3BTt6kCdpN" class="grow"><div data-page-node-id="J23IV79LX6NOPDopszqjlq" class="label"><!--pnid:RFl9Fmy1gccgyHuRPSiQkn-->开启喝水提醒</div><div data-page-node-id="QRlStZ1WtwC3UmFl8QkmlT" class="hint"><!--pnid:MS1BzDsUk8ZMXEC67bXiHo-->到点弹窗提醒</div></div>
+            <div data-page-node-id="b51JYISgplURsDQLFpKib4" class="switch" id="wEnabled"></div>
+          </div>
+          <div data-page-node-id="QOHPYmNaAS1CIPAuirwHLc" class="row">
+            <div data-page-node-id="VWhvHUSv4JzG27uAwpGoq0" class="grow"><div data-page-node-id="bulS023vl3mOmdxcc8PFYW" class="label"><!--pnid:eOzHWhO6H5Cre2JWG6uCSx-->提醒间隔</div><div data-page-node-id="F0c2e5TD4hKlHVxb3s0CJx" class="hint"><!--pnid:A1DJ12FtLsMFIlE1zSgTKd-->两次提醒之间的分钟数</div></div>
+            <input data-page-node-id="7P0fO9GIqlTlMBsbuQprH1" class="field tnum" id="wInterval" max="240" min="5" type="number">
+            <div data-page-node-id="xbADFZ7W3ZIfSnS8hXKxfT" class="unit"><!--pnid:lZt38UEiyxzmSNpfYNE2iI-->分</div>
+          </div>
+          <div data-page-node-id="vUBtfsM4lmQcyHCl5m4pR0" class="row">
+            <div data-page-node-id="F6kT1V0BQ2IEGU8ckmJilc" class="grow"><div data-page-node-id="OWhTW1UJeQAbqciTp2LzU3" class="label"><!--pnid:u3MMDrCK1HXTCt6R0DIX7P-->每日目标</div><div data-page-node-id="difXjzj2bxx9xKdBHG3Wfq" class="hint"><!--pnid:OOd1kXzYTQ5oCbV1CIMuGC-->达标后不再重复提示</div></div>
+            <input data-page-node-id="ovTHTnJ9Lb41pFsIlm1EIS" class="field tnum" id="wTargetIn" max="20" min="1" type="number">
+            <div data-page-node-id="kE6eAYbu5MwJUlWHwZMvdN" class="unit"><!--pnid:oOdp5BzEj8s1hGeOX8CZBr-->杯</div>
+          </div>
+          <div data-page-node-id="4MRdxeNiQfF1a1nFKXLV99" class="row">
+            <div data-page-node-id="9P3EO2PPq4KyN0jY87DThq" class="grow"><div data-page-node-id="w1U5DE6LmV6Pa3OLx9faVA" class="label"><!--pnid:LFFdqa75WcKiOVO2HDzCwy-->杯容量</div><div data-page-node-id="os3tPBpS1loNrVQYRPszTS" class="hint"><!--pnid:QEkuF68lbY5XIYTPgPC5YK-->用于估算每日饮水量</div></div>
+            <input data-page-node-id="W7PDTPrV6Z9NJWB8pnz2Dm" class="field tnum" id="wSize" max="1000" min="50" step="10" type="number">
+            <div data-page-node-id="ilQb7XXz2rhl1a28I4qvxm" class="unit wide-unit"><!--pnid:RQ2gEzhw2mFJ0RJ37LXnC3-->ml</div>
+          </div>
+        </div>
+      </div>
+
+      <!--pnid:6fAwzMa3RJHQNukHPq8mMH--><!-- ---------- 护眼久坐 ---------- -->
+      <div data-page-node-id="rNzC7zBnfcEp01PvtnstQ7" class="page" id="page-care">
+        <div data-page-node-id="s093GGrFrqJpXA7KjImLVx" class="page-head">
+          <div data-page-node-id="O5qRLHQzmm4xrhHLzrtuxm" class="page-title"><!--pnid:XmQLMy4xKwZSEM9Swa7C8K-->护眼与久坐</div>
+          <div data-page-node-id="23aKANbDI2Tg1ueOtIgi5r" class="page-sub"><!--pnid:FNjcSEttr201YAb7mRFrd0-->20-20-20 法则与久坐检测，离席时不打扰</div>
+        </div>
+
+        <div data-page-node-id="b15CODODAKxJvaxjD4ppZn" class="card">
+          <div data-page-node-id="AkUc2yjFZBxMn6mWHXKvfN" class="card-head">
+            <div data-page-node-id="uEuc0dgPKrZF3kFfPMIg5J" class="card-title"><!--pnid:jPlpRT9p10W3aBYoAPlmwG-->护眼提醒</div>
+            <div data-page-node-id="6Ru4PahTJ05o7RD3HTgVji" class="switch" id="eyeEnabled"></div>
+          </div>
+          <div data-page-node-id="L8zR7eAKvVK7CjX9VnTJg1" class="note-box">
+            <div data-page-node-id="ckYDhc7kviUGgZ4STXLNnm" class="note-title"><!--pnid:Afog4xKFOQEsxr5be4LmFC-->20-20-20 法则</div>
+            <div data-page-node-id="ZKkX0LulHPzip4By1Bxrmz" class="note-text"><!--pnid:LkPCaLIXGFpiEnEfHDAEJo-->
+              每用眼 20 分钟，看 20 英尺（约 6 米）外的地方，持续 20 秒。<br data-page-node-id="rztEqsFvylmrtRGim4VI7D"><!--pnid:5E2uDkifzuqLYrauOJZLoS-->
+              眨眼频率会随之恢复，眼睛不容易干涩疲劳。
+            </div>
+          </div>
+          <div data-page-node-id="fbWxdKNWbUaYM2DCqFydqD" class="row">
+            <div data-page-node-id="KFRzOExCs4t8ZgDCSclzzc" class="grow"><div data-page-node-id="A5sAvB1Sh0ngV0ldVALP4c" class="label"><!--pnid:QHwMH9PsEk89xKkcJycfdF-->提醒间隔</div><div data-page-node-id="s7aFKY13UNh3jmeIPl3aHm" class="hint"><!--pnid:lNQlNlYyw5bo9IavYL1CDl-->建议 20 分钟</div></div>
+            <input data-page-node-id="bEwAMg0hQ6pkoMOxDffpEQ" class="field tnum" id="eyeInterval" max="120" min="5" type="number">
+            <div data-page-node-id="N4oYQUBMEUcuqjPaMOSoEe" class="unit"><!--pnid:BfaHVaOz2SRro5CXdvWO0d-->分</div>
+          </div>
+        </div>
+
+        <div data-page-node-id="ncR8rJd3qC5MhyG2f80WEL" class="card">
+          <div data-page-node-id="3FmkCUi13s6NGPo2ZJi8Rm" class="card-head">
+            <div data-page-node-id="hrd4pCtbFXn95UZH3uZ1La" class="card-title"><!--pnid:dJVIkXjsdPHvAJIK88YvGI-->久坐提醒</div>
+            <div data-page-node-id="FNgbVJGONOAaeM1qj50GSe" class="switch" id="sitEnabled"></div>
+          </div>
+          <div data-page-node-id="miiYiBH0lW0m3MZp1PGUow" class="row">
+            <div data-page-node-id="B3Bm7k5iqKaMOgq3hYQg5p" class="grow"><div data-page-node-id="NrpoLblShzuDPqRxnNtE0E" class="label"><!--pnid:1rUjoj1W8cj73akC9coUR8-->提醒间隔</div><div data-page-node-id="VUuBgqIc3YW1CW8GJ5W45U" class="hint"><!--pnid:1yV0lMZdLf28xbHvv4pLu9-->建议 45 到 60 分钟</div></div>
+            <input data-page-node-id="l0FGD2sN1mhS9jMyFR9SAr" class="field tnum" id="sitInterval" max="240" min="10" type="number">
+            <div data-page-node-id="7UIuThjDY2sAVaK4RSsMX8" class="unit"><!--pnid:m3FtldLC7kADrQdVeViOlT-->分</div>
+          </div>
+          <div data-page-node-id="5NwFoi3AJMoiuhgt0oppdD" class="row">
+            <div data-page-node-id="1D19ANUpW06XRwe1qqEbf9" class="grow">
+              <div data-page-node-id="BAZ83NWSsAzpV7QgntkINK" class="label"><!--pnid:wNqPXeaXPUEiLCADXyqhWb-->离席不打扰</div>
+              <div data-page-node-id="UZwIFHKKfmfgMUAhqSM2TF" class="hint"><!--pnid:YNidLVpG0rfH9Q21niIIcb-->检测到鼠标键盘空闲超过 1 分钟时不弹窗</div>
+            </div>
+            <div data-page-node-id="IBnAjE5oKDqmd9q2cvNfIW" class="switch" id="sitIdle"></div>
+          </div>
+        </div>
+
+        <div data-page-node-id="ls9OBUwjYLQUGZIeytNE2h" class="card">
+          <div data-page-node-id="5IsMIju7QxrwPegQzUVRpG" class="card-head">
+            <div data-page-node-id="Ywkq2IT9Lc4OzVgICGe4PP" class="card-title"><!--pnid:NSou1SAP9DiCuSNZ7c5dRE-->定时走动提醒</div>
+            <div data-page-node-id="vJrjiSarLkuVer9zzZ3DYk" class="switch" id="standEnabled"></div>
+          </div>
+          <div data-page-node-id="oTkBuYAvQNSP8zNzk7cIhC" class="card-desc"><!--pnid:SObZR1ifSWWno26uufdwqh-->适合饭后或下班前走动一次，默认关闭</div>
+          <div data-page-node-id="8VB2swLX0tHNcY1Ms0nBGt" class="row">
+            <div data-page-node-id="WACllG68KCwDjF5XhCKlvP" class="grow"><div data-page-node-id="DfwQUwiD5T207tTx0Ln3o5" class="label"><!--pnid:Yhx7wA68aEls0x9aJ34FWO-->提醒间隔</div></div>
+            <input data-page-node-id="5GmnJaEla0aWdBQxkicOlk" class="field tnum" id="standInterval" max="480" min="30" type="number">
+            <div data-page-node-id="n350ppTm3V1Oe1ggsmIJU9" class="unit"><!--pnid:7DYvUMXzWa0Xb3nv6YsytG-->分</div>
+          </div>
+        </div>
+
+        <div data-page-node-id="tBdmBNahn0uahVFLqLgKSk" class="card">
+          <div data-page-node-id="qVU9XgZekoaiNy8jf7JXud" class="card-head"><div data-page-node-id="evrXY1xhEujDwIBbwm9Feu" class="card-title"><!--pnid:8TXKM4BCujesCAgJHWT0jw-->立即测试</div></div>
+          <div data-page-node-id="L1WuMhi6UcOu1zPnC09LjW" class="btn-row">
+            <div data-page-node-id="hDSqz587sgSk2ZXe7ZSgwc" class="btn" data-test="water"><!--pnid:pD3kC2lTzFlSpP1WOqtyoP-->喝水</div>
+            <div data-page-node-id="ruM3dgO9NcKUmKWgDmD1c4" class="btn" data-test="eye"><!--pnid:I5B1BfLyDu47By81SryAL1-->护眼</div>
+            <div data-page-node-id="FCf7vrkKkZRMsUKw0Q98qI" class="btn" data-test="sit"><!--pnid:KxEYsAuvyMSWNqogiqaQFX-->久坐</div>
+            <div data-page-node-id="pdy2dKidFoRhzlS7P9D196" class="btn" data-test="stand"><!--pnid:Zn7q5Y51ux54w4s8ZXR4iZ-->走动</div>
+          </div>
+        </div>
+      </div>
+
+      <!--pnid:f64XF526E5WfDJxhz2obXb--><!-- ---------- 统计 ---------- -->
+      <div data-page-node-id="0jctU0yGf1CqYI5SW3nvNr" class="page" id="page-stats">
+        <div data-page-node-id="kXFYAGdQ2xN17Xpq6fIuIv" class="page-head">
+          <div data-page-node-id="9FFfI3ICJhl2aVLi6jyRr0" class="page-title"><!--pnid:6O86tMxBRzw8WSrY1sfIuZ-->统计</div>
+          <div data-page-node-id="hDDBxQZfwnbvXWFpzVsyn0" class="page-sub"><!--pnid:jCgHuFF2Opol8lcCodpBSx-->今日与近七日表现</div>
+        </div>
+
+        <div data-page-node-id="5GPX3YmagKd6qMHsklgLUM" class="metrics">
+          <div data-page-node-id="900sg6mqgr908kpgEGqOsn" class="metric">
+            <div data-page-node-id="j4Q8EEXe84MRZ60SEpDkUv" class="k"><!--pnid:MmKWBjtBpvkJSFoPOB9ZYC-->今日饮水</div>
+            <div data-page-node-id="Tjnrh2qOE7G11TDVEuJIdf" class="v tnum"><span data-page-node-id="FjFBS4VvoMSyenU5qFmIpy" id="sWater"><!--pnid:KX4Em2kPSv0tBJMjpdztPZ-->0</span><small data-page-node-id="9R4NZXNLdP9KNn3DxmIq9L"><!--pnid:YRpJVBxzV6sM0bNcAk2rDs--> 杯</small></div>
+          </div>
+          <div data-page-node-id="RnCT6wikacS8dDuFyddldd" class="metric">
+            <div data-page-node-id="xKGFluQhS9Fz35tkg7vC96" class="k"><!--pnid:TJlBf68dcXS6eQvhtimL6m-->专注时长</div>
+            <div data-page-node-id="WUYNNZaOwYmBjuK8gT0Qvi" class="v tnum"><span data-page-node-id="xrlywsW1heFzcLKDejy2Qq" id="sFocus"><!--pnid:RhoIeH1vtfqDWVenZyBF1y-->0</span><small data-page-node-id="BmFViRKB0bD4ZYABO5sCHP"><!--pnid:VdbYBiqeeNSqUMbqEcfSiY--> 分</small></div>
+          </div>
+          <div data-page-node-id="slgB3FG92f5WxFd4fkHGDb" class="metric">
+            <div data-page-node-id="rgdnmn9YxcHoiiFPyh73I8" class="k"><!--pnid:n9aY3bgxXDifcPuoz6B5GJ-->提醒响应率</div>
+            <div data-page-node-id="YynVrOkQlVXmy0Osm0t0aI" class="v tnum"><span data-page-node-id="JY2q8uAxl1Xh9hFH5kJDOg" id="sRate"><!--pnid:IJVbHlDhfzbmHECLkSuBaT-->0</span><small data-page-node-id="ZZ2ZJHw0Zdq6RPkbNWtjvz"><!--pnid:zNSQk87cQOasyGoKV8sodN--> %</small></div>
+          </div>
+          <div data-page-node-id="AHxFNPV6SCDJ7xSV5pybZw" class="metric">
+            <div data-page-node-id="V8W0wP8vgzbmZWYK1qT0p7" class="k"><!--pnid:dJDCtCO8zJqgJsiAPFcgAR-->连续达标</div>
+            <div data-page-node-id="Tt4zNrZsDYU9rLkvi3F1mP" class="v tnum"><span data-page-node-id="DctVjhzX3L4Rkc8OcyT7Oe" id="sStreak"><!--pnid:UZXS2CqQLkv5Q2Nn4M4hfX-->0</span><small data-page-node-id="FSAgsukuK9Dr0zdFrpX8vY"><!--pnid:WeCoVZ0ffwk9xW337s9me7--> 天</small></div>
+          </div>
+        </div>
+
+        <div data-page-node-id="aekHFtj0RciLFLCkKZS8rw" class="card">
+          <div data-page-node-id="XNaZ3vgUUy4NlgsfxTh43l" class="card-head"><div data-page-node-id="2dDefdt5c3bUPF2td0DlTg" class="card-title"><!--pnid:6R1ntj1PJpWB02yZiW9E2H-->近七日饮水</div>
+            <div data-page-node-id="xjJfvuDXsNeZcuu5zWrMG1" class="card-unit"><!--pnid:QYZYhWq7OYPC2fKwbRPWQS-->单位：杯</div>
+          </div>
+          <div data-page-node-id="fJy4I4TcLHZzjjCTzZM6FH" class="chart" id="waterChart"></div>
+        </div>
+
+        <div data-page-node-id="Sqz16sRWowlpiCxZx5WBWV" class="card">
+          <div data-page-node-id="7drf09gcZ66JnE0WVzh218" class="card-head"><div data-page-node-id="YDZvEXeFkBdvd3PtYsNeV2" class="card-title"><!--pnid:1jHufY8BX5so7I43XYgFYf-->近七日专注</div>
+            <div data-page-node-id="Qcm4n7sqigRlmslMDs91O6" class="card-unit"><!--pnid:ZDwVTd91HLJ6CdVr6Ec1H5-->单位：分钟</div>
+          </div>
+          <div data-page-node-id="xm0ujm4IUwSFaYs828nuvI" class="chart" id="focusChart"></div>
+        </div>
+
+        <div data-page-node-id="g8FxHoegexVOM3lPnxQKU0" class="card">
+          <div data-page-node-id="9rJjNpi6zzr2e6H2dwLFZm" class="card-head"><div data-page-node-id="p43Idfmc3QGyU3RGetI8st" class="card-title"><!--pnid:D65DSChrdFVwfEG9g8Ql6p-->今日提醒记录</div>
+            <div data-page-node-id="5SZGJsOuzG5g9XWokRWPEy" class="card-unit" id="remindSummary"><!--pnid:stbQgemWJMSThsssWNQh9u-->0 / 0</div>
+          </div>
+          <div data-page-node-id="zuH1p2du3zkdK0gtXQMEg8" class="log-list" id="remindLog"></div>
+        </div>
+      </div>
+
+      <!--pnid:IRhNug1Gt4JyijRLbIx7xF--><!-- ---------- 提示音 ---------- -->
+      <div data-page-node-id="rizKgLKvo0LKC96kT6vQVY" class="page" id="page-sound">
+        <div data-page-node-id="4cDAXujifOjzoSQmgjTvUp" class="page-head">
+          <div data-page-node-id="emxfdx1pqHGMnVulaqp8Wj" class="page-title"><!--pnid:npNzhkhZy8H3hegtXVDRkf-->提示音</div>
+          <div data-page-node-id="4kk7kgWksTudTMjdtSTV0y" class="page-sub"><!--pnid:L4rzSRM4eFuC1qHnyMVWC0-->全部实时合成，无音频文件，可逐个试听</div>
+        </div>
+
+        <div data-page-node-id="LsuvFk2S4H7iMMONm9UAyQ" class="sound-grid" id="soundGrid"></div>
+
+        <div data-page-node-id="VQkvNtnTRcjWaE0zNppciA" class="card card-gap">
+          <div data-page-node-id="hGYtO6G9ZJqZ4VouU8B0Hw" class="card-head"><div data-page-node-id="fNuV9Gv05GCjUIAxu5T3go" class="card-title"><!--pnid:IZEZQ4JqNn0lhymrF60vrm-->播放设置</div></div>
+          <div data-page-node-id="aZybiZn3Gc1qi2Sm0uOgea" class="row">
+            <div data-page-node-id="fl2mVpYMPzImHRUiZmi3ua" class="grow"><div data-page-node-id="KH93QFz7LWAI4BQJ12MrkH" class="label"><!--pnid:qMe6vb55WhPlQIjg8q9dFV-->静音</div><div data-page-node-id="mlsQkydC2jJgpVrC0dNIzK" class="hint"><!--pnid:H5kknkebOHGTE3FP6Elbdl-->关闭后不播放任何提示音</div></div>
+            <div data-page-node-id="5F01s2WkQlBjCZZYsJar8h" class="switch" id="aMuted"></div>
+          </div>
+          <div data-page-node-id="nyHFk4gmwIT3A76dmUoRAj" class="row">
+            <div data-page-node-id="eyaECmN9mJf7fag7YaLXMG" class="grow"><div data-page-node-id="KE83DIVrShkIKZvJ1HQqIb" class="label"><!--pnid:yjIsR4EyWr2xTGmxPFF8VP-->淡入淡出</div><div data-page-node-id="glA6jBY2ZhSNZmZlu3OiB6" class="hint"><!--pnid:YdCeWd3rep8QC92gZtUoq9-->避免突然出声惊到</div></div>
+            <div data-page-node-id="nxKtTt2Zl3YGiuGCiCN53p" class="switch" id="aFade"></div>
+          </div>
+          <div data-page-node-id="ULgYlIBrzsjYb5L5WskymP" class="row">
+            <div data-page-node-id="Qivw8vLOzKCSSQIMpZwx0u" class="grow"><div data-page-node-id="1rv0a16STtuEjvoQ73jnpY" class="label"><!--pnid:KjUhEIk5pZNaYHZYPSRwRH-->音量</div><div data-page-node-id="hbba5oiSHtGDMUNTQm805j" class="hint" id="volHint"><!--pnid:Lz3h8MlY7K9GjqciTlcKfi-->70%</div></div>
+            <input data-page-node-id="VmP6xlKpaiSo5F1tsRcOdj" class="slider" id="aVolume" max="100" min="0" type="range">
+          </div>
+        </div>
+
+        <div data-page-node-id="H6RQzq3n36ReKGeWN2wdv7" class="card">
+          <div data-page-node-id="83AxN0jzZLwNfTuZOZ5Xww" class="card-head"><div data-page-node-id="e9qnAqWtkAp8Rgo8pGH6mO" class="card-title"><!--pnid:ONVI3uEA39md9xDtAwbYlq-->为各提醒指定音效</div></div>
+          <div data-page-node-id="bHZHtUCZVZdxxZnFAUanFQ" class="row">
+            <div data-page-node-id="hWrTpmCpeMP3PuxvvspvEf" class="grow"><div data-page-node-id="RJqoxZxFmWJJihdcC1DcMY" class="label"><!--pnid:0jEYpipIgGYPQDplORl8H8-->喝水</div></div>
+            <select data-page-node-id="pJBc72058bwNGwmVdCuEeP" class="field wide" id="sndWater"></select>
+          </div>
+          <div data-page-node-id="u8corZQ4Hh9dgR6F4iikf4" class="row">
+            <div data-page-node-id="fhbwwfvyipPZZzAQQRRA2k" class="grow"><div data-page-node-id="MmFeIWLdVGPEVET5dxuBNe" class="label"><!--pnid:VqxqIOvk5RbIH2mJLRivlF-->护眼</div></div>
+            <select data-page-node-id="p1WU3ErTaxPnApCHN6DRF3" class="field wide" id="sndEye"></select>
+          </div>
+          <div data-page-node-id="BgyumWMsjIC8yAX1aqNS4e" class="row">
+            <div data-page-node-id="odMvlsbLsL3SBK2c6ZgmSZ" class="grow"><div data-page-node-id="3zrGtPAY5CH1ZpvnkR9e7z" class="label"><!--pnid:dklUMOCI0SAbZS5pZxZUeC-->久坐</div></div>
+            <select data-page-node-id="91sVbN6otGAq8M8eQKORYH" class="field wide" id="sndSit"></select>
+          </div>
+          <div data-page-node-id="s5EZSaCIHkVPuh4KDLdism" class="row">
+            <div data-page-node-id="eldbYSgvFDMctYsQNJoJNf" class="grow"><div data-page-node-id="j2DGGsjsNeTgcGq7sMIXiZ" class="label"><!--pnid:wM9G0rbicYA8ehckq0XXge-->走动</div></div>
+            <select data-page-node-id="aN3Wej9PX2YiepaTi20SGx" class="field wide" id="sndStand"></select>
+          </div>
+          <div data-page-node-id="hFY7L9i6L8uLFFd7IAEWnx" class="row">
+            <div data-page-node-id="fLs051RDXcl440VtLKK0k3" class="grow"><div data-page-node-id="yjUmaPCsmh984qvPAHapdE" class="label"><!--pnid:FuuMUThPu8WoEpnPRuFWrd-->番茄钟</div></div>
+            <select data-page-node-id="zHbTrxUHrsthxKupuzIjti" class="field wide" id="sndPomo"></select>
+          </div>
+        </div>
+      </div>
+
+      <!--pnid:EQv3C98SqUQaS8ex4oGffM--><!-- ---------- 设置 ---------- -->
+      <div data-page-node-id="2N8Kwsw0PIh7IrtonoGYgu" class="page" id="page-settings">
+        <div data-page-node-id="Ui7bfVXfhiR76AxllBtJoq" class="page-head">
+          <div data-page-node-id="qJgyUwqOFLZVMv0TiJJ9R8" class="page-title"><!--pnid:ilZYqyFOVdtrhJnlYWxBLC-->设置</div>
+          <div data-page-node-id="UzRWRhmrkxXaxsE5F1inwf" class="page-sub"><!--pnid:HMvFWeDE4aD5WdFnb6mY8j-->网页版行为、快捷键与数据</div>
+        </div>
+
+        <div data-page-node-id="2gTVcwT1Vf9ZhVPcU111XW" class="card">
+          <div data-page-node-id="PuLUr1yFZtKRHmy5b0MREv" class="card-head"><div data-page-node-id="zEMV4TT8ACPjoPb4C4chly" class="card-title"><!--pnid:C0NCOcnLAwkXSeRNSeA8SY-->通用</div></div>
+          <div data-page-node-id="Ea4GKU1rYP0QM9BTAZzRIO" class="row">
+            <div data-page-node-id="onMqYZ9CNtVW4z2XJMEsR5" class="grow">
+              <div data-page-node-id="pftbytn1sJuGSLhqgJgT33" class="label"><!--pnid:QwHHVwFGu2zW6jAeaGmFwN-->切到后台继续计时</div>
+              <div data-page-node-id="Y1yMA91vgq6fy1Ji9W9T6E" class="hint"><!--pnid:cWGGfXqsV9VgyW8unaG9xB-->保持本标签页打开即可，最小化不影响计时</div>
+            </div>
+            <div data-page-node-id="oiHhTp6usKbERpkb4tn04D" class="badge-ok"><!--pnid:BPSNf6UcNoZqBbfqtTYPkx-->已启用</div>
+          </div>
+          <div data-page-node-id="i8NKLx4FzAhYRKWReAlif7" class="row">
+            <div data-page-node-id="kUSZPlPFwgaQLPVoPNDrC4" class="grow">
+              <div data-page-node-id="kDYbpX5Lc0dJVJZ1DTnADn" class="label"><!--pnid:y5EVofA6CZBib1wa05Lnlj-->系统通知</div>
+              <div data-page-node-id="6cWVCv7ntNxcsRINqaVDem" class="hint" id="notifyHint"><!--pnid:feYyJsuiS4i0ENmOxDNHwh-->页面在后台时也能弹出系统通知</div>
+            </div>
+            <div data-page-node-id="4VY2VWquqWyYvE0Q2Wv9IH" class="switch" id="gNotify"></div>
+          </div>
+          <div data-page-node-id="Fd6DHglLs503ljj0c1jANu" class="row">
+            <div data-page-node-id="gKhYXK1oPOp8YMh4K8xwIh" class="grow"><div data-page-node-id="4HL117e2x9esUnKJcFsJhq" class="label"><!--pnid:ahLJvgbUsN9ORwZHuo1mwz-->角标呼吸提示</div><div data-page-node-id="IPPa5HOgpdsuwj8wlOV36l" class="hint"><!--pnid:lWdD7zK8wkwTJsofpoMeSK-->右下角显示柔和提示，不遮挡内容</div></div>
+            <div data-page-node-id="Kqu3ezcNrlnPGaUOunBfgz" class="switch" id="gBadge"></div>
+          </div>
+          <div data-page-node-id="ecWMHRFkcp9SFh9EqLaRJL" class="row">
+            <div data-page-node-id="eb7FVZi8QG9YYdPyGwGLJz" class="grow">
+              <div data-page-node-id="BLSRIht3a9nchrE3sdanhr" class="label"><!--pnid:RIbUcuFt6TtV5LttEuYCkx-->仅在工作时段提醒</div>
+              <div data-page-node-id="UmT3bJ3HPzquCAJjLA4UL6" class="hint" id="workHoursHint"><!--pnid:OsYSVxTiNSna7KQK4JRoPo-->09:00 至 18:00</div>
+            </div>
+            <div data-page-node-id="qN1kIezma6r5FOrkIolAfV" class="switch" id="gWorkHours"></div>
+          </div>
+          <div data-page-node-id="9ff5w31mGqKvRD9UKfamDk" class="row" hidden id="workHoursRow">
+            <div data-page-node-id="0w4c8zb8cyiWztKnd6vuYO" class="grow"><div data-page-node-id="Sxm0JoFCcBBYCgid8tiv9m" class="label"><!--pnid:Q7tfxEuyvYvI4MzPNqDhoO-->工作时段</div></div>
+            <input data-page-node-id="m82V8vUOQsaHSB5uVQWDXz" class="field time" id="workStart" type="time">
+            <span data-page-node-id="bJic0cP6eLneywg7alg66n" class="dash"><!--pnid:j4MY7hOfiLqbPABg7tAPDZ-->—</span>
+            <input data-page-node-id="roTciiR6hD9Y8GZH3rTnQc" class="field time" id="workEnd" type="time">
+          </div>
+        </div>
+
+        <div data-page-node-id="ygoUSXBa1vA6ut7ywz4i3K" class="card">
+          <div data-page-node-id="SNnAL5vitQfVS5z7EAgscG" class="card-head"><div data-page-node-id="HFDm7xjZESox1DzZQOyxIo" class="card-title"><!--pnid:ukGE7btH9ZG6jKPGc2EQw6-->键盘快捷键</div></div>
+          <div data-page-node-id="eaLoqAre31gMEWQmzpFupk" class="row">
+            <div data-page-node-id="zeoTa6eT2AFBfbWyCSLcT5" class="grow"><div data-page-node-id="VEXfr2PQQFoQvHOXRz7Sm0" class="label"><!--pnid:3Iilar66Nr0XYIflNqocRn-->开始 / 暂停番茄钟</div><div data-page-node-id="oPrHpDtsRBsnKxFgd2yRFh" class="hint"><!--pnid:R06dvbc1b0c8ie5N1OS9h8-->焦点不在输入框时生效</div></div>
+            <div data-page-node-id="340THKrlqfTSvnPMfM9nl7" class="kbd"><!--pnid:6wx8BRcWYcTEXVHcuv9PeI-->Space</div>
+          </div>
+          <div data-page-node-id="T5PVptQ2mfCTbPfNIWgpFA" class="row">
+            <div data-page-node-id="Pwb2WN0vgIo5rB8PHh8D7l" class="grow"><div data-page-node-id="KFq0yGABVfaIAPntrTfy3n" class="label"><!--pnid:8KCvA2eaNteGFf7YhhiBKQ-->切换页面</div><div data-page-node-id="f2OXUx2nNYSqhsnKHK8ynA" class="hint"><!--pnid:Ofw7l6mJ7fi8agGi7gSo32-->按侧边栏顺序</div></div>
+            <div data-page-node-id="WOiiFWlbSUS0XW87Wyg2vI" class="kbd"><!--pnid:if1qpZeAFPI4AVk3CYiy1R-->1 – 6</div>
+          </div>
+          <div data-page-node-id="LxSHsNGZ2dRZyii7kzCM2M" class="row">
+            <div data-page-node-id="jaAZFNTAmHYLai10cq3Vsp" class="grow"><div data-page-node-id="xbXRlg1FZaK0We151G7IP8" class="label"><!--pnid:VqSbCeJlbqgqCKYwGPOOXM-->关闭提醒弹窗</div><div data-page-node-id="RWwtixu3i8MCGrG7W5dElo" class="hint"><!--pnid:AXIS1wLvA1FqZN5rEl7kg2-->等同于点空白处</div></div>
+            <div data-page-node-id="ixIiPPmKpgr97CXkqtH6lV" class="kbd"><!--pnid:WNgrlKpRxawoRH0gjUShs6-->Esc</div>
+          </div>
+        </div>
+
+        <div data-page-node-id="bI2sFI6rpzifX8nLUtJuYd" class="card">
+          <div data-page-node-id="mL8uHEHvMh2WcuH2PPDylC" class="card-head"><div data-page-node-id="gxHW4CWp1HRzbf7VMoPqQK" class="card-title"><!--pnid:tdiGyRYtOWyVMpddjrUFrN-->数据</div></div>
+          <div data-page-node-id="6WrrbJk0YLCq1YZs1DoDU3" class="row">
+            <div data-page-node-id="l8Ubes0YygkHUo5L4Y8WvW" class="grow">
+              <div data-page-node-id="UEJaw0614xyi5MfhvodNxU" class="label"><!--pnid:TTrBZde5SMz8glcvwjnHCy-->清空今日统计</div>
+              <div data-page-node-id="DbaeRVbSmqz0rNaIHLNaON" class="hint"><!--pnid:WCnBlZ3sg9BdWdrogcD1y7-->饮水、专注、提醒计数归零，历史记录保留</div>
+            </div>
+            <div data-page-node-id="2yFJMytTCdzKYGtxAewq1y" class="btn" id="resetStats"><!--pnid:vLC64yxn9cEb8qFsfdBdrZ-->清空</div>
+          </div>
+          <div data-page-node-id="jE6SW6PZkjCODZ9o6hSm7Q" class="row">
+            <div data-page-node-id="UUyRhjLIrIVxh1WHSBIUlF" class="grow">
+              <div data-page-node-id="uDIMz0Y5TXjAxemkvv3wwq" class="label"><!--pnid:tfJkw0hvKEVTWhODSYLjVY-->导出备份</div>
+              <div data-page-node-id="Zldfl6Ab2jmdWLBjqmTscQ" class="hint"><!--pnid:k79YFrE8jxu3kHftsjpmRR-->把设置与历史记录存成 JSON 文件</div>
+            </div>
+            <div data-page-node-id="B9ojUIO5QSEwVwcglEsn02" class="btn" id="exportData"><!--pnid:hE5502VR97pFVOtwEPIa8Q-->导出</div>
+          </div>
+          <div data-page-node-id="uZTA20WdO7xWJNuNE8bDQA" class="row">
+            <div data-page-node-id="GiuFen709rUgP2TNFkp3sU" class="grow">
+              <div data-page-node-id="AL9WtcIFFro9qN83d6VTJQ" class="label"><!--pnid:Dz4TBvgZOHWk6h7WMFIYRD-->导入备份</div>
+              <div data-page-node-id="ejlJWmZ54jZfxjjG8cuCHe" class="hint"><!--pnid:o22zJjcho8IR4c9pIH0wDQ-->从 JSON 文件恢复设置与记录</div>
+            </div>
+            <div data-page-node-id="aMUQy5tVlIO7qsS1FvRaBM" class="btn" id="importData"><!--pnid:veoO5M65uLHc8hktLk49EN-->导入</div>
+            <input data-page-node-id="f93Y4NXLCqJHB80fhL2jdh" accept="application/json,.json" hidden id="importFile" type="file">
+          </div>
+          <div data-page-node-id="jUS4h92We2eGLQDY8PIz4t" class="row">
+            <div data-page-node-id="Wm0DHciVQ8CUqI9SFLBMWy" class="grow">
+              <div data-page-node-id="PJz2uE9I8aeaGgpatORbQV" class="label"><!--pnid:MnNJBft2NPUkds5BFmWhiN-->数据存储位置</div>
+              <div data-page-node-id="QluaCl0GUTZhlXISQsJI4k" class="hint" id="cfgPath"><!--pnid:51as5rwD95i854W6y0ALKI-->浏览器 localStorage</div>
+            </div>
+          </div>
+        </div>
+
+        <div data-page-node-id="7oKVQUbnWGNyDkDKgbTAsj" class="card">
+          <div data-page-node-id="nTjbyVRCtnlUVKZIJsw0cw" class="card-head"><div data-page-node-id="c8VH7QrmX5WjgMefqdzMnE" class="card-title"><!--pnid:4FYtXzu6u5Egi8ORHFl3cv-->关于</div></div>
+          <div data-page-node-id="NpjrzZDkcwQQ8K2odEn1S9" class="row">
+            <div data-page-node-id="5cyUNMM03P5vKb572xplAr" class="grow">
+              <div data-page-node-id="VeRLeecY7n8iSUGP2qLVyV" class="label"><!--pnid:96s8ydkYPOcnjdN6D7lsgv-->宝贝请起身 1.0</div>
+              <div data-page-node-id="CtFMpAB78ugoNESELreJZy" class="hint"><!--pnid:j5ru8BcLM0V54M5LYXPvSg-->网页版 · 纯前端 + WebAudio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!--pnid:BUfozhwlBH7kgbSdqjuIH7--><!-- ============ 提示角标 ============ -->
+<div data-page-node-id="bCUym2kLWE2x4VBX545UTE" class="badge-hint" hidden id="badgeHint">
+  <span data-page-node-id="W1u0ITOIOar5r64eEjtifL" class="dot"></span>
+  <span data-page-node-id="4KrDc9nFAK74C17Rhz6XxG" id="badgeText"><!--pnid:koBkDvGtK2NwqxIHqfHW16-->该喝水了</span>
+</div>
+
+<!--pnid:cQ59BifJbMk0lmzotOSZjE--><!-- ============ 提醒弹窗 ============ -->
+<div data-page-node-id="qZZ3bLyCAlwSqhqDNWD8yK" class="pump-mask" hidden id="pumpMask">
+  <div data-page-node-id="2wpoRVDHZ4kFQdyzY0BONk" aria-modal="true" class="pump-card" id="pumpCard" role="dialog">
+    <div data-page-node-id="JmanRoLJE1GhjBtXIRjyau" class="icon-wrap bg-blue" id="iconWrap">
+      <svg data-page-node-id="K3La9VFtYEzuMzs2pP3yBd" fill="none" id="iconSvg" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" viewBox="0 0 24 24"></svg>
+    </div>
+
+    <div data-page-node-id="Z44lwzgFW5Wys2UIb5AFeO" class="pump-title" id="pumpTitle"><!--pnid:L3kvFKWnetFYSBRh54rvQk-->提醒</div>
+    <div data-page-node-id="6w1tMrNeyvka2UNNzBLSqg" class="pump-body" id="pumpBody"><!--pnid:53tHABNLrF3JApegjIB6za-->—</div>
+
+    <div data-page-node-id="xcToX62XHRALU3Jh9sa5Up" class="progress" hidden id="pumpProgress">
+      <div data-page-node-id="I5KKlsqrNUCYMo8h2OyWyO" class="progress-fill" id="pumpProgressFill" style="width:0%"></div>
+    </div>
+
+    <div data-page-node-id="jRbvPZ2oHKWAuclGX0I5yo" class="sound-bar">
+      <div data-page-node-id="S7HyW6SAG095grbxerjLHr" class="sound-btn" id="soundBtn">
+        <span data-page-node-id="hVrZzOb01K9sJESwTVSiWt" class="ring"></span>
+        <svg data-page-node-id="nZ6nHIVgoVu4AZwTwDnb8a" fill="currentColor" viewBox="0 0 24 24">
+          <path data-page-node-id="GylhdUJ3M8UTsjc9BDqbIB" d="M4 10v4h3l4 4V6L7 10H4z"></path><path data-page-node-id="F4TTwIcnKuSfBcMt8ipvGX" d="M16 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2"></path>
+        </svg>
+      </div>
+      <div data-page-node-id="vh8Ixe81N2BQVV3FMdVSDx" class="sound-meta">
+        <div data-page-node-id="7JfTJGY04WdClJMQMQ5Kk7" class="sound-state"><!--pnid:gStDPb2KZ3J8jhCdQ1EgaO-->正在播放</div>
+        <div data-page-node-id="KX5SyggK0u2nfiL7Sqk6iI" class="sound-name" id="soundName"><!--pnid:FgggXe1IrbQbitXltvvb6O-->水波</div>
+      </div>
+      <div data-page-node-id="K2jp8HytF1PLpC1MwGxsx5" class="sound-ctl">
+        <div data-page-node-id="MjD4bq11PGtPlVtlY2xnlP" id="btnReplay" title="重播">
+          <svg data-page-node-id="U4Ytz5ALflEO5U3Ing109n" fill="currentColor" viewBox="0 0 24 24"><path data-page-node-id="NGePtTekRLen44uVAYzG6h" d="M7 10v4h3l4 4V6l-4 4H7z"></path></svg>
+        </div>
+        <div data-page-node-id="hBjh0YYE548hnnY5oGFjgl" id="btnMute" title="静音本条">
+          <svg data-page-node-id="hMiACCqfflL6iNwTo4Idkn" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24">
+            <path data-page-node-id="h3f8HQz7HZN3CVv55qfD1C" d="M4 10v4h3l4 4V6L7 10H4z" fill="currentColor" stroke="none"></path>
+            <path data-page-node-id="DnJ9O9dy9nu3XQLpVBekA9" d="M16 9l5 6M21 9l-5 6"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div data-page-node-id="kCDFraz5ZZHRs47V9C50vu" class="pbtn-row" id="rowMain"></div>
+    <div data-page-node-id="47WyLxhibymqRoFyyXpbBT" class="pbtn-row sub" id="rowSub"></div>
+
+    <div data-page-node-id="h8ESxyW2D6ruBnTsEUewvS" class="hint-row" id="hintRow"><!--pnid:KvRaXmwWKppp0dEM3HZVnb-->点击卡片外区域可关闭</div>
+  </div>
+</div>
+
+<div data-page-node-id="Cbr0jdoIapXhgFePIwuPdV" class="toast" hidden id="toast"></div>
+
+
+
+
+<script>const previewStorage={value:null,getItem(){return this.value},setItem(k,v){this.value=v},clear(){this.value=null}};
+'use strict';
+/**
+ * WebAudio 提示音合成引擎
+ * 零音频文件：所有音色实时合成，包体不增加任何体积
+ * 6 个音色：水波 / 清铃 / 木鱼 / 微风 / 心跳 / 钟琴
+ */
+
+const SOUND_LIST = [
+  { id: 'ripple',  name: '水波',   desc: '柔和涟漪，适合喝水提醒', kind: 'calm' },
+  { id: 'bell',    name: '清铃',   desc: '明亮单音，适合番茄钟切换', kind: 'bright' },
+  { id: 'wood',    name: '木鱼',   desc: '短促叩击，适合久坐提醒', kind: 'sharp' },
+  { id: 'breeze',  name: '微风',   desc: '上行滑音，适合护眼提醒', kind: 'calm' },
+  { id: 'heart',   name: '心跳',   desc: '双击脉冲，适合连续达标', kind: 'sharp' },
+  { id: 'chime',   name: '钟琴',   desc: '长衰减泛音，适合全天总结', kind: 'bright' }
+];
+
+const SOUND_NAMES = SOUND_LIST.reduce((m, s) => (m[s.id] = s.name, m), {});
+
+let ctx = null;
+let master = null;
+
+function ensureCtx() {
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = 1;
+    master.connect(ctx.destination);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+function now() { return ensureCtx().currentTime; }
+
+/** 带淡入淡出的包络 */
+function envelope(node, opts) {
+  const o = opts || {};
+  const t0 = o.t0 !== undefined ? o.t0 : now();
+  const atk = o.atk !== undefined ? o.atk : 0.008;
+  const dur = o.dur !== undefined ? o.dur : 0.6;
+  const peak = o.peak !== undefined ? o.peak : 0.3;
+  const fadeIn = o.fade ? (o.fadeSec || 5) / 1000 : atk;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t0 + fadeIn);
+  g.gain.setValueAtTime(Math.max(peak, 0.0002), t0 + dur);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + 0.12);
+  node.connect(g);
+  return g;
+}
+
+function tone(freq, opts) {
+  const t0 = opts.t0;
+  const osc = ctx.createOscillator();
+  osc.type = opts.type || 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  if (opts.slideTo) {
+    osc.frequency.exponentialRampToValueAtTime(opts.slideTo, t0 + (opts.slideDur || 0.3));
+  }
+  const g = envelope(osc, opts);
+  g.connect(master);
+  osc.start(t0);
+  osc.stop(t0 + (opts.dur || 0.6) + 0.2);
+  return osc;
+}
+
+function noiseBurst(opts) {
+  const t0 = opts.t0;
+  const len = Math.max(1, Math.floor(ctx.sampleRate * (opts.dur || 0.3)));
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) {
+    ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+
+  const flt = ctx.createBiquadFilter();
+  flt.type = opts.filter || 'bandpass';
+  flt.frequency.setValueAtTime(opts.freq || 800, t0);
+  if (opts.freqTo) {
+    flt.frequency.exponentialRampToValueAtTime(opts.freqTo, t0 + (opts.dur || 0.3));
+  }
+  flt.Q.value = opts.q || 1.2;
+
+  src.connect(flt);
+  const g = envelope(flt, opts);
+  g.connect(master);
+  src.start(t0);
+  return src;
+}
+
+/* ============ 6 个音色定义 ============ */
+
+const VOICES = {
+  // 水波：低频正弦涟漪 + 水滴噪声
+  ripple() {
+    const t = now();
+    [523.25, 392.00, 293.66].forEach((f, i) => {
+      tone(f, { t0: t + i * 0.11, type: 'sine', dur: 0.55, peak: 0.24, fade: true, fadeSec: 5 });
+    });
+    noiseBurst({ t0: t, dur: 0.22, freq: 1400, freqTo: 380, q: 2.4, peak: 0.10, fade: true, fadeSec: 5 });
+  },
+
+  // 清铃：明亮的高音正弦 + 三次泛音
+  bell() {
+    const t = now();
+    tone(1046.50, { t0: t, type: 'sine', dur: 0.75, peak: 0.26, fade: true, fadeSec: 5 });
+    tone(2093.00, { t0: t, type: 'sine', dur: 0.45, peak: 0.10, fade: true, fadeSec: 5 });
+    tone(3136.00, { t0: t + 0.005, type: 'sine', dur: 0.28, peak: 0.05, fade: true, fadeSec: 5 });
+  },
+
+  // 木鱼：极短的高频叩击 + 快速衰减
+  wood() {
+    const t = now();
+    tone(1180, { t0: t, type: 'triangle', dur: 0.11, peak: 0.30, fade: false, atk: 0.002 });
+    noiseBurst({ t0: t, dur: 0.09, freq: 2100, q: 3.2, peak: 0.16, fade: false, atk: 0.002 });
+    tone(660, { t0: t + 0.14, type: 'triangle', dur: 0.09, peak: 0.14, fade: false, atk: 0.002 });
+  },
+
+  // 微风：上行滑音，柔和渐强
+  breeze() {
+    const t = now();
+    tone(392.00, { t0: t, type: 'sine', slideTo: 880.00, slideDur: 0.55, dur: 0.62, peak: 0.20, fade: true, fadeSec: 5 });
+    noiseBurst({ t0: t, dur: 0.6, freq: 500, freqTo: 2600, filter: 'lowpass', q: 0.8, peak: 0.06, fade: true, fadeSec: 5 });
+  },
+
+  // 心跳：两次低频脉冲
+  heart() {
+    const t = now();
+    tone(70, { t0: t, type: 'sine', dur: 0.16, peak: 0.34, fade: true, fadeSec: 5 });
+    tone(62, { t0: t + 0.20, type: 'sine', dur: 0.22, peak: 0.26, fade: true, fadeSec: 5 });
+    tone(140, { t0: t, type: 'sine', dur: 0.10, peak: 0.10, fade: false, atk: 0.004 });
+  },
+
+  // 钟琴：多泛音长衰减
+  chime() {
+    const t = now();
+    const base = 659.25;
+    [1, 2.01, 3.03, 4.16, 5.43].forEach((mult, i) => {
+      tone(base * mult, {
+        t0: t + i * 0.008,
+        type: 'sine',
+        dur: 1.5 - i * 0.16,
+        peak: 0.22 / (i + 1.15),
+        fade: true,
+        fadeSec: 5
+      });
+    });
+  }
+};
+
+/**
+ * 播放提示音
+ * @param {string} id     音色 id
+ * @param {object} cfg    { volume, muted, fade, fadeSec }
+ */
+function play(id, cfg) {
+  if (!cfg || cfg.muted) return false;
+  const fn = VOICES[id];
+  if (!fn) return false;
+  ensureCtx();
+  const prev = master.gain.value;
+  master.gain.value = (cfg.volume !== undefined ? cfg.volume : 0.7);
+  try {
+    fn();
+  } catch (e) {
+    console.error('[audio] 播放失败:', e.message);
+  }
+  setTimeout(() => { master.gain.value = prev; }, 2600);
+  return true;
+}
+
+/** 预热，解锁浏览器音频自动播放限制 */
+function warmup() {
+  try {
+    ensureCtx();
+    const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const s = ctx.createBufferSource();
+    s.buffer = b;
+    s.connect(ctx.destination);
+    s.start(0);
+  } catch (e) { /* 忽略 */ }
+}
+
+window.HealthAudio = {
+  play: play,
+  warmup: warmup,
+  list: SOUND_LIST,
+  names: SOUND_NAMES,
+  resume: ensureCtx
+};
+
+'use strict';
+/* ==========================================================
+   配置存储 —— 网页版用 localStorage 替代 Electron 的 settings.json
+   保留原版的深合并语义：默认值兜底，文件值优先
+   ========================================================== */
+
+const STORE_KEY = 'baobei-qishen.v1';
+
+const DEFAULTS = {
+  version: 1,
+  // 提醒项：每种都有独立开关、间隔、音效
+  water:    { enabled: true,  intervalMin: 45, targetCups: 8, cupSize: 250, sound: 'ripple' },
+  eye:      { enabled: true,  intervalMin: 20, sound: 'breeze' },
+  sit:      { enabled: true,  intervalMin: 50, idleGuard: true, sound: 'wood' },
+  stand:    { enabled: false, intervalMin: 90, sound: 'bell' },
+  pomodoro: { enabled: false, focusMin: 25, shortMin: 5, longMin: 15, rounds: 4, sound: 'bell' },
+  // 音效总控
+  audio:    { volume: 0.7, muted: false, fade: true, fadeSec: 5 },
+  // 全局
+  general: {
+    badgeBreath: true,
+    notify: false,
+    workHoursOnly: false,
+    workStart: '09:00',
+    workEnd: '18:00'
+  },
+  // 今日统计（滚动更新，不清空历史）
+  stats: {
+    date: '',
+    waterCups: 0,
+    focusMin: 0,
+    remindTotal: 0,
+    remindDone: 0,
+    logs: [],     // [{ts, kind, action}] 今日提醒流水
+    history: []   // [{date, waterCups, focusMin, remindTotal, remindDone}]
+  },
+  lastWaterAt: 0,
+  lastEyeAt: 0,
+  lastSitAt: 0,
+  lastStandAt: 0
+};
+
+const clone = (v) => JSON.parse(JSON.stringify(v));
+
+/**
+ * 深合并：patch 里的值覆盖 base（文件值优先，默认值补缺）
+ */
+function deepMerge(base, patch) {
+  if (!patch || typeof patch !== 'object') return base;
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  for (const k of Object.keys(patch)) {
+    const pv = patch[k];
+    if (pv && typeof pv === 'object' && !Array.isArray(pv) &&
+        base[k] && typeof base[k] === 'object' && !Array.isArray(base[k])) {
+      out[k] = deepMerge(base[k], pv);
+    } else if (pv !== undefined) {
+      out[k] = pv;
+    }
+  }
+  return out;
+}
+
+const store = {
+  data: clone(DEFAULTS),
+  _failWarned: false,
+
+  load() {
+    try {
+      const raw = previewStorage.getItem(STORE_KEY);
+      if (raw) {
+        // DEFAULTS 作底、存档作 patch：存档里的用户设置覆盖默认值
+        this.data = deepMerge(clone(DEFAULTS), JSON.parse(raw));
+      } else {
+        this.data = clone(DEFAULTS);
+      }
+    } catch (e) {
+      console.warn('[store] 读取失败，回退默认值:', e.message);
+      this.data = clone(DEFAULTS);
+    }
+    return this.data;
+  },
+
+  save() {
+    try {
+      previewStorage.setItem(STORE_KEY, JSON.stringify(this.data));
+    } catch (e) {
+      if (!this._failWarned) {
+        this._failWarned = true;
+        console.warn('[store] 写入失败:', e.message);
+        if (window.__toast) window.__toast('本地存储写入失败，设置可能不会被记住');
+      }
+    }
+  },
+
+  get(key) { return this.data[key]; },
+
+  patch(key, value) {
+    this.data[key] = deepMerge(this.data[key], value);
+    this.save();
+    return this.data[key];
+  },
+
+  /** 整体替换（导入备份用） */
+  replace(patch) {
+    this.data = deepMerge(clone(DEFAULTS), patch || {});
+    this.save();
+    return this.data;
+  },
+
+  /** 跨天检测：把昨天的记录归档，重置今日计数 */
+  rollDay() {
+    const today = new Date().toISOString().slice(0, 10);
+    const s = this.data.stats;
+    if (s.date === today) return false;
+
+    if (s.date && (s.waterCups || s.focusMin || s.remindTotal)) {
+      s.history.push({
+        date: s.date,
+        waterCups: s.waterCups,
+        focusMin: s.focusMin,
+        remindTotal: s.remindTotal,
+        remindDone: s.remindDone
+      });
+      if (s.history.length > 120) s.history.shift();
+    }
+    s.date = today;
+    s.waterCups = 0;
+    s.focusMin = 0;
+    s.remindTotal = 0;
+    s.remindDone = 0;
+    s.logs = [];
+    this.save();
+    return true;
+  }
+};
+
+'use strict';
+/* ==========================================================
+   宝贝请起身 —— 主界面逻辑
+   ========================================================== */
+
+const $  = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+const PAGE_ORDER = ['pomodoro', 'water', 'care', 'stats', 'sound', 'settings'];
+const BASE_TITLE = '宝贝请起身';
+
+let D = null;                 // 全局配置
+let pomo = { running: false, phase: 'focus', remain: 0, endAt: 0, round: 0 };
+
+let lastActivityAt = Date.now();   // 网页版替代 Electron 的 powerMonitor
+let pumpOpen = false;
+let pumpData = null;
+let mutedOnce = false;
+let titleTimer = null;
+let badgeTimer = null;
+let toastTimer = null;
+
+/* ---------- 初始化 ---------- */
+function boot() {
+  D = store.load();
+  store.rollDay();
+  HealthAudio.warmup();
+
+  bindNav();
+  bindPomodoro();
+  bindWater();
+  bindCare();
+  bindSound();
+  bindSettings();
+  bindPump();
+  bindActivity();
+  bindKeyboard();
+
+  renderAll();
+
+  setInterval(tickPomo, 250);
+  setInterval(tickMain, 1000);
+
+  if (D.stats.date) $('#cfgPath').textContent = '浏览器 localStorage · ' + STORE_KEY;
+}
+
+/* ==========================================================
+   路径读写
+   ========================================================== */
+function readPath(path) {
+  return path.split('.').reduce((o, k) => (o || {})[k], D);
+}
+function writePath(path, value) {
+  const keys = path.split('.');
+  let o = D;
+  for (let i = 0; i < keys.length - 1; i++) {
+    o[keys[i]] = o[keys[i]] || {};
+    o = o[keys[i]];
+  }
+  o[keys[keys.length - 1]] = value;
+  store.save();
+  updateNextChip();
+}
+
+function setSwitch(el, on) { if (el) el.classList.toggle('on', !!on); }
+function setField(el, v) { if (el) el.value = v; }
+
+function bindSwitch(el, path, onChange) {
+  if (!el) return;
+  el.onclick = () => {
+    const next = !el.classList.contains('on');
+    el.classList.toggle('on', next);
+    writePath(path, next);
+    if (onChange) onChange(next);
+  };
+}
+
+function bindNum(el, path) {
+  if (!el) return;
+  el.onchange = () => {
+    let v = Number(el.value);
+    if (isNaN(v) || v <= 0) { el.value = readPath(path); return; }
+    const min = Number(el.min || 1);
+    const max = Number(el.max || 9999);
+    v = Math.round(Math.min(max, Math.max(min, v)));
+    el.value = v;
+    writePath(path, v);
+    if (path.indexOf('water.') === 0) renderCups();
+  };
+}
+
+/* ==========================================================
+   导航
+   ========================================================== */
+function switchPage(name) {
+  $$('.nav-item').forEach((x) => x.classList.toggle('active', x.dataset.page === name));
+  $$('.page').forEach((p) => p.classList.toggle('active', p.id === 'page-' + name));
+  $('#content').scrollTop = 0;
+}
+
+function bindNav() {
+  $$('.nav-item').forEach((el) => {
+    el.onclick = () => switchPage(el.dataset.page);
+  });
+}
+
+/* ==========================================================
+   番茄钟
+   ========================================================== */
+function phaseMinutes(p) {
+  return readPath('pomodoro.' + (p === 'focus' ? 'focusMin' : p === 'short' ? 'shortMin' : 'longMin')) || 25;
+}
+
+function bindPomodoro() {
+  $('#pomoToggle').onclick = () => togglePomo();
+  $('#pomoSkip').onclick = () => { advancePomo(true); renderPomo(); };
+  $('#pomoReset').onclick = () => {
+    pomo.running = false; pomo.phase = 'focus'; pomo.round = 0;
+    pomo.remain = phaseMinutes('focus') * 60; pomo.endAt = 0;
+    renderPomo();
+  };
+
+  $$('#pomoSeg .seg').forEach((s) => {
+    s.onclick = () => {
+      pomo.phase = s.dataset.phase;
+      pomo.remain = phaseMinutes(pomo.phase) * 60;
+      pomo.endAt = pomo.running ? Date.now() + pomo.remain * 1000 : 0;
+      renderPomo();
+    };
+  });
+
+  const map = {
+    pomoFocus: 'pomodoro.focusMin',
+    pomoShort: 'pomodoro.shortMin',
+    pomoLong:  'pomodoro.longMin',
+    pomoRounds:'pomodoro.rounds'
+  };
+  Object.keys(map).forEach((id) => {
+    const el = $('#' + id);
+    if (!el) return;
+    el.onchange = () => {
+      let v = Number(el.value);
+      if (isNaN(v)) { el.value = readPath(map[id]); return; }
+      const min = Number(el.min || 1);
+      const max = Number(el.max || 180);
+      v = Math.round(Math.min(max, Math.max(min, v)));
+      el.value = v;
+      writePath(map[id], v);
+      const hit = (id === 'pomoFocus' && pomo.phase === 'focus') ||
+                  (id === 'pomoShort' && pomo.phase === 'short') ||
+                  (id === 'pomoLong'  && pomo.phase === 'long');
+      if (hit) {
+        pomo.remain = phaseMinutes(pomo.phase) * 60;
+        pomo.endAt = pomo.running ? Date.now() + pomo.remain * 1000 : 0;
+      }
+      renderPomo();
+    };
+  });
+}
+
+function togglePomo() {
+  if (pomo.running) pausePomo(); else startPomo();
+  renderPomo();
+}
+
+function startPomo() {
+  if (pomo.remain <= 0) pomo.remain = phaseMinutes(pomo.phase) * 60;
+  pomo.running = true;
+  pomo.endAt = Date.now() + pomo.remain * 1000;
+  HealthAudio.play('bell', readPath('audio'));
+}
+
+function pausePomo() {
+  pomo.running = false;
+  pomo.endAt = 0;
+}
+
+function tickPomo() {
+  if (!pomo.running) return;
+  const left = Math.max(0, Math.round((pomo.endAt - Date.now()) / 1000));
+  if (left !== pomo.remain) { pomo.remain = left; renderRingOnly(); }
+  if (left <= 0) { advancePomo(false); renderPomo(); }
+}
+
+function advancePomo(skipped) {
+  const cfg = readPath('pomodoro');
+  if (pomo.phase === 'focus') {
+    if (!skipped) {
+      D.stats.focusMin = (D.stats.focusMin || 0) + cfg.focusMin;
+      store.save();
+    }
+    pomo.round += 1;
+    if (pomo.round >= cfg.rounds) { pomo.phase = 'long'; pomo.round = 0; }
+    else { pomo.phase = 'short'; }
+  } else {
+    pomo.phase = 'focus';
+  }
+  pomo.remain = phaseMinutes(pomo.phase) * 60;
+  pomo.running = false;
+  pomo.endAt = 0;
+  if (!skipped) {
+    HealthAudio.play('bell', readPath('audio'));
+    showBadge(pomo.phase === 'focus' ? '休息结束，继续专注' : '专注结束，去休息一下');
+  }
+  updateMetrics();
+  renderCharts();
+}
+
+function renderRingOnly() {
+  const total = phaseMinutes(pomo.phase) * 60;
+  const pct = total ? pomo.remain / total : 0;
+  const C = 2 * Math.PI * 52;
+  const ring = $('#pomoRing');
+  ring.setAttribute('stroke-dasharray', C.toFixed(1));
+  ring.setAttribute('stroke-dashoffset', (C * (1 - pct)).toFixed(1));
+  const m = Math.floor(pomo.remain / 60), s = pomo.remain % 60;
+  $('#pomoTime').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function renderPomo() {
+  renderRingOnly();
+  $$('#pomoSeg .seg').forEach((s) => s.classList.toggle('active', s.dataset.phase === pomo.phase));
+
+  const atStart = pomo.remain === phaseMinutes(pomo.phase) * 60;
+  $('#pomoToggle').textContent = pomo.running ? '暂停' : (atStart ? '开始' : '继续');
+
+  const status = { focus: '专注中', short: '短休息', long: '长休息' }[pomo.phase];
+  $('#pomoStatus').textContent = pomo.running ? status : (atStart ? '准备开始' : '已暂停');
+  $('#pomoRound').textContent = `第 ${pomo.round} 轮 · 共 ${readPath('pomodoro.rounds')} 轮`;
+
+  const ring = $('#pomoRing');
+  ring.classList.toggle('short', pomo.phase === 'short');
+  ring.classList.toggle('long', pomo.phase === 'long');
+}
+
+/* ==========================================================
+   喝水
+   ========================================================== */
+function bindWater() {
+  $('#wAdd').onclick = () => addCup(1);
+  $('#wUndo').onclick = () => addCup(-1);
+  bindSwitch($('#wEnabled'), 'water.enabled');
+  bindNum($('#wInterval'), 'water.intervalMin');
+  bindNum($('#wTargetIn'), 'water.targetCups');
+  bindNum($('#wSize'), 'water.cupSize');
+}
+
+function addCup(delta) {
+  const n = Math.max(0, (D.stats.waterCups || 0) + delta);
+  D.stats.waterCups = n;
+  store.save();
+  if (delta > 0) {
+    HealthAudio.play('heart', readPath('audio'));
+    const target = readPath('water.targetCups');
+    if (n === target) HealthAudio.play('chime', readPath('audio'));
+  }
+  updateMetrics();
+  renderCups();
+  renderCharts();
+  renderStreak();
+}
+
+function renderCups() {
+  const target = readPath('water.targetCups') || 8;
+  const cur = D.stats.waterCups || 0;
+  const box = $('#wCups');
+  box.innerHTML = '';
+  for (let i = 0; i < target; i++) {
+    const d = document.createElement('div');
+    d.className = 'cup' + (i < cur ? ' filled' : '');
+    d.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-3.3 4-5 6.6-5 9.2A5 5 0 0 0 12 17a5 5 0 0 0 5-4.8C17 9.6 15.3 7 12 3z"></path></svg>';
+    box.appendChild(d);
+  }
+  $('#wCount').textContent = cur;
+  $('#wTarget').textContent = target;
+  const size = readPath('water.cupSize') || 250;
+  $('#wVolume').textContent = `按 ${size} ml 计，今日约 ${cur * size} ml`;
+}
+
+/* ==========================================================
+   护眼久坐
+   ========================================================== */
+function bindCare() {
+  bindSwitch($('#eyeEnabled'), 'eye.enabled');
+  bindNum($('#eyeInterval'), 'eye.intervalMin');
+  bindSwitch($('#sitEnabled'), 'sit.enabled');
+  bindNum($('#sitInterval'), 'sit.intervalMin');
+  bindSwitch($('#sitIdle'), 'sit.idleGuard');
+  bindSwitch($('#standEnabled'), 'stand.enabled');
+  bindNum($('#standInterval'), 'stand.intervalMin');
+
+  $$('[data-test]').forEach((b) => {
+    b.onclick = () => trigger(b.dataset.test, { manual: true });
+  });
+}
+
+/* ==========================================================
+   提示音
+   ========================================================== */
+function bindSound() {
+  const grid = $('#soundGrid');
+  HealthAudio.list.forEach((s) => {
+    const item = document.createElement('div');
+    item.className = 'sound-item';
+    item.dataset.sid = s.id;
+    item.innerHTML = `
+      <div class="sound-play">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10v4h3l4 4V6l-4 4H7z"></path><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
+      </div>
+      <div class="sound-meta">
+        <div class="sound-name">${s.name}</div>
+        <div class="sound-desc">${s.desc}</div>
+      </div>
+      <div class="sound-tag ${s.kind}">${s.kind === 'calm' ? '柔和' : s.kind === 'bright' ? '明亮' : '短促'}</div>`;
+    item.querySelector('.sound-play').onclick = () => {
+      HealthAudio.play(s.id, readPath('audio'));
+      item.classList.add('playing');
+      setTimeout(() => item.classList.remove('playing'), 1400);
+    };
+    grid.appendChild(item);
+  });
+
+  bindSwitch($('#aMuted'), 'audio.muted', () => syncSoundTags());
+  bindSwitch($('#aFade'), 'audio.fade');
+
+  const vol = $('#aVolume');
+  vol.value = Math.round((readPath('audio.volume') || 0.7) * 100);
+  vol.oninput = () => {
+    writePath('audio.volume', Number(vol.value) / 100);
+    $('#volHint').textContent = vol.value + '%';
+  };
+
+  const map = { sndWater: 'water', sndEye: 'eye', sndSit: 'sit', sndStand: 'stand', sndPomo: 'pomodoro' };
+  for (const id in map) {
+    const sel = $('#' + id);
+    if (!sel) continue;
+    HealthAudio.list.forEach((s) => {
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    sel.onchange = () => {
+      writePath(map[id] + '.sound', sel.value);
+      HealthAudio.play(sel.value, readPath('audio'));
+    };
+  }
+}
+
+function syncSoundTags() {
+  const muted = readPath('audio.muted');
+  $$('.sound-item').forEach((i) => { i.style.opacity = muted ? '0.45' : '1'; });
+}
+
+/* ==========================================================
+   设置
+   ========================================================== */
+function bindSettings() {
+  bindSwitch($('#gNotify'), 'general.notify', (on) => {
+    if (!on) return;
+    if (!('Notification' in window)) {
+      toast('当前浏览器不支持系统通知');
+      setSwitch($('#gNotify'), false);
+      writePath('general.notify', false);
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      $('#notifyHint').textContent = '已授权，页面在后台也能收到提醒';
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      toast('通知权限已被拒绝，请在浏览器地址栏重新允许');
+      $('#notifyHint').textContent = '权限被拒绝，需在浏览器站点设置里允许';
+      setSwitch($('#gNotify'), false);
+      writePath('general.notify', false);
+      return;
+    }
+    Notification.requestPermission().then((p) => {
+      if (p === 'granted') {
+        $('#notifyHint').textContent = '已授权，页面在后台也能收到提醒';
+        toast('系统通知已开启');
+      } else {
+        $('#notifyHint').textContent = '未授权，仅页面内提醒';
+        setSwitch($('#gNotify'), false);
+        writePath('general.notify', false);
+      }
+    });
+  });
+
+  bindSwitch($('#gBadge'), 'general.badgeBreath');
+  bindSwitch($('#gWorkHours'), 'general.workHoursOnly', (on) => {
+    $('#workHoursRow').hidden = !on;
+  });
+
+  const ws = $('#workStart'), we = $('#workEnd');
+  ws.value = readPath('general.workStart');
+  we.value = readPath('general.workEnd');
+  ws.onchange = () => { writePath('general.workStart', ws.value || '09:00'); renderWorkHours(); };
+  we.onchange = () => { writePath('general.workEnd', we.value || '18:00'); renderWorkHours(); };
+
+  $('#resetStats').onclick = () => {
+    D.stats.waterCups = 0;
+    D.stats.focusMin = 0;
+    D.stats.remindTotal = 0;
+    D.stats.remindDone = 0;
+    D.stats.logs = [];
+    D.lastWaterAt = 0; D.lastEyeAt = 0; D.lastSitAt = 0; D.lastStandAt = 0;
+    store.save();
+    updateMetrics(); renderCups(); renderCharts(); renderRemindLog(); renderStreak();
+    toast('今日统计已清空');
+  };
+
+  $('#exportData').onclick = () => {
+    const blob = new Blob([JSON.stringify(D, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    a.href = URL.createObjectURL(blob);
+    a.download = `baobei-qishen-backup-${stamp}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    toast('备份已导出');
+  };
+
+  $('#importData').onclick = () => $('#importFile').click();
+  $('#importFile').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(String(reader.result));
+        if (!obj || typeof obj !== 'object') throw new Error('格式不对');
+        store.replace(obj);
+        D = store.data;
+        renderAll();
+        toast('备份已导入');
+      } catch (err) {
+        toast('导入失败：' + err.message);
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+}
+
+function renderWorkHours() {
+  const s = readPath('general.workStart');
+  const e = readPath('general.workEnd');
+  $('#workHoursHint').textContent = `${s} 至 ${e}`;
+}
+
+/* ==========================================================
+   久坐/离席检测（网页版：监听鼠标键盘活动）
+   ========================================================== */
+function bindActivity() {
+  const touch = () => { lastActivityAt = Date.now(); };
+  ['mousemove', 'mousedown', 'pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll']
+    .forEach((ev) => window.addEventListener(ev, touch, { passive: true }));
+}
+
+function idleSeconds() {
+  return (Date.now() - lastActivityAt) / 1000;
+}
+
+/* ==========================================================
+   提醒引擎
+   ========================================================== */
+const lastOf = (key, fallback) => {
+  const v = D[key];
+  return (!v || v <= 0) ? fallback : v;
+};
+const due = (key, intervalMin) => Date.now() - lastOf(key, Date.now()) >= intervalMin * 60000;
+
+function inWorkHours() {
+  const nowD = new Date();
+  const hm = nowD.getHours() * 60 + nowD.getMinutes();
+  const p = (s) => {
+    const [a, b] = String(s).split(':').map(Number);
+    return (a || 0) * 60 + (b || 0);
+  };
+  const start = p(D.general.workStart);
+  const end = p(D.general.workEnd);
+  if (start <= end) return hm >= start && hm <= end;
+  return hm >= start || hm <= end;   // 跨零点的时段
+}
+
+function checkReminders() {
+  if (pumpOpen) return;
+  const nowTs = Date.now();
+  if (D.general.workHoursOnly && !inWorkHours()) return;
+
+  const idle = D.sit.idleGuard ? idleSeconds() : 0;
+
+  if (D.water.enabled && due('lastWaterAt', D.water.intervalMin)) { trigger('water'); return; }
+  if (D.eye.enabled && due('lastEyeAt', D.eye.intervalMin)) { trigger('eye'); return; }
+  // 久坐：正在用电脑（1 分钟内有操作）才提醒
+  if (D.sit.enabled && idle < 60 && due('lastSitAt', D.sit.intervalMin)) { trigger('sit'); return; }
+  if (D.stand.enabled && due('lastStandAt', D.stand.intervalMin)) { trigger('stand'); return; }
+}
+
+const ICON_OF = { water: 'drop', eye: 'eye', sit: 'stand', stand: 'walk', pomodoro: 'timer' };
+
+function titleOf(kind) {
+  if (kind === 'water') return '该喝水了';
+  if (kind === 'eye') return '护眼时间';
+  if (kind === 'sit') return '该起身活动了';
+  if (kind === 'stand') return '起来走两步';
+  if (kind === 'pomodoro') return '该开始专注了';
+  return '提醒';
+}
+
+function bodyOf(kind) {
+  const nowTs = Date.now();
+  const mins = (from) => Math.max(0, Math.round((nowTs - (from || nowTs - 3600000)) / 60000));
+
+  if (kind === 'water') {
+    const m = mins(D.lastWaterAt);
+    const left = Math.max(0, (D.water.targetCups || 8) - (D.stats.waterCups || 0));
+    if (left > 0) return `距离上次喝水已经过去 ${m} 分钟\n今天还差 ${left} 杯达到目标`;
+    return `距离上次喝水已经过去 ${m} 分钟\n今天的饮水目标已经达成`;
+  }
+  if (kind === 'eye') {
+    return `已经连续用眼 ${Math.max(D.eye.intervalMin, mins(D.lastEyeAt))} 分钟\n看看 20 英尺外的地方，放松 20 秒`;
+  }
+  if (kind === 'sit') {
+    return `已经连续坐着 ${Math.max(D.sit.intervalMin, mins(D.lastSitAt))} 分钟\n站起来走一走，伸展一下肩颈`;
+  }
+  if (kind === 'stand') return '站起来活动一下，喝口水\n顺便眺望远处放松眼睛';
+  if (kind === 'pomodoro') return `准备开始一段 ${D.pomodoro.focusMin || 25} 分钟的专注\n把手机放远一点`;
+  return '';
+}
+
+function trigger(kind, opts) {
+  const cfgMap = { water: D.water, eye: D.eye, sit: D.sit, stand: D.stand, pomodoro: D.pomodoro };
+  const c = cfgMap[kind] || {};
+  if (!c.enabled && !(opts && opts.manual)) return;
+
+  D.stats.remindTotal = (D.stats.remindTotal || 0) + 1;
+  pushLog(kind, 'fired');
+  store.save();
+
+  const payload = {
+    kind: kind,
+    title: titleOf(kind),
+    body: bodyOf(kind),
+    sound: c.sound || 'bell',
+    icon: ICON_OF[kind] || 'drop',
+    manual: !!(opts && opts.manual),
+    targetCups: D.water.targetCups,
+    currentCups: D.stats.waterCups || 0
+  };
+
+  showPump(payload);
+  showBadge(payload.title + ' · ' + payload.body.split('\n')[0]);
+  notifySystem(payload);
+  updateMetrics();
+  renderRemindLog();
+}
+
+/* ==========================================================
+   提醒弹窗
+   ========================================================== */
+const ICONS = {
+  drop:  { cls: 'bg-blue',
+    path: '<path d="M12 3c-3.3 4-5 6.6-5 9.2A5 5 0 0 0 12 17a5 5 0 0 0 5-4.8C17 9.6 15.3 7 12 3z"></path><path d="M12 20a2.5 2.5 0 0 0 2.5-2.5"></path>' },
+  eye:   { cls: 'bg-green',
+    path: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="2.6"></circle>' },
+  stand: { cls: 'bg-orange',
+    path: '<circle cx="12" cy="4.5" r="2"></circle><path d="M12 7v6M8 21l4-6 4 6M12 13l-3 2"></path>' },
+  walk:  { cls: 'bg-purple',
+    path: '<circle cx="13" cy="4.5" r="2"></circle><path d="M13 7l-2 4 2 3 1 6M11 11L8 10M13 14l3 3"></path>' },
+  timer: { cls: 'bg-blue',
+    path: '<circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2"></path><path d="M9 2h6"></path>' }
+};
+
+const BUTTONS = {
+  water: [{ label: '喝了一杯', cls: 'primary', action: 'drink' },
+          { label: '延后 10 分钟', action: 'snooze', minutes: 10 }],
+  eye:   [{ label: '已远眺放松', cls: 'primary', action: 'done' },
+          { label: '延后 10 分钟', action: 'snooze', minutes: 10 }],
+  sit:   [{ label: '已起身活动', cls: 'primary', action: 'done' },
+          { label: '延后 10 分钟', action: 'snooze', minutes: 10 }],
+  stand: [{ label: '已走动', cls: 'primary', action: 'done' },
+          { label: '延后 15 分钟', action: 'snooze', minutes: 15 }],
+  pomodoro: [{ label: '开始专注', cls: 'primary', action: 'done' },
+             { label: '今天先不开始', action: 'snooze', minutes: 60 }]
+};
+
+const SUB_BUTTONS = [
+  { label: '今天不再提醒', action: 'skipToday' },
+  { label: '自定义文案', action: 'custom' }
+];
+
+function showPump(p) {
+  pumpData = p;
+  pumpOpen = true;
+  mutedOnce = false;
+
+  const ic = ICONS[p.icon] || ICONS.drop;
+  $('#iconWrap').className = 'icon-wrap ' + ic.cls;
+  $('#iconSvg').innerHTML = ic.path;
+
+  $('#pumpTitle').textContent = p.title;
+  $('#pumpBody').textContent = p.body;
+  $('#soundName').textContent = HealthAudio.names[p.sound] || '清铃';
+
+  if (p.kind === 'water' && p.targetCups) {
+    $('#pumpProgress').hidden = false;
+    $('#pumpProgressFill').style.width = Math.min(100, (p.currentCups / p.targetCups) * 100) + '%';
+  } else {
+    $('#pumpProgress').hidden = true;
+  }
+
+  buildRow($('#rowMain'), BUTTONS[p.kind] || BUTTONS.water);
+  buildRow($('#rowSub'), SUB_BUTTONS);
+
+  $('#hintRow').textContent = p.manual ? '手动触发的测试提醒' : '点击卡片外区域可关闭';
+  $('#pumpMask').hidden = false;
+  $('#btnMute').style.opacity = '1';
+
+  setTimeout(() => {
+    HealthAudio.play(p.sound, audioCfg());
+    $('#soundBtn').classList.add('playing');
+  }, 120);
+
+  startTitleFlash(p.title);
+}
+
+function buildRow(box, list) {
+  box.innerHTML = '';
+  list.forEach((b) => {
+    const el = document.createElement('div');
+    el.className = 'pbtn' + (b.cls ? ' ' + b.cls : '');
+    el.textContent = b.label;
+    el.onclick = () => {
+      if (b.action === 'custom') { doCustom(); return; }
+      pumpAction(b.action, { kind: pumpData.kind, minutes: b.minutes || 10 });
+    };
+    box.appendChild(el);
+  });
+}
+
+function doCustom() {
+  const map = {
+    water: '该喝水了\n记得喝够一杯水',
+    eye: '护眼时间\n看看远处放松一下',
+    sit: '该起身活动了\n站起来走两步',
+    stand: '起来走两步\n顺便眺望远方',
+    pomodoro: '开始一段专注\n把手机放远一点'
+  };
+  const base = map[pumpData.kind] || pumpData.title;
+  const txt = window.prompt('自定义提醒文案（留空则用默认）', base);
+  if (txt === null) return;
+  $('#pumpTitle').textContent = txt.split('\n')[0].slice(0, 30) || pumpData.title;
+  const rest = txt.split('\n').slice(1).join('\n');
+  if (rest) $('#pumpBody').textContent = rest;
+}
+
+function closePump() {
+  pumpOpen = false;
+  $('#pumpMask').hidden = true;
+  $('#soundBtn').classList.remove('playing');
+  stopTitleFlash();
+}
+
+function pumpAction(action, payload) {
+  const nowTs = Date.now();
+  const kind = payload && payload.kind;
+
+  if (action === 'drink') {
+    D.stats.waterCups = (D.stats.waterCups || 0) + 1;
+    D.lastWaterAt = nowTs;
+    D.stats.remindDone = (D.stats.remindDone || 0) + 1;
+    pushLog(kind, 'drink');
+  } else if (action === 'done') {
+    D.stats.remindDone = (D.stats.remindDone || 0) + 1;
+    if (kind === 'water') D.lastWaterAt = nowTs;
+    if (kind === 'eye')   D.lastEyeAt = nowTs;
+    if (kind === 'sit')   D.lastSitAt = nowTs;
+    if (kind === 'stand') D.lastStandAt = nowTs;
+    pushLog(kind, 'done');
+  } else if (action === 'snooze') {
+    const back = (payload.minutes || 10) * 60000;
+    const iv = (D[kind] && D[kind].intervalMin) || 10;
+    const set = (k) => { D[k] = nowTs - iv * 60000 + back; };
+    if (kind === 'water') set('lastWaterAt');
+    if (kind === 'eye')   set('lastEyeAt');
+    if (kind === 'sit')   set('lastSitAt');
+    if (kind === 'stand') set('lastStandAt');
+    pushLog(kind, 'snooze');
+  } else if (action === 'skipToday') {
+    // 压到今晚 24 点之后才再次到期
+    const midnight = new Date();
+    midnight.setHours(23, 59, 59, 999);
+    const iv = (D[kind] && D[kind].intervalMin) || 10;
+    const until = midnight.getTime() - iv * 60000;
+    if (kind === 'water') D.lastWaterAt = until;
+    if (kind === 'eye')   D.lastEyeAt = until;
+    if (kind === 'sit')   D.lastSitAt = until;
+    if (kind === 'stand') D.lastStandAt = until;
+    pushLog(kind, 'skip');
+    toast('今天不再提醒这一类');
+  }
+
+  store.save();
+  closePump();
+  updateMetrics();
+  renderCups();
+  renderCharts();
+  renderRemindLog();
+  renderStreak();
+  updateNextChip();
+}
+
+function audioCfg() {
+  const base = readPath('audio') || { volume: 0.7, fade: true, fadeSec: 5 };
+  return {
+    volume: base.volume,
+    fade: base.fade,
+    fadeSec: base.fadeSec,
+    muted: mutedOnce || base.muted
+  };
+}
+
+function bindPump() {
+  $('#soundBtn').onclick = $('#btnReplay').onclick = () => {
+    HealthAudio.play(pumpData.sound, audioCfg());
+    $('#soundBtn').classList.add('playing');
+  };
+
+  $('#btnMute').onclick = () => {
+    mutedOnce = !mutedOnce;
+    $('#btnMute').style.opacity = mutedOnce ? '0.35' : '1';
+    $('#hintRow').textContent = mutedOnce ? '本条提醒已静音' : '点击卡片外区域可关闭';
+    if (!mutedOnce) HealthAudio.play(pumpData.sound, audioCfg());
+  };
+
+  // 点遮罩关闭（点卡片内不关）
+  $('#pumpMask').addEventListener('click', (e) => {
+    if (e.target === $('#pumpMask')) closePump();
+  });
+}
+
+/* ==========================================================
+   角标 / 系统通知 / 标题闪动
+   ========================================================== */
+function showBadge(text) {
+  if (!D.general.badgeBreath) return;
+  $('#badgeText').textContent = text;
+  $('#badgeHint').hidden = false;
+  clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(() => { $('#badgeHint').hidden = true; }, 15000);
+}
+
+function notifySystem(p) {
+  if (!D.general.notify) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    new Notification(p.title, { body: p.body, tag: 'baobei-' + p.kind });
+  } catch (e) { /* 部分浏览器需 ServiceWorker，忽略 */ }
+}
+
+function startTitleFlash(title) {
+  stopTitleFlash();
+  let on = false;
+  titleTimer = setInterval(() => {
+    on = !on;
+    document.title = on ? '● ' + title : BASE_TITLE;
+  }, 900);
+}
+
+function stopTitleFlash() {
+  if (titleTimer) { clearInterval(titleTimer); titleTimer = null; }
+  document.title = BASE_TITLE;
+}
+
+/* ==========================================================
+   主循环
+   ========================================================== */
+function tickMain() {
+  if (store.rollDay()) { renderAll(); toast('新的一天，记录已重置'); return; }
+  checkReminders();
+  updateNextChip();
+}
+
+function updateNextChip() {
+  if (!D) return;
+  const nowTs = Date.now();
+  const cands = [];
+  if (D.water.enabled) cands.push(lastOf('lastWaterAt', nowTs) + D.water.intervalMin * 60000);
+  if (D.eye.enabled)   cands.push(lastOf('lastEyeAt', nowTs) + D.eye.intervalMin * 60000);
+  if (D.sit.enabled)   cands.push(lastOf('lastSitAt', nowTs) + D.sit.intervalMin * 60000);
+  if (D.stand.enabled) cands.push(lastOf('lastStandAt', nowTs) + D.stand.intervalMin * 60000);
+
+  const chip = $('#nextChip');
+  if (!cands.length) { chip.textContent = '提醒已全部关闭'; return; }
+
+  const soon = Math.min.apply(null, cands) - nowTs;
+  if (soon <= 0) { chip.textContent = '即将提醒'; return; }
+  const m = Math.ceil(soon / 60000);
+  chip.textContent = '下次提醒 ' + (m >= 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分后` : `${m} 分钟后`);
+}
+
+/* ==========================================================
+   渲染汇总
+   ========================================================== */
+function renderAll() {
+  setSwitch($('#wEnabled'), readPath('water.enabled'));
+  setField($('#wInterval'), readPath('water.intervalMin'));
+  setField($('#wTargetIn'), readPath('water.targetCups'));
+  setField($('#wSize'), readPath('water.cupSize'));
+
+  setSwitch($('#eyeEnabled'), readPath('eye.enabled'));
+  setField($('#eyeInterval'), readPath('eye.intervalMin'));
+  setSwitch($('#sitEnabled'), readPath('sit.enabled'));
+  setField($('#sitInterval'), readPath('sit.intervalMin'));
+  setSwitch($('#sitIdle'), readPath('sit.idleGuard'));
+  setSwitch($('#standEnabled'), readPath('stand.enabled'));
+  setField($('#standInterval'), readPath('stand.intervalMin'));
+
+  setField($('#pomoFocus'), readPath('pomodoro.focusMin'));
+  setField($('#pomoShort'), readPath('pomodoro.shortMin'));
+  setField($('#pomoLong'), readPath('pomodoro.longMin'));
+  setField($('#pomoRounds'), readPath('pomodoro.rounds'));
+  if (!pomo.running && pomo.remain <= 0) pomo.remain = phaseMinutes(pomo.phase) * 60;
+  renderPomo();
+
+  setSwitch($('#aMuted'), readPath('audio.muted'));
+  setSwitch($('#aFade'), readPath('audio.fade'));
+  setField($('#aVolume'), Math.round((readPath('audio.volume') || 0.7) * 100));
+  $('#volHint').textContent = Math.round((readPath('audio.volume') || 0.7) * 100) + '%';
+  $('#sndWater').value = readPath('water.sound');
+  $('#sndEye').value = readPath('eye.sound');
+  $('#sndSit').value = readPath('sit.sound');
+  $('#sndStand').value = readPath('stand.sound');
+  $('#sndPomo').value = readPath('pomodoro.sound');
+  syncSoundTags();
+
+  setSwitch($('#gBadge'), readPath('general.badgeBreath'));
+  setSwitch($('#gNotify'), readPath('general.notify'));
+  setSwitch($('#gWorkHours'), readPath('general.workHoursOnly'));
+  $('#workHoursRow').hidden = !readPath('general.workHoursOnly');
+  $('#workStart').value = readPath('general.workStart');
+  $('#workEnd').value = readPath('general.workEnd');
+  renderWorkHours();
+
+  renderCups();
+  updateMetrics();
+  renderCharts();
+  renderStreak();
+  renderRemindLog();
+  updateNextChip();
+}
+
+function updateMetrics() {
+  const cups = D.stats.waterCups || 0;
+  $('#mWater').textContent = cups;
+  $('#mFocus').textContent = D.stats.focusMin || 0;
+  $('#sWater').textContent = cups;
+  $('#sFocus').textContent = D.stats.focusMin || 0;
+  const rate = D.stats.remindTotal ? Math.round((D.stats.remindDone || 0) / D.stats.remindTotal * 100) : 0;
+  $('#sRate').textContent = rate;
+  $('#remindSummary').textContent = `${D.stats.remindDone || 0} / ${D.stats.remindTotal || 0}`;
+}
+
+function renderCharts() {
+  const h = D.stats.history || [];
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const rec = h.find((x) => x.date === key);
+    days.push({
+      label: (d.getMonth() + 1) + '/' + d.getDate(),
+      water: i === 0 ? (D.stats.waterCups || 0) : (rec ? rec.waterCups : 0),
+      focus: i === 0 ? (D.stats.focusMin || 0) : (rec ? rec.focusMin : 0),
+      today: i === 0
+    });
+  }
+
+  const draw = (sel, key, alt, emptyText) => {
+    const max = Math.max(...days.map((d) => d[key]));
+    if (max <= 0) {
+      $(sel).innerHTML = `<div class="chart-empty">${emptyText}</div>`;
+      return;
+    }
+    $(sel).innerHTML = days.map((d) => `
+      <div class="chart-col">
+        <div class="chart-bar${alt ? ' alt' : ''}" style="height:${Math.max(3, d[key] / max * 88)}px"
+             title="${d.label} ${d[key]}"></div>
+        <div class="chart-x"${d.today ? ' style="color:var(--accent);font-weight:500;"' : ''}>${d.label}</div>
+      </div>`).join('');
+  };
+  draw('#waterChart', 'water', false, '最近七天还没有饮水记录，先喝一杯试试');
+  draw('#focusChart', 'focus', true, '最近七天还没有专注记录，开一轮番茄钟试试');
+}
+
+function renderStreak() {
+  const h = D.stats.history || [];
+  const byDate = new Map(h.map((r) => [r.date, r]));
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const hasToday = (D.stats.waterCups || 0) > 0;
+
+  let n = 0;
+  const cursor = new Date();
+  if (!hasToday) cursor.setDate(cursor.getDate() - 1);
+
+  while (true) {
+    const key = cursor.toISOString().slice(0, 10);
+    const rec = key === todayKey ? { waterCups: D.stats.waterCups } : byDate.get(key);
+    if (rec && (rec.waterCups || 0) > 0) { n++; cursor.setDate(cursor.getDate() - 1); }
+    else break;
+    if (n > 400) break;
+  }
+  $('#sStreak').textContent = n;
+  $('#streakDays').textContent = n + ' 天';
+}
+
+const KIND_LABEL = { water: '喝水', eye: '护眼', sit: '久坐', stand: '走动', pomodoro: '番茄钟' };
+const ACTION_LABEL = { fired: '已提醒', drink: '喝了一杯', done: '已处理', snooze: '延后', skip: '今日静默' };
+const ACTION_DOT = { fired: 'var(--orange)', drink: 'var(--accent)', done: 'var(--green)', snooze: 'var(--text-tertiary)', skip: 'var(--purple)' };
+
+function pushLog(kind, action) {
+  D.stats.logs = D.stats.logs || [];
+  D.stats.logs.push({ ts: Date.now(), kind, action });
+  if (D.stats.logs.length > 60) D.stats.logs.shift();
+}
+
+function renderRemindLog() {
+  const box = $('#remindLog');
+  const logs = (D.stats.logs || []).slice().reverse().slice(0, 12);
+  if (!logs.length) {
+    box.innerHTML = '<div class="empty">今天还没有提醒记录</div>';
+    return;
+  }
+  box.innerHTML = logs.map((l) => {
+    const d = new Date(l.ts);
+    const t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return `<div class="log-row">
+      <span class="log-dot" style="background:${ACTION_DOT[l.action] || 'var(--text-tertiary)'}"></span>
+      <span class="log-time tnum">${t}</span>
+      <span class="log-text">${KIND_LABEL[l.kind] || l.kind}</span>
+      <span class="log-state${l.action === 'done' || l.action === 'drink' ? ' ok' : ''}">${ACTION_LABEL[l.action] || l.action}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ==========================================================
+   快捷键 / 提示条
+   ========================================================== */
+function bindKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { if (pumpOpen) closePump(); return; }
+
+    const tag = (e.target.tagName || '').toLowerCase();
+    const editing = tag === 'input' || tag === 'select' || tag === 'textarea';
+
+    if (e.code === 'Space' && !editing) {
+      e.preventDefault();
+      if (pumpOpen) return;
+      switchPage('pomodoro');
+      togglePomo();
+      return;
+    }
+    if (!editing && /^[1-6]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      switchPage(PAGE_ORDER[Number(e.key) - 1]);
+    }
+  });
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => { t.hidden = true; }, 240);
+  }, 2200);
+}
+window.__toast = toast;
+
+$('#badgeHint').onclick = () => { $('#badgeHint').hidden = true; };
+
+boot();
+
+const note=document.createElement('div'); note.textContent='示例体验，数据仅保留在本页'; note.style.cssText='position:fixed;right:12px;bottom:12px;z-index:9999;background:#fff4ec;padding:8px;border-radius:8px;font-size:12px'; const reset=document.createElement('button'); reset.textContent='恢复示例'; reset.onclick=()=>{ previewStorage.clear(); store.data=clone(DEFAULTS); store.rollDay(); renderAll(); }; note.append(' ',reset); document.body.append(note); for(const id of ['exportData','importData']) {const el=document.getElementById(id); if(el){el.disabled=true;el.title='安装后可使用备份';}}
+</script></body></html>
