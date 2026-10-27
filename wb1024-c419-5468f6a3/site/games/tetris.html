@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>俄罗斯方块 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .tt-main { display: flex; gap: 14px; align-items: flex-start; width: 100%; max-width: 424px; }
+  .tt-board-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+  #cv { display: block; width: 100%; height: auto; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--line); background: var(--surface-2); }
+  .tt-side { flex: 0 0 100px; display: flex; flex-direction: column; gap: 10px; }
+  .tt-mini { padding: 9px 10px 10px; border-radius: 13px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); text-align: center; }
+  .tt-mini .lb { display: block; font-size: 10px; font-weight: 700; letter-spacing: .7px; color: var(--ink-3); text-transform: uppercase; }
+  .tt-mini .val { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+  .tt-mini.accent .val { color: var(--brand); }
+  #nxt { display: block; width: 100%; height: auto; margin-top: 4px; }
+  .tt-pause-tag { position: absolute; inset: 0; display: none; place-items: center; border-radius: 16px; background: rgba(16, 20, 34, .55); backdrop-filter: blur(3px); color: #fff; font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+  .tt-pause-tag.on { display: grid; }
+  .tt-btns { display: flex; gap: 9px; margin-top: 16px; width: 100%; max-width: 424px; justify-content: center; }
+  .tt-btns button {
+    flex: 1;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    place-items: center;
+    color: var(--ink-2);
+    transition: transform .14s, background .16s, color .16s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .tt-btns button:active { transform: scale(.94); background: var(--brand-soft); color: var(--brand); }
+  .tt-btns svg { width: 21px; height: 21px; }
+  @media (max-width: 560px) {
+    .tt-main { flex-direction: column; align-items: center; }
+    .tt-side { flex-direction: row; flex: 0 0 auto; width: 100%; }
+    .tt-side .tt-mini { flex: 1; }
+    .tt-side .tt-mini.next { flex: 0 0 92px; }
+  }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">俄罗斯方块<small>↑ 旋转 · 空格直接落下</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="tt-main">
+    <div class="tt-board-wrap">
+      <canvas id="cv"></canvas>
+      <div class="tt-pause-tag" id="pauseTag">已暂停 · 按 P 继续</div>
+    </div>
+    <div class="tt-side">
+      <div class="tt-mini"><span class="lb">得分</span><span class="val" id="score">0</span></div>
+      <div class="tt-mini accent"><span class="lb">等级</span><span class="val" id="level">1</span></div>
+      <div class="tt-mini"><span class="lb">消行</span><span class="val" id="lines">0</span></div>
+      <div class="tt-mini next"><span class="lb">Next</span><canvas id="nxt" width="88" height="88"></canvas></div>
+    </div>
+  </div>
+
+  <div class="tt-btns">
+    <button id="bLeft" aria-label="左移"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button id="bRot" aria-label="旋转"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+    <button id="bRight" aria-label="右移"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button id="bDown" aria-label="下落"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14"/><path d="M6 13l6 6 6-6"/></svg></button>
+    <button id="bDrop" aria-label="直接落底"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg></button>
+  </div>
+</main>
+
+<div class="g-hint">
+  <b>← →</b> 左右移动 · <b>↑</b> 旋转 · <b>↓</b> 加速 · <b>空格</b> 直接落底 · <b>P</b> 暂停 · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3>堆到顶了</h3>
+    <div class="big" id="ovScore">0</div>
+    <p id="ovSub">再来一局?</p>
+    <div class="overlay-actions">
+      <button class="btn btn-primary" id="ovNew">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/tetris.js"></script>
+</body>
+</html>

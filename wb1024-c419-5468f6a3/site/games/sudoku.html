@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>数独 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .sd-sizes { display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; flex-wrap: wrap; }
+  .sd-chip {
+    padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer;
+  }
+  .sd-chip.on { background: var(--brand-soft); border-color: rgba(91, 110, 245, .45); color: var(--brand); }
+
+  .sd-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .sd-board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    width: min(94vw, 432px);
+    aspect-ratio: 1 / 1;
+    border: 2.5px solid var(--ink-2);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    user-select: none;
+  }
+  .sd-cell {
+    position: relative;
+    display: grid; place-items: center;
+    font-size: clamp(14px, 4.2vw, 20px);
+    font-weight: 600;
+    color: var(--brand);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background .12s;
+    font-variant-numeric: tabular-nums;
+  }
+  .sd-cell.r2, .sd-cell.r5 { border-bottom: 2px solid var(--ink-2); }
+  .sd-cell.c2, .sd-cell.c5 { border-right: 2px solid var(--ink-2); }
+  .sd-cell.c8 { border-right: 0; }
+  .sd-cell.r8 { border-bottom: 0; }
+  .sd-cell.fixed { color: var(--ink); font-weight: 750; }
+  .sd-cell.peer { background: rgba(91, 110, 245, .06); }
+  .sd-cell.same { background: rgba(91, 110, 245, .16); }
+  .sd-cell.sel { background: rgba(91, 110, 245, .26); box-shadow: inset 0 0 0 2px var(--brand); }
+  .sd-cell.bad { color: #e5484d; background: rgba(229, 72, 77, .14); }
+  .sd-cell.hinted { animation: sdPop .4s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes sdPop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
+
+  .sd-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: min(94vw, 432px); margin-top: 14px; }
+  .sd-key {
+    height: 46px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface);
+    font-size: 19px; font-weight: 700; color: var(--ink); cursor: pointer; position: relative;
+    display: grid; place-items: center; box-shadow: var(--shadow-sm);
+    font-variant-numeric: tabular-nums;
+  }
+  .sd-key:hover { border-color: var(--brand); color: var(--brand); }
+  .sd-key em { position: absolute; right: 5px; bottom: 2px; font-style: normal; font-size: 9.5px; color: var(--ink-3); font-weight: 600; }
+  .sd-key.done { color: var(--ink-3); background: var(--surface-2); }
+  .sd-key.act { font-size: 13px; font-weight: 700; }
+  .sd-tools { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+
+  html[data-theme="dark"] .sd-board { border-color: #4b5670; }
+  html[data-theme="dark"] .sd-cell.r2, html[data-theme="dark"] .sd-cell.r5 { border-bottom-color: #4b5670; }
+  html[data-theme="dark"] .sd-cell.c2, html[data-theme="dark"] .sd-cell.c5 { border-right-color: #4b5670; }
+  @media (max-width: 480px) {
+    .sd-key { height: 42px; font-size: 17px; }
+  }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">数独<small>每行每列每宫都是 1-9</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="scorebar">
+    <div class="score-box"><span class="lb">用时</span><span class="val" id="time">0:00</span></div>
+    <div class="score-box"><span class="lb">已填</span><span class="val" id="filled">0/81</span></div>
+    <div class="score-box accent"><span class="lb">提示</span><span class="val" id="hints">0</span></div>
+  </div>
+
+  <div class="sd-sizes" id="levels">
+    <button class="sd-chip on" data-lv="easy">简单</button>
+    <button class="sd-chip" data-lv="medium">中等</button>
+    <button class="sd-chip" data-lv="hard">困难</button>
+  </div>
+
+  <div class="sd-wrap">
+    <div class="sd-board" id="board"></div>
+    <div class="sd-pad" id="pad"></div>
+    <div class="sd-tools">
+      <button class="btn" id="checkBtn">检查错误</button>
+      <button class="btn" id="hintBtn">提示一格</button>
+      <button class="btn btn-primary" id="newBtn">换一题</button>
+    </div>
+  </div>
+</main>
+
+<div class="g-hint">
+  点格子再点数字键填入 · 也支持键盘 <b>1-9</b> 与 <b>退格</b> · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3 id="ovTitle">解开了</h3>
+    <div class="big" id="ovScore">0:00</div>
+    <p id="ovSub">难度：简单</p>
+    <div class="overlay-actions">
+      <button class="btn btn-primary" id="ovNew">再来一题</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/sudoku.js"></script>
+</body>
+</html>

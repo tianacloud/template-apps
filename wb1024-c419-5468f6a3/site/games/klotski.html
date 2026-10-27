@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>华容道 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .kl-levels { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; justify-content: center; }
+  .kl-lv {
+    min-width: 34px; height: 34px; padding: 0 9px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+    font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .kl-lv.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .kl-lv.done::after { content: '·'; color: #2fbf8f; font-size: 22px; line-height: 0; vertical-align: -6px; }
+
+  .kl-wrap { position: relative; width: min(84vw, 320px); margin: 0 auto; }
+  .kl-board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+  .kl-grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(122, 143, 205, .26) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(122, 143, 205, .26) 1px, transparent 1px);
+    background-size: 25% 20%;
+    pointer-events: none;
+  }
+  .kl-piece {
+    position: absolute;
+    box-sizing: border-box;
+    transition: left .11s ease, top .11s ease;
+    cursor: grab;
+    z-index: 2;
+  }
+  .kl-piece.grab { cursor: grabbing; z-index: 5; }
+  .kl-inner {
+    position: absolute; inset: 3px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff; letter-spacing: 1px;
+    font-size: clamp(15px, 4.4vw, 20px);
+    background: linear-gradient(160deg, #7d92e2, #5b74d4);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .34), 0 2px 5px rgba(60, 80, 180, .22);
+    transition: filter .12s, transform .1s;
+  }
+  .kl-piece.mini .kl-inner {
+    background: linear-gradient(160deg, #a5b4e8, #8a9cdd);
+    font-size: clamp(11px, 3.2vw, 14px);
+    letter-spacing: 0;
+  }
+  .kl-piece.cao .kl-inner {
+    background: linear-gradient(160deg, #f6c766, #e2a23c);
+    color: #4a2f05;
+    font-size: 26px;
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55), 0 3px 8px rgba(180, 130, 40, .32);
+  }
+  .kl-piece.sel .kl-inner { filter: brightness(1.08); transform: scale(.97); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .9), 0 0 0 2px var(--brand); }
+  .kl-piece.nudge .kl-inner { animation: kl-nudge .22s; }
+  @keyframes kl-nudge { 0%,100% { transform: none; } 45% { transform: scale(.94); } }
+
+  .kl-exit {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    margin: 9px auto 0; height: 26px; width: 50%;
+    border-radius: 0 0 12px 12px;
+    background: rgba(240, 182, 74, .16);
+    border: 1.5px dashed rgba(200, 145, 45, .65);
+    border-top: 0;
+    color: #a4731d; font-size: 12px; font-weight: 700;
+  }
+  html[data-theme="dark"] .kl-exit { color: #e8b955; border-color: rgba(232, 185, 85, .5); background: rgba(232, 185, 85, .1); }
+  .kl-tools { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">华容道<small>把曹操挪到底部出口</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="scorebar">
+    <div class="score-box"><span class="lb">步数</span><span class="val" id="moves">0</span></div>
+    <div class="score-box"><span class="lb">参考</span><span class="val" id="ref">5</span></div>
+    <div class="score-box accent"><span class="lb">关卡</span><span class="val" id="lvNo">1/6</span></div>
+  </div>
+
+  <div class="kl-levels" id="levels"></div>
+
+  <div class="kl-wrap">
+    <div class="kl-board" id="board">
+      <div class="kl-grid-bg"></div>
+    </div>
+    <div class="kl-exit">出口</div>
+  </div>
+
+  <div class="kl-tools">
+    <button class="btn" id="undoBtn">撤销</button>
+    <button class="btn" id="resetBtn">重来</button>
+    <button class="btn btn-primary" id="nextBtn">下一关</button>
+  </div>
+</main>
+
+<div class="g-hint">
+  <b>拖动</b>方块或点选后按<b>方向键</b>移动 · <b>Z</b> 撤销，<b>R</b> 重来 · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3 id="ovTitle">过关</h3>
+    <div class="big" id="ovScore">0 步</div>
+    <p id="ovSub">参考 0 步</p>
+    <div class="overlay-actions">
+      <button class="btn" id="ovAgain">再走一遍</button>
+      <button class="btn btn-primary" id="ovNext">下一关</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/klotski.js"></script>
+</body>
+</html>
