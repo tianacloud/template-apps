@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="description" content="离线工资计算器：基本工资、绩效奖金、加班费、五险一金、个税自动计算，支持月薪/日薪、自定义扣除项、明细导出。">
+<title>工资计算器 · 离线版</title>
+<style>
+  :root{
+    --bg:#f3f5f9;
+    --card:#ffffff;
+    --ink:#1f2937;
+    --ink-2:#64748b;
+    --ink-3:#94a3b8;
+    --line:#e6eaf2;
+    --primary:#2f6bff;
+    --primary-d:#1e4fd6;
+    --primary-soft:#eef3ff;
+    --red:#d93636;
+    --red-soft:#fdf2f2;
+    --amber:#b45309;
+    --amber-bg:#fffaeb;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.07);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{ font-family:inherit; }
+  .money,.num{ font-variant-numeric:tabular-nums; }
+
+  /* ---------- 顶部导航 ---------- */
+  .site-header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .header-inner{
+    max-width:1120px; margin:0 auto; padding:0 18px;
+    height:58px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); flex:none; }
+  .brand-logo{
+    width:34px; height:34px; border-radius:9px; flex:none;
+    background:linear-gradient(135deg,#2f6bff,#5b8cff);
+    color:#fff; font-weight:700; font-size:17px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(47,107,255,.35);
+  }
+  .brand-name{ font-weight:700; font-size:17px; letter-spacing:.5px; }
+  .brand-tag{
+    font-size:11px; color:var(--primary); background:var(--primary-soft);
+    border:1px solid #d8e4ff; border-radius:99px; padding:1px 8px; font-weight:600;
+  }
+  .site-nav{ display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
+  .site-nav::-webkit-scrollbar{ display:none; }
+  .site-nav a{
+    text-decoration:none; color:var(--ink-2); font-size:14.5px; font-weight:500;
+    padding:7px 13px; border-radius:9px; white-space:nowrap; transition:all .15s;
+  }
+  .site-nav a:hover{ color:var(--primary); background:var(--primary-soft); }
+  .site-nav a.active{ color:var(--primary); background:var(--primary-soft); font-weight:600; }
+
+  .container{ max-width:1120px; margin:0 auto; padding:26px 18px 90px; }
+
+  /* ---------- 视图切换 ---------- */
+  .view{ display:none; animation:fadeIn .25s ease; }
+  .view.active{ display:block; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+
+  .page-head{ margin:6px 2px 20px; }
+  .page-head h1{ font-size:24px; margin:0 0 6px; letter-spacing:.5px; }
+  .page-head p{ margin:0; color:var(--ink-2); font-size:14px; }
+
+  /* ---------- 布局与卡片 ---------- */
+  .calc-layout{ display:grid; grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr); gap:20px; align-items:start; }
+  .form-col,.result-col{ display:flex; flex-direction:column; gap:16px; min-width:0; }
+  .result-col{ position:sticky; top:76px; }
+  .card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:20px 20px 18px; border:1px solid rgba(230,234,242,.8);
+  }
+  .card-title{
+    display:flex; align-items:center; gap:9px; margin:0 0 14px;
+    font-size:16px; font-weight:700; letter-spacing:.3px;
+  }
+  .card-title::before{
+    content:""; width:4px; height:16px; border-radius:2px; background:var(--primary); flex:none;
+  }
+  .card-title .sub{ font-size:12.5px; font-weight:400; color:var(--ink-3); margin-left:auto; }
+
+  /* ---------- 表单控件 ---------- */
+  .field-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
+  .field-grid.cols-3{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .field{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .field > label{ font-size:13px; color:var(--ink-2); font-weight:500; }
+  .field .hint{ font-size:12px; color:var(--ink-3); }
+  .input-wrap{ position:relative; display:flex; align-items:center; }
+  .input-wrap .suffix{
+    position:absolute; right:11px; font-size:12.5px; color:var(--ink-3); pointer-events:none;
+  }
+  input[type=number],input[type=text],select{
+    width:100%; height:42px; padding:0 12px; font-size:16px; color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; background:#fff; outline:none;
+    transition:border-color .15s, box-shadow .15s; font-family:inherit;
+    font-variant-numeric:tabular-nums; min-width:0;
+  }
+  input:focus,select:focus{ border-color:var(--primary); box-shadow:0 0 0 3px rgba(47,107,255,.14); }
+  input::placeholder{ color:var(--ink-3); }
+  select{ appearance:none; -webkit-appearance:none; padding-right:30px;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 11px center; cursor:pointer;
+  }
+
+  /* 分段选择器 */
+  .segmented{ display:inline-flex; background:#eef1f6; border-radius:11px; padding:4px; gap:4px; }
+  .segmented label{ position:relative; }
+  .segmented input{ position:absolute; opacity:0; pointer-events:none; }
+  .segmented span{
+    display:block; padding:8px 22px; border-radius:8px; font-size:14.5px; font-weight:500;
+    color:var(--ink-2); cursor:pointer; transition:all .15s; user-select:none;
+  }
+  .segmented input:checked + span{ background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 4px rgba(16,24,40,.12); }
+
+  /* 按钮 */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    height:40px; padding:0 18px; border-radius:10px; border:1px solid transparent;
+    font-size:14.5px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-d); }
+  .btn-ghost{ background:#fff; color:var(--ink-2); border-color:var(--line); }
+  .btn-ghost:hover{ color:var(--primary); border-color:#c9d8ff; background:var(--primary-soft); }
+  .btn-row{ display:flex; flex-wrap:wrap; gap:10px; }
+  .btn-row.center{ justify-content:center; }
+
+  /* 动态增减行 */
+  .dyn-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .dyn-row{ display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto; gap:8px; align-items:center; }
+  .dyn-row input{ height:38px; font-size:15px; }
+  .dyn-del{
+    width:38px; height:38px; border-radius:9px; border:1px solid var(--line); background:#fff;
+    color:var(--ink-3); font-size:18px; line-height:1; cursor:pointer; transition:all .15s; flex:none;
+  }
+  .dyn-del:hover{ color:var(--red); border-color:#f3c8c8; background:var(--red-soft); }
+  .empty-tip{ font-size:13px; color:var(--ink-3); padding:4px 0 8px; }
+
+  /* ---------- 结果面板 ---------- */
+  .summary{
+    background:linear-gradient(160deg,#f6f9ff 0%,#eef3ff 60%,#f7faff 100%);
+    border:1px solid #dfe8ff;
+  }
+  .summary-rows{ display:flex; flex-direction:column; gap:2px; margin-top:4px; }
+  .summary-row{ display:flex; align-items:baseline; justify-content:space-between; padding:7px 2px; font-size:14.5px; }
+  .summary-row .k{ color:var(--ink-2); }
+  .summary-row .v{ font-variant-numeric:tabular-nums; font-weight:600; }
+  .summary-row .v.neg{ color:var(--red); font-weight:500; }
+  .summary-divider{ border-top:1.5px dashed #c6d6f5; margin:8px 0; }
+  .net-row{ display:flex; align-items:flex-end; justify-content:space-between; padding:6px 2px 2px; }
+  .net-row .k{ font-size:15px; font-weight:700; color:var(--ink); }
+  .net-row .v{
+    font-size:34px; font-weight:800; color:var(--red); line-height:1.1;
+    font-variant-numeric:tabular-nums; letter-spacing:-.5px;
+  }
+  .net-row .v small{ font-size:15px; font-weight:600; margin-right:2px; }
+  .rate-badge{
+    display:inline-flex; align-items:center; gap:5px; margin-top:10px;
+    background:#fff; border:1px solid #dfe8ff; color:var(--primary);
+    font-size:12.5px; font-weight:600; border-radius:99px; padding:3px 11px;
+  }
+  .summary .btn-row{ margin-top:16px; }
+
+  /* 明细表格 */
+  .detail-table{ width:100%; border-collapse:collapse; font-size:14px; }
+  .detail-table th,.detail-table td{ padding:9px 10px; text-align:left; border-bottom:1px solid #f0f3f8; }
+  .detail-table th{ font-size:12.5px; color:var(--ink-3); font-weight:500; background:#fafbfe; }
+  .detail-table td.amt,.detail-table th.amt{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .detail-table td.note{ font-size:12.5px; color:var(--ink-3); }
+  .detail-table tr.total td{
+    border-top:2px solid var(--line); border-bottom:none; font-weight:700; background:#fafbfe;
+  }
+  .detail-table tr.net td{ font-weight:800; color:var(--red); font-size:15px; border-top:2px solid var(--line); }
+  .detail-table tr:last-child td{ border-bottom:none; }
+  .table-scroll{ overflow-x:auto; }
+
+  .explain-list{ margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:7px; }
+  .explain-list li{ font-size:13.5px; color:var(--ink-2); padding-left:14px; position:relative; }
+  .explain-list li::before{ content:""; position:absolute; left:0; top:9px; width:5px; height:5px; border-radius:50%; background:#b9c8e8; }
+  .explain-list b{ color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+  details.explain > summary{
+    cursor:pointer; font-size:14px; font-weight:600; color:var(--primary);
+    list-style:none; display:flex; align-items:center; gap:6px; user-select:none;
+  }
+  details.explain > summary::-webkit-details-marker{ display:none; }
+  details.explain > summary::after{ content:"▾"; font-size:12px; transition:transform .15s; }
+  details.explain[open] > summary::after{ transform:rotate(180deg); }
+  details.explain > .explain-body{ margin-top:12px; }
+
+  .notice{
+    background:var(--amber-bg); border:1px solid #fde9c8; color:var(--amber);
+    border-radius:10px; padding:10px 14px; font-size:13px; margin-top:14px;
+  }
+
+  /* 模式显隐 */
+  body[data-paymode="daily"] [data-mode="monthly"]{ display:none !important; }
+  body[data-paymode="monthly"] [data-mode="daily"]{ display:none !important; }
+
+  /* ---------- 实时收入页 ---------- */
+  .rt-wrap{ max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+  .rt-display{
+    background:linear-gradient(160deg,#f6f9ff,#eef3ff);
+    border:1px solid #dfe8ff; text-align:center; padding:30px 22px 24px;
+  }
+  .rt-display .rt-label{ font-size:14px; color:var(--ink-2); }
+  .rt-earned{ font-size:44px; font-weight:800; color:var(--red); line-height:1.15; font-variant-numeric:tabular-nums; letter-spacing:-1px; margin:2px 0; }
+  .rt-earned small{ font-size:18px; font-weight:600; }
+  .rt-time{ font-size:15px; color:var(--ink-2); font-variant-numeric:tabular-nums; letter-spacing:1px; }
+  .rt-progress{ height:8px; background:#e3e9f5; border-radius:99px; overflow:hidden; margin:16px 0 6px; }
+  .rt-progress > i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#2f6bff,#6f9bff); border-radius:99px; transition:width .2s; }
+  .rt-progress-label{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-3); }
+  .rt-rates{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+  .rt-rate-item{ background:#fff; border:1px solid #e6eaf2; border-radius:10px; padding:10px 6px; }
+  .rt-rate-item .rk{ font-size:12px; color:var(--ink-3); }
+  .rt-rate-item .rv{ font-size:16px; font-weight:700; color:var(--primary); font-variant-numeric:tabular-nums; }
+  .rt-rates-note{ font-size:12px; color:var(--ink-3); margin-top:10px; }
+
+  /* ---------- 费率参考页 ---------- */
+  .ref-wrap{ max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+  .ref-table{ width:100%; border-collapse:collapse; font-size:14px; }
+  .ref-table th,.ref-table td{ padding:10px 12px; border-bottom:1px solid #f0f3f8; text-align:left; }
+  .ref-table th{ background:#fafbfe; color:var(--ink-2); font-size:13px; font-weight:600; }
+  .ref-table td.num,.ref-table th.num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ref-table tr:last-child td{ border-bottom:none; }
+
+  /* ---------- 页脚 / 移动端底栏 / Toast ---------- */
+  .site-footer{
+    border-top:1px solid var(--line); padding:22px 18px 30px; text-align:center;
+    color:var(--ink-3); font-size:12.5px; background:#fff;
+  }
+  .mobile-bar{
+    display:none; position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(10px);
+    border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    align-items:center; justify-content:space-between; gap:12px;
+    box-shadow:0 -2px 14px rgba(16,24,40,.06);
+  }
+  .mobile-bar .mb-label{ font-size:12px; color:var(--ink-2); }
+  .mobile-bar .mb-net{ font-size:21px; font-weight:800; color:var(--red); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .toast{
+    position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(16px);
+    background:#1f2937; color:#fff; font-size:13.5px; border-radius:10px;
+    padding:9px 18px; opacity:0; pointer-events:none; transition:all .25s; z-index:100;
+    box-shadow:0 6px 20px rgba(16,24,40,.25); max-width:86vw;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width:920px){
+    .calc-layout{ grid-template-columns:1fr; }
+    .result-col{ position:static; }
+    .mobile-bar{ display:flex; }
+    body{ padding-bottom:0; }
+    .container{ padding-bottom:110px; }
+  }
+  @media (max-width:560px){
+    .header-inner{ height:54px; padding:0 12px; }
+    .brand-tag{ display:none; }
+    .site-nav a{ padding:7px 10px; font-size:14px; }
+    .container{ padding:18px 12px 110px; }
+    .page-head h1{ font-size:21px; }
+    .card{ padding:16px 15px 15px; border-radius:12px; }
+    .field-grid{ grid-template-columns:1fr; }
+    .field-grid.cols-3{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .rt-earned{ font-size:36px; }
+    .net-row .v{ font-size:30px; }
+    .dyn-row{ grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto; }
+  }
+
+  /* ---------- 打印 ---------- */
+  .print-only{ display:none; }
+  @media print{
+    .site-header,.site-footer,.mobile-bar,.no-print,.toast{ display:none !important; }
+    body{ background:#fff; }
+    .container{ max-width:none; padding:0; }
+    .calc-layout{ display:block; }
+    .form-col{ display:none !important; }
+    .result-col{ position:static; }
+    .card{ box-shadow:none; border:1px solid #d8dee9; break-inside:avoid; page-break-inside:avoid; }
+    .summary{ background:#fff !important; border:1.5px solid #d8dee9; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    .print-only{ display:block !important; }
+    .print-head{ margin-bottom:14px; }
+    .print-head h1{ font-size:20px; margin:0 0 4px; }
+    .print-head p{ margin:0; font-size:12px; color:#666; }
+    details.explain > .explain-body{ display:block !important; }
+    details.explain > summary{ display:none; }
+    a{ color:inherit; text-decoration:none; }
+  }
+</style>
+</head>
+<body data-paymode="monthly">
+
+<header class="site-header no-print">
+  <div class="header-inner">
+    <a class="brand" href="#/calc">
+      <span class="brand-logo">薪</span>
+      <span class="brand-name">工资计算器</span>
+      <span class="brand-tag">离线版</span>
+    </a>
+    <nav class="site-nav">
+      <a href="#/calc" data-nav="calc">工资计算</a>
+      <a href="#/realtime" data-nav="realtime">实时收入</a>
+      <a href="#/ref" data-nav="ref">费率参考</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ==================== 视图一：工资计算器 ==================== -->
+  <section id="view-calc" class="view">
+    <div class="page-head">
+      <h1>工资计算器</h1>
+      <p>输入工资信息，自动计算应发工资、五险一金、个人所得税与实发工资。所有计算均在浏览器本地完成，数据不会上传。</p>
+    </div>
+
+    <div class="calc-layout">
+      <!-- 左侧：输入区 -->
+      <div class="form-col" id="calcForm">
+
+        <div class="card">
+          <h2 class="card-title">计薪周期 <span class="sub">决定工资与加班费的计算方式</span></h2>
+          <div class="segmented" id="payModeSeg">
+            <label><input type="radio" name="payMode" value="monthly" checked><span>月薪制</span></label>
+            <label><input type="radio" name="payMode" value="daily"><span>日薪制</span></label>
+          </div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button type="button" class="btn btn-ghost no-print" id="btnReset">恢复默认设置</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">工资构成</h2>
+          <div class="field-grid">
+            <div class="field" data-mode="monthly">
+              <label for="baseSalary">基本工资（元/月）</label>
+              <div class="input-wrap"><input type="number" id="baseSalary" min="0" step="0.01" inputmode="decimal" placeholder="如 8000"><span class="suffix">元/月</span></div>
+            </div>
+            <div class="field" data-mode="daily">
+              <label for="dailyWage">日工资标准（元/天）</label>
+              <div class="input-wrap"><input type="number" id="dailyWage" min="0" step="0.01" inputmode="decimal" placeholder="如 367"><span class="suffix">元/天</span></div>
+            </div>
+            <div class="field" data-mode="daily">
+              <label for="workDays">本月计薪天数</label>
+              <div class="input-wrap"><input type="number" id="workDays" min="0" max="31" step="0.01" inputmode="decimal" placeholder="21.75"><span class="suffix">天</span></div>
+              <span class="hint">法定月计薪天数为 21.75 天</span>
+            </div>
+            <div class="field">
+              <label for="bonus">绩效奖金（元/月）</label>
+              <div class="input-wrap"><input type="number" id="bonus" min="0" step="0.01" inputmode="decimal" placeholder="如 2000"><span class="suffix">元/月</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">加班费 <span class="sub" id="otBaseHint">时薪 = 基本工资 ÷ 21.75 ÷ 8</span></h2>
+          <div class="field-grid cols-3">
+            <div class="field">
+              <label for="otWeekday">工作日加班</label>
+              <div class="input-wrap"><input type="number" id="otWeekday" min="0" step="0.5" inputmode="decimal" placeholder="0"><span class="suffix">小时</span></div>
+              <span class="hint">按 1.5 倍时薪</span>
+            </div>
+            <div class="field">
+              <label for="otRest">休息日加班</label>
+              <div class="input-wrap"><input type="number" id="otRest" min="0" step="0.5" inputmode="decimal" placeholder="0"><span class="suffix">小时</span></div>
+              <span class="hint">按 2 倍时薪</span>
+            </div>
+            <div class="field">
+              <label for="otHoliday">法定节假日加班</label>
+              <div class="input-wrap"><input type="number" id="otHoliday" min="0" step="0.5" inputmode="decimal" placeholder="0"><span class="suffix">小时</span></div>
+              <span class="hint">按 3 倍时薪</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px;max-width:280px;" data-mode="monthly">
+            <label for="otBaseMode">加班费计算基数</label>
+            <select id="otBaseMode">
+              <option value="base">仅基本工资（常规）</option>
+              <option value="full">基本工资 + 绩效奖金</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">五险一金（个人缴纳）</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="siBase">缴费基数</label>
+              <div class="input-wrap"><input type="number" id="siBase" min="0" step="0.01" inputmode="decimal" placeholder="默认同基本工资"><span class="suffix">元</span></div>
+              <span class="hint" id="siBaseHint">留空则按基本工资计算</span>
+            </div>
+            <div class="field">
+              <label for="siFund">住房公积金比例</label>
+              <div class="input-wrap"><input type="number" id="siFund" min="0" max="24" step="0.5" inputmode="decimal" value="8"><span class="suffix">%</span></div>
+              <span class="hint">常见 5%–12%</span>
+            </div>
+            <div class="field">
+              <label for="siPension">养老保险</label>
+              <div class="input-wrap"><input type="number" id="siPension" min="0" max="100" step="0.1" inputmode="decimal" value="8"><span class="suffix">%</span></div>
+              <span class="hint">个人比例通常 8%</span>
+            </div>
+            <div class="field">
+              <label for="siMedical">医疗保险</label>
+              <div class="input-wrap"><input type="number" id="siMedical" min="0" max="100" step="0.1" inputmode="decimal" value="2"><span class="suffix">%</span></div>
+              <span class="hint">个人比例通常 2%</span>
+            </div>
+            <div class="field">
+              <label for="siUnemp">失业保险</label>
+              <div class="input-wrap"><input type="number" id="siUnemp" min="0" max="100" step="0.1" inputmode="decimal" value="0.5"><span class="suffix">%</span></div>
+              <span class="hint">个人比例 0.2%–1%，因地而异</span>
+            </div>
+            <div class="field">
+              <label for="siFixed">大病医疗等固定额</label>
+              <div class="input-wrap"><input type="number" id="siFixed" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="suffix">元/月</span></div>
+              <span class="hint">选填，如大病互助金</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">个税起征与专项附加扣除</h2>
+          <div class="field-grid cols-3" style="margin-bottom:6px;">
+            <div class="field">
+              <label>个税起征点</label>
+              <div class="input-wrap"><input type="number" value="5000" disabled><span class="suffix">元/月</span></div>
+              <span class="hint">固定 5000 元/月</span>
+            </div>
+          </div>
+          <div class="field-grid cols-3">
+            <div class="field">
+              <label for="spEdu">子女教育</label>
+              <div class="input-wrap"><input type="number" id="spEdu" min="0" step="100" inputmode="decimal" placeholder="2000"><span class="suffix">元/月</span></div>
+              <span class="hint">每个子女 2000 元</span>
+            </div>
+            <div class="field">
+              <label for="spInfant">3岁以下婴幼儿照护</label>
+              <div class="input-wrap"><input type="number" id="spInfant" min="0" step="100" inputmode="decimal" placeholder="2000"><span class="suffix">元/月</span></div>
+              <span class="hint">每个婴幼儿 2000 元</span>
+            </div>
+            <div class="field">
+              <label for="spElderly">赡养老人</label>
+              <div class="input-wrap"><input type="number" id="spElderly" min="0" step="100" inputmode="decimal" placeholder="3000"><span class="suffix">元/月</span></div>
+              <span class="hint">独生子女 3000 元</span>
+            </div>
+            <div class="field">
+              <label for="spLoan">住房贷款利息</label>
+              <div class="input-wrap"><input type="number" id="spLoan" min="0" step="100" inputmode="decimal" placeholder="1000"><span class="suffix">元/月</span></div>
+              <span class="hint">定额 1000 元</span>
+            </div>
+            <div class="field">
+              <label for="spRent">住房租金</label>
+              <div class="input-wrap"><input type="number" id="spRent" min="0" step="100" inputmode="decimal" placeholder="1500"><span class="suffix">元/月</span></div>
+              <span class="hint">按城市 1500/1100/800 元</span>
+            </div>
+            <div class="field">
+              <label for="spCont">继续教育</label>
+              <div class="input-wrap"><input type="number" id="spCont" min="0" step="100" inputmode="decimal" placeholder="400"><span class="suffix">元/月</span></div>
+              <span class="hint">学历 400 元/月</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">其他应发项目 <span class="sub">如餐补、交通补贴、通讯补贴</span></h2>
+          <div class="dyn-list" id="addsList"></div>
+          <div class="empty-tip" id="addsEmpty">暂无项目，点击下方按钮添加</div>
+          <button type="button" class="btn btn-ghost no-print" data-add="adds">+ 添加应发项目</button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">自定义扣除项</h2>
+          <p style="margin:0 0 10px;font-size:13px;color:var(--ink-2);">
+            <b>税前扣除</b>：先抵减应纳税所得额，再算个税（如商业健康保险、企业年金个人部分）。<br>
+            <b>税后扣除</b>：在实发工资中直接扣除（如缺勤扣款、赔偿、借款）。
+          </p>
+          <div style="font-size:13.5px;font-weight:600;margin:6px 0 10px;">税前扣除</div>
+          <div class="dyn-list" id="preList"></div>
+          <div class="empty-tip" id="preEmpty">暂无税前扣除项目</div>
+          <button type="button" class="btn btn-ghost no-print" data-add="pre" style="margin-bottom:16px;">+ 添加税前扣除</button>
+          <div style="font-size:13.5px;font-weight:600;margin:6px 0 10px;">税后扣除</div>
+          <div class="dyn-list" id="postList"></div>
+          <div class="empty-tip" id="postEmpty">暂无税后扣除项目</div>
+          <button type="button" class="btn btn-ghost no-print" data-add="post">+ 添加税后扣除</button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">高级设置 · 累计预扣法 <span class="sub">选填</span></h2>
+          <p style="margin:0 0 12px;font-size:13px;color:var(--ink-2);">
+            个税实行累计预扣法。若当年已领取过工资，填写以下信息可按累计口径精确计算本月应预扣税额；
+            留空则按单月税率表估算。
+          </p>
+          <div class="field-grid cols-3">
+            <div class="field">
+              <label for="cumMonths">本年已计薪月数</label>
+              <div class="input-wrap"><input type="number" id="cumMonths" min="1" max="12" step="1" inputmode="numeric" placeholder="1"><span class="suffix">个月</span></div>
+              <span class="hint">含本月，默认 1</span>
+            </div>
+            <div class="field">
+              <label for="cumPaid">此前累计已发工资</label>
+              <div class="input-wrap"><input type="number" id="cumPaid" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="suffix">元</span></div>
+              <span class="hint">今年已发工资合计</span>
+            </div>
+            <div class="field">
+              <label for="cumTax">此前累计已缴个税</label>
+              <div class="input-wrap"><input type="number" id="cumTax" min="0" step="0.01" inputmode="decimal" placeholder="0"><span class="suffix">元</span></div>
+              <span class="hint">今年已缴个税合计</span>
+            </div>
+            <div class="field">
+              <label for="cumSi">此前累计已扣五险一金</label>
+              <div class="input-wrap"><input type="number" id="cumSi" min="0" step="0.01" inputmode="decimal" placeholder="自动估算"><span class="suffix">元</span></div>
+              <span class="hint">留空按本月标准估算</span>
+            </div>
+          </div>
+          <div class="notice">
+            说明：累计预扣模式下，默认假设此前各月的五险一金、专项附加扣除与本月一致；实际情况以工资条和个税 App 为准。
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：结果区 -->
+      <div class="result-col">
+        <div class="print-only print-head">
+          <h1>工资计算明细</h1>
+          <p id="printTime"></p>
+        </div>
+
+        <div class="card summary">
+          <h2 class="card-title">计算结果</h2>
+          <div class="summary-rows">
+            <div class="summary-row"><span class="k">应发合计</span><span class="v num" id="outGross">¥0.00</span></div>
+            <div class="summary-row"><span class="k">五险一金（个人）</span><span class="v neg num" id="outSI">-¥0.00</span></div>
+            <div class="summary-row"><span class="k">个人所得税</span><span class="v neg num" id="outTax">-¥0.00</span></div>
+            <div class="summary-row"><span class="k">其他扣除</span><span class="v neg num" id="outOther">-¥0.00</span></div>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="net-row">
+            <span class="k">实发工资</span>
+            <span class="v num" id="outNet"><small>¥</small>0.00</span>
+          </div>
+          <span class="rate-badge" id="outRateBadge">适用税率 0%</span>
+          <div class="btn-row no-print">
+            <button type="button" class="btn btn-primary" id="btnCsv">导出 CSV</button>
+            <button type="button" class="btn btn-ghost" id="btnCopy">复制明细</button>
+            <button type="button" class="btn btn-ghost" id="btnPrint">打印 / 存 PDF</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">应发明细</h2>
+          <div class="table-scroll">
+            <table class="detail-table">
+              <thead><tr><th>项目</th><th class="amt">金额（元）</th><th>备注</th></tr></thead>
+              <tbody id="tbodyAdds"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">扣除与实发明细</h2>
+          <div class="table-scroll">
+            <table class="detail-table">
+              <thead><tr><th>项目</th><th class="amt">金额（元）</th><th>备注</th></tr></thead>
+              <tbody id="tbodyDeduct"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <details class="explain" open>
+            <summary>计算说明</summary>
+            <div class="explain-body">
+              <ul class="explain-list" id="explainList"></ul>
+            </div>
+          </details>
+        </div>
+
+        <div class="print-only" id="printParams"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 视图二：实时收入 ==================== -->
+  <section id="view-realtime" class="view">
+    <div class="page-head">
+      <h1>实时收入计算器</h1>
+      <p>看看你上班的每一秒赚了多少钱。计时数据仅保存在本机浏览器，刷新页面不丢失。</p>
+    </div>
+    <div class="rt-wrap">
+      <div class="card">
+        <h2 class="card-title">计薪方式</h2>
+        <div class="segmented" id="rtModeSeg">
+          <label><input type="radio" name="rtMode" value="monthly" checked><span>按月薪</span></label>
+          <label><input type="radio" name="rtMode" value="daily"><span>按日薪</span></label>
+        </div>
+        <div class="field-grid" style="margin-top:14px;">
+          <div class="field" data-mode="monthly">
+            <label for="rtSalary">每月工资（元）</label>
+            <div class="input-wrap"><input type="number" id="rtSalary" min="0" step="0.01" inputmode="decimal" placeholder="如 8000"><span class="suffix">元/月</span></div>
+          </div>
+          <div class="field" data-mode="daily">
+            <label for="rtDailyWage">日工资（元/天）</label>
+            <div class="input-wrap"><input type="number" id="rtDailyWage" min="0" step="0.01" inputmode="decimal" placeholder="如 367"><span class="suffix">元/天</span></div>
+          </div>
+          <div class="field" data-mode="monthly">
+            <label for="rtDays">每月上班天数</label>
+            <div class="input-wrap"><input type="number" id="rtDays" min="1" max="31" step="0.5" inputmode="decimal" placeholder="如 22"><span class="suffix">天</span></div>
+          </div>
+          <div class="field">
+            <label for="rtHours">每天工作小时</label>
+            <div class="input-wrap"><input type="number" id="rtHours" min="1" max="24" step="0.5" inputmode="decimal" placeholder="如 8"><span class="suffix">小时</span></div>
+          </div>
+        </div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button type="button" class="btn btn-primary" id="rtStart" style="min-width:130px;">开始上班</button>
+          <button type="button" class="btn btn-ghost" id="rtReset">重置</button>
+        </div>
+      </div>
+
+      <div class="card rt-display">
+        <div class="rt-label">已上班时间</div>
+        <div class="rt-time" id="rtTime">00:00:00</div>
+        <div class="rt-label" style="margin-top:14px;">已赚到</div>
+        <div class="rt-earned num" id="rtEarned"><small>¥</small>0.0000</div>
+        <div class="rt-progress"><i id="rtBar"></i></div>
+        <div class="rt-progress-label"><span id="rtTargetLabel">本月目标</span><span id="rtPct">0%</span></div>
+        <div class="rt-rates">
+          <div class="rt-rate-item"><div class="rk">每小时</div><div class="rv num" id="rtRateHour">0.00 元</div></div>
+          <div class="rt-rate-item"><div class="rk">每分钟</div><div class="rv num" id="rtRateMin">0.00 元</div></div>
+          <div class="rt-rate-item"><div class="rk">每秒钟</div><div class="rv num" id="rtRateSec">0.00 元</div></div>
+        </div>
+        <div class="rt-rates-note" id="rtNote">收入速率 = 工资 ÷ 上班天数 ÷ 每天小时数</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 视图三：费率参考 ==================== -->
+  <section id="view-ref" class="view">
+    <div class="page-head">
+      <h1>费率参考</h1>
+      <p>常用社保公积金比例、个税预扣率表与专项附加扣除标准。比例因地区和政策年份可能不同，请以当地社保部门和单位实际执行为准。</p>
+    </div>
+    <div class="ref-wrap">
+      <div class="card">
+        <h2 class="card-title">五险一金 · 个人缴费比例参考</h2>
+        <div class="table-scroll">
+          <table class="ref-table">
+            <thead><tr><th>项目</th><th class="num">个人比例参考</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>养老保险</td><td class="num">8%</td><td>进入个人账户，退休后领取</td></tr>
+              <tr><td>医疗保险</td><td class="num">2% 左右</td><td>部分地区含大病互助固定额</td></tr>
+              <tr><td>失业保险</td><td class="num">0.2%–1%</td><td>多数地区个人 0.5%</td></tr>
+              <tr><td>工伤保险</td><td class="num">0%</td><td>个人不缴纳，单位全额承担</td></tr>
+              <tr><td>生育保险</td><td class="num">0%</td><td>个人不缴纳（已并入医保地区由单位缴纳）</td></tr>
+              <tr><td>住房公积金</td><td class="num">5%–12%</td><td>单位与个人同比例，进入个人账户</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">个人所得税预扣率表（月度累计）</h2>
+        <div class="table-scroll">
+          <table class="ref-table">
+            <thead><tr><th>级数</th><th class="num">累计应纳税所得额（月）</th><th class="num">预扣率</th><th class="num">速算扣除数</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td class="num">不超过 3,000 元</td><td class="num">3%</td><td class="num">0</td></tr>
+              <tr><td>2</td><td class="num">超过 3,000 至 12,000 元</td><td class="num">10%</td><td class="num">210</td></tr>
+              <tr><td>3</td><td class="num">超过 12,000 至 25,000 元</td><td class="num">20%</td><td class="num">1,410</td></tr>
+              <tr><td>4</td><td class="num">超过 25,000 至 35,000 元</td><td class="num">25%</td><td class="num">2,660</td></tr>
+              <tr><td>5</td><td class="num">超过 35,000 至 55,000 元</td><td class="num">30%</td><td class="num">4,410</td></tr>
+              <tr><td>6</td><td class="num">超过 55,000 至 80,000 元</td><td class="num">35%</td><td class="num">7,160</td></tr>
+              <tr><td>7</td><td class="num">超过 80,000 元</td><td class="num">45%</td><td class="num">15,160</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="notice">应纳税所得额 = 收入 − 起征点 5000 元/月 − 五险一金个人部分 − 专项附加扣除 − 其他依法扣除。本表为工资薪金按月换算的累计预扣率。</div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">专项附加扣除标准</h2>
+        <div class="table-scroll">
+          <table class="ref-table">
+            <thead><tr><th>项目</th><th class="num">标准（元/月）</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>子女教育</td><td class="num">2,000 / 每个子女</td><td>学前及学历教育阶段</td></tr>
+              <tr><td>3岁以下婴幼儿照护</td><td class="num">2,000 / 每个婴幼儿</td><td>出生至满 3 周岁前</td></tr>
+              <tr><td>赡养老人</td><td class="num">3,000</td><td>独生子女全额；非独生子女分摊</td></tr>
+              <tr><td>住房贷款利息</td><td class="num">1,000</td><td>首套住房贷款，定额扣除</td></tr>
+              <tr><td>住房租金</td><td class="num">1,500 / 1,100 / 800</td><td>按城市规模分档</td></tr>
+              <tr><td>继续教育</td><td class="num">400</td><td>学历教育；职业资格证 3,600 元/年</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">加班费与计薪天数</h2>
+        <div class="table-scroll">
+          <table class="ref-table">
+            <thead><tr><th>项目</th><th class="num">倍数</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>工作日延长加班</td><td class="num">1.5 倍</td><td>不低于小时工资的 150%</td></tr>
+              <tr><td>休息日加班</td><td class="num">2 倍</td><td>不能安排补休时，不低于 200%</td></tr>
+              <tr><td>法定节假日加班</td><td class="num">3 倍</td><td>不低于 300%，不得以补休替代</td></tr>
+              <tr><td>月计薪天数</td><td class="num">21.75 天</td><td>(365 − 104 休息日) ÷ 12，折算日工资、小时工资用</td></tr>
+              <tr><td>小时工资</td><td class="num">日工资 ÷ 8</td><td>月薪制：月工资 ÷ 21.75 ÷ 8</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer no-print">
+  <p>工资计算器 · 离线版 — 所有计算均在本地浏览器完成，输入内容仅保存在本机 localStorage。</p>
+  <p>计算结果仅供参考，实际工资请以工资条、个税 App 及当地政策为准。</p>
+</footer>
+
+<div class="mobile-bar no-print">
+  <div><div class="mb-label">实发工资</div><div class="mb-net num" id="mbNet">¥0.00</div></div>
+  <button type="button" class="btn btn-primary" id="mbCsv">导出 CSV</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+ * 核心计算引擎（纯函数，不依赖 DOM）
+ * ============================================================ */
+// ==CALC-BEGIN==
+var IIT_TABLE = [
+  { upTo: 3000,     rate: 0.03, qd: 0 },
+  { upTo: 12000,    rate: 0.10, qd: 210 },
+  { upTo: 25000,    rate: 0.20, qd: 1410 },
+  { upTo: 35000,    rate: 0.25, qd: 2660 },
+  { upTo: 55000,    rate: 0.30, qd: 4410 },
+  { upTo: 80000,    rate: 0.35, qd: 7160 },
+  { upTo: Infinity, rate: 0.45, qd: 15160 }
+];
+var STATUTORY_DAYS = 21.75;   // 法定月计薪天数
+var STATUTORY_HOURS = 8;      // 法定日工作小时
+var THRESHOLD = 5000;         // 个税起征点（元/月）
+
+function num(v){
+  var n = parseFloat(v);
+  return (isNaN(n) || n < 0) ? 0 : n;
+}
+function round2(n){
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+function calcIIT(taxable){
+  if (!(taxable > 0)) return { rate: 0, qd: 0, tax: 0 };
+  for (var i = 0; i < IIT_TABLE.length; i++){
+    var b = IIT_TABLE[i];
+    if (taxable <= b.upTo){
+      return { rate: b.rate, qd: b.qd, tax: round2(Math.max(0, taxable * b.rate - b.qd)) };
+    }
+  }
+  return { rate: 0.45, qd: 15160, tax: 0 };
+}
+
+/**
+ * 计算工资明细
+ * p: {
+ *   mode:'monthly'|'daily', baseSalary, bonus, dailyWage, workDays,
+ *   otWeekday, otRest, otHoliday, otBaseMode:'base'|'full',
+ *   siBase, siPension, siMedical, siUnemp, siFund, siFixed,
+ *   specials:{edu,infant,elderly,loan,rent,cont},
+ *   adds:[{name,amt}], preDed:[{name,amt}], postDed:[{name,amt}],
+ *   cumMonths, cumPaid, cumTax, cumSi
+ * }
+ */
+function computeSalary(p){
+  var mode = p.mode === 'daily' ? 'daily' : 'monthly';
+  var workDays = num(p.workDays) > 0 ? num(p.workDays) : STATUTORY_DAYS;
+  var basePay, baseNote;
+  if (mode === 'monthly'){
+    basePay = round2(num(p.baseSalary));
+    baseNote = '月薪制';
+  } else {
+    basePay = round2(num(p.dailyWage) * workDays);
+    baseNote = '日工资 ' + round2(num(p.dailyWage)).toFixed(2) + ' × ' + workDays + ' 天';
+  }
+  var bonus = round2(num(p.bonus));
+
+  // 加班费
+  var otBaseHourly;
+  if (mode === 'monthly'){
+    var otBase = (p.otBaseMode === 'full') ? (basePay + bonus) : basePay;
+    otBaseHourly = otBase / STATUTORY_DAYS / STATUTORY_HOURS;
+  } else {
+    otBaseHourly = num(p.dailyWage) / STATUTORY_HOURS;
+  }
+  var otHoursW = num(p.otWeekday), otHoursR = num(p.otRest), otHoursH = num(p.otHoliday);
+  var ot = {
+    hourly: otBaseHourly,
+    hoursW: otHoursW, hoursR: otHoursR, hoursH: otHoursH,
+    weekday: round2(otHoursW * otBaseHourly * 1.5),
+    rest:    round2(otHoursR * otBaseHourly * 2),
+    holiday: round2(otHoursH * otBaseHourly * 3)
+  };
+  var otTotal = round2(ot.weekday + ot.rest + ot.holiday);
+
+  // 其他应发
+  var adds = (p.adds || []).map(function(x){
+    return { name: String(x.name || '').trim() || '未命名项目', amt: round2(num(x.amt)) };
+  }).filter(function(x){ return x.amt > 0; });
+  var addsTotal = round2(adds.reduce(function(s,x){ return s + x.amt; }, 0));
+
+  var gross = round2(basePay + bonus + otTotal + addsTotal);
+
+  // 五险一金
+  var siBase = num(p.siBase) > 0 ? num(p.siBase) : basePay;
+  var si = {
+    base: round2(siBase),
+    pension: round2(siBase * num(p.siPension) / 100),
+    medical: round2(siBase * num(p.siMedical) / 100),
+    unemp:   round2(siBase * num(p.siUnemp) / 100),
+    fund:    round2(siBase * num(p.siFund) / 100),
+    fixed:   round2(num(p.siFixed))
+  };
+  si.total = round2(si.pension + si.medical + si.unemp + si.fund + si.fixed);
+
+  // 专项附加扣除
+  var sp = p.specials || {};
+  var specialTotal = round2(num(sp.edu) + num(sp.infant) + num(sp.elderly) + num(sp.loan) + num(sp.rent) + num(sp.cont));
+
+  // 自定义扣除
+  function mapDed(arr){
+    return (arr || []).map(function(x){
+      return { name: String(x.name || '').trim() || '未命名扣除', amt: round2(num(x.amt)) };
+    }).filter(function(x){ return x.amt > 0; });
+  }
+  var preDed = mapDed(p.preDed), postDed = mapDed(p.postDed);
+  var preTotal = round2(preDed.reduce(function(s,x){ return s + x.amt; }, 0));
+  var postTotal = round2(postDed.reduce(function(s,x){ return s + x.amt; }, 0));
+
+  // 个税
+  var months = Math.max(1, Math.floor(num(p.cumMonths) || 1));
+  var cum = null, iit, taxable;
+  var tax;
+  if (months > 1){
+    var cumPaid = num(p.cumPaid), cumTaxPaid = num(p.cumTax);
+    var cumSi = num(p.cumSi) > 0 ? num(p.cumSi) : round2(si.total * (months - 1));
+    var cumSpecial = round2(specialTotal * months);
+    var cumPre = round2(preTotal * months);
+    var cumIncome = round2(cumPaid + gross);
+    var cumTaxable = Math.max(0, round2(cumIncome - THRESHOLD * months - cumSi - cumSpecial - cumPre));
+    var cumIIT = calcIIT(cumTaxable);
+    tax = Math.max(0, round2(cumIIT.tax - cumTaxPaid));
+    iit = cumIIT;
+    taxable = cumTaxable;
+    cum = {
+      months: months, income: cumIncome, si: cumSi, special: cumSpecial, pre: cumPre,
+      taxable: cumTaxable, cumTax: cumIIT.tax, paidTax: cumTaxPaid, thisTax: tax
+    };
+  } else {
+    taxable = Math.max(0, round2(gross - THRESHOLD - si.total - specialTotal - preTotal));
+    iit = calcIIT(taxable);
+    tax = iit.tax;
+  }
+
+  var net = round2(gross - si.total - tax - postTotal);
+
+  return {
+    mode: mode, basePay: basePay, baseNote: baseNote, bonus: bonus,
+    ot: ot, otTotal: otTotal,
+    adds: adds, addsTotal: addsTotal, gross: gross,
+    si: si, specialTotal: specialTotal,
+    preDed: preDed, preTotal: preTotal,
+    postDed: postDed, postTotal: postTotal,
+    taxable: taxable, rate: iit.rate, qd: iit.qd, tax: tax,
+    cum: cum, net: net, months: months
+  };
+}
+// ==CALC-END==
+
+/* ============================================================
+ * 通用工具
+ * ============================================================ */
+function $(s, el){ return (el || document).querySelector(s); }
+function $$(s, el){ return Array.prototype.slice.call((el || document).querySelectorAll(s)); }
+function fmt(n){ return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmt4(n){ return (n < 0 ? '-' : '') + Math.abs(n).toFixed(4); }
+function pad2(n){ return String(n).padStart(2, '0'); }
+function fmtDateTime(d){
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function val(id){ return $(id) ? $(id).value : ''; }
+function showToast(msg){
+  var t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+}
+
+/* ============================================================
+ * 视图路由
+ * ============================================================ */
+var VIEWS = { '/calc': 'view-calc', '/realtime': 'view-realtime', '/ref': 'view-ref' };
+function route(){
+  var hash = (location.hash || '').replace(/^#/, '') || '/calc';
+  if (!VIEWS[hash]) hash = '/calc';
+  Object.keys(VIEWS).forEach(function(k){
+    $('#' + VIEWS[k]).classList.toggle('active', k === hash);
+  });
+  $$('.site-nav a').forEach(function(a){
+    a.classList.toggle('active', a.getAttribute('data-nav') === hash.replace('/', ''));
+  });
+  // 同步当前视图的计薪模式（控制表单字段显隐）
+  if (hash === '/realtime' && rt){
+    rtApplyMode();
+  } else {
+    applyPayMode();
+  }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+/* ============================================================
+ * 工资计算器
+ * ============================================================ */
+var LS_KEY = 'salaryCalc.v1';
+var DEFAULTS = { siPension: '8', siMedical: '2', siUnemp: '0.5', siFund: '8', workDays: '21.75' };
+var TEXT_FIELDS = ['baseSalary','bonus','dailyWage','workDays','otWeekday','otRest','otHoliday',
+  'otBaseMode','siBase','siPension','siMedical','siUnemp','siFund','siFixed',
+  'spEdu','spInfant','spElderly','spLoan','spRent','spCont',
+  'cumMonths','cumPaid','cumTax','cumSi'];
+
+function readDyn(listId){
+  return $$('.dyn-row', $('#' + listId)).map(function(row){
+    return { name: $('.dyn-name', row).value, amt: $('.dyn-amt', row).value };
+  });
+}
+function addDynRow(listId, name, amt){
+  var list = $('#' + listId);
+  var row = document.createElement('div');
+  row.className = 'dyn-row';
+  var nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'dyn-name';
+  nameInput.placeholder = '项目名称';
+  nameInput.value = name || '';
+  var amtInput = document.createElement('input');
+  amtInput.type = 'number';
+  amtInput.className = 'dyn-amt';
+  amtInput.min = '0';
+  amtInput.step = '0.01';
+  amtInput.setAttribute('inputmode', 'decimal');
+  amtInput.placeholder = '金额（元）';
+  amtInput.value = (amt === undefined || amt === '') ? '' : amt;
+  var del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'dyn-del no-print';
+  del.title = '删除此项';
+  del.textContent = '×';
+  del.addEventListener('click', function(){
+    row.remove();
+    refreshEmptyTips();
+    saveState();
+    render();
+  });
+  row.appendChild(nameInput);
+  row.appendChild(amtInput);
+  row.appendChild(del);
+  list.appendChild(row);
+}
+function refreshEmptyTips(){
+  ['adds','pre','post'].forEach(function(k){
+    var tip = $('#' + k + 'Empty');
+    if (tip) tip.style.display = $('#' + k + 'List').children.length ? 'none' : 'block';
+  });
+}
+
+function currentPayMode(){
+  var r = document.querySelector('input[name="payMode"]:checked');
+  return r ? r.value : 'monthly';
+}
+function applyPayMode(){
+  var mode = currentPayMode();
+  document.body.setAttribute('data-paymode', mode);
+  $('#otBaseHint').textContent = mode === 'monthly'
+    ? '时薪 = 基本工资 ÷ 21.75 ÷ 8'
+    : '时薪 = 日工资 ÷ 8';
+  $('#siBaseHint').textContent = mode === 'monthly'
+    ? '留空则按基本工资计算'
+    : '留空则按 日工资 × 计薪天数 计算';
+}
+
+function readParams(){
+  return {
+    mode: currentPayMode(),
+    baseSalary: val('#baseSalary'),
+    bonus: val('#bonus'),
+    dailyWage: val('#dailyWage'),
+    workDays: val('#workDays'),
+    otWeekday: val('#otWeekday'),
+    otRest: val('#otRest'),
+    otHoliday: val('#otHoliday'),
+    otBaseMode: val('#otBaseMode'),
+    siBase: val('#siBase'),
+    siPension: val('#siPension'),
+    siMedical: val('#siMedical'),
+    siUnemp: val('#siUnemp'),
+    siFund: val('#siFund'),
+    siFixed: val('#siFixed'),
+    specials: {
+      edu: val('#spEdu'), infant: val('#spInfant'), elderly: val('#spElderly'),
+      loan: val('#spLoan'), rent: val('#spRent'), cont: val('#spCont')
+    },
+    adds: readDyn('addsList'),
+    preDed: readDyn('preList'),
+    postDed: readDyn('postList'),
+    cumMonths: val('#cumMonths'),
+    cumPaid: val('#cumPaid'),
+    cumTax: val('#cumTax'),
+    cumSi: val('#cumSi')
+  };
+}
+
+function rowHtml(name, amt, note, cls){
+  return '<tr class="' + (cls || '') + '"><td>' + escapeHtml(name) + '</td>' +
+    '<td class="amt">' + fmt(amt) + '</td>' +
+    '<td class="note">' + escapeHtml(note || '') + '</td></tr>';
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function render(){
+  var r = computeSalary(readParams());
+
+  // 汇总
+  $('#outGross').textContent = '¥' + fmt(r.gross);
+  $('#outSI').textContent = '-¥' + fmt(r.si.total);
+  $('#outTax').textContent = '-¥' + fmt(r.tax);
+  $('#outOther').textContent = '-¥' + fmt(r.postTotal);
+  $('#outNet').innerHTML = '<small>¥</small>' + fmt(r.net);
+  $('#mbNet').textContent = '¥' + fmt(r.net);
+  $('#outRateBadge').textContent = r.tax > 0
+    ? '适用税率 ' + Math.round(r.rate * 100) + '% · 速算扣除 ' + r.qd
+    : (r.gross > 0 ? '未达起征点，无需缴税' : '等待输入');
+
+  // 应发明细
+  var addsRows = '';
+  addsRows += rowHtml(r.mode === 'monthly' ? '基本工资' : '工资（日薪 × 天数）', r.basePay, r.baseNote);
+  if (r.bonus > 0) addsRows += rowHtml('绩效奖金', r.bonus, '');
+  if (r.ot.hoursW > 0) addsRows += rowHtml('加班费 · 工作日', r.ot.weekday,
+    r.ot.hoursW + ' 小时 × ' + fmt(r.ot.hourly) + ' 元/时 × 1.5');
+  if (r.ot.hoursR > 0) addsRows += rowHtml('加班费 · 休息日', r.ot.rest,
+    r.ot.hoursR + ' 小时 × ' + fmt(r.ot.hourly) + ' 元/时 × 2');
+  if (r.ot.hoursH > 0) addsRows += rowHtml('加班费 · 法定节假日', r.ot.holiday,
+    r.ot.hoursH + ' 小时 × ' + fmt(r.ot.hourly) + ' 元/时 × 3');
+  r.adds.forEach(function(x){ addsRows += rowHtml(x.name, x.amt, '其他应发'); });
+  addsRows += rowHtml('应发合计', r.gross, '', 'total');
+  $('#tbodyAdds').innerHTML = addsRows;
+
+  // 扣除明细
+  var dedRows = '';
+  if (r.si.pension > 0) dedRows += rowHtml('养老保险', r.si.pension, '基数 ' + fmt(r.si.base) + ' × ' + (r.si.base > 0 ? (num(val('#siPension')) || 0) : 0) + '%');
+  if (r.si.medical > 0) dedRows += rowHtml('医疗保险', r.si.medical, '基数 ' + fmt(r.si.base) + ' × ' + (num(val('#siMedical')) || 0) + '%');
+  if (r.si.unemp > 0) dedRows += rowHtml('失业保险', r.si.unemp, '基数 ' + fmt(r.si.base) + ' × ' + (num(val('#siUnemp')) || 0) + '%');
+  if (r.si.fund > 0) dedRows += rowHtml('住房公积金', r.si.fund, '基数 ' + fmt(r.si.base) + ' × ' + (num(val('#siFund')) || 0) + '%');
+  if (r.si.fixed > 0) dedRows += rowHtml('大病医疗等固定额', r.si.fixed, '固定金额');
+  if (r.si.total > 0) dedRows += rowHtml('五险一金小计', r.si.total, '', 'total');
+  r.preDed.forEach(function(x){ dedRows += rowHtml(x.name + '（税前）', x.amt, '抵减应纳税所得额'); });
+  dedRows += rowHtml('个人所得税', r.tax,
+    r.tax > 0 ? ('税率 ' + Math.round(r.rate * 100) + '% · 速算扣除 ' + r.qd) : (r.gross > 0 ? '未达起征点' : ''));
+  r.postDed.forEach(function(x){ dedRows += rowHtml(x.name + '（税后）', x.amt, '实发中扣除'); });
+  if (r.postTotal > 0) dedRows += rowHtml('税后扣除小计', r.postTotal, '', 'total');
+  dedRows += rowHtml('实发工资', r.net, '', 'net');
+  $('#tbodyDeduct').innerHTML = dedRows;
+
+  // 计算说明
+  var ex = [];
+  ex.push('计薪方式：<b>' + (r.mode === 'monthly' ? '月薪制' : '日薪制（日工资 × 计薪天数）') + '</b>');
+  ex.push('加班时薪：<b>' + fmt(r.ot.hourly) + ' 元/小时</b>' +
+    (r.mode === 'monthly' ? '（' + (val('#otBaseMode') === 'full' ? '基本工资+绩效奖金' : '基本工资') + ' ÷ 21.75 ÷ 8）' : '（日工资 ÷ 8）'));
+  if (r.otTotal > 0){
+    ex.push('加班费合计：<b>' + fmt(r.otTotal) + ' 元</b>（工作日 ' + fmt(r.ot.weekday) + ' + 休息日 ' + fmt(r.ot.rest) + ' + 节假日 ' + fmt(r.ot.holiday) + '）');
+  }
+  ex.push('应发合计 = 工资 ' + fmt(r.basePay) + ' + 绩效 ' + fmt(r.bonus) + ' + 加班费 ' + fmt(r.otTotal) + ' + 其他应发 ' + fmt(r.addsTotal) + ' = <b>' + fmt(r.gross) + ' 元</b>');
+  ex.push('五险一金（个人）= ' + fmt(r.si.total) + ' 元（缴费基数 ' + fmt(r.si.base) + '）');
+  ex.push('专项附加扣除合计 = <b>' + fmt(r.specialTotal) + ' 元</b>');
+  if (r.cum){
+    ex.push('累计预扣：本年已计薪 <b>' + r.cum.months + '</b> 个月，累计收入 ' + fmt(r.cum.income) + '，累计减除费用 ' + fmt(5000 * r.cum.months) + '，累计五险一金 ' + fmt(r.cum.si) + '，累计专项附加 ' + fmt(r.cum.special) + '，累计税前扣除 ' + fmt(r.cum.pre));
+    ex.push('累计应纳税所得额 = <b>' + fmt(r.cum.taxable) + ' 元</b> → 累计应纳税额 ' + fmt(r.cum.cumTax) + '（税率 ' + Math.round(r.rate * 100) + '%）− 已缴 ' + fmt(r.cum.paidTax) + ' = 本月预扣 <b>' + fmt(r.tax) + ' 元</b>');
+  } else {
+    ex.push('本月应纳税所得额 = ' + fmt(r.gross) + ' − 5000 − ' + fmt(r.si.total) + ' − ' + fmt(r.specialTotal) + ' − ' + fmt(r.preTotal) + ' = <b>' + fmt(r.taxable) + ' 元</b>');
+    ex.push('本月个税 = ' + fmt(r.taxable) + ' × ' + Math.round(r.rate * 100) + '% − ' + r.qd + ' = <b>' + fmt(r.tax) + ' 元</b>');
+  }
+  ex.push('实发工资 = ' + fmt(r.gross) + ' − ' + fmt(r.si.total) + ' − ' + fmt(r.tax) + ' − ' + fmt(r.postTotal) + ' = <b>' + fmt(r.net) + ' 元</b>');
+  $('#explainList').innerHTML = ex.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+
+  // 打印参数
+  $('#printTime').textContent = '生成时间：' + fmtDateTime(new Date()) + ' · 工资计算器（离线版）';
+  $('#printParams').innerHTML = '<table class="detail-table"><thead><tr><th>计算参数</th><th>取值</th></tr></thead><tbody>' +
+    '<tr><td>计薪周期</td><td>' + (r.mode === 'monthly' ? '月薪制' : '日薪制') + '</td></tr>' +
+    '<tr><td>' + (r.mode === 'monthly' ? '基本工资' : '日工资 × 计薪天数') + '</td><td>' + fmt(r.basePay) + ' 元</td></tr>' +
+    '<tr><td>绩效奖金</td><td>' + fmt(r.bonus) + ' 元</td></tr>' +
+    '<tr><td>加班小时（工作日/休息日/节假日）</td><td>' + r.ot.hoursW + ' / ' + r.ot.hoursR + ' / ' + r.ot.hoursH + ' 小时</td></tr>' +
+    '<tr><td>五险一金缴费基数</td><td>' + fmt(r.si.base) + ' 元</td></tr>' +
+    '<tr><td>专项附加扣除合计</td><td>' + fmt(r.specialTotal) + ' 元</td></tr>' +
+    '<tr><td>税前扣除合计</td><td>' + fmt(r.preTotal) + ' 元</td></tr>' +
+    '<tr><td>税后扣除合计</td><td>' + fmt(r.postTotal) + ' 元</td></tr>' +
+    '<tr><td>个税计算口径</td><td>' + (r.cum ? ('累计预扣法（本年 ' + r.cum.months + ' 个月）') : '单月税率表估算') + '</td></tr>' +
+    '</tbody></table>';
+}
+
+function saveState(){
+  var data = {
+    mode: currentPayMode(),
+    fields: {},
+    adds: readDyn('addsList'),
+    pre: readDyn('preList'),
+    post: readDyn('postList')
+  };
+  TEXT_FIELDS.forEach(function(id){ data.fields[id] = val('#' + id); });
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e){}
+}
+function loadState(){
+  var data = null;
+  try { data = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){}
+  if (!data) return;
+  if (data.mode){
+    var radio = document.querySelector('input[name="payMode"][value="' + data.mode + '"]');
+    if (radio) radio.checked = true;
+  }
+  if (data.fields){
+    TEXT_FIELDS.forEach(function(id){
+      if (data.fields[id] !== undefined && data.fields[id] !== ''){
+        var el = $('#' + id);
+        if (el) el.value = data.fields[id];
+      }
+    });
+  }
+  if (data.adds) data.adds.forEach(function(x){ addDynRow('addsList', x.name, x.amt); });
+  if (data.pre) data.pre.forEach(function(x){ addDynRow('preList', x.name, x.amt); });
+  if (data.post) data.post.forEach(function(x){ addDynRow('postList', x.name, x.amt); });
+}
+function resetForm(){
+  TEXT_FIELDS.forEach(function(id){
+    var el = $('#' + id);
+    if (!el) return;
+    if (el.tagName === 'SELECT'){ el.selectedIndex = 0; return; }
+    el.value = (DEFAULTS[id] !== undefined) ? DEFAULTS[id] : '';
+  });
+  ['addsList','preList','postList'].forEach(function(id){ $('#' + id).innerHTML = ''; });
+  var monthly = document.querySelector('input[name="payMode"][value="monthly"]');
+  if (monthly) monthly.checked = true;
+  try { localStorage.removeItem(LS_KEY); } catch(e){}
+  refreshEmptyTips();
+  applyPayMode();
+  render();
+  showToast('已恢复默认设置');
+}
+
+/* ---------- 导出 ---------- */
+function buildExportRows(r){
+  var rows = [];
+  rows.push(['工资计算明细', '', '生成时间 ' + fmtDateTime(new Date())]);
+  rows.push(['计薪周期', '', r.mode === 'monthly' ? '月薪制' : '日薪制']);
+  rows.push([]);
+  rows.push(['【应发项目】', '', '']);
+  rows.push([r.mode === 'monthly' ? '基本工资' : '工资（日薪×天数）', r.basePay.toFixed(2), r.baseNote]);
+  if (r.bonus > 0) rows.push(['绩效奖金', r.bonus.toFixed(2), '']);
+  if (r.ot.hoursW > 0) rows.push(['加班费·工作日', r.ot.weekday.toFixed(2), r.ot.hoursW + '小时×' + fmt(r.ot.hourly) + '元/时×1.5']);
+  if (r.ot.hoursR > 0) rows.push(['加班费·休息日', r.ot.rest.toFixed(2), r.ot.hoursR + '小时×' + fmt(r.ot.hourly) + '元/时×2']);
+  if (r.ot.hoursH > 0) rows.push(['加班费·法定节假日', r.ot.holiday.toFixed(2), r.ot.hoursH + '小时×' + fmt(r.ot.hourly) + '元/时×3']);
+  r.adds.forEach(function(x){ rows.push([x.name, x.amt.toFixed(2), '其他应发']); });
+  rows.push(['应发合计', r.gross.toFixed(2), '']);
+  rows.push([]);
+  rows.push(['【扣除项目】', '', '']);
+  if (r.si.pension > 0) rows.push(['养老保险', r.si.pension.toFixed(2), '基数' + fmt(r.si.base) + '×' + (num(val('#siPension')) || 0) + '%']);
+  if (r.si.medical > 0) rows.push(['医疗保险', r.si.medical.toFixed(2), '基数' + fmt(r.si.base) + '×' + (num(val('#siMedical')) || 0) + '%']);
+  if (r.si.unemp > 0) rows.push(['失业保险', r.si.unemp.toFixed(2), '基数' + fmt(r.si.base) + '×' + (num(val('#siUnemp')) || 0) + '%']);
+  if (r.si.fund > 0) rows.push(['住房公积金', r.si.fund.toFixed(2), '基数' + fmt(r.si.base) + '×' + (num(val('#siFund')) || 0) + '%']);
+  if (r.si.fixed > 0) rows.push(['大病医疗等固定额', r.si.fixed.toFixed(2), '固定金额']);
+  if (r.si.total > 0) rows.push(['五险一金小计', r.si.total.toFixed(2), '']);
+  r.preDed.forEach(function(x){ rows.push([x.name + '（税前）', x.amt.toFixed(2), '抵减应纳税所得额']); });
+  rows.push(['个人所得税', r.tax.toFixed(2), r.tax > 0 ? ('税率' + Math.round(r.rate * 100) + '%·速算扣除' + r.qd) : '未达起征点']);
+  r.postDed.forEach(function(x){ rows.push([x.name + '（税后）', x.amt.toFixed(2), '实发中扣除']); });
+  if (r.postTotal > 0) rows.push(['税后扣除小计', r.postTotal.toFixed(2), '']);
+  rows.push(['实发工资', r.net.toFixed(2), '']);
+  return rows;
+}
+function csvCell(s){
+  s = String(s);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportCSV(){
+  var r = computeSalary(readParams());
+  var lines = buildExportRows(r).map(function(row){
+    return row.map(csvCell).join(',');
+  });
+  var csv = '\uFEFF' + lines.join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  var d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = '工资明细_' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  showToast('CSV 明细已导出');
+}
+function copyDetail(){
+  var r = computeSalary(readParams());
+  var rows = buildExportRows(r);
+  var text = rows.map(function(row){ return row.join('\t'); }).join('\n');
+  function done(){ showToast('明细已复制到剪贴板'); }
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch(e){ showToast('复制失败，请手动选择内容'); }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ---------- 事件绑定 ---------- */
+function bindCalc(){
+  var form = $('#calcForm');
+  form.addEventListener('input', function(){ saveState(); render(); });
+  form.addEventListener('change', function(){ applyPayMode(); saveState(); render(); });
+  $$('input[name="payMode"]').forEach(function(radio){
+    radio.addEventListener('change', function(){ applyPayMode(); saveState(); render(); });
+  });
+  $$('[data-add]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      addDynRow(btn.getAttribute('data-add') + 'List');
+      refreshEmptyTips();
+      saveState();
+      render();
+    });
+  });
+  $('#btnReset').addEventListener('click', resetForm);
+  $('#btnCsv').addEventListener('click', exportCSV);
+  $('#mbCsv').addEventListener('click', exportCSV);
+  $('#btnCopy').addEventListener('click', copyDetail);
+  $('#btnPrint').addEventListener('click', function(){ window.print(); });
+}
+
+/* ============================================================
+ * 实时收入计算器
+ * ============================================================ */
+var RT_KEY = 'realtime.v1';
+var rt = null;
+function loadRT(){
+  try {
+    var d = JSON.parse(localStorage.getItem(RT_KEY) || 'null');
+    if (d) return d;
+  } catch(e){}
+  return { mode: 'monthly', salary: '', dailyWage: '', days: '', hours: '', acc: 0, running: false, startedAt: 0 };
+}
+function saveRT(){
+  try { localStorage.setItem(RT_KEY, JSON.stringify(rt)); } catch(e){}
+}
+function rtHourly(){
+  if (rt.mode === 'monthly'){
+    var days = num(rt.days) > 0 ? num(rt.days) : 22;
+    var hours = num(rt.hours) > 0 ? num(rt.hours) : 8;
+    return num(rt.salary) / (days * hours);
+  }
+  var h = num(rt.hours) > 0 ? num(rt.hours) : 8;
+  return num(rt.dailyWage) / h;
+}
+function rtElapsedMs(){
+  return rt.acc + (rt.running ? (Date.now() - rt.startedAt) : 0);
+}
+function rtTick(){
+  var hourly = rtHourly();
+  var perSec = hourly / 3600;
+  var elapsed = rtElapsedMs() / 1000;
+  var earned = elapsed * perSec;
+  var h = Math.floor(elapsed / 3600);
+  var m = Math.floor((elapsed % 3600) / 60);
+  var s = Math.floor(elapsed % 60);
+  $('#rtTime').textContent = pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+  $('#rtEarned').innerHTML = '<small>¥</small>' + fmt4(earned);
+  $('#rtRateHour').textContent = hourly.toFixed(2) + ' 元';
+  $('#rtRateMin').textContent = (hourly / 60).toFixed(2) + ' 元';
+  $('#rtRateSec').textContent = (hourly / 3600).toFixed(4) + ' 元';
+  var target = rt.mode === 'monthly' ? num(rt.salary) : num(rt.dailyWage);
+  var pct = target > 0 ? Math.min(100, earned / target * 100) : 0;
+  $('#rtBar').style.width = pct.toFixed(2) + '%';
+  $('#rtPct').textContent = pct.toFixed(1) + '%';
+}
+function rtValidate(){
+  if (rt.mode === 'monthly'){
+    return num(rt.salary) > 0 && num(rt.days) > 0 && num(rt.hours) > 0;
+  }
+  return num(rt.dailyWage) > 0 && num(rt.hours) > 0;
+}
+function rtToggle(){
+  if (!rtValidate()){
+    showToast(rt.mode === 'monthly' ? '请先填写每月工资、上班天数和每天小时数' : '请先填写日工资和每天小时数');
+    return;
+  }
+  if (rt.running){
+    rt.acc += Date.now() - rt.startedAt;
+    rt.running = false;
+    $('#rtStart').textContent = '继续上班';
+  } else {
+    rt.startedAt = Date.now();
+    rt.running = true;
+    $('#rtStart').textContent = '暂停';
+  }
+  saveRT();
+  rtTick();
+}
+function rtReset(){
+  rt.acc = 0;
+  rt.running = false;
+  rt.startedAt = 0;
+  saveRT();
+  $('#rtStart').textContent = '开始上班';
+  rtTick();
+  showToast('已重置计时');
+}
+function rtApplyMode(){
+  var r = document.querySelector('input[name="rtMode"]:checked');
+  rt.mode = r ? r.value : 'monthly';
+  document.body.setAttribute('data-paymode', rt.mode === 'daily' ? 'daily' : 'monthly');
+  $('#rtTargetLabel').textContent = rt.mode === 'monthly' ? '本月目标' : '本日目标';
+  $('#rtNote').textContent = rt.mode === 'monthly'
+    ? '收入速率 = 每月工资 ÷ 上班天数 ÷ 每天小时数'
+    : '收入速率 = 日工资 ÷ 每天小时数';
+}
+function bindRT(){
+  rt = loadRT();
+  if (rt.mode){
+    var r = document.querySelector('input[name="rtMode"][value="' + rt.mode + '"]');
+    if (r) r.checked = true;
+  }
+  $('#rtSalary').value = rt.salary || '';
+  $('#rtDailyWage').value = rt.dailyWage || '';
+  $('#rtDays').value = rt.days || '';
+  $('#rtHours').value = rt.hours || '';
+  rtApplyMode();
+  $('#rtStart').textContent = rt.running ? '暂停' : (rt.acc > 0 ? '继续上班' : '开始上班');
+  $$('input[name="rtMode"]').forEach(function(radio){
+    radio.addEventListener('change', function(){ rtApplyMode(); saveRT(); rtTick(); });
+  });
+  ['#rtSalary','#rtDailyWage','#rtDays','#rtHours'].forEach(function(sel){
+    $(sel).addEventListener('input', function(){
+      var key = sel.replace('#rt', '').toLowerCase();
+      if (key === 'dailywage') key = 'dailyWage';
+      rt[key] = $(sel).value;
+      saveRT();
+      rtTick();
+    });
+  });
+  $('#rtStart').addEventListener('click', rtToggle);
+  $('#rtReset').addEventListener('click', rtReset);
+  setInterval(rtTick, 100);
+  rtTick();
+}
+
+/* ============================================================
+ * 初始化
+ * ============================================================ */
+function init(){
+  route();
+  loadState();
+  applyPayMode();
+  refreshEmptyTips();
+  bindCalc();
+  bindRT();
+  render();
+}
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+})();
+</script>
+</body>
+</html>
