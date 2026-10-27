@@ -1,7 +1,7 @@
 /* ===== 宝贝升级乐园 · Service Worker =====
    应用外壳缓存：断网也能打开并使用全部核心功能（数据本来就在 localStorage）。
 */
-var CACHE = 'bls-shell-v5';
+var CACHE = 'bls-shell-v6';
 var ASSETS = [
   './',
   './index.html',
@@ -17,7 +17,8 @@ var ASSETS = [
   './engbank.js',
   './modules.js',
   './pet.js',
-  './manifest.json',
+  './manifest.webmanifest',
+  './start.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
