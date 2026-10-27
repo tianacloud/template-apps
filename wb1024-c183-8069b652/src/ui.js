@@ -1,7 +1,7 @@
 
 (function(){
   'use strict';
-  var DATABASE_ID = 'uihHPG8jyFJ5fWitFkltFp';
+  var DATABASE_ID = null;
   var DRAFT_PREFIX = 'wb1024_wb_draft_';
   var STAGE_COLOR = {
     '连载中': '#12C87A',
@@ -56,7 +56,7 @@
     $('bookList').hidden = true;
     $('emptyState').hidden = false;
     $('emptyState').innerHTML = '<div class="be">📖</div><b>当前环境暂不支持数据读写</b>'
-      + '<p>请在 WorkBuddy 资料库中打开本页面，即可记录和修改作品进度。</p>';
+      + '<p>请检查数据库连接后刷新页面。</p>';
     $('kpiActive').textContent = '—';
     $('kpiWords').textContent = '—';
     $('kpiDone').textContent = '—';
@@ -178,8 +178,7 @@
 
   /* ── 渲染作品卡片：克隆 <template> 填充，用户数据一律走 textContent ── */
   function bindDb(el){
-    el.setAttribute('data-sp-bindable', 'database');
-    el.setAttribute('data-sp-database-id', DATABASE_ID);
+    // Data is rendered using textContent.
   }
   function renderData(rows){
     ROWS = rows;
