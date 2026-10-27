@@ -13,10 +13,11 @@ for (const style of doc.head.querySelectorAll('style,link[rel=stylesheet]')) {
 }
 document.body.innerHTML = doc.body.innerHTML;
 for (const script of document.body.querySelectorAll('script')) script.remove();
+window.addEventListener('hashchange', () => location.reload());
 document.addEventListener('click', e => {
  const a=e.target.closest('a'); if(!a) return;
  const href=a.getAttribute('href')||''; const match=href.match(/^(index|computer|majors|regions|departments|cooccur|exclusive)\.html$/);
- if(match){e.preventDefault();location.hash=match[1];location.reload();}
+ if(match){e.preventDefault();if(location.hash.slice(1) !== match[1]) location.hash=match[1];}
 },true);
 let inlineIndex=0;
 for (const original of doc.body.querySelectorAll('script')) {
