@@ -1,0 +1,11 @@
+import {readFile, mkdir, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if (!/^[a-f0-9]{40}$/.test(commit || '')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+const content=await readFile('src/content.html','utf8');
+const code=await readFile('src/interaction.js','utf8');
+await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./app.css',import.meta.url).href;document.head.append(style);document.getElementById('app').innerHTML=${JSON.stringify(content)};\n${code}`);
+await copyFile('src/style.css','dist/assets/app.css');
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,source_commit:commit}));
