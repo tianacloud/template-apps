@@ -7,7 +7,7 @@
 
   // pdf.js worker
   if (window.pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.js', import.meta.url).href;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.mjs', import.meta.url).href;
   }
 
   // ===== 全局状态 =====
