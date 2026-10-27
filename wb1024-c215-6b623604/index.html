@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1" name="viewport">
+<title>正则表达式测试器</title>
+<style>
+  :root{
+    --bg:#f4f5fa; --card:#ffffff; --line:#e4e7ef; --ink:#1f2430; --sub:#5b6472;
+    --accent:#4f46e5; --accent-soft:#eef2ff; --accent-line:#c7d2fe;
+    --mark:#fde68a; --mark-ink:#8a5a00;
+    --err:#b91c1c; --err-bg:#fef2f2; --err-line:#fecaca;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  img{max-width:100%;height:auto;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(16px,4vw,36px) clamp(14px,4vw,28px) 48px;}
+  header.top{margin:6px 0 20px;}
+  h1{font-size:clamp(22px,4vw,32px);margin:0 0 6px;letter-spacing:.5px;}
+  h1 .logo{color:var(--accent);}
+  .tagline{margin:0 0 10px;color:var(--sub);font-size:clamp(14px,2.4vw,16px);}
+  .hint{
+    margin:0;background:var(--accent-soft);border:1px solid var(--accent-line);
+    border-radius:10px;padding:10px 14px;font-size:14px;color:#3730a3;
+  }
+  .hint b{color:var(--accent);}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:clamp(14px,3vw,22px);margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(31,36,48,.04);
+  }
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;}
+  .row:last-child{margin-bottom:0;}
+  .lbl{flex:0 0 auto;font-weight:600;font-size:14px;color:var(--sub);}
+  input[type="text"]{
+    flex:1 1 320px;min-width:0;font-family:var(--mono);font-size:16px;
+    padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);
+  }
+  input[type="text"]:focus,textarea:focus,button:focus-visible,.flag:focus-visible{
+    outline:2px solid var(--accent);outline-offset:1px;
+  }
+  .err{
+    flex:1 1 100%;color:var(--err);background:var(--err-bg);border:1px solid var(--err-line);
+    border-radius:9px;padding:8px 12px;font-size:13.5px;font-family:var(--mono);
+  }
+  .flag{
+    border:1px solid var(--line);background:#fbfcfe;color:var(--sub);
+    border-radius:999px;padding:5px 13px;font-size:13.5px;cursor:pointer;
+    font-family:var(--mono);transition:all .12s ease;
+  }
+  .flag:hover{border-color:var(--accent-line);color:var(--accent);}
+  .flag.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .ghost{
+    border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:9px;
+    padding:6px 14px;font-size:13.5px;cursor:pointer;transition:all .12s ease;
+  }
+  .ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .chip{
+    border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);
+    border-radius:999px;padding:5px 13px;font-size:13.5px;cursor:pointer;transition:all .12s ease;
+  }
+  .chip:hover{background:var(--accent);color:#fff;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .grid .card{margin-bottom:0;display:flex;flex-direction:column;}
+  .cardhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .cardhead h2{font-size:16px;margin:0;}
+  .stat{font-size:13px;color:var(--sub);font-family:var(--mono);}
+  textarea{
+    width:100%;min-height:200px;resize:vertical;font-family:var(--mono);font-size:14px;
+    padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe;color:var(--ink);
+  }
+  .subhead{font-size:13px;color:var(--sub);margin:14px 0 8px;font-weight:600;}
+  .preview{
+    white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13.5px;
+    background:#fbfcfe;border:1px dashed var(--line);border-radius:10px;
+    padding:10px 12px;min-height:120px;max-height:340px;overflow:auto;
+  }
+  .preview.empty{color:#9aa3b2;font-family:inherit;}
+  mark{background:var(--mark);color:var(--mark-ink);border-radius:3px;padding:0 1px;font-weight:600;}
+  .note{color:var(--sub);font-size:12.5px;margin-top:8px;font-family:inherit;}
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .pill{
+    background:var(--accent-soft);border:1px solid var(--accent-line);color:#3730a3;
+    border-radius:999px;padding:4px 12px;font-size:13px;font-family:var(--mono);
+  }
+  .list{overflow:auto;max-height:460px;display:flex;flex-direction:column;gap:6px;}
+  .emptylist{color:#9aa3b2;font-size:14px;padding:18px 0;text-align:center;}
+  .mrow{border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .mhead{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:#fff;border:0;padding:8px 12px;cursor:pointer;font-size:13.5px;
+  }
+  .mhead:hover{background:#f8f9fd;}
+  .mhead.open{background:var(--accent-soft);}
+  .midx{font-family:var(--mono);color:var(--accent);font-weight:700;flex:0 0 auto;}
+  .mtext{font-family:var(--mono);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mrange{font-family:var(--mono);color:var(--sub);font-size:12px;flex:0 0 auto;}
+  .mbody{border-top:1px dashed var(--line);padding:8px 12px;background:#fcfcfe;font-size:13px;}
+  .gline{display:flex;gap:10px;padding:2px 0;}
+  .gkey{flex:0 0 auto;color:var(--sub);font-family:var(--mono);font-size:12.5px;}
+  .gval{font-family:var(--mono);word-break:break-all;}
+  .gnote{color:var(--sub);font-size:12.5px;}
+  details.card summary{cursor:pointer;font-weight:600;font-size:15px;list-style:none;}
+  details.card summary::-webkit-details-marker{display:none;}
+  details.card summary::before{content:"▸ ";color:var(--accent);}
+  details.card[open] summary::before{content:"▾ ";}
+  table.cheat{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  table.cheat th,table.cheat td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top;}
+  table.cheat th{background:#f8f9fd;font-size:13px;color:var(--sub);}
+  table.cheat td:first-child{font-family:var(--mono);white-space:nowrap;color:var(--accent);}
+  .cheatgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .usage p,.usage li{font-size:14px;}
+  .usage ol,.usage ul{margin:8px 0;padding-left:22px;}
+  .usage code{font-family:var(--mono);background:#f3f4f8;border-radius:4px;padding:1px 5px;font-size:13px;}
+  footer.foot{color:var(--sub);font-size:12.5px;text-align:center;margin-top:8px;}
+  #toast{
+    position:fixed;left:50%;bottom:34px;transform:translateX(-50%);
+    background:#1f2430;color:#fff;border-radius:999px;padding:8px 18px;font-size:13.5px;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:9;
+  }
+  #toast.show{opacity:.94;}
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr;}
+    .cheatgrid{grid-template-columns:1fr;}
+    textarea{min-height:150px;}
+    .list{max-height:360px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1><span class="logo">/&lt;regex&gt;/</span> 正则表达式测试器</h1>
+    <p class="tagline">打开即用的正则调试台：写正则、验正则，让匹配结果肉眼可见。</p>
+    <p class="hint"><b>使用方法：</b>① 在下方输入或粘贴正则（也可点「预设」一键填入）→ ② 粘贴测试文本 → ③ 匹配实时高亮，点击右侧匹配条目可展开查看捕获分组。</p>
+  </header>
+
+  <section class="card">
+    <div class="row">
+      <span class="lbl">正则</span>
+      <input aria-label="正则表达式" autocomplete="off" id="pattern" placeholder="例如：\d{4}-\d{2}-\d{2}" spellcheck="false" type="text">
+      <span class="err" hidden id="err" role="alert"></span>
+    </div>
+    <div class="row">
+      <span class="lbl">标志位</span>
+      <span aria-label="正则标志位" id="flags" role="group"></span>
+      <button class="ghost" id="clearBtn" type="button">清空重来</button>
+    </div>
+    <div class="row">
+      <span class="lbl">预设</span>
+      <span aria-label="常用正则预设" id="presets" role="group"></span>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="cardhead"><h2>测试文本</h2><span class="stat" id="textstat"></span></div>
+      <textarea aria-label="测试文本" id="text" placeholder="在这里粘贴要匹配的文本……"></textarea>
+      <p class="subhead">高亮预览</p>
+      <div class="preview empty" id="preview">匹配结果将在这里高亮显示</div>
+    </div>
+    <div class="card">
+      <div class="cardhead">
+        <h2>匹配结果</h2>
+        <button class="ghost" id="copyBtn" type="button">复制全部匹配</button>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="list" id="list"></div>
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>正则语法速查表</summary>
+    <div class="cheatgrid">
+      <div>
+        <table class="cheat">
+          <tr><th>写法</th><th>含义</th></tr>
+          <tr><td>.</td><td>任意字符（默认不含换行，加 s 后含）</td></tr>
+          <tr><td>[abc]</td><td>字符集合：a、b 或 c</td></tr>
+          <tr><td>[^abc]</td><td>除 a、b、c 之外的字符</td></tr>
+          <tr><td>\d \D</td><td>数字 [0-9] / 非数字</td></tr>
+          <tr><td>\w \W</td><td>单词字符 [A-Za-z0-9_] / 非单词字符</td></tr>
+          <tr><td>\s \S</td><td>空白字符（空格、制表、换行）/ 非空白</td></tr>
+        </table>
+        <table class="cheat">
+          <tr><th>写法</th><th>含义</th></tr>
+          <tr><td>^ $</td><td>字符串开头 / 结尾（m 模式下为每行）</td></tr>
+          <tr><td>\b \B</td><td>单词边界 / 非单词边界</td></tr>
+        </table>
+      </div>
+      <div>
+        <table class="cheat">
+          <tr><th>写法</th><th>含义</th></tr>
+          <tr><td>* + ?</td><td>重复 0 次或多次 / 1 次或多次 / 0 或 1 次</td></tr>
+          <tr><td>{n} {n,} {n,m}</td><td>恰好 n 次 / 至少 n 次 / n 到 m 次</td></tr>
+          <tr><td>*? +? ??</td><td>懒惰匹配：尽可能少地重复</td></tr>
+        </table>
+        <table class="cheat">
+          <tr><th>写法</th><th>含义</th></tr>
+          <tr><td>(abc)</td><td>捕获分组，可用 \1 或 $1 引用</td></tr>
+          <tr><td>(?:abc)</td><td>非捕获分组，只分组不捕获</td></tr>
+          <tr><td>(?&lt;name&gt;abc)</td><td>命名分组</td></tr>
+          <tr><td>a|b</td><td>选择：匹配 a 或 b</td></tr>
+          <tr><td>g i m s u y</td><td>全局 / 忽略大小写 / 多行 / 点匹配换行 / Unicode / 粘性</td></tr>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <details class="card usage">
+    <summary>使用说明与常见问题</summary>
+    <p><b>三步上手：</b></p>
+    <ol>
+      <li>在「正则」框输入或粘贴正则表达式，默认开启 <code>g</code>（全局匹配），可点「标志位」组合 <code>i / m / s / u / y</code>。</li>
+      <li>在「测试文本」框粘贴要校验的内容，输入停止约 0.15 秒后自动出结果。</li>
+      <li>左侧查看高亮预览，右侧查看匹配数量、耗时与每条匹配的区间；<b>点击匹配条目</b>可展开捕获分组（含命名分组）。</li>
+    </ol>
+    <p><b>小技巧：</b>不确定怎么写？点上方「预设」可一键填入邮箱、手机号、URL、IPv4、日期等常用正则及配套示例文本。</p>
+    <p><b>常见问题：</b></p>
+    <ul>
+      <li>出现红色报错条：说明正则语法有误（如括号没有配对），按提示修改即可，已输入的内容不会丢失。</li>
+      <li>没有匹配：检查是否开启了 <code>i</code>（忽略大小写）；部分标志位会改变匹配行为。</li>
+      <li>「空匹配」：正则匹配了空字符串（例如 <code>a*</code> 在没有任何 a 的位置），这是正常现象。</li>
+      <li>文本特别大时（超过 10 万字符）只做统计不做高亮，避免页面卡顿。</li>
+    </ul>
+    <p>所有匹配计算都在你的浏览器本地完成，文本不会上传、不会被保存，关掉页面即消失。</p>
+  </details>
+
+  <footer class="foot">正则表达式测试器 · 纯前端网页应用 · 打开即用，无需注册</footer>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+  'use strict';
+  function $(id){ return document.getElementById(id); }
+  var patternEl=$('pattern'), textEl=$('text'), errEl=$('err'),
+      previewEl=$('preview'), listEl=$('list'), statsEl=$('stats'),
+      textstatEl=$('textstat'), flagsEl=$('flags'), presetsEl=$('presets'),
+      copyBtn=$('copyBtn'), clearBtn=$('clearBtn'), toastEl=$('toast');
+
+  var FLAG_LABELS=[
+    ['g','g 全局匹配'],['i','i 忽略大小写'],['m','m 多行模式'],
+    ['s','s 点匹配换行'],['u','u Unicode'],['y','y 粘性匹配']
+  ];
+  var state={flags:{g:true,i:false,m:false,s:false,u:false,y:false}};
+  var MAX_HIGHLIGHT=1000, MAX_LIST=500, MAX_TEXT=100000, MAX_MATCHES=20000;
+  var lastMatches=[], timer=null;
+
+  function getFlags(){
+    var f='';
+    for (var i=0;i<FLAG_LABELS.length;i++){ if (state.flags[FLAG_LABELS[i][0]]) f+=FLAG_LABELS[i][0]; }
+    return f;
+  }
+  function showErr(msg){
+    errEl.textContent=msg||'';
+    errEl.hidden=!msg;
+  }
+  var toastTimer=null;
+  function toast(msg){
+    toastEl.textContent=msg;
+    toastEl.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){ toastEl.classList.remove('show'); },1600);
+  }
+  function clearChildren(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+
+  function buildFlags(){
+    clearChildren(flagsEl);
+    FLAG_LABELS.forEach(function(item){
+      var b=document.createElement('button');
+      b.type='button'; b.className='flag'; b.dataset.f=item[0];
+      b.textContent=item[1];
+      b.setAttribute('aria-pressed', state.flags[item[0]]?'true':'false');
+      if (state.flags[item[0]]) b.classList.add('on');
+      b.onclick=function(){
+        state.flags[item[0]]=!state.flags[item[0]];
+        b.classList.toggle('on', state.flags[item[0]]);
+        b.setAttribute('aria-pressed', state.flags[item[0]]?'true':'false');
+        runNow();
+      };
+      flagsEl.appendChild(b);
+    });
+  }
+
+  var PRESETS=[
+    {name:'电子邮箱', pattern:'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', flags:{g:true,i:false},
+     sample:'联系我们：support@example.com 或 admin@company.cn\n无效示例：a@b、x@.com、plain.text'},
+    {name:'手机号', pattern:'1[3-9]\\d{9}', flags:{g:true,i:false},
+     sample:'客服 13812345678，北京 15900001111，上海 18625006666\n错误示例：12345678901、1381234567'},
+    {name:'网址 URL', pattern:'https?://[^\\s<>"\']+', flags:{g:true,i:true},
+     sample:'官网 https://www.example.com\n文档 http://docs.example.com/guide?a=1&b=2\n注意：www.test.com 不带协议，不会被匹配'},
+    {name:'IPv4 地址', pattern:'\\b(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\b', flags:{g:true,i:false},
+     sample:'服务器：192.168.1.1、8.8.8.8、255.255.255.0\n错误示例：256.1.1.1、192.168.1'},
+    {name:'日期', pattern:'(\\d{4})-(\\d{2})-(\\d{2})', flags:{g:true,i:false},
+     sample:'上线日期 2026-10-24，投稿截止 2026-11-01\n评审 2026-11-02 至 2026-11-09，结果 2026-11-10 公布\n日志时间 2026/10/22 用斜杠，不会被匹配'},
+    {name:'中文字符', pattern:'[\\u4e00-\\u9fa5]+', flags:{g:true,i:false},
+     sample:'Hello 世界，这是 mixed 中英文测试 文本。\n正则 regular expression 很有趣。'},
+    {name:'正整数', pattern:'\\b[1-9]\\d*\\b', flags:{g:true,i:false},
+     sample:'第 1 章共 42 页，第 2 章共 38 页\n版本 3 已发布，累计下载 1024 次\n注意：007 与 0 不是正整数'},
+    {name:'HTML 标签', pattern:'</?[a-zA-Z][^>]*>', flags:{g:true,i:false},
+     sample:'<div class="wrap">hello</div>\n<p>段落文本</p>\n<input type="text" placeholder="姓名">\n<br>\n<hr>'}
+  ];
+
+  function applyPreset(p){
+    patternEl.value=p.pattern;
+    textEl.value=p.sample;
+    FLAG_LABELS.forEach(function(item){
+      var on = p.flags && Object.prototype.hasOwnProperty.call(p.flags,item[0]) ? p.flags[item[0]] : false;
+      state.flags[item[0]]=on;
+    });
+    if (!p.flags) state.flags.g=true;
+    buildFlags();
+    runNow();
+    toast('已填入预设：'+p.name);
+  }
+  function buildPresets(){
+    clearChildren(presetsEl);
+    PRESETS.forEach(function(p){
+      var b=document.createElement('button');
+      b.type='button'; b.className='chip'; b.textContent=p.name;
+      b.onclick=function(){ applyPreset(p); };
+      presetsEl.appendChild(b);
+    });
+  }
+
+  function renderEmptyPreview(){
+    previewEl.classList.add('empty');
+    previewEl.textContent='匹配结果将在这里高亮显示';
+  }
+  function renderEmptyList(){
+    clearChildren(listEl);
+    var d=document.createElement('div');
+    d.className='emptylist';
+    d.textContent='暂无匹配。可尝试调整正则，或点击上方预设。';
+    listEl.appendChild(d);
+  }
+  function renderStatsEmpty(){
+    clearChildren(statsEl);
+  }
+
+  function collectMatches(re,text){
+    var matches=[], total=0, capped=false, m;
+    re.lastIndex=0;
+    while ((m=re.exec(text))!==null){
+      total++;
+      if (matches.length<MAX_HIGHLIGHT){
+        matches.push({start:m.index,end:m.index+m[0].length,text:m[0],
+                      groups:m.slice(1),named:m.groups||null});
+      } else { capped=true; }
+      if (!re.global && !re.sticky) break;
+      if (m[0]==='') { if (m.index>=text.length) break; re.lastIndex=m.index + (re.unicode && text.codePointAt(m.index)>0xFFFF ? 2 : 1); }
+      if (total>=MAX_MATCHES){ capped=true; break; }
+    }
+    return {matches:matches,total:total,capped:capped};
+  }
+
+  function renderPreview(text,result){
+    previewEl.classList.remove('empty');
+    var frag=document.createDocumentFragment(), pos=0, i, mt;
+    var n=Math.min(result.matches.length,MAX_HIGHLIGHT);
+    for (i=0;i<n;i++){
+      mt=result.matches[i];
+      if (mt.start>pos) frag.appendChild(document.createTextNode(text.slice(pos,mt.start)));
+      var mark=document.createElement('mark');
+      mark.textContent=text.slice(mt.start,mt.end);
+      mark.title='第 '+(i+1)+' 个匹配';
+      frag.appendChild(mark);
+      pos=mt.end;
+    }
+    if (pos<text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+    if (result.capped){
+      var note=document.createElement('div');
+      note.className='note';
+      note.textContent='匹配数量很多，仅高亮前 '+n+' 个，完整总数见右侧统计。';
+      frag.appendChild(note);
+    }
+    clearChildren(previewEl);
+    previewEl.appendChild(frag);
+  }
+
+  function matchRow(idx,mt){
+    var row=document.createElement('div'); row.className='mrow';
+    var head=document.createElement('button'); head.type='button';
+    head.className='mhead'; head.setAttribute('aria-expanded','false');
+    var badge=document.createElement('span'); badge.className='midx'; badge.textContent='#'+idx;
+    var txt=document.createElement('span'); txt.className='mtext';
+    var display=mt.text;
+    if (display==='') display='（空匹配）';
+    if (display.length>80){ txt.textContent=display.slice(0,80)+'…'; txt.title=mt.text; }
+    else { txt.textContent=display; }
+    var range=document.createElement('span'); range.className='mrange';
+    range.textContent='['+mt.start+', '+mt.end+')';
+    head.appendChild(badge); head.appendChild(txt); head.appendChild(range);
+    var body=document.createElement('div'); body.className='mbody'; body.hidden=true;
+    var hasGroups=mt.groups.length>0 || !!mt.named;
+    if (!hasGroups){
+      var p0=document.createElement('div'); p0.className='gnote';
+      p0.textContent='该匹配没有捕获分组。';
+      body.appendChild(p0);
+    } else {
+      var i;
+      for (i=0;i<mt.groups.length;i++){
+        var g1=document.createElement('div'); g1.className='gline';
+        var k1=document.createElement('span'); k1.className='gkey'; k1.textContent='分组 '+(i+1);
+        var v1=document.createElement('span'); v1.className='gval';
+        v1.textContent=groupText(mt.groups[i]);
+        g1.appendChild(k1); g1.appendChild(v1); body.appendChild(g1);
+      }
+      if (mt.named){
+        Object.keys(mt.named).forEach(function(name){
+          var g2=document.createElement('div'); g2.className='gline';
+          var k2=document.createElement('span'); k2.className='gkey'; k2.textContent=name+'（命名）';
+          var v2=document.createElement('span'); v2.className='gval';
+          v2.textContent=groupText(mt.named[name]);
+          g2.appendChild(k2); g2.appendChild(v2); body.appendChild(g2);
+        });
+      }
+    }
+    row.appendChild(head); row.appendChild(body);
+    head.onclick=function(){
+      var open=body.hidden;
+      body.hidden=!open;
+      head.setAttribute('aria-expanded',open?'true':'false');
+      head.classList.toggle('open',open);
+    };
+    return row;
+  }
+  function groupText(v){
+    if (v===undefined) return '（未匹配）';
+    if (v==='') return '（空字符串）';
+    return v;
+  }
+
+  function renderList(result){
+    clearChildren(listEl);
+    if (result.total===0){ renderEmptyList(); return; }
+    var frag=document.createDocumentFragment();
+    var n=Math.min(result.matches.length,MAX_LIST);
+    for (var i=0;i<n;i++) frag.appendChild(matchRow(i+1,result.matches[i]));
+    if (n<result.total){
+      var more=document.createElement('div');
+      more.className='note';
+      more.textContent='匹配较多，仅列出前 '+n+' 条，共 '+result.total+' 条。';
+      frag.appendChild(more);
+    }
+    listEl.appendChild(frag);
+  }
+
+  function renderStats(result,ms){
+    clearChildren(statsEl);
+    var items=['匹配 '+result.total+' 个','耗时 '+(ms<1?'<1':ms.toFixed(1))+' ms'];
+    items.forEach(function(t){
+      var s=document.createElement('span'); s.className='pill'; s.textContent=t;
+      statsEl.appendChild(s);
+    });
+  }
+
+  function render(){
+    var pattern=patternEl.value, text=textEl.value;
+    textstatEl.textContent=text?(text.length+' 字符 · '+text.split('\n').length+' 行'):'';
+    if (!pattern){ showErr(''); renderEmptyPreview(); renderEmptyList(); renderStatsEmpty(); lastMatches=[]; return; }
+    var re;
+    try { re=new RegExp(pattern,getFlags()); }
+    catch(e){ showErr('正则语法错误：'+e.message); renderEmptyPreview(); renderEmptyList(); renderStatsEmpty(); lastMatches=[]; return; }
+    showErr('');
+    if (text.length>MAX_TEXT){
+      var t0b=performance.now();
+      var resBig=collectMatches(re,text);
+      var msb=performance.now()-t0b;
+      previewEl.classList.add('empty');
+      previewEl.textContent='文本超过 10 万字符，已跳过逐字高亮（仅统计），完整结果请缩小文本范围。';
+      renderList(resBig);
+      renderStats(resBig,msb);
+      lastMatches=resBig.matches;
+      return;
+    }
+    if (!text){
+      renderEmptyPreview(); renderEmptyList(); renderStatsEmpty(); lastMatches=[]; return;
+    }
+    var t0=performance.now();
+    var result;
+    try { result=collectMatches(re,text); }
+    catch(e2){ showErr('匹配过程出错：'+e2.message); renderEmptyPreview(); renderEmptyList(); renderStatsEmpty(); lastMatches=[]; return; }
+    var ms=performance.now()-t0;
+    lastMatches=result.matches;
+    renderPreview(text,result);
+    renderList(result);
+    renderStats(result,ms);
+  }
+  function schedule(){ if (timer) clearTimeout(timer); timer=setTimeout(render,150); }
+  function runNow(){ if (timer) clearTimeout(timer); render(); }
+
+  patternEl.addEventListener('input',schedule);
+  textEl.addEventListener('input',schedule);
+
+  copyBtn.onclick=function(){
+    if (!lastMatches.length){ toast('暂无匹配可复制'); return; }
+    var txt=lastMatches.map(function(m){ return m.text; }).join('\n');
+    function ok(){ toast('已复制 '+lastMatches.length+' 条匹配'); }
+    function fallback(){
+      var ta=document.createElement('textarea');
+      ta.value=txt; ta.setAttribute('readonly','');
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); }
+      catch(e){ toast('复制失败，请手动选择复制'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(ok,fallback);
+    } else { fallback(); }
+  };
+
+  clearBtn.onclick=function(){
+    patternEl.value=''; textEl.value='';
+    FLAG_LABELS.forEach(function(item){ state.flags[item[0]]=(item[0]==='g'); });
+    buildFlags(); runNow(); patternEl.focus();
+    toast('已清空');
+  };
+
+  buildFlags();
+  buildPresets();
+  applyPreset(PRESETS[4]);
+})();
+</script>
+</body>
+</html>
