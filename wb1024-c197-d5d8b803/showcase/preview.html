@@ -469,7 +469,7 @@
       return acc;
     }).catch(function(err){
       console.error("[database] 分页查询失败:", err);
-      throw err; // 交给 loadData 统一降级为离线模式
+      throw err; // 交给 loadData 统一降级为示例模式
     });
   }
   function mapRecords(rows){
@@ -482,7 +482,7 @@
     });
   }
   function loadData(){
-    if(!ONLINE){ setSync("offline","离线模式"); cacheLoad(); state.records=state.records||[]; state.loading=false; refreshAll(); return; }
+    if(!ONLINE){ setSync("offline","示例模式"); cacheLoad(); state.records=state.records||[]; state.loading=false; refreshAll(); return; }
     setSync("syncing","同步中");
     state.loading=true; refreshAll();
     db.getSchema({ databaseId:DATABASE_ID }).then(function(schema){
@@ -499,7 +499,7 @@
       flushPending();
     }).catch(function(err){
       console.error("[database] 加载失败:", err);
-      setSync("offline","离线模式"); cacheLoad(); state.loading=false; refreshAll();
+      setSync("offline","示例模式"); cacheLoad(); state.loading=false; refreshAll();
     });
   }
   function flushPending(){
@@ -534,13 +534,13 @@
       pend.push(props); localStorage.setItem(LS_PENDING, JSON.stringify(pend));
       // 乐观更新本地缓存
       state.records.push({ _id:"local_"+Date.now(), 摘要:p.note, 类型:p.type, 金额:p.amount, 分类:p.category, 日期:p.date, 时间:props["时间"].text });
-      cacheSave(); setSync("offline","离线·待同步"); $("sentence").value=""; renderPreview(); refreshAll();
-      toast("已暂存本地，联网后自动同步"); return;
+      cacheSave(); setSync("offline","示例模式"); $("sentence").value=""; renderPreview(); refreshAll();
+      toast("已记录示例"); return;
     }
     setSync("syncing","同步中");
     db.addRecord({ databaseId:DATABASE_ID, properties: props })
       .then(function(){ $("sentence").value=""; renderPreview(); setSync("synced","已同步"); loadData(); toast("记好了 ✅"); })
-      .catch(function(err){ console.error("[database] 提交失败:", err); setSync("offline","离线模式"); toast("提交失败，已存本地"); });
+      .catch(function(err){ console.error("[database] 提交失败:", err); setSync("offline","示例模式"); toast("提交失败，已存本地"); });
   }
   function doDelete(id){
     if(!id) return;
@@ -549,7 +549,7 @@
     setSync("syncing","同步中");
     db.deleteRecord({ databaseId:DATABASE_ID, recordId: id })
       .then(function(){ setSync("synced","已同步"); loadData(); toast("已删除"); })
-      .catch(function(err){ console.error("[database] 删除失败:", err); setSync("offline","离线模式"); toast("删除失败"); });
+      .catch(function(err){ console.error("[database] 删除失败:", err); setSync("offline","示例模式"); toast("删除失败"); });
   }
 
   /* ---------- 设置 ---------- */
@@ -655,7 +655,7 @@
   /* ---------- 初始化 ---------- */
   if(!ONLINE) cacheLoad();
   bind();
-  setSync(ONLINE?"syncing":"offline", ONLINE?"同步中":"离线模式");
+  setSync(ONLINE?"syncing":"offline", ONLINE?"同步中":"示例模式");
   loadData();
 })();
 
