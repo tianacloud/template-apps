@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>成绩分析看板 · 通用版</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f7fa; --card:#fff; --primary:#2563eb; --primary-dark:#1e40af;
+    --good:#dc2626; --bad:#16a34a; --warn:#ea580c;
+    --text:#1e293b; --text-light:#64748b; --border:#e2e8f0;
+  }
+  html,body { background:var(--bg); color:var(--text); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; overflow-x:hidden; }
+  body { font-size:14px; line-height:1.5; }
+
+  .toolbar { position:sticky; top:0; z-index:100; background:linear-gradient(135deg,#1e3c72,#2a5298); color:#fff; padding:10px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; box-shadow:0 2px 10px rgba(0,0,0,.15); }
+  .toolbar .title { font-size:15px; font-weight:600; margin-right:4px; }
+  .toolbar .sub { font-size:11px; opacity:.8; }
+  .toolbar .group { display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,.12); padding:3px 8px; border-radius:6px; font-size:12px; }
+  .toolbar button { background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.25); padding:3px 9px; border-radius:4px; font-size:12px; cursor:pointer; }
+  .toolbar button:hover { background:rgba(255,255,255,.3); }
+  .toolbar button.active { background:#fff; color:var(--primary-dark); font-weight:600; }
+
+  .container { padding:12px; max-width:1500px; margin:0 auto; }
+
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+  .kpi { background:var(--card); border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(15,23,42,.06); border-left:4px solid var(--primary); }
+  .kpi.good { border-left-color:var(--good); } .kpi.bad { border-left-color:var(--bad); } .kpi.warn { border-left-color:var(--warn); }
+  .kpi .label { font-size:12px; color:var(--text-light); }
+  .kpi .value { font-size:22px; font-weight:700; margin:2px 0; }
+  .kpi .delta { font-size:11px; color:var(--text-light); }
+  .kpi .delta.up { color:var(--good); } .kpi .delta.down { color:var(--bad); }
+
+  .card { background:var(--card); border-radius:8px; box-shadow:0 1px 4px rgba(15,23,42,.06); margin-bottom:12px; overflow:hidden; }
+  .card-head { padding:8px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:#f8fafc; gap:8px; flex-wrap:wrap; }
+  .card-head .t { font-size:13px; font-weight:600; }
+  .card-head .d { font-size:11px; color:var(--text-light); margin-left:8px; }
+  .card-head .acts { display:flex; gap:4px; }
+  .card-head .acts button { background:transparent; border:1px solid var(--border); color:var(--text-light); padding:2px 8px; border-radius:4px; font-size:11px; cursor:pointer; }
+  .card-head .acts button:hover { background:#eef2f7; }
+  .card.collapsed .card-body { display:none; }
+  .card-body { padding:12px 14px; }
+
+  .row { display:grid; gap:12px; margin-bottom:12px; align-items:start; }
+  .row.c1-2 { grid-template-columns:1fr 2fr; }
+  @media (max-width:1024px) { .row.c1-2 { grid-template-columns:1fr; } .kpi-row { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:600px) { .kpi-row { grid-template-columns:1fr; } }
+
+  .tip { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:8px; padding:8px 12px; font-size:12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .tip button { background:#059669; color:#fff; border:none; padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; }
+
+  .setup-box { background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .setup-box + .setup-box { margin-top:10px; }
+  .setup-box h4 { font-size:12px; color:var(--text-light); font-weight:600; margin-bottom:8px; }
+  .inline-fields { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; font-size:12px; }
+  .inline-fields label { display:inline-flex; align-items:center; gap:5px; color:var(--text-light); }
+  .inline-fields input { padding:4px 7px; font-size:12px; border:1px solid var(--border); border-radius:4px; outline:none; }
+  .inline-fields input:focus { border-color:var(--primary); box-shadow:0 0 0 2px rgba(37,99,235,.12); }
+  .btn { border:none; padding:5px 12px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-p { background:var(--primary); color:#fff; }
+  .btn-p:hover { background:var(--primary-dark); }
+  .btn-g { background:#e2e8f0; color:#334155; }
+  .btn-g:hover { background:#cbd5e1; }
+  .btn-r { background:#fee2e2; color:#b91c1c; }
+  .btn-r:hover { background:#fecaca; }
+
+  table.subj { width:100%; border-collapse:collapse; font-size:12px; }
+  table.subj th, table.subj td { padding:4px 6px; border-bottom:1px solid var(--border); text-align:center; }
+  table.subj th { background:#f1f5f9; font-weight:600; font-size:11px; color:#475569; }
+  table.subj input { width:100%; padding:3px 4px; font-size:12px; border:1px solid var(--border); border-radius:3px; text-align:center; outline:none; background:#fff; }
+  table.subj input.nm { text-align:left; }
+  table.subj input:focus { border-color:var(--primary); }
+  .wfull-cell { font-weight:600; color:var(--primary-dark); }
+
+  .fields { display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:6px; }
+  .field { display:flex; flex-direction:column; gap:2px; }
+  .field label { font-size:10px; color:#92400e; text-align:center; }
+  .field label small { display:block; font-weight:400; color:#a16207; }
+  .field input { width:100%; padding:4px 2px; text-align:center; font-size:12px; border:1px solid #fcd34d; border-radius:4px; background:#fff; outline:none; }
+  .field input:focus { border-color:#f59e0b; box-shadow:0 0 0 2px rgba(245,158,11,.15); }
+  .input-panel { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px 14px; }
+  .panel-acts { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .panel-acts input[type=text] { padding:4px 8px; font-size:12px; border:1px solid #fcd34d; border-radius:4px; width:180px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { display:inline-flex; align-items:center; gap:4px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:11px; padding:3px 8px; border-radius:12px; }
+  .chip button { background:none; border:none; color:#9a3412; cursor:pointer; font-size:12px; padding:0 2px; }
+  .chip button:hover { color:#c2410c; }
+
+  .cmp-select { display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:10px; flex-wrap:wrap; }
+  .cmp-select select { padding:4px 8px; font-size:12px; border:1px solid var(--border); border-radius:4px; background:#fff; }
+
+  table.grid { width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap; }
+  table.grid th, table.grid td { padding:5px 8px; text-align:center; border-bottom:1px solid var(--border); }
+  table.grid th { background:#f1f5f9; font-weight:600; }
+  td.num { font-variant-numeric:tabular-nums; font-weight:500; }
+  .table-wrap { max-height:360px; overflow:auto; }
+  .up { color:var(--good); font-weight:600; } .down { color:var(--bad); font-weight:600; }
+
+  .prog { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:12px; }
+  .prog .nm { width:82px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prog .bar { flex:1; height:9px; background:#e2e8f0; border-radius:5px; overflow:hidden; }
+  .prog .fill { height:100%; border-radius:5px; }
+  .prog .pct { width:46px; text-align:right; font-weight:600; }
+  .prog-sub { font-size:10px; color:var(--text-light); margin:-2px 0 6px 90px; }
+
+  .advice { padding:9px 12px; border-radius:6px; background:#f8fafc; border-left:3px solid var(--primary); margin-bottom:8px; font-size:12px; }
+  .advice.urgent { border-left-color:var(--bad); background:#f0fdf4; }
+  .advice.warn { border-left-color:var(--warn); background:#fff7ed; }
+  .advice.good { border-left-color:var(--good); background:#fef2f2; }
+  .advice h4 { font-size:13px; margin-bottom:3px; }
+  .advice p { color:var(--text-light); line-height:1.55; }
+  .advice b { color:var(--text); }
+
+  .badge { display:inline-block; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:600; margin-right:4px; }
+  .b-o { background:#ffedd5; color:#c2410c; }
+  .legend-note { font-size:10px; color:var(--text-light); margin-top:6px; }
+  .chart { width:100%; height:auto; display:block; }
+  .empty { font-size:12px; color:var(--text-light); padding:16px 0; text-align:center; }
+  ul.help { font-size:12px; color:var(--text-light); padding-left:18px; line-height:1.8; }
+  ul.help b { color:var(--text); }
+
+  body.fs-sm { font-size:12px; } body.fs-sm .kpi .value { font-size:18px; }
+  body.fs-lg { font-size:15px; } body.fs-lg .kpi .value { font-size:26px; }
+
+  @media print {
+    .toolbar,.no-print,.card-head .acts { display:none !important; }
+    .card.collapsed .card-body { display:block !important; }
+    body { background:#fff; } .card { box-shadow:none; border:1px solid #e2e8f0; page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body><div style="background:#eff6ff;color:#1d4ed8;padding:8px;text-align:center">示例体验，数据仅保留在本页 <button onclick="restoreDemo()">恢复示例</button></div>
+
+<div class="toolbar no-print">
+  <div>
+    <div class="title">📊 <span id="tb-name">成绩分析看板</span></div>
+    <div class="sub">通用版 · 科目与折算自定义 · 成绩按折后分录入</div>
+  </div>
+  <div class="group">
+    <span>视图</span>
+    <button class="active" id="btn-weighted" onclick="switchMode('weighted')">折后</button>
+    <button id="btn-raw" onclick="switchMode('raw')">折前</button>
+  </div>
+  <div class="group">
+    <span>字号</span>
+    <button onclick="setFS('sm')">小</button>
+    <button class="active" id="fs-md" onclick="setFS('md')">中</button>
+    <button onclick="setFS('lg')">大</button>
+  </div>
+  <div class="group">
+    <button onclick="toggleAll(true)">展开</button>
+    <button onclick="toggleAll(false)">折叠</button>
+  </div>
+  <div class="group">
+    <button disabled title="安装后可打印">打印</button>
+    <button disabled title="安装后可导出">导出数据</button>
+    <button disabled title="安装后可导入">导入数据</button>
+    <input accept=".json" id="file-in" onchange="importJSON(this)" type="file" style="display:none">
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="tip no-print" id="demo-tip">
+    <span>👋 当前是<b>示例数据</b>，供你熟悉功能。改成自己的：先在「① 科目与折算设置」调好科目，再点「清空全部成绩」开始录入。</span>
+    <button onclick="clearScores()">清空全部成绩</button>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="label">最新总分</div><div class="value" id="k-total">-</div><div class="delta" id="k-total-d">-</div></div>
+    <div class="kpi warn"><div class="label" id="k-gap-label">距目标</div><div class="value" id="k-gap">-</div><div class="delta" id="k-gap-d">-</div></div>
+    <div class="kpi"><div class="label">最新考试得分率</div><div class="value" id="k-rate">-</div><div class="delta" id="k-rate-d">-</div></div>
+    <div class="kpi bad"><div class="label">优势 / 风险科目</div><div class="value" id="k-subs">-</div><div class="delta" id="k-subs-d">优势≥90% / 风险<75%</div></div>
+  </div>
+
+  <!-- 设置 -->
+  <div class="card" id="c-setup">
+    <div class="card-head">
+      <div><span class="t">⚙️ ① 科目与折算设置</span><span class="d">改完即时生效，自动保存</span></div>
+      <div class="acts"><button onclick="toggleCard('c-setup')">折叠</button><button onclick="hideCard('c-setup')">✕</button></div>
+    </div>
+    <div class="card-body">
+      <div class="setup-box">
+        <div class="inline-fields">
+          <label>学生姓名 <input id="in-student" oninput="setStudent(this.value)" placeholder="可留空" type="text" style="width:110px"></label>
+          <label>目标总分 <input id="in-target" oninput="setTarget(this.value)" placeholder="留空=满分" step="1" type="number" style="width:110px"></label>
+          <span style="font-size:11px; color:var(--text-light)">（目标分按<b>折后</b>口径填写，留空则自动取全部科目折后满分）</span>
+        </div>
+      </div>
+      <div class="setup-box">
+        <h4>科目表：名称 / 折前满分 / 折算系数（本地区中考方案的折算比例）</h4>
+        <div class="table-wrap" style="max-height:none">
+          <table class="subj" id="subj-table"></table>
+        </div>
+        <div class="panel-acts">
+          <button class="btn btn-p" onclick="addSubject()">＋ 添加科目</button>
+          <button class="btn btn-g" onclick="loadPreset('huizhou')">载入「惠州中考」方案</button>
+          <button class="btn btn-g" onclick="loadPreset('simple')">载入「简化六科」方案</button>
+          <button class="btn btn-g" onclick="loadPreset('demo')">重载示例数据</button>
+          <button class="btn btn-r" onclick="clearAll()">清空全部（含科目）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 录入 -->
+  <div class="card" id="c-input">
+    <div class="card-head">
+      <div><span class="t">✏️ ② 录入考试成绩</span><span class="d">填【折后分】；某科没考就留空</span></div>
+      <div class="acts"><button onclick="toggleCard('c-input')">折叠</button><button onclick="hideCard('c-input')">✕</button></div>
+    </div>
+    <div class="card-body">
+      <div class="input-panel">
+        <div class="fields" id="fields"></div>
+        <div class="panel-acts">
+          <input id="exam-name" placeholder="考试名称，如：八上期中" type="text">
+          <button class="btn btn-p" onclick="addExam()">＋ 添加成绩</button>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+      <div class="legend-note">提示：如果拿到的是原始卷面分，先按 <b>卷面分 × 折算系数</b> 换算成折后分再录入；看板切到「折前」会自动反算回卷面分。</div>
+    </div>
+  </div>
+
+  <!-- 趋势 -->
+  <div class="card" id="c-trend">
+    <div class="card-head">
+      <div><span class="t">📈 总分趋势</span><span class="d">折前/折后联动切换</span></div>
+      <div class="acts"><button onclick="toggleCard('c-trend')">折叠</button><button onclick="hideCard('c-trend')">✕</button></div>
+    </div>
+    <div class="card-body">
+      <div id="trend-chart"></div>
+      <div class="legend-note">蓝线=总分（当前口径）｜红虚线=目标总分｜灰虚线=该次考试已考科目满分</div>
+    </div>
+  </div>
+
+  <div class="row c1-2">
+    <div class="card" id="c-cmp">
+      <div class="card-head">
+        <div><span class="t">🔁 各科对比</span><span class="d">红色=提升 绿色=下降</span></div>
+        <div class="acts"><button onclick="toggleCard('c-cmp')">折叠</button><button onclick="hideCard('c-cmp')">✕</button></div>
+      </div>
+      <div class="card-body">
+        <div class="cmp-select">
+          基准 <select id="cmp-a" onchange="renderCmp()"></select>
+          vs 对比 <select id="cmp-b" onchange="renderCmp()"></select>
+        </div>
+        <div id="cmp-chart"></div>
+        <div class="legend-note" id="cmp-delta"></div>
+      </div>
+    </div>
+    <div class="card" id="c-subs">
+      <div class="card-head">
+        <div><span class="t">📊 最新一次得分率</span></div>
+        <div class="acts"><button onclick="toggleCard('c-subs')">折叠</button><button onclick="hideCard('c-subs')">✕</button></div>
+      </div>
+      <div class="card-body" id="prog-body"></div>
+    </div>
+  </div>
+
+  <div class="card" id="c-table">
+    <div class="card-head">
+      <div><span class="t">📋 成绩明细</span><span class="d" id="table-mode-d">当前：折后分</span></div>
+      <div class="acts"><button onclick="toggleCard('c-table')">折叠</button><button onclick="hideCard('c-table')">✕</button></div>
+    </div>
+    <div class="card-body"><div class="table-wrap" id="table-body"></div></div>
+  </div>
+
+  <div class="card" id="c-advice">
+    <div class="card-head">
+      <div><span class="t">💡 学习建议</span><span class="d">基于已录入成绩自动生成</span></div>
+      <div class="acts"><button onclick="toggleCard('c-advice')">折叠</button><button onclick="hideCard('c-advice')">✕</button></div>
+    </div>
+    <div class="card-body" id="advice-body"></div>
+  </div>
+
+  <div class="card no-print" id="c-help">
+    <div class="card-head">
+      <div><span class="t">📖 使用说明 / 给别人怎么用</span></div>
+      <div class="acts"><button onclick="toggleCard('c-help')">折叠</button><button onclick="hideCard('c-help')">✕</button></div>
+    </div>
+    <div class="card-body">
+      <ul class="help">
+        <li><b>第一步</b>：在「① 科目与折算设置」里改成本地区方案 —— 科目名、折前满分、折算系数都能改，也支持增删科目。不确定就先用「惠州中考」预设再微调。</li>
+        <li><b>第二步</b>：在「② 录入考试成绩」填考试名称 + 各科<b>折后分</b>（满分口径见输入框上方小字），点添加。没考的科目留空即可。</li>
+        <li><b>第三步</b>：顶部「折后 / 折前」一键切换全看板口径；「各科对比」任选两次考试看每一科涨跌。</li>
+        <li><b>数据存在哪</b>：自动保存在本机浏览器（localStorage），不上传任何服务器，断网也能用。</li>
+        <li><b>换电脑 / 发给别人</b>：点「导出数据」得到 JSON 文件，在另一台机器的看板里点「导入数据」即可完整恢复（科目、成绩、目标都在内）。</li>
+        <li><b>给别人用</b>：直接把整个 HTML 文件发给他，双击用浏览器打开即可 —— 无依赖、无需联网、无需安装。他自己录入的成绩只存在他自己电脑上。</li>
+        <li><b>存档</b>：点「打印」可输出 PDF（自动展开全部卡片、隐藏按钮）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="plan-note" style="text-align:center; padding:10px; font-size:11px; color:var(--text-light)"></div>
+</div>
+
+<script>
+function previewConfirm(){ return true; }
+function alert(message){ let n=document.getElementById("preview-message"); if(!n){n=document.createElement("div");n.id="preview-message";n.style.cssText="position:fixed;top:50px;right:20px;background:white;color:#222;padding:12px;z-index:9999;box-shadow:0 2px 10px #888";document.body.appendChild(n)} n.textContent=message; setTimeout(()=>n.remove(),3000); }
+/* ================= 数据模型 ================= */
+/* 科目：{id, name, full(折前满分), coef(折算系数)}  折后满分 = full × coef
+   考试：{id, name, scores:{科目id: 折后分}}         分数一律按【折后分】存储
+   视图：weighted=折后(默认)  raw=折前(折后÷系数反算)                       */
+
+const LS_KEY = 'grade_board_generic_v1';
+let state = { student:'', target:null, subjects:[], exams:[] };
+let mode = 'weighted';
+let uid = 1;
+const nid = p => p + (uid++) + '_' + Math.random().toString(36).slice(2,6);
+const r2 = (x,n=1) => Math.round(x*10**n)/10**n;
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ================= 预设方案 ================= */
+const PRESETS = {
+  huizhou: {
+    subjects:[
+      ['语文',120,1],['数学',120,1],['英语',120,0.75],['英语听力',30,1],
+      ['生物',100,0.3],['道德与法治',100,0.8],['历史',100,0.7],['地理',100,0.3],
+      ['体育',64,1],['物理',100,0.6],['化学',100,0.6]
+    ]
+  },
+  simple: {
+    subjects:[['语文',120,1],['数学',120,1],['英语',120,1],['物理',100,1],['化学',100,1],['体育',50,1]]
+  },
+  /* 示例数据：惠州方案 + 4 次虚构成绩（含物理化学），仅供上手演示 */
+  demo: {
+    subjects:[
+      ['语文',120,1],['数学',120,1],['英语',120,0.75],['英语听力',30,1],
+      ['生物',100,0.3],['道德与法治',100,0.8],['历史',100,0.7],['地理',100,0.3],
+      ['体育',64,1],['物理',100,0.6],['化学',100,0.6]
+    ],
+    exams:[
+      ['第一次月考', {'语文':82,'数学':95,'英语':62,'英语听力':20,'生物':22,'道德与法治':60,'历史':52,'地理':24,'体育':55}],
+      ['期中考试',   {'语文':88,'数学':102,'英语':68,'英语听力':24,'生物':21,'道德与法治':65,'历史':50,'地理':26,'体育':58}],
+      ['第二次月考', {'语文':90,'数学':108,'英语':72,'英语听力':26,'生物':25,'道德与法治':68,'历史':56,'地理':27,'体育':60,'物理':38}],
+      ['期末考试',   {'语文':94,'数学':112,'英语':78,'英语听力':27,'生物':24,'道德与法治':72,'历史':62,'地理':28,'体育':62,'物理':46,'化学':40}]
+    ]
+  }
+};
+
+/* ================= 口径计算 ================= */
+const wFullOf = s => r2(s.full * s.coef, 2);                 // 某科折后满分
+const subjects  = () => state.subjects;
+const wFullArr  = () => state.subjects.map(wFullOf);
+const fullArr   = () => state.subjects.map(s => s.full);
+const sumW      = () => r2(wFullArr().reduce((a,b)=>a+b,0), 2);
+const sumR      = () => r2(fullArr().reduce((a,b)=>a+b,0), 2);
+const targetVal = () => (state.target==null || state.target==='') ? sumW() : Number(state.target);
+const lastExam  = () => state.exams[state.exams.length-1] || null;
+// 显示值：折后=存储值；折前=存储值÷系数
+const disp = (v,i) => v==null?null : (mode==='weighted' ? r2(v,1) : r2(v/ (state.subjects[i]?.coef||1), 1));
+// 总分
+const totalW = e => r2(state.subjects.reduce((a,s)=>a+(e.scores[s.id]??0),0), 2);
+const totalR = e => r2(state.subjects.reduce((a,s)=>a+(e.scores[s.id]==null?0:e.scores[s.id]/s.coef),0), 2);
+const totalOf = e => mode==='weighted' ? totalW(e) : totalR(e);
+// 某次考试「已考科目」的折后满分之和（趋势图灰虚线）
+const fullOfExam = e => r2(state.subjects.reduce((a,s)=>a+(e.scores[s.id]==null?0:wFullOf(s)),0), 2);
+const fullOfExamRaw = e => r2(state.subjects.reduce((a,s)=>a+(e.scores[s.id]==null?0:s.full),0), 2);
+
+/* ================= 渲染：设置区 ================= */
+function renderSubjTable(){
+  const t = document.getElementById('subj-table');
+  if(!state.subjects.length){ t.innerHTML = '<tr><td class="empty">还没有科目，点下面「添加科目」或载入一个预设方案</td></tr>'; return; }
+  let h = '<thead><tr><th style="width:34%">科目名称</th><th style="width:20%">折前满分</th><th style="width:20%">折算系数</th><th style="width:16%">折后满分</th><th style="width:10%">操作</th></tr></thead><tbody>';
+  state.subjects.forEach((s,i)=>{
+    h += `<tr>
+      <td><input class="nm" type="text" value="${esc(s.name)}" oninput="updSubj(${i},'name',this.value)"></td>
+      <td><input type="number" min="1" step="1" value="${s.full}" oninput="updSubj(${i},'full',this.value)"></td>
+      <td><input type="number" min="0.05" max="1" step="0.05" value="${s.coef}" oninput="updSubj(${i},'coef',this.value)"></td>
+      <td class="wfull-cell">${wFullOf(s)}</td>
+      <td><button class="btn btn-r" onclick="delSubject(${i})">删除</button></td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  t.innerHTML = h;
+}
+function updSubj(i, key, val){
+  const s = state.subjects[i];
+  if(!s) return;
+  if(key==='name') s.name = String(val);
+  else{
+    const v = parseFloat(val);
+    if(!isNaN(v)) s[key] = key==='coef' ? Math.min(1, Math.max(0.05, v)) : Math.max(1, v);
+  }
+  // 定向更新，避免重渲染导致输入框失焦 / 录入区内容丢失
+  const tbl = document.getElementById('subj-table');
+  const row = tbl && tbl.tBodies[0] && tbl.tBodies[0].rows[i];
+  if(row && row.cells[3]) row.cells[3].textContent = wFullOf(s);
+  const f = document.getElementById('fields').children[i];
+  if(f){
+    const lb = f.querySelector('label'), inp = f.querySelector('input');
+    if(lb) lb.innerHTML = `${esc(s.name)}<small>满分${wFullOf(s)}</small>`;
+    if(inp) inp.placeholder = wFullOf(s);
+  }
+  save();
+  renderKPI(); renderTrend(); renderCmp(); renderProg(); renderTable(); renderAdvice(); renderPlan();
+}
+function addSubject(){
+  state.subjects.push({ id:nid('s'), name:'新科目', full:100, coef:1 });
+  syncState(); save(); renderSubjectUI(); renderAll();
+}
+function delSubject(i){
+  const cur = state.subjects[i];
+  if(!cur) return;
+  if(!previewConfirm(`确定删除科目「${cur.name}」？该科所有考试成绩会一并删除。`)) return;
+  const sid = cur.id;
+  state.subjects.splice(i,1);
+  state.exams.forEach(e=>{ delete e.scores[sid]; });
+  syncState(); save(); renderSubjectUI(); renderAll();
+}
+
+/* ================= 渲染：录取入区 ================= */
+function renderInputs(){
+  const el = document.getElementById('fields');
+  if(!state.subjects.length){ el.innerHTML = '<div class="empty">请先在「① 科目与折算设置」里配置科目</div>'; return; }
+  el.innerHTML = state.subjects.map(s=>`
+    <div class="field">
+      <label>${esc(s.name)}<small>满分${wFullOf(s)}</small></label>
+      <input type="number" step="0.5" id="in-${s.id}" placeholder="${wFullOf(s)}">
+    </div>
+  `).join('');
+}
+function renderChips(){
+  document.getElementById('chips').innerHTML = state.exams.map((e,i)=>`
+    <span class="chip">${esc(e.name)} <button onclick="delExam(${i})">✕</button></span>
+  `).join('');
+}
+function addExam(){
+  if(!state.subjects.length){ alert('请先配置科目'); return; }
+  const name = document.getElementById('exam-name').value.trim() || `第${state.exams.length+1}次考试`;
+  if(state.exams.some(e=>e.name===name)){ alert('该考试名称已存在，请换一个'); return; }
+  const scores = {};
+  let any = false;
+  state.subjects.forEach(s=>{
+    const v = parseFloat(document.getElementById('in-'+s.id).value);
+    if(!isNaN(v)){ scores[s.id] = v; any = true; }
+  });
+  if(!any){ alert('请至少录入一个科目分数'); return; }
+  state.exams.push({ id:nid('e'), name, scores });
+  document.getElementById('exam-name').value = '';
+  state.subjects.forEach(s=>{ document.getElementById('in-'+s.id).value = ''; });
+  save(); renderAll();
+  document.getElementById('exam-name').focus();
+}
+function delExam(i){
+  if(!previewConfirm(`删除考试「${state.exams[i].name}」？`)) return;
+  state.exams.splice(i,1);
+  save(); renderAll();
+}
+function clearScores(){
+  if(!previewConfirm('清空全部考试成绩（科目设置保留）？此操作不可撤销，建议先导出数据备份。')) return;
+  state.exams = [];
+  save(); renderAllFull();
+}
+function clearAll(){
+  if(!previewConfirm('清空全部（科目 + 成绩）？建议先导出数据备份。')) return;
+  state = { student:'', target:null, subjects:[], exams:[] };
+  document.getElementById('in-student').value = '';
+  document.getElementById('in-target').value = '';
+  document.getElementById('tb-name').textContent = '成绩分析看板';
+  document.getElementById('demo-tip').style.display = 'none';
+  syncState(); save(); renderAllFull();
+}
+function setStudent(v){ state.student = v; document.getElementById('tb-name').textContent = (v? v+' · ':'') + '成绩分析看板'; save(); }
+function setTarget(v){
+  const n = parseFloat(v);
+  state.target = isNaN(n) ? null : n;
+  save(); renderAll();
+}
+
+/* ================= 预设载入 ================= */
+function applyPreset(key){
+  const p = PRESETS[key];
+  state.subjects = p.subjects.map(([name,full,coef])=>({ id:nid('s'), name, full, coef }));
+  if(p.exams){
+    state.exams = p.exams.map(([name,map])=>{
+      const scores = {};
+      state.subjects.forEach(s=>{ if(map[s.name]!=null) scores[s.id] = map[s.name]; });
+      return { id:nid('e'), name, scores };
+    });
+  } else {
+    state.exams = [];
+  }
+}
+function loadPreset(key){
+  if(state.exams.length || state.subjects.length){
+    if(!previewConfirm('载入预设会覆盖当前的科目与成绩，确定继续？（建议先导出数据备份）')) return;
+  }
+  applyPreset(key);
+  document.getElementById('in-student').value = state.student;
+  syncState(); save(); renderAllFull();
+  document.getElementById('demo-tip').style.display = key==='demo' ? '' : 'none';
+}
+
+/* ================= KPI ================= */
+function renderKPI(){
+  const last = lastExam();
+  if(!last || !state.subjects.length){
+    ['k-total','k-gap','k-rate'].forEach(id=>document.getElementById(id).textContent='-');
+    document.getElementById('k-subs').textContent='-';
+    return;
+  }
+  const t = totalOf(last);
+  const t0 = totalOf(state.exams[0]);
+  const tv = targetVal();
+  const unit = mode==='weighted' ? '折后' : '折前';
+  document.getElementById('k-total').textContent = t;
+  document.getElementById('k-total-d').innerHTML = state.exams.length>1
+    ? `<span class="${t>=t0?'up':'down'}">${t>=t0?'▲ +':'▼ '}${r2(Math.abs(t-t0))} vs ${esc(state.exams[0].name)}</span> · ${unit}口径`
+    : `${unit}口径 · 仅 1 次考试`;
+  const gap = r2(tv - t);
+  document.getElementById('k-gap-label').textContent = `距目标 ${r2(tv)}`;
+  document.getElementById('k-gap').textContent = (gap>0?'-':'+') + Math.abs(gap);
+  document.getElementById('k-gap-d').textContent = `完成度 ${tv? r2(t/tv*100) : 0}%`;
+  // 得分率按本次已考科目满分算
+  const cap = mode==='weighted' ? fullOfExam(last) : fullOfExamRaw(last);
+  const rate = cap ? t/cap : 0;
+  document.getElementById('k-rate').textContent = r2(rate*100)+'%';
+  document.getElementById('k-rate-d').textContent = `${esc(last.name)}：${t} / ${cap} 分（已考 ${Object.keys(last.scores).length} 科）`;
+  // 优势/风险（得分率与口径无关）
+  const rs = state.subjects.map(s=>{
+    const v = last.scores[s.id];
+    return v==null?null : v / wFullOf(s);
+  }).filter(v=>v!=null);
+  const g = rs.filter(v=>v>=0.9).length, r = rs.filter(v=>v<0.75).length;
+  document.getElementById('k-subs').textContent = `${g} / ${r}`;
+  document.getElementById('k-subs-d').textContent = `已考 ${rs.length} 科 · 优势≥90% / 风险<75%`;
+}
+
+/* ================= SVG 折线图 ================= */
+function niceScale(min, max, count){
+  if(!(max>min)){ max = min + 10; }
+  const step0 = (max-min)/count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const n = step0/mag;
+  const step = (n<=1?1:n<=2?2:n<=5?5:10)*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step;
+  const ticks = [];
+  for(let v=lo; v<=hi+step/2; v+=step) ticks.push(r2(v,2));
+  return { lo, hi, ticks };
+}
+function lineChart(containerId, labels, series){
+  const el = document.getElementById(containerId);
+  if(!labels.length){ el.innerHTML = '<p class="empty">还没有成绩，先在「② 录入考试成绩」添加一次</p>'; return; }
+  const W=880, H=340, P={l:58,r:22,t:20,b:52};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  let vals=[];
+  series.forEach(s=>s.data.forEach(v=>{ if(v!=null) vals.push(v); }));
+  if(!vals.length){ el.innerHTML = '<p class="empty">暂无数据</p>'; return; }
+  let mn=Math.min(...vals), mx=Math.max(...vals);
+  const padv = (mx-mn)*0.1 || Math.max(5, mx*0.05);
+  const sc = niceScale(mn-padv, mx+padv, 5);
+  const X = i => labels.length===1 ? P.l+iw/2 : P.l + iw*i/(labels.length-1);
+  const Y = v => P.t + ih*(1-(v-sc.lo)/(sc.hi-sc.lo));
+  let g='';
+  sc.ticks.forEach(t=>{ const y=Y(t);
+    g += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="#eef2f7" stroke-width="1"/>`+
+         `<text x="${P.l-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#94a3b8">${t}</text>`;
+  });
+  labels.forEach((lb,i)=>{
+    g += `<text x="${X(i)}" y="${H-P.b+22}" text-anchor="middle" font-size="11" fill="#64748b">${esc(lb)}</text>`;
+    g += `<line x1="${X(i)}" y1="${P.t}" x2="${X(i)}" y2="${P.t+ih}" stroke="#f8fafc" stroke-width="1"/>`;
+  });
+  series.forEach(s=>{
+    const pts = s.data.map((v,i)=> v==null?null:`${X(i)},${Y(v)}`).filter(Boolean);
+    if(!pts.length) return;
+    g += `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="${s.width||2.5}"${s.dash?` stroke-dasharray="${s.dash}"`:''} stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(s.point!==false){
+      s.data.forEach((v,i)=>{ if(v==null) return;
+        g += `<circle cx="${X(i)}" cy="${Y(v)}" r="4.5" fill="#fff" stroke="${s.color}" stroke-width="2"><title>${esc(s.name)} · ${esc(labels[i])}：${v}</title></circle>`;
+      });
+    }
+  });
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+}
+
+/* ================= SVG 横向条形图（分差） ================= */
+function barChart(containerId, items){
+  const el = document.getElementById(containerId);
+  if(!items.length){ el.innerHTML = '<p class="empty">没有可对比的数据</p>'; return; }
+  const rowH = 30, W = 880, P = {l:96, r:78, t:26, b:26};
+  const H = P.t + P.b + items.length*rowH;
+  const maxAbs = Math.max(...items.map(i=>Math.abs(i.value)), 1);
+  const half = (W - P.l - P.r)/2;
+  const zero = P.l + half;
+  const sc = v => r2(v/maxAbs*half, 1);
+  let g='';
+  g += `<line x1="${zero}" y1="${P.t-6}" x2="${zero}" y2="${H-P.b+4}" stroke="#cbd5e1" stroke-width="1.5"/>`;
+  items.forEach((it,i)=>{
+    const y = P.t + i*rowH + rowH/2;
+    const w = Math.abs(sc(it.value));
+    const x = it.value>=0 ? zero : zero - w;
+    const color = it.value>0 ? '#dc2626' : it.value<0 ? '#16a34a' : '#94a3b8';
+    g += `<text x="${P.l-10}" y="${y+4}" text-anchor="end" font-size="12" fill="#334155">${esc(it.label)}</text>`;
+    if(it.value!==0) g += `<rect x="${x}" y="${y-9}" width="${w}" height="18" rx="3" fill="${color}" opacity=".85"><title>${esc(it.label)}：${it.value>0?'+':''}${it.value}</title></rect>`;
+    g += `<text x="${it.value>=0 ? zero+w+7 : zero-w-7}" y="${y+4}" text-anchor="${it.value>=0?'start':'end'}" font-size="11.5" font-weight="600" fill="${color}">${it.value>0?'+':''}${it.value}</text>`;
+  });
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
+}
+
+/* ================= 趋势图 ================= */
+function renderTrend(){
+  const labels = state.exams.map(e=>e.name);
+  const totalData = state.exams.map(e=>totalOf(e));
+  const capData = state.exams.map(e=>mode==='weighted' ? fullOfExam(e) : fullOfExamRaw(e));
+  const series = [
+    { name:'总分', data: totalData, color:'#2563eb', width:3 },
+    { name:'该次满分', data: capData, color:'#cbd5e1', dash:'5,4', width:1.6, point:false }
+  ];
+  const tv = targetVal();
+  if(state.exams.length) series.push({ name:'目标总分', data: labels.map(()=>tv), color:'#dc2626', dash:'7,4', width:1.8, point:false });
+  lineChart('trend-chart', labels, series);
+}
+
+/* ================= 各科对比 ================= */
+function renderCmp(){
+  const selA = document.getElementById('cmp-a'), selB = document.getElementById('cmp-b');
+  const exams = state.exams;
+  if(exams.length < 1){ selA.innerHTML = selB.innerHTML = ''; document.getElementById('cmp-chart').innerHTML='<p class="empty">还没有成绩</p>'; return; }
+  const keepA = selA.value, keepB = selB.value;
+  const opts = exams.map((e,i)=>`<option value="${i}">${esc(e.name)}</option>`).join('');
+  selA.innerHTML = opts; selB.innerHTML = opts;
+  selA.value = (keepA!=='' && exams[+keepA]) ? keepA : String(Math.max(0, exams.length-2));
+  selB.value = (keepB!=='' && exams[+keepB]) ? keepB : String(exams.length-1);
+  const A = exams[+selA.value], B = exams[+selB.value];
+  const items = [];
+  let skipped = 0;
+  state.subjects.forEach((s,i)=>{
+    const va = A.scores[s.id], vb = B.scores[s.id];
+    if(vb==null) return;                       // 对比考试没考这科：不显示
+    if(va==null){ skipped++; return; }         // 基准考试没考这科：新增科目，不算"提升"
+    items.push({ label: s.name, value: r2(disp(vb,i)-disp(va,i)), a:disp(va,i), b:disp(vb,i) });
+  });
+  barChart('cmp-chart', items);
+  const up = items.filter(i=>i.value>0).length, down = items.filter(i=>i.value<0).length;
+  const sum = r2(items.reduce((a,i)=>a+i.value,0), 1);
+  const unit = mode==='weighted'?'折后':'折前';
+  const skipNote = skipped ? ` · <span style="color:#64748b">另有 ${skipped} 科基准考试未考，未计入</span>` : '';
+  document.getElementById('cmp-delta').innerHTML = items.length
+    ? `${esc(B.name)} vs ${esc(A.name)}：<span class="up">▲ 提升 ${up} 科</span> · <span class="down">▼ 下降 ${down} 科</span> · ${unit}合计 <b>${sum>=0?'+':''}${sum}</b>${skipNote}`
+    : `${esc(B.name)} 与 ${esc(A.name)} 没有共同的考试科目，无法对比`;
+}
+
+/* ================= 得分率 ================= */
+function renderProg(){
+  const last = lastExam();
+  const el = document.getElementById('prog-body');
+  if(!last){ el.innerHTML = '<p class="empty">还没有成绩</p>'; return; }
+  const items = state.subjects.map((s,i)=>{
+    const v = last.scores[s.id];
+    if(v==null) return null;
+    return { s, i, v, pct: r2(v/wFullOf(s)*100) };
+  }).filter(Boolean).sort((a,b)=>b.pct-a.pct);
+  if(!items.length){ el.innerHTML = '<p class="empty">最新一次考试没有成绩</p>'; return; }
+  const color = p => p>=90?'#dc2626':p>=75?'#2563eb':p>=60?'#ea580c':'#16a34a';
+  el.innerHTML = items.map(it=>`
+    <div class="prog">
+      <span class="nm" title="${esc(it.s.name)}">${esc(it.s.name)}</span>
+      <div class="bar"><div class="fill" style="width:${Math.min(100,it.pct)}%;background:${color(it.pct)}"></div></div>
+      <span class="pct" style="color:${color(it.pct)}">${it.pct}%</span>
+    </div>
+    <div class="prog-sub">折前 <b>${r2(it.v/it.s.coef,1)}/${it.s.full}</b> · 折后 <b>${r2(it.v,1)}/${wFullOf(it.s)}</b></div>
+  `).join('');
+}
+
+/* ================= 明细表 ================= */
+function renderTable(){
+  const el = document.getElementById('table-body');
+  if(!state.exams.length || !state.subjects.length){ el.innerHTML = '<p class="empty">还没有成绩</p>'; return; }
+  document.getElementById('table-mode-d').textContent = mode==='weighted' ? '当前：折后分（录入值）' : '当前：折前分（折后÷系数反算）';
+  const last = lastExam();
+  let h = '<table class="grid"><thead><tr><th>考试</th>' + state.subjects.map(s=>`<th>${esc(s.name)}</th>`).join('') + '<th>总分</th></tr></thead><tbody>';
+  // 满分行
+  h += '<tr><td><b>折后满分</b></td>' + state.subjects.map(s=>`<td>${wFullOf(s)}</td>`).join('') + `<td><b>${sumW()}</b></td></tr>`;
+  h += '<tr style="background:#fefce8"><td><b>折前满分</b></td>' + state.subjects.map(s=>`<td>${s.full}</td>`).join('') + `<td><b>${sumR()}</b></td></tr>`;
+  // 每次考试
+  state.exams.forEach(e=>{
+    h += `<tr><td><b>${esc(e.name)}</b></td>`;
+    state.subjects.forEach((s,j)=>{
+      const v = e.scores[s.id];
+      if(v==null){ h += '<td>-</td>'; return; }
+      const pct = v / wFullOf(s);
+      const cls = pct>=0.9?'up':pct<0.75?'down':'';
+      h += `<td class="num ${cls}">${disp(v,j)}</td>`;
+    });
+    h += `<td class="num"><b>${totalOf(e)}</b></td></tr>`;
+  });
+  h += '</tbody></table>';
+  el.innerHTML = h;
+}
+
+/* ================= 学习建议 ================= */
+function renderAdvice(){
+  const el = document.getElementById('advice-body');
+  const ex = state.exams, subs = state.subjects;
+  if(!ex.length || !subs.length){ el.innerHTML = '<p class="empty">录入成绩后这里会自动生成建议</p>'; return; }
+  const last = ex[ex.length-1], first = ex[0];
+  const unit = mode==='weighted'?'折后':'折前';
+  const adv = [];
+  const tv = targetVal();
+  const t = totalOf(last), t0 = totalOf(first);
+  const cap = mode==='weighted' ? fullOfExam(last) : fullOfExamRaw(last);
+  const rate = cap ? t/cap : 0;
+
+  adv.push(`<div class="advice ${ex.length>1 && t>=t0 ?'good':'warn'}"><h4>📊 整体情况</h4><p>最新 <b>${esc(last.name)}</b> ${unit}总分 <b>${t}</b> 分（已考 ${Object.keys(last.scores).length} 科，满分 ${cap}），得分率 <b>${r2(rate*100)}%</b>。${ex.length>1?`相比 ${esc(first.name)} ${t>=t0?'提升':'下降'} <b>${r2(Math.abs(t-t0))}</b> 分。`:''}距目标 ${r2(tv)} 分还差 <b>${r2(Math.max(0,tv-t))}</b> 分。</p></div>`);
+
+  const good=[], weak=[], watch=[];
+  subs.forEach((s,i)=>{
+    const v = last.scores[s.id]; if(v==null) return;
+    const p = v/wFullOf(s)*100;
+    const nm = `${esc(s.name)}（${r2(p)}%）`;
+    if(p>=90) good.push(nm); else if(p<75) weak.push(nm); else watch.push(nm);
+  });
+  if(good.length) adv.push(`<div class="advice good"><h4>🌟 优势科目</h4><p>${good.join('、')}。优势科目要守住：每周安排一次综合训练防滑坡，错题定期回看，别因为"已经不错"就完全放手。</p></div>`);
+  if(weak.length) adv.push(`<div class="advice urgent"><h4>⚠️ 风险科目</h4><p>${weak.join('、')}。薄弱的往往不是"不会"，而是"漏洞没补"。建议：① 拿出最近两份卷子逐题找失分类型；② 每天固定 20 分钟专项练；③ 周末做一次小测验证，家长每周陪复盘一次错题。</p></div>`);
+  if(watch.length) adv.push(`<div class="advice warn"><h4>🔎 潜力科目</h4><p>${watch.join('、')}。这类科目提分性价比最高 —— 基础都在，只是熟练度或细节不够。锁定每科 1-2 个高频易错题型集中攻克，通常一轮下来就能进优势区。</p></div>`);
+
+  // 下滑预警：最近两次都有的科目里下降最明显的
+  if(ex.length>=2){
+    const prev = ex[ex.length-2];
+    const drops = [];
+    subs.forEach((s,i)=>{
+      const a = prev.scores[s.id], b = last.scores[s.id];
+      if(a==null||b==null) return;
+      const d = b - a;
+      if(d < 0) drops.push({ name:s.name, d:r2(d), rate:r2(b/wFullOf(s)*100) });
+    });
+    drops.sort((x,y)=>x.d-y.d);
+    if(drops.length) adv.push(`<div class="advice warn"><h4>📉 较上次退步的科目</h4><p>${drops.slice(0,4).map(d=>`${esc(d.name)}（${d.d>0?'+':''}${d.d}）`).join('、')}。先别急着加量，优先查原因：是知识点没吃透，还是这次题目偏难 / 状态不好？把原因写下来，再决定要不要专项补。</p></div>`);
+  }
+
+  // 权重最高的科目（折后满分最大）
+  const sorted = subs.map((s,i)=>({ s, i, w:wFullOf(s) })).filter(x=>last.scores[x.s.id]!=null).sort((a,b)=>b.w-a.w);
+  if(sorted.length){
+    const top = sorted.slice(0,3);
+    adv.push(`<div class="advice"><h4>🎓 分值权重最高的科目</h4><p>${top.map(x=>`${esc(x.s.name)} <b>${disp(last.scores[x.s.id], x.i)}/${mode==='weighted'?x.w:x.s.full}</b>（得分率 ${r2(last.scores[x.s.id]/x.w*100)}%）`).join('<br>')}<br>这几科分值大，同样的提升幅度对总分的影响远大于小分值科目，时间和精力优先向它们倾斜。</p></div>`);
+  }
+
+  // 未考科目
+  const missing = subs.filter(s=>last.scores[s.id]==null);
+  if(missing.length){
+    adv.push(`<div class="advice warn"><h4>📌 尚未录入成绩的科目</h4><p>${missing.map(s=>esc(s.name)).join('、')}。这些科目还没纳入分析 —— 拿到成绩单后录入，看板会自动把它们计入总分、趋势与对比。</p></div>`);
+  }
+
+  if(ex.length===1) adv.push(`<div class="advice"><h4>🧭 想看趋势，再多录几次</h4><p>目前只有一次考试，只能看单次表现。至少录到 3 次，趋势图、进步/退步科目、对比功能才会真正发挥价值 —— 建议把过去成绩单上的历史考试也补录进来。</p></div>`);
+
+  adv.push(`<div class="advice"><h4>⏰ 时间分配思路</h4><p>不要平均用力：<b>风险科目</b>每天固定时段（20-30 分钟专项，稳定不断）；<b>潜力科目</b>每周 2-3 次集中攻克题型；<b>优势科目</b>每周 1 次综合维持；体育等满分容易的科目务必拿满，性价比最高。周末留半天做整卷模拟 + 错题复盘，比多刷十套卷更有用。</p></div>`);
+  adv.push(`<div class="advice good"><h4>💪 习惯比努力更值钱</h4><p>① 每科一本错题本，只记「错因 + 正解思路 + 下次怎么防」，不要抄题；② 考试先易后难、留 10-15 分钟检查、作文先列提纲；③ 保证睡眠（初中生 8 小时以上），熬夜换来的分数不稳定也不可持续；④ 别偏科 —— 小分值科目提分快，也最容易因为忽视而丢分。</p></div>`);
+
+  el.innerHTML = adv.join('');
+}
+
+/* ================= 底部方案说明 ================= */
+function renderPlan(){
+  const el = document.getElementById('plan-note');
+  if(!state.subjects.length){ el.textContent = ''; return; }
+  const parts = state.subjects.map(s=>`${s.name}${s.full}×${s.coef}${s.coef!==1?`=${wFullOf(s)}`:''}`);
+  el.textContent = `科目折算：${parts.join(' ｜ ')}　→　折后满分 ${sumW()} ／ 折前满分 ${sumR()}　｜　目标 ${r2(targetVal())}`;
+}
+
+/* ================= 主渲染 ================= */
+// 科目集合变化（增删/载入预设/导入/初始化）时调用
+function renderSubjectUI(){ renderSubjTable(); renderInputs(); }
+// 数据或视图变化时调用（不重建科目表与录入区，避免失焦和已填内容丢失）
+function renderAll(){
+  renderChips();
+  renderKPI(); renderTrend(); renderCmp(); renderProg(); renderTable(); renderAdvice(); renderPlan();
+}
+function renderAllFull(){ renderSubjectUI(); renderAll(); }
+function syncState(){
+  // 载入预设/导入数据后，修正字段并清理失效的科目 id
+  if(!Array.isArray(state.subjects)) state.subjects = [];
+  if(!Array.isArray(state.exams)) state.exams = [];
+  state.subjects = state.subjects.filter(s=>s && typeof s==='object').map(s=>({
+    id: s.id || nid('s'),
+    name: (s.name==null? '未命名科目' : String(s.name)),
+    full: (isFinite(s.full) && s.full>0) ? Number(s.full) : 100,
+    coef: (isFinite(s.coef) && s.coef>0) ? Math.min(1, Number(s.coef)) : 1
+  }));
+  const ids = new Set(state.subjects.map(s=>s.id));
+  state.exams = state.exams.filter(e=>e && typeof e==='object').map(e=>{
+    const scores = {};
+    Object.keys(e.scores||{}).forEach(k=>{ if(ids.has(k) && isFinite(e.scores[k])) scores[k] = Number(e.scores[k]); });
+    return { id: e.id || nid('e'), name: e.name || '未命名考试', scores };
+  });
+}
+
+/* ================= 存取 ================= */
+function save(){}
+function load(){ return false; }
+function restoreDemo(){ state={student:'',target:null,subjects:[],exams:[]}; applyPreset('demo'); document.getElementById('in-student').value=''; document.getElementById('in-target').value=''; document.getElementById('tb-name').textContent='成绩分析看板'; syncState(); renderAllFull(); }
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.student ? state.student + '-' : '') + '成绩数据.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function importJSON(input){
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if(!d || !Array.isArray(d.subjects)) throw new Error('格式不对');
+      if(state.exams.length || state.subjects.length){
+        if(!previewConfirm('导入会覆盖当前数据，确定继续？')) return;
+      }
+      state = { student:d.student||'', target:d.target==null?null:d.target, subjects:d.subjects, exams:Array.isArray(d.exams)?d.exams:[] };
+      syncState(); save();
+      document.getElementById('in-student').value = state.student;
+      document.getElementById('in-target').value = state.target==null?'':state.target;
+      document.getElementById('tb-name').textContent = (state.student? state.student+' · ':'') + '成绩分析看板';
+      document.getElementById('demo-tip').style.display = 'none';
+      renderAllFull();
+      alert('导入成功');
+    }catch(e){ alert('导入失败：文件格式不正确（需要本看板「导出数据」生成的 JSON）'); }
+    input.value = '';
+  };
+  rd.readAsText(f, 'utf-8');
+}
+
+/* ================= 控制 ================= */
+function switchMode(m){
+  mode = m;
+  document.getElementById('btn-weighted').classList.toggle('active', m==='weighted');
+  document.getElementById('btn-raw').classList.toggle('active', m==='raw');
+  renderAll();
+}
+function setFS(s){
+  document.body.classList.remove('fs-sm','fs-md','fs-lg');
+  document.body.classList.add('fs-'+s);
+  ['sm','md','lg'].forEach(x=>{ const b=document.getElementById('fs-'+x); if(b) b.classList.toggle('active', x===s); });
+}
+function toggleCard(id){ document.getElementById(id).classList.toggle('collapsed'); }
+function hideCard(id){ document.getElementById(id).style.display='none'; }
+function toggleAll(open){ document.querySelectorAll('.card').forEach(c=>{ c.style.display=''; c.classList.toggle('collapsed', !open); }); }
+
+/* ================= 启动 ================= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  const ok = load();
+  if(!ok) applyPreset('demo');           // 首次打开：载入示例数据演示
+  syncState();
+  document.getElementById('in-student').value = state.student;
+  document.getElementById('in-target').value = state.target==null ? '' : state.target;
+  document.getElementById('tb-name').textContent = (state.student? state.student+' · ':'') + '成绩分析看板';
+  document.getElementById('demo-tip').style.display = ok ? 'none' : '';
+  renderAllFull();
+});
+</script>
+</body>
+</html>
