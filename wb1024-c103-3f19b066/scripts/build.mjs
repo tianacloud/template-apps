@@ -6,7 +6,7 @@ if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!/^[A-Za-z0-9_-]{1,128}$/.test(sou
 const html=await readFile('client/index.html','utf8');
 const css=html.match(/<style[^>]*>([\s\S]*?)<\/style>/)[1];
 const body=html.match(/<body[^>]*>([\s\S]*?)<script/)[1];
-const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1].replace('document.addEventListener("DOMContentLoaded",function(){','(function(){');
+const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1].replace('document.addEventListener("DOMContentLoaded",function(){','(function(){').replace(/\}\);\s*$/, '})();');
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
 await writeFile('dist/assets/app.js',`document.title='码农人生 · 1024';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n${script}`);
 await copyFile('public/icon.png','dist/icon.png');
