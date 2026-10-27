@@ -1,0 +1,13 @@
+import {readFile, mkdir, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('需要 Git 实例 ID');
+const html=await readFile('app.html','utf8');
+const style=html.match(/<style[^>]*>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/)[1];
+const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='风的观测 · 物理仿真演示';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst script=document.createElement('script');script.textContent=${JSON.stringify(script)};document.body.appendChild(script);`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
