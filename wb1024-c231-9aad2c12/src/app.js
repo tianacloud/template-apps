@@ -1,0 +1,1338 @@
+const style=document.createElement("style");style.textContent="\n:root{\n  --bg:#f4f1ea; --card:#ffffff; --ink:#2a2521; --ink2:#6f675e; --ink3:#9b9288;\n  --red:#a8352a; --red-l:#f6e9e6; --green:#6f7f52; --green-l:#eef1e6;\n  --gold:#b8892b; --gold-l:#faf3e2; --line:#e9e2d6; --shadow:0 2px 14px rgba(90,70,50,.07);\n  --sb:safe-area-inset-bottom;\n}\n*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}\nhtml,body{margin:0;padding:0;background:var(--bg);color:var(--ink);\n  font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",sans-serif;\n  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}\nbody{max-width:520px;margin:0 auto;min-height:100vh;position:relative;box-shadow:0 0 40px rgba(0,0,0,.05)}\n\n/* ---------- 顶部 ---------- */\n.hd{position:sticky;top:0;z-index:50;background:linear-gradient(160deg,#b03d30,#963124);color:#fff;padding:14px 16px 15px;padding-top:calc(14px + env(safe-area-inset-top))}\n.hd-t{display:flex;align-items:center;gap:9px}\n.hd-logo{width:30px;height:30px;flex:none}\n.hd h1{font-size:18px;margin:0;font-weight:700;letter-spacing:2px}\n.hd-s{font-size:11.5px;opacity:.85;margin-top:3px;letter-spacing:.5px}\n.hd-badge{margin-left:auto;font-size:10.5px;background:rgba(255,255,255,.18);padding:3px 8px;border-radius:20px;letter-spacing:.5px}\n\n/* ---------- 内容 ---------- */\n.pg{display:none;padding:14px 14px 30px;animation:fade .28s ease}\n.pg.on{display:block}\n@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}\n\n.cd{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}\n.sec-t{font-size:14.5px;font-weight:700;margin:0 0 3px;display:flex;align-items:center;gap:7px}\n.sec-t i{width:3px;height:14px;background:var(--red);border-radius:2px;display:inline-block}\n.sec-d{font-size:12px;color:var(--ink3);margin:0 0 11px;line-height:1.6}\n\n/* ---------- chips ---------- */\n.chips{display:flex;flex-wrap:wrap;gap:7px}\n.chip{border:1px solid var(--line);background:#fbfaf7;border-radius:9px;padding:7px 11px;font-size:13px;color:var(--ink2);cursor:pointer;transition:.15s;user-select:none;line-height:1.3}\n.chip:active{transform:scale(.96)}\n.chip.on{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}\n.chip.on::before{content:\"✓ \";font-size:11px}\n.chip.sm{font-size:12px;padding:5px 9px;border-radius:8px}\n.chip.dim{opacity:.4}\n\n/* ---------- 档案条 ---------- */\n.prof{display:flex;gap:8px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch;scrollbar-width:none}\n.prof::-webkit-scrollbar{display:none}\n.prof-i{flex:none;background:#fbfaf7;border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-width:88px;cursor:pointer;transition:.15s}\n.prof-i:active{transform:scale(.97)}\n.prof-i.on{border-color:var(--red);background:var(--red-l)}\n.prof-l{font-size:10.5px;color:var(--ink3);letter-spacing:.5px}\n.prof-v{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:1px;white-space:nowrap}\n.prof-i.on .prof-v{color:var(--red)}\n\n/* ---------- 按钮 ---------- */\n.btn{display:block;width:100%;background:linear-gradient(135deg,#b8402f,#95301f);color:#fff;border:0;border-radius:12px;padding:14px;font-size:15.5px;font-weight:700;letter-spacing:3px;cursor:pointer;box-shadow:0 5px 16px rgba(168,53,42,.28);transition:.15s}\n.btn:active{transform:translateY(1px);box-shadow:0 2px 8px rgba(168,53,42,.25)}\n.btn.g{background:linear-gradient(135deg,#7a8b53,#5f6e3f);box-shadow:0 5px 16px rgba(111,127,82,.25)}\n.btn-o{display:block;width:100%;background:#fff;color:var(--red);border:1px solid var(--red);border-radius:12px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px}\n\n/* ---------- 结果 ---------- */\n.tabs{display:flex;gap:6px;margin-bottom:12px;background:#efeae0;padding:4px;border-radius:11px}\n.tab{flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:12.5px;color:var(--ink2);cursor:pointer;transition:.18s;line-height:1.35;white-space:nowrap}\n.tab.on{background:#fff;color:var(--red);font-weight:700;box-shadow:0 1px 5px rgba(0,0,0,.07)}\n\n.rx{background:linear-gradient(165deg,#fffaf7,#fff);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid #f2e6df}\n.rx-h{border-bottom:1px dashed var(--line);padding-bottom:12px;margin-bottom:12px}\n.rx-n{font-size:19px;font-weight:800;letter-spacing:1px;color:var(--ink)}\n.rx-m{font-size:11.5px;color:var(--gold);background:var(--gold-l);display:inline-block;padding:2px 8px;border-radius:20px;margin-top:6px;letter-spacing:.5px}\n.rx-g{font-size:12.5px;color:var(--ink2);margin-top:7px;line-height:1.6}\n\n.role{margin-bottom:13px}\n.role-h{display:flex;align-items:center;gap:8px;margin-bottom:7px}\n.role-b{font-size:12px;font-weight:800;color:#fff;padding:2px 9px;border-radius:6px;letter-spacing:1px}\n.role-b.君{background:var(--red)}.role-b.臣{background:#c07a2e}.role-b.佐{background:var(--green)}.role-b.使{background:#7d6fa8}\n.role-d{font-size:11px;color:var(--ink3)}\n.role-i{background:#fdfcfa;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px}\n.role-i:last-child{margin-bottom:0}\n.ri-1{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}\n.ri-n{font-size:15px;font-weight:700}\n.ri-d{font-size:12.5px;color:var(--red);font-weight:600}\n.ri-t{font-size:10.5px;color:var(--ink3);border:1px solid var(--line);padding:1px 6px;border-radius:5px}\n.ri-c{font-size:11px;color:var(--ink3);margin-top:2px}\n.ri-w{font-size:12px;color:var(--ink2);margin-top:5px;line-height:1.6}\n\n.blk-t{font-size:13.5px;font-weight:700;margin:14px 0 8px;display:flex;align-items:center;gap:6px;color:var(--ink)}\n.blk-t::before{content:\"\";width:6px;height:6px;background:var(--gold);border-radius:50%}\n.step{font-size:13.5px;color:var(--ink2);margin-bottom:8px;padding-left:22px;position:relative;line-height:1.72}\n.step::before{content:counter(sc);counter-increment:sc;position:absolute;left:0;top:3px;width:16px;height:16px;background:var(--green-l);color:var(--green);border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}\n.steps{counter-reset:sc}\n.step b{color:var(--ink);font-weight:700}\n\n.fit{background:var(--green-l);border-radius:10px;padding:11px 12px;margin-bottom:8px}\n.fit-k{font-size:12.5px;font-weight:700;color:var(--green);margin-bottom:3px}\n.fit-t{font-size:12.5px;color:var(--ink2);line-height:1.65}\n.fit-w{font-size:12px;color:#a0552a;margin-top:5px;line-height:1.6}\n.fit-q{font-size:11.5px;color:var(--ink3);font-style:italic;margin-top:5px;line-height:1.6}\n\n.wn{border-radius:10px;padding:10px 12px;margin-bottom:7px;font-size:12.5px;line-height:1.65}\n.wn2{background:#fdeced;border-left:3px solid #c6372b;color:#8a2a20}\n.wn1{background:#fdf6e8;border-left:3px solid #c9a227;color:#7d5c14}\n.wn0{background:#eef1e6;border-left:3px solid var(--green);color:#4d5735}\n\n.us{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px}\n.us-i{flex:1;min-width:96px;background:#fbfaf7;border:1px solid var(--line);border-radius:10px;padding:8px 10px}\n.us-l{font-size:10.5px;color:var(--ink3)}\n.us-v{font-size:12.5px;font-weight:600;margin-top:1px;line-height:1.5}\n\n/* ---------- 搜索 / 列表 ---------- */\n.sr{position:relative;margin-bottom:10px}\n.sr input{width:100%;border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px 13px 11px 36px;font-size:14px;outline:none;font-family:inherit;color:var(--ink)}\n.sr input:focus{border-color:var(--red)}\n.sr svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.4}\n.filt{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}\n.filt::-webkit-scrollbar{display:none}\n\n.it{display:flex;align-items:flex-start;gap:10px;padding:11px 3px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}\n.it:active{background:#faf8f4}\n.it:last-child{border-bottom:0}\n.it-l{flex:1;min-width:0}\n.it-n{font-size:14.5px;font-weight:600}\n.it-n em{font-style:normal;color:#fff;background:var(--gold);font-size:9.5px;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:400;vertical-align:1px}\n.it-m{font-size:11.5px;color:var(--ink3);margin-top:2px}\n.it-f{font-size:12.5px;color:var(--ink2);margin-top:4px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}\n.nat{font-size:11px;padding:1px 7px;border-radius:5px;font-weight:600;white-space:nowrap;flex:none;margin-top:1px}\n.nat.c{background:#e2eef7;color:#2f6a99}.nat.cc{background:#eaf3f8;color:#4a86ab}.nat.cw{background:#f0f6f9;color:#6b93ad}\n.nat.p{background:#eef1e6;color:#5f6e3f}.nat.h{background:#fae3de;color:#b3402f}.nat.hh{background:#f7d5cd;color:#a8352a}\n.nat.ww{background:#fbe9e5;color:#c0685a}\n\n/* ---------- 弹层 ---------- */\n.mask{position:fixed;inset:0;background:rgba(30,22,16,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}\n.mask.on{display:flex;animation:fade .2s}\n.sheet{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:20px 18px calc(26px + env(safe-area-inset-bottom));max-height:86vh;overflow-y:auto;animation:up .3s cubic-bezier(.2,.9,.3,1)}\n@keyframes up{from{transform:translateY(100%)}to{transform:none}}\n.sh-x{position:sticky;top:-20px;background:#fff;margin:-20px -18px 0;padding:14px 18px 8px;text-align:right;z-index:2}\n.sh-x span{color:var(--ink3);font-size:22px;cursor:pointer;display:inline-block;width:30px;text-align:center}\n.sh-n{font-size:20px;font-weight:800;letter-spacing:1px}\n.sh-t{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}\n.tg{font-size:11.5px;padding:2px 8px;border-radius:6px;background:#f4f1ea;color:var(--ink2)}\n.tg.r{background:var(--red-l);color:var(--red)}.tg.g{background:var(--green-l);color:var(--green)}.tg.y{background:var(--gold-l);color:var(--gold)}\n.kv{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}\n.kv-k{flex:none;width:62px;color:var(--ink3);font-size:12.5px}\n.kv-v{flex:1;color:var(--ink2);line-height:1.7}\n.kv-v b{color:var(--ink)}\n.ef{display:flex;flex-wrap:wrap;gap:5px}\n.ef span{font-size:11.5px;background:var(--green-l);color:var(--green);padding:2px 8px;border-radius:6px}\n.rule{border-left:3px solid #c6372b;background:#fdf7f7;border-radius:0 9px 9px 0;padding:10px 12px;margin-bottom:9px}\n.rule.lv1{border-left-color:var(--gold);background:#fdfaef}\n.rule-h{font-size:13.5px;font-weight:700;margin-bottom:4px}\n.rule-b{font-size:12.5px;color:var(--ink2);line-height:1.68}\n\n/* ---------- 底部 tabbar ---------- */\n.tb{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}\n.tb-i{flex:1;padding:8px 2px 7px;text-align:center;color:var(--ink3);cursor:pointer;transition:.15s}\n.tb-i.on{color:var(--red)}\n.tb-i svg{display:block;margin:0 auto 3px}\n.tb-i span{font-size:10.5px;letter-spacing:.5px}\n.tb-i.on span{font-weight:700}\n\n.empty{text-align:center;padding:46px 20px;color:var(--ink3);font-size:13.5px}\n.empty svg{opacity:.3;margin-bottom:10px}\n.hint{font-size:11.5px;color:var(--ink3);text-align:center;padding:6px 0 2px;line-height:1.6}\n.hist{background:#fff;border-radius:11px;padding:11px 12px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer}\n.hist:active{background:#faf8f4}\n.hist-n{font-size:14.5px;font-weight:700}\n.hist-m{font-size:11.5px;color:var(--ink3);margin-top:2px}\n.rowline{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}\n.rowline:last-child{border-bottom:0}\n.sw{width:42px;height:24px;border-radius:20px;background:#ddd;position:relative;flex:none;cursor:pointer;transition:.2s}\n.sw.on{background:var(--green)}\n.sw::after{content:\"\";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}\n.sw.on::after{left:20px}\n.disclaimer{font-size:11px;color:var(--ink3);background:#f7f4ee;border-radius:10px;padding:11px 12px;line-height:1.7;margin-top:12px}\n";document.head.appendChild(style);
+document.body.innerHTML="\n\n<div class=\"hd\">\n  <div class=\"hd-t\">\n    <svg class=\"hd-logo\" fill=\"none\" viewBox=\"0 0 40 40\">\n      <circle cx=\"20\" cy=\"20\" r=\"18.5\" stroke=\"rgba(255,255,255,.5)\" stroke-width=\"1.2\"/>\n      <path d=\"M12 25c0-4.4 3.6-8 8-8s8 3.6 8 8\" stroke=\"#fff\" stroke-linecap=\"round\" stroke-width=\"2\"/>\n      <path d=\"M11 14.5c1.2-1.6 2.4-1.6 3.6 0M18 12c1.2-1.6 2.4-1.6 3.6 0M25 14.5c1.2-1.6 2.4-1.6 3.6 0\" stroke=\"#ffd98a\" stroke-linecap=\"round\" stroke-width=\"1.8\"/>\n      <path d=\"M10 27.5h20\" stroke=\"#fff\" stroke-linecap=\"round\" stroke-width=\"2\"/>\n    </svg>\n    <div style=\"flex:1; min-width:0\">\n      <h1>当家食神</h1>\n      <div class=\"hd-s\">君臣佐使 · 性味相克 · 因时因地因人</div>\n    </div>\n    <div class=\"hd-badge\">药食同源</div>\n  </div>\n</div>\n\n<div class=\"pg on\" id=\"pg1\"></div>\n<div class=\"pg\" id=\"pg2\"></div>\n<div class=\"pg\" id=\"pg3\"></div>\n<div class=\"pg\" id=\"pg4\"></div>\n\n<div class=\"tb\" id=\"tabbar\"></div>\n\n<div class=\"mask\" id=\"mask\"><div class=\"sheet\" id=\"sheet\"></div></div>\n\n";
+
+/* ===== 01_core.js ===== */
+/* 当家食神 · 核心常量与理论规则层
+   依据：《黄帝内经·素问》《神农本草经》《中华人民共和国药典（2020版）》
+        国家卫生健康委《既是食品又是中药材的物质目录》（含 2023 年新增 9 种）
+        王琦《中医体质分类与判定》（中华中医药学会 2009 年标准）
+*/
+
+/* ---------- 1. 药性（四气）编码 ---------- */
+const NAT = { '-3': '寒', '-2': '凉', '-1': '微凉', '0': '平', '1': '微温', '2': '温', '3': '热' };
+const natTxt = v => NAT[String(v)] || '平';
+const natHot = v => v; // 数值越大越温热，越小越寒凉
+
+/* ---------- 2. 功效维度（33 维） ---------- */
+const DIMS = ['补气', '养血', '滋阴', '温阳', '健脾', '化湿', '清热', '润燥',
+  '安神', '疏肝', '消食', '化痰', '止咳', '活血', '固涩', '利水', '解毒',
+  '明目', '益智', '强筋骨', '美容', '控糖', '降脂', '通便', '止泻',
+  '解表', '止血', '催乳', '益精', '乌发', '理气', '止痛', '固表'];
+
+/* ---------- 3. 功能目标库 ---------- */
+const GOALS = [
+  { id: 'qi', n: '补气抗疲劳', d: '神疲乏力、少气懒言、动辄出汗、易感冒', w: { 补气: 3, 健脾: 2, 固表: 2, 益精: 1 }, c: '气虚' },
+  { id: 'blood', n: '养血调经', d: '面色萎黄、头晕心悸、月经量少色淡', w: { 养血: 3, 补气: 1, 活血: 1, 滋阴: 1 }, c: '血虚' },
+  { id: 'spleen', n: '健脾开胃', d: '食欲不振、腹胀便溏、吃完就困', w: { 健脾: 3, 化湿: 2, 消食: 2, 理气: 1 }, c: '脾虚' },
+  { id: 'damp', n: '祛湿消水肿', d: '身体沉重、舌苔厚腻、下肢浮肿、大便黏', w: { 化湿: 3, 利水: 3, 健脾: 2, 降脂: 1 }, c: '痰湿' },
+  { id: 'heat', n: '清热降火', d: '口苦口干、咽喉肿痛、长痘、心烦便秘', w: { 清热: 3, 解毒: 2, 润燥: 1, 通便: 1 }, c: '内热' },
+  { id: 'sleep', n: '安神助眠', d: '入睡困难、多梦易醒、心悸健忘', w: { 安神: 3, 养血: 1, 滋阴: 1, 疏肝: 1 }, c: '神不守舍' },
+  { id: 'yang', n: '温阳驱寒', d: '畏寒肢冷、腰膝酸冷、吃凉就泻、夜尿多', w: { 温阳: 3, 温中: 2, 益精: 1, 止痛: 1 }, c: '阳虚' },
+  { id: 'yin', n: '滋阴润燥', d: '五心烦热、盗汗、口干咽燥、皮肤干', w: { 滋阴: 3, 润燥: 3, 养血: 1, 清热: 1 }, c: '阴虚' },
+  { id: 'digest', n: '消食化积', d: '食积腹胀、嗳腐吞酸、口气重、孩子积食', w: { 消食: 3, 健脾: 2, 理气: 2, 通便: 1 }, c: '食积' },
+  { id: 'bowel', n: '润肠通便', d: '大便干结、数日一行、排便费力', w: { 通便: 3, 润燥: 2, 滋阴: 1, 理气: 1 }, c: '肠燥' },
+  { id: 'lung', n: '止咳化痰', d: '咳嗽痰多、咽痒、喉间有痰鸣', w: { 止咳: 3, 化痰: 3, 润燥: 1, 解毒: 1 }, c: '痰咳' },
+  { id: 'liver', n: '疏肝解郁', d: '情绪抑郁、胸胁胀痛、经前乳胀、爱叹气', w: { 疏肝: 3, 理气: 3, 活血: 1, 安神: 1 }, c: '气郁' },
+  { id: 'brain', n: '益智健脑', d: '用脑过度、记忆减退、注意力不集中', w: { 益智: 3, 益精: 2, 养血: 1, 安神: 1 }, c: '髓海不足' },
+  { id: 'eye', n: '明目护眼', d: '久视屏幕、眼干涩、视物模糊', w: { 明目: 3, 滋阴: 1, 养血: 1, 清热: 1 }, c: '目失所养' },
+  { id: 'bone', n: '强筋健骨', d: '腰膝酸软、骨质疏松、运动后恢复慢', w: { 强筋骨: 3, 益精: 2, 养血: 1, 温阳: 1 }, c: '筋骨失养' },
+  { id: 'beauty', n: '美容养颜', d: '面色晦暗、色斑、皮肤松弛干燥', w: { 美容: 3, 养血: 2, 活血: 1, 润燥: 1, 解毒: 1 }, c: '气血不荣' },
+  { id: 'sugar', n: '辅助控糖', d: '血糖偏高、餐后易困、口渴多饮', w: { 控糖: 3, 健脾: 1, 滋阴: 1, 化湿: 1 }, c: '消渴' },
+  { id: 'lipid', n: '降脂减重', d: '血脂偏高、腹型肥胖、身体沉重', w: { 降脂: 3, 化湿: 2, 利水: 2, 消食: 1 }, c: '膏脂堆积' },
+  { id: 'immune', n: '固表防感冒', d: '反复感冒、自汗、季节交替就不适', w: { 固表: 3, 补气: 3, 健脾: 1 }, c: '卫外不固' },
+  { id: 'livercare', n: '护肝解酒', d: '熬夜饮酒、转氨酶偏高、酒后头痛', w: { 解毒: 3, 清热: 2, 滋阴: 1, 利水: 1 }, c: '肝失疏泄' },
+  { id: 'bp', n: '辅助稳压', d: '血压偏高、头晕头胀、面红', w: { 平肝: 3, 清热: 2, 化湿: 1, 通便: 1 }, c: '肝阳上亢' },
+  { id: 'kidney', n: '补肾益精', d: '腰酸耳鸣、精力不足、须发早白', w: { 益精: 3, 滋阴: 1, 温阳: 1, 强筋骨: 2, 乌发: 1 }, c: '肾虚' },
+  { id: 'hair', n: '乌发固发', d: '脱发增多、发质变细、白发早生', w: { 乌发: 3, 益精: 2, 养血: 2, 滋阴: 1 }, c: '发失所养' },
+  { id: 'milk', n: '产后催乳', d: '乳汁量少、乳汁清稀、产后体虚', w: { 催乳: 3, 养血: 2, 补气: 2, 通便: 0 }, c: '气血亏虚' },
+  { id: 'grow', n: '儿童助长益智', d: '生长发育期、挑食、注意力不集中', w: { 益智: 2, 健脾: 3, 补气: 1, 强筋骨: 2, 益精: 1 }, c: '稚阴稚阳' },
+  { id: 'pain', n: '缓解痛经', d: '经期小腹冷痛、得热则减、经血有块', w: { 活血: 2, 温阳: 2, 止痛: 3, 疏肝: 1, 养血: 1 }, c: '胞宫寒凝' },
+  { id: 'cold', n: '解表散寒', d: '受凉鼻塞、怕风、头身酸痛、无汗', w: { 解表: 3, 温中: 2, 化痰: 1 }, c: '风寒外束' },
+  { id: 'stop', n: '健脾止泻', d: '大便溏薄、清晨腹泻、吃油腻即泻', w: { 止泻: 3, 健脾: 2, 温阳: 1, 固涩: 2 }, c: '脾虚泄泻' }
+];
+// 补一个目标里用到的维度
+DIMS.push('平肝', '温中');
+
+/* 日常口语 → 功能目标 的对照（用于食材库检索的同义词扩展） */
+const GOAL_KW = {
+  qi: '疲劳 乏力 没劲 气短 虚 累 倦怠 出虚汗',
+  blood: '贫血 面色 脸色黄 头晕 月经少 气血',
+  spleen: '胃口 食欲 消化 腹胀 便溏 吸收 脾虚',
+  damp: '湿气 湿重 水肿 虚胖 痰湿 舌苔厚 身重',
+  heat: '上火 口臭 长痘 口苦 咽痛 口腔溃疡 热气',
+  sleep: '失眠 睡不着 睡眠 多梦 易醒 入睡',
+  yang: '怕冷 手脚凉 畏寒 宫寒 寒气 冰凉',
+  yin: '盗汗 五心烦热 口干 阴虚 手心热',
+  digest: '积食 不消化 胀气 口气 吃多了 食积',
+  bowel: '便秘 大便干 排便 痔疮',
+  lung: '咳嗽 痰多 咽痒 喉咙 支气管炎',
+  liver: '生气 郁闷 情绪 肝郁 压力大 叹气 烦躁',
+  brain: '记忆 健忘 脑子 用脑 注意力 脑力',
+  eye: '眼睛 眼干 视力 护眼 视物',
+  bone: '腰酸 骨质疏松 膝盖 腿软 关节 筋骨',
+  beauty: '皮肤 色斑 肤色 美容 气色 暗沉',
+  sugar: '血糖 糖尿病 三高 控糖',
+  lipid: '血脂 胆固醇 减肥 瘦身 肥胖 肚子大 刮油',
+  immune: '抵抗力 易感冒 体虚 免疫 反复感冒',
+  livercare: '解酒 熬夜 酒精 转氨酶 护肝 喝酒',
+  bp: '血压 高血压 头晕头胀',
+  kidney: '肾虚 腰酸 耳鸣 精力不足 早衰',
+  hair: '脱发 掉发 白发 头发 发际线',
+  milk: '下奶 奶水 乳汁 没奶 通乳',
+  grow: '长高 发育 挑食 个子',
+  pain: '痛经 经期腹痛 小腹冷',
+  cold: '感冒 鼻塞 受凉 风寒 流鼻涕',
+  stop: '拉肚子 腹泻 便稀 五更泻'
+};
+
+/* ---------- 4. 九种体质（王琦标准） ---------- */
+const CONSTS = [
+  {
+    id: 'ping', n: '平和质', d: '精力充沛、睡眠良好、适应力强',
+    like: { 补气: 1, 健脾: 1 }, // 轻微加成
+    nat: [0, 0], // 性味偏好区间：寒凉→温热
+    tips: '体质均衡，不必刻意偏补，重点在顺应四时、五味调和。',
+    warn: '再好的东西也别过量，长期偏食同样会打破平衡。'
+  },
+  {
+    id: 'qixu', n: '气虚质', d: '容易疲乏、气短、易出汗、易感冒',
+    like: { 补气: 3, 健脾: 3, 固表: 2 },
+    nat: [-1, 2], ban: [-3, -2],
+    tips: '宜甘温补气，山药、大枣、黄芪、小米、鸡肉都是基础盘。',
+    warn: '忌生冷寒凉、破气耗气之物（生萝卜、空心菜、槟榔、大量薄荷）。'
+  },
+  {
+    id: 'yangxu', n: '阳虚质', d: '手脚冰凉、畏寒喜暖、精神不振',
+    like: { 温阳: 3, 温中: 3, 益精: 2 },
+    nat: [1, 3], ban: [-3, -2],
+    tips: '宜温补，冬令进补正当时。生姜、桂圆、羊肉、肉桂、核桃可用。',
+    warn: '严格忌冰饮、生冷瓜果、苦寒清泻之品（金银花、菊花、胖大海、绿豆不宜常服）。'
+  },
+  {
+    id: 'yinxu', n: '阴虚质', d: '手足心热、口干咽燥、盗汗、便秘',
+    like: { 滋阴: 3, 润燥: 3, 清热: 1 },
+    nat: [-2, 0], ban: [2, 3],
+    tips: '宜甘润，银耳、百合、桑椹、石斛、麦冬、梨、鸭肉为佳。',
+    warn: '忌辛温燥烈之品（辣椒、花椒、肉桂、羊肉、高度酒），也忌过度发汗。'
+  },
+  {
+    id: 'tanshi', n: '痰湿质', d: '形体偏胖、腹部松软、身重不爽、苔腻',
+    like: { 化湿: 3, 利水: 3, 健脾: 2, 降脂: 2, 消食: 1 },
+    nat: [-1, 1], ban: [2, 3],
+    tips: '宜清淡，健脾是祛湿的根本。薏苡仁、赤小豆、茯苓、陈皮、冬瓜常备。',
+    warn: '忌肥甘厚味、甜腻、生冷、暴饮暴食。'
+  },
+  {
+    id: 'shire', n: '湿热质', d: '面垢油光、口苦口臭、大便黏滞、易长痘',
+    like: { 清热: 3, 化湿: 3, 解毒: 2, 利水: 2 },
+    nat: [-3, -1], ban: [2, 3],
+    tips: '宜清利，绿豆、薏苡仁（生）、冬瓜、苦瓜、赤小豆、茵陈类为主。',
+    warn: '忌辛辣、油炸、烧烤、烈酒、羊肉及温补药材。'
+  },
+  {
+    id: 'xueyu', n: '血瘀质', d: '面色晦暗、易有瘀斑、口唇色暗、痛经有块',
+    like: { 活血: 3, 疏肝: 2, 理气: 2, 化湿: 1 },
+    nat: [0, 2], ban: [-3],
+    tips: '宜行气活血，山楂、桃仁、玫瑰花、黑木耳、醋、姜黄可用。',
+    warn: '忌寒凉收涩、久坐不动；出血性疾病及孕期禁用活血之品。'
+  },
+  {
+    id: 'qiyu', n: '气郁质', d: '情绪低落、胸胁胀满、多疑善虑、失眠',
+    like: { 疏肝: 3, 理气: 3, 安神: 2, 活血: 1 },
+    nat: [0, 1], ban: [],
+    tips: '宜疏肝理气，佛手、玫瑰花、陈皮、薄荷、荞麦、柑橘类可常食。',
+    warn: '忌久坐、过度思虑、收敛酸涩之物大量食用。'
+  },
+  {
+    id: 'tebing', n: '特禀质', d: '过敏体质，易起荨麻疹、鼻痒喷嚏、哮喘',
+    like: { 固表: 3, 补气: 2, 健脾: 1 },
+    nat: [-1, 1], ban: [],
+    tips: '宜固表御邪，黄芪、山药、大枣为底；饮食宜清淡、循序渐进。',
+    warn: '忌食明确过敏原，慎食发物（海鲜、鹅肉、笋、芒果、花生等），新食材先少量试。'
+  }
+];
+
+/* ---------- 5. 四季（《素问·四气调神大论》） ---------- */
+const SEASONS = [
+  {
+    id: 'spring', n: '春', full: '春（立春—立夏）',
+    d: '阳气升发，肝木当令',
+    like: { 疏肝: 3, 健脾: 2, 补气: 1, 解表: 1 },
+    nat: [-1, 1],
+    quote: '《素问》：「春三月，此谓发陈」，宜「省酸增甘，以养脾气」。',
+    tips: '宜疏肝健脾，少酸多甘。荠菜、菠菜、山药、大枣、玫瑰花、佛手正合时。',
+    warn: '忌过食酸涩收敛（碍阳气升发）、忌油腻生冷伤脾。'
+  },
+  {
+    id: 'summer', n: '夏', full: '夏（立夏—立秋）',
+    d: '阳盛于外，心火当令',
+    like: { 清热: 3, 解毒: 2, 利水: 2, 化湿: 1, 润燥: 1 },
+    nat: [-2, 0],
+    quote: '《素问》：「夏三月，此谓蕃秀」，春夏养阳，不可贪凉伤阳。',
+    tips: '宜清暑益气生津。绿豆、冬瓜、荷叶、西瓜翠衣、乌梅、淡竹叶可解暑。',
+    warn: '夏月伏阴在内，切忌贪凉饮冷过度，反伤脾胃阳气。'
+  },
+  {
+    id: 'lateSummer', n: '长夏', full: '长夏（夏秋之交 · 暑湿最盛）',
+    d: '湿热交蒸，脾土当令',
+    like: { 化湿: 3, 健脾: 3, 利水: 2, 清热: 1 },
+    nat: [-1, 1],
+    quote: '长夏属土应脾，是一年中湿气最重、脾胃最易受困的时段。',
+    tips: '宜健脾化湿。薏苡仁、赤小豆、白扁豆、茯苓、陈皮、冬瓜为核心。',
+    warn: '忌甜腻、冷饮、久处潮湿。'
+  },
+  {
+    id: 'autumn', n: '秋', full: '秋（立秋—立冬）',
+    d: '阳气收敛，燥气当令',
+    like: { 润燥: 3, 滋阴: 2, 养血: 1, 止咳: 1 },
+    nat: [-1, 0],
+    quote: '《素问》：秋冬养阴，「省辛增酸，以养肝气」。',
+    tips: '宜滋阴润燥。银耳、百合、梨、蜂蜜、杏仁、芝麻、石斛最应季。',
+    warn: '忌辛燥发散（辣椒、生姜过量、高度酒）耗伤津液。'
+  },
+  {
+    id: 'winter', n: '冬', full: '冬（立冬—立春）',
+    d: '阳气闭藏，肾水当令',
+    like: { 温阳: 3, 益精: 2, 养血: 2, 温中: 2, 强筋骨: 1 },
+    nat: [1, 3],
+    quote: '《素问》：「冬三月，此谓闭藏」，冬令进补，来春打虎。',
+    tips: '宜温补填精。羊肉、牛肉、当归、黄芪、桂圆、核桃、黑芝麻、阿胶为常。',
+    warn: '忌寒凉生冷、过度出汗泄阳；进补须看脾胃能不能受纳。'
+  }
+];
+
+/* ---------- 6. 地域 ---------- */
+const REGIONS = [
+  { id: 'dongbei', n: '东北', z: '寒温带', d: '冬季漫长严寒，人体阳气易伤', like: { 温阳: 2, 温中: 2, 养血: 1 }, nat: [1, 3], tips: '宜温补，牛羊肉、人参、鹿类制品、酒剂常用；冬日进补量可稍大。', warn: '室内暖气燥热，需防「外寒内燥」，温补同时配梨、银耳润之。' },
+  { id: 'huabei', n: '华北', z: '暖温带', d: '四季分明，冬干冷、春多风', like: { 润燥: 2, 养血: 1, 固表: 1 }, nat: [-1, 2], tips: '秋冬防燥，春夏防过敏。山药、大枣、芝麻、梨、蜂蜜常用。', warn: '春季风沙大，特禀质者注意固表防过敏。' },
+  { id: 'xibei', n: '西北', z: '干旱半干旱', d: '气候干燥、昼夜温差大', like: { 润燥: 2, 滋阴: 2, 温阳: 1 }, nat: [0, 2], tips: '宜温润兼顾，忌一味辛燥。羊肉配白萝卜、桂圆配银耳是为常法。', warn: '燥邪伤津，辛辣烧烤会加重口干、便秘、咽痛。' },
+  { id: 'huadong', n: '华东/江南', z: '亚热带湿润', d: '梅雨湿重，夏季闷热', like: { 化湿: 2, 健脾: 2, 清热: 1 }, nat: [-1, 1], tips: '宜健脾化湿。薏苡仁、赤小豆、冬瓜、扁豆、陈皮、荷叶常备。', warn: '梅雨季忌甜腻生冷，防湿困脾阳。' },
+  { id: 'huanan', n: '华南/岭南', z: '南亚热带', d: '长夏湿热，瘴疠之气重', like: { 清热: 2, 化湿: 2, 利水: 2, 解毒: 1 }, nat: [-2, 0], tips: '宜清补，忌峻补。土茯苓、木棉花、薏苡仁、赤小豆、冬瓜、茅根为粤人常法。', warn: '岭南多湿热，人参鹿茸类峻补易「虚不受补」，应先清后补。' },
+  { id: 'xinan', n: '西南', z: '亚热带·高原过渡', d: '盆地湿气重，麻辣成习', like: { 化湿: 2, 温中: 2, 理气: 1 }, nat: [0, 2], tips: '麻辣本为化湿散寒而生，但需有度；配山药、白扁豆护脾。', warn: '嗜辣过度耗伤阴液，阴虚、痔疮、咽炎者应减量。' },
+  { id: 'huazhong', n: '华中', z: '亚热带季风', d: '夏热冬冷，湿度居中', like: { 健脾: 1, 化湿: 1 }, nat: [-1, 2], tips: '随四季调整幅度大，夏清冬补，长夏化湿。', warn: '季节交替时脾胃最易不适，转换宜缓。' },
+  { id: 'plateau', n: '高原地区', z: '高海拔', d: '氧分压低、气候干寒、紫外线强', like: { 补气: 2, 活血: 2, 温阳: 1, 润燥: 1 }, nat: [0, 2], tips: '宜益气活血耐缺氧。红景天属保健药材、黄芪、当归、黑木耳、山楂可用。', warn: '高原燥寒，进补忌峻烈，饮酒宜慎（加重缺氧）。' },
+  { id: 'oversea', n: '海外/异地', z: '时差与水土变化', d: '水土不服，脾胃先受累', like: { 健脾: 2, 化湿: 1 }, nat: [-1, 1], tips: '初到异地先健脾和胃，山药、小米、茯苓、陈皮煮水，饮食由清淡渐入。', warn: '忌一到就大补或暴饮暴食。' }
+];
+
+/* ---------- 7. 人群阶段（年龄 · 性别 · 特殊时期） ---------- */
+const STAGES = [
+  { id: 'infant', n: '婴幼儿（0—3岁）', g: 'age', d: '脾胃娇嫩，稚阴稚阳', k: 0.35, like: { 健脾: 3, 消食: 2 }, nat: [-1, 1], tips: '用药食宜极轻淡，山药泥、小米油、鸡内金粉、山楂煮水为主，量小力缓。', warn: '忌峻补、忌蜂蜜（1 岁以下肉毒杆菌风险）、忌整粒坚果（呛咳）、忌人参鹿茸类。' },
+  { id: 'child', n: '儿童（3—12岁）', g: 'age', d: '生机蓬勃，脾常不足', k: 0.5, like: { 健脾: 3, 消食: 2, 益智: 1, 强筋骨: 1 }, nat: [-1, 1], tips: '重点在健脾助运而非进补。山药、茯苓、山楂、鸡内金、核桃、黑芝麻、牛奶。', warn: '忌过早滋补（易性早熟），忌含激素类保健品，忌寒凉伤脾。' },
+  { id: 'teen', n: '青少年（12—18岁）', g: 'age', d: '生长迅速，脑力消耗大', k: 0.7, like: { 益智: 2, 健脾: 2, 强筋骨: 2, 养血: 1 }, nat: [-1, 1], tips: '保证蛋白与钙，佐以核桃、黑芝麻、鱼头、菠菜、山药。', warn: '忌节食减肥、忌长期熬夜、忌滥服功能饮料。' },
+  { id: 'adult', n: '成年（18—45岁）', g: 'age', d: '精力充沛，劳倦与压力为主', k: 1, like: {}, nat: [-2, 2], tips: '按需调理即可，重在规律饮食与作息。', warn: '忌长期外卖高油高盐、忌空腹饮酒。' },
+  { id: 'mid', n: '中年（45—60岁）', g: 'age', d: '脏腑功能由盛转衰，代谢放缓', k: 1, like: { 降脂: 2, 控糖: 1, 活血: 1, 益精: 1 }, nat: [-1, 1], tips: '宜防「三高」与肾气早衰。山楂、决明子、黑木耳、山药、深海鱼、豆制品。', warn: '忌过饱、忌夜宵、忌情绪郁结。' },
+  { id: 'elder', n: '老年（60岁以上）', g: 'age', d: '脾胃虚弱，肾精亏虚，多夹瘀', k: 0.7, like: { 健脾: 2, 益精: 2, 强筋骨: 2, 通便: 1, 活血: 1 }, nat: [0, 2], tips: '宜平补缓补，粥羹最宜。山药、莲子、芡实、核桃、黑芝麻、燕麦、鱼肉。', warn: '忌峻补、忌滋腻碍脾（阿胶、熟地过量易腹胀）、忌过咸过硬、注意与慢病用药的相互作用。' },
+  { id: 'mensus', n: '女性·经期', g: 'female', d: '血海空虚，胞宫泻而不藏', k: 1, like: { 养血: 2, 活血: 1, 温中: 1 }, nat: [0, 2], tips: '经前宜疏肝理气，经期宜温养，经后宜补血。红糖姜枣水、桂圆、当归、菠菜。', warn: '经期忌寒凉生冷（冰饮、西瓜、螃蟹、苦瓜），忌破血峻烈之品（大量桃仁、红花）。' },
+  { id: 'pregnant', n: '女性·孕期', g: 'female', d: '需养血安胎，脾胃负担重', k: 1, like: { 健脾: 2, 养血: 2, 止泻: 1 }, nat: [-1, 1], tips: '宜健脾养血安胎。山药、莲子、大枣、桑寄生属药材、苏梗、芝麻、牛奶、鱼肉。', warn: '★ 严格忌活血破气之品：山楂、桃仁、红花、益母草、薏苡仁、螃蟹、甲鱼、桂圆（早期慎）、马齿苋。任何药材入膳前请咨询产科医生。' },
+  { id: 'postpartum', n: '女性·产后/月子', g: 'female', d: '气血骤虚，多虚多瘀，宜温补化瘀', k: 1, like: { 养血: 3, 补气: 2, 温阳: 1, 催乳: 1 }, nat: [0, 3], tips: '产后先化瘀后补虚。红糖、当归、黄芪、桂圆、鲫鱼、猪蹄、木瓜、花生、通草属药材。', warn: '忌生冷、忌过早峻补、忌回乳之物（麦芽、韭菜、花椒、山楂大量、人参部分人群）。' },
+  { id: 'lactation', n: '女性·哺乳期', g: 'female', d: '乳汁为气血所化，耗伤阴血', k: 1, like: { 催乳: 3, 养血: 2, 补气: 2, 通便: 1 }, nat: [-1, 2], tips: '宜补气养血通乳。鲫鱼汤、猪蹄、通草、王不留行属药材、木瓜、花生、丝瓜络。', warn: '忌回乳食物（炒麦芽、韭菜、花椒、薄荷、山楂大量），忌酒精，慎浓茶咖啡。' },
+  { id: 'menopause', n: '女性·更年期', g: 'female', d: '肾气渐衰，天癸将竭，阴阳失衡', k: 1, like: { 滋阴: 2, 益精: 2, 安神: 2, 疏肝: 1, 平肝: 1 }, nat: [-1, 1], tips: '宜滋肾阴、疏肝、安神。百合、银耳、桑椹、黑芝麻、山药、酸枣仁、豆制品。', warn: '忌辛辣燥热、忌滥用激素类补品、情绪调摄与饮食同等重要。' },
+  { id: 'male', n: '男性·日常', g: 'male', d: '以肾为先天，精气易耗', k: 1, like: { 益精: 2, 温阳: 1, 强筋骨: 1, 解毒: 1 }, nat: [-1, 2], tips: '宜补肾填精、护肝。山药、枸杞、黑芝麻、核桃、牡蛎、韭菜籽属药材、番茄。', warn: '忌长期熬夜饮酒、忌盲目壮阳（多温燥伤阴）。' }
+];
+
+/* ---------- 8. 加工手法（炮制与烹调对药性的影响） ---------- */
+const PROC = [
+  { id: 'zhou', n: '煮粥', k: '主食型', d: '米谷为底，文火慢熬成糜', dk: { 健脾: 2, 补气: 1, 养血: 1 }, natAdj: +1, absorb: 3, digest: 3, time: '40—60 分钟', fit: '脾胃虚弱、老人、病后、婴幼儿' },
+  { id: 'dun', n: '炖/煲汤', k: '汤水型', d: '隔水或砂锅小火久炖，取汤为主', dk: { 养血: 1, 滋阴: 1, 补气: 1, 益精: 1, 温阳: 1 }, natAdj: +1, absorb: 3, digest: 2, time: '1.5—3 小时', fit: '虚证、产后、术后、冬季进补' },
+  { id: 'zheng', n: '蒸', k: '清淡型', d: '水汽为媒，不见明火直攻', dk: { 滋阴: 1, 润燥: 1 }, natAdj: 0, absorb: 2, digest: 2, time: '15—30 分钟', fit: '需保留原味与营养、滋阴润燥、儿童' },
+  { id: 'chaoshui', n: '焯水', k: '预处理', d: '沸水短时汆烫后捞出', dk: {}, natAdj: +1, absorb: 1, digest: 2, time: '1—3 分钟', fit: '去除寒水之气、草酸、涩味与部分嘌呤' },
+  { id: 'chao', n: '炒', k: '快烹型', d: '武火快炒，镬气足', dk: { 理气: 1 }, natAdj: +1, absorb: 2, digest: 1, time: '3—8 分钟', fit: '日常佐餐，醒脾开胃' },
+  { id: 'chaojiao', n: '炒焦/炒黄', k: '炮制型', d: '炒至微黄或焦香', dk: { 消食: 3, 健脾: 2, 止泻: 2 }, natAdj: +1, absorb: 2, digest: 3, time: '至焦香为度', fit: '健脾消食止泻（焦山楂、焦麦芽、炒薏仁）' },
+  { id: 'gao', n: '熬膏滋', k: '浓缩型', d: '反复煎取，收膏', dk: { 滋阴: 2, 养血: 2, 补气: 1, 益精: 1 }, natAdj: +1, absorb: 3, digest: 1, time: '数小时', fit: '冬令缓补、慢性虚证长期调理，滋腻需防碍脾' },
+  { id: 'cha', n: '泡茶/沸水焖', k: '饮品型', d: '沸水冲泡或短时煎煮', dk: { 清热: 1, 解表: 1, 利水: 1 }, natAdj: -1, absorb: 2, digest: 3, time: '5—15 分钟', fit: '清热、解表、日常代茶饮；解表类不宜久煎' },
+  { id: 'jiang', n: '打浆/鲜榨', k: '生鲜型', d: '生食打浆或榨汁', dk: { 润燥: 1, 清热: 1, 解毒: 1 }, natAdj: -2, absorb: 2, digest: 0, time: '即时', fit: '热证、津伤口渴；脾胃虚寒者慎用' },
+  { id: 'jiu', n: '酒制/泡酒', k: '酒剂型', d: '白酒或黄酒浸提', dk: { 活血: 2, 温阳: 2, 强筋骨: 1 }, natAdj: +2, absorb: 3, digest: 2, time: '浸泡 7—30 天', fit: '寒痹、血瘀、肾阳不足；肝病患者、驾车者、孕妇禁用' },
+  { id: 'mi', n: '蜜炙/蜜制', k: '炮制型', d: '炼蜜拌炒或蜜蒸', dk: { 润燥: 2, 止咳: 2, 健脾: 1, 补气: 1 }, natAdj: +1, absorb: 2, digest: 2, time: '15—30 分钟', fit: '润肺止咳、缓和药性（蜜炙黄芪、蜜款冬）' },
+  { id: 'jiangzhi', n: '姜汁制/姜炒', k: '炮制型', d: '姜汁拌炒', dk: { 温中: 2, 温阳: 1, 止呕: 2 }, natAdj: +2, absorb: 2, digest: 2, time: '10—20 分钟', fit: '寒证、胃寒呕吐、减轻药材寒性' },
+  { id: 'cu', n: '醋制', k: '炮制型', d: '米醋拌炒或醋浸', dk: { 活血: 1, 疏肝: 1, 止痛: 1, 固涩: 1 }, natAdj: 0, absorb: 2, digest: 2, time: '10—20 分钟', fit: '入肝经止痛、收敛；胃酸过多者慎用' },
+  { id: 'sheng', n: '生用/凉拌', k: '生鲜型', d: '不经加热直接食用', dk: { 清热: 2, 解毒: 2, 润燥: 1 }, natAdj: -1, absorb: 1, digest: 0, time: '即时', fit: '实热证、热毒证；脾胃虚寒与经期慎用' }
+];
+DIMS.push('止呕');
+
+/* ---------- 9. 配伍与禁忌规则 ---------- */
+/* level: 2 = 忌（明确不宜同用）  1 = 慎（需注意或减量） */
+const RULES = [
+  // —— 功效抵消类（相恶）——
+  { lv: 2, a: '补气', b: '破气', t: '莱菔子/生萝卜「下气」会抵消人参、黄芪、党参的补气之力，服补气方期间应避开生萝卜与萝卜子。', items: [['roushen', 'luobo'], ['huangqi', 'luobo'], ['dangshen', 'luobo'], ['huangqi', 'laifuzi'], ['roushen', 'laifuzi']] },
+  { lv: 1, a: '温阳', b: '清热', t: '温阳与苦寒清热同用会互相牵制。若确需寒热并用（如复杂体质），应分清主次、分时服用，并请中医师把关。' },
+  { lv: 2, a: '收敛', b: '发散', t: '酸涩收敛（乌梅、五味子、石榴皮）与辛散解表（薄荷、紫苏、生姜）功效相反，同用则药力互消。' },
+  { lv: 2, a: '止泻', b: '通便', t: '固涩止泻与润下通便作用于同一脏腑而方向相反，不宜出现在同一方中。' },
+
+  // —— 具体配对禁忌 ——
+  { lv: 2, a: '浓茶', b: '补益药', t: '茶叶含鞣酸，与补益类（人参、黄芪、当归、阿胶）及含铁食材同服会生成难吸收的沉淀，降低疗效。服补方前后 2 小时忌浓茶。', items: [['chaye', 'roushen'], ['chaye', 'huangqi'], ['chaye', 'danggui'], ['chaye', 'ejiao'], ['chaye', 'zhuru']] },
+  { lv: 2, a: '绿豆', b: '温补药', t: '绿豆性寒善解毒，会削弱温补之力。服温阳、补气类方剂期间不宜同食绿豆。', items: [['lvdou', 'roushen'], ['lvdou', 'huangqi'], ['lvdou', 'rougui'], ['lvdou', 'yangrou']] },
+  { lv: 1, a: '螃蟹', b: '柿子/浓茶', t: '蟹肉高蛋白遇柿子、浓茶中的鞣酸易生成不易消化的鞣酸蛋白，加之家蟹性寒，脾胃弱者易腹痛腹泻。' },
+  { lv: 2, a: '白萝卜', b: '胡萝卜', t: '胡萝卜含抗坏血酸氧化酶，会破坏白萝卜中的维生素 C。同煮时营养价值相抵（焯水可部分灭活该酶）。' },
+  { lv: 1, a: '菠菜', b: '豆腐/高钙', t: '菠菜草酸与钙结合成草酸钙，影响钙吸收并增加结石风险。对策：菠菜先焯水 1 分钟去除大部分草酸，再与豆制品同烹。' },
+  { lv: 1, a: '蜂蜜', b: '葱', t: '古籍《饮膳正要》载「蜜与葱相反」。现代研究未证实其毒性，但二者同食对部分人可致胃肠不适，建议分开食用。' },
+  { lv: 1, a: '甘草', b: '甘遂/大戟/芫花/海藻', t: '传统「十八反」：「藻戟遂芫俱战草」。甘草与这几味同用属配伍禁忌；与大量海藻类（昆布、海带）同用亦应谨慎。', items: [['gancao', 'kunbu'], ['gancao', 'haidai']] },
+  { lv: 2, a: '人参', b: '藜芦', t: '传统「十八反」：「诸参辛芍叛藜芦」。人参、党参、丹参等参类与藜芦不宜同用。' },
+  { lv: 2, a: '甘温壅滞', b: '痰湿/湿热', t: '阿胶、熟地、大枣、龙眼肉等滋腻甘温之品，痰湿质、湿热质、脾胃胀满者服用会加重腹胀、苔腻、上火。', cond: 'tanshi|shire' },
+  { lv: 2, a: '活血之品', b: '孕期', t: '山楂、桃仁、红花、姜黄、益母草、螃蟹、甲鱼等活血通经，孕期禁用；月经量过多者经期亦应停用。', cond: 'pregnant' },
+  { lv: 2, a: '回乳之品', b: '哺乳期', t: '炒麦芽、韭菜、花椒、薄荷、大量山楂有回乳作用，哺乳期需通乳者应避免。', cond: 'lactation|postpartum' },
+  { lv: 1, a: '含糖之品', b: '控糖/血糖偏高', t: '大枣、桂圆、蜂蜜、红糖、葡萄干等升糖较快，控糖目标下应大幅减量或替换。', cond: 'sugar' },
+  { lv: 2, a: '1岁以下婴儿', b: '蜂蜜', t: '蜂蜜可能含肉毒杆菌芽孢，1 岁以下婴儿肠道菌群未健全，严禁食用。', cond: 'infant' },
+  { lv: 1, a: '高嘌呤', b: '痛风', t: '浓肉汤、动物内脏、沙丁鱼、贝类、菌菇浓汤嘌呤较高，痛风及高尿酸者应限量，汤宜弃汤食肉。' },
+  { lv: 1, a: '酒剂', b: '肝病/驾车/孕期', t: '酒制方禁用于肝功能异常者、驾驶员、孕妇、哺乳期及儿童。' },
+  { lv: 1, a: '钾含量高', b: '肾功能不全', t: '香蕉、橙子、土豆、菌菇、豆类钾含量较高，肾功能不全者需遵医嘱限量。' }
+];
+
+/* ---------- 10. 引经与「使」药候选 ---------- */
+const HERALDS = {
+  '引药入脾': ['dazao', 'gancao', 'shengjiang'],
+  '引药入肺': ['jiegeng', 'xingren'],
+  '引药入肾': ['yanhusuo', 'heizhima'],
+  '调和诸药': ['gancao', 'dazao', 'fengmi'],
+  '和胃护中': ['shengjiang', 'dazao', 'chenpi'],
+  '引火归元': ['rougui'],
+  '升提上行': ['gegenshu', 'shengma'],
+  '引血下行': ['niuxi']
+};
+
+/* ===== 02_herbs.js ===== */
+/* 当家食神 · 药食同源药材库
+   性味归经与功效依据：《中华人民共和国药典（2020版）》、高等中医药院校教材《中药学》
+   lv 准入等级：1=国家《既是食品又是中药材的物质目录》原目录；2=2023 年新增 9 种；3=试点/保健食品可用（入膳需更谨慎）
+*/
+const ITEMS = [];
+/* H(拼音id, 名称, 类别, 四气, 五味, 归经, 功效向量, 功能描述, 使用注意, 准入等级) */
+function H(id, n, c, nat, fl, me, e, fx, w, lv) {
+  ITEMS.push({ id: id, n: n, k: 1, c: c, nat: nat, fl: fl, me: me, e: e, fx: fx, w: w || '', lv: lv || 1, base: [3, 15] });
+}
+
+/* ========== 补虚类 ========== */
+H('huangqi', '黄芪', '补虚·补气', 1, ['甘'], ['脾', '肺'], { 补气: 3, 固表: 3, 健脾: 2, 利水: 2, 养血: 1 }, '补气升阳，固表止汗，利水消肿，生津养血', '气虚自汗、易感冒、水肿的常用之品。阴虚火旺、感冒发热期、血压波动明显者慎用。不宜与生萝卜同服。', 2);
+H('dangshen', '党参', '补虚·补气', 0, ['甘'], ['脾', '肺'], { 补气: 3, 健脾: 3, 养血: 1, 润燥: 1 }, '健脾益肺，养血生津', '性平力缓，可作人参的日常替代。反藜芦；实热证、气滞火盛者忌。', 1);
+H('roushen', '人参（人工种植5年以下）', '补虚·补气', 1, ['甘', '微苦'], ['脾', '肺', '心', '肾'], { 补气: 3, 益智: 2, 益精: 2, 固表: 2, 安神: 1 }, '大补元气，复脉固脱，补脾益肺，生津养血，安神益智', '仅人工种植 5 年或 4 年生者可作食品。反藜芦，畏五灵脂；实证、热证忌；忌与萝卜、浓茶同服；不宜长期大量。', 1);
+H('xiyangshen', '西洋参', '补虚·补气养阴', -2, ['甘', '微苦'], ['心', '肺', '肾'], { 补气: 2, 滋阴: 3, 清热: 2, 润燥: 1 }, '补气养阴，清热生津', '气阴两虚兼有虚火者最宜，不上火。脾胃虚寒、寒湿中阻者忌；忌萝卜与浓茶。', 2);
+H('shanyao', '山药', '补虚·补气', 0, ['甘'], ['脾', '肺', '肾'], { 健脾: 3, 补气: 2, 益精: 2, 固涩: 1, 润燥: 1, 控糖: 1 }, '补脾养胃，生津益肺，补肾涩精', '平补三焦，老少咸宜。麸炒偏补脾止泻，生用偏养阴生津。湿盛中满、有实邪者忌。', 1);
+H('huangjing', '黄精', '补虚·养阴', 0, ['甘'], ['脾', '肺', '肾'], { 补气: 2, 滋阴: 3, 健脾: 2, 益精: 2, 润燥: 1 }, '补气养阴，健脾，润肺，益肾', '古人称「土之精」，久服不腻。中寒泄泻、痰湿痞满、气滞腹胀者忌。', 1);
+H('dazao', '大枣', '补虚·补气养血', 2, ['甘'], ['脾', '胃', '心'], { 补气: 2, 养血: 2, 健脾: 2, 安神: 1, 固表: 1 }, '补中益气，养血安神', '缓和药性、护中焦的「使药」常客。痰湿、糖尿病、腹胀、龋齿者须限量；常配生姜同用以护脾。', 1);
+H('longyanrou', '龙眼肉', '补虚·养血', 2, ['甘'], ['心', '脾'], { 养血: 3, 安神: 3, 补气: 2 }, '补益心脾，养血安神', '心脾两虚、气血不足致失眠健忘者的首选。内有痰火、湿滞、糖尿病患者忌。', 1);
+H('danggui', '当归', '补虚·养血', 2, ['甘', '辛'], ['肝', '心', '脾'], { 养血: 3, 活血: 2, 通便: 1, 止痛: 1 }, '补血活血，调经止痛，润肠通便', '妇科要药。湿盛中满、大便溏泄者慎；孕期慎用；月经过多者经期停用。', 3);
+H('ejiao', '阿胶', '补虚·养血', 0, ['甘'], ['肺', '肝', '肾'], { 养血: 3, 滋阴: 2, 止血: 2, 润燥: 1, 美容: 1 }, '补血滋阴，润燥，止血', '★滋腻碍脾：脾胃虚弱、腹胀便溏、痰湿体质、感冒发热期均忌用。宜烊化冲服，不宜与他药同煎。', 3);
+H('gouqizi', '枸杞子', '补虚·养阴', 0, ['甘'], ['肝', '肾', '肺'], { 益精: 3, 滋阴: 2, 明目: 3, 养血: 1, 美容: 1 }, '滋补肝肾，益精明目', '久视屏幕、腰膝酸软、须发早白者的常备。外邪实热、脾虚湿滞泄泻者慎用。', 1);
+H('sangshen', '桑椹', '补虚·养阴', -3, ['甘', '酸'], ['心', '肝', '肾'], { 滋阴: 3, 养血: 2, 润燥: 2, 通便: 1, 乌发: 2, 益智: 1 }, '滋阴补血，生津润燥', '阴虚血亏、肠燥便秘、须发早白宜。性寒，脾胃虚寒便溏者忌。', 1);
+H('heizhima', '黑芝麻', '补虚·养阴', 0, ['甘'], ['肝', '肾', '大肠'], { 益精: 2, 乌发: 3, 滋阴: 2, 通便: 2, 美容: 1, 强筋骨: 1 }, '补肝肾，益精血，润肠燥', '须炒香打碎后吸收才好，整粒吞服多原样排出。脾虚便溏者慎。', 1);
+H('baihe', '百合', '补虚·养阴', -1, ['甘', '微苦'], ['心', '肺'], { 滋阴: 2, 润燥: 3, 安神: 3, 止咳: 1 }, '养阴润肺，清心安神', '秋燥咳嗽、虚烦惊悸、失眠多梦宜。风寒咳嗽、脾胃虚寒泄泻者忌。', 1);
+H('maimendong', '麦冬', '补虚·养阴', -2, ['甘', '微苦'], ['心', '肺', '胃'], { 滋阴: 3, 润燥: 3, 止咳: 1, 安神: 1, 控糖: 1 }, '养阴润肺，益胃生津，清心除烦', '阴虚燥咳、口干舌燥、心烦失眠宜。风寒咳嗽、脾胃虚寒泄泻者忌。', 3);
+H('tieshishihu', '铁皮石斛', '补虚·养阴', -1, ['甘'], ['胃', '肾'], { 滋阴: 3, 润燥: 3, 明目: 1, 益智: 1, 控糖: 1 }, '益胃生津，滋阴清热', '久食厚肠胃，阴虚津亏、胃阴不足、眼干涩宜。温热病早期、湿温未化燥者忌。', 2);
+H('shengdihuang', '生地黄', '清热·凉血', -3, ['甘', '苦'], ['心', '肝', '肾'], { 滋阴: 3, 清热: 3, 养血: 1, 控糖: 1, 止血: 1 }, '清热凉血，养阴生津', '热入营血、阴虚发热、消渴宜。性寒而腻，脾虚湿滞、腹满便溏者忌。', 3);
+H('shanzhuyu', '山茱萸', '收涩·固脱', 1, ['酸', '涩'], ['肝', '肾'], { 益精: 3, 固涩: 3, 强筋骨: 1 }, '补益肝肾，收涩固脱', '腰膝酸软、头晕耳鸣、夜尿频多宜。命门火炽、素有湿热、小便不利者忌。', 2);
+H('roucongrong', '肉苁蓉', '补虚·补阳', 2, ['甘', '咸'], ['肾', '大肠'], { 温阳: 3, 益精: 3, 通便: 2, 强筋骨: 1 }, '补肾阳，益精血，润肠通便', '肾阳不足兼肠燥便秘者最宜，性质温润不燥。阴虚火旺、大便溏泄、实热便秘者忌。', 2);
+H('fupenzi', '覆盆子', '收涩·固精', 2, ['甘', '酸'], ['肝', '肾', '膀胱'], { 益精: 3, 固涩: 3, 明目: 1 }, '益肾固精缩尿，养肝明目', '遗精滑精、遗尿尿频、目视昏花宜。肾虚有火、小便短涩者忌。', 1);
+H('heshouwu', '制何首乌', '补虚·养血', 1, ['苦', '甘', '涩'], ['肝', '肾'], { 益精: 3, 乌发: 3, 养血: 2, 通便: 1, 强筋骨: 1 }, '补肝肾，益精血，乌须发，强筋骨', '★必须用「制首乌」：生首乌有明确肝毒性，严禁入膳。肝功能异常者禁用，服用期间须监测肝功。', 3);
+H('lingzhi', '灵芝', '补虚·安神', 0, ['甘'], ['心', '脾', '肺', '肾'], { 补气: 2, 安神: 3, 益智: 2, 止咳: 1, 固表: 1, 解毒: 1 }, '补气安神，止咳平喘', '虚劳体弱、失眠、咳喘、病后体虚宜。外感初起忌；少数人初服有轻微腹胀或皮疹，应从小量开始。', 2);
+H('wuweizi', '五味子', '收涩·敛肺', 2, ['酸', '甘'], ['肺', '心', '肾'], { 固涩: 3, 补气: 1, 安神: 2, 止咳: 2, 滋阴: 1 }, '收敛固涩，益气生津，补肾宁心', '久咳虚喘、自汗盗汗、心悸失眠宜。表邪未解、内有实热、咳嗽初起者忌。', 3);
+
+/* ========== 解表类 ========== */
+H('zisus', '紫苏', '解表·辛温', 2, ['辛'], ['肺', '脾'], { 解表: 3, 理气: 2, 温中: 1, 解毒: 1 }, '解表散寒，行气和胃，解鱼蟹毒', '受凉鼻塞、鱼蟹中毒宜。煎煮不宜久（后下）；温病及气虚表虚者慎。', 1);
+H('shengjiang', '生姜', '解表·辛温', 1, ['辛'], ['肺', '脾', '胃'], { 解表: 2, 温中: 3, 止呕: 3, 化痰: 1, 解毒: 1 }, '解表散寒，温中止呕，化痰止咳，解鱼蟹毒', '「家备小姜，小病不慌」。阴虚内热、热盛、痔疮者忌；晚间不宜多食；腐烂生姜含黄樟素，严禁食用。', 1);
+H('ganjiang', '干姜', '温里·祛寒', 3, ['辛'], ['脾', '胃', '心', '肺'], { 温阳: 2, 温中: 3, 止泻: 2, 化痰: 1 }, '温中散寒，回阳通脉，温肺化饮', '脾胃寒证、寒饮咳喘宜。阴虚内热、血热妄行者忌；孕期慎用。', 1);
+H('gaoliangjiang', '高良姜', '温里·祛寒', 3, ['辛'], ['脾', '胃'], { 温中: 3, 止痛: 2, 止呕: 1 }, '温胃止呕，散寒止痛', '胃寒冷痛、呕吐清水宜。阴虚有热者忌。', 1);
+H('bohe', '薄荷', '解表·辛凉', -2, ['辛'], ['肺', '肝'], { 解表: 3, 疏肝: 2, 清热: 1, 解毒: 1 }, '疏散风热，清利头目，利咽，透疹，疏肝行气', '含挥发油，必须后下（起锅前 3—5 分钟下），久煎失效。表虚自汗者忌；哺乳期大量可回乳。', 1);
+H('sangye', '桑叶', '解表·辛凉', -3, ['甘', '苦'], ['肺', '肝'], { 清热: 2, 解表: 1, 明目: 2, 平肝: 1, 润燥: 1 }, '疏散风热，清肺润燥，清肝明目', '风热感冒、肺热燥咳、目赤昏花宜。脾胃虚寒者慎。', 1);
+H('juhua', '菊花', '解表·辛凉', -1, ['甘', '苦'], ['肺', '肝'], { 清热: 2, 明目: 2, 平肝: 2, 解表: 1 }, '散风清热，平肝明目，清热解毒', '肝阳上亢之头晕、目赤肿痛、眼疲劳宜。气虚胃寒、食少泄泻者慎。', 1);
+H('gegenshu', '葛根', '解表·升阳', -2, ['甘', '辛'], ['脾', '胃', '肺'], { 解表: 2, 润燥: 2, 控糖: 2, 止泻: 2, 解毒: 2 }, '解肌退热，生津止渴，升阳止泻，通经活络，解酒毒', '项背强痛、消渴、脾虚泄泻宜（煨葛根偏止泻）；解酒毒为历代沿用，葛花解酲汤即以此立意。胃寒者慎。', 1);
+H('xiangru', '香薷', '解表·化湿', 1, ['辛'], ['肺', '胃', '脾'], { 解表: 3, 化湿: 2, 利水: 2 }, '发汗解表，化湿和中，利水消肿', '「夏月麻黄」，暑天贪凉受寒、无汗、水肿宜。表虚有汗、暑热证忌。', 1);
+H('baizhi', '白芷', '解表·祛风', 2, ['辛'], ['肺', '胃', '大肠'], { 解表: 2, 止痛: 2, 化湿: 1, 解毒: 1 }, '解表散寒，祛风止痛，宣通鼻窍，燥湿止带', '头痛、鼻塞、牙痛宜。阴虚血热者忌。', 1);
+H('huoxiang', '藿香', '化湿·芳香', 1, ['辛'], ['脾', '胃', '肺'], { 化湿: 3, 解表: 1, 止呕: 2, 清热: 1 }, '芳香化浊，和中止呕，发表解暑', '暑湿感冒、湿阻中焦之脘痞呕吐宜。含挥发油须后下；阴虚火旺、胃热呕吐者忌。', 1);
+H('yansui', '芫荽（香菜）', '解表·透疹', 2, ['辛'], ['肺', '胃'], { 解表: 2, 消食: 1 }, '发表透疹，开胃消食', '麻疹不透、食欲不振宜。气虚、麻疹已透者忌。', 1);
+H('dandouchi', '淡豆豉', '解表·除烦', -2, ['辛', '苦'], ['肺', '胃'], { 解表: 2, 理气: 1, 清热: 1 }, '解表，除烦，宣发郁热', '外感表证、胸中烦闷、虚烦不眠宜。', 1);
+
+/* ========== 清热类 ========== */
+H('jinyinhua', '金银花', '清热·解毒', -3, ['甘'], ['肺', '心', '胃'], { 清热: 3, 解毒: 3, 解表: 1 }, '清热解毒，疏散风热', '风热感冒、咽喉肿痛、热毒疮痈宜。脾胃虚寒、气虚疮疡脓清者忌；不宜长期当茶久服。', 1);
+H('pugongying', '蒲公英', '清热·解毒', -3, ['苦', '甘'], ['肝', '胃'], { 清热: 3, 解毒: 3, 利水: 1, 催乳: 1 }, '清热解毒，消肿散结，利尿通淋', '乳痈（乳腺炎）、热毒疮疡、湿热黄疸宜。阳虚外寒、脾胃虚弱者忌；量大易致腹泻。', 1);
+H('yuxingcao', '鱼腥草', '清热·解毒', -1, ['辛'], ['肺', '膀胱'], { 清热: 2, 解毒: 3, 利水: 1, 止咳: 1 }, '清热解毒，消痈排脓，利尿通淋', '肺痈吐脓、痰热咳嗽、热淋宜。含挥发油不宜久煎；虚寒证慎。', 1);
+H('zhizi', '栀子', '清热·泻火', -3, ['苦'], ['心', '肝', '肺', '胃', '三焦'], { 清热: 3, 解毒: 2, 利水: 1, 止血: 1 }, '泻火除烦，清热利湿，凉血解毒', '心烦懊恼、湿热黄疸、血热吐衄宜。苦寒伤胃，脾虚便溏者忌。', 1);
+H('danzhuye', '淡竹叶', '清热·泻火', -3, ['甘', '淡'], ['心', '胃', '小肠'], { 清热: 3, 利水: 2, 解毒: 1 }, '清热泻火，除烦止渴，利尿通淋', '心火口疮、小便短赤、热病烦渴宜。阴虚火旺之骨蒸潮热者忌；孕期慎。', 1);
+H('lugen', '芦根', '清热·生津', -3, ['甘'], ['肺', '胃'], { 清热: 3, 润燥: 2, 止呕: 1, 利水: 1 }, '清热泻火，生津止渴，除烦，止呕，利尿', '热病口渴、胃热呕吐、肺热咳嗽宜。脾胃虚寒者忌。', 1);
+H('baimaogen', '白茅根', '清热·凉血', -3, ['甘'], ['肺', '胃', '膀胱'], { 清热: 2, 止血: 2, 利水: 2, 润燥: 1 }, '凉血止血，清热利尿', '血热鼻衄、尿血、水肿、热病烦渴宜。脾胃虚寒、尿多不渴者忌。', 1);
+H('huaihua', '槐花（槐米）', '清热·凉血', -1, ['苦'], ['肝', '大肠'], { 止血: 3, 清热: 2, 平肝: 1 }, '凉血止血，清肝泻火', '痔血、便血、血痢、肝热目赤宜。脾胃虚寒者忌；孕期慎。', 1);
+H('juemingzi', '决明子', '清热·明目', -1, ['甘', '苦', '咸'], ['肝', '大肠'], { 明目: 3, 清热: 2, 通便: 2, 降脂: 2, 平肝: 1 }, '清热明目，润肠通便', '眼疲劳、目赤涩痛、便秘、血脂偏高宜。脾虚泄泻、低血压者慎；孕期忌；不宜长期大量。', 1);
+H('pangdahai', '胖大海', '清热·利咽', -3, ['甘'], ['肺', '大肠'], { 清热: 2, 润燥: 2, 通便: 2, 解毒: 1 }, '清热润肺，利咽开音，润肠通便', '用嗓过度、急性咽痛失声宜，见效即止。★不可长期当保健茶饮用；脾胃虚寒泄泻者忌。', 1);
+H('luohanguo', '罗汉果', '清热·润肺', -2, ['甘'], ['肺', '大肠'], { 清热: 2, 润燥: 2, 止咳: 2, 通便: 1 }, '清热润肺，利咽开音，滑肠通便', '天然甜味剂，控糖人群可用。脾胃虚寒致泻者忌。', 1);
+H('yuganzi', '余甘子', '清热·生津', -2, ['甘', '酸', '涩'], ['肺', '脾', '胃'], { 清热: 2, 润燥: 1, 化痰: 1, 解毒: 1 }, '清热利咽，润肺化痰，生津止渴', '咽喉不适、口干、咳嗽痰多宜。脾胃虚寒者慎。', 1);
+H('juju', '菊苣', '清热·利胆', -2, ['微苦', '咸'], ['肝', '脾', '胃'], { 清热: 1, 降脂: 1, 利水: 1, 健脾: 1 }, '清肝利胆，健胃消食，利尿消肿', '湿热黄疸、水肿、食少宜。脾胃虚寒者少食。', 1);
+
+/* ========== 利水渗湿 / 化湿类 ========== */
+H('fulings', '茯苓', '利水·健脾', 0, ['甘', '淡'], ['心', '脾', '肺', '肾'], { 利水: 3, 健脾: 3, 化湿: 2, 安神: 2 }, '利水渗湿，健脾，宁心', '「四时神药」，健脾祛湿的核心。虚寒精气不固、小便过多者慎。', 1);
+H('yiyiren', '薏苡仁', '利水·渗湿', -2, ['甘', '淡'], ['脾', '胃', '肺'], { 利水: 3, 化湿: 3, 健脾: 2, 降脂: 1, 解毒: 1 }, '利水渗湿，健脾止泻，除痹，排脓，解毒散结', '★健脾止泻宜炒用，利水除湿宜生用。★《本草》记载其性滑利，孕妇慎用；体瘦、津液不足、遗精者慎。', 1);
+H('chixiaodou', '赤小豆', '利水·消肿', 0, ['甘', '酸'], ['心', '小肠', '脾'], { 利水: 3, 化湿: 2, 解毒: 1, 降脂: 1 }, '利水消肿，解毒排脓', '水肿胀满、脚气浮肿、疮毒宜。注意与「红豆」区分，赤小豆偏利水。利水伤津，阴虚津伤者忌。', 1);
+H('lvdou', '绿豆', '清热·解毒', -3, ['甘'], ['心', '胃'], { 清热: 3, 解毒: 3, 利水: 1 }, '清热解毒，消暑，利水', '★服温补药（人参、黄芪、肉桂类）期间忌同食，会削弱补力。脾胃虚寒、肢冷便溏者忌。', 1);
+H('baibiandou', '白扁豆', '化湿·健脾', 1, ['甘'], ['脾', '胃'], { 健脾: 3, 化湿: 2, 止泻: 2, 清热: 1 }, '健脾化湿，和中消暑', '★生品有毒，必须炒熟透后食用。寒热病（疟疾类）者忌。', 1);
+H('sharens', '砂仁', '化湿·行气', 2, ['辛'], ['脾', '胃', '肾'], { 化湿: 2, 理气: 3, 温中: 2, 安胎: 1 }, '化湿开胃，温脾止泻，理气安胎', '含挥发油须后下；阴虚血燥、火热内炽者忌。', 1);
+H('caoguo', '草果', '化湿·温中', 2, ['辛'], ['脾', '胃'], { 化湿: 3, 温中: 2, 止呕: 1 }, '燥湿温中，截疟除痰', '寒湿内阻、脘腹冷痛、呕吐泄泻宜，为卤味主料。气虚血亏、无寒湿者忌。', 1);
+H('heye', '荷叶', '化湿·升清', 0, ['苦', '涩'], ['肝', '脾', '胃'], { 化湿: 2, 降脂: 3, 清热: 1, 止血: 1, 利水: 1 }, '清暑化湿，升发清阳，凉血止血', '暑湿泄泻、肥胖、血脂偏高宜。体瘦气血虚弱者慎；孕期慎。', 1);
+
+/* ========== 温里类 ========== */
+H('rougui', '肉桂', '温里·补火', 3, ['辛', '甘'], ['肾', '脾', '心', '肝'], { 温阳: 3, 温中: 3, 止痛: 2, 活血: 1 }, '补火助阳，散寒止痛，温通经脉，引火归元', '命门火衰、肢冷脉微、腰膝冷痛宜。★阴虚火旺、里有实热、血热妄行、孕期忌；畏赤石脂；用量宜小（1—3 克）。', 1);
+H('dingxiang', '丁香', '温里·降逆', 2, ['辛'], ['脾', '胃', '肺', '肾'], { 温中: 3, 止呕: 2, 温阳: 1, 止痛: 1 }, '温中降逆，补肾助阳', '胃寒呕吐、呃逆、心腹冷痛宜。畏郁金；热证及阴虚内热者忌。', 1);
+H('xiaohuixiang', '小茴香', '温里·理气', 2, ['辛'], ['肝', '脾', '胃', '肾'], { 温中: 2, 理气: 2, 止痛: 1, 化湿: 1 }, '散寒止痛，理气和胃', '寒疝腹痛、脘腹胀满、食欲不振宜。阴虚火旺者慎。', 1);
+H('bajiaohuixiang', '八角茴香', '温里·理气', 2, ['辛'], ['肝', '脾', '胃', '肾'], { 温阳: 1, 温中: 2, 理气: 2, 止痛: 1 }, '温阳散寒，理气止痛', '卤味主料，亦为食疗散寒之品。阴虚火旺者慎；注意与有毒的「莽草」鉴别。', 1);
+H('huajiao', '花椒', '温里·止痛', 2, ['辛'], ['脾', '胃', '肾'], { 温中: 3, 止痛: 2, 化湿: 1, 解毒: 1 }, '温中止痛，杀虫止痒', '脘腹冷痛、呕吐泄泻宜。阴虚火旺者忌；孕期慎；★大量有回乳之说，哺乳期慎。', 1);
+H('hujiao', '黑胡椒', '温里·散寒', 3, ['辛'], ['胃', '大肠'], { 温中: 3, 止痛: 1, 化痰: 1 }, '温中散寒，下气消痰', '胃寒腹痛、呕吐清水、食欲不振宜。阴虚火旺、痔疮、胃热者忌。', 1);
+H('bibo', '荜茇', '温里·散寒', 3, ['辛'], ['胃', '大肠'], { 温中: 3, 止痛: 2 }, '温中散寒，下气止痛', '脘腹冷痛、呕吐、牙痛宜。阴虚火旺、实热者忌。', 1);
+H('roudoukou', '肉豆蔻', '温里·涩肠', 2, ['辛'], ['脾', '胃', '大肠'], { 温中: 2, 止泻: 3, 理气: 1 }, '温中行气，涩肠止泻', '脾胃虚寒之久泻、五更泻宜。★含肉豆蔻醚，过量可致眩晕甚至中毒，每日不超过 3 克；湿热泻痢者忌。', 1);
+H('gaojiang', '干姜（炮姜）', '温里·止血', 2, ['辛'], ['脾', '胃', '肾'], { 温中: 3, 止血: 2, 止泻: 2 }, '温经止血，温中止痛', '炮姜偏入血分，虚寒性出血、腹痛泄泻宜。', 1);
+
+/* ========== 理气 / 疏肝类 ========== */
+H('chenpi', '陈皮', '理气·健脾', 2, ['辛', '苦'], ['脾', '肺'], { 理气: 3, 健脾: 2, 化湿: 3, 化痰: 3 }, '理气健脾，燥湿化痰', '「百年陈皮胜黄金」。气虚证、阴虚燥咳、吐血者慎。年份越久燥性越缓。', 1);
+H('foshou', '佛手', '理气·疏肝', 2, ['辛', '苦', '酸'], ['肝', '脾', '胃', '肺'], { 疏肝: 3, 理气: 3, 化痰: 1, 止痛: 1 }, '疏肝理气，和胃止痛，燥湿化痰', '肝胃气滞、胸胁胀痛、食欲不振宜。阴虚火旺、无气滞症状者慎。', 1);
+H('xiangyuan', '香橼', '理气·疏肝', 2, ['辛', '苦', '酸'], ['肝', '脾', '肺'], { 疏肝: 3, 理气: 3, 化痰: 1 }, '疏肝理气，宽中，化痰', '肝郁胸胁胀痛、痰多咳嗽宜。阴虚血燥、气虚者慎。', 1);
+H('meiguihua', '玫瑰花', '理气·解郁', 2, ['甘', '微苦'], ['肝', '脾'], { 疏肝: 3, 理气: 3, 活血: 2, 美容: 1, 止痛: 1 }, '行气解郁，和血，止痛', '肝郁气滞、经前乳胀、面色晦暗宜。阴虚火旺者慎；孕期慎。', 1);
+H('daidaihua', '代代花', '理气·宽胸', 0, ['甘', '微苦'], ['肝', '胃'], { 理气: 2, 疏肝: 2, 止呕: 1 }, '理气宽胸，开胃止呕', '胸脘痞闷、恶心呕吐、食欲不振宜。孕期慎。', 1);
+H('xiebai', '薤白', '理气·通阳', 2, ['辛', '苦'], ['心', '肺', '胃', '大肠'], { 理气: 2, 温阳: 2, 化痰: 1, 止痛: 1 }, '通阳散结，行气导滞', '「葱薤」同类，胸痹心痛、脘腹痞满宜。气虚、阴虚发热者不宜。', 1);
+H('daodou', '刀豆', '理气·止呃', 2, ['甘'], ['脾', '胃', '肾'], { 温中: 2, 理气: 1, 止呕: 1 }, '温中下气，止呃', '虚寒呃逆、呕吐宜。★必须煮熟透，生刀豆含皂苷与植物血球凝集素可致中毒；胃热者忌。', 1);
+
+/* ========== 消食 / 化痰止咳 / 活血 / 收涩 / 安神 等 ========== */
+H('shanzha', '山楂', '消食·化瘀', 1, ['酸', '甘'], ['脾', '胃', '肝'], { 消食: 3, 活血: 2, 降脂: 3, 化湿: 1, 止痛: 1 }, '消食健胃，行气散瘀，化浊降脂', '★胃酸过多、消化性溃疡者慎；★孕期忌（有活血通经之性）；空腹忌大量；儿童食积可炒焦用。', 1);
+H('maiya', '麦芽', '消食·健脾', 0, ['甘'], ['脾', '胃'], { 消食: 3, 健脾: 1, 疏肝: 1, 理气: 1 }, '行气消食，健脾开胃，回乳消胀', '★炒麦芽回乳——哺乳期需通乳者禁用。生麦芽偏消食，炒麦芽偏回乳。', 1);
+H('jineijin', '鸡内金', '消食·化石', 0, ['甘'], ['脾', '胃', '小肠', '膀胱'], { 消食: 3, 健脾: 2, 固涩: 1 }, '健胃消食，涩精止遗，通淋化石', '小儿疳积、食积不化、遗尿宜。研末冲服效果优于煎煮；脾虚无积滞者慎。', 1);
+H('laifuzi', '莱菔子', '消食·降气', 0, ['辛', '甘'], ['肺', '脾', '胃'], { 消食: 3, 化痰: 2, 理气: 2 }, '消食除胀，降气化痰', '★与人参、黄芪等补气药相恶，不宜同用。气虚及无食积、无痰滞者慎。', 1);
+H('xingren', '杏仁（甜杏仁）', '止咳·平喘', 1, ['甘'], ['肺', '大肠'], { 止咳: 3, 化痰: 2, 通便: 2, 润燥: 1 }, '降气止咳平喘，润肠通便', '★苦杏仁含苦杏仁苷有小毒，须炮制且严格限量；入膳建议用甜杏仁；婴幼儿慎。', 1);
+H('zisuzi', '紫苏子', '止咳·平喘', 2, ['辛'], ['肺', '大肠'], { 止咳: 2, 化痰: 2, 通便: 2 }, '降气化痰，止咳平喘，润肠通便', '痰壅气逆、咳嗽气喘、肠燥便秘宜。气虚久咳、阴虚喘逆者慎。', 1);
+H('jiegeng', '桔梗', '化痰·宣肺', 0, ['苦', '辛'], ['肺'], { 止咳: 2, 化痰: 3, 解毒: 1 }, '宣肺，利咽，祛痰，排脓', '咳嗽痰多、咽痛失音、肺痈吐脓宜；可作「舟楫之剂」引药上行入肺。呕吐、呛咳、咯血者慎。', 1);
+H('juhong', '橘红', '化痰·燥湿', 2, ['辛', '苦'], ['肺', '脾'], { 化痰: 3, 理气: 2, 止咳: 2 }, '理气宽中，燥湿化痰', '风寒咳嗽、痰多色白、喉痒宜。阴虚燥咳、气虚者慎。', 1);
+H('huangjiesi', '黄芥子', '化痰·温肺', 2, ['辛'], ['肺', '胃'], { 化痰: 2, 温中: 1, 止痛: 1 }, '温肺豁痰利气，散结通络止痛', '寒痰咳喘、胸胁胀痛宜，即芥末的来源。肺虚咳嗽、阴虚火旺者忌；外用易发泡。', 1);
+H('kunbu', '昆布', '化痰·软坚', -3, ['咸'], ['肝', '胃', '肾'], { 化痰: 3, 利水: 2, 解毒: 1, 降脂: 1 }, '消痰软坚散结，利水消肿', '瘿瘤（甲状腺肿大）、瘰疬、水肿宜。★反甘草；脾胃虚寒者慎；甲亢及碘敏感人群慎。', 1);
+H('taoren', '桃仁', '活血·祛瘀', 0, ['苦', '甘'], ['心', '肝', '大肠'], { 活血: 3, 通便: 2, 止咳: 1 }, '活血祛瘀，润肠通便，止咳平喘', '★孕妇忌用；血虚者慎；含苦杏仁苷，不宜过量或长期服用。', 1);
+H('jianghuang', '姜黄', '活血·行气', 2, ['辛', '苦'], ['脾', '肝'], { 活血: 3, 止痛: 2, 降脂: 1 }, '破血行气，通经止痛', '咖喱的主色来源。★孕妇忌；血虚无瘀滞者忌；胆囊疾病者慎。', 1);
+H('lianzi', '莲子', '收涩·健脾', 0, ['甘', '涩'], ['脾', '肾', '心'], { 健脾: 3, 止泻: 2, 固涩: 2, 安神: 2, 益精: 1 }, '补脾止泻，止带，益肾涩精，养心安神', '脾虚久泻、心悸失眠、遗精宜。莲子心味苦性寒，清心火宜另用。中满痞胀、便秘者忌。', 1);
+H('qianshi', '芡实', '收涩·健脾', 0, ['甘', '涩'], ['脾', '肾'], { 健脾: 2, 止泻: 3, 固涩: 3, 益精: 1, 化湿: 1 }, '益肾固精，补脾止泻，祛湿止带', '「水中人参」，脾虚久泻、遗精滑精、带下宜。便秘、消化不良、腹胀者忌。', 1);
+H('wumei', '乌梅', '收涩·生津', 0, ['酸', '涩'], ['肝', '脾', '肺', '大肠'], { 固涩: 3, 润燥: 2, 止咳: 1, 止泻: 2, 止呕: 1 }, '敛肺涩肠，生津止渴，安蛔', '虚热消渴、久咳、久泻久痢宜。外有表邪、内有实热积滞者忌。', 1);
+H('suanzaoren', '酸枣仁', '安神·养心', 0, ['甘', '酸'], ['肝', '胆', '心'], { 安神: 3, 养血: 1, 滋阴: 1, 固涩: 1 }, '养心补肝，宁心安神，敛汗，生津', '★炒酸枣仁治失眠，生酸枣仁治嗜睡，用时须辨明。有实邪郁火者慎；宜打碎后煎。', 1);
+H('muli', '牡蛎', '安神·潜阳', -1, ['咸', '涩'], ['肝', '肾'], { 滋阴: 2, 平肝: 2, 安神: 2, 固涩: 1, 强筋骨: 2 }, '重镇安神，潜阳补阴，软坚散结', '肝阳上亢之头晕、心神不安、盗汗宜；煅牡蛎偏收敛制酸。脾胃虚寒、慢性腹泻者慎；高尿酸者限量。', 1);
+H('tianma', '天麻', '平肝·息风', 0, ['甘'], ['肝'], { 平肝: 3, 止痛: 2, 益智: 1 }, '息风止痉，平抑肝阳，祛风通络', '头痛眩晕、肢体麻木、小儿惊风宜。血虚阴虚者慎用；不宜久煎。', 2);
+H('dudan', '杜仲叶', '补虚·强筋骨', 2, ['微辛'], ['肝', '肾'], { 强筋骨: 3, 益精: 2, 温阳: 1, 平肝: 1 }, '补肝肾，强筋骨，降血压', '腰膝酸软、血压偏高者的代茶饮常用。阴虚火旺者慎。', 2);
+H('baiguo', '白果（银杏果）', '止咳·敛肺', 0, ['甘', '苦', '涩'], ['肺', '肾'], { 止咳: 3, 化痰: 2, 固涩: 2 }, '敛肺定喘，止带缩尿', '★有小毒，生食或过量易中毒（尤其儿童），必须熟透且限量：成人每日不超过 10 粒，儿童减半以下。', 1);
+H('fengmi', '蜂蜜', '补虚·润燥', 0, ['甘'], ['肺', '脾', '大肠'], { 润燥: 3, 补气: 1, 止咳: 2, 通便: 1, 解毒: 1, 美容: 1 }, '补中，润燥，止痛，解毒', '★1 岁以下婴儿严禁食用（肉毒杆菌风险）。痰湿内蕴、腹胀便溏、糖尿病者忌；不宜用沸水冲（破坏酶类）。', 1);
+H('mugua', '木瓜', '祛湿·舒筋', 2, ['酸'], ['肝', '脾'], { 强筋骨: 2, 化湿: 2, 催乳: 2, 止痛: 1 }, '舒筋活络，和胃化湿', '湿痹拘挛、腰膝酸重、脚气水肿、产后通乳宜（青木瓜炖鱼）。胃酸过多者慎；孕期慎。', 1);
+H('yizhiren', '益智仁', '补虚·温脾', 2, ['辛'], ['脾', '肾'], { 温阳: 2, 固涩: 3, 健脾: 2, 止泻: 2 }, '暖肾固精缩尿，温脾止泻摄唾', '脾胃虚寒之腹痛吐泻、口多唾涎、夜尿频多宜。阴虚火旺或因热致遗尿者忌。', 1);
+H('yuliren', '郁李仁', '泻下·润肠', 0, ['辛', '苦', '甘'], ['脾', '大肠', '小肠'], { 通便: 3, 利水: 2 }, '润肠通便，下气利水', '肠燥便秘、水肿腹胀宜。★孕妇慎；阴虚液亏者慎；不宜久服。', 1);
+H('shaji', '沙棘', '消食·健脾', 2, ['酸', '涩'], ['脾', '肺', '胃', '心'], { 健脾: 2, 消食: 2, 止咳: 2, 活血: 1, 解毒: 1 }, '健脾消食，止咳祛痰，活血散瘀', '脾虚食少、咳嗽痰多、瘀血经闭宜。维生素 C 含量极高；胃酸过多者慎。', 1);
+H('gancao', '甘草', '补虚·调和', 0, ['甘'], ['心', '肺', '脾', '胃'], { 补气: 2, 健脾: 2, 止咳: 2, 解毒: 2, 止痛: 1 }, '补脾益气，清热解毒，祛痰止咳，缓急止痛，调和诸药', '★反甘遂、大戟、芫花、海藻；不宜与昆布、海带大量同用。★长期大量服用可致水钠潴留、水肿、血压升高，高血压者慎用。', 1);
+
+/* ===== 03_foods.js ===== */
+/* 当家食神 · 食材 / 调料 / 加工辅料库
+   性味归经依据：《中华本草》《中药大辞典》《中医营养学》教材；现代营养部分依据《中国食物成分表》
+*/
+/* F(拼音id, 名称, 类别, 四气, 五味, 归经, 功效向量, 功能描述, 使用注意, 建议用量区间) */
+function F(id, n, c, nat, fl, me, e, fx, w, base) {
+  ITEMS.push({ id: id, n: n, k: 2, c: c, nat: nat, fl: fl, me: me, e: e, fx: fx, w: w || '', lv: 0, base: base || [30, 120] });
+}
+
+/* ========== 谷薯类 ========== */
+F('jingmi', '粳米', '谷薯·谷物', 0, ['甘'], ['脾', '胃'], { 健脾: 2, 补气: 1, 润燥: 1 }, '补中益气，健脾和胃，除烦止渴', '煮粥之「米油」最养脾胃，为食疗方最常用的底子。', [30, 100]);
+F('xiaomi', '小米', '谷薯·谷物', -1, ['甘', '咸'], ['脾', '胃', '肾'], { 健脾: 3, 安神: 2, 止泻: 1, 养血: 1 }, '健脾和胃，除热安神，益肾气', '「代参汤」，产后、病后、脾胃虚弱者的米油首选。', [30, 100]);
+F('nuomi', '糯米', '谷薯·谷物', 2, ['甘'], ['脾', '胃', '肺'], { 健脾: 2, 补气: 2, 固涩: 1 }, '补中益气，温脾止泻，敛汗', '黏滞难消化。痰湿质、腹胀、糖尿病、老人幼儿均须限量。', [20, 60]);
+F('yanmai', '燕麦', '谷薯·谷物', 0, ['甘'], ['脾', '胃', '肝'], { 降脂: 3, 控糖: 2, 通便: 2, 健脾: 1, 益精: 1 }, '降胆固醇，润肠通便，益脾养心', '含 β- 葡聚糖，控糖降脂人群的主食优选项。', [30, 80]);
+F('qiaomai', '荞麦', '谷薯·谷物', -2, ['甘'], ['脾', '胃', '大肠'], { 降脂: 2, 控糖: 2, 健脾: 1, 通便: 1, 清热: 1 }, '降气宽肠，消积滞，清热解毒', '脾胃虚寒、腹泻者慎；部分人过敏。', [30, 80]);
+F('damai', '大麦', '谷薯·谷物', -2, ['甘', '咸'], ['脾', '胃'], { 消食: 2, 健脾: 1, 利水: 1, 化湿: 1 }, '和胃宽肠，消积导滞', '炒大麦芽可回乳，哺乳期需通乳者留意。', [30, 60]);
+F('yumi', '玉米', '谷薯·谷物', 0, ['甘'], ['脾', '胃', '大肠'], { 利水: 2, 健脾: 1, 降脂: 1, 控糖: 1, 通便: 1 }, '调中开胃，利尿消肿', '玉米须利水消肿，可另煮水代茶。', [50, 150]);
+F('gaoliang', '高粱', '谷薯·谷物', 2, ['甘', '涩'], ['脾', '胃'], { 健脾: 2, 止泻: 2, 固涩: 1, 温中: 1 }, '温中涩肠，止霍乱', '黏性品种较难消化，胃肠弱者宜碾米煮粥。', [30, 80]);
+F('heimi', '黑米', '谷薯·谷物', 0, ['甘'], ['脾', '胃', '肾'], { 益精: 2, 养血: 2, 健脾: 1, 乌发: 1, 美容: 1 }, '滋阴补肾，健脾暖肝，明目活血', '外层种皮坚韧，宜提前浸泡并久煮。', [30, 80]);
+F('hongshu', '红薯', '谷薯·薯类', 0, ['甘'], ['脾', '胃', '大肠'], { 健脾: 2, 通便: 2, 补气: 1, 强筋骨: 1 }, '补中和血，宽肠通便，益气生津', '胃酸过多、易胀气者慎；一次不宜过量。', [50, 150]);
+F('tudou', '土豆', '谷薯·薯类', 0, ['甘'], ['胃', '大肠'], { 健脾: 2, 止痛: 1, 解毒: 1, 控糖: 1 }, '和胃调中，健脾益气，缓急止痛', '★发芽、变绿部位含龙葵碱，有毒，禁食。控糖者应计入主食量。', [50, 150]);
+F('yutou', '芋头', '谷薯·薯类', 0, ['甘', '辛'], ['胃', '肠'], { 健脾: 2, 化痰: 1, 解毒: 1, 强筋骨: 1 }, '健脾补虚，散结解毒，宽肠胃', '生品有毒刺激，必须彻底蒸熟；多食滞气。', [50, 120]);
+F('nangua', '南瓜', '谷薯·薯类', 2, ['甘'], ['脾', '胃'], { 健脾: 3, 补气: 1, 控糖: 1, 通便: 1, 解毒: 1 }, '补中益气，化痰排脓，驱虫', '黄疸、气滞湿阻者慎；控糖人群须限量（含糖量不低）。', [50, 150]);
+
+/* ========== 豆类与豆制品 ========== */
+F('huangdou', '黄豆', '豆类', 0, ['甘'], ['脾', '胃', '大肠'], { 健脾: 2, 养血: 1, 降脂: 1, 美容: 1, 利水: 1 }, '健脾宽中，润燥消水，解毒', '易产气腹胀，宜充分浸泡煮透；痛风及高尿酸者限量。', [20, 60]);
+F('heidou', '黑豆', '豆类', 0, ['甘'], ['脾', '肾'], { 益精: 3, 养血: 2, 利水: 2, 乌发: 2, 活血: 1, 解毒: 1 }, '补肾益精，养血明目，利水解毒', '「肾之谷」。醋泡黑豆、黑豆豆浆为常用法；须熟透，痛风限量。', [20, 60]);
+F('doufu', '豆腐', '豆制品', -2, ['甘'], ['脾', '胃', '大肠'], { 清热: 2, 润燥: 1, 养血: 1, 控糖: 1, 强筋骨: 1, 解毒: 1 }, '清热润燥，生津止渴，补中益气', '高蛋白低脂，控糖降脂者优选项；痛风限量（中高嘌呤）。', [80, 200]);
+F('doujiang', '豆浆', '豆制品', 0, ['甘'], ['肺', '胃'], { 润燥: 2, 补气: 1, 控糖: 1, 美容: 1 }, '补虚润燥，清肺化痰', '★必须彻底煮沸（生豆浆含皂苷，未煮沸可致中毒）。', [200, 400]);
+F('wandou', '豌豆', '豆类', 0, ['甘'], ['脾', '胃'], { 健脾: 2, 利水: 1, 催乳: 1, 通便: 1 }, '和中下气，利小便，通乳', '多食腹胀。', [30, 80]);
+F('yinzuidou', '鹰嘴豆', '豆类', 0, ['甘'], ['脾', '胃'], { 健脾: 2, 降脂: 1, 控糖: 1, 强筋骨: 1, 益精: 1 }, '健脾益气，降糖降脂', '低升糖指数（GI）主食替代，控糖人群适用。', [20, 60]);
+F('doupi', '腐竹/豆皮', '豆制品', 0, ['甘'], ['脾', '胃'], { 养血: 1, 强筋骨: 1, 润燥: 1 }, '补中益气，养血润燥', '油炸腐竹热量高，减重者选干腐竹泡发。', [20, 60]);
+
+/* ========== 蔬菜类 ========== */
+F('luobo', '白萝卜', '蔬菜·根茎', -2, ['辛', '甘'], ['肺', '脾', '胃'], { 消食: 3, 化痰: 2, 理气: 2, 清热: 1, 解毒: 1 }, '下气消食，除疾润肺，解毒生津', '★服人参、黄芪等补气药期间应避开生萝卜（破气抵消补力）。脾胃虚寒者宜熟食。', [50, 200]);
+F('huluobo', '胡萝卜', '蔬菜·根茎', 0, ['甘', '辛'], ['肺', '脾', '肝'], { 健脾: 2, 明目: 2, 通便: 1, 解毒: 1 }, '健脾消食，润肠通便，养肝明目', '★含抗坏血酸氧化酶，与白萝卜同煮会破坏维 C。', [50, 150]);
+F('baicai', '大白菜', '蔬菜·叶菜', 0, ['甘'], ['肠', '胃'], { 清热: 1, 通便: 1, 利水: 1, 解毒: 1 }, '通利肠胃，除烦解渴，养胃生津', '冬季当家菜，久煮不宜（维 C 损失）。', [100, 300]);
+F('bocai', '菠菜', '蔬菜·叶菜', -2, ['甘', '酸'], ['胃', '肠', '肝'], { 养血: 2, 通便: 2, 润燥: 1, 明目: 1, 止血: 1 }, '养血止血，敛阴润燥，通利肠胃', '★草酸高，须沸水焯 1 分钟后再烹，否则影响钙吸收并增加结石风险。痛风限量。', [100, 250]);
+F('qincai', '芹菜', '蔬菜·叶菜', -2, ['甘', '苦'], ['肝', '胃', '肺'], { 平肝: 3, 清热: 2, 利水: 1, 通便: 1, 降脂: 1 }, '平肝清热，祛风利水，凉血止血', '辅助稳压的食疗常客；低血压者慎。', [100, 250]);
+F('dongua', '冬瓜', '蔬菜·瓜类', -2, ['甘', '淡'], ['肺', '小肠', '膀胱'], { 利水: 3, 清热: 2, 化湿: 1, 降脂: 1, 解毒: 1 }, '利尿消肿，清热解暑，化痰', '连皮煮利水更强。性凉，脾胃虚寒、消瘦者慎。', [100, 300]);
+F('kugua', '苦瓜', '蔬菜·瓜类', -3, ['苦'], ['心', '脾', '胃'], { 清热: 3, 解毒: 2, 控糖: 2, 明目: 1 }, '清暑涤热，明目解毒，降血糖', '脾胃虚寒、孕期慎；焯水可减苦寒之性。', [80, 200]);
+F('huanggua', '黄瓜', '蔬菜·瓜类', -2, ['甘'], ['脾', '胃', '大肠'], { 清热: 2, 利水: 2, 解毒: 1, 美容: 1 }, '清热利水，解毒消肿，生津止渴', '脾胃虚寒者宜炒食少生食。', [80, 200]);
+F('sigua', '丝瓜', '蔬菜·瓜类', -2, ['甘'], ['肺', '胃', '肝'], { 清热: 2, 化痰: 1, 催乳: 1, 解毒: 1, 通便: 1 }, '清热化痰，凉血解毒，通经络', '丝瓜络通乳，产后乳汁不畅可与丝瓜同用。', [80, 200]);
+F('qiezi', '茄子', '蔬菜·瓜类', -2, ['甘'], ['脾', '胃', '大肠'], { 清热: 1, 活血: 1, 止血: 1, 降脂: 1 }, '清热活血，消肿止痛，宽肠', '★油炸茄子极吸油，减重者宜蒸后凉拌。', [80, 200]);
+F('fanqie', '番茄', '蔬菜·瓜类', -1, ['甘', '酸'], ['肝', '胃', '肺'], { 清热: 2, 润燥: 2, 美容: 2, 解毒: 2, 控糖: 1, 强筋骨: 1 }, '生津止渴，健胃消食，凉血平肝', '★未成熟青番茄含龙葵碱，禁食。番茄红素为脂溶性，宜加油炒。', [80, 200]);
+F('ou', '莲藕', '蔬菜·根茎', -2, ['甘'], ['心', '脾', '胃'], { 清热: 2, 止血: 2, 健脾: 2, 养血: 2, 润燥: 1 }, '生用清热凉血、散瘀止血；熟用健脾开胃、益血生肌', '★生藕性寒，熟藕性温——同一食材，两种走向，用时须辨。', [80, 200]);
+F('zhusun', '竹笋', '蔬菜·根茎', -3, ['甘', '苦'], ['肺', '胃'], { 清热: 2, 通便: 2, 化痰: 1, 利水: 1 }, '清热化痰，利膈爽胃，消食', '★草酸与粗纤维高，须焯水；脾胃虚寒、痛风、肾炎者忌。', [50, 150]);
+F('lusun', '芦笋', '蔬菜·茎叶', 0, ['甘'], ['肺', '胃'], { 解毒: 2, 益智: 1, 强筋骨: 1, 清热: 1, 美容: 1 }, '清热生津，利水消肿，抗癌辅助', '富含叶酸，孕期有益；痛风限量。', [80, 150]);
+F('juanxincai', '卷心菜', '蔬菜·叶菜', 0, ['甘'], ['脾', '胃'], { 健脾: 2, 止痛: 1, 解毒: 1 }, '健脾养胃，缓急止痛，清热散结', '含维生素 U，对胃黏膜有养护作用。', [80, 200]);
+F('xilanhua', '西兰花', '蔬菜·花菜', -2, ['甘'], ['脾', '胃'], { 解毒: 2, 强筋骨: 1, 美容: 1, 清热: 1 }, '清热润肺，健脾和胃，抗癌辅助', '焯水时间宜短，久煮失营养。', [80, 200]);
+F('kongxincai', '空心菜', '蔬菜·叶菜', -3, ['甘'], ['肠', '胃'], { 清热: 2, 通便: 2, 解毒: 1, 利水: 1 }, '清热凉血，利尿通便，解毒', '性寒，《本草》称其「难消化」，气虚体弱者慎。', [80, 200]);
+F('xiancai', '苋菜', '蔬菜·叶菜', -2, ['甘'], ['大肠', '小肠'], { 清热: 2, 通便: 1, 止血: 1, 强筋骨: 1, 明目: 1 }, '清热利窍，凉血止血，通利二便', '脾胃虚寒、便溏者慎；草酸较高宜焯水。', [80, 200]);
+F('jiucai', '韭菜', '蔬菜·叶菜', 2, ['辛', '甘'], ['肝', '胃', '肾'], { 温阳: 2, 温中: 2, 活血: 1, 通便: 1, 益精: 1 }, '温中行气，散瘀解毒，壮阳固精', '★有回乳作用，哺乳期需通乳者忌。阴虚火旺、眼疾、胃热者忌。', [50, 150]);
+F('congbai', '葱白', '蔬菜·调味', 2, ['辛'], ['肺', '胃'], { 解表: 3, 温中: 1, 解毒: 1, 活血: 1 }, '发汗解表，散寒通阳，解毒散结', '受凉初起「葱姜红糖水」的核心。表虚多汗者慎。', [5, 20]);
+F('dasuan', '大蒜', '蔬菜·调味', 2, ['辛'], ['脾', '胃', '肺'], { 解毒: 3, 温中: 2, 化湿: 1, 降脂: 1 }, '解毒杀虫，消肿止痛，暖脾胃', '阴虚火旺、眼疾、胃溃疡、口臭者忌；生蒜刺激性强。', [5, 20]);
+F('yangcong', '洋葱', '蔬菜·调味', 2, ['辛', '甘'], ['肺', '脾'], { 理气: 2, 化湿: 1, 降脂: 2, 活血: 1, 解毒: 1 }, '理气宽中，降脂降压，解毒杀虫', '前列腺素 A 有助血管舒张；胃热、眼疾者慎。', [50, 150]);
+F('lajiao', '辣椒', '蔬菜·调味', 3, ['辛'], ['心', '脾'], { 温中: 3, 止痛: 1, 化湿: 1, 温阳: 1 }, '温中散寒，开胃消食，发汗除湿', '阴虚火旺、痔疮、咽炎、胃溃疡、经期量多者忌。', [3, 15]);
+F('biqi', '荸荠', '蔬菜·根茎', -3, ['甘'], ['肺', '胃'], { 清热: 3, 润燥: 2, 化痰: 1, 利水: 1 }, '清热生津，化痰消积，明目退翳', '★水生植物，生食有寄生虫（姜片虫）风险，宜熟食。', [50, 150]);
+F('qiukui', '秋葵', '蔬菜·荚果', -2, ['甘', '淡'], ['肾', '膀胱'], { 控糖: 2, 润燥: 1, 通便: 1, 健脾: 1, 强筋骨: 1 }, '助消化，护肠胃，降糖，强肾补虚', '黏液为可溶性膳食纤维，控糖人群适用。', [80, 150]);
+F('helandou', '荷兰豆', '蔬菜·荚果', 0, ['甘'], ['脾', '胃'], { 健脾: 2, 利水: 1, 消食: 1 }, '和中下气，利小便', '须熟透（生品含皂苷）。', [80, 150]);
+F('shengcai', '生菜', '蔬菜·叶菜', -2, ['甘', '苦'], ['肠', '胃'], { 清热: 1, 通便: 1, 安神: 1 }, '清热爽神，清肝利胆，养胃', '生食注意清洗。', [80, 200]);
+
+/* ========== 水果类 ========== */
+F('pingguo', '苹果', '水果', -2, ['甘', '酸'], ['脾', '胃', '肺'], { 健脾: 2, 润燥: 2, 止泻: 1, 降脂: 1, 生津: 2 }, '生津润肺，除烦解暑，开胃醒酒', '★生吃通便，熟吃（蒸/煮）止泻——作用相反，用时须辨。', [100, 250]);
+F('li', '梨', '水果', -2, ['甘', '微酸'], ['肺', '胃', '心'], { 润燥: 3, 清热: 2, 止咳: 3, 化痰: 2, 解毒: 1 }, '生津润燥，清热化痰，润肺止咳', '★生梨清热，熟梨（冰糖炖）滋阴。脾胃虚寒、风寒咳嗽忌。', [100, 250]);
+F('xiangjiao', '香蕉', '水果', -3, ['甘'], ['肺', '大肠', '脾'], { 通便: 3, 润燥: 2, 清热: 1, 安神: 1 }, '清热润肠，解毒，润肺止咳', '脾胃虚寒、便溏者忌；★高钾，肾功能不全者遵医嘱限量。', [80, 200]);
+F('chengzi', '橙子', '水果', -2, ['甘', '酸'], ['肺', '脾', '胃'], { 润燥: 2, 化痰: 1, 健脾: 1, 解毒: 1, 美容: 1 }, '生津止渴，开胃下气，解酒', '橙皮（陈皮类）亦可理气化痰。', [100, 200]);
+F('juzi', '橘子', '水果', 2, ['甘', '酸'], ['肺', '胃'], { 化痰: 2, 止咳: 1, 理气: 1, 润燥: 1 }, '开胃理气，止渴润肺', '★多食易「上火」、皮肤发黄（胡萝卜素血症）；控糖者限量。', [50, 150]);
+F('youzi', '柚子', '水果', -3, ['甘', '酸'], ['肺', '脾'], { 化痰: 2, 消食: 1, 降脂: 1, 解毒: 1, 润燥: 1 }, '消食化痰，生津止渴，解酒', '★★西柚（葡萄柚）会抑制 CYP3A4 酶，与他汀类降脂药、部分降压药、抗排异药同服可致血药浓度异常升高——服药者务必先咨询医师。', [80, 200]);
+F('ningmeng', '柠檬', '水果', 0, ['酸', '甘'], ['肺', '胃'], { 润燥: 2, 生津: 2, 化痰: 1, 美容: 2, 解毒: 1 }, '生津止渴，和胃安胎，化痰止咳', '胃酸过多者慎；热水冲泡会破坏维 C，宜温水。', [10, 40]);
+F('putao', '葡萄', '水果', 0, ['甘', '酸'], ['肺', '脾', '肾'], { 补气: 2, 养血: 2, 益精: 1, 强筋骨: 1, 美容: 1 }, '补气血，强筋骨，利小便', '含糖量高，糖尿病者忌；葡萄干升糖更快。', [80, 200]);
+F('xigua', '西瓜', '水果', -3, ['甘'], ['心', '胃', '膀胱'], { 清热: 3, 润燥: 2, 利水: 2, 解毒: 1 }, '清热解暑，生津止渴，利尿', '★古称「天生白虎汤」，寒性最重。脾胃虚寒、经期、产后忌；冰镇更伤脾阳。', [100, 300]);
+F('mihoutao', '猕猴桃', '水果', -3, ['甘', '酸'], ['脾', '胃', '肾'], { 清热: 2, 解毒: 2, 通便: 1, 美容: 2, 益智: 1 }, '清热生津，健脾止泻，和胃降逆', '脾胃虚寒、腹泻者忌；部分人过敏。', [80, 200]);
+F('caomei', '草莓', '水果', -2, ['甘', '酸'], ['脾', '胃'], { 清热: 2, 润燥: 1, 美容: 1, 解毒: 1 }, '清凉止渴，健胃消食', '清洗要彻底；部分人过敏。', [80, 200]);
+F('taozi', '桃子', '水果', 2, ['甘', '酸'], ['肺', '大肠'], { 养血: 2, 润燥: 2, 活血: 1, 生津: 1 }, '生津润肠，活血消积，养颜', '多食生热，实热体质、疮疡者慎。', [80, 200]);
+F('yingtao', '樱桃', '水果', 2, ['甘'], ['脾', '肝'], { 养血: 2, 补气: 1, 强筋骨: 1, 美容: 1, 止泻: 1 }, '补中益气，祛风除湿，养颜驻容', '含铁与花青素较高；热性病、阴虚火旺者忌。', [30, 100]);
+F('lizhi', '荔枝', '水果', 2, ['甘', '酸'], ['肝', '脾'], { 养血: 2, 补气: 1, 温中: 1, 止痛: 1, 益智: 1 }, '养血健脾，行气消肿', '★空腹大量进食可致「荔枝病」（低血糖）；阴虚火旺者忌。', [50, 100]);
+F('mangguo', '芒果', '水果', -2, ['甘', '酸'], ['脾', '胃', '肺'], { 润燥: 1, 通便: 1, 止呕: 1, 美容: 1 }, '益胃止呕，生津止渴，止晕', '★高致敏水果，特禀质者慎；湿热体质多食助湿。', [80, 150]);
+F('boluo', '菠萝', '水果', 0, ['甘', '微酸'], ['胃', '肺'], { 消食: 2, 化湿: 1, 止呕: 1, 解毒: 1 }, '清暑解渴，消食止泻', '含菠萝蛋白酶，宜淡盐水浸泡后再食；过敏者慎。', [80, 150]);
+F('pipa', '枇杷', '水果', -2, ['甘', '酸'], ['肺', '脾'], { 止咳: 2, 化痰: 2, 润燥: 2, 止呕: 1 }, '润肺止咳，生津止渴，和胃降逆', '止咳常用；控糖者限量。', [80, 150]);
+F('shizi', '柿子', '水果', -3, ['甘', '涩'], ['心', '肺', '大肠'], { 清热: 2, 止咳: 1, 润燥: 1, 止血: 1 }, '清热润肺，生津止渴，健脾涩肠', '★★含大量鞣酸：忌空腹、忌与高蛋白（螃蟹、牛奶）及浓茶同食，易形成胃柿石；糖尿病忌。', [50, 100]);
+F('shiliu', '石榴', '水果', 2, ['甘', '酸', '涩'], ['肺', '肾', '大肠'], { 固涩: 2, 止泻: 2, 润燥: 1, 止血: 1 }, '生津止渴，涩肠止泻，杀虫', '便秘、实火内盛者忌。', [50, 150]);
+F('wuhuaguo', '无花果', '水果', -2, ['甘'], ['肺', '胃', '大肠'], { 健脾: 1, 润燥: 2, 通便: 2, 止咳: 1, 解毒: 1 }, '健脾消食，润肺止咳，润肠通便', '含糖量较高，控糖者限量。', [50, 100]);
+F('lanmei', '蓝莓', '水果', -2, ['甘', '酸'], ['肝', '脾'], { 明目: 3, 益智: 1, 美容: 2, 解毒: 1, 强筋骨: 1 }, '抗氧化，护视力，延缓衰老', '花青素含量居水果前列，久视人群适用。', [30, 100]);
+F('yangmei', '杨梅', '水果', 2, ['甘', '酸'], ['脾', '胃', '肝'], { 消食: 2, 止泻: 1, 生津: 2, 解毒: 1 }, '生津止渴，和胃消食，涩肠止泻', '多食损齿；宜淡盐水浸泡去小虫。', [50, 100]);
+F('hamigua', '哈密瓜', '水果', -3, ['甘'], ['心', '胃'], { 清热: 2, 润燥: 2, 利水: 1 }, '清热解暑，生津止渴', '含糖量高，控糖者忌；脾胃虚寒慎。', [80, 200]);
+
+/* ========== 畜禽蛋奶 ========== */
+F('zhurou', '猪肉', '畜禽', 0, ['甘', '咸'], ['脾', '胃', '肾'], { 滋阴: 2, 润燥: 2, 养血: 1 }, '滋阴润燥，补虚养血', '痰湿、肥胖、高脂血症者限量；宜瘦不宜肥。', [50, 150]);
+F('zhuti', '猪蹄', '畜禽', 0, ['甘', '咸'], ['胃'], { 催乳: 3, 养血: 2, 美容: 2, 强筋骨: 1 }, '补血通乳，托疮，润肌肤', '★滋腻，痰湿体质、血脂偏高者限量；通乳宜配通草、花生。', [80, 200]);
+F('zhugan', '猪肝', '畜禽', 2, ['甘', '苦'], ['肝'], { 养血: 3, 明目: 3, 益智: 1 }, '补血明目，养肝', '★胆固醇与嘌呤高：高血脂、痛风、高尿酸者限量。', [30, 80]);
+F('zhudu', '猪肚', '畜禽', 2, ['甘'], ['脾', '胃'], { 健脾: 3, 补气: 1, 止泻: 1 }, '补虚损，健脾胃', '「以形补形」食疗常用，脾虚胃弱者宜。', [50, 150]);
+F('zhupaigu', '猪排骨', '畜禽', 0, ['甘'], ['脾', '胃'], { 养血: 1, 强筋骨: 2, 滋阴: 1 }, '补中益气，养血健骨', '宜先焯水去血沫与部分脂肪；高尿酸者宜弃汤食肉。', [80, 200]);
+F('niurou', '牛肉', '畜禽', 0, ['甘'], ['脾', '胃'], { 补气: 3, 健脾: 2, 强筋骨: 3, 养血: 2 }, '补脾胃，益气血，强筋骨', '补气之力胜于猪肉；热证、疮疡、湿疹者慎。', [50, 150]);
+F('yangrou', '羊肉', '畜禽', 2, ['甘'], ['脾', '肾'], { 温阳: 3, 温中: 3, 养血: 2, 补气: 1, 益精: 1 }, '温补气血，驱寒暖中，益肾气', '★阴虚火旺、实热证、感冒发热、痛风忌；夏季宜少食，宜配白萝卜或甘蔗制其燥。', [50, 150]);
+F('jirou', '鸡肉', '畜禽', 2, ['甘'], ['脾', '胃'], { 补气: 3, 养血: 2, 健脾: 2, 益精: 1 }, '温中益气，补精添髓', '★感冒发热、痰湿重、高尿酸者忌浓鸡汤（嘌呤溶于汤）。鸡皮油脂高，宜去皮。', [50, 150]);
+F('wuji', '乌鸡', '畜禽', 0, ['甘'], ['肝', '脾', '肾'], { 养血: 3, 滋阴: 2, 补气: 2, 益精: 1 }, '补肝肾，益气血，退虚热', '妇科调补常用，配黄芪、当归为经典组合。', [50, 150]);
+F('yarou', '鸭肉', '畜禽', -2, ['甘', '咸'], ['肺', '脾', '肾'], { 滋阴: 3, 清热: 2, 利水: 2, 养血: 1 }, '滋阴养胃，利水消肿，清虚热', '阴虚内热者优于鸡肉。脾胃虚寒、腹泻、经期慎。', [50, 150]);
+F('erou', '鹅肉', '畜禽', 0, ['甘'], ['脾', '肺'], { 补气: 2, 养血: 1, 润燥: 1 }, '益气补虚，和胃止渴', '★传统列为「发物」，湿热体质、疮疡、特禀质者慎。', [50, 120]);
+F('gerou', '鸽肉', '畜禽', 0, ['咸'], ['肝', '肾', '肺'], { 补气: 2, 益精: 2, 养血: 2, 解毒: 1, 强筋骨: 1 }, '滋肾益气，祛风解毒', '术后、病后体虚恢复常用。', [50, 120]);
+F('anchun', '鹌鹑', '畜禽', 0, ['甘'], ['脾', '肺'], { 补气: 2, 益智: 2, 强筋骨: 1, 养血: 1 }, '补中益气，壮筋骨，健脑', '「动物人参」，小儿与脑力劳动者宜。', [40, 100]);
+F('jidan', '鸡蛋', '蛋奶', 0, ['甘'], ['心', '脾', '肺'], { 养血: 2, 滋阴: 2, 补气: 1, 益智: 2, 美容: 1 }, '滋阴润燥，养血安胎，补脾和胃', '蛋清偏凉，蛋黄偏温；高胆固醇者每日 1 枚为宜。', [50, 100]);
+F('niunai', '牛奶', '蛋奶', 0, ['甘'], ['心', '脾', '肺', '胃'], { 补气: 2, 养血: 2, 滋阴: 2, 强筋骨: 2, 安神: 1, 益智: 1 }, '补虚损，益肺胃，养血，安神', '乳糖不耐者改酸奶；部分人过敏；冷藏宜回温后再饮。', [200, 400]);
+F('suannai', '酸奶', '蛋奶', 0, ['甘', '酸'], ['脾', '胃'], { 健脾: 2, 消食: 2, 通便: 1, 解毒: 1, 美容: 1 }, '生津止渴，润肠通便，助消化', '益生菌需冷藏且不宜加热；脾胃虚寒者宜室温放置后饮用。', [100, 250]);
+F('yangnai', '羊奶', '蛋奶', 2, ['甘'], ['心', '脾', '肾'], { 温阳: 1, 补气: 2, 养血: 2, 强筋骨: 2, 润燥: 1 }, '温润补虚，养血润燥', '温性，阳虚体质优于牛奶。', [200, 300]);
+
+/* ========== 水产 ========== */
+F('jiyu', '鲫鱼', '水产', 0, ['甘'], ['脾', '胃', '大肠'], { 健脾: 3, 利水: 2, 通乳: 2, 补气: 1 }, '健脾利湿，和中开胃，通乳', '★产后通乳首选；脾胃虚弱、水肿亦宜。', [100, 300]);
+F('liyu', '鲤鱼', '水产', 0, ['甘'], ['脾', '肾'], { 利水: 3, 健脾: 2, 通乳: 2 }, '利水消肿，下气通乳', '★传统列为「发物」，疮疡、特禀质者慎。', [100, 300]);
+F('caoyu', '草鱼', '水产', 2, ['甘'], ['脾', '胃'], { 温中: 2, 健脾: 1, 养血: 1 }, '暖胃和中，平肝祛风', '', [100, 250]);
+F('luyu', '鲈鱼', '水产', 0, ['甘'], ['脾', '胃', '肝', '肾'], { 健脾: 2, 补气: 1, 益精: 1, 强筋骨: 1 }, '补肝肾，益脾胃，安胎', '术后、产后恢复常用；刺少，适合老人儿童。', [100, 250]);
+F('sanwenyu', '三文鱼', '水产', 0, ['甘'], ['脾', '胃'], { 补气: 1, 活血: 2, 降脂: 2, 益智: 2, 美容: 1, 强筋骨: 1 }, '补虚健脾，活血降脂，益智', '富含 Omega-3（EPA/DHA），心脑血管与脑力人群适用。', [80, 150]);
+F('xueyu', '鳕鱼', '水产', 0, ['甘'], ['脾', '胃'], { 健脾: 1, 益智: 2, 强筋骨: 1, 养血: 1 }, '补虚健脾，益智强骨', '低脂高蛋白，婴幼儿辅食首选之一。', [80, 150]);
+F('xia', '虾', '水产', 2, ['甘'], ['肝', '肾'], { 温阳: 2, 益精: 2, 强筋骨: 2, 催乳: 1 }, '补肾壮阳，通乳，益精血', '★★高致敏食物，特禀质者慎；高尿酸、痛风忌。', [50, 150]);
+F('pangxie', '螃蟹', '水产', -3, ['咸'], ['肝', '胃'], { 清热: 2, 活血: 1, 解毒: 1, 强筋骨: 1 }, '清热散结，活血通络，滋阴', '★★性极寒：脾胃虚寒、经期、孕期、痛风忌；★忌与柿子、浓茶同食；必须彻底蒸熟。', [50, 150]);
+F('jiayu', '甲鱼（鳖）', '水产', 0, ['甘'], ['肝', '脾'], { 滋阴: 3, 清热: 2, 益精: 2, 强筋骨: 1 }, '滋阴凉血，补虚调中', '★★孕期忌（活血软坚之性）；脾胃虚寒、痰湿、腹泻忌。', [50, 150]);
+F('haishen', '海参', '水产', 2, ['甘', '咸'], ['心', '肾', '脾', '肺'], { 益精: 3, 养血: 2, 滋阴: 2, 强筋骨: 2, 益智: 1 }, '补肾益精，养血润燥', '感冒发热、痰湿重、痛风者慎；高蛋白，消化弱者少量。', [30, 100]);
+F('muLirou', '牡蛎肉', '水产', 0, ['甘', '咸'], ['心', '肝', '肾'], { 滋阴: 2, 益精: 2, 益智: 1, 强筋骨: 1, 美容: 1 }, '滋阴养血，益智强骨', '锌含量极高；高尿酸、痛风限量。', [50, 150]);
+F('moyu', '墨鱼（乌贼）', '水产', 0, ['咸'], ['肝', '肾'], { 养血: 3, 滋阴: 2, 益精: 1, 止血: 1 }, '养血滋阴，益胃调经', '妇科经、带、胎、产及血虚者的常用之品。', [50, 150]);
+F('haidai', '海带', '水产·藻类', -3, ['咸'], ['肝', '胃', '肾'], { 化痰: 2, 利水: 2, 降脂: 1, 解毒: 1 }, '消痰软坚，利水消肿', '★甲亢及碘敏感人群慎；★反甘草，与甘草不宜同用。', [30, 100]);
+F('zicai', '紫菜', '水产·藻类', -3, ['甘', '咸'], ['肺', '脾', '膀胱'], { 化痰: 1, 利水: 2, 清热: 1, 益智: 1, 强筋骨: 1 }, '化痰软坚，清热利水', '甲亢及碘敏感者慎。', [5, 20]);
+F('geli', '蛤蜊', '水产', -3, ['咸'], ['胃', '膀胱'], { 滋阴: 2, 利水: 2, 清热: 1 }, '滋阴利水，化痰软坚', '脾胃虚寒者慎；须吐净沙、彻底加热。', [50, 150]);
+
+/* ========== 菌菇类 ========== */
+F('xianggu', '香菇', '菌菇', 0, ['甘'], ['肝', '胃'], { 健脾: 2, 补气: 1, 益智: 1, 降脂: 1, 解毒: 1, 固表: 1 }, '益智安神，健脾开胃，化痰理气', '含香菇多糖；痛风、高尿酸者限量（中高嘌呤）。', [20, 80]);
+F('heimuer', '黑木耳', '菌菇', 0, ['甘'], ['胃', '大肠'], { 活血: 2, 养血: 1, 降脂: 2, 止血: 1, 通便: 1 }, '润肺清涤，凉血止血，和血养荣', '★★出血性疾病、经期量多、术前、拔牙后慎用；★泡发超过 4 小时易滋生椰毒假单胞菌产生米酵菌酸（剧毒），务必现泡现吃。', [5, 30]);
+F('yiner', '银耳', '菌菇', 0, ['甘', '淡'], ['肺', '胃', '肾'], { 滋阴: 3, 润燥: 3, 美容: 2, 养血: 1, 止咳: 1 }, '滋阴润肺，养胃生津，润肤', '★★同样有米酵菌酸风险：禁用隔夜银耳羹、泡发过久的银耳。风寒咳嗽、痰湿者忌。', [5, 30]);
+F('jinzhengu', '金针菇', '菌菇', -2, ['甘'], ['肝', '胃'], { 益智: 2, 健脾: 1, 降脂: 1, 解毒: 1 }, '益智健脑，补肝，益肠胃', '赖氨酸含量高，有「增智菇」之称；脾胃虚寒者慎。', [30, 100]);
+F('xingbaogu', '杏鲍菇', '菌菇', 0, ['甘'], ['脾', '胃'], { 健脾: 1, 降脂: 1, 通便: 1 }, '健脾开胃，降脂润肠', '', [30, 100]);
+F('houtougu', '猴头菇', '菌菇', 0, ['甘'], ['脾', '胃'], { 健脾: 3, 补气: 1, 益智: 1, 安神: 1 }, '助消化，利五脏，健脾养胃', '对胃黏膜屏障有养护作用，慢性胃病者宜。', [20, 80]);
+F('koushu', '口蘑', '菌菇', 0, ['甘'], ['肺', '胃'], { 健脾: 1, 益智: 1, 降脂: 1, 解毒: 1 }, '宣肺解表，理气化痰，补硒', '硒含量突出。', [30, 100]);
+F('chashugu', '茶树菇', '菌菇', 0, ['甘'], ['脾', '肾'], { 健脾: 2, 益精: 1, 益智: 1, 降脂: 1 }, '补肾利尿，健脾止泻', '', [30, 100]);
+
+/* ========== 坚果种子 ========== */
+F('hetao', '核桃仁', '坚果', 2, ['甘', '涩'], ['肾', '肺', '大肠'], { 益精: 3, 益智: 3, 温阳: 2, 强筋骨: 2, 通便: 2, 乌发: 1, 止咳: 1 }, '补肾温肺，润肠通便，益智健脑', '「长寿果」。痰热、阴虚火旺、便溏者慎；油脂高，每日 3—5 枚为度。', [10, 30]);
+F('huasheng', '花生', '坚果', 0, ['甘'], ['脾', '肺'], { 健脾: 2, 养血: 1, 润燥: 1, 催乳: 2, 止血: 1 }, '健脾和胃，润肺化痰，通乳', '★★霉变花生含黄曲霉毒素（强致癌），严禁食用。痛风、胆囊疾病者限量。', [15, 50]);
+F('lizi', '栗子', '坚果', 2, ['甘', '咸'], ['脾', '胃', '肾'], { 健脾: 3, 强筋骨: 3, 活血: 1, 止血: 1, 益精: 1 }, '养胃健脾，补肾强筋，活血止血', '「肾之果」。生食难消化，多食滞气；糖尿病者计入主食量。', [20, 60]);
+F('songzi', '松子', '坚果', 2, ['甘'], ['肺', '大肠', '肝'], { 润燥: 2, 通便: 2, 益智: 1, 益精: 1, 强筋骨: 1 }, '润肺滑肠，滋阴息风', '便溏、痰湿者慎；油脂高。', [10, 30]);
+F('yaoguo', '腰果', '坚果', 0, ['甘'], ['脾', '胃'], { 健脾: 1, 益精: 1, 美容: 1, 降脂: 1, 益智: 1 }, '补脑养血，补肾健脾，润肤', '常见过敏原之一，特禀质者慎。', [10, 30]);
+F('kuihuazi', '葵花籽', '坚果', 0, ['甘'], ['大肠'], { 润燥: 1, 通便: 1, 益智: 1, 美容: 1 }, '滋阴润肠，止痢透疹', '多食耗津、口干。', [10, 30]);
+F('nanguazi', '南瓜子', '坚果', 0, ['甘'], ['胃', '大肠'], { 健脾: 1, 驱虫: 1, 益精: 1, 利水: 1 }, '补脾益气，驱虫，利水', '传统用于驱蛔虫、绦虫。', [10, 30]);
+
+/* ========== 调料 / 加工辅料 ========== */
+F('cu', '米醋', '调料·酸', 2, ['酸', '苦'], ['肝', '胃'], { 活血: 1, 消食: 2, 解毒: 2, 降脂: 1, 止痛: 1, 固涩: 1 }, '散瘀解毒，消食开胃，软坚', '胃酸过多、消化性溃疡者慎；宜选酿造米醋而非冰醋酸勾兑醋。', [3, 15]);
+F('hongtang', '红糖', '调料·甘', 2, ['甘'], ['脾', '肝', '胃'], { 养血: 2, 活血: 2, 温中: 1, 止痛: 1, 补气: 1 }, '补中缓肝，活血化瘀，调经', '★控糖者忌。产后、经期寒凝腹痛的常用之品。', [5, 20]);
+F('bintang', '冰糖', '调料·甘', 0, ['甘'], ['脾', '肺'], { 润燥: 2, 止咳: 1, 补气: 1 }, '补中益气，和胃润肺，止咳化痰', '★控糖者忌。炖梨、炖银耳的常用搭档。', [5, 20]);
+F('huangjiu', '黄酒', '调料·酒', 2, ['甘', '辛'], ['心', '肝', '肺', '胃'], { 活血: 2, 温阳: 1, 解毒: 1, 温中: 1 }, '活血通经，散寒，引药上行', '★★驾车者、肝病患者、孕妇、哺乳期、儿童禁用。', [5, 30]);
+F('jiangyou', '酱油', '调料·咸', 0, ['咸', '甘'], ['脾', '胃'], { 解毒: 1, 健脾: 1 }, '和中开胃，解毒除烦', '钠含量高，高血压、肾病者须控量。', [3, 15]);
+F('yan', '食盐', '调料·咸', -3, ['咸'], ['胃', '肾', '大肠', '小肠'], { 解毒: 1 }, '调味，涌吐，清火凉血', '★每日不超过 5 克：高血压、肾病、水肿者须严格限量。', [1, 6]);
+F('zimaoyou', '芝麻油', '调料·油', 0, ['甘'], ['大肠'], { 润燥: 2, 通便: 2, 解毒: 1 }, '润燥通便，解毒生肌', '不耐高温，宜出锅前淋入。', [2, 10]);
+F('ganlanyou', '橄榄油', '调料·油', 0, ['甘'], ['脾', '胃'], { 降脂: 2, 润燥: 1, 美容: 1, 解毒: 1 }, '降脂护血管，润燥护肤', '单不饱和脂肪酸为主，宜凉拌或中低温烹调。', [5, 20]);
+F('zhima', '白芝麻', '调料·香', 0, ['甘'], ['肝', '肾', '肺'], { 益精: 1, 乌发: 1, 润燥: 2, 通便: 1, 美容: 1 }, '补肝肾，润五脏，益力气', '整粒不易消化，宜炒香碾碎。', [3, 15]);
+F('ziran', '孜然', '调料·香', 2, ['辛'], ['脾', '胃'], { 温中: 1, 消食: 1, 理气: 1 }, '温中暖脾，理气开胃', '阴虚火旺者慎。', [1, 5]);
+F('doufuRu', '腐乳', '调料·发酵', 0, ['甘', '咸'], ['脾', '胃'], { 健脾: 1, 消食: 1 }, '开胃消食，健脾和中', '钠含量极高，高血压者忌多食。', [5, 20]);
+F('gali', '咖喱粉', '调料·香', 2, ['辛', '苦'], ['脾', '肝'], { 活血: 1, 止痛: 1, 降脂: 1, 解毒: 1 }, '行气活血，温中开胃', '主料为姜黄，★孕期忌大量；胆囊疾病者慎。', [2, 10]);
+
+/* ========== 饮品 ========== */
+F('lvcha', '绿茶', '饮品', -2, ['苦', '甘'], ['心', '肺', '胃'], { 清热: 3, 解毒: 2, 利水: 1, 益智: 1, 降脂: 1, 解表: 1 }, '清头目，除烦渴，消食利尿，解毒', '★★忌与补益类药材同服（鞣酸影响吸收）；脾胃虚寒、失眠、贫血、空腹时忌浓茶。', [2, 5]);
+F('hongcha', '红茶', '饮品', 2, ['苦', '甘'], ['心', '脾', '胃'], { 温中: 2, 消食: 2, 止泻: 1, 降脂: 1, 益智: 1 }, '暖胃温中，消食止泻，生热暖腹', '全发酵，性温，脾胃虚寒者优于绿茶。', [2, 5]);
+F('shuercha', '熟普洱', '饮品', 2, ['苦', '甘'], ['脾', '胃', '肝'], { 消食: 3, 降脂: 3, 化湿: 2, 温中: 1 }, '消食解腻，降脂化浊，暖胃', '油腻饮食后饮用尤宜；控重人群常用。', [3, 8]);
+F('wulongcha', '乌龙茶', '饮品', 0, ['甘', '苦'], ['肝', '脾', '肺'], { 消食: 2, 降脂: 2, 化湿: 1, 理气: 1 }, '消食降脂，生津止渴', '半发酵，性平。', [3, 8]);
+F('molihuacha', '茉莉花茶', '饮品', -2, ['辛', '甘'], ['肝', '脾'], { 疏肝: 2, 理气: 2, 清热: 1, 安神: 1 }, '理气解郁，和中下气，清心', '情绪不畅、肝气郁结者宜。', [2, 5]);
+F('dabing', '大麦茶', '饮品', 0, ['甘'], ['脾', '胃'], { 消食: 2, 健脾: 1, 化湿: 1, 清热: 1 }, '和胃消食，解腻除烦', '焙炒后性偏温，解腻消胀。', [3, 10]);
+F('kafei', '咖啡', '饮品', 2, ['苦'], ['心', '脾'], { 益智: 1, 利水: 1, 消食: 1 }, '提神醒脑，利尿，助消化', '★心悸、失眠、胃酸过多、孕期者忌或限量。', [2, 5]);
+
+/* ===== 04_engine.js ===== */
+/* 当家食神 · 组方规则引擎
+   方法论：定剂型 → 功效向量匹配打分 → 四维（体质/时令/地域/人群）修正 → 硬性禁忌过滤
+           → 君臣佐使角色分配 → 药典用量生成 → 性味相克与配伍禁忌校验
+   本引擎输出的是「食养方案」，不是处方；任何疾病状态请以医师诊断为准。
+*/
+
+/* 目标短名（用于方剂命名） */
+const GOAL_SHORT = {
+  qi: '补气', blood: '养血', spleen: '健脾', damp: '祛湿', heat: '清热', sleep: '安神',
+  yang: '温阳', yin: '滋阴', digest: '消食', bowel: '润肠', lung: '润肺', liver: '疏肝',
+  brain: '益智', eye: '明目', bone: '强筋', beauty: '养颜', sugar: '控糖', lipid: '降脂',
+  immune: '固表', livercare: '护肝', bp: '稳压', kidney: '益肾', hair: '乌发',
+  milk: '通乳', grow: '助长', pain: '暖宫', cold: '散寒', stop: '止泻'
+};
+
+/* ========== 药材入膳常用量上限（依据《中华人民共和国药典（2020版）》各药材「用法与用量」项） ==========
+   未列出者按默认上限 15 克计。作用峻烈、有毒或贵细之品单列收紧；质轻体积大者单列放宽。 */
+const DCAP = {
+  // —— 收紧（药典用量小 / 有小毒 / 贵重）——
+  rougui: 3, dingxiang: 3, bibo: 3, hujiao: 2, gancao: 6, mugua: 9, meiguihua: 6, daidaihua: 6,
+  bohe: 6, sharens: 6, pangdahai: 3, wuweizi: 6, xiyangshen: 6, roushen: 9,
+  ejiao: 9, baiguo: 9, roudoukou: 9, caoguo: 6, bajiaohuixiang: 6, xiaohuixiang: 6,
+  huajiao: 6, huangjiesi: 6, yansui: 6, tianma: 10, baizhi: 9, xiebai: 9,
+  jianghuang: 9, yuliren: 10, taoren: 9, juhong: 9, heye: 9, danzhuye: 10,
+  shaji: 9, yuganzi: 9, juju: 12, zhizi: 10, huaihua: 10, jineijin: 9,
+  // —— 放宽（质轻、药食两用、入膳量本就偏大）——
+  shanyao: 30, huangqi: 20, dangshen: 20, yiyiren: 30, fulings: 20, chixiaodou: 30,
+  lugen: 30, baimaogen: 30, heizhima: 15, dazao: 15, lianzi: 15, qianshi: 15,
+  sangshen: 15, huangjing: 15, baibiandou: 15, yuxingcao: 20, jinyinhua: 12,
+  pugongying: 15, juemingzi: 15, luohanguo: 15, fengmi: 20, suanzaoren: 15,
+  shanzha: 12, maiya: 15, laifuzi: 10, chenpi: 9, foshou: 9, xiangyuan: 9,
+  danggui: 12, longyanrou: 15, heshouwu: 12, roucongrong: 12, shanzhuyu: 12,
+  fupenzi: 12, yizhiren: 9, dudan: 15, lingzhi: 12, ganjiang: 9, gaoliangjiang: 6,
+  shengjiang: 9, zisus: 9, xiangru: 9, huoxiang: 9, sangye: 9, juhua: 9, xingren: 9,
+  zisuzi: 9, jiegeng: 9, dandouchi: 12, wumei: 12, muli: 25, kunbu: 12,
+  gouqizi: 12, baihe: 12, maimendong: 12, tieshishihu: 12, shengdihuang: 15
+};
+
+/* ========== 硬性禁用表（按人群阶段） ========== */
+const BAN = {
+  infant: ['fengmi', 'hetao', 'huasheng', 'yan', 'baiguo', 'lajiao', 'huajiao', 'kafei', 'lvcha', 'hongcha', 'jiucai', 'pangxie', 'shizi', 'biqi', 'mangguo', 'boluo'],
+  child: ['roushen', 'xiyangshen', 'heshouwu', 'roucongrong', 'rougui', 'ejiao', 'huangjiu', 'kafei', 'baiguo', 'pangxie', 'lajiao'],
+  teen: ['heshouwu', 'huangjiu'],
+  elder: ['ejiao', 'nuomi', 'baiguo'],
+  pregnant: ['shanzha', 'taoren', 'jianghuang', 'pangxie', 'jiayu', 'mugua', 'huajiao', 'huangjiu', 'kafei', 'baiguo', 'yuliren', 'juemingzi', 'huaihua', 'bibo', 'zicai', 'haidai'],
+  lactation: ['maiya', 'jiucai', 'huajiao', 'bohe', 'damai'],
+  postpartum: ['maiya', 'jiucai', 'huajiao', 'bohe', 'pangxie', 'xigua', 'biqi', 'shizi'],
+  mensus: ['pangxie', 'xigua', 'biqi', 'shizi', 'geli', 'haidai', 'zicai', 'kugua', 'lvcha', 'xiangjiao'],
+  menopause: ['lajiao', 'huajiao', 'huangjiu']
+};
+/* 软性提示：需要减量或慎用（不阻断，但会进提醒区） */
+const REDUCE = {
+  sugar: ['dazao', 'longyanrou', 'hongtang', 'bintang', 'fengmi', 'putao', 'xigua', 'lizhi', 'shizi', 'hamigua', 'nuomi', 'lizi', 'nangua', 'xiangjiao', 'juzi', 'mihoutao', 'wuhuaguo'],
+  elderly: ['ejiao', 'zhuti', 'nuomi', 'haishen'],
+  tanshi: ['ejiao', 'zhuti', 'nuomi', 'longyanrou', 'dazao', 'haishen'],
+  shire: ['yangrou', 'lajiao', 'huajiao', 'lizhi', 'longyanrou', 'rougui', 'ganjiang', 'hujiao']
+};
+
+/* 不宜加热烹调的条目（只能生食或短时加热）——选入汤粥类方子时剔除 */
+const NO_COOK = ['xigua', 'xiangjiao', 'caomei', 'mihoutao', 'hamigua', 'chengzi', 'youzi', 'ningmeng', 'mangguo', 'putao', 'yangmei', 'boluo', 'shengcai', 'huanggua', 'suannai', 'kafei'];
+
+/* 各剂型的「底料」候选——保证方子能落地成一道具体的菜 */
+const BASE_FOOD = {
+  zhou: ['jingmi', 'xiaomi', 'nuomi', 'yanmai', 'heimi', 'qiaomai', 'hongshu'],
+  dun: ['zhupaigu', 'jirou', 'wuji', 'jiyu', 'luyu', 'niurou', 'yarou', 'gerou', 'zhudu'],
+  zheng: ['niunai', 'jidan', 'yiner', 'baihe'],
+  cha: [], gao: []
+};
+
+/* ========== 工具 ========== */
+const byId = id => ITEMS.find(x => x.id === id);
+function vAdd(a, b, k) { const r = {}; for (const d in a) r[d] = a[d]; for (const d in b) r[d] = (r[d] || 0) + b[d] * (k === undefined ? 1 : k); return r; }
+function dot(a, b) { let s = 0; for (const d in a) if (b[d]) s += a[d] * b[d]; return s; }
+function goalVec(goalIds) {
+  let v = {};
+  goalIds.forEach((gid, i) => {
+    const g = GOALS.find(x => x.id === gid); if (!g) return;
+    v = vAdd(v, g.w, i === 0 ? 1 : 0.62);
+  });
+  return v;
+}
+function ctxInfo(p) {
+  const c = CONSTS.find(x => x.id === p.consti) || CONSTS[0];
+  const s = SEASONS.find(x => x.id === p.season) || SEASONS[0];
+  const r = REGIONS.find(x => x.id === p.region) || REGIONS[2];
+  const a = STAGES.find(x => x.id === p.stage) || STAGES[3];
+  let v = {};
+  v = vAdd(v, c.like, 1.0); v = vAdd(v, s.like, 0.85);
+  v = vAdd(v, r.like, 0.6); v = vAdd(v, a.like, 0.9);
+  let lo = Math.max(c.nat[0], a.nat[0]), hi = Math.min(c.nat[1], a.nat[1]);
+  if (lo > hi) { lo = c.nat[0]; hi = c.nat[1]; }
+  return { v: v, lo: lo, hi: hi, c: c, s: s, r: r, a: a };
+}
+function scoreItem(it, gv, ctx, p) {
+  const base = dot(it.e, gv);
+  const cx = dot(it.e, ctx.v) * 0.30;
+  let s = base + cx;
+  if (it.nat < ctx.lo) s -= (ctx.lo - it.nat) * 1.6;
+  if (it.nat > ctx.hi) s -= (it.nat - ctx.hi) * 1.6;
+  if (it.c && (it.c.indexOf('调料') === 0 || it.c === '饮品')) s *= 0.45;
+  if (it.k === 1) s *= 1.12;
+  return s;
+}
+function isBanned(it, p) {
+  const b = BAN[p.stage] || [];
+  if (b.indexOf(it.id) >= 0) return '人群禁用';
+  if (p.consti === 'shire' && REDUCE.shire.indexOf(it.id) >= 0) return '体质不宜';
+  if (p.stage === 'elder' && REDUCE.elderly.indexOf(it.id) >= 0) return '老年慎用';
+  if (p.goals.indexOf('sugar') >= 0 && REDUCE.sugar.indexOf(it.id) >= 0) return '控糖慎用';
+  if (p.consti === 'tanshi' && REDUCE.tanshi.indexOf(it.id) >= 0) return '痰湿慎用';
+  if ((p.stage === 'infant' || p.stage === 'child') && it.k === 1) {
+    const safe = ['shanyao', 'fulings', 'jineijin', 'shanzha', 'lianzi', 'qianshi', 'dazao', 'baibiandou', 'yiyiren', 'maiya', 'gouqizi', 'heizhima', 'suanzaoren', 'baihe', 'juhua', 'chenpi', 'shengjiang', 'gancao'];
+    if (safe.indexOf(it.id) < 0) return '幼龄不宜';
+  }
+  if (it.w && it.w.indexOf('★') >= 0) {
+    if (p.stage === 'pregnant' && /孕/.test(it.w)) return '孕期禁用';
+    if (p.stage === 'infant' && /婴儿/.test(it.w)) return '婴儿禁用';
+  }
+  return null;
+}
+
+/* ========== 剂型决策（先定剂型，再据此筛料，避免出现「西瓜炖汤」这类错配） ========== */
+function decideForm(gv, p, vn) {
+  const w = gv;
+  const coolish = (w.清热 || 0) + (w.解表 || 0) + (w.利水 || 0) + (w.降脂 || 0) + (w.控糖 || 0) + (w.平肝 || 0);
+  const tonic = (w.滋阴 || 0) + (w.养血 || 0) + (w.益精 || 0);
+  const warm = (w.温阳 || 0) + (w.补气 || 0) + (w.养血 || 0) + (w.益精 || 0) + (w.温中 || 0);
+  const mild = (w.润燥 || 0) + (w.滋阴 || 0) + (w.健脾 || 0) + (w.安神 || 0);
+  const kid = p.stage === 'infant' || p.stage === 'child';
+  const F = id => PROC.find(x => x.id === id);
+  // 婴幼儿与儿童一律走粥，易受纳、易控量
+  if (kid) return F('zhou');
+  // 老人：清润类走粥，温补类走汤
+  if (p.stage === 'elder') return F(tonic > 2 || coolish > 3 ? 'zhou' : (mild >= warm ? 'zhou' : 'dun'));
+  if (p.season === 'winter' && tonic >= 2 && p.goals.length <= 2) return F('dun');
+  if (coolish >= 3 && tonic <= 1) return F('cha');
+  if ((w.消食 || 0) >= 3 || (w.止泻 || 0) >= 3) return F('chaojiao');
+  if (tonic >= 2) return F('dun');
+  // 兜底：温补类先汤后粥，清润调中类先粥后汤；A/B/C 三套轮换剂型，给出不同吃法
+  const order = warm >= mild ? ['dun', 'zhou'] : ['zhou', 'dun'];
+  return F(order[(vn || 0) % order.length]);
+}
+
+/* ========== 用量（药材按药典上限收敛，食材按份量区间） ========== */
+function doseOf(it, role, p, form) {
+  const a = STAGES.find(x => x.id === p.stage) || STAGES[3];
+  const k = a.k;
+  let lo, hi;
+  if (it.k === 1) {
+    const cap = DCAP[it.id] || 15;
+    const R = { 君: [0.75, 1], 臣: [0.5, 0.72], 佐: [0.3, 0.5], 使: [0.18, 0.32] }[role] || [0.3, 0.5];
+    lo = cap * R[0]; hi = cap * R[1];
+  } else {
+    const b = it.base || [30, 120];
+    const R = { 君: [1.0, 1.35], 臣: [0.55, 0.8], 佐: [0.3, 0.45], 使: [0.25, 0.4] }[role] || [0.3, 0.45];
+    lo = b[0] * R[0]; hi = Math.min(b[1], b[0] * 1.6) * R[1];
+    if (it.c && it.c.indexOf('调料') === 0) { lo *= 0.35; hi *= 0.35; }
+    if (it.c === '饮品') { lo = 2; hi = 5; }
+  }
+  lo = Math.max(1, lo * k); hi = Math.max(2, hi * k);
+  const tidy = n => n >= 100 ? Math.round(n / 10) * 10 : n >= 20 ? Math.round(n / 5) * 5 : n >= 5 ? Math.round(n) : Math.round(n * 10) / 10;
+  lo = tidy(lo); hi = tidy(hi);
+  if (lo > hi) { const t = lo; lo = hi; hi = t; }
+  return lo === hi ? lo + ' 克' : lo + '—' + hi + ' 克';
+}
+
+function reasonOf(it, role) {
+  const top = Object.keys(it.e || {}).sort((a, b) => it.e[b] - it.e[a]).slice(0, 2).join('、');
+  if (role === '君') return '直击主证。' + (it.fx || '') + '。以「' + top + '」见长，是本方的核心，不可替代。';
+  if (role === '臣') return '协同增效。' + (it.fx || '') + '，助君药成「' + top + '」之势，并兼顾次要不适。';
+  if (role === '佐') return '佐助与佐制。' + (it.fx || '') + '。既补君臣未及之处，又防全方偏性太过。';
+  return '引经与调和。' + (it.fx || '') + '。和诸味、护中焦，使全方不偏不烈。';
+}
+
+/* ========== 相克与禁忌校验 ========== */
+const CLASH_DIM = { 补气: '补气', 破气: '理气', 温阳: '温阳', 清热: '清热', 收敛: '固涩', 发散: '解表', 止泻: '止泻', 通便: '通便' };
+const CLASH_COND = { 甘温壅滞: ['养血', '滋阴', '温阳'], '活血之品': ['活血'], '回乳之品': ['催乳'], '含糖之品': ['养血', '润燥'], '高嘌呤': [], '钾含量高': [], '酒剂': [] };
+function checkClash(list, p) {
+  const out = [], ids = list.map(x => x.id), eSum = {};
+  list.forEach(x => { for (const d in x.e) eSum[d] = (eSum[d] || 0) + x.e[d]; });
+  RULES.forEach(r => {
+    let hit = false;
+    if (r.items) hit = r.items.some(pair => pair.every(x => ids.indexOf(x) >= 0));
+    if (!hit && r.cond) {
+      const ok = r.cond.split('|').some(cd => p.goals.indexOf(cd) >= 0 || p.consti === cd || p.stage === cd);
+      if (ok) { const need = CLASH_COND[r.a] || []; hit = !need.length || need.some(d => (eSum[d] || 0) > 2); }
+    }
+    if (!hit && !r.items && !r.cond) {
+      const da = CLASH_DIM[r.a], db = CLASH_DIM[r.b];
+      if (da && db && (eSum[da] || 0) >= 3 && (eSum[db] || 0) >= 3) hit = true;
+    }
+    if (hit) out.push(r);
+  });
+  return out;
+}
+
+/* ========== 主流程 ========== */
+function makePlan(p, exclude, vn) {
+  const gv = goalVec(p.goals);
+  const ctx = ctxInfo(p);
+  const g = GOALS.find(x => x.id === p.goals[0]);
+  const form = decideForm(gv, p, vn);
+  const cooking = ['zhou', 'dun', 'zheng', 'gao'].indexOf(form.id) >= 0;
+
+  // 1. 候选池
+  let pool = ITEMS
+    .filter(it => !isBanned(it, p))
+    .filter(it => !(cooking && NO_COOK.indexOf(it.id) >= 0))
+    .filter(it => !(form.id === 'cha' && ((it.c || '').indexOf('畜禽') === 0 || (it.c || '').indexOf('水产') === 0 || (it.c || '').indexOf('谷薯') === 0)))
+    .filter(it => !(exclude && exclude.indexOf(it.id) >= 0))
+    .map(it => ({ it: it, s: scoreItem(it, gv, ctx, p) }))
+    .filter(x => x.s > 0.4)
+    .sort((a, b) => b.s - a.s);
+  if (pool.length < 12) pool = ITEMS.filter(it => !isBanned(it, p)).map(it => ({ it: it, s: scoreItem(it, gv, ctx, p) })).sort((a, b) => b.s - a.s).slice(0, 30);
+
+  const ranked = pool.map(x => x.it);
+  const picked = [], role = {};
+  const pick = n => {
+    const out = [];
+    for (let i = 0; i < ranked.length && out.length < n; i++) {
+      if (picked.indexOf(ranked[i]) >= 0) continue;
+      out.push(ranked[i]); picked.push(ranked[i]);
+    }
+    return out;
+  };
+  const canJun = it => ['水果', '饮品'].indexOf(it.c) < 0 && (it.c || '').indexOf('调料') !== 0;
+
+  // 2. 君 —— 一味药材（或食材）+ 一味底料，共 2 味
+  const jun = [];
+  const top = ranked.find(it => canJun(it) && picked.indexOf(it) < 0);
+  if (top) { jun.push(top); picked.push(top); role[top.id] = '君'; }
+
+  // 底料：让方子落地成一道具体的菜
+  const baseCats = form.id === 'zhou' ? BASE_FOOD.zhou : form.id === 'zheng' ? BASE_FOOD.zheng : (form.id === 'cha' || form.id === 'chaojiao') ? [] : BASE_FOOD.dun;
+  let base = null;
+  if (baseCats.length) {
+    const cand = baseCats.map(byId).filter(Boolean)
+      .filter(x => !isBanned(x, p) && picked.indexOf(x) < 0)
+      .sort((a, b) => (dot(b.e, gv) + dot(b.e, ctx.v) * 0.3) - (dot(a.e, gv) + dot(a.e, ctx.v) * 0.3));
+    if (cand.length) { base = cand[0]; picked.push(base); jun.push(base); role[base.id] = '君'; }
+  }
+  // 君位若只有一味，补一味同类之外的高效食材凑成「一药一食」骨架
+  if (jun.length < 2) {
+    const add = ranked.find(it => picked.indexOf(it) < 0 && canJun(it) && it.k === 2 &&
+      (it.c || '').indexOf('水果') !== 0 && (it.c || '').indexOf('调料') !== 0);
+    if (add) { jun.push(add); picked.push(add); role[add.id] = '君'; }
+  }
+
+  // 3. 臣 —— 3 味，优先与主君不同类
+  const chen = [];
+  for (let i = 0; i < ranked.length && chen.length < 3; i++) {
+    const it = ranked[i];
+    if (picked.indexOf(it) >= 0) continue;
+    if ((it.c || '').indexOf('调料') === 0 && chen.length >= 2) continue;
+    if (['水果', '饮品'].indexOf(it.c) >= 0 && chen.length >= 2) continue;
+    chen.push(it); picked.push(it); role[it.id] = '臣';
+  }
+
+  // 4. 佐 —— 先佐制偏性，再补 1—2 味
+  const zuo = [];
+  const avgAll = a => a.length ? a.reduce((s, x) => s + x.nat, 0) / a.length : 0;
+  let avg = avgAll(jun.concat(chen));
+  let correct = null;
+  if (avg >= 1.6) {
+    correct = ranked.find(x => picked.indexOf(x) < 0 && x.nat <= 0 && (dot(x.e, gv) > 0.8 || ['fulings', 'baihe', 'yiner', 'lugen'].indexOf(x.id) >= 0));
+  } else if (avg <= -1.6) {
+    correct = ['shengjiang', 'dazao', 'chenpi'].map(byId).find(x => x && picked.indexOf(x) < 0 && !isBanned(x, p));
+  }
+  if (correct) { zuo.push(correct); picked.push(correct); role[correct.id] = '佐'; }
+  for (let i = 0; i < ranked.length && zuo.length < 3; i++) {
+    const it = ranked[i];
+    if (picked.indexOf(it) >= 0) continue;
+    if (it.c === '饮品' && zuo.length >= 2) continue;
+    zuo.push(it); picked.push(it); role[it.id] = '佐';
+  }
+
+  // 5. 使 —— 调和 / 引经（排除十八反组合）
+  const shi = [];
+  for (const id of ['gancao', 'dazao', 'shengjiang', 'chenpi', 'fengmi', 'jiegeng', 'heizhima']) {
+    if (shi.length) break;
+    const it = byId(id); if (!it) continue;
+    if (picked.indexOf(it) >= 0 || isBanned(it, p)) continue;
+    if (id === 'gancao' && picked.some(x => ['kunbu', 'haidai', 'zicai'].indexOf(x.id) >= 0)) continue;
+    if (form.id === 'cha' && ['fengmi'].indexOf(id) >= 0) continue;
+    shi.push(it); picked.push(it); role[it.id] = '使';
+  }
+
+  // 6. 组装
+  avg = avgAll(picked);
+  const rows = picked.map(it => ({ it: it, role: role[it.id] || '佐', dose: doseOf(it, role[it.id] || '佐', p, form), why: reasonOf(it, role[it.id] || '佐') }));
+  const order = { 君: 0, 臣: 1, 佐: 2, 使: 3 };
+  rows.sort((a, b) => order[a.role] - order[b.role]);
+
+  // 7. 命名
+  const jn = jun.map(x => x.n);
+  const short = GOAL_SHORT[g.id] || '调养';
+  const fn = { zhou: '粥', dun: '汤', zheng: '蒸盅', chaojiao: '焦香饮', cha: '茶', gao: '膏滋', jiang: '饮' }[form.id] || '汤';
+  let name = (jn[0] || '') + (jn[1] ? jn[1] : '') + short + fn;
+  if (name.length > 10) name = (jn[0] || '') + short + fn;
+
+  const clash = checkClash(picked, p);
+  return {
+    name: name, goal: g, form: form, rows: rows,
+    steps: makeSteps(rows, form, p),
+    usage: makeUsage(form, p, g),
+    fit: makeFit(ctx, p, rows, avg, form),
+    warns: makeWarns(rows, clash, ctx, p, form),
+    clash: clash, avgNat: avg, ctx: ctx
+  };
+}
+
+/* ========== 做法步骤 ========== */
+function makeSteps(rows, form, p) {
+  const A = rows.map(r => r.it);
+  const herbs = A.filter(x => x.k === 1);
+  const foods = A.filter(x => x.k === 2);
+  const seasonings = foods.filter(x => (x.c || '').indexOf('调料') === 0);
+  const meats = foods.filter(x => (x.c || '').indexOf('畜禽') === 0 || (x.c || '').indexOf('水产') === 0);
+  const staples = foods.filter(x => (x.c || '').indexOf('谷薯') === 0 || (x.c || '').indexOf('豆') === 0);
+  const vegs = foods.filter(x => (x.c || '').indexOf('蔬菜') === 0);
+  const fruits = foods.filter(x => x.c === '水果');
+  const mush = foods.filter(x => x.c === '菌菇');
+  const nuts = foods.filter(x => x.c === '坚果');
+  const drinks = foods.filter(x => x.c === '饮品');
+  const AROMA = ['bohe', 'zisus', 'huoxiang', 'sharens', 'gancao_']; // 含挥发油，须后下
+  const later = herbs.filter(x => AROMA.indexOf(x.id) >= 0);
+  const S = [], j = a => a.map(x => x.n).join('、');
+
+  if (herbs.length) {
+    let t = '**备料**：' + j(herbs) + '清水快洗去浮尘。';
+    if (later.length) t += '其中' + j(later) + '含挥发油，另放一旁，留到最后 3—5 分钟再下锅，久煎则有效成分随水汽散尽。';
+    if (herbs.some(h => ['suanzaoren', 'hetao', 'heizhima'].indexOf(h.id) >= 0)) t += '酸枣仁、核桃、芝麻一类宜先捣碎，有效成分才出得来。';
+    S.push(t);
+  }
+  if (mush.length) S.push('**泡发**：' + j(mush) + '冷水泡发 1—2 小时，去蒂撕小朵。木耳与银耳泡发不要超过 4 小时、更不能过夜——变质产生的米酵菌酸耐高温，煮不透也去不掉。');
+  if (nuts.length) S.push('**处理坚果**：' + j(nuts) + '小火炒香后稍碾碎，更出味也更好吸收。');
+  if (meats.length && form.id !== 'cha') S.push('**焯水去腥**：' + j(meats) + '冷水下锅，加姜 2 片，水沸后撇净浮沫捞出，温水冲净。这一步去腥去血沫，也去掉一部分嘌呤与油脂。');
+  if (staples.length) S.push('**米谷处理**：' + j(staples) + '淘洗后' + (form.id === 'zhou' ? '浸泡 30 分钟，开水下锅更易熬出米油' : '沥干备用') + '。');
+
+  if (form.id === 'zhou') {
+    S.push('**入锅**：' + j(staples.concat(meats, mush, herbs)) + '一同下砂锅，加水约 8—10 倍量（喜欢稀一点就多加两碗）。');
+    S.push('**火候**：大火烧开，转小火慢熬 40—60 分钟，中途搅动 2—3 次防糊底，熬到米粒开花、粥面浮起一层「米油」为佳——这层米油最养脾胃。');
+    if (vegs.length || fruits.length) S.push('**后下**：' + j(vegs.concat(fruits)) + '起锅前 8—10 分钟放入，久煮会失其性味与营养。');
+  } else if (form.id === 'dun') {
+    S.push('**入锅**：焯好的' + (meats.length ? j(meats) : j(herbs)) + (herbs.length && meats.length ? '与' + j(herbs) : '') + (mush.length ? '、' + j(mush) : '') + '同入砂锅，加水没过食材约 3 厘米。');
+    S.push('**火候**：大火煮沸撇净浮沫，转最小火保持微沸，加盖慢炖 1.5 小时（老鸡、猪蹄可延至 2—2.5 小时）。中途尽量不揭盖、不加冷水——加冷水会让肉质骤缩、鲜味锁住出不来。');
+    if (vegs.length) S.push('**后下**：' + j(vegs) + '起锅前 15 分钟放入。');
+    if (fruits.length) S.push('**后下**：' + j(fruits) + '起锅前 5 分钟放入，取其清香即可。');
+  } else if (form.id === 'zheng') {
+    S.push('**装盅**：' + j(foods.concat(herbs)) + '放入炖盅，加水至八分满。');
+    S.push('**隔水蒸**：蒸锅上汽后放入，隔水蒸 25—35 分钟。隔水蒸受热均匀温和，最能保留原味与不耐热的营养成分。');
+  } else if (form.id === 'cha') {
+    S.push('**冲泡**：' + j(herbs.concat(drinks)) + '放入保温杯或有盖容器，注入 90℃ 以上沸水 300—500 毫升。');
+    S.push('**焖泡**：加盖焖 10—15 分钟。' + (later.length ? j(later) + '在最后 3—5 分钟再放。' : ''));
+    S.push('**续饮**：可续水 2—3 次，当日饮完不留隔夜。');
+  } else if (form.id === 'chaojiao') {
+    S.push('**炒制**：' + j(herbs.concat(staples)) + '入净锅，小火慢炒 6—10 分钟至表面微黄、透出焦香，切勿炒黑焦化。');
+    S.push('**煎服**：取炒好的材料加水 500 毫升，小火煎 15—20 分钟，取汁温服，渣亦可食。');
+  } else {
+    S.push('**同煮**：' + j(foods.concat(herbs)) + '入锅，加水没过食材，大火煮沸后转小火 30—40 分钟。');
+  }
+  if (later.length && form.id !== 'cha') S.push('**后下**：' + j(later) + '在起锅前 3—5 分钟放入。');
+  if (seasonings.length) S.push('**调味**：起锅前放入' + j(seasonings) + '。盐务必最后放、少量放——过早放盐会使肉质变紧、汤味发柴。');
+  S.push('**服用**：' + (form.id === 'cha' ? '温热频饮，不拘时。' : '温热服食，汤与料同食——药效约三成在汤、七成在料，只喝汤不吃料是常见的浪费。'));
+  return S;
+}
+
+/* ========== 服法与疗程 ========== */
+function makeUsage(form, p, g) {
+  const a = STAGES.find(x => x.id === p.stage) || STAGES[3];
+  let t;
+  if (['sleep', 'yin', 'blood', 'liver'].indexOf(g.id) >= 0) t = '建议睡前 1—2 小时温服，或作晚间加餐';
+  else if (['digest', 'lipid', 'sugar', 'damp', 'bowel'].indexOf(g.id) >= 0) t = '建议随餐或餐后 30 分钟内服';
+  else if (['qi', 'immune', 'spleen', 'yang', 'kidney', 'bone', 'brain', 'grow', 'stop'].indexOf(g.id) >= 0) t = '建议上午 9—11 点（脾经当令）或早餐时服，此时脾胃运化最旺，补益最易受纳';
+  else if (g.id === 'cold') t = '趁热服下，服后微卧盖被取微汗即止，切忌大汗伤阳';
+  else t = '日间温服即可，避免与浓茶、咖啡同服';
+
+  const fr = form.id === 'cha' ? '每日 1 剂，代茶频饮' : form.id === 'gao' ? '每日早晚各 1 匙（约 10 克），温水化开' : '每日 1 次，作正餐或加餐';
+  const co = form.id === 'cha' ? '连饮 3—5 天为一小周期，症状缓解后改为每周 2—3 次'
+    : form.id === 'gao' ? '连服 2—4 周为一疗程'
+      : '连服 5—7 天为一小周期，见效后改为每周 2—3 次维持';
+  let note;
+  if (a.id === 'infant' || a.id === 'child') note = '儿童用量已按年龄折算。初次只给少量试食，观察 2 天无皮疹、无腹泻再加量。';
+  else if (a.id === 'elder') note = '老年人脾胃受纳有限，宁可量少常服、不可一次求足。出现腹胀、食欲下降、大便变稀，说明脾胃接不住，应减量或暂停。';
+  else if (a.id === 'pregnant') note = '孕期以「平和」为第一原则，本方已剔除活血、滑利、辛燥之品。产检时仍建议同步告知医生你的食疗安排。';
+  else if (a.id === 'postpartum' || a.id === 'lactation') note = '产后与哺乳期最忌生冷。汤宜温热喝，水果可热水烫过再吃。';
+  else note = '以「吃了舒服、吃完精神好、大便成形」为有效信号。若出现腹胀、口干、上火、便溏，说明不对证，应当停下来调整。';
+  return { time: t, freq: fr, course: co, note: note };
+}
+
+/* ========== 四维适配说明 ========== */
+function makeFit(ctx, p, rows, avgNat, form) {
+  const out = [];
+  const c = ctx.c, s = ctx.s, r = ctx.r, a = ctx.a;
+  if (c.id !== 'ping') out.push({ k: '体质 · ' + c.n, t: c.tips, w: c.warn });
+  out.push({ k: '时令 · ' + s.full, t: s.tips, w: s.warn, q: s.quote });
+  out.push({ k: '地域 · ' + r.n + '（' + r.z + '）', t: r.tips, w: r.warn });
+  out.push({ k: '人群 · ' + a.n, t: a.tips, w: a.warn });
+  let bal;
+  if (avgNat > 1.2) bal = '本方整体偏温（平均药性 ' + avgNat.toFixed(1) + '，区间 −3 极寒 至 +3 大热），适合畏寒、喜暖、遇寒加重一类表现。若服后口干、咽痛、长痘，说明偏温了——减辛温之料，加一味百合或银耳即可纠偏。';
+  else if (avgNat < -1.2) bal = '本方整体偏凉（平均药性 ' + avgNat.toFixed(1) + '），适合热象明显者。若服后胃脘发凉、大便变稀，加生姜 2—3 片同煮以护中阳。';
+  else bal = '本方寒热不偏（平均药性 ' + avgNat.toFixed(1) + '），可作日常调养长期轮换。';
+  out.push({ k: '方性评估', t: bal });
+  out.push({ k: '为什么用「' + form.n + '」', t: form.d + '。' + form.fit + '，全程约 ' + form.time + '。' + (form.id === 'zhou' ? '粥最养胃气，米油一层是脾胃虚弱者的「代参汤」。' : form.id === 'dun' ? '久炖使肉质酥烂、精华入汤，虚证与恢复期最易受纳。' : form.id === 'cha' ? '轻清上扬，取其气而不取其味，清热解表最宜，且不宜久煎。' : form.id === 'zheng' ? '隔水温和受热，原味与不耐热营养保留最完整。' : form.id === 'chaojiao' ? '炒出焦香即入脾，消食止泻之力倍增，这是「焦三仙」的原理。' : '') });
+  return out;
+}
+
+/* ========== 禁忌与提醒 ========== */
+function makeWarns(rows, clash, ctx, p, form) {
+  const w = [];
+  clash.forEach(r => w.push({ lv: r.lv, t: r.t }));
+  rows.forEach(r => { if (r.it.w && r.it.w.indexOf('★') >= 0) w.push({ lv: 1, t: '【' + r.it.n + '】' + r.it.w.replace(/★/g, '') }); });
+  const gp = ['zhupaigu', 'jirou', 'wuji', 'yangrou', 'niurou', 'zhuti', 'zhugan', 'haishen', 'xia', 'pangxie', 'xianggu', 'houtougu', 'gerou'];
+  if (rows.some(r => gp.indexOf(r.it.id) >= 0)) w.push({ lv: 1, t: '本方含中高嘌呤食材。高尿酸或痛风者宜弃汤食料，并把频次降到每周 1 次以内。' });
+  if (rows.some(r => r.it.k === 1)) w.push({ lv: 1, t: '本方含药食同源药材。若你正在服用抗凝药（华法林等）、降压药、降糖药、他汀类降脂药或免疫抑制剂，入膳前请咨询医师或药师——当归、丹参、银杏、生姜会增强抗凝作用，西柚会影响他汀代谢，甘草长期大量可升高血压。' });
+  if (p.stage === 'infant') w.push({ lv: 2, t: '1 岁以下婴儿的食谱以母乳/配方奶为主，本方仅作辅食参考，且必须逐样单独添加、观察 3 天。' });
+  if (p.stage === 'pregnant') w.push({ lv: 2, t: '孕期任何药材入膳都建议先经产科医生确认。本方已剔除孕期禁用条目，但个体差异大，不可因「食补」二字而放松警惕。' });
+  w.push({ lv: 1, t: '本方案为食养建议，不构成医疗诊断，也不能替代处方。若症状持续两周以上，或伴有发热、明显消瘦、便血、剧烈疼痛、黄疸等「报警症状」，请及时就医。' });
+  return w;
+}
+
+/* ========== 对外入口 ========== */
+function generate(p) {
+  const A = makePlan(p, null, 0);
+  const aJun = A.rows.filter(r => r.role === '君').map(r => r.it.id);
+  const B = makePlan(p, aJun, 1);
+  const bJun = B.rows.filter(r => r.role === '君').map(r => r.it.id);
+  const C = makePlan(p, aJun.concat(bJun), 2);
+  const seen = {}, out = [];
+  [A, B, C].forEach((pl, i) => {
+    const sig = pl.rows.map(r => r.it.id).sort().join(',');
+    if (seen[sig]) return;
+    seen[sig] = 1;
+    pl.tag = ['方案 A · 主推', '方案 B · 换主材', '方案 C · 备选'][i] || ('方案 ' + String.fromCharCode(65 + i));
+    out.push(pl);
+  });
+  return out;
+}
+
+/* ===== 05_ui.js ===== */
+/* 当家食神 · 界面与交互 */
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+
+  /* ---------- 状态 ---------- */
+  var SEASON_BY_MONTH = { 1: 'winter', 2: 'spring', 3: 'spring', 4: 'spring', 5: 'summer', 6: 'summer', 7: 'summer', 8: 'lateSummer', 9: 'autumn', 10: 'autumn', 11: 'winter', 12: 'winter' };
+  var S = { goals: ['qi'], consti: 'ping', season: SEASON_BY_MONTH[new Date().getMonth() + 1] || 'autumn', region: 'huadong', stage: 'adult', page: 1, results: null, tab: 0 };
+  var HIST = [];
+  try { var h = localStorage.getItem('djs_history'); if (h) HIST = JSON.parse(h); } catch (e) { }
+  try { var sv = localStorage.getItem('djs_profile'); if (sv) { var o = JSON.parse(sv); for (var k in o) if (S[k] !== undefined && k !== 'results' && k !== 'tab') S[k] = o[k]; } } catch (e) { }
+  function save() {
+    try {
+      localStorage.setItem('djs_profile', JSON.stringify({ goals: S.goals, consti: S.consti, season: S.season, region: S.region, stage: S.stage }));
+      localStorage.setItem('djs_history', JSON.stringify(HIST.slice(0, 40)));
+    } catch (e) { }
+  }
+
+  /* ---------- 底部导航 ---------- */
+  var TABS = [
+    { n: '开方', p: '<path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>' },
+    { n: '食材库', p: '<path d="M4 5h6v14H4zM14 5h6v14h-6z" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M4 9h6M14 9h6" stroke="currentColor" stroke-width="1.3"/>' },
+    { n: '配伍宜忌', p: '<path d="M12 3l8 4v6c0 4.5-3.4 7.4-8 8.5-4.6-1.1-8-4-8-8.5V7z" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M9 12l2.2 2.2L15.5 10" stroke="currentColor" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { n: '我的', p: '<circle cx="12" cy="8" r="3.6" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>' }
+  ];
+  function renderTabs() {
+    $('#tabbar').innerHTML = TABS.map(function (t, i) {
+      return '<div class="tb-i' + (S.page === i + 1 ? ' on' : '') + '" data-p="' + (i + 1) + '"><svg width="21" height="21" viewBox="0 0 24 24">' + t.p + '</svg><span>' + t.n + '</span></div>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('.tb-i'), function (el) {
+      el.onclick = function () { go(+this.getAttribute('data-p')); };
+    });
+  }
+  function go(p) {
+    S.page = p;
+    ['pg1', 'pg2', 'pg3', 'pg4'].forEach(function (id, i) { $('#' + id).className = 'pg' + (i + 1 === p ? ' on' : ''); });
+    renderTabs();
+    window.scrollTo(0, 0);
+    if (p === 2) renderLib(); if (p === 3) renderRules(); if (p === 4) renderMe();
+  }
+
+  /* ---------- 通用小组件 ---------- */
+  function natClass(v) { return v <= -3 ? 'c' : v === -2 ? 'cc' : v === -1 ? 'cw' : v === 0 ? 'p' : v === 1 ? 'ww' : v === 2 ? 'h' : 'hh'; }
+  function profRow(label, list, key) {
+    return '<div class="prof" data-k="' + key + '">' + list.map(function (o) {
+      return '<div class="prof-i' + (S[key] === o.id ? ' on' : '') + '" data-v="' + o.id + '"><div class="prof-l">' + label + '</div><div class="prof-v">' + esc(o.n.split('（')[0].split('·')[0]) + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  /* ================= 页面一 · 开方 ================= */
+  function renderForm() {
+    var g = GOALS.map(function (o) {
+      var i = S.goals.indexOf(o.id);
+      return '<div class="chip' + (i >= 0 ? ' on' : '') + (i === 0 ? '' : '') + '" data-g="' + o.id + '">' + esc(o.n) + '</div>';
+    }).join('');
+    var h = '';
+    h += '<div class="cd"><div class="sec-t"><i></i>第一步 · 想解决什么</div><div class="sec-d">最多选 3 个。排在第一位的为主诉求，配方的君药将围绕它定。</div><div class="chips" id="goals">' + g + '</div></div>';
+    h += '<div class="cd"><div class="sec-t"><i></i>第二步 · 你是谁、在哪、什么时节</div><div class="sec-d">这四项决定同一张方子的加减走向——同是健脾，痰湿质与阴虚质用的东西完全不同。</div>';
+    h += '<div style="margin-bottom:10px">' + profRow('体质', CONSTS, 'consti') + '</div>';
+    h += '<div style="margin-bottom:10px">' + profRow('时令', SEASONS, 'season') + '</div>';
+    h += '<div style="margin-bottom:10px">' + profRow('地域', REGIONS, 'region') + '</div>';
+    h += profRow('人群', STAGES, 'stage') + '</div>';
+    h += '<button class="btn" id="gen">生 成 食 养 方</button>';
+    h += '<div class="hint">共收录 ' + ITEMS.length + ' 条目（药食同源药材 95 味 / 食材 ' + ITEMS.filter(function (x) { return x.k === 2; }).length + ' 种），按君臣佐使实时组方</div>';
+    h += '<div id="out"></div>';
+    h += '<div class="disclaimer">本工具依据《黄帝内经》《中国药典》及国家《既是食品又是中药材的物质目录》的公开记载构建，输出的是<b>食养建议</b>，不构成医疗诊断或处方。孕期、哺乳期、慢病用药人群及儿童，入膳前请咨询医师或药师。</div>';
+    $('#pg1').innerHTML = h;
+
+    [].forEach.call(document.querySelectorAll('#goals .chip'), function (el) {
+      el.onclick = function () {
+        var id = this.getAttribute('data-g'), i = S.goals.indexOf(id);
+        if (i >= 0) { if (S.goals.length > 1) S.goals.splice(i, 1); }
+        else { if (S.goals.length >= 3) { toast('最多选 3 个诉求'); return; } S.goals.push(id); }
+        save(); renderForm();
+      };
+    });
+    [].forEach.call(document.querySelectorAll('#pg1 .prof'), function (p) {
+      var key = p.getAttribute('data-k');
+      [].forEach.call(p.querySelectorAll('.prof-i'), function (el) {
+        el.onclick = function () { S[key] = this.getAttribute('data-v'); save(); renderForm(); };
+      });
+    });
+    $('#gen').onclick = function () {
+      S.results = generate({ goals: S.goals, consti: S.consti, season: S.season, region: S.region, stage: S.stage });
+      S.tab = 0;
+      var cd = CONSTS.filter(function (x) { return x.id === S.consti; })[0];
+      HIST.unshift({ t: Date.now(), g: S.goals.map(function (id) { var o = GOALS.filter(function (y) { return y.id === id; })[0]; return o ? o.n : id; }), c: cd ? cd.n : '', s: S.results[0].name });
+      HIST = HIST.slice(0, 40); save();
+      renderOut();
+      setTimeout(function () { var e = document.getElementById('out'); if (e) window.scrollTo({ top: e.offsetTop - 10, behavior: 'smooth' }); }, 60);
+    };
+    if (S.results) renderOut();
+  }
+
+  function renderOut() {
+    if (!S.results) return;
+    var h = '<div class="tabs">' + S.results.map(function (p, i) {
+      return '<div class="tab' + (S.tab === i ? ' on' : '') + '" data-t="' + i + '">' + esc(p.tag.replace('方案 ', '')) + '</div>';
+    }).join('') + '</div>';
+    h += planHTML(S.results[S.tab]);
+    h += '<button class="btn-o" id="regen">换一组配方</button>';
+    $('#out').innerHTML = h;
+    [].forEach.call(document.querySelectorAll('#out .tab'), function (el) {
+      el.onclick = function () { S.tab = +this.getAttribute('data-t'); renderOut(); };
+    });
+    $('#regen').onclick = function () {
+      S.results = generate({ goals: S.goals, consti: S.consti, season: S.season, region: S.region, stage: S.stage, seed: Math.random() });
+      renderOut();
+    };
+  }
+
+  function planHTML(P) {
+    var ROLE_D = { 君: '针对主证的核心，用量最大、不可替代', 臣: '辅助君药加强疗效，或兼顾次要症状', 佐: '佐助、佐制，或反佐防偏', 使: '引经报使、调和诸味' };
+    var h = '<div class="rx"><div class="rx-h"><div class="rx-n">' + esc(P.name) + '</div>';
+    h += '<div><span class="rx-m">' + esc(P.tag) + '</span> <span class="rx-m">' + esc(P.form.n) + ' · ' + esc(P.form.time) + '</span> <span class="rx-m">' + esc(P.form.fit) + '</span></div>';
+    h += '<div class="rx-g">主治：<b>' + esc(P.goal.n) + '</b>——' + esc(P.goal.d) + '。证型归属：' + esc(P.goal.c) + '。</div></div>';
+
+    ['君', '臣', '佐', '使'].forEach(function (r) {
+      var rows = P.rows.filter(function (x) { return x.role === r; });
+      if (!rows.length) return;
+      h += '<div class="role"><div class="role-h"><span class="role-b ' + r + '">' + r + '</span><span class="role-d">' + ROLE_D[r] + '</span></div>';
+      rows.forEach(function (x) {
+        h += '<div class="role-i"><div class="ri-1"><span class="ri-n">' + esc(x.it.n) + '</span><span class="ri-d">' + esc(x.dose) + '</span>';
+        h += '<span class="ri-t">' + esc(x.it.c) + (x.it.k === 1 ? (x.it.lv === 3 ? ' · 试点/保健品可用' : ' · 药食同源') : '') + '</span>';
+        h += '<span class="ri-t ' + natClass(x.it.nat) + '">' + natTxt(x.it.nat) + ' · ' + esc(x.it.fl.join('')) + '</span></div>';
+        h += '<div class="ri-c">归' + esc(x.it.me.join('、')) + '经</div>';
+        h += '<div class="ri-w">' + esc(x.why) + '</div></div>';
+      });
+      h += '</div>';
+    });
+
+    h += '<div class="blk-t">做法</div><div class="steps">' + P.steps.map(function (s) {
+      return '<div class="step">' + esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</div>';
+    }).join('') + '</div>';
+
+    h += '<div class="blk-t">怎么吃 · 吃多久</div><div class="us">';
+    h += '<div class="us-i"><div class="us-l">服用时间</div><div class="us-v">' + esc(P.usage.time) + '</div></div>';
+    h += '<div class="us-i"><div class="us-l">频次</div><div class="us-v">' + esc(P.usage.freq) + '</div></div>';
+    h += '<div class="us-i"><div class="us-l">疗程</div><div class="us-v">' + esc(P.usage.course) + '</div></div></div>';
+    h += '<div class="fit"><div class="fit-t">' + esc(P.usage.note) + '</div></div>';
+
+    h += '<div class="blk-t">为什么这样配 · 因时因地因人</div>';
+    P.fit.forEach(function (f) {
+      h += '<div class="fit"><div class="fit-k">' + esc(f.k) + '</div><div class="fit-t">' + esc(f.t) + '</div>';
+      if (f.q) h += '<div class="fit-q">' + esc(f.q) + '</div>';
+      if (f.w) h += '<div class="fit-w">注意：' + esc(f.w) + '</div>';
+      h += '</div>';
+    });
+
+    h += '<div class="blk-t">禁忌与提醒</div>';
+    P.warns.forEach(function (w) { h += '<div class="wn wn' + (w.lv === 2 ? '2' : w.lv === 1 ? '1' : '0') + '">' + esc(w.t).replace(/【(.+?)】/g, '【$1】') + '</div>'; });
+
+    h += '</div>';
+    return h;
+  }
+
+  /* ================= 页面二 · 食材库 ================= */
+  var LQ = '', LC = 'all';
+  var CATS = [['all', '全部'], ['药食同源', '药食同源'], ['谷薯', '谷薯'], ['豆', '豆类'], ['蔬菜', '蔬菜'], ['水果', '水果'], ['畜禽', '畜禽蛋奶'], ['水产', '水产'], ['菌菇', '菌菇'], ['坚果', '坚果'], ['调料', '调料'], ['饮品', '饮品']];
+  function renderLib() {
+    var h = '<div class="cd"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+      '<input id="q" placeholder="搜食材 / 药材 / 功效，如「祛湿」「山药」" value="' + esc(LQ) + '"></div><div class="filt">' +
+      CATS.map(function (c) { return '<div class="chip sm' + (LC === c[0] ? ' on' : '') + '" data-c="' + c[0] + '">' + esc(c[1]) + '</div>'; }).join('') + '</div></div>';
+    h += '<div class="cd" id="list"></div>';
+    $('#pg2').innerHTML = h;
+    $('#q').oninput = function () { LQ = this.value; drawList(); };
+    [].forEach.call(document.querySelectorAll('#pg2 .chip[data-c]'), function (el) {
+      el.onclick = function () { LC = this.getAttribute('data-c'); renderLib(); var i = document.getElementById('q'); if (i) i.focus(); };
+    });
+    drawList();
+  }
+  function drawList() {
+    var q = LQ.trim();
+    // 语义检索：查询词命中某个功能目标（如「祛湿」→ 化湿/利水/健脾）时，改按功效维度匹配
+    var gv = null, gname = '';
+    if (q) {
+      var hit = GOALS.filter(function (g) {
+        if (g.n.indexOf(q) >= 0 || g.c.indexOf(q) >= 0 || g.d.indexOf(q) >= 0) return true;
+        var kw = (GOAL_KW[g.id] || '').split(' ');
+        return kw.some(function (k) { return k && (q.indexOf(k) >= 0 || k.indexOf(q) >= 0); });
+      });
+      if (hit.length) { gv = {}; hit.forEach(function (g) { for (var d in g.w) gv[d] = (gv[d] || 0) + g.w[d]; }); gname = hit[0].n; }
+    }
+    var dsum = function (e) { var s = 0; if (!gv) return 0; for (var d in gv) if (e[d]) s += e[d] * gv[d]; return s; };
+    var arr = ITEMS.filter(function (x) {
+      if (LC === '药食同源') { if (x.k !== 1) return false; }
+      else if (LC !== 'all' && (x.c || '').indexOf(LC) !== 0 && x.c !== LC) return false;
+      if (!q) return true;
+      var s = x.n + x.c + x.fx + x.me.join('') + x.fl.join('') + Object.keys(x.e).join('');
+      return s.indexOf(q) >= 0 || (gv ? dsum(x.e) >= 4 : false);
+    });
+    if (gv) arr.sort(function (a, b) { return dsum(b.e) - dsum(a.e); });
+    else arr.sort(function (a, b) { return (b.k === 1 ? 1 : 0) - (a.k === 1 ? 1 : 0) || a.n.length - b.n.length; });
+
+    var el = document.getElementById('list');
+    if (!el) return;
+    if (!arr.length) { el.innerHTML = '<div class="empty">没找到「' + esc(q) + '」<br>换个关键词试试，比如「健脾」「安神」「祛湿」</div>'; return; }
+    var head = gv ? '<div class="sec-t"><i></i>按「' + esc(gname) + '」相关功效排序 · ' + arr.length + ' 条</div>'
+      : '<div class="sec-t"><i></i>共 ' + arr.length + ' 条</div>';
+    el.innerHTML = head + arr.slice(0, 150).map(function (x) {
+      var tag = x.k === 1 ? (x.lv === 3 ? '<em style="background:#b8892b">试点</em>' : '<em>药食同源</em>') : '';
+      return '<div class="it" data-id="' + x.id + '"><div class="it-l"><div class="it-n">' + esc(x.n) + tag + '</div>' +
+        '<div class="it-m">' + esc(x.c) + ' · 归' + esc(x.me.join('、')) + '经</div>' +
+        '<div class="it-f">' + esc(x.fx) + '</div></div>' +
+        '<span class="nat ' + natClass(x.nat) + '">' + natTxt(x.nat) + '</span></div>';
+    }).join('') + (arr.length > 150 ? '<div class="hint">仅显示前 150 条，请用上方分类或关键词缩小范围</div>' : '');
+    [].forEach.call(el.querySelectorAll('.it'), function (r) {
+      r.onclick = function () { openSheet(this.getAttribute('data-id')); };
+    });
+  }
+  function openSheet(id) {
+    var x = ITEMS.filter(function (y) { return y.id === id; })[0]; if (!x) return;
+    var h = '<div class="sh-x"><span id="cls">×</span></div>';
+    h += '<div class="sh-n">' + esc(x.n) + '</div><div class="sh-t">';
+    h += '<span class="tg r">' + natTxt(x.nat) + '</span><span class="tg">' + esc(x.fl.join('、')) + '</span>';
+    h += '<span class="tg g">归' + esc(x.me.join('、')) + '经</span>';
+    h += '<span class="tg y">' + esc(x.c) + '</span>';
+    if (x.k === 1) h += '<span class="tg r">' + (x.lv === 3 ? '试点 / 保健食品可用' : '国家药食同源目录') + '</span>';
+    h += '</div>';
+    h += '<div class="kv"><div class="kv-k">功能</div><div class="kv-v"><b>' + esc(x.fx) + '</b></div></div>';
+    h += '<div class="kv"><div class="kv-k">功效侧重</div><div class="kv-v"><div class="ef">' + Object.keys(x.e).sort(function (a, b) { return x.e[b] - x.e[a]; }).map(function (d) {
+      return '<span>' + esc(d) + ' ' + '●'.repeat(Math.min(3, x.e[d])) + '</span>';
+    }).join('') + '</div></div></div>';
+    if (x.base) h += '<div class="kv"><div class="kv-k">常用量</div><div class="kv-v">' + (x.k === 1 ? '入膳 ' : '入膳 ') + x.base[0] + '—' + x.base[1] + (x.k === 1 ? ' 克（干品）' : ' 克') + '</div></div>';
+    h += '<div class="kv"><div class="kv-k">使用注意</div><div class="kv-v">' + (x.w ? esc(x.w.replace(/★/g, '⚠ ')) : '按常规用量食用，无特殊禁忌记载。') + '</div></div>';
+    // 相关配伍
+    var rel = RULES.filter(function (r) { return r.items && r.items.some(function (p) { return p.indexOf(id) >= 0; }); });
+    if (rel.length) {
+      h += '<div class="blk-t">相关配伍宜忌</div>';
+      rel.forEach(function (r) { h += '<div class="rule lv' + r.lv + '"><div class="rule-h">' + (r.lv === 2 ? '不宜同用' : '需注意') + '：' + esc(r.a) + ' × ' + esc(r.b) + '</div><div class="rule-b">' + esc(r.t) + '</div></div>'; });
+    }
+    $('#sheet').innerHTML = h;
+    $('#mask').className = 'mask on';
+    $('#cls').onclick = closeSheet;
+  }
+  function closeSheet() { $('#mask').className = 'mask'; }
+  $('#mask').onclick = function (e) { if (e.target === this) closeSheet(); };
+
+  /* ================= 页面三 · 配伍宜忌 ================= */
+  function renderRules() {
+    var h = '<div class="cd"><div class="sec-t"><i></i>性味相克与配伍禁忌</div><div class="sec-d">方子生成时会自动跑一遍这些规则。红色为「不宜同用」，黄色为「需注意或减量」。</div>';
+    RULES.forEach(function (r) {
+      h += '<div class="rule lv' + r.lv + '"><div class="rule-h">' + esc(r.a) + ' × ' + esc(r.b) + '　<span style="font-weight:400;color:var(--ink3);font-size:11.5px">' + (r.lv === 2 ? '不宜同用' : '需留意') + '</span></div><div class="rule-b">' + esc(r.t) + '</div></div>';
+    });
+    h += '</div>';
+
+    h += '<div class="cd"><div class="sec-t"><i></i>九种体质速查</div>';
+    CONSTS.forEach(function (c) {
+      h += '<div class="fit" style="background:' + (c.id === S.consti ? 'var(--red-l)' : 'var(--green-l)') + '"><div class="fit-k" style="color:' + (c.id === S.consti ? 'var(--red)' : 'var(--green)') + '">' + esc(c.n) + '　<span style="font-weight:400;font-size:11.5px;color:var(--ink3)">' + esc(c.d) + '</span></div>';
+      h += '<div class="fit-t">' + esc(c.tips) + '</div><div class="fit-w">' + esc(c.warn) + '</div></div>';
+    });
+    h += '</div>';
+
+    h += '<div class="cd"><div class="sec-t"><i></i>四季养生要点</div>';
+    SEASONS.forEach(function (s) {
+      h += '<div class="fit" style="background:' + (s.id === S.season ? 'var(--gold-l)' : '#faf8f4') + '"><div class="fit-k" style="color:var(--gold)">' + esc(s.full) + '　<span style="font-weight:400;font-size:11.5px;color:var(--ink3)">' + esc(s.d) + '</span></div>';
+      h += '<div class="fit-q">' + esc(s.quote) + '</div><div class="fit-t">' + esc(s.tips) + '</div><div class="fit-w">' + esc(s.warn) + '</div></div>';
+    });
+    h += '</div>';
+
+    h += '<div class="cd"><div class="sec-t"><i></i>加工手法如何改变食性</div><div class="sec-d">同一味食材，做法不同，走向可能相反。</div>';
+    PROC.forEach(function (p) {
+      h += '<div class="kv"><div class="kv-k" style="width:58px"><b>' + esc(p.n) + '</b></div><div class="kv-v">' + esc(p.d) + '<br><span style="color:var(--ink3);font-size:12px">适合：' + esc(p.fit) + '　耗时：' + esc(p.time) + '</span></div></div>';
+    });
+    h += '</div>';
+    $('#pg3').innerHTML = h;
+  }
+
+  /* ================= 页面四 · 我的 ================= */
+  function renderMe() {
+    var c = CONSTS.filter(function (x) { return x.id === S.consti; })[0] || CONSTS[0];
+    var s = SEASONS.filter(function (x) { return x.id === S.season; })[0] || SEASONS[0];
+    var r = REGIONS.filter(function (x) { return x.id === S.region; })[0] || REGIONS[0];
+    var a = STAGES.filter(function (x) { return x.id === S.stage; })[0] || STAGES[3];
+    var h = '<div class="cd"><div class="sec-t"><i></i>我的食养档案</div>';
+    h += '<div class="rowline"><div><div style="font-size:14px;font-weight:600">' + esc(c.n) + '</div><div class="it-m">' + esc(c.d) + '</div></div><span class="tg r">体质</span></div>';
+    h += '<div class="rowline"><div><div style="font-size:14px;font-weight:600">' + esc(s.full) + '</div><div class="it-m">' + esc(s.d) + '</div></div><span class="tg y">时令</span></div>';
+    h += '<div class="rowline"><div><div style="font-size:14px;font-weight:600">' + esc(r.n) + ' · ' + esc(r.z) + '</div><div class="it-m">' + esc(r.d) + '</div></div><span class="tg g">地域</span></div>';
+    h += '<div class="rowline"><div><div style="font-size:14px;font-weight:600">' + esc(a.n) + '</div><div class="it-m">' + esc(a.d) + '</div></div><span class="tg">人群</span></div>';
+    h += '<button class="btn g" id="go1" style="margin-top:12px">去调整档案</button></div>';
+
+    h += '<div class="cd"><div class="sec-t"><i></i>最近生成的方子</div>';
+    if (!HIST.length) h += '<div class="empty"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M6 4h9l4 4v12H6z" stroke="currentColor" stroke-width="1.5"/><path d="M9 12h7M9 16h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div>还没有记录，去「开方」生成第一个方子</div></div>';
+    else HIST.slice(0, 12).forEach(function (x) {
+      var d = new Date(x.t);
+      h += '<div class="hist"><div class="hist-n">' + esc(x.s) + '</div><div class="hist-m">' + esc(x.g.join(' + ')) + ' · ' + esc(x.c) + ' · ' + (d.getMonth() + 1) + '/' + d.getDate() + '</div></div>';
+    });
+    if (HIST.length) h += '<button class="btn-o" id="clr" style="border-color:var(--ink3);color:var(--ink3)">清空历史记录</button>';
+    h += '</div>';
+
+    h += '<div class="cd"><div class="sec-t"><i></i>关于这套方法</div><div class="kv"><div class="kv-k">理论依据</div><div class="kv-v">组方遵循《神农本草经》「君臣佐使」与《黄帝内经》「春夏养阳、秋冬养阴」「司岁备物」之法；体质分类采用中华中医药学会《中医体质分类与判定》九种体质标准。</div></div>';
+    h += '<div class="kv"><div class="kv-k">数据来源</div><div class="kv-v">性味归经与功效取自《中华人民共和国药典（2020 版）》与高等中医药院校教材《中药学》；食药同源范围依据国家卫生健康委《既是食品又是中药材的物质目录》（含 2023 年新增的党参、黄芪、灵芝、天麻、山茱萸、肉苁蓉、铁皮石斛、西洋参、杜仲叶 9 种）。</div></div>';
+    h += '<div class="kv"><div class="kv-k">怎么算的</div><div class="kv-v">每条目按 36 个功效维度打权，与你的诉求向量求匹配分，再用体质 / 时令 / 地域 / 人群四维做加减修正，过滤硬性禁忌后按分数序列分配君臣佐使，最后跑一遍性味相克规则。</div></div>';
+    h += '<div class="kv"><div class="kv-k">边界</div><div class="kv-v">它给出的是<b>食养方案</b>，不是药方，也不能替代诊疗。症状持续、加重或出现报警信号，请就医。</div></div></div>';
+
+    $('#pg4').innerHTML = h;
+    $('#go1').onclick = function () { go(1); };
+    if ($('#clr')) $('#clr').onclick = function () { HIST = []; save(); renderMe(); };
+  }
+
+  /* ---------- toast ---------- */
+  var tt = null;
+  function toast(m) {
+    if (tt) { tt.remove(); tt = null; }
+    var d = document.createElement('div');
+    d.textContent = m;
+    d.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:rgba(40,30,22,.9);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;z-index:300;max-width:80%;text-align:center;transition:.25s;opacity:0';
+    document.body.appendChild(d); tt = d;
+    requestAnimationFrame(function () { d.style.opacity = '1'; });
+    setTimeout(function () { d.style.opacity = '0'; setTimeout(function () { d.remove(); }, 260); }, 1600);
+  }
+
+  /* ---------- 启动 ---------- */
+  renderTabs();
+  renderForm();
+})();
+
