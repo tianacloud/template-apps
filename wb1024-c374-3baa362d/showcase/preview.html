@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>四象限待办助手 · 每日工作优先级分类</title>
+<style>
+  /* ========== 设计变量 ========== */
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #111827;
+    --text-2: #4b5563;
+    --text-3: #9ca3af;
+    --border: #e5e7eb;
+    --primary: #2563eb;
+    --primary-soft: #eff6ff;
+    --shadow-sm: 0 1px 2px rgba(17,24,39,.05);
+    --shadow-md: 0 4px 14px rgba(17,24,39,.08);
+    --radius: 14px;
+
+    --q1: #ef4444; --q1-bg: #fff5f5; --q1-line: #fecaca; --q1-text: #b91c1c;
+    --q2: #3b82f6; --q2-bg: #f0f7ff; --q2-line: #bfdbfe; --q2-text: #1d4ed8;
+    --q3: #f59e0b; --q3-bg: #fffbf0; --q3-line: #fde68a; --q3-text: #b45309;
+    --q4: #10b981; --q4-bg: #f0fdf7; --q4-line: #a7f3d0; --q4-text: #047857;
+
+    --font: "PingFang SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font);
+    background:
+      radial-gradient(1200px 400px at 50% -120px, #e0e9ff 0%, transparent 60%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 20px 56px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ========== 头部 ========== */
+  .top {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 16px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .top h1 { font-size: 27px; font-weight: 800; letter-spacing: .5px; }
+  .top .slogan { color: var(--text-2); font-size: 14px; margin-top: 6px; }
+  .date-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 16px; font-size: 14px; color: var(--text-2); box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+  }
+  .date-card b { color: var(--text); font-size: 16px; margin-right: 6px; }
+
+  /* ========== 统计面板 ========== */
+  .stats {
+    display: grid; grid-template-columns: 200px 1fr; gap: 18px;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; box-shadow: var(--shadow-sm); margin-bottom: 18px;
+    align-items: center;
+  }
+  .donut-box { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+  .donut-box svg { transform: rotate(-90deg); }
+  .donut-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+  }
+  .donut-center .pct { font-size: 26px; font-weight: 800; color: var(--primary); }
+  .donut-center .lbl { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .stat-rows { display: grid; gap: 10px; }
+  .stat-row { display: grid; grid-template-columns: 92px 1fr 42px; align-items: center; gap: 12px; font-size: 13px; }
+  .stat-row .name { color: var(--text-2); display: flex; align-items: center; gap: 7px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .bar-track { height: 8px; background: #f1f3f7; border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width .45s cubic-bezier(.4,0,.2,1); }
+  .stat-row .num { text-align: right; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .bar-fill.f1 { background: var(--q1); } .bar-fill.f2 { background: var(--q2); }
+  .bar-fill.f3 { background: var(--q3); } .bar-fill.f4 { background: var(--q4); }
+  .bar-fill.fa { background: var(--primary); }
+
+  /* ========== 输入区 ========== */
+  .input-bar {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    box-shadow: var(--shadow-sm); margin-bottom: 14px;
+  }
+  .input-bar input[type=text] {
+    flex: 1 1 240px; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 13px; font-size: 15px; font-family: var(--font); outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input-bar input[type=text]:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .toggle-group { display: flex; align-items: center; gap: 6px; }
+  .toggle-group .lbl { font-size: 13px; color: var(--text-3); margin-left: 2px; }
+  .chip-btn {
+    border: 1.5px solid var(--border); background: #fff; color: var(--text-3);
+    border-radius: 99px; padding: 7px 15px; font-size: 13px; cursor: pointer;
+    transition: all .18s; font-family: var(--font);
+  }
+  .chip-btn:hover { transform: translateY(-1px); }
+  .chip-btn.on-imp { border-color: var(--q1); color: var(--q1-text); background: var(--q1-bg); font-weight: 600; }
+  .chip-btn.on-urg { border-color: var(--q3); color: var(--q3-text); background: var(--q3-bg); font-weight: 600; }
+  .meta-input {
+    border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px;
+    font-size: 13.5px; font-family: var(--font); color: var(--text-2); outline: none; background: #fff;
+  }
+  .meta-input:focus { border-color: #93c5fd; }
+  select.meta-input { cursor: pointer; }
+  .add-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none;
+    border-radius: 10px; padding: 11px 24px; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: all .18s;
+    box-shadow: 0 2px 8px rgba(37,99,235,.35);
+  }
+  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.4); }
+  .add-btn:active { transform: translateY(0); }
+
+  /* ========== 工具栏（搜索/筛选/操作） ========== */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .search-box { position: relative; flex: 1 1 220px; max-width: 320px; }
+  .search-box input {
+    width: 100%; border: 1px solid var(--border); border-radius: 99px; background: var(--card);
+    padding: 9px 14px 9px 36px; font-size: 14px; font-family: var(--font); outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search-box input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+  .search-box::before {
+    content: ""; position: absolute; left: 13px; top: 50%; width: 14px; height: 14px;
+    transform: translateY(-50%);
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="%239ca3af" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>') no-repeat center/contain;
+  }
+  .seg { display: flex; background: #e8ebf1; border-radius: 99px; padding: 3px; }
+  .seg button {
+    border: none; background: none; padding: 7px 16px; border-radius: 99px; font-size: 13px;
+    color: var(--text-2); cursor: pointer; font-family: var(--font); transition: all .18s;
+  }
+  .seg button.on { background: #fff; color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
+  .tool-link {
+    border: none; background: none; color: var(--text-3); font-size: 13px; cursor: pointer;
+    font-family: var(--font); padding: 6px 8px; border-radius: 8px; transition: all .15s;
+  }
+  .tool-link:hover { color: var(--q1); background: var(--q1-bg); }
+  .tool-link.export:hover { color: var(--primary); background: var(--primary-soft); }
+
+  /* ========== 四象限矩阵 ========== */
+  .matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .quadrant {
+    border-radius: var(--radius); border: 1.5px solid var(--q1-line);
+    padding: 15px 15px 17px; min-height: 250px;
+    transition: box-shadow .18s, transform .18s, border-color .18s;
+  }
+  .quadrant.drag-over { box-shadow: 0 0 0 3px rgba(37,99,235,.4), var(--shadow-md); transform: scale(1.01); border-color: var(--primary); }
+  .q1 { background: var(--q1-bg); border-color: var(--q1-line); }
+  .q2 { background: var(--q2-bg); border-color: var(--q2-line); }
+  .q3 { background: var(--q3-bg); border-color: var(--q3-line); }
+  .q4 { background: var(--q4-bg); border-color: var(--q4-line); }
+  .q-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .q-title { font-size: 16px; font-weight: 800; }
+  .q1 .q-title { color: var(--q1-text); } .q2 .q-title { color: var(--q2-text); }
+  .q3 .q-title { color: var(--q3-text); } .q4 .q-title { color: var(--q4-text); }
+  .q-count {
+    font-size: 12px; color: var(--text-3); background: rgba(255,255,255,.7);
+    border-radius: 99px; padding: 2px 10px; border: 1px solid var(--border);
+  }
+  .q-sub { font-size: 12px; color: var(--text-2); opacity: .75; margin: 3px 0 11px; }
+
+  /* ========== 任务卡片 ========== */
+  .task {
+    background: #fff; border: 1px solid var(--border); border-radius: 11px;
+    padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;
+    cursor: grab; box-shadow: var(--shadow-sm);
+    animation: taskIn .28s cubic-bezier(.2,.9,.3,1.2);
+    transition: opacity .2s, box-shadow .18s, transform .15s;
+  }
+  .task:hover { box-shadow: var(--shadow-md); }
+  .task.leaving { animation: taskOut .18s forwards; }
+  .task.dragging { opacity: .4; cursor: grabbing; }
+  @keyframes taskIn { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes taskOut { to { opacity: 0; transform: translateX(24px) scale(.95); } }
+
+  .task input[type=checkbox] {
+    width: 18px; height: 18px; margin-top: 1px; accent-color: var(--primary);
+    cursor: pointer; flex-shrink: 0;
+  }
+  .task .t-body { flex: 1; min-width: 0; }
+  .task .t-text { font-size: 14.5px; line-height: 1.45; word-break: break-word; cursor: text; }
+  .task.done .t-text { text-decoration: line-through; color: var(--text-3); }
+  .t-text[contenteditable="true"] { outline: none; background: var(--primary-soft); border-radius: 6px; padding: 1px 6px; }
+  .t-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .tag {
+    font-size: 11.5px; padding: 2px 9px; border-radius: 99px; line-height: 1.5;
+    border: 1px solid var(--border); color: var(--text-2); background: #f8fafc; white-space: nowrap;
+  }
+  .tag.due { display: inline-flex; align-items: center; gap: 4px; }
+  .tag.due.over { color: var(--q1-text); background: var(--q1-bg); border-color: var(--q1-line); font-weight: 600; }
+  .tag.due.today { color: var(--q3-text); background: var(--q3-bg); border-color: var(--q3-line); font-weight: 600; }
+  .task .del {
+    border: none; background: none; color: #d1d5db; font-size: 15px; cursor: pointer;
+    padding: 0 6px; border-radius: 7px; flex-shrink: 0; line-height: 1.6; transition: all .15s;
+  }
+  .task .del:hover { color: var(--q1); background: var(--q1-bg); }
+  .empty-hint { color: var(--text-3); font-size: 13px; text-align: center; padding: 26px 0; }
+
+  /* ========== 提示气泡 ========== */
+  #toast {
+    position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(20px);
+    background: #111827; color: #fff; font-size: 13.5px; padding: 10px 20px; border-radius: 99px;
+    opacity: 0; pointer-events: none; transition: all .3s cubic-bezier(.2,.9,.3,1.2);
+    box-shadow: var(--shadow-md); z-index: 50;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer { margin-top: 26px; color: var(--text-3); font-size: 12.5px; line-height: 1.8; }
+  footer b { color: var(--text-2); }
+
+  /* ========== 响应式 ========== */
+  @media (max-width: 860px) {
+    .stats { grid-template-columns: 1fr; }
+    .donut-box { width: 120px; height: 120px; }
+  }
+  @media (max-width: 720px) {
+    body { padding: 18px 12px 40px; }
+    .matrix { grid-template-columns: 1fr; gap: 12px; }
+    .top h1 { font-size: 22px; }
+    .date-card { width: 100%; }
+    .input-bar { padding: 12px; }
+    .add-btn { width: 100%; }
+    .quadrant { min-height: 160px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>四象限待办助手</h1>
+      <p class="slogan">按「重要性 × 紧急性」两轴分类每日工作 —— 先做对的事，再把事做对。</p>
+    </div>
+    <div class="date-card"><b id="dNum"></b><span id="dFull"></span></div>
+  </header>
+
+  <!-- 统计面板 -->
+  <section class="stats" aria-label="任务统计">
+    <div class="donut-box">
+      <svg width="100%" height="100%" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#eef1f6" stroke-width="13"/>
+        <circle id="donutArc" cx="60" cy="60" r="50" fill="none" stroke="#2563eb" stroke-width="13"
+                stroke-linecap="round" stroke-dasharray="0 314" style="transition: stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"/>
+      </svg>
+      <div class="donut-center"><span class="pct" id="donePct">0%</span><span class="lbl">已完成</span></div>
+    </div>
+    <div class="stat-rows" id="statRows"></div>
+  </section>
+
+  <!-- 任务输入 -->
+  <section class="input-bar">
+    <input type="text" id="taskInput" placeholder="输入今天的任务，例如：完成 NOV 出货报告（回车添加）" maxlength="80">
+    <div class="toggle-group">
+      <span class="lbl">轴</span>
+      <button id="impBtn" class="chip-btn on-imp" onclick="toggleAxis('imp')">重要</button>
+      <button id="urgBtn" class="chip-btn on-urg" onclick="toggleAxis('urg')">紧急</button>
+    </div>
+    <input type="date" id="dueInput" class="meta-input" title="截止日期（可选）">
+    <select id="catInput" class="meta-input" title="分类">
+      <option value="">分类（可选）</option>
+      <option value="工作">工作</option>
+      <option value="学习">学习</option>
+      <option value="生活">生活</option>
+      <option value="其他">其他</option>
+    </select>
+    <button class="add-btn" onclick="addTask()">添加</button>
+  </section>
+
+  <!-- 搜索与筛选 -->
+  <section class="toolbar">
+    <div class="search-box"><input type="search" id="searchInput" placeholder="搜索任务…" oninput="render()"></div>
+    <div class="seg" id="filterSeg">
+      <button data-f="all" class="on" onclick="setFilter('all', this)">全部</button>
+      <button data-f="active" onclick="setFilter('active', this)">进行中</button>
+      <button data-f="done" onclick="setFilter('done', this)">已完成</button>
+    </div>
+    <button class="tool-link export" onclick="exportTasks()">导出 JSON</button>
+    <button class="tool-link" onclick="clearDone()">清除已完成</button>
+  </section>
+
+  <!-- 四象限 -->
+  <main class="matrix">
+    <div class="quadrant q1" data-q="q1" ondragover="dragOver(event,this)" ondragleave="dragLeave(this)" ondrop="drop(event,this)">
+      <div class="q-head"><span class="q-title">① 重要且紧急</span><span class="q-count" id="c-q1"></span></div>
+      <div class="q-sub">立刻做 —— 危机、截止在即的任务</div>
+      <div class="task-list" id="list-q1"></div>
+    </div>
+    <div class="quadrant q2" data-q="q2" ondragover="dragOver(event,this)" ondragleave="dragLeave(this)" ondrop="drop(event,this)">
+      <div class="q-head"><span class="q-title">② 重要不紧急</span><span class="q-count" id="c-q2"></span></div>
+      <div class="q-sub">计划做 —— 规划、学习、预防性工作（最该投入的象限）</div>
+      <div class="task-list" id="list-q2"></div>
+    </div>
+    <div class="quadrant q3" data-q="q3" ondragover="dragOver(event,this)" ondragleave="dragLeave(this)" ondrop="drop(event,this)">
+      <div class="q-head"><span class="q-title">③ 紧急不重要</span><span class="q-count" id="c-q3"></span></div>
+      <div class="q-sub">委托 / 简化做 —— 临时打断、部分会议与沟通</div>
+      <div class="task-list" id="list-q3"></div>
+    </div>
+    <div class="quadrant q4" data-q="q4" ondragover="dragOver(event,this)" ondragleave="dragLeave(this)" ondrop="drop(event,this)">
+      <div class="q-head"><span class="q-title">④ 不重要不紧急</span><span class="q-count" id="c-q4"></span></div>
+      <div class="q-sub">少做 / 空闲再做 —— 琐事与消遣</div>
+      <div class="task-list" id="list-q4"></div>
+    </div>
+  </main>
+
+  <footer>
+    <b>使用方法：</b>输入任务后点选「重要 / 紧急」两轴，可选填截止日期与分类；卡片可<b>拖拽</b>换象限，<b>双击文字</b>可编辑，勾选标记完成。数据保存在本机浏览器（localStorage），刷新或关闭页面不丢失。
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ================= 状态与持久化 ================= */
+var localStorage = { data: {}, getItem: function(k){return this.data[k] || null}, setItem: function(k,v){this.data[k]=v} };
+var KEY = 'q4tasks_v2';
+var state = { imp: true, urg: true, filter: 'all' };
+var tasks = load();
+
+function load() {
+  // 兼容 v1 旧数据，自动迁移
+  var raw = localStorage.getItem(KEY);
+  if (raw) { try { return JSON.parse(raw); } catch (e) {} }
+  try {
+    var old = JSON.parse(localStorage.getItem('q4tasks') || '[]');
+    if (old.length) {
+      old.forEach(function (t) { if (!('due' in t)) { t.due = ''; t.cat = ''; } });
+      return old;
+    }
+  } catch (e) {}
+  return [];
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(tasks)); }
+
+/* ================= 工具函数 ================= */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function quadOf(t) {
+  return t.imp ? (t.urg ? 'q1' : 'q2') : (t.urg ? 'q3' : 'q4');
+}
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+function dueState(due) {
+  if (!due) return 'none';
+  var t = todayStr();
+  return due < t ? 'over' : (due === t ? 'today' : 'future');
+}
+
+var toastTimer = null;
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+}
+
+/* ================= 任务操作 ================= */
+function toggleAxis(a) {
+  state[a] = !state[a];
+  document.getElementById('impBtn').className = 'chip-btn' + (state.imp ? ' on-imp' : '');
+  document.getElementById('urgBtn').className = 'chip-btn' + (state.urg ? ' on-urg' : '');
+}
+
+function addTask() {
+  var input = document.getElementById('taskInput');
+  var text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  tasks.unshift({
+    id: uid(), text: text, imp: state.imp, urg: state.urg,
+    due: document.getElementById('dueInput').value || '',
+    cat: document.getElementById('catInput').value || '',
+    done: false, createdAt: Date.now()
+  });
+  input.value = '';
+  save(); render();
+  toast('已添加到「' + ({ q1: '重要且紧急', q2: '重要不紧急', q3: '紧急不重要', q4: '不重要不紧急' })[quadOf(tasks[0])] + '」象限');
+  input.focus();
+}
+
+function removeTask(id, el) {
+  // 先播放删除动画，再真正移除
+  var card = el ? el.closest('.task') : null;
+  if (card) card.classList.add('leaving');
+  setTimeout(function () {
+    tasks = tasks.filter(function (t) { return t.id !== id; });
+    save(); render();
+  }, card ? 180 : 0);
+}
+
+function toggleDone(id) {
+  var t = tasks.find(function (x) { return x.id === id; });
+  if (t) { t.done = !t.done; save(); render(); }
+}
+
+function clearDone() {
+  var n = tasks.filter(function (t) { return t.done; }).length;
+  if (!n) { toast('没有已完成的任务'); return; }
+  if (!confirm('确定清除 ' + n + ' 项已完成任务？')) return;
+  tasks = tasks.filter(function (t) { return !t.done; });
+  save(); render(); toast('已清除 ' + n + ' 项完成任务');
+}
+
+function exportTasks() {
+  var blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '四象限待办_' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已导出 ' + tasks.length + ' 项任务');
+}
+
+/* 双击编辑 */
+function startEdit(span, id) {
+  if (span.isContentEditable) return;
+  span.contentEditable = 'true';
+  span.focus();
+  var range = document.createRange();
+  range.selectNodeContents(span); range.collapse(false);
+  var sel = window.getSelection();
+  sel.removeAllRanges(); sel.addRange(range);
+
+  function commit() {
+    span.contentEditable = 'false';
+    span.removeEventListener('blur', commit);
+    span.removeEventListener('keydown', onKey);
+    var v = span.textContent.trim();
+    var t = tasks.find(function (x) { return x.id === id; });
+    if (t && v && v !== t.text) { t.text = v; save(); toast('任务已更新'); }
+    render();
+  }
+  function onKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+    if (e.key === 'Escape') { span.textContent = span.dataset.orig; span.blur(); }
+  }
+  span.dataset.orig = span.textContent;
+  span.addEventListener('blur', commit);
+  span.addEventListener('keydown', onKey);
+}
+
+/* ================= 拖拽 ================= */
+var dragId = null;
+function onDragStart(e, id) {
+  dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch (err) {}
+}
+function dragOver(e, el) { e.preventDefault(); el.classList.add('drag-over'); }
+function dragLeave(el) { el.classList.remove('drag-over'); }
+function drop(e, el) {
+  e.preventDefault(); el.classList.remove('drag-over');
+  var q = el.dataset.q;
+  var t = tasks.find(function (x) { return x.id === dragId; });
+  if (t) {
+    t.imp = (q === 'q1' || q === 'q2');
+    t.urg = (q === 'q1' || q === 'q3');
+    save(); render();
+  }
+  dragId = null;
+}
+
+/* ================= 筛选 ================= */
+function setFilter(f, btn) {
+  state.filter = f;
+  var seg = document.getElementById('filterSeg');
+  Array.prototype.forEach.call(seg.children, function (b) { b.classList.toggle('on', b === btn); });
+  render();
+}
+function visible(t, kw) {
+  if (state.filter === 'active' && t.done) return false;
+  if (state.filter === 'done' && !t.done) return false;
+  if (kw && t.text.toLowerCase().indexOf(kw) === -1 && (t.cat || '').toLowerCase().indexOf(kw) === -1) return false;
+  return true;
+}
+
+/* ================= 渲染 ================= */
+var QUADS = [
+  { key: 'q1', name: '重要且紧急', dot: 'var(--q1)', fill: 'f1' },
+  { key: 'q2', name: '重要不紧急', dot: 'var(--q2)', fill: 'f2' },
+  { key: 'q3', name: '紧急不重要', dot: 'var(--q3)', fill: 'f3' },
+  { key: 'q4', name: '不重要不紧急', dot: 'var(--q4)', fill: 'f4' }
+];
+
+function render() {
+  var kw = document.getElementById('searchInput').value.trim().toLowerCase();
+  var ds = { over: 0, today: 0 };
+
+  QUADS.forEach(function (q) {
+    var box = document.getElementById('list-' + q.key);
+    var items = tasks.filter(function (t) { return quadOf(t) === q.key; });
+    var shown = items.filter(function (t) { return visible(t, kw); });
+
+    document.getElementById('c-' + q.key).textContent = items.length ? items.length + ' 项' : '';
+    items.forEach(function (t) { var s = dueState(t.due); if (!t.done && (s === 'over' || s === 'today')) ds[s]++; });
+
+    if (!shown.length) {
+      box.innerHTML = '<div class="empty-hint">' + (kw ? '无匹配结果' : '暂无任务，拖拽卡片到此象限') + '</div>';
+      return;
+    }
+    box.innerHTML = shown.map(function (t) {
+      var d = dueState(t.due);
+      var meta = '';
+      if (t.cat) meta += '<span class="tag">' + esc(t.cat) + '</span>';
+      if (t.due) meta += '<span class="tag due ' + (t.done ? '' : d) + '">' +
+        (d === 'over' && !t.done ? '已逾期 ' : d === 'today' && !t.done ? '今日截止 ' : '截止 ') + esc(t.due.slice(5)) + '</span>';
+      return '<div class="task' + (t.done ? ' done' : '') + '" draggable="true" ondragstart="onDragStart(event,\'' + t.id + '\')" ondragend="this.classList.remove(\'dragging\')">' +
+        '<input type="checkbox" ' + (t.done ? 'checked' : '') + ' onchange="toggleDone(\'' + t.id + '\')">' +
+        '<div class="t-body">' +
+          '<div class="t-text" title="双击编辑" ondblclick="startEdit(this,\'' + t.id + '\')">' + esc(t.text) + '</div>' +
+          (meta ? '<div class="t-meta">' + meta + '</div>' : '') +
+        '</div>' +
+        '<button class="del" title="删除" onclick="removeTask(\'' + t.id + '\', this)">✕</button>' +
+      '</div>';
+    }).join('');
+  });
+
+  renderStats();
+}
+
+function renderStats() {
+  var total = tasks.length;
+  var done = tasks.filter(function (t) { return t.done; }).length;
+  var pct = total ? Math.round(done / total * 100) : 0;
+
+  var C = 2 * Math.PI * 50;
+  document.getElementById('donutArc').setAttribute('stroke-dasharray', (C * pct / 100) + ' ' + C);
+  document.getElementById('donePct').textContent = pct + '%';
+
+  var max = Math.max(1, total);
+  var rows = QUADS.map(function (q) {
+    var list = tasks.filter(function (t) { return quadOf(t) === q.key; });
+    var d = list.filter(function (t) { return t.done; }).length;
+    var w = Math.round(list.length / max * 100);
+    return '<div class="stat-row">' +
+      '<span class="name"><i class="dot" style="background:' + q.dot + '"></i>' + q.name + '</span>' +
+      '<div class="bar-track"><div class="bar-fill ' + q.fill + '" style="width:' + w + '%"></div></div>' +
+      '<span class="num">' + d + '/' + list.length + '</span>' +
+    '</div>';
+  });
+  rows.push('<div class="stat-row">' +
+    '<span class="name"><i class="dot" style="background:var(--primary)"></i>全部任务</span>' +
+    '<div class="bar-track"><div class="bar-fill fa" style="width:' + pct + '%"></div></div>' +
+    '<span class="num">' + done + '/' + total + '</span>' +
+  '</div>');
+  document.getElementById('statRows').innerHTML = rows.join('');
+}
+
+/* ================= 初始化 ================= */
+document.getElementById('taskInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') addTask();
+});
+
+(function initDate() {
+  var d = new Date(), week = ['日','一','二','三','四','五','六'];
+  document.getElementById('dNum').textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  document.getElementById('dFull').textContent = d.getFullYear() + ' 年 · 星期' + week[d.getDay()];
+})();
+
+render();
+</script>
+</body>
+</html>
