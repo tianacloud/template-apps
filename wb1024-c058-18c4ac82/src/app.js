@@ -166,9 +166,9 @@ function render(idx) {
       <p>${p.appr}</p>
     </section>
     <nav class="pager">
-      <a onclick="render((${idx}+${poems.length}-1)%${poems.length});scrollTo(0,0)">← 上一首</a>
+      <a data-index="${(idx+poems.length-1)%poems.length}">← 上一首</a>
       <span class="mid">第 ${idx + 1} / ${poems.length} 首</span>
-      <a onclick="render((${idx}+1)%${poems.length});scrollTo(0,0)">下一首 →</a>
+      <a data-index="${(idx+1)%poems.length}">下一首 →</a>
     </nav>
   `;
   document.title = `${p.title} · ${p.author} | 每日一诗`;
@@ -177,14 +177,15 @@ function render(idx) {
 function renderGrid(todayIdx) {
   const grid = document.getElementById("grid");
   grid.innerHTML = poems.map((p, i) => `
-    <div class="card ${i === todayIdx ? "today" : ""}" onclick="render(${i});scrollTo(0,0)">
+    <div class="card ${i === todayIdx ? "today" : ""}" data-index="${i}">
       <img src="${p.img}" alt="${p.title}" loading="lazy">
       <div class="t">${p.title}</div>
     </div>
   `).join("");
 }
 
-window.render = render;
+
+document.addEventListener("click", event => { const item = event.target.closest("[data-index]"); if (!item) return; render(Number(item.dataset.index)); scrollTo(0,0); });
 const ti = todayIndex();
 render(ti);
 renderGrid(ti);
