@@ -1,0 +1,478 @@
+
+  
+  <!-- ============================================================
+   * View 0: 云端登录（Web 专有 · 由 build-web.mjs 注入）
+   * 整页布局（2026-10-08 · 设计定稿 v2.2）：顶栏 + 说明区（左）+ 登录卡（右）
+   * 三页签：邮箱登录 / 手机登录 / 密码登录 · 内容限宽 1280 · 窄屏表单优先
+   * F-R（B10 · 2026-10-08）：密码页签「忘记密码？」→ 卡内重置面板
+   *   （resetPasswordForEmail + updateUser；样张 web/login-reset-mockup.html）
+   * ============================================================ -->
+  
+
+<!-- ============================================================
+   * View 1: 主密码解锁
+   * ============================================================ -->
+  <section id="view-unlock" class="view active">
+    <div class="unlock-screen">
+      <div class="unlock-card">
+        <div class="unlock-icon">
+          <i data-lucide="key-round"></i>
+        </div>
+        <h1 id="unlock-title" class="unlock-title">Custos</h1>
+        <p class="unlock-subtitle">正在初始化…</p>
+
+        <form id="unlock-form" autocomplete="off">
+          <div class="unlock-input-wrap">
+            <input
+              type="password"
+              id="unlock-pwd"
+              class="unlock-input"
+              placeholder="主密码"
+              autocomplete="new-password"
+              aria-label="主密码"
+              disabled
+            />
+            <button type="button" class="unlock-eye" id="unlock-eye" aria-label="显示密码">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+          <div class="unlock-forgot-row">
+            <button type="button" class="unlock-forgot" id="unlock-forgot">忘记密码？</button>
+          </div>
+          <div class="unlock-error-text" id="unlock-error" aria-live="polite"></div>
+
+          <button type="submit" class="btn-unlock" id="unlock-btn" disabled>
+            <i data-lucide="lock-keyhole"></i>
+            <span>解锁</span>
+          </button>
+        </form>
+
+        <div class="unlock-divider"><span>或</span></div>
+        <div class="unlock-restore-row">
+          <button type="button" class="unlock-restore" id="unlock-restore" data-custos-action="triggerImport()" aria-label="从加密备份文件恢复 vault">
+            <i data-lucide="upload"></i>
+            <span>已有备份？导入恢复</span>
+          </button>
+        </div>
+
+        <!-- Web 分支补丁（replay）：贴士行改「位置中性」文案——
+             原句「存储于本地浏览器（IndexedDB）」在桌面版（vault.wb 文件）
+             与 Web 云版（云端密文）均不符事实；去位置描述后三端一套文案。 -->
+        <div class="unlock-trust">
+          <i data-lucide="shield-check"></i>
+          <span>数据以 AES-GCM-256 加密存储 · 请务必备份助记词</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+   * 找回密码（独立页面流程 · 24 框输入 · 数据保留）
+   * ============================================================ -->
+  <section id="view-recover" class="view">
+    <div class="unlock-screen">
+      <div class="unlock-card recover-page">
+        <div class="recover-step-tag" id="recover-step-tag" aria-live="polite">第 1 步 / 共 3 步 · 验证助记词</div>
+
+        <!-- 步骤 1：输入 24 个助记词 -->
+        <div id="recover-step1">
+          <div class="unlock-icon"><i data-lucide="life-buoy"></i></div>
+          <h1 class="unlock-title">找回工作台</h1>
+          <p class="unlock-subtitle">按序号填入 24 个助记词（可整段粘贴，自动分发）。验证通过可设置新密码，<b>数据完整保留</b>。</p>
+          <div class="recover-grid" id="recover-grid"></div>
+          <div class="recover-check" id="recover-check" aria-live="polite"></div>
+          <div class="recover-error" id="recover-error" aria-live="polite"></div>
+          <div class="recover-actions">
+            <button type="button" class="btn btn-secondary" id="recover-back"><span>返回登录</span></button>
+            <button type="button" class="btn btn-primary" id="recover-verify" disabled><span>验证助记词</span></button>
+          </div>
+        </div>
+
+        <!-- 步骤 2：设置新密码 -->
+        <div id="recover-step2" hidden>
+          <div class="unlock-icon"><i data-lucide="key-round"></i></div>
+          <h1 class="unlock-title">验证通过</h1>
+          <p class="recover-dataok" id="recover-dataok"></p>
+          <div class="recover-pwd-field">
+            <input type="password" id="recover-newpwd" class="unlock-input" placeholder="新主密码（至少 4 位）" autocomplete="new-password" />
+          </div>
+          <div class="recover-pwd-field">
+            <input type="password" id="recover-newpwd2" class="unlock-input" placeholder="再次输入新主密码" autocomplete="new-password" />
+          </div>
+          <div class="recover-error" id="recover-pwd-error" aria-live="polite"></div>
+          <div class="recover-actions">
+            <button type="button" class="btn btn-primary btn-block" id="recover-save"><span>重置密码并保留数据</span></button>
+          </div>
+        </div>
+
+        <!-- 步骤 3：完成 -->
+        <div id="recover-step3" hidden>
+          <div class="unlock-icon unlock-icon-ok"><i data-lucide="check-circle-2"></i></div>
+          <h1 class="unlock-title">新密码已生效</h1>
+          <p class="unlock-subtitle">数据已完整保留。为安全起见，这组词已作废——请重新留存一份<b>新的 24 词助记词</b>，完成后用新密码登录。</p>
+          <div class="recover-actions">
+            <button type="button" class="btn btn-primary btn-block" id="recover-goto-login"><i data-lucide="shield-check"></i><span>重新留存助记词</span></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+   * App Shell (Dashboard + Records + Detail 共用)
+   * ============================================================ -->
+  <div id="app-shell" class="app-shell" style="display:none;">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19.5 7C18 5 15.5 3.5 12 3.5C6.5 3.5 2.5 7 2.5 12C2.5 17 6.5 20.5 12 20.5C15.5 20.5 18 19 19.5 17L17.2 15.5C16 17 14.3 18 12 18C8 18 5.2 15.7 5.2 12C5.2 8.3 8 6 12 6C14.3 6 16 7 17.2 8.5L19.5 7Z"/>
+        </svg>
+        <span id="sidebar-brand" class="brand-name">Custos</span>
+      </div>
+
+      <button class="nav-item" data-nav="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>首页</span>
+      </button>
+
+      <div class="nav-group-title">信息记录</div>
+      <button class="nav-item" data-nav="records" data-filter="all">
+        <i data-lucide="folder-key"></i>
+        <span>全部</span>
+        <span class="nav-count" id="nav-count-all">0</span>
+      </button>
+      <button class="nav-item" data-nav="records" data-filter="account">
+        <i data-lucide="globe"></i>
+        <span>账号密码</span>
+        <span class="nav-count" id="nav-count-account">0</span>
+      </button>
+      <button class="nav-item" data-nav="records" data-filter="apikey">
+        <i data-lucide="key"></i>
+        <span>API KEY</span>
+        <span class="nav-count" id="nav-count-apikey">0</span>
+      </button>
+      <button class="nav-item" data-nav="records" data-filter="mt5">
+        <i data-lucide="line-chart"></i>
+        <span>MT5 账户</span>
+        <span class="nav-count" id="nav-count-mt5">0</span>
+      </button>
+
+      <div class="nav-group-title">工具</div>
+      <button class="nav-item" data-nav="todos">
+        <i data-lucide="list-todo"></i>
+        <span>待办</span>
+      </button>
+      <button class="nav-item" data-nav="settings">
+        <i data-lucide="settings"></i>
+        <span>设置</span>
+      </button>
+
+      <div class="sidebar-footer">
+        <div class="avatar" id="user-avatar">C</div>
+        <div>
+          <div class="user-name" id="user-name">Custos</div>
+          <div class="user-meta">云端加密 · 多端同步</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content container -->
+    <div>
+      <!-- TitleBar -->
+      <div class="titlebar">
+        <button class="icon-btn mobile-menu" id="mobile-nav-toggle" aria-label="打开导航" aria-expanded="false">☰</button>
+        <div class="titlebar-search">
+          <i data-lucide="search"></i>
+          <input type="text" id="global-search" placeholder="搜索卡片、备注、服务名…" aria-label="全局搜索" />
+        </div>
+        <div class="titlebar-actions">
+          <button class="icon-btn encrypted" id="lock-status-btn" aria-label="加密状态" title="已加密 · AES-GCM 256">
+            <i data-lucide="shield-check"></i>
+          </button>
+          <button class="icon-btn" id="lock-btn" aria-label="锁定应用">
+            <i data-lucide="lock"></i>
+          </button>
+          <button class="icon-btn" id="theme-toggle" aria-label="切换主题">
+            <i data-lucide="moon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+       * View 2: Dashboard
+       * ============================================================ -->
+      <section id="view-dashboard" class="view active">
+        <div class="main-area">
+          <!-- 状态条：时间/日期仅作点缀，主区留给内容 -->
+          <div class="dashboard-header">
+            <div class="dash-statusbar">
+              <div class="dash-status-left">
+                <p class="greeting" id="greeting-text">下午好</p>
+                <div class="dash-time-row">
+                  <span class="greeting-time mono" id="dash-time">14:32:08</span>
+                  <span class="greeting-date" id="dash-date">2026 年 8 月 28 日 · 周四</span>
+                </div>
+              </div>
+              <div class="dash-actions">
+                <!-- V1.0.3: 删 3 按钮（导出/导入/重置）— 三功能在设置页都有完整入口，
+                     "重置"还在 danger-zone 红色警示。改 brand-a 字标（lock + Custos）平衡视觉重心。
+                     保留 input#import-file：triggerImport() 内部仍需它触发文件选择 -->
+                <input type="file" id="import-file" accept=".json,application/json" style="display: none;" />
+                <div class="dash-brand" aria-label="Custos">
+                  <i data-lucide="lock" class="dash-brand-icon"></i>
+                  <span class="dash-brand-name">Custos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bento-grid">
+            <!-- 左侧主区：内容优先（待办 + 最近编辑） -->
+            <div class="bento-left">
+              <!-- 今日待办 -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h2 class="panel-title">
+                    <i data-lucide="list-todo"></i>
+                    <span>今日待办 · Top 5</span>
+                  </h2>
+                  <button class="icon-btn" data-custos-action="openAddTodoModal()" aria-label="添加待办"><i data-lucide="plus"></i></button>
+                </div>
+                <div class="todo-list" id="todo-list"></div>
+              </div>
+
+              <!-- 最近编辑 -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h2 class="panel-title">
+                    <i data-lucide="trending-up"></i>
+                    <span>最近编辑</span>
+                  </h2>
+                </div>
+                <div class="recent-list" id="recent-list"></div>
+              </div>
+            </div>
+
+            <!-- 右侧入口 + 最近 -->
+            <div class="bento-right">
+              <div class="entry-card" data-entry="account">
+                <div class="entry-icon blue">
+                  <i data-lucide="globe"></i>
+                </div>
+                <div class="entry-content">
+                  <h3 class="entry-title">账号密码</h3>
+                  <p class="entry-desc">网站登录凭据</p>
+                </div>
+                <div class="entry-count"><span id="count-account">3</span><span class="unit">条</span></div>
+              </div>
+
+              <div class="entry-card" data-entry="apikey">
+                <div class="entry-icon green">
+                  <i data-lucide="key"></i>
+                </div>
+                <div class="entry-content">
+                  <h3 class="entry-title">API KEY</h3>
+                  <p class="entry-desc">AI 模型凭证</p>
+                </div>
+                <div class="entry-count"><span id="count-apikey">2</span><span class="unit">条</span></div>
+              </div>
+
+              <div class="entry-card" data-entry="mt5">
+                <div class="entry-icon orange">
+                  <i data-lucide="line-chart"></i>
+                </div>
+                <div class="entry-content">
+                  <h3 class="entry-title">MT5 账户</h3>
+                  <p class="entry-desc">经纪商交易账户</p>
+                </div>
+                <div class="entry-count"><span id="count-mt5">2</span><span class="unit">个</span></div>
+              </div>
+
+              <!-- 日历（点缀：紧凑小卡） -->
+              <div class="panel calendar-mini">
+                <div class="panel-header">
+                  <h2 class="panel-title calendar-mini-title">
+                    <i data-lucide="calendar-days"></i>
+                    <span id="cal-month-year">2026年8月</span>
+                    <span id="cal-month-tag" class="cal-month-tag"></span>
+                  </h2>
+                  <div style="display:flex; gap: 4px;">
+                    <button class="icon-btn" id="cal-prev" aria-label="上一月" title="上一月"><i data-lucide="chevron-left"></i></button>
+                    <button class="icon-btn" id="cal-today" aria-label="回到本月" title="回到本月"><i data-lucide="calendar"></i></button>
+                    <button class="icon-btn" id="cal-next" aria-label="下一月" title="下一月"><i data-lucide="chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+       * View 3: 信息记录二级页
+       * ============================================================ -->
+      <section id="view-records" class="view">
+        <div class="main-area">
+          <div class="records-header">
+            <div class="records-title-block">
+              <h1 class="page-title" id="records-page-title">信息记录</h1>
+              <p class="page-subtitle" id="records-page-subtitle">统一管理三大类隐私敏感信息</p>
+            </div>
+            <div class="records-actions">
+              <button class="btn btn-primary" id="btn-add-card">
+                <i data-lucide="plus"></i>
+                <span>添加</span>
+              </button>
+              <button class="btn btn-primary" id="btn-import-card" title="从剪贴板文本导入卡片（明文或密文自动识别）">
+                <i data-lucide="import"></i>
+                <span>导入</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="records-toolbar">
+            <!-- V1.0.4: 删 #records-search 内嵌搜索栏，搜索统一走顶部 #global-search (issue #3) -->
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">
+                全部<span class="count" id="ft-count-all">7</span>
+              </button>
+              <button class="filter-tab" data-filter="account">
+                账号密码<span class="count" id="ft-count-account">3</span>
+              </button>
+              <button class="filter-tab" data-filter="apikey">
+                API KEY<span class="count" id="ft-count-apikey">2</span>
+              </button>
+              <button class="filter-tab" data-filter="mt5">
+                MT5<span class="count" id="ft-count-mt5">2</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="records-content"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+       * View 4/5: 卡片详情 / 编辑
+       * ============================================================ -->
+      <section id="view-detail" class="view">
+        <div class="main-area">
+          <div class="detail-header">
+            <button class="back-btn" id="detail-back" aria-label="返回">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <div class="detail-crumbs">
+              <span>信息记录</span>
+              <span> · </span>
+              <span id="detail-crumb-type">账号密码</span>
+              <span> · </span>
+              <span class="crumb-current" id="detail-crumb-title">GitHub Personal</span>
+            </div>
+          </div>
+
+          <div id="detail-content"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+       * View 6: 待办二级页
+       * ============================================================ -->
+      <section id="view-todos" class="view">
+        <div class="main-area">
+          <div class="detail-header">
+            <div class="detail-crumbs">
+              <span>待办</span>
+              <span class="todo-stats" id="todo-stats"></span>
+            </div>
+            <div style="display:flex; gap: 8px;">
+              <button class="btn btn-secondary" data-custos-action="clearCompletedTodos()" id="btn-clear-done"><i data-lucide="check-check"></i><span>清除已完成</span></button>
+              <button class="btn btn-primary" data-custos-action="openAddTodoModal()"><i data-lucide="plus"></i><span>添加待办</span></button>
+            </div>
+          </div>
+          <div class="todos-full" id="todos-full"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+       * View 7: 设置二级页
+       * ============================================================ -->
+      <section id="view-settings" class="view">
+        <div class="main-area">
+          <div class="detail-header">
+            <div class="detail-crumbs">
+              <span>设置</span>
+            </div>
+          </div>
+          <div class="settings-list" id="settings-list"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============================================================
+   * Modals (动态注入)
+   * ============================================================ -->
+  <div id="modal-root"></div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <i data-lucide="check"></i>
+    <span id="toast-text">已复制</span>
+  </div>
+
+  <!-- V1 Phase 2: 助记词留存向导（强制 · 不可关闭） -->
+  <div id="retain-overlay" class="retain-overlay" role="dialog" aria-modal="true" aria-label="助记词留存向导">
+    <div class="retain-card" id="retain-card"></div>
+  </div>
+
+  
+
+  <!-- ============================================================
+   * 数据 + 逻辑
+   * ============================================================ -->
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  <!-- V2.0 P3.6: card-form.js 已删除, 新建卡片改用 detail 页模式 (records.js openNewCard) -->
+
+  
+  
+  
+
+  
+
+
+
+
+  
+  
+
+  
+
+  

@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS custos_vault (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL, write_id TEXT NOT NULL, payload TEXT);
