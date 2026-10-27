@@ -1,0 +1,15 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit || '')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if (process.env.TIANA_TEMPLATE_BUILD !== '1' && (!/^[A-Za-z0-9_-]{1,128}$/.test(source.git_instance_id || '') || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const html=await readFile('client/index.html','utf8');
+const beforeScripts=html.slice(0, html.indexOf('<script'));
+const styles=[...beforeScripts.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(x=>x[1]);
+const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+let body=beforeScripts.match(/<body[^>]*>([\s\S]*)/)[1].replace(/<style[^>]*>[\s\S]*?<\/style>/g,'');
+if(styles.length!==2 || scripts.length!==3) throw Error('页面结构不完整');
+const setup=`document.title='模型选型台';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(styles.join('\n'))};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n`;
+await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',setup+scripts.join('\n;\n'));await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
