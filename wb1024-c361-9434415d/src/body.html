@@ -1,0 +1,122 @@
+
+
+<!-- ===== 顶部工具栏 ===== -->
+<header class="toolbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    图纸气泡图编制工具
+  </div>
+  <button class="tb-btn primary" id="btnUpload">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    打开文件
+  </button>
+  <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tif,.tiff,.dxf,.dwg" hidden>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnAddBubble" disabled>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    添加气泡
+  </button>
+  <button class="tb-btn danger" id="btnDelete" disabled>删除</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnUndo" disabled>撤销</button>
+  <button class="tb-btn" id="btnRedo" disabled>重做</button>
+  <button class="tb-btn" id="btnRenumber" disabled>重排编号</button>
+  <div class="tb-sep"></div>
+  <span class="tb-label">形状</span>
+  <select class="tb-select" id="shapeSelect">
+    <option value="circle">圆形</option>
+    <option value="ellipse">椭圆</option>
+    <option value="square">方形</option>
+    <option value="triangle">三角形</option>
+    <option value="arrow">箭头</option>
+  </select>
+  <div class="tb-sep"></div>
+  <span class="tb-label">颜色</span>
+  <select class="tb-select" id="colorSelect">
+    <option value="#dc2626">红色</option>
+    <option value="#2563eb">蓝色</option>
+    <option value="#16a34a">绿色</option>
+    <option value="#1a1a2e">黑色</option>
+  </select>
+  <span class="tb-label">气泡</span>
+  <input type="number" class="tb-input" id="sizeInput" min="12" max="100" step="2" value="18" title="气泡半径(px)，范围12-100，字体自动跟随">
+  <span class="tb-label hint" id="fontSizeLabel">字≈17px</span>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnExportPNG" disabled>导出图片</button>
+  <button class="tb-btn primary" id="btnExportPDF" disabled>导出PDF</button>
+</header>
+
+<!-- ===== 主体 ===== -->
+<div class="main">
+  <!-- 左侧页面 -->
+  <aside class="page-panel">
+    <div class="panel-title">
+      <span>页面</span>
+      <button class="close-file-btn" id="btnCloseFile" title="关闭当前文件" style="display:none;">关闭文件</button>
+    </div>
+    <div class="page-list" id="pageList"><div class="empty-hint">未打开文件</div></div>
+  </aside>
+
+  <!-- 中间画布 -->
+  <section class="canvas-area" id="canvasArea">
+    <div class="hint-bar" id="hintBar" style="display:none;"></div>
+    <div class="loading-mask" id="loadingMask"><div class="spinner"></div><span id="loadingText">加载中...</span></div>
+    <div class="canvas-scroll" id="canvasScroll">
+      <div class="canvas-wrap" id="canvasWrap" style="display:none;">
+        <canvas id="bgCanvas"></canvas>
+        <canvas id="bubbleCanvas"></canvas>
+      </div>
+    </div>
+    <!-- 启动欢迎页 -->
+    <div class="welcome" id="welcome">
+      <div class="welcome-card">
+        <h2>图纸气泡图编制工具</h2>
+        <p>支持 PDF / PNG / JPG 图纸，点击标注气泡编号，自动引线不遮挡尺寸，可导出 PDF 气泡图。</p>
+        <div class="drop-zone" id="dropZone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg>
+          <div class="dz-text">点击选择文件，或拖拽到此处</div>
+          <div class="dz-sub">支持 PDF、图片(PNG/JPG/BMP/WebP)、TIF、CAD(DXF)</div>
+        </div>
+      </div>
+    </div>
+    <!-- 底部缩放 -->
+    <div class="zoom-bar">
+      <button id="btnZoomOut" title="缩小">−</button>
+      <span class="zoom-val" id="zoomVal">100%</span>
+      <button id="btnZoomIn" title="放大">+</button>
+      <button id="btnFit" style="width:auto;padding:0 10px;font-size:12px;" title="适应窗口">适应窗口</button>
+    </div>
+  </section>
+
+  <!-- 右侧气泡列表 -->
+  <aside class="bubble-panel">
+    <div class="panel-title">气泡列表 <span id="bubbleCount" style="color:#9ca3af;font-weight:400;"></span></div>
+    <div class="bubble-list" id="bubbleList"><div class="empty-hint">暂无气泡<br>点击"添加气泡"开始标注</div></div>
+  </aside>
+</div>
+
+<!-- 编号编辑弹窗 -->
+<div class="modal-mask" id="numModal">
+  <div class="modal">
+    <h3>修改气泡编号</h3>
+    <input type="text" id="numInput" maxlength="6">
+    <div class="modal-btns">
+      <button id="numCancel">取消</button>
+      <button class="primary" id="numOk">确定</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ===== 在线体验：一键载入虚构示例图纸（不改动原工具逻辑，仅复用文件导入流程） ===== -->
+<div id="demoBar" style="position:fixed;left:50%;transform:translateX(-50%);bottom:72px;z-index:999;
+     display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none">
+  <button id="demoBtn" style="pointer-events:auto;height:44px;padding:0 22px;border:0;border-radius:22px;
+     background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+     box-shadow:0 8px 24px rgba(37,99,235,.35);font-family:inherit;letter-spacing:.5px">
+     ▶  在线体验：一键载入示例图纸
+  </button>
+  <div style="pointer-events:none;font-size:12px;color:#8a93a5;background:rgba(255,255,255,.85);
+     padding:3px 10px;border-radius:10px">示例图纸为虚构数据，可直接试用；也可打开你自己的图纸</div>
+</div>
