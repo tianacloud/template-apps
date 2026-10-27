@@ -49,7 +49,7 @@ export function makeAPI(files, executor=sql){
   async renameTable(tid,name){await write('UPDATE am_tables SET name=? WHERE id=?',[name,tid]);},
   async deleteTable(tid){for(const a of (await api.getAssets(tid)).rows)await api.deleteAsset(tid,a.id);const rr=await rows('SELECT id FROM am_racks WHERE table_id=?',[tid]);for(const r of rr)await api.req('DELETE','/racks/'+r.id+'?force=1');await write('DELETE FROM am_tables WHERE id=?',[tid]);},
   async getFields(tid){const t=await getTable(tid);if(!t)throw Error('数据表不存在');return parse(t.fields_json);},
-  async saveFields(tid,fields){const old=await api.getFields(tid),removed=old.filter(f=>!fields.some(n=>n.key===f.key));for(const f of removed){if(!/^[A-Za-z0-9_]+$/.test(f.key))throw Error('字段名称不受支持');await write('UPDATE am_assets SET data_json=json_remove(data_json,?) WHERE table_id=?',['$."'+f.key+'"',tid]);}await write('UPDATE am_tables SET fields_json=? WHERE id=?',[JSON.stringify(fields),tid]);},
+  async saveFields(tid,fields){await write('UPDATE am_tables SET fields_json=? WHERE id=?',[JSON.stringify(fields),tid]);},
   async getAssets(tid){const a=await rows('SELECT a.*,(SELECT count(*) FROM am_files f WHERE f.asset_id=a.id) AS file_count FROM am_assets a WHERE a.table_id=? ORDER BY a.rowid',[tid]);const result=a.map(r=>({...asset(r),fileCount:Number(r.file_count)}));assetCache.set(tid,result);return {rows:result,total:a.length};},
   async getAsset(tid,aid){const r=(await rows('SELECT * FROM am_assets WHERE table_id=? AND id=?',[tid,aid]))[0];return r?asset(r):null;},
   async saveAsset(tid,aid,data){

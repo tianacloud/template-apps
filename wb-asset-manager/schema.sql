@@ -1,6 +1,16 @@
 CREATE TABLE IF NOT EXISTS am_tables (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', color TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0, fields_json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS am_assets (id TEXT PRIMARY KEY, table_id TEXT NOT NULL, data_json TEXT NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY(table_id) REFERENCES am_tables(id));
 CREATE INDEX IF NOT EXISTS am_assets_table_idx ON am_assets(table_id);
+CREATE TRIGGER IF NOT EXISTS am_fields_remove_deleted AFTER UPDATE OF fields_json ON am_tables BEGIN
+  UPDATE am_assets SET data_json=json_patch(data_json,(
+    SELECT json_group_object(json_extract(old_field.value,'$.key'),NULL)
+    FROM json_each(OLD.fields_json) old_field
+    WHERE NOT EXISTS (SELECT 1 FROM json_each(NEW.fields_json) new_field WHERE json_extract(new_field.value,'$.key')=json_extract(old_field.value,'$.key'))
+  )) WHERE table_id=NEW.id AND EXISTS (
+    SELECT 1 FROM json_each(OLD.fields_json) old_field
+    WHERE NOT EXISTS (SELECT 1 FROM json_each(NEW.fields_json) new_field WHERE json_extract(new_field.value,'$.key')=json_extract(old_field.value,'$.key'))
+  );
+END;
 CREATE TABLE IF NOT EXISTS am_racks (id TEXT PRIMARY KEY, table_id TEXT NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL, u_total INTEGER NOT NULL, row_label TEXT NOT NULL DEFAULT '', x INTEGER NOT NULL DEFAULT 0, y INTEGER NOT NULL DEFAULT 0, UNIQUE(table_id,code), FOREIGN KEY(table_id) REFERENCES am_tables(id));
 CREATE TABLE IF NOT EXISTS am_files (id TEXT PRIMARY KEY, table_id TEXT NOT NULL, asset_id TEXT NOT NULL, name TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY(asset_id) REFERENCES am_assets(id));
 CREATE TABLE IF NOT EXISTS am_restore_history (id TEXT PRIMARY KEY, restored_at TEXT NOT NULL);
