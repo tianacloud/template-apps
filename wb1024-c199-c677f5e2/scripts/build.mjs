@@ -1,0 +1,10 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!/^[A-Za-z0-9_-]{1,128}$/.test(source.git_instance_id||'') || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const css=await readFile('client/style.css','utf8'), body=await readFile('client/body.html','utf8'), app=await readFile('client/app.js','utf8');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n`+app);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
