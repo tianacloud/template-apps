@@ -1,0 +1,15 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {buildSnapshot,decideWithConfig,normalizeConfig} from '../src/logic.js';
+const parity=JSON.parse(readFileSync(new URL('./parity.json',import.meta.url),'utf8'));
+for(const c of parity) test(c.name,()=>{const actual=decideWithConfig(c.input,{},c.now);assert.equal(actual.action,c.action);assert.equal(actual.reason,c.reason)});
+const now=1793098800000,day=86400000;
+const card=(d=2)=>({outBizNo:'b',sourceType:'code',expireTimeMs:now+d*day});
+const credit=(d=3)=>({balance:2,expireTimeMs:now+d*day});
+const ledger=(used=99)=>({quota:{fiveHour:{usedPercent:used}},cards:[card()],credits:[credit()]});
+const decide=l=>buildSnapshot(l,{},now).decision;
+test('触发和刷新窗口边界',()=>{assert.equal(decide(ledger(98.99)).action,'idle');assert.equal(decide(ledger(99)).action,'use-card');const l=ledger();l.quota.fiveHour.resetTimeMs=now+60*60000;assert.equal(decide(l).action,'wait');l.quota.fiveHour.resetTimeMs++;assert.equal(decide(l).action,'use-card');l.quota.fiveHour.usedPercent=98;assert.equal(decide(l).action,'idle')});
+test('缺失、空积分、无效卡、到期和无限量',()=>{const l=ledger();delete l.credits;assert.equal(decide(l).action,'wait');l.credits=[];assert.equal(decide(l).action,'use-card');delete l.cards[0].sourceType;assert.equal(decide(l).action,'wait');l.cards=[card()];l.credits=[credit(0)];assert.equal(decide(l).action,'use-card');l.quota.fiveHour.unlimited=true;assert.equal(decide(l).action,'idle')});
+test('相同到期先积分，按最早卡排序',()=>{const l=ledger();l.cards=[card(5),card(1)];l.credits=[credit(3)];assert.equal(decide(l).action,'use-card');l.cards=[card(3)];assert.equal(decide(l).action,'use-credit')});
+test('配置白名单与回退',()=>{const {config,issues}=normalizeConfig({cardTriggerPercent:200,cardSkipBeforeResetMinutes:-1,quotaLevels:{tight:99,low:1},junk:1});assert.deepEqual(config,{schemaVersion:1,cardTriggerPercent:100,cardSkipBeforeResetMinutes:0,quotaLevels:{tight:80,low:95}});assert.equal(issues.length,3)});
