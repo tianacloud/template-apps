@@ -1,0 +1,10 @@
+import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
+const commit=process.argv[2],local=commit==='--local';
+if(!local&&!/^[a-f0-9]{40}$/.test(commit||''))throw Error('需要完整提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+let html=await readFile('src/index.html','utf8');
+const style=html.match(/<style>([\s\S]*?)<\/style>/)[1], body=html.match(/<body>([\s\S]*?)<script>/)[1], script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const js=`document.title='轻账本';document.head.insertAdjacentHTML('beforeend',${JSON.stringify('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>'+style+'</style>')});document.body.innerHTML=${JSON.stringify(body)};\n${script}`;
+await mkdir('dist/assets',{recursive:true});await writeFile('dist/assets/app.js',js);await copyFile('public/icon.png','dist/icon.png');
+if(local)await writeFile('dist/index.html','<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"></head><body><script src="assets/app.js"></script></body></html>');
+else console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
