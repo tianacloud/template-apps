@@ -66,7 +66,7 @@ function toast(msg) {
 function mediaHTML(id, name, extra) {
   const ch = esc((name || "藏").slice(0, 1));
   const img = MANIFEST[id]
-    ? '<img src="images/' + esc(MANIFEST[id]) + '" alt="' + esc(name) + '" loading="lazy" onerror="this.remove()">'
+    ? '<img src="' + esc(assetBase + 'images/' + MANIFEST[id]) + '" alt="' + esc(name) + '" loading="lazy" onerror="this.remove()">'
     : "";
   return '<div class="media">' + (extra || "") +
     '<div class="ph" data-ch="' + ch + '" data-label="' + esc(name) + '"></div>' + img + "</div>";
@@ -290,7 +290,7 @@ function initBgArt() {
     const a = repArtifactOf(m.id);
     if (a && MANIFEST[a.id]) f = MANIFEST[a.id];
   }
-  if (f) el.style.backgroundImage = "url('images/" + f + "')";
+  if (f) el.style.backgroundImage = "url('" + assetBase + "images/" + f + "')";
 }
 const Weather = { data: null, loading: false };
 function wwInfo(code) {
@@ -480,7 +480,7 @@ function renderChinaMap(lit) {
       if (gdP) img = userPhotos["g:" + gdP.name];
       else {
         const rep = provRepArt(p.name);
-        if (rep && MANIFEST[rep.id]) img = "images/" + MANIFEST[rep.id];
+        if (rep && MANIFEST[rep.id]) img = assetBase + "images/" + MANIFEST[rep.id];
       }
     }
     if (img) {
@@ -625,7 +625,7 @@ let carTimer = null;
 function stopCarousel() { if (carTimer) { clearInterval(carTimer); carTimer = null; } }
 function bannerSlide(a) {
   const m = museumById(a.museumId) || { name: "" };
-  const src = MANIFEST[a.id] ? "images/" + MANIFEST[a.id] : "";
+  const src = MANIFEST[a.id] ? assetBase + "images/" + MANIFEST[a.id] : "";
   return '<div class="banner-slide" data-go="a/' + esc(a.id) + '">' +
     '<div class="bgblur" style="background-image:url(\'' + src + '\')"></div>' +
     (src ? '<img class="art" src="' + src + '" alt="' + esc(a.name) + '" loading="lazy">' : "") +
@@ -1291,9 +1291,9 @@ function repArtifactOf(mid) {
 function stampBgURL(m) {
   if (userPhotos[m.id]) return userPhotos[m.id];
   const bld = MANIFEST["bld-" + m.id];
-  if (bld) return "images/" + bld;
+  if (bld) return assetBase + "images/" + bld;
   const rep = repArtifactOf(m.id);
-  return rep && MANIFEST[rep.id] ? "images/" + MANIFEST[rep.id] : "";
+  return rep && MANIFEST[rep.id] ? assetBase + "images/" + MANIFEST[rep.id] : "";
 }
 let stampsExpanded = false;
 function stampCellHTML(m, v) {

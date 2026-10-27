@@ -8,7 +8,7 @@ const css = await read('./src/style.css');
 const body = await read('./src/body.html');
 const files = JSON.parse(await read('./src/scripts.json'));
 const scripts = await Promise.all(files.map(f => read('./src/' + f)));
-const setup = `const base=document.createElement('base');base.href=new URL('./',import.meta.url).href;document.head.appendChild(base);const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};`;
+const setup = `const assetBase=new URL('./',import.meta.url).href;const style=document.createElement('style');style.textContent=${JSON.stringify(css)}.replaceAll('url("fonts/', 'url("'+assetBase+'fonts/');document.head.appendChild(style);document.getElementById('app').outerHTML=${JSON.stringify(body)};`;
 await writeFile('dist/assets/app.js', setup + '\n' + scripts.join('\n;\n'));
 const source = JSON.parse(await read('./source.json'));
 console.log('TIANA_PROJECT_PARAMS ' + JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
