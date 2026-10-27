@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>合成大西瓜 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .wm-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+    justify-content: center;
+  }
+  .wm-stage {
+    position: relative;
+    flex: 0 1 360px;
+    min-width: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    background: #fff8ec;
+    touch-action: none;
+    user-select: none;
+  }
+  html[data-theme="dark"] .wm-stage { background: #1b1a24; }
+  .wm-stage canvas { display: block; width: 100%; height: auto; }
+
+  /* 右侧进化链：DOM 顺序是小球在前，靠 column-reverse 让小的在下面、大的在上面 */
+  .wm-evo {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .evo-ball {
+    --t: 0;
+    width: calc(20px + var(--t) * 32px);
+    height: calc(20px + var(--t) * 32px);
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .58) 0 14%, rgba(255, 255, 255, 0) 15%),
+      radial-gradient(circle at 34% 32%, var(--cl) 0%, var(--c) 55%, var(--cd) 100%);
+    box-shadow: inset 0 -2px 3px rgba(24, 31, 61, .12);
+    transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s;
+  }
+  /* 当前手上那颗球对应的级别：描一圈品牌色光环 */
+  .evo-ball.on {
+    transform: scale(1.16);
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 0 4px var(--brand),
+      0 4px 12px rgba(24, 31, 61, .18);
+  }
+  .evo-arrow {
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-left: 4.5px solid transparent;
+    border-right: 4.5px solid transparent;
+    border-bottom: 5px solid var(--ink-3);
+    opacity: .55;
+    transform: translateY(1px);
+  }
+
+  .wm-tip { margin-top: 14px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; font-size: 12.5px; color: var(--ink-3); }
+
+  /* 窄屏放不下并排，进化链改成画布下方横排，方向也翻转成从左到右 */
+  @media (max-width: 680px) {
+    .wm-wrap { flex-direction: column-reverse; align-items: center; }
+    .wm-evo {
+      flex-direction: row;
+      height: auto !important;
+      width: 100%;
+      max-width: 360px;
+      justify-content: space-between;
+      padding: 10px 2px 0;
+    }
+    .evo-ball {
+      width: calc(13px + var(--t) * 15px);
+      height: calc(13px + var(--t) * 15px);
+    }
+    .evo-arrow { transform: rotate(90deg); }
+    .wm-tip-evo { display: none; }
+  }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">合成大西瓜<small>两个一样的水果碰在一起就升级</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="scorebar">
+    <div class="score-box"><span class="lb">得分</span><span class="val" id="score">0</span></div>
+    <div class="score-box accent"><span class="lb">最高分</span><span class="val" id="best">0</span></div>
+  </div>
+
+  <div class="wm-wrap">
+    <div class="wm-stage" id="stage">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="wm-evo" id="evo" aria-label="水果合成进化链，当前手上的水果会被高亮"></div>
+  </div>
+
+  <div class="wm-tip">
+    <span>移动鼠标或手指瞄准，松开投放</span>
+    <span class="wm-tip-evo">· 进化链上亮起的就是你手上这颗</span>
+  </div>
+</main>
+
+<div class="g-hint">
+  同种水果相撞会合成更大的一颗 · 水果堆过顶部的<b>红线</b>就结束了 · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3>水果满出来了</h3>
+    <div class="big" id="ovScore">0</div>
+    <p id="ovSub">再试一次?</p>
+    <div class="overlay-actions">
+      <button class="btn btn-primary" id="ovNew">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/watermelon.js"></script>
+</body>
+</html>
