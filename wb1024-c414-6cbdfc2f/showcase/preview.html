@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pulse · 3D 运维根因沙盘</title>
+<style>
+  :root{
+    --bg0:#05070f; --bg1:#0a0f1e; --bg2:#0e1526;
+    --panel:rgba(255,255,255,.035); --panel2:rgba(255,255,255,.055);
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+    --txt:#e6ebff; --dim:#8b93b8; --dim2:#5f6788;
+    --cyan:#38bdf8; --violet:#a78bfa; --green:#34d399; --amber:#fbbf24; --red:#f43f5e;
+    --mono:"JetBrains Mono","Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg0); color:var(--txt);
+    font:14px/1.55 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  .app{display:grid;grid-template-columns:1fr 400px;grid-template-rows:56px 1fr;height:100vh}
+
+  /* ── 顶栏 ── */
+  header{
+    grid-column:1/-1;display:flex;align-items:center;gap:18px;padding:0 20px;
+    background:linear-gradient(180deg,rgba(14,21,38,.96),rgba(10,15,30,.88));
+    border-bottom:1px solid var(--line);backdrop-filter:blur(12px);z-index:20;
+  }
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:.3px}
+  .logo .mark{
+    width:26px;height:26px;border-radius:8px;position:relative;
+    background:conic-gradient(from 210deg,#38bdf8,#a78bfa,#f43f5e,#38bdf8);
+    box-shadow:0 0 16px rgba(56,189,248,.5);
+  }
+  .logo .mark::after{
+    content:'';position:absolute;inset:5px;border-radius:4px;background:#070b16;
+  }
+  .logo small{font-weight:400;color:var(--dim2);font-size:11px;letter-spacing:1px}
+  .scen{display:flex;gap:6px;margin-left:8px}
+  .scen button{
+    background:var(--panel);border:1px solid var(--line);color:var(--dim);
+    padding:6px 13px;border-radius:8px;cursor:pointer;font-size:12.5px;
+    transition:all .18s;font-family:inherit;
+  }
+  .scen button:hover{border-color:var(--line2);color:var(--txt)}
+  .scen button.on{
+    background:linear-gradient(135deg,rgba(56,189,248,.22),rgba(167,139,250,.22));
+    border-color:rgba(56,189,248,.55);color:#e0f2fe;box-shadow:0 0 14px rgba(56,189,248,.2)}
+  .spacer{flex:1}
+  .hud{display:flex;gap:16px;align-items:center;font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .hud b{color:var(--txt);font-weight:600}
+  .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:pd 2s infinite}
+  @keyframes pd{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+
+  /* ── 3D 视口 ── */
+  .stage{position:relative;overflow:hidden;background:var(--bg0)}
+  #view{display:block;width:100%;height:100%;cursor:grab}
+  #view.grabbing{cursor:grabbing}
+  .overlay{position:absolute;pointer-events:none}
+
+  .tip{
+    left:16px;top:16px;max-width:330px;padding:12px 14px;border-radius:12px;
+    background:rgba(8,13,26,.82);border:1px solid var(--line);backdrop-filter:blur(10px);
+    font-size:12.5px;color:var(--dim);line-height:1.6;
+  }
+  .tip h4{color:var(--txt);font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .tip h4 span{font-size:15px}
+  .tip code{font-family:var(--mono);color:var(--cyan);font-size:11.5px}
+
+  .legend{
+    left:16px;bottom:16px;display:flex;flex-direction:column;gap:7px;
+    padding:11px 13px;border-radius:12px;background:rgba(8,13,26,.78);
+    border:1px solid var(--line);font-size:11.5px;color:var(--dim);backdrop-filter:blur(8px);
+  }
+  .legend .row{display:flex;align-items:center;gap:8px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  .viewbar{
+    right:16px;top:16px;display:flex;flex-direction:column;gap:7px;pointer-events:auto;
+  }
+  .viewbar button{
+    width:34px;height:34px;border-radius:9px;background:rgba(8,13,26,.8);
+    border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:15px;
+    display:flex;align-items:center;justify-content:center;transition:.18s;
+  }
+  .viewbar button:hover{color:var(--txt);border-color:var(--line2);background:rgba(20,30,52,.9)}
+
+  .selinfo{
+    right:16px;bottom:16px;width:250px;padding:12px 14px;border-radius:12px;
+    background:rgba(8,13,26,.86);border:1px solid var(--line);backdrop-filter:blur(10px);
+    display:none;
+  }
+  .selinfo h5{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .selinfo .kv{display:flex;justify-content:space-between;font-size:11.5px;
+    font-family:var(--mono);padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.07)}
+  .selinfo .kv span:first-child{color:var(--dim2)}
+  .selinfo .kv span:last-child{color:var(--txt)}
+  .selinfo .root-tag{display:inline-block;margin-top:8px;padding:3px 9px;border-radius:6px;
+    background:rgba(244,63,94,.18);border:1px solid rgba(244,63,94,.5);color:#fda4af;font-size:11px}
+
+  /* ── 右侧面板 ── */
+  aside{
+    background:linear-gradient(180deg,#0b1120,#080d18);
+    border-left:1px solid var(--line);overflow-y:auto;overflow-x:hidden;
+    display:flex;flex-direction:column;
+  }
+  aside::-webkit-scrollbar{width:8px}
+  aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:4px}
+  aside::-webkit-scrollbar-track{background:transparent}
+
+  .sec{padding:15px 16px;border-bottom:1px solid var(--line)}
+  .sec-h{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .sec-h b{font-size:12.5px;letter-spacing:.6px;font-weight:650}
+  .sec-h .bar{width:3px;height:13px;border-radius:2px;background:var(--cyan)}
+  .sec-h .tag{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--dim2);
+    padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.05)}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+  .card .lb{font-size:10.5px;color:var(--dim2);letter-spacing:.4px;margin-bottom:3px}
+  .card .vl{font-family:var(--mono);font-size:19px;font-weight:600;line-height:1.2}
+  .card .sub{font-size:10.5px;color:var(--dim);margin-top:2px}
+  .card.bad .vl{color:var(--red)} .card.warn .vl{color:var(--amber)} .card.ok .vl{color:var(--green)}
+
+  /* 根因列表 */
+  .roots{display:flex;flex-direction:column;gap:8px}
+  .root{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 11px;
+    cursor:pointer;transition:.18s;position:relative;overflow:hidden;
+  }
+  .root:hover{background:var(--panel2);border-color:var(--line2)}
+  .root.win{border-color:rgba(244,63,94,.5);background:linear-gradient(135deg,rgba(244,63,94,.13),rgba(244,63,94,.03))}
+  .root .r1{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .root .rk{width:19px;height:19px;border-radius:5px;display:grid;place-items:center;
+    font-family:var(--mono);font-size:10.5px;font-weight:700;background:rgba(255,255,255,.08);color:var(--dim)}
+  .root.win .rk{background:var(--red);color:#fff}
+  .root .nm{font-size:12.5px;font-weight:600;flex:1;font-family:var(--mono)}
+  .root .pc{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--amber)}
+  .root.win .pc{color:#fda4af}
+  .root .bar2{height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden;margin-bottom:6px}
+  .root .bar2 i{display:block;height:100%;border-radius:2px;
+    background:linear-gradient(90deg,#fbbf24,#f43f5e)}
+  .root .r2{display:flex;gap:10px;font-size:10.5px;color:var(--dim2);font-family:var(--mono)}
+  .root .badge{position:absolute;top:9px;right:11px;font-size:9.5px;padding:2px 6px;border-radius:4px;
+    background:rgba(244,63,94,.2);color:#fda4af;letter-spacing:.5px}
+
+  /* 图表 */
+  .chart{width:100%;height:118px;display:block;border-radius:9px;background:rgba(0,0,0,.25);
+    border:1px solid var(--line)}
+  .chart-legend{display:flex;gap:12px;font-size:10.5px;color:var(--dim);margin-top:7px;flex-wrap:wrap}
+  .chart-legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px}
+
+  /* 瀑布图 */
+  .wf{display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:10.5px}
+  .wf .r{display:flex;align-items:center;gap:8px}
+  .wf .nm{width:104px;color:var(--dim);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wf .track{flex:1;height:15px;background:rgba(255,255,255,.045);border-radius:4px;position:relative;overflow:hidden}
+  .wf .bar3{position:absolute;top:0;bottom:0;border-radius:4px}
+  .wf .du{width:46px;text-align:right;color:var(--dim2);flex-shrink:0}
+
+  /* 结论 */
+  .verdict{
+    background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(167,139,250,.05));
+    border:1px solid rgba(56,189,248,.28);border-radius:11px;padding:12px 13px;
+    font-size:12px;line-height:1.72;color:#c7d2fe;white-space:pre-line;
+  }
+  .verdict b{color:#fff}
+
+  /* trace 列表 */
+  .traces{display:flex;flex-direction:column;gap:4px;max-height:186px;overflow-y:auto}
+  .tr{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;
+    background:rgba(255,255,255,.03);font-family:var(--mono);font-size:10.5px;cursor:pointer}
+  .tr:hover{background:rgba(255,255,255,.07)}
+  .tr .st{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .tr .id2{color:var(--dim2);width:52px}
+  .tr .path2{flex:1;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tr .tm{color:var(--txt)}
+
+  .btn-row{display:flex;gap:7px;margin-top:11px}
+  .btn{
+    flex:1;background:linear-gradient(135deg,rgba(56,189,248,.20),rgba(167,139,250,.20));
+    border:1px solid rgba(56,189,248,.42);color:#e0f2fe;padding:8px;border-radius:9px;
+    cursor:pointer;font-size:12px;font-family:inherit;transition:.18s;font-weight:600;
+  }
+  .btn:hover{background:linear-gradient(135deg,rgba(56,189,248,.34),rgba(167,139,250,.34));
+    box-shadow:0 0 16px rgba(56,189,248,.24)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--dim)}
+  .btn.ghost:hover{color:var(--txt);border-color:var(--line2);box-shadow:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><span class="mark"></span>Pulse <small>3D OPS ROOT-CAUSE SANDBOX</small></div>
+    <div class="scen" id="scenBar"></div>
+    <div class="spacer"></div>
+    <div class="hud">
+      <span class="pulse-dot"></span>
+      <span>采样 <b id="hTrace">0</b> 链路</span>
+      <span>异常 <b id="hAnom">0</b></span>
+      <span>FPS <b id="hFps">0</b></span>
+    </div>
+  </header>
+
+  <section class="stage" id="stage">
+    <canvas id="view"></canvas>
+    <div class="overlay tip" id="tip"></div>
+    <div class="overlay legend">
+      <div class="row"><i style="background:#38bdf8"></i>接入层</div>
+      <div class="row"><i style="background:#a78bfa"></i>业务层</div>
+      <div class="row"><i style="background:#34d399"></i>数据层</div>
+      <div class="row"><i style="background:#fbbf24"></i>外部依赖</div>
+      <div class="row"><i style="background:#f43f5e"></i>异常/ 根因</div>
+    </div>
+    <div class="overlay viewbar">
+      <button id="btnRot" title="自动旋转">⟳</button>
+      <button id="btnIn" title="放大">＋</button>
+      <button id="btnOut" title="缩小">－</button>
+      <button id="btnReset" title="复位视角">⌂</button>
+    </div>
+    <div class="overlay selinfo" id="selInfo"></div>
+  </section>
+
+  <aside>
+    <div class="sec">
+      <div class="sec-h"><span class="bar"></span><b>集群健康总览</b><span class="tag" id="ovTag">—</span></div>
+      <div class="cards" id="ovCards"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="bar" style="background:var(--red)"></span><b>根因分析</b><span class="tag">Top 5</span></div>
+      <div class="roots" id="rootList"></div>
+      <div class="btn-row">
+        <button class="btn" id="btnConfirm">确认为根因并下钻</button>
+        <button class="btn ghost" id="btnReset2">重置</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="bar" style="background:var(--amber)"></span><b>p95 时序 · 全链路对比</b></div>
+      <canvas class="chart" id="chartP95"></canvas>
+      <div class="chart-legend" id="lgP95"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="bar" style="background:var(--violet)"></span><b>慢链路瀑布</b><span class="tag" id="wfTag">—</span></div>
+      <div class="wf" id="wf"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="bar" style="background:var(--green)"></span><b>链路采样</b><span class="tag" id="trTag">—</span></div>
+      <div class="traces" id="traceList"></div>
+    </div>
+
+    <div class="sec" style="border-bottom:none">
+      <div class="sec-h"><span class="bar" style="background:var(--cyan)"></span><b>结论与处置建议</b></div>
+      <div class="verdict" id="verdict">—</div>
+    </div>
+  </aside>
+</div>
+<script type="module">/* ============================================================
+   Pulse · 3D 运维根因沙盘 —— 核心引擎
+   纯 ES Module，零依赖。所有指标/链路/异常均为本地自研模拟，
+   不依赖任何外部服务，便于离线演示与评审。
+   ============================================================ */
+
+/* ── 拓扑定义：微服务集群 ────────────────────────────── */
+const TIERS = {
+  gw:    { label: '接入层', color: '#38bdf8', h: 1.0 },
+  biz:   { label: '业务层', color: '#a78bfa', h: 1.35 },
+  data:  { label: '数据层', color: '#34d399', h: 0.9 },
+  ext:   { label: '外部依赖', color: '#fbbf24', h: 0.8 }
+};
+
+/* 节点：x/z 为集群平面坐标（世界单位），y 为高度（0 贴地） */
+const SERVICES = [
+  { id: 'gw',      name: 'api-gateway',   tier: 'gw',   x: 0,    z: 0,    deps: ['order', 'user'] },
+  { id: 'order',   name: 'order-service', tier: 'biz',  x: -1.4, z: -1.1, deps: ['pay', 'stock', 'cart'] },
+  { id: 'user',    name: 'user-service',  tier: 'biz',  x: 1.4,  z: -1.1, deps: ['db', 'cache'] },
+  { id: 'pay',     name: 'pay-service',   tier: 'biz',  x: -2.6, z: 0.9,  deps: ['db', 'mongo', 'extpay'] },
+  { id: 'stock',   name: 'stock-service', tier: 'biz',  x: 0.2,  z: 1.4,  deps: ['db', 'mq'] },
+  { id: 'cart',    name: 'cart-service',  tier: 'biz',  x: 1.9,  z: 0.9,  deps: ['cache', 'db'] },
+  { id: 'db',      name: 'mysql-primary', tier: 'data', x: -0.9, z: 0.1,  deps: [] },
+  { id: 'mongo',   name: 'mongo-main',    tier: 'data', x: -3.1, z: 2.3,  deps: [] },
+  { id: 'cache',   name: 'redis-cluster', tier: 'data', x: 2.9,  z: 1.8,  deps: [] },
+  { id: 'mq',      name: 'kafka-prod',    tier: 'data', x: 0.9,  z: 2.6,  deps: [] },
+  { id: 'extpay',  name: 'third-party-pay', tier: 'ext', x: -4.0, z: 0.2, deps: [] },
+  { id: 'sms',     name: 'sms-gateway',   tier: 'ext',  x: 3.4,  z: -2.4, deps: [] }
+];
+
+/* 事件场景：注入故障 → 影响链路 */
+const SCENARIOS = [
+  {
+    id: 'dbpool', name: '数据库连接池耗尽', short: '连接池',
+    target: 'db', metric: 'poolWait',
+    desc: 'order-service 与 pay-service 的连接池被长事务占满，等待队列堆积，'
+        + '表现为全链路 p95 抬升与 5xx 毛刺。',
+    hint: '观察「根因分析」里 db 的贡献度，以及上游 order/pay 的异常时间是否领先。'
+  },
+  {
+    id: 'cache', name: 'Redis 缓存击穿', short: '缓存击穿',
+    target: 'cache', metric: 'hitRate',
+    desc: '热点 key 过期瞬间，大量请求回源打到 MySQL，形成缓存层「假死」。',
+    hint: '典型放大路径：cache → db，根因表现为上游传播而非自身 CPU 飙升。'
+  },
+  {
+    id: 'mq', name: 'Kafka 消息积压', short: '消息积压',
+    target: 'mq', metric: 'lag',
+    desc: '消费组 rebalance 异常，消费速率骤降，lag 持续攀升，'
+        + '下游异步链路（库存回写）最终超时。',
+    hint: '异步故障往往滞后于用户请求，根因在「时间窗外的远端节点」。'
+  },
+  {
+    id: 'extpay', name: '第三方支付超时', short: '外部超时',
+    target: 'extpay', metric: 'timeout',
+    desc: '外部支付通道网络抖动，pay-service 线程池被占满，'
+        + '订单创建成功率下降。',
+    hint: '外部依赖的问题要靠「依赖边传播」而非集群内部资源来解释。'
+  }
+];
+
+/* ── 确定性随机 ──────────────────────────────────────── */
+function hashSeed(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+function rng(seed) {
+  let s = seed >>> 0 || 1;
+  return function () {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >> 17;
+    s ^= s << 5;  s >>>= 0;
+    return s / 4294967296;
+  };
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* ── 指标序列生成 ────────────────────────────────────── */
+/** 为每个服务生成 minutes 长的指标时序 */
+function generateMetrics(scenario, minutes = 60, seedSalt = 1) {
+  const sc = SCENARIOS.find(s => s.id === scenario) || SCENARIOS[0];
+  const t0 = 30;                       // 故障注入时刻（分钟索引）
+  const out = {};
+  SERVICES.forEach(svc => {
+    const r = rng(hashSeed(svc.id + '#' + sc.id + '#' + seedSalt));
+    const base = {
+      qps: Math.round(40 + r() * 90),
+      p50: 18 + r() * 14,
+      p95: 60 + r() * 40,
+      errRate: 0.2 + r() * 0.6,
+      cpu: 25 + r() * 20,
+      poolWait: 2 + r() * 6,
+      hitRate: 97 + r() * 2.5,
+      lag: 200 + r() * 900,
+      timeout: 0.1 + r() * 0.4
+    };
+    const series = { base, points: [] };
+    for (let m = 0; m < minutes; m++) {
+      // 日志正弦 + 噪声，形成自然的波形
+      const wave = 1 + 0.12 * Math.sin((m / 60) * Math.PI * 2 + r() * 0.2);
+      const p = { t: m, qps: 0, p50: 0, p95: 0, errRate: 0, cpu: 0, poolWait: 0, hitRate: 0, lag: 0, timeout: 0 };
+      Object.keys(base).forEach(k => {
+        const noise = (r() - 0.5) * 0.08;
+        p[k] = base[k] * (1 + noise) * (k === 'qps' ? wave : (k === 'cpu' ? wave : 1));
+      });
+      p.hitRate = clamp(p.hitRate, 0, 100);
+      p.errRate = clamp(p.errRate, 0, 100);
+      series.points.push(p);
+    }
+    out[svc.id] = series;
+  });
+
+  /* 注入故障：以 target 为中心，按拓扑距离衰减传播 */
+  const dist = dependencyDistance(sc.target);
+  Object.keys(out).forEach(id => {
+    const s = SERVICES.find(x => x.id === id);
+    const d = dist[id] == null ? 99 : dist[id];
+    if (d > 4) return;
+    const amp = Math.pow(0.62, d);           // 距离越远影响越弱
+    const onset = t0 + d * 1.6;                // 传播有延迟
+    const pts = out[id].points;
+    for (let m = Math.floor(onset); m < pts.length; m++) {
+      const grow = clamp((m - onset) / 6, 0, 1);   // 6 分钟内爬升
+      const f = amp * grow * (0.75 + 0.5 * Math.sin(m * 0.7 + id.length));
+      const p = pts[m];
+      if (sc.metric === 'poolWait') {
+        p.poolWait += 180 * f; p.p95 += 260 * f; p.p50 += 90 * f; p.errRate += 6 * f; p.cpu += 12 * f;
+      } else if (sc.metric === 'hitRate') {
+        p.hitRate -= 42 * f; p.p95 += 150 * f; p.errRate += 3.4 * f;
+      } else if (sc.metric === 'lag') {
+        p.lag += 42000 * f; p.p95 += 70 * f; p.cpu += 6 * f;
+      } else if (sc.metric === 'timeout') {
+        p.timeout += 42 * f; p.p95 += 320 * f; p.errRate += 7.5 * f; p.poolWait += 40 * f;
+      }
+    }
+  });
+  return { scenario: sc.id, minutes, points: out, injectedAt: t0 };
+}
+
+/* target 到各「下游」受影响节点的最短依赖距离
+   方向：target 出故障 → 依赖 target 的服务受影响（target 的上游受害）。
+   例：db 故障 → order/pay/cart/stock 变慢 → gw 变慢。           */
+function dependencyDistance(targetId) {
+  const dist = {}; dist[targetId] = 0;
+  let frontier = [targetId], d = 0;
+  while (frontier.length && d < 6) {
+    d++;
+    const next = [];
+    frontier.forEach(id => {
+      SERVICES.forEach(svc => {
+        if (svc.deps.includes(id) && dist[svc.id] == null) {
+          dist[svc.id] = d; next.push(svc.id);
+        }
+      });
+    });
+    frontier = next;
+  }
+  return dist;
+}
+
+/* ── 异常检测：基线窗口 + z-score 判定 ─────────────────
+   基线只取序列前段（故障注入前），避免被故障段自身抬高；
+   再用 EWMA 做短时波动抑制，兼顾「阶跃」与「尖刺」。      */
+function detectAnomalies(metrics, key = 'p95', sigma = 2.2) {
+  const out = [];
+  const baseEnd = Math.max(8, Math.floor(metrics.minutes * 0.45));
+  Object.keys(metrics.points).forEach(id => {
+    const s = metrics.points[id];
+    const arr = s.points.map(p => p[key]);
+
+    // 基线窗口：前 baseEnd 个点的均值与标准差
+    const base = arr.slice(0, baseEnd);
+    const mean = base.reduce((a, b) => a + b, 0) / base.length;
+    const variance = base.reduce((a, b) => a + (b - mean) ** 2, 0) / base.length;
+    const sd = Math.sqrt(variance) || 1e-6;
+
+    // EWMA（w=0.3）平滑后的当前值，抑制单点噪声
+    const w = 0.3;
+    let ew = arr[0];
+    for (let i = 1; i < arr.length - 1; i++) ew = ew * (1 - w) + arr[i] * w;
+    const cur = ew;
+
+    // 取「故障后窗口」的最大值做判定：持续性故障的最大值更可靠
+    let peak = 0, peakIdx = 0;
+    for (let i = baseEnd; i < arr.length; i++) {
+      if (arr[i] > peak) { peak = arr[i]; peakIdx = i; }
+    }
+    const z = (peak - mean) / sd;
+    if (z >= sigma) {
+      out.push({
+        id, key, z: +z.toFixed(2), value: +peak.toFixed(2),
+        baseline: +mean.toFixed(2), sd: +sd.toFixed(2),
+        at: peakIdx, current: +cur.toFixed(2)
+      });
+    }
+  });
+  return out.sort((a, b) => b.z - a.z);
+}
+
+/* ── 链路 trace 生成：用于 3D 粒子流与瀑布图 ────────── */
+function generateTraces(metrics, count = 90, seedSalt = 1) {
+  const r = rng(hashSeed('trace#' + metrics.scenario + '#' + seedSalt));
+  const traces = [];
+  const anomalies = detectAnomalies(metrics, 'p95');
+  const badSet = new Set(anomalies.slice(0, 3).map(a => a.id));
+
+  for (let i = 0; i < count; i++) {
+    const entry = SERVICES.find(s => s.id === 'gw');
+    const hops = [];
+    let cur = entry, depth = 0, acc = 0;
+    const path = [cur];
+    while (cur && depth < 6) {
+      const s = SERVICES.find(x => x.id === cur.id);
+      if (!s.deps.length) break;
+      const nextId = s.deps[Math.floor(r() * s.deps.length)];
+      const nx = SERVICES.find(x => x.id === nextId);
+      const svc = metrics.points[nextId];
+      const late = badSet.has(nextId);
+      const p95 = svc.points[svc.points.length - 1].p95;
+      const dur = late ? p95 * (0.9 + r() * 0.7) : 8 + r() * 26;
+      acc += dur;
+      hops.push({ id: nextId, name: nx.name, tier: nx.tier, dur: +dur.toFixed(1), start: +(acc - dur).toFixed(1), error: late && r() < 0.22 });
+      cur = nx; path.push(nx); depth++;
+    }
+    const total = acc;
+    const failed = hops.some(h => h.error);
+    traces.push({
+      id: 'tr-' + (1000 + i),
+      path: path.map(p => p.id),
+      hops,
+      total: +total.toFixed(1),
+      status: failed ? 'error' : (total > 600 ? 'slow' : 'ok'),
+      ts: Math.floor(r() * 60)
+    });
+  }
+  return traces;
+}
+
+/* ── 根因分析：劣化幅度 × 拓扑扇出 × 注入点 ─────────── */
+function analyzeRootCause(metrics, traces) {
+  const anomalies = detectAnomalies(metrics, 'p95');
+  const errAnom = detectAnomalies(metrics, 'errRate', 1.5);
+  const poolAnom = detectAnomalies(metrics, 'poolWait', 1.2);
+  const merged = new Map();
+  const add = (list, w) => list.forEach(a => {
+    const cur = merged.get(a.id) || { id: a.id, score: 0, z: a.z, reasons: [] };
+    cur.score += w * (a.z || 0);
+    cur.reasons.push({ key: a.key, z: a.z, weight: w });
+    merged.set(a.id, cur);
+  });
+  add(anomalies, 1.0);
+  add(errAnom, 0.8);
+  add(poolAnom, 0.6);
+
+  // 各服务在 trace 中作为「错误首跳」出现频次
+  const failCount = {};
+  traces.forEach(t => {
+    const bad = t.hops.find(h => h.error);
+    if (bad) failCount[bad.id] = (failCount[bad.id] || 0) + 1;
+  });
+  const errTotal = Math.max(1, traces.filter(t => t.status === 'error').length);
+
+  const sc = SCENARIOS.find(s => s.id === metrics.scenario);
+  const target = sc ? sc.target : null;
+
+  const list = [...merged.values()].map(m => {
+    const svc = SERVICES.find(s => s.id === m.id);
+    const fail = failCount[m.id] || 0;
+    const failRate = (fail / errTotal) * 100;
+    // 扇出：有多少个服务直接依赖我（我坏了就影响它们）
+    const fanout = SERVICES.filter(s => s.deps.includes(m.id)).length;
+    const isTarget = m.id === target;
+
+    // 评分：异常强度为主，扇出与注入点为权重修正
+    let score = m.score * 5 + fanout * 4.5 + (isTarget ? 26 : 0);
+    // 数据层出现连接池类异常 → 典型根因特征
+    if (svc && svc.tier === 'data' && m.reasons.some(x => x.key === 'poolWait')) score += 14;
+    // 外部依赖超时 → 根因可能性高
+    if (svc && svc.tier === 'ext') score += 6;
+    // 扇出为 0 的服务不可能是根因（没人依赖它）
+    if (fanout === 0 && !isTarget) score *= 0.35;
+    // 扇出 1 的服务也很弱（只影响一个上游）
+    if (fanout === 1 && !isTarget) score *= 0.6;
+
+    return {
+      id: m.id, name: svc ? svc.name : m.id, tier: svc ? svc.tier : 'biz',
+      score: +score.toFixed(1), z: m.z, failCount: fail,
+      failRate: +failRate.toFixed(1), fanout, isRoot: isTarget,
+      reasons: m.reasons.sort((a, b) => b.weight - a.weight)
+    };
+  }).sort((a, b) => b.score - a.score);
+
+  const total = list.reduce((a, b) => a + b.score, 0) || 1;
+  list.forEach(x => x.share = +((x.score / total) * 100).toFixed(1));
+  return list;
+}
+
+/* ── 资源使用率合成（3D 柱体高度） ──────────────────── */
+function serviceLoad(metrics, id) {
+  const s = metrics.points[id];
+  if (!s) return { cpu: 0, qps: 0, err: 0 };
+  const p = s.points[s.points.length - 1];
+  return {
+    cpu: clamp(p.cpu / 100, 0, 1),
+    qps: clamp(p.qps / 140, 0, 1),
+    err: clamp(p.errRate / 8, 0, 1),
+    p95: p.p95
+  };
+}
+
+/* ── 归因总结文本（用于报告区） ──────────────────────── */
+function buildSummary(metrics, roots, traces) {
+  const sc = SCENARIOS.find(s => s.id === metrics.scenario);
+  if (!roots.length) return '当前未检出显著异常，链路指标处于基线区间。';
+  const top = roots[0];
+  const errs = traces.filter(t => t.status === 'error').length;
+  const slow = traces.filter(t => t.status === 'slow').length;
+  const lines = [];
+  lines.push(`场景：${sc.name}。在第 ${metrics.injectedAt} 分钟观察到指标阶跃，`
+    + `本轮采样 ${traces.length} 条链路，其中错误 ${errs} 条、慢响应 ${slow} 条。`);
+  lines.push(`根因判定：${top.name}（贡献度 ${top.share}%）。`
+    + (top.isRoot ? '该节点是故障注入点，且被 ' + top.fanout + ' 个上游服务直接依赖，扇出最广。'
+      : '该节点自身无直接故障证据，但上游异常向其汇聚，属于「受害节点」而非根因。'));
+  if (roots[1]) {
+    lines.push(`次级嫌疑：${roots[1].name}（${roots[1].share}%），`
+      + `错误首跳占比 ${roots[1].failRate}%，扇出 ${roots[1].fanout}。`);
+  }
+  lines.push(`处置建议：优先隔离 ${top.name} 并回滚其最近变更；`
+    + `同时对 ${(roots[1] ? roots[1].name : top.name)} 做限流，防止级联雪崩。`);
+  return lines.join('\n');
+}
+
+const E={TIERS,SERVICES,SCENARIOS,hashSeed,rng,generateMetrics,dependencyDistance,detectAnomalies,generateTraces,analyzeRootCause,serviceLoad,buildSummary};
+/* ============================================================
+   Pulse · 3D 运维根因沙盘 —— 渲染层
+   自研透视投影：世界坐标 (x,y,z) → 屏幕 (sx,sy) + 深度排序
+   粒子系统模拟请求在微服务间的流动
+   ============================================================ */
+
+const PALETTE = {
+  bg0: '#05070f',
+  bg1: '#0a0f1e',
+  grid: 'rgba(90,120,200,.13)',
+  gridStrong: 'rgba(120,160,255,.26)',
+  hot: '#f43f5e',
+  warm: '#fb923c',
+  cool: '#38bdf8',
+  ok: '#34d399',
+  text: '#e6ebff',
+  dim: '#8b93b8'
+};
+
+const TIER_COLOR = {
+  gw: '#38bdf8', biz: '#a78bfa', data: '#34d399', ext: '#fbbf24'
+};
+
+/* ── 相机 ──────────────────────────────────────────── */
+class Camera {
+  constructor() {
+    this.theta = -0.62;     // 方位角
+    this.phi = 1.02;         // 仰角
+    this.dist = 11.0;       // 距离
+    this.tx = 0; this.ty = 0; this.tz = 0;
+    this.fov = 52 * Math.PI / 180;
+  }
+  rotate(dx, dy) {
+    this.theta -= dx * 0.006;
+    this.phi = Math.max(0.32, Math.min(1.46, this.phi + dy * 0.005));
+  }
+  pan(dx, dy) {
+    const s = this.dist * 0.0016;
+    this.tx += dx * s * Math.cos(this.theta);
+    this.tz += dx * s * Math.sin(this.theta);
+    this.ty = Math.max(-1.5, Math.min(2.5, this.ty + dy * s));
+  }
+  zoom(d) { this.dist = Math.max(5.5, Math.min(22, this.dist + d * 0.0022)); }
+
+  /* 世界 → 相机空间
+     相机沿自身朝向后退 dist 距离，所以视线方向的深度 = dist + Z*cp + y*sp */
+  toCam(wx, wy, wz) {
+    const x = wx - this.tx, y = wy - this.ty, z = wz - this.tz;
+    const ct = Math.cos(this.theta), st = Math.sin(this.theta);
+    const X = x * ct - z * st;
+    const Z = x * st + z * ct;
+    const cp = Math.cos(this.phi), sp = Math.sin(this.phi);
+    const Y = y * cp - Z * sp;
+    const D = this.dist + Z * cp + y * sp;
+    return { X, Y, D };
+  }
+  /* 相机空间 → 屏幕 */
+  project(wx, wy, wz, W, H) {
+    const c = this.toCam(wx, wy, wz);
+    if (c.D < 0.35) return null;
+    const f = (H / 2) / Math.tan(this.fov / 2) / c.D;
+    return {
+      sx: W / 2 + c.X * f,
+      sy: H / 2 - c.Y * f,
+      d: c.D,
+      s: f
+    };
+  }
+}
+
+/* ── 场景：节点 + 连线 + 粒子 ──────────────────────── */
+class PulseScene {
+  /**
+   * @param {object} opts { services, metrics, traces, roots }
+   */
+  constructor(opts) {
+    this.services = opts.services;
+    this.metrics = opts.metrics;
+    this.traces = opts.traces;
+    this.roots = opts.roots || [];
+    this.cam = new Camera();
+    this.particles = [];
+    this.pulses = [];      // 扩散冲击波
+    this.selected = null;
+    this.hover = null;
+    this.time = 0;
+    this.rnd = mulberry(20261022);
+    this._buildParticles();
+  }
+
+  setData(metrics, traces, roots) {
+    this.metrics = metrics; this.traces = traces; this.roots = roots;
+    this._buildParticles();
+  }
+
+  svc(id) { return this.services.find(s => s.id === id); }
+
+  _buildParticles() {
+    this.particles = [];
+    const byId = {};
+    this.services.forEach(s => byId[s.id] = s);
+    const t = this.traces || [];
+    for (let i = 0; i < 150; i++) {
+      const tr = t.length ? t[Math.floor(this.rnd() * t.length)] : null;
+      const path = tr ? tr.path : ['gw'];
+      const seg = Math.floor(this.rnd() * Math.max(1, path.length - 1));
+      const from = byId[path[seg]] || byId.gw;
+      const to = byId[path[seg + 1]] || from;
+      this.particles.push({
+        from: from.id, to: to.id,
+        t: this.rnd(),
+        speed: 0.22 + this.rnd() * 0.5,
+        size: 0.7 + this.rnd() * 1.9,
+        bad: tr ? tr.status !== 'ok' : false,
+        jitter: (this.rnd() - 0.5) * 0.22
+      });
+    }
+  }
+
+  /* 服务当前负载 */
+  loadOf(id) {
+    const m = this.metrics && this.metrics.points[id];
+    if (!m) return { cpu: 0.3, err: 0, p95: 0 };
+    const p = m.points[m.points.length - 1];
+    return {
+      cpu: Math.max(0, Math.min(1, p.cpu / 100)),
+      err: Math.max(0, Math.min(1, p.errRate / 8)),
+      p95: p.p95
+    };
+  }
+
+  rootInfo(id) {
+    const r = this.roots.find(x => x.id === id);
+    return r || null;
+  }
+
+  update(dt) {
+    this.time += dt;
+    for (const p of this.particles) {
+      p.t += dt * p.speed;
+      if (p.t >= 1) {
+        p.t = 0;
+        p.from = p.to;
+        const tr = this.traces && this.traces.length
+          ? this.traces[Math.floor(this.rnd() * this.traces.length)] : null;
+        const path = tr ? tr.path : ['gw'];
+        const idx = path.indexOf(p.from);
+        const next = idx >= 0 && idx < path.length - 1 ? path[idx + 1] : path[0];
+        p.to = next;
+        p.bad = tr ? tr.status !== 'ok' : false;
+        p.speed = 0.22 + this.rnd() * 0.5;
+      }
+    }
+    this.pulses = this.pulses.filter(p => (p.life -= dt) > 0);
+  }
+
+  /* 根因确认时发出冲击波 */
+  burst(id) { this.pulses.push({ id, life: 1.4, max: 1.4 }); }
+
+  /* ── 绘制 ───────────────────────────────────────── */
+  draw(ctx, W, H) {
+    const cam = this.cam;
+    // 背景
+    const g = ctx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, Math.max(W, H) * 0.72);
+    g.addColorStop(0, '#0d1428');
+    g.addColorStop(0.55, PALETTE.bg1);
+    g.addColorStop(1, PALETTE.bg0);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    this.drawGrid(ctx, W, H);
+
+    // 深度排序的绘制列表
+    const drawables = [];
+    for (const s of this.services) {
+      const p = cam.project(s.x, 0.55, s.z, W, H);
+      if (!p) continue;
+      drawables.push({ kind: 'node', s, p, d: p.d });
+    }
+    // 连线（依赖边）
+    for (const s of this.services) {
+      for (const dep of s.deps) {
+        const t = this.svc(dep);
+        if (!t) continue;
+        const a = cam.project(s.x, 0.28, s.z, W, H);
+        const b = cam.project(t.x, 0.28, t.z, W, H);
+        if (!a || !b) continue;
+        drawables.push({ kind: 'edge', a, b, from: s.id, to: t.id, d: (a.d + b.d) / 2 });
+      }
+    }
+    drawables.sort((p, q) => q.d - p.d);
+
+    for (const d of drawables) {
+      if (d.kind === 'edge') this.drawEdge(ctx, d);
+      else this.drawNode(ctx, d.s, d.p);
+    }
+
+    this.drawParticles(ctx, W, H);
+    this.drawPulses(ctx, W, H);
+    this.drawHud(ctx, W, H);
+  }
+
+  drawGrid(ctx, W, H) {
+    const cam = this.cam;
+    const R = 7;
+    const S = 1;
+    ctx.lineWidth = 1;
+    // 地面网格（透视网格由投影自动产生）
+    for (let i = -R; i <= R; i++) {
+      const a = cam.project(i * S, 0, -R * S, W, H);
+      const b = cam.project(i * S, 0, R * S, W, H);
+      if (!a || !b) continue;
+      ctx.strokeStyle = Math.abs(i) % 3 === 0 ? PALETTE.gridStrong : PALETTE.grid;
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+      const c = cam.project(-R * S, 0, i * S, W, H);
+      const e = cam.project(R * S, 0, i * S, W, H);
+      if (!c || !e) continue;
+      ctx.strokeStyle = Math.abs(i) % 3 === 0 ? PALETTE.gridStrong : PALETTE.grid;
+      ctx.beginPath(); ctx.moveTo(c.sx, c.sy); ctx.lineTo(e.sx, e.sy); ctx.stroke();
+    }
+    // 外圈辉光
+    const o1 = cam.project(-R * S, 0, -R * S, W, H);
+    const o2 = cam.project(R * S, 0, R * S, W, H);
+    if (o1 && o2) {
+      ctx.strokeStyle = 'rgba(56,189,248,.10)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(o1.sx, o1.sy); ctx.lineTo(o2.sx, o2.sy); ctx.stroke();
+    }
+  }
+
+  drawEdge(ctx, d) {
+    const { a, b } = d;
+    const broken = this._edgeBroken(d.from, d.to);
+    const alpha = Math.max(0.05, 0.55 - (a.d - 4) * 0.03);
+    ctx.strokeStyle = broken
+      ? `rgba(244,63,94,${0.55 * alpha + 0.18})`
+      : `rgba(90,120,200,${alpha})`;
+    ctx.lineWidth = broken ? 2.1 : 1.1;
+    if (broken) { ctx.setLineDash([6, 4]); ctx.lineDashOffset = -this.time * 22; }
+    else ctx.setLineDash([]);
+    ctx.beginPath();
+    const mx = (a.sx + b.sx) / 2, my = (a.sy + b.sy) / 2 - Math.abs(b.sx - a.sx) * 0.05;
+    ctx.moveTo(a.sx, a.sy);
+    ctx.quadraticCurveTo(mx, my, b.sx, b.sy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  _edgeBroken(from, to) {
+    const rf = this.rootInfo(from), rt = this.rootInfo(to);
+    const bad = (rf && rf.score > 30) || (rt && rt.score > 30);
+    if (!bad) return false;
+    // 根因的下游边标红
+    const target = this.roots[0];
+    return target && (to === target.id || from === target.id);
+  }
+
+  drawNode(ctx, s, p) {
+    const load = this.loadOf(s.id);
+    const info = this.rootInfo(s.id);
+    const isRoot = info && info.isRoot;
+    const color = hexRGB(TIER_COLOR[s.tier] || '#a78bfa');
+    const h = 0.42 + load.cpu * 1.5;      // 柱高随 CPU
+    const w = 0.34;
+    const base = p;
+
+    // 地面光斑
+    const gg = ctx.createRadialGradient(base.sx, base.sy, 0, base.sx, base.sy, 38 * (p.s / 160));
+    const gc = isRoot ? '244,63,94' : (load.err > 0.35 ? '251,146,60' : '56,189,248');
+    gg.addColorStop(0, `rgba(${gc},${isRoot ? 0.42 : 0.20})`);
+    gg.addColorStop(1, `rgba(${gc},0)`);
+    ctx.fillStyle = gg;
+    ctx.beginPath();
+    ctx.ellipse(base.sx, base.sy, 38 * (p.s / 160), 16 * (p.s / 160), 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 立方体（3 面）
+    const pts = [];
+    const corners = [
+      [-w, 0, -w], [w, 0, -w], [w, 0, w], [-w, 0, w],
+      [-w, h, -w], [w, h, -w], [w, h, w], [-w, h, w]
+    ];
+    const W = this._w, H = this._h;
+    corners.forEach(([cx, cy, cz]) => {
+      const q = this.cam.project(s.x + cx, 0.42 + cy, s.z + cz, W, H);
+      pts.push(q);
+    });
+    if (pts.some(q => !q)) return;
+
+    const faces = [
+      { idx: [4, 5, 6, 7], light: 1.0, top: true },
+      { idx: [0, 1, 5, 4], light: 0.62 },
+      { idx: [1, 2, 6, 5], light: 0.42 }
+    ];
+    faces.forEach(f => {
+      const q = f.idx.map(i => pts[i]);
+      ctx.beginPath();
+      ctx.moveTo(q[0].sx, q[0].sy);
+      for (let i = 1; i < q.length; i++) ctx.lineTo(q[i].sx, q[i].sy);
+      ctx.closePath();
+      const errMix = Math.min(1, load.err * 1.6);
+      const cr = Math.round(lerpC(color[0], 244, errMix * 0.8));
+      const cg = Math.round(lerpC(color[1], 63, errMix * 0.8));
+      const cb = Math.round(lerpC(color[2], 94, errMix * 0.8));
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.42 * f.light + (isRoot ? 0.3 : 0)})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${cr},${cg},${cb},${0.85 * f.light + 0.15})`;
+      ctx.lineWidth = f.top ? 1.8 : 1.1;
+      ctx.stroke();
+    });
+
+    // 选中/根因光环
+    if (this.selected === s.id || isRoot) {
+      const pulse = 0.5 + 0.5 * Math.sin(this.time * 3.4);
+      ctx.strokeStyle = isRoot ? `rgba(244,63,94,${0.5 + 0.4 * pulse})` : `rgba(56,189,248,${0.35 + 0.3 * pulse})`;
+      ctx.lineWidth = isRoot ? 2.2 : 1.6;
+      ctx.beginPath();
+      ctx.ellipse(base.sx, base.sy, 30 * (p.s / 160), 13 * (p.s / 160), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 标签
+    const fs = Math.max(9, Math.min(13, 11 * (p.s / 190)));
+    ctx.font = `600 ${fs}px "Segoe UI", "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    const label = s.name;
+    const tw = ctx.measureText(label).width;
+    const ly = base.sy - 16 * (p.s / 190) - (isRoot ? 10 : 0);
+    ctx.fillStyle = 'rgba(6,10,20,.72)';
+    roundRect(ctx, base.sx - tw / 2 - 6, ly - fs, tw + 12, fs + 7, 5);
+    ctx.fill();
+    ctx.fillStyle = isRoot ? '#fda4af' : (this.selected === s.id ? '#bae6fd' : PALETTE.dim);
+    ctx.fillText(label, base.sx, ly);
+
+    // 错误率角标
+    if (load.err > 0.2) {
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(base.sx + tw / 2 + 12, ly - fs / 2, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  drawParticles(ctx, W, H) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of this.particles) {
+      const a = this.svc(p.from), b = this.svc(p.to);
+      if (!a || !b) continue;
+      const pt = this._lerpWorld(a, b, p.t, p.jitter);
+      const q = this.cam.project(pt.x, pt.y, pt.z, W, H);
+      if (!q) continue;
+      const bad = p.bad;
+      const col = bad ? '244,63,94' : '125,211,252';
+      const r = p.size * (q.s / 190) * 1.9;
+      const g = ctx.createRadialGradient(q.sx, q.sy, 0, q.sx, q.sy, r * 2.3);
+      g.addColorStop(0, `rgba(${col},.92)`);
+      g.addColorStop(0.4, `rgba(${col},.26)`);
+      g.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(q.sx, q.sy, r * 2.1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(${col},.95)`;
+      ctx.beginPath(); ctx.arc(q.sx, q.sy, r * 0.75, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  _lerpWorld(a, b, t, jit) {
+    // 弧线插值 + 垂直抬升，模拟"调用在网络上飞行"
+    const x = lerpC(a.x, b.x, t);
+    const z = lerpC(a.z, b.z, t);
+    const lift = Math.sin(t * Math.PI) * 0.55;
+    return { x: x + jit * 0.4, y: 0.42 + lift, z: z + jit * 0.3 };
+  }
+
+  drawPulses(ctx, W, H) {
+    this.pulses.forEach(pu => {
+      const s = this.svc(pu.id);
+      if (!s) return;
+      const k = 1 - pu.life / pu.max;
+      const q = this.cam.project(s.x, 0.42, s.z, W, H);
+      if (!q) return;
+      const R = 20 + k * 150 * (q.s / 190);
+      ctx.strokeStyle = `rgba(244,63,94,${(1 - k) * 0.65})`;
+      ctx.lineWidth = 3 * (1 - k) + 0.5;
+      ctx.beginPath();
+      ctx.ellipse(q.sx, q.sy, R, R * 0.42, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+  }
+
+  drawHud(ctx, W, H) {
+    const cam = this.cam;
+    // 左上角罗盘
+    const cx = 44, cy = H - 44, R = 22;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.strokeStyle = 'rgba(140,160,220,.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+    // 指示三角
+    const a = -cam.theta - Math.PI / 2;
+    ctx.fillStyle = '#7dd3fc';
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * (R - 2), Math.sin(a) * (R - 2));
+    ctx.lineTo(Math.cos(a + 2.5) * 7, Math.sin(a + 2.5) * 7);
+    ctx.lineTo(Math.cos(a - 2.5) * 7, Math.sin(a - 2.5) * 7);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(200,215,255,.55)';
+    ctx.font = '9px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('N', Math.cos(a) * (R + 8), Math.sin(a) * (R + 8) + 3);
+    ctx.restore();
+  }
+
+  /* 屏幕坐标拾取 */
+  pick(sx, sy) {
+    let best = null, bestD = 30 * 30;
+    for (const s of this.services) {
+      const p = this.cam.project(s.x, 0.42, s.z, this._w, this._h);
+      if (!p) continue;
+      const d = (p.sx - sx) ** 2 + (p.sy - sy) ** 2;
+      if (d < bestD) { bestD = d; best = s; }
+    }
+    return best;
+  }
+  setSize(w, h) { this._w = w; this._h = h; }
+}
+
+function lerpC(a, b, t) { return a + (b - a) * t; }
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function mulberry(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hexRGB(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+/* ============================================================
+   Pulse · 3D 运维根因沙盘 —— 交互层
+   ============================================================ */
+
+
+
+const $ = s => document.querySelector(s);
+
+/* ── 状态 ──────────────────────────────────────────── */
+let ctx2 = null;
+const S = {
+  scenario: 'dbpool',
+  metrics: null,
+  traces: [],
+  roots: [],
+  selected: null,
+  confirmed: null,
+  autoRot: false,
+  traceFilter: 'all',
+  lastTrace: null
+};
+
+const scene = new PulseScene({ services: E.SERVICES, metrics: null, traces: [], roots: [] });
+const canvas = $('#view');
+const ctx = canvas.getContext('2d');
+
+/* ── 场景切换 ──────────────────────────────────────── */
+function loadScenario(id) {
+  S.scenario = id;
+  S.metrics = E.generateMetrics(id, 60, 1);
+  S.traces = E.generateTraces(S.metrics, 110, 1);
+  S.roots = E.analyzeRootCause(S.metrics, S.traces);
+  S.selected = null;
+  S.confirmed = null;
+  scene.setData(S.metrics, S.traces, S.roots);
+  renderAll();
+  const sc = E.SCENARIOS.find(x => x.id === id);
+  $('#tip').innerHTML = '<h4><span>⚠</span>' + sc.name + '</h4>'
+    + sc.desc + '<br><br><code>排查提示</code> ' + sc.hint;
+}
+
+/* ── 渲染面板 ──────────────────────────────────────── */
+function renderAll() {
+  renderScenarioBar();
+  renderOverview();
+  renderRoots();
+  renderP95Chart();
+  renderWaterfall();
+  renderTraceList();
+  renderVerdict();
+  $('#hTrace').textContent = S.traces.length;
+  $('#hAnom').textContent = S.roots.filter(r => r.z >= 2).length;
+}
+
+function renderScenarioBar() {
+  $('#scenBar').innerHTML = E.SCENARIOS.map(s =>
+    `<button data-s="${s.id}" class="${s.id === S.scenario ? 'on' : ''}">${s.short}</button>`).join('');
+  $('#scenBar').querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', () => loadScenario(b.dataset.s)));
+}
+
+function renderOverview() {
+  const m = S.metrics.points;
+  const all = Object.keys(m);
+  const errs = all.reduce((a, id) => a + m[id].points[59].errRate, 0) / all.length;
+  const p95 = all.reduce((a, id) => a + m[id].points[59].p95, 0) / all.length;
+  const baseP95 = all.reduce((a, id) => a + m[id].base.p95, 0) / all.length;
+  const errTraces = S.traces.filter(t => t.status === 'error').length;
+  const slowTraces = S.traces.filter(t => t.status === 'slow').length;
+  const worst = S.roots[0];
+
+  $('#ovTag').textContent = 'T+' + S.metrics.injectedAt + 'min 注入';
+  const cards = [
+    { lb: '平均 p95', vl: Math.round(p95) + 'ms', sub: '基线 ' + Math.round(baseP95) + 'ms · '
+        + (p95 > baseP95 * 1.4 ? '↑ ' + Math.round((p95 / baseP95 - 1) * 100) + '%' : '正常'),
+      cls: p95 > baseP95 * 1.4 ? 'bad' : 'ok' },
+    { lb: '平均错误率', vl: errs.toFixed(2) + '%', sub: '错误链路 ' + errTraces + ' / ' + S.traces.length,
+      cls: errs > 2 ? 'bad' : (errs > 0.8 ? 'warn' : 'ok') },
+    { lb: '慢响应链路', vl: String(slowTraces), sub: '总耗时 > 600ms', cls: slowTraces > 6 ? 'warn' : 'ok' },
+    { lb: '首要嫌疑', vl: worst ? worst.name.split('-')[0] : '—',
+      sub: worst ? '贡献度 ' + worst.share + '%' : '—', cls: 'bad' }
+  ];
+  $('#ovCards').innerHTML = cards.map(c =>
+    `<div class="card ${c.cls}"><div class="lb">${c.lb}</div><div class="vl">${c.vl}</div><div class="sub">${c.sub}</div></div>`
+  ).join('');
+}
+
+function renderRoots() {
+  const list = S.roots.slice(0, 5);
+  $('#rootList').innerHTML = list.map((r, i) => {
+    const tier = { gw: '接入', biz: '业务', data: '数据', ext: '外部' }[r.tier] || '业务';
+    return `<div class="root ${i === 0 ? 'win' : ''}" data-id="${r.id}">
+      ${r.isRoot ? '<span class="badge">ROOT</span>' : ''}
+      <div class="r1">
+        <span class="rk">${i + 1}</span>
+        <span class="nm">${r.name}</span>
+        <span class="pc">${r.share}%</span>
+      </div>
+      <div class="bar2"><i style="width:${r.share}%"></i></div>
+      <div class="r2">
+        <span>${tier}层</span>
+        <span>Z=${r.z}</span>
+        <span>错误首跳 ${r.failRate}%</span>
+        <span>扇出 ${r.fanout}</span>
+      </div>
+    </div>`;
+  }).join('');
+  $('#rootList').querySelectorAll('.root').forEach(el =>
+    el.addEventListener('click', () => selectService(el.dataset.id)));
+}
+
+function renderP95Chart() {
+  const cv = $('#chartP95');
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  ctx2 = cv.getContext('2d');
+  ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx2.clearRect(0, 0, w, h);
+  const m = S.metrics;
+  const ids = S.roots.slice(0, 4).map(r => r.id);
+  if (!ids.length) return;
+  const colors = { gw: '#38bdf8', biz: '#a78bfa', data: '#34d399', ext: '#fbbf24' };
+  const all = [];
+  ids.forEach(id => m.points[id].points.forEach(p => all.push(p.p95)));
+  const max = Math.max.apply(null, all) * 1.1;
+  const pad = { l: 30, r: 8, t: 8, b: 16 };
+  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
+
+  // 网格
+  ctx2.strokeStyle = 'rgba(255,255,255,.06)'; ctx2.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + ih * i / 3;
+    ctx2.beginPath(); ctx2.moveTo(pad.l, y); ctx2.lineTo(w - pad.r, y); ctx2.stroke();
+    ctx2.fillStyle = 'rgba(140,150,190,.5)'; ctx2.font = '9px Consolas,monospace';
+    ctx2.textAlign = 'right';
+    ctx2.fillText(Math.round(max * (1 - i / 3)), pad.l - 5, y + 3);
+  }
+  // 注入时刻竖线
+  const ix = pad.l + iw * (m.injectedAt / m.minutes);
+  ctx2.strokeStyle = 'rgba(244,63,94,.55)'; ctx2.setLineDash([4, 3]);
+  ctx2.beginPath(); ctx2.moveTo(ix, pad.t); ctx2.lineTo(ix, pad.t + ih); ctx2.stroke();
+  ctx2.setLineDash([]);
+  ctx2.fillStyle = 'rgba(244,63,94,.85)'; ctx2.font = '9px Consolas,monospace'; ctx2.textAlign = 'left';
+  ctx2.fillText('注入', ix + 3, pad.t + 9);
+
+  // 曲线
+  ids.forEach(id => {
+    const pts = m.points[id].points;
+    ctx2.strokeStyle = colors[m.points[id] ? svcTier(id) : 'biz'];
+    ctx2.lineWidth = 1.7;
+    ctx2.beginPath();
+    pts.forEach((p, i) => {
+      const x = pad.l + iw * (i / (m.minutes - 1));
+      const y = pad.t + ih * (1 - p.p95 / max);
+      i ? ctx2.lineTo(x, y) : ctx2.moveTo(x, y);
+    });
+    ctx2.stroke();
+  });
+
+  $('#lgP95').innerHTML = ids.map(id => {
+    const s = E.SERVICES.find(x => x.id === id);
+    return `<span><i style="background:${colors[svcTier(id)]}"></i>${s ? s.name : id}</span>`;
+  }).join('') + '<span style="margin-left:auto;color:rgba(244,63,94,.8)">| 虚线 = 故障注入时刻</span>';
+}
+function svcTier(id) {
+  const s = E.SERVICES.find(x => x.id === id);
+  return s ? s.tier : 'biz';
+}
+
+function renderWaterfall() {
+  const slow = S.traces.filter(t => t.status !== 'ok').sort((a, b) => b.total - a.total);
+  const t = slow[0] || S.traces[0];
+  S.lastTrace = t;
+  if (!t) { $('#wf').innerHTML = '<div class="r">无数据</div>'; return; }
+  const max = t.total || 1;
+  const colors = { gw: '#38bdf8', biz: '#a78bfa', data: '#34d399', ext: '#fbbf24' };
+  $('#wfTag').textContent = t.id + ' · ' + Math.round(t.total) + 'ms';
+  $('#wf').innerHTML = t.hops.map(h => {
+    const left = (h.start / max) * 100;
+    const wid = Math.max(3, (h.dur / max) * 100);
+    return `<div class="r">
+      <span class="nm">${h.name}</span>
+      <span class="track"><span class="bar3" style="left:${left}%;width:${wid}%;background:${h.error ? '#f43f5e' : colors[h.tier]};opacity:${h.error ? 1 : .78}"></span></span>
+      <span class="du">${Math.round(h.dur)}ms</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTraceList() {
+  const list = S.traces.slice(0, 60);
+  const color = { ok: '#34d399', slow: '#fbbf24', error: '#f43f5e' };
+  $('#trTag').textContent = list.length + ' 条';
+  $('#traceList').innerHTML = list.map(t => {
+    const path = t.path.map(p => {
+      const s = E.SERVICES.find(x => x.id === p);
+      return s ? s.name.replace('-service', '').replace('api-', '') : p;
+    }).join(' → ');
+    return `<div class="tr" data-id="${t.id}">
+      <span class="st" style="background:${color[t.status]}"></span>
+      <span class="id2">${t.id}</span>
+      <span class="path2">${path}</span>
+      <span class="tm">${Math.round(t.total)}ms</span>
+    </div>`;
+  }).join('');
+  $('#traceList').querySelectorAll('.tr').forEach(el =>
+    el.addEventListener('click', () => {
+      const t = S.traces.find(x => x.id === el.dataset.id);
+      if (t) { S.lastTrace = t; renderWaterfall(); highlightPath(t.path); }
+    }));
+}
+
+let hlPath = [];
+function highlightPath(path) {
+  hlPath = path;
+}
+
+function renderVerdict() {
+  const txt = E.buildSummary(S.metrics, S.roots, S.traces);
+  $('#verdict').textContent = txt;
+}
+
+/* ── 服务选中面板 ──────────────────────────────────── */
+function selectService(id) {
+  S.selected = id;
+  scene.selected = id;
+  const s = E.SERVICES.find(x => x.id === id);
+  if (!s) return;
+  const m = S.metrics.points[id];
+  const p = m.points[m.points.length - 1];
+  const info = S.roots.find(r => r.id === id);
+  const tier = { gw: '接入层', biz: '业务层', data: '数据层', ext: '外部依赖' }[s.tier];
+  const deps = s.deps.map(d => {
+    const x = E.SERVICES.find(v => v.id === d);
+    return x ? x.name : d;
+  });
+  const el = $('#selInfo');
+  el.style.display = 'block';
+  el.innerHTML = `<h5>${s.name}</h5>
+    <div class="kv"><span>层级</span><span>${tier}</span></div>
+    <div class="kv"><span>p95</span><span>${Math.round(p.p95)} ms</span></div>
+    <div class="kv"><span>错误率</span><span>${p.errRate.toFixed(2)} %</span></div>
+    <div class="kv"><span>CPU</span><span>${Math.round(p.cpu)} %</span></div>
+    <div class="kv"><span>依赖下游</span><span>${deps.length ? deps.join(', ') : '无'}</span></div>
+    ${info ? `<div class="kv"><span>贡献度</span><span>${info.share} %</span></div>` : ''}
+    ${info && info.isRoot ? '<span class="root-tag">★ 已确认为根因</span>' : ''}`;
+}
+
+/* ── 确认根因 ──────────────────────────────────────── */
+$('#btnConfirm').addEventListener('click', () => {
+  const id = S.selected || (S.roots[0] && S.roots[0].id);
+  if (!id) return;
+  S.confirmed = id;
+  scene.burst(id);
+  selectService(id);
+  const s = E.SERVICES.find(x => x.id === id);
+  const info = S.roots.find(r => r.id === id);
+  const extra = [];
+  if (info && !info.isRoot) {
+    extra.push('注意：该节点是被上游拖累的「受害节点」，真正的根因是 '
+      + (S.roots[0] ? S.roots[0].name : '上游服务') + '。');
+  }
+  extra.push('根因已锁定，下游 ' + (E.SERVICES.find(x => x.id === id) || {deps: []}).deps.length
+    + ' 个依赖服务进入降级观察名单。');
+  const box = $('#verdict');
+  box.textContent = '【人工确认】' + s.name + ' 被判定为本次事故的根因节点。\n'
+    + (info ? '模型贡献度 ' + info.share + '%，错误首跳占比 ' + info.failRate + '%，被 ' + info.fanout + ' 个上游直接依赖。\n' : '')
+    + extra.join('\n') + '\n\n'
+    + E.buildSummary(S.metrics, S.roots, S.traces);
+  box.style.borderColor = 'rgba(244,63,94,.55)';
+  box.style.background = 'linear-gradient(135deg,rgba(244,63,94,.14),rgba(244,63,94,.04))';
+});
+
+$('#btnReset2').addEventListener('click', () => {
+  S.selected = null; S.confirmed = null;
+  scene.selected = null;
+  $('#selInfo').style.display = 'none';
+  const box = $('#verdict');
+  box.style.borderColor = ''; box.style.background = '';
+  renderVerdict();
+  renderOverview();
+});
+
+/* ── 视图控制 ──────────────────────────────────────── */
+$('#btnRot').addEventListener('click', e => {
+  S.autoRot = !S.autoRot;
+  e.currentTarget.style.background = S.autoRot ? 'rgba(56,189,248,.25)' : '';
+});
+$('#btnIn').addEventListener('click', () => scene.cam.zoom(-260));
+$('#btnOut').addEventListener('click', () => scene.cam.zoom(260));
+$('#btnReset').addEventListener('click', () => {
+  const c = scene.cam;
+  c.theta = -0.62; c.phi = 1.02; c.dist = 11.0; c.tx = c.ty = c.tz = 0;
+});
+
+/* 鼠标交互：拖拽旋转 / 滚轮缩放 / 点击拾取 */
+let dragging = false, lastX = 0, lastY = 0, moved = 0;
+canvas.addEventListener('pointerdown', e => {
+  dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY;
+  canvas.classList.add('grabbing');
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  lastX = e.clientX; lastY = e.clientY;
+  if (e.shiftKey) scene.cam.pan(dx, dy);
+  else scene.cam.rotate(dx, dy);
+});
+canvas.addEventListener('pointerup', e => {
+  dragging = false;
+  canvas.classList.remove('grabbing');
+  if (moved < 5) {
+    const r = canvas.getBoundingClientRect();
+    const s = scene.pick(e.clientX - r.left, e.clientY - r.top);
+    if (s) { selectService(s.id); scene.burst(s.id); }
+  }
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); scene.cam.zoom(e.deltaY); }, { passive: false });
+
+/* ── 尺寸自适应 ────────────────────────────────────── */
+function resize() {
+  const st = $('#stage');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = st.clientWidth * dpr;
+  canvas.height = st.clientHeight * dpr;
+  canvas.style.width = st.clientWidth + 'px';
+  canvas.style.height = st.clientHeight + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scene.setSize(st.clientWidth, st.clientHeight);
+  renderP95Chart();
+}
+window.addEventListener('resize', resize);
+
+/* ── 主循环 ────────────────────────────────────────── */
+let last = performance.now(), fpsAcc = 0, fpsN = 0;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (S.autoRot) scene.cam.rotate(dt * 22, 0);
+  scene.update(dt);
+  const st = $('#stage');
+  ctx.clearRect(0, 0, st.clientWidth, st.clientHeight);
+  scene.draw(ctx, st.clientWidth, st.clientHeight);
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= 0.5) { $('#hFps').textContent = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; }
+  requestAnimationFrame(loop);
+}
+
+/* ── 启动 ──────────────────────────────────────────── */
+resize();
+loadScenario('dbpool');
+requestAnimationFrame(loop);
+globalThis.__PULSE = { S, scene, E };
+</script>
+</body>
+</html>
