@@ -252,8 +252,8 @@ function renderHome(){
         html += '<div class="miss-tag">😅 未完成 -'+t.penalty+'</div>';
       }else{
         html += '<div class="task-actions">'
-          + '<button class="btn-mini btn-done" onclick="doComplete(event,\''+t.id+'\')">✅ 完成</button>'
-          + '<button class="btn-mini btn-miss" onclick="doMiss(event,\''+t.id+'\')">未完成</button>'
+          + '<button class="btn-mini btn-done" data-click="doComplete(event,\''+t.id+'\')">✅ 完成</button>'
+          + '<button class="btn-mini btn-miss" data-click="doMiss(event,\''+t.id+'\')">未完成</button>'
           + '</div>';
       }
       html += '</div>';
@@ -274,8 +274,8 @@ function renderHome(){
         + '<div class="task-points"><span class="plus">完成 +'+t.points+'</span></div></div>'
         + (done
             ? '<div class="done-tag">✅ 已得 +'+t.points+'</div>'
-            : '<button class="btn-mini btn-done" onclick="doTempDone(event,\''+t.id+'\')">✅ 完成</button>')
-        + '<button class="temp-del" onclick="delTemp(\''+t.id+'\')" title="删除">✕</button>'
+            : '<button class="btn-mini btn-done" data-click="doTempDone(event,\''+t.id+'\')">✅ 完成</button>')
+        + '<button class="temp-del" data-click="delTemp(\''+t.id+'\')" title="删除">✕</button>'
         + '</div>';
     }).join('');
   }
@@ -299,8 +299,8 @@ function renderTasks(){
       + '<div class="task-icon">'+esc(t.icon)+'</div>'
       + '<div class="manage-info"><div class="task-name">'+esc(t.name)+'</div>'
       + '<div class="task-points"><span class="plus">+'+t.points+'</span><span class="minus">-'+t.penalty+'</span></div></div>'
-      + '<button class="icon-btn" onclick="openTaskModal(\''+t.id+'\')">✏️</button>'
-      + '<button class="icon-btn danger" onclick="delTask(\''+t.id+'\')">🗑️</button>'
+      + '<button class="icon-btn" data-click="openTaskModal(\''+t.id+'\')">✏️</button>'
+      + '<button class="icon-btn danger" data-click="delTask(\''+t.id+'\')">🗑️</button>'
       + '</div>';
   }).join('') : '<div class="empty-tip"><span class="big">📭</span>还没有每日任务</div>';
   var mt = document.getElementById('manage-temp-list');
@@ -310,7 +310,7 @@ function renderTasks(){
       + '<div class="task-icon">'+esc(t.icon)+'</div>'
       + '<div class="manage-info"><div class="task-name">'+esc(t.name)+' <span style="font-size:10px;color:#D98200;font-weight:800">临时</span></div>'
       + '<div class="task-points"><span class="plus">+'+t.points+'</span></div></div>'
-      + '<button class="icon-btn danger" onclick="delTemp(\''+t.id+'\')">🗑️</button>'
+      + '<button class="icon-btn danger" data-click="delTemp(\''+t.id+'\')">🗑️</button>'
       + '</div>';
   }).join('') : '<div class="empty-tip"><span class="big">⚡</span>今天还没有临时激励任务</div>';
 }
@@ -320,11 +320,11 @@ function renderShop(){
   gl.innerHTML = state.gifts.length ? state.gifts.map(function(g){
     var can = state.points >= g.cost;
     return '<div class="gift-card">'
-      + '<div class="gift-edit"><button onclick="openGiftModal(\''+g.id+'\')">✏️</button><button onclick="delGift(\''+g.id+'\')">🗑️</button></div>'
+      + '<div class="gift-edit"><button data-click="openGiftModal(\''+g.id+'\')">✏️</button><button data-click="delGift(\''+g.id+'\')">🗑️</button></div>'
       + '<div class="gift-icon">'+esc(g.icon)+'</div>'
       + '<div class="gift-name">'+esc(g.name)+'</div>'
       + '<div class="gift-cost">⭐ '+g.cost+' 积分</div>'
-      + '<button class="gift-btn'+(can?'':' disabled')+'" onclick="redeemGift(\''+g.id+'\')">'+(can?'兑换':'积分不足')+'</button>'
+      + '<button class="gift-btn'+(can?'':' disabled')+'" data-click="redeemGift(\''+g.id+'\')">'+(can?'兑换':'积分不足')+'</button>'
       + '</div>';
   }).join('') : '<div class="empty-tip" style="grid-column:1/-1"><span class="big">🎁</span>还没有礼物，添加一个吧</div>';
 
@@ -343,8 +343,8 @@ function renderShop(){
       + '<div class="box-cost">消耗 '+b.cost+' 积分</div>'
       + '</div>'
       + '<div class="box-actions">'
-      + '<button class="open-btn'+(can?'':' disabled')+'" onclick="openBox(\''+b.id+'\')">'+(can?'开盲盒':'积分不足')+'</button>'
-      + '<div class="box-edit"><button onclick="openBoxModal(\''+b.id+'\')">✏️</button><button onclick="delBox(\''+b.id+'\')">🗑️</button></div>'
+      + '<button class="open-btn'+(can?'':' disabled')+'" data-click="openBox(\''+b.id+'\')">'+(can?'开盲盒':'积分不足')+'</button>'
+      + '<div class="box-edit"><button data-click="openBoxModal(\''+b.id+'\')">✏️</button><button data-click="delBox(\''+b.id+'\')">🗑️</button></div>'
       + '</div></div>';
   }).join('') : '<div class="empty-tip"><span class="big">🎰</span>还没有盲盒，创建一个吧</div>';
 }
@@ -368,7 +368,7 @@ function renderMe(){
   ig.innerHTML = state.inventory.length ? state.inventory.map(function(it){
     return '<div class="inv-item"><div class="inv-icon">'+esc(it.icon)+'</div>'
       + '<div class="inv-name">'+esc(it.name)+'</div>'
-      + '<button class="inv-use" onclick="useInv(\''+it.id+'\')">使用</button></div>';
+      + '<button class="inv-use" data-click="useInv(\''+it.id+'\')">使用</button></div>';
   }).join('') : '<div style="grid-column:1/-1;font-size:12px;color:#C4B6A6;font-weight:600;text-align:center;padding:14px 0">仓库空空的，快去商城兑换礼物吧 🎁</div>';
 
   var ll = document.getElementById('log-list');
@@ -443,7 +443,7 @@ function renderHistory(){
       dot = (rec.net >= 0 ? '+' : '') + rec.net;
     }
     if(ds === tStr) cls += ' today';
-    html += '<div class="'+cls+'"'+(hasRecord(rec)?' onclick="openDayModal(\''+ds+'\')"':'')+'>'
+    html += '<div class="'+cls+'"'+(hasRecord(rec)?' data-click="openDayModal(\''+ds+'\')"':'')+'>'
       + '<div class="cal-num">'+dd+'</div><div class="cal-dot">'+(dot||'·')+'</div></div>';
   }
   document.getElementById('cal-grid').innerHTML = html;
@@ -461,7 +461,7 @@ function renderHistory(){
     var h = x.net === 0 ? 0 : Math.max(6, Math.round(Math.abs(x.net)/maxV*62));
     var cls = x.net > 0 ? '' : (x.net < 0 ? ' neg' : ' zero');
     var col = x.net > 0 ? '#1D9E62' : (x.net < 0 ? '#E05252' : '#C9BCA9');
-    return '<div class="trend-col" onclick="openDayModal(\''+x.key+'\')">'
+    return '<div class="trend-col" data-click="openDayModal(\''+x.key+'\')">'
       + '<div class="trend-val" style="color:'+col+'">'+(x.net>0?'+':'')+x.net+'</div>'
       + '<div class="trend-bar '+cls+'" style="height:'+h+'px"></div>'
       + '<div class="trend-label">'+x.label+'</div></div>';
@@ -480,7 +480,7 @@ function renderHistory(){
     groups[gk].forEach(function(d){
       var r = H[d];
       var dt = new Date(+d.split('-')[0], +d.split('-')[1]-1, +d.split('-')[2]);
-      listHtml += '<div class="hist-row" onclick="openDayModal(\''+d+'\')">'
+      listHtml += '<div class="hist-row" data-click="openDayModal(\''+d+'\')">'
         + '<div class="hist-date">'+(+d.split('-')[1])+'月'+(+d.split('-')[2])+'日<span>周'+DOW[dt.getDay()]+'</span></div>'
         + '<div class="hist-stat">✅ '+r.done+' 项'+(r.miss?' · ❌ '+r.miss+' 项':'')+' · 共 '+r.total+' 项</div>'
         + '<div class="hist-net '+(r.net>=0?'plus':'minus')+'">'+(r.net>=0?'+':'')+r.net+'</div></div>';
@@ -735,24 +735,24 @@ function renderRewards(){
     var inner = '';
     if(r.type === 'points'){
       inner = '<div class="reward-fields"><span>随机</span>'
-        + '<input type="number" min="0" value="'+r.min+'" onchange="onRewardChange('+i+',\'min\',this.value)">'
+        + '<input type="number" min="0" value="'+r.min+'" data-change="onRewardChange('+i+',\'min\',this.value)">'
         + '<span>~</span>'
-        + '<input type="number" min="0" value="'+r.max+'" onchange="onRewardChange('+i+',\'max\',this.value)">'
+        + '<input type="number" min="0" value="'+r.max+'" data-change="onRewardChange('+i+',\'max\',this.value)">'
         + '<span>积分</span></div>';
     }else if(r.type === 'gift'){
-      inner = '<div class="reward-fields"><select onchange="onRewardChange('+i+',\'giftId\',this.value)">'+giftOptions(r.giftId)+'</select></div>';
+      inner = '<div class="reward-fields"><select data-change="onRewardChange('+i+',\'giftId\',this.value)">'+giftOptions(r.giftId)+'</select></div>';
     }else{
       inner = '<div class="reward-fields"><span>🎁 从礼物库随机任选一个</span></div>';
     }
     return '<div class="reward-row"><div class="reward-top">'
-      + '<select onchange="onRewardChange('+i+',\'type\',this.value)">'
+      + '<select data-change="onRewardChange('+i+',\'type\',this.value)">'
       + '<option value="points"'+(r.type==='points'?' selected':'')+'>💰 积分奖励</option>'
       + '<option value="gift"'+(r.type==='gift'?' selected':'')+'>🎁 指定礼物</option>'
       + '<option value="anygift"'+(r.type==='anygift'?' selected':'')+'>✨ 随机礼物</option>'
       + '</select>'
       + '<span style="font-size:12px;font-weight:800;color:#9C8E82">权重</span>'
-      + '<input type="number" min="1" value="'+(r.weight||1)+'" style="width:56px" onchange="onRewardChange('+i+',\'weight\',this.value)">'
-      + '<button class="reward-del" onclick="delReward('+i+')">✕</button>'
+      + '<input type="number" min="1" value="'+(r.weight||1)+'" style="width:56px" data-change="onRewardChange('+i+',\'weight\',this.value)">'
+      + '<button class="reward-del" data-click="delReward('+i+')">✕</button>'
       + '</div>' + inner
       + '<div class="reward-fields" style="margin-top:6px"><span class="reward-prob">中奖概率约 '+prob+'%</span></div>'
       + '</div>';
@@ -950,3 +950,17 @@ renderAll();
 // Inline controls are evaluated in the window scope while the entry is a module.
 Object.assign(window,{doComplete,doMiss,doTempDone,delTemp,openTaskModal,delTask,openGiftModal,delGift,redeemGift,openBox,openBoxModal,delBox,useInv,openDayModal,onRewardChange,delReward,openTempModal,changeMonth,openAvatarModal,toggleSound,exportData,resetAll,importData,switchTab,closeModal,saveTask,saveTemp,saveGift,addReward,saveBox,doOpenBox});
 Object.defineProperties(window,{draftTask:{get:()=>draftTask},draftGift:{get:()=>draftGift},draftBox:{get:()=>draftBox}});
+
+// Route declarative controls without inline script, compatible with hosted CSP.
+const actions={doComplete,doMiss,doTempDone,delTemp,openTaskModal,delTask,openGiftModal,delGift,redeemGift,openBox,openBoxModal,delBox,useInv,openDayModal,onRewardChange,delReward,openTempModal,changeMonth,openAvatarModal,toggleSound,exportData,resetAll,importData,switchTab,closeModal,saveTask,saveTemp,saveGift,addReward,saveBox,doOpenBox};
+function dispatchControl(e,attr){
+ const el=e.target.closest('['+attr+']'); if(!el)return;
+ const expression=el.getAttribute(attr);
+ if(expression==='if(event.target===this)closeModal()'){if(e.target===el)closeModal();return;}
+ if(expression==="document.getElementById('import-file').click()"){document.getElementById('import-file').click();return;}
+ const match=expression.match(/^([A-Za-z]+)\((.*)\)$/);if(!match || !actions[match[1]])return;
+ const args=match[2]?match[2].split(',').map(raw=>{const x=raw.trim();if(x==='event')return {currentTarget:el};if(x==='this')return el;if(x==='this.value')return el.value;if(x==='draftTask.id')return draftTask.id;if(x==='draftGift.id')return draftGift.id;if(x==='draftBox.id')return draftBox.id;if(/^['"].*['"]$/.test(x))return x.slice(1,-1);return Number(x);}):[];
+ actions[match[1]](...args);
+}
+document.addEventListener('click',e=>dispatchControl(e,'data-click'));
+document.addEventListener('change',e=>dispatchControl(e,'data-change'));
