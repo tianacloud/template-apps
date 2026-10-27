@@ -65,7 +65,7 @@ function prioChip(p){ return '<span class="prio p'+p+'">P'+p+'</span>'; }
 function imgHtml(t,ctx){
   if(!t.images||!t.images.length) return '';
   return '<div class="t-imgs">'+t.images.map(function(src,i){
-    return '<img src="'+src+'" alt="附件'+(i+1)+'" onclick="viewImg(this.src)">';
+    return '<img src="'+src+'" alt="附件'+(i+1)+'" data-click="viewImg(this.src)">';
   }).join('')+'</div>';
 }
 function taskHtml(t,opts){
@@ -73,8 +73,8 @@ function taskHtml(t,opts){
   var overdue=!t.done&&t.date<td;
   var cls='task'+(t.done?' done':'')+(overdue?' overdue':'');
   var h='<div class="'+cls+'" data-id="'+t.id+'">'
-    +'<div class="chk" onclick="toggleDone(\''+t.id+'\')">'+ICON_CHECK+'</div>'
-    +'<div class="t-body" onclick="openEdit(\''+t.id+'\')" style="cursor:pointer"><div class="t-title">'+esc(t.title)+'</div>'
+    +'<div class="chk" data-click="toggleDone(\''+t.id+'\')">'+ICON_CHECK+'</div>'
+    +'<div class="t-body" data-click="openEdit(\''+t.id+'\')" style="cursor:pointer"><div class="t-title">'+esc(t.title)+'</div>'
     +(t.note?'<div class="t-note">'+esc(t.note)+'</div>':'')
     +'<div class="t-meta">'+prioChip(t.prio)
     +(t.time?'<span class="time-chip">'+t.time+'</span>':'')
@@ -83,8 +83,8 @@ function taskHtml(t,opts){
     +(t.done&&t.doneAt?'<span class="sub" style="font-size:12px">完成于 '+t.doneAt+'</span>':'')
     +'</div>'+imgHtml(t)+'</div>'
     +'<div class="t-ops">'
-    +'<button class="icon-btn" title="编辑" onclick="openEdit(\''+t.id+'\')">'+ICON_ED+'</button>'
-    +'<button class="icon-btn" title="删除" onclick="delTask(\''+t.id+'\')">'+ICON_DEL+'</button>'
+    +'<button class="icon-btn" title="编辑" data-click="openEdit(\''+t.id+'\')">'+ICON_ED+'</button>'
+    +'<button class="icon-btn" title="删除" data-click="delTask(\''+t.id+'\')">'+ICON_DEL+'</button>'
     +'</div></div>';
   return h;
 }
@@ -95,7 +95,7 @@ function renderToday(){
   box.innerHTML=list.map(function(t){
     var td=todayStr(), overdue=t.date<td;
     return '<div class="today-item'+(overdue?' overdue':'')+'">'
-      +'<div class="chk" onclick="toggleDone(\''+t.id+'\')">'+ICON_CHECK+'</div>'
+      +'<div class="chk" data-click="toggleDone(\''+t.id+'\')">'+ICON_CHECK+'</div>'
       +'<div class="t-title">'+(overdue?'<span class="overdue-tag">逾期 </span>':'')
       +(t.time?'<span class="time-chip">'+t.time+'</span>':'')+esc(t.title)
       +(t.date<td?'<span class="sub" style="font-size:12px">（原定 '+t.date+'，已顺延）</span>':'')
@@ -260,7 +260,7 @@ function onPickImgs(input){
 }
 function renderPending(){
   document.getElementById('pendingImgs').innerHTML=pendingImgs.map(function(src,i){
-    return '<div class="thumb"><img src="'+src+'" onclick="viewImg(this.src)"><button class="rm" onclick="rmPending('+i+')">×</button></div>';
+    return '<div class="thumb"><img src="'+src+'" data-click="viewImg(this.src)"><button class="rm" data-click="rmPending('+i+')">×</button></div>';
   }).join('');
 }
 function rmPending(i){ pendingImgs.splice(i,1); renderPending(); }
@@ -367,3 +367,21 @@ function init(){
 init();
 
 Object.assign(window,{load,save,flashSync,uid,toast,pad,fmt,todayStr,weekRange,inWeek,sorted,getTodayItems,getWeekTasks,weekStats,dayCounts,esc,prioChip,imgHtml,taskHtml,renderToday,renderWeekList,renderStats,renderTools,renderWelcome,refreshAll,toggleDone,delTask,addTask,openEdit,closeEdit,saveEdit,shiftDate,shiftNextWeek,edToggleDone,edDelete,viewImg,compress,onPickImgs,renderPending,rmPending,exportJSON,exportDone,importJSON,clearSeed,makeMine,dismissWelcome,closeWelcome,shareLink,seed});
+
+const allowedActions = new Set(["addTask","clearSeed","closeEdit","dismissWelcome","edDelete","edToggleDone","exportDone","exportJSON","makeMine","saveEdit","shareLink","shiftDate","shiftNextWeek","delTask","openEdit","rmPending","toggleDone","viewImg","importJSON","onPickImgs"]);
+function dispatchAction(el, action) {
+  if (action === "document.getElementById('importFile').click()") return document.getElementById('importFile').click();
+  if (action === "document.getElementById('inpImgs').click()") return document.getElementById('inpImgs').click();
+  if (action === "document.getElementById('viewer').classList.remove('show')") return document.getElementById('viewer').classList.remove('show');
+  const match = /^(\w+)\((.*?)\)$/.exec(action); if (!match || !allowedActions.has(match[1])) return;
+  let arg = match[2];
+  if (arg === 'this') arg = el; else if (arg === 'this.src') arg = el.src;
+  else if (/^'[^']*'$/.test(arg)) arg = arg.slice(1,-1);
+  else if (/^\d+$/.test(arg)) arg = Number(arg);
+  else if (arg !== '') return;
+  window[match[1]](arg);
+}
+for (const type of ['click','change']) document.addEventListener(type, event => {
+  const el = event.target.closest('[data-' + type + ']');
+  if (el) dispatchAction(el, el.getAttribute('data-' + type));
+});
