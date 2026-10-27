@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#FFF9F2" />
+<meta name="description" content="输入想煮好的时间，自动算出电饭煲该预约多久。" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="煮饭预约" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<title>煮饭预约</title>
+<style>
+  :root {
+    --bg: #fff9f2;
+    --card: #ffffff;
+    --ink: #2d2118;
+    --ink-2: #7a6656;
+    --ink-3: #a89684;
+    --line: #f5ebe0;
+    --brand: #e8772e;
+    --brand-deep: #c75b14;
+    --brand-soft: #fff3e4;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #efe9e1;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 440px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    background: var(--bg);
+  }
+
+  /* 桌面端：收成一张卡片 */
+  @media (min-width: 560px) {
+    body {
+      align-items: flex-start;
+      padding: 28px 16px 48px;
+    }
+    .app {
+      min-height: 0;
+      border-radius: 26px;
+      box-shadow: 0 30px 80px rgba(92, 60, 28, 0.16), 0 0 0 1px rgba(120, 90, 60, 0.06);
+    }
+  }
+
+  /* ---------- 顶部时钟 ---------- */
+  .hero {
+    padding: 30px 22px 22px;
+    background: linear-gradient(180deg, #ffeedc 0%, #fff9f2 100%);
+  }
+
+  .hero-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #b08c68;
+  }
+
+  .hero-clock {
+    margin: 6px 0 4px;
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.06;
+    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .hero-date {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  /* ---------- 卡片 ---------- */
+  .card {
+    margin: 0 16px 12px;
+    padding: 18px;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(196, 138, 78, 0.07);
+  }
+
+  .card-label {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  /* ---------- 目标时间 ---------- */
+  /* 整行都是热区：透明原生控件铺满整行，点哪儿都能唤起系统时间选择器 */
+  .target-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 4px -8px 0;
+    padding: 10px 8px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .target-row:hover,
+  .target-row:focus-within {
+    background: #fffaf3;
+  }
+
+  .target-row:active {
+    background: #ffeedc;
+  }
+
+  .time-text {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--brand-deep);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .day-chip {
+    margin-left: 10px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #a8703f;
+    background: var(--brand-soft);
+    border-radius: 20px;
+  }
+
+  /* 视觉上的按钮，实际点击由铺满整行的 input 接收 */
+  .pick-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 7px 15px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--brand-deep);
+    background: var(--brand-soft);
+    border-radius: 20px;
+    pointer-events: none;
+  }
+
+  .target-row input[type="time"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    z-index: 2;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  /* ---------- 主结果 ---------- */
+  .result {
+    margin: 0 16px 12px;
+    padding: 20px 18px 17px;
+    background: linear-gradient(148deg, #fff4e5 0%, #ffe4c8 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(232, 119, 46, 0.13);
+  }
+
+  .result-label {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #a87b52;
+  }
+
+  .result-value {
+    display: flex;
+    align-items: baseline;
+    margin: 8px 0 6px;
+    color: var(--brand-deep);
+  }
+
+  .num {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .unit {
+    margin: 0 9px 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .unit:last-child {
+    margin-right: 0;
+  }
+
+  .result-sub {
+    font-size: 12px;
+    color: #a87b52;
+  }
+
+  .result-warn {
+    margin-top: 11px;
+    padding: 9px 11px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #a85c22;
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 8px;
+  }
+
+  .is-hidden {
+    display: none !important;
+  }
+
+  /* ---------- 步进建议 ---------- */
+  .card-tip {
+    background: #fbfdf6;
+    box-shadow: 0 4px 20px rgba(140, 160, 110, 0.09);
+  }
+
+  .tip-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: #6c7d4c;
+    background: #eef3e2;
+    border-radius: 5px;
+  }
+
+  .tip-body {
+    display: flex;
+    align-items: baseline;
+    margin-top: 10px;
+  }
+
+  .tip-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #3f4a29;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .tip-desc {
+    margin-left: 8px;
+    font-size: 11.5px;
+    color: #99a382;
+  }
+
+  /* ---------- 起煮模式 ---------- */
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .switch-text {
+    flex: 1;
+    padding-right: 12px;
+  }
+
+  .switch-title {
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+
+  .switch-desc {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #b0a091;
+  }
+
+  .sw {
+    position: relative;
+    flex-shrink: 0;
+    width: 46px;
+    height: 27px;
+    padding: 0;
+    background: #e5e0d8;
+    border: 0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .sw::after {
+    content: "";
+    position: absolute;
+    top: 2.5px;
+    left: 2.5px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    transition: transform 0.2s;
+  }
+
+  .sw.on {
+    background: var(--brand);
+  }
+
+  .sw.on::after {
+    transform: translateX(19px);
+  }
+
+  .cook-block {
+    margin-top: 15px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .cook-label {
+    font-size: 11.5px;
+    color: var(--ink-3);
+  }
+
+  .cook-options {
+    display: flex;
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .cook-opt {
+    padding: 7px 13px;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    background: #fbf3ea;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .cook-opt.on {
+    color: var(--brand-deep);
+    font-weight: 600;
+    background: #ffe8d2;
+  }
+
+  .cook-result {
+    margin-top: 12px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #4a3b2e;
+  }
+
+  .hl {
+    font-weight: 700;
+    color: var(--brand-deep);
+  }
+
+  .cook-result.is-warn {
+    font-size: 12.5px;
+    color: #c0492b;
+  }
+
+  /* ---------- 底部 ---------- */
+  .spacer {
+    flex: 1;
+    min-height: 8px;
+  }
+
+  .actions {
+    padding: 4px 16px 20px;
+  }
+
+  .btn-main {
+    width: 100%;
+    padding: 14px 0;
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #f2994a 0%, #e8772e 100%);
+    border: 0;
+    border-radius: 50px;
+    box-shadow: 0 6px 16px rgba(232, 119, 46, 0.26);
+    cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+
+  .btn-main:active {
+    transform: scale(0.985);
+    opacity: 0.9;
+  }
+
+  .footnote {
+    margin-top: 12px;
+    font-size: 11px;
+    line-height: 1.7;
+    text-align: center;
+    color: #b8a695;
+    white-space: pre-line;
+  }
+</style>
+</head>
+<body>
+<main class="app">
+
+  <header class="hero">
+    <div class="hero-label">现在</div>
+    <div class="hero-clock" id="clock">--:--:--</div>
+    <div class="hero-date" id="dateText"></div>
+  </header>
+
+  <section class="card">
+    <div class="card-label">想吃上饭的时间</div>
+    <div class="target-row">
+      <span class="time-text" id="targetLabel">18:30</span>
+      <span class="day-chip" id="dayLabel">今天</span>
+      <span class="pick-btn">修改</span>
+      <input type="time" id="targetTime" value="18:30" step="60" aria-label="想吃上饭的时间" />
+    </div>
+  </section>
+
+  <section class="result">
+    <div class="result-label">现在按下预约键，设这个时长</div>
+    <div class="result-value">
+      <span class="num" id="planH">0</span><span class="unit" id="unitH">小时</span>
+      <span class="num" id="planM">0</span><span class="unit" id="unitM">分钟</span>
+    </div>
+    <div class="result-sub" id="planSub"></div>
+    <div class="result-warn is-hidden" id="planWarn"></div>
+  </section>
+
+  <section class="card card-tip">
+    <div><span class="tip-tag">只能按 10 分钟设？</span></div>
+    <div class="tip-body">
+      <span class="tip-value" id="roundText"></span>
+      <span class="tip-desc" id="roundHint"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="switch-row">
+      <div class="switch-text">
+        <div class="switch-title">我的电饭煲是「几小时后开始煮」</div>
+        <div class="switch-desc">多数电饭煲预约的是「几小时后煮好」，不用打开</div>
+      </div>
+      <button class="sw" id="cookSwitch" role="switch" aria-checked="false" aria-label="几小时后开始煮"></button>
+    </div>
+    <div class="cook-block is-hidden" id="cookBlock">
+      <div class="cook-label">煮饭本身需要</div>
+      <div class="cook-options" id="cookOptions"></div>
+      <div class="cook-result" id="cookResult"></div>
+    </div>
+  </section>
+
+  <div class="spacer"></div>
+
+  <div class="actions">
+    <button class="btn-main" id="copyBtn">复制预约时长</button>
+    <div class="footnote" id="footnote"></div>
+  </div>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  var COOK_OPTIONS = [30, 45, 60];
+  var STORE_KEY = 'rice-reserve.v1';
+
+  var state = { targetTime: '18:30', cookMode: false, cookMinutes: 45 };
+
+  /* 记住上次的设置：多数人的饭点是固定的 */
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (saved) {
+      if (/^\d{2}:\d{2}$/.test(saved.targetTime || '')) state.targetTime = saved.targetTime;
+      if (typeof saved.cookMode === 'boolean') state.cookMode = saved.cookMode;
+      if (COOK_OPTIONS.indexOf(saved.cookMinutes) > -1) state.cookMinutes = saved.cookMinutes;
+    }
+  } catch (e) { /* 隐私模式下读不到，用默认值 */ }
+
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function split(total) {
+    var t = Math.max(0, total);
+    return { h: Math.floor(t / 60), m: t % 60 };
+  }
+
+  function fmt(total) {
+    var p = split(total);
+    if (p.h > 0 && p.m > 0) return p.h + ' 小时 ' + p.m + ' 分钟';
+    if (p.h > 0) return p.h + ' 小时';
+    return p.m + ' 分钟';
+  }
+
+  function dateLabelOf(d) {
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + WEEK[d.getDay()];
+  }
+
+  function buzz() {
+    try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+  }
+
+  /* 只在值真的变了才写 DOM，避免每秒无谓重排 */
+  function setText(el, text) {
+    if (el.textContent !== text) el.textContent = text;
+  }
+
+  function toggle(el, className, on) {
+    var has = el.classList.contains(className);
+    if (on && !has) el.classList.add(className);
+    if (!on && has) el.classList.remove(className);
+  }
+
+  /* ---------- 构建煮饭时长选项 ---------- */
+  var cookOptions = $('cookOptions');
+  COOK_OPTIONS.forEach(function (min) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cook-opt';
+    btn.textContent = min + ' 分钟';
+    btn.dataset.min = min;
+    btn.addEventListener('click', function () {
+      state.cookMinutes = min;
+      persist();
+      buzz();
+      render();
+    });
+    cookOptions.appendChild(btn);
+  });
+
+  /* ---------- 交互 ---------- */
+  var timeInput = $('targetTime');
+  timeInput.value = state.targetTime;
+
+  timeInput.addEventListener('input', function (e) {
+    if (!e.target.value) return;
+    state.targetTime = e.target.value;
+    persist();
+    render();
+  });
+
+  timeInput.addEventListener('click', function () {
+    if (typeof this.showPicker === 'function') {
+      try { this.showPicker(); } catch (e) { /* 需用户手势，忽略 */ }
+    }
+  });
+
+  $('cookSwitch').addEventListener('click', function () {
+    state.cookMode = !state.cookMode;
+    persist();
+    buzz();
+    render();
+  });
+
+  $('copyBtn').addEventListener('click', function () {
+    var btn = $('copyBtn');
+    var text = state.cookMode && last.start > 0
+      ? '预约 ' + last.startText + '，' + last.startAt + ' 开始煮'
+      : '预约 ' + last.planText + '（目标 ' + last.dayLabel + ' ' + state.targetTime + '）';
+
+    function done(ok) {
+      var original = '复制预约时长';
+      btn.textContent = ok ? '已复制' : '复制失败，长按手动复制';
+      setTimeout(function () { btn.textContent = original; }, 1600);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); });
+    } else {
+      fallback();
+    }
+
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      done(ok);
+    }
+  });
+
+  /* ---------- 渲染 ---------- */
+  var last = { planText: '', startText: '', startAt: '', start: 0, dayLabel: '今天' };
+
+  function render() {
+    var now = new Date();
+
+    setText($('clock'), pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds()));
+    setText($('dateText'), dateLabelOf(now));
+
+    var parts = String(state.targetTime).split(':');
+    var th = Number(parts[0]) || 0;
+    var tm = Number(parts[1]) || 0;
+
+    var target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), th, tm, 0, 0);
+    var dayLabel = '今天';
+    if (target.getTime() <= now.getTime()) {
+      target.setDate(target.getDate() + 1);
+      dayLabel = '明天';
+    }
+
+    /* 向上取整到分钟：饭晚几十秒没事，早就是夹生 */
+    var total = Math.ceil((target.getTime() - now.getTime()) / 60000);
+    var p = split(total);
+
+    setText($('targetLabel'), state.targetTime);
+    if (timeInput.value !== state.targetTime) timeInput.value = state.targetTime;
+    setText($('dayLabel'), dayLabel);
+
+    /* 主结果：0 小时就不显示小时位 */
+    var showH = p.h > 0;
+    var showM = p.m > 0 || !showH;
+    setText($('planH'), String(p.h));
+    setText($('planM'), String(p.m));
+    $('planH').style.display = showH ? '' : 'none';
+    $('unitH').style.display = showH ? '' : 'none';
+    $('planM').style.display = showM ? '' : 'none';
+    $('unitM').style.display = showM ? '' : 'none';
+
+    setText($('planSub'), '共 ' + total + ' 分钟 · 目标 ' + dayLabel + ' ' + state.targetTime);
+
+    var warn = '';
+    if (total <= 15) {
+      warn = '距目标只剩 ' + total + ' 分钟，基本等于现在就按开始煮。';
+    } else if (total > 720) {
+      warn = '超过 12 小时。多数电饭煲最大预约 24 小时，米泡太久也会影响口感。';
+    }
+    var warnEl = $('planWarn');
+    setText(warnEl, warn);
+    toggle(warnEl, 'is-hidden', !warn);
+
+    /* 步进建议：跟主值同方向取整 */
+    var roundTotal = Math.ceil(total / 10) * 10;
+    var delta = roundTotal - total;
+    setText($('roundText'), fmt(roundTotal));
+    setText($('roundHint'), delta === 0 ? '正好是整 10 分钟，直接设就行' : '比目标时间晚 ' + delta + ' 分钟好');
+
+    /* 起煮模式 */
+    var on = state.cookMode;
+    toggle($('cookBlock'), 'is-hidden', !on);
+    toggle($('cookSwitch'), 'on', on);
+    $('cookSwitch').setAttribute('aria-checked', on ? 'true' : 'false');
+
+    Array.prototype.forEach.call(cookOptions.children, function (el) {
+      toggle(el, 'on', Number(el.dataset.min) === state.cookMinutes);
+    });
+
+    var startTotal = total - state.cookMinutes;
+    var cookResult = $('cookResult');
+    if (startTotal > 0) {
+      var startAt = new Date(target.getTime() - state.cookMinutes * 60000);
+      var startAtText = pad2(startAt.getHours()) + ':' + pad2(startAt.getMinutes());
+      cookResult.className = 'cook-result';
+      cookResult.innerHTML = '预约 <span class="hl">' + fmt(startTotal) + '</span>，' + startAtText + ' 开始煮';
+      last.start = startTotal;
+      last.startText = fmt(startTotal);
+      last.startAt = startAtText;
+    } else {
+      cookResult.className = 'cook-result is-warn';
+      cookResult.textContent = '剩余时间不够煮饭，把目标时间往后挪一点';
+      last.start = 0;
+    }
+
+    setText($('footnote'),
+      '目标 ' + dateLabelOf(target) + ' ' + state.targetTime + '\n已过的时间会自动算到明天');
+
+    last.planText = fmt(total);
+    last.dayLabel = dayLabel;
+  }
+
+  render();
+  setInterval(render, 1000);
+
+  /* 从后台切回来立刻刷新，别显示过期时间 */
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) render();
+  });
+})();
+</script>
+</body>
+</html>
