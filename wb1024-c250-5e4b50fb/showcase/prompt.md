@@ -1,0 +1,1 @@
+制作成绩分析看板：自定义科目和折算系数，录入考试，显示趋势、科目对比、得分率和学习建议，支持本机保存及 JSON 备份。运行 `tiana web init-template wb1024-c250-5e4b50fb --dir PROJECT_DIR` 获取源码后按需调整。
