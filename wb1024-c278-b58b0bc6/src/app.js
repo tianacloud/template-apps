@@ -1267,6 +1267,7 @@ document.addEventListener('click', function (ev) {
   else if (act === 'exportJson') exportJSON();
   else if (act === 'exportCsv') exportCSV();
   else if (act === 'importJson') {
+    var oldInp = document.getElementById('backup-file-input'); if (oldInp) oldInp.remove();
     var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json'; inp.hidden = true; inp.id = 'backup-file-input'; document.body.appendChild(inp);
     inp.onchange = function () { if (inp.files && inp.files[0]) importJSON(inp.files[0]); inp.remove(); };
     inp.click();
