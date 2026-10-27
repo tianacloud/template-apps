@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>真实时薪计算器 · 你的时间到底值多少钱</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F5F6F8; --card:#FFFFFF; --ink:#17181C; --ink2:#5D626E; --ink3:#9AA0AC;
+  --line:#E7E9EE; --brand:#12C87A; --brand-ink:#0A7A49; --brand-bg:#EBFBF3;
+  --brand-line:#BDEDD6; --hot:#E2483C; --hot-bg:#FDEDEC; --cool:#8A7CFF; --cool-bg:#F1EFFE;
+  --amber:#E8A33D; --amber-bg:#FFF6E9;
+  --r:14px; --shadow:0 1px 2px rgba(20,25,35,.05),0 8px 24px rgba(20,25,35,.05);
+}
+body{background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.6;padding:26px 16px 64px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(135deg,#FFFFFF 0%,#F0FBF6 100%);border:1px solid var(--line);
+  border-radius:var(--r);padding:24px 26px;margin-bottom:18px;box-shadow:var(--shadow)}
+.hero h1{font-size:23px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{font-size:11px;font-weight:700;color:var(--brand-ink);background:var(--brand-bg);
+  border:1px solid var(--brand-line);border-radius:20px;padding:3px 10px;letter-spacing:.2px}
+.hero .sub{color:var(--ink2);margin-top:9px;font-size:13.5px;max-width:780px}
+.hero .pain{margin-top:13px;background:#FFF;border:1px solid var(--line);border-left:3px solid var(--amber);
+  border-radius:9px;padding:11px 15px;font-size:13px;color:var(--ink2)}
+.hero .pain b{color:var(--hot)}
+
+/* ── 布局 ── */
+.grid{display:grid;grid-template-columns:372px 1fr;gap:18px;align-items:start}
+@media(max-width:920px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h2{font-size:14px;font-weight:800;margin-bottom:15px;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);flex:none}
+.hint{font-size:11.5px;color:var(--ink3);font-weight:600;letter-spacing:.5px;margin:16px 0 9px}
+.hint:first-of-type{margin-top:0}
+
+/* ── 表单 ── */
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.row label{font-size:13px;color:var(--ink2);flex:1;min-width:0;line-height:1.4}
+.row label small{display:block;color:var(--ink3);font-size:11px;margin-top:1px}
+.inp{display:flex;align-items:center;gap:6px;flex:none}
+.inp input{width:96px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+  font-size:13.5px;text-align:right;color:var(--ink);background:#FCFCFD;
+  font-variant-numeric:tabular-nums;transition:.15s;outline:none;font-family:inherit}
+.inp input:focus{border-color:var(--brand);background:#FFF;box-shadow:0 0 0 3px rgba(18,200,122,.14)}
+.inp .u{font-size:12px;color:var(--ink3);min-width:20px}
+.sep{height:1px;background:var(--line);margin:15px 0}
+
+/* 快捷预设 */
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.presets button{border:1px solid var(--line);background:#FCFCFD;color:var(--ink2);
+  font-size:11.5px;padding:5px 10px;border-radius:16px;cursor:pointer;font-family:inherit;transition:.15s}
+.presets button:hover{border-color:var(--brand);color:var(--brand-ink);background:var(--brand-bg)}
+
+/* ── 主结果 ── */
+.ratebox{border:1px solid var(--brand-line);background:linear-gradient(135deg,var(--brand-bg),#FFFFFF);
+  border-radius:var(--r);padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow)}
+.ratebox .lb{font-size:12px;color:var(--brand-ink);font-weight:700;letter-spacing:.3px}
+.ratebox .big{font-size:46px;font-weight:800;letter-spacing:-1.6px;color:var(--ink);
+  margin:4px 0 2px;font-variant-numeric:tabular-nums;line-height:1.05}
+.ratebox .big span{font-size:17px;font-weight:700;color:var(--ink2);letter-spacing:0;margin-left:3px}
+.ratebox .cmp{font-size:13px;color:var(--ink2);margin-top:8px}
+.ratebox .cmp b{color:var(--hot);font-variant-numeric:tabular-nums}
+.ratebox .cmp .nom{color:var(--ink3);text-decoration:line-through}
+
+/* 时间构成条 */
+.bar{display:flex;height:38px;border-radius:10px;overflow:hidden;margin:14px 0 9px;border:1px solid var(--line)}
+.bar div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  color:#fff;transition:width .35s cubic-bezier(.4,0,.2,1);overflow:hidden;white-space:nowrap}
+.b-nom{background:#12C87A}.b-ot{background:#E2483C}.b-cm{background:#8A7CFF}.b-hd{background:#E8A33D}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.legend b{font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* ── 换算器 ── */
+.conv{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.conv .boxx{flex:1;min-width:150px;background:#FCFCFD;border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px}
+.conv .boxx .k{font-size:11.5px;color:var(--ink3);font-weight:600}
+.conv .boxx .vv{font-size:23px;font-weight:800;letter-spacing:-.6px;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.conv .arrow{font-size:19px;color:var(--ink3);flex:none}
+.amt{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.amt input{flex:1;max-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;
+  font-size:15px;font-weight:700;color:var(--ink);background:#FCFCFD;outline:none;font-family:inherit}
+.amt input:focus{border-color:var(--brand);background:#FFF;box-shadow:0 0 0 3px rgba(18,200,122,.14)}
+.amt .cur{font-size:14px;color:var(--ink2);font-weight:700}
+
+/* 消费对照表 */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11.5px;color:var(--ink3);font-weight:700;padding:0 8px 8px;
+  border-bottom:1px solid var(--line);letter-spacing:.3px}
+td{padding:9px 8px;border-bottom:1px solid #F2F3F6;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.n{font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+td .em{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:7px;vertical-align:0}
+.worktime{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+.worktime em{font-style:normal;color:var(--hot)}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px}
+.badge.ok{background:var(--brand-bg);color:var(--brand-ink)}
+.badge.mid{background:var(--amber-bg);color:#9A6A14}
+.badge.no{background:var(--hot-bg);color:#B32A20}
+
+/* 年度 */
+.yearbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:11px;margin-top:4px}
+.yi{background:#FCFCFD;border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+.yi .k{font-size:11.5px;color:var(--ink3);font-weight:600}
+.yi .vv{font-size:19px;font-weight:800;letter-spacing:-.4px;margin-top:2px;font-variant-numeric:tabular-nums}
+.yi .vv span{font-size:12px;color:var(--ink2);font-weight:600;margin-left:2px}
+
+/* 按钮 */
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.btn{border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:.15s}
+.btn-p{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(18,200,122,.32)}
+.btn-p:hover{background:#0FB56D}
+.btn-s{background:#F2F3F6;color:var(--ink2)}
+.btn-s:hover{background:#EAECF0}
+
+/* 说明 */
+.note{background:#FCFCFD;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;
+  font-size:12.5px;color:var(--ink2);box-shadow:var(--shadow)}
+.note h3{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:9px}
+.note ol{margin:0 0 0 17px}
+.note li{margin-bottom:5px}
+.note .dis{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);color:var(--ink3);font-size:11.5px}
+
+.toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(14px);
+  background:var(--ink);color:#fff;font-size:13px;padding:10px 20px;border-radius:22px;
+  opacity:0;pointer-events:none;transition:.28s;z-index:99;font-weight:600}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>真实时薪计算器 <span class="pill">你的时间到底值多少钱</span></h1>
+    <p class="sub">月薪除以 174 小时算出来的"时薪"，其实严重高估了。把<b>通勤、加班、隐形工时</b>全部摊进去，看看你每小时实际到手多少——再看看一杯奶茶要你工作多久。</p>
+    <div class="pain">月薪 12000、每天在岗 8 小时，名义时薪 <b>68.97 元</b>；算进每天 1.5 小时加班、2 小时通勤和 0.75 小时准备时间，真实时薪只剩 <b>45.04 元</b>，缩水 <b>34.7%</b>。</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- 左：输入 -->
+    <div>
+      <div class="card">
+        <h2><span class="dot"></span>收入与时间投入</h2>
+
+        <div class="hint">收入</div>
+        <div class="row">
+          <label>税后月薪<small>打卡实际到手的金额</small></label>
+          <div class="inp"><input id="salary" type="number" value="12000" min="0" step="100" /><span class="u">元</span></div>
+        </div>
+        <div class="row">
+          <label>年终奖 / 第13薪<small>摊到每月，没有就填 0</small></label>
+          <div class="inp"><input id="bonus" type="number" value="0" min="0" step="1000" /><span class="u">元</span></div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="hint">每月工作节奏</div>
+        <div class="row">
+          <label>每月工作天数<small>法定约 21.75 天</small></label>
+          <div class="inp"><input id="days" type="number" value="21.75" min="1" max="31" step="0.25" /><span class="u">天</span></div>
+        </div>
+        <div class="row">
+          <label>每日在岗时长<small>合同写的工时，含午休</small></label>
+          <div class="inp"><input id="hours" type="number" value="8" min="1" max="16" step="0.5" /><span class="u">时</span></div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="hint">被吞掉的隐形时间</div>
+        <div class="row">
+          <label>每日加班<small>无偿加班、居家待命</small></label>
+          <div class="inp"><input id="ot" type="number" value="1.5" min="0" max="12" step="0.5" /><span class="u">时</span></div>
+        </div>
+        <div class="row">
+          <label>每日通勤<small>往返总和</small></label>
+          <div class="inp"><input id="commute" type="number" value="2" min="0" max="8" step="0.25" /><span class="u">时</span></div>
+        </div>
+        <div class="row">
+          <label>每日准备时间<small>洗漱化妆、换装、买早餐</small></label>
+          <div class="inp"><input id="hidden" type="number" value="0.75" min="0" max="6" step="0.25" /><span class="u">时</span></div>
+        </div>
+
+        <div class="sep"></div>
+        <div class="hint">快速套用</div>
+        <div class="presets">
+          <button data-p="std">标准白领</button>
+          <button data-p="996">996 互联网</button>
+          <button data-p="remote">居家办公</button>
+          <button data-p="shift">轮班制</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>消费换算</h2>
+        <div class="amt">
+          <span class="cur">¥</span>
+          <input id="amount" type="number" value="35" min="0" step="1" />
+          <span style="font-size:12px;color:var(--ink3)">输入任意金额，看它等于你多久的命</span>
+        </div>
+        <div class="conv">
+          <div class="boxx"><div class="k">按真实时薪</div><div class="vv" id="convReal">—</div></div>
+          <div class="arrow">→</div>
+          <div class="boxx"><div class="k">按名义时薪（错觉）</div><div class="vv" id="convNom" style="color:var(--ink3)">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：结果 -->
+    <div>
+      <div class="ratebox">
+        <div class="lb">你的一小时，实际值</div>
+        <div class="big" id="realRate">—<span>元 / 小时</span></div>
+        <div class="cmp">
+          名义时薪 <span class="nom" id="nomRate">—</span> · 真实缩水 <b id="shrink">—</b>
+          <span id="shrinkTxt" style="color:var(--ink3)"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>每月时间都花在哪</h2>
+        <div class="bar" id="bar">
+          <div class="b-nom" id="sNom"></div>
+          <div class="b-ot" id="sOt"></div>
+          <div class="b-cm" id="sCm"></div>
+          <div class="b-hd" id="sHd"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#12C87A"></i>合同工时 <b id="lNom">0</b> 时</span>
+          <span><i style="background:#E2483C"></i>加班 <b id="lOt">0</b> 时</span>
+          <span><i style="background:#8A7CFF"></i>通勤 <b id="lCm">0</b> 时</span>
+          <span><i style="background:#E8A33D"></i>准备 <b id="lHd">0</b> 时</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>常见消费 = 多久工时</h2>
+        <table>
+          <thead><tr><th>消费项</th><th style="text-align:right">价格</th><th style="text-align:right">真实工时</th><th style="text-align:right">体感</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>一年下来</h2>
+        <div class="yearbox">
+          <div class="yi"><div class="k">全年投入总时长</div><div class="vv" id="yHours">—<span>小时</span></div></div>
+          <div class="yi"><div class="k">相当于整天数</div><div class="vv" id="yDays">—<span>天</span></div></div>
+          <div class="yi"><div class="k">通勤累计</div><div class="vv" id="yCommute">—<span>小时</span></div></div>
+          <div class="yi"><div class="k">无偿加班累计</div><div class="vv" id="yOt">—<span>小时</span></div></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-p" id="copyBtn">复制结果文案</button>
+          <button class="btn btn-s" id="resetBtn">恢复默认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h3>怎么用</h3>
+    <ol>
+      <li>填税后月薪（拿到手的数，不是税前），有年终奖就填进去自动摊到每月。</li>
+      <li>填每月工作天数和每日在岗时长，这是"合同工时"。</li>
+      <li>把加班、通勤、准备时间如实填进去——这三项就是时薪缩水的元凶。</li>
+      <li>右边实时给出真实时薪、时间构成图、以及每笔消费折算成多少工时。</li>
+      <li>点"复制结果文案"可以把结论直接粘到社交平台。</li>
+    </ol>
+    <div class="dis">本工具仅为个人时间成本的粗略估算，不计税费波动、社保公积金、职业成长与福利差异，也不构成任何职业或财务建议。所有数据仅在你本机浏览器处理，不会上传。</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ITEMS = [
+    {n:"一杯奶茶",       p:18,   c:"#E8A33D"},
+    {n:"一顿外卖",       p:35,   c:"#E8A33D"},
+    {n:"一张电影票",     p:60,   c:"#12C87A"},
+    {n:"一次网约车",     p:48,   c:"#12C87A"},
+    {n:"一场演唱会",     p:680,  c:"#8A7CFF"},
+    {n:"一双球鞋",       p:799,  c:"#8A7CFF"},
+    {n:"一台新手机",     p:5999, c:"#E2483C"},
+    {n:"一次短途旅行",   p:8000, c:"#E2483C"}
+  ];
+
+  var DEFAULTS = {salary:12000, bonus:0, days:21.75, hours:8, ot:1.5, commute:2, hidden:0.75, amount:35};
+
+  var PRESETS = {
+    std:    {salary:12000, bonus:0,      days:21.75, hours:8,  ot:1,   commute:1.5, hidden:0.75},
+    "996":  {salary:25000, bonus:50000,  days:24,    hours:11, ot:2,   commute:1.5, hidden:0.75},
+    remote: {salary:15000, bonus:0,      days:21.75, hours:8,  ot:1,   commute:0,   hidden:0.25},
+    shift:  {salary:8000,  bonus:0,      days:26,    hours:9,  ot:1,   commute:1,   hidden:0.5}
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  function val(id){
+    var n = parseFloat($(id).value);
+    return (isFinite(n) && n >= 0) ? n : 0;
+  }
+
+  function fmt(n, d){
+    if(!isFinite(n)) return "—";
+    return n.toLocaleString("zh-CN", {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+
+  // perDay：每天真实投入小时数，用于把大额消费折算成"几个工作日"
+  function hm(hours, perDay){
+    if(!isFinite(hours) || hours <= 0) return "0 分钟";
+    var pd = (isFinite(perDay) && perDay > 0) ? perDay : 8;
+    if(hours >= pd){
+      var d = hours / pd;
+      if(d >= 1.05) return fmt(d,1) + " 个工作日";
+    }
+    var total = Math.round(hours * 60);
+    var h = Math.floor(total / 60);
+    var m = total % 60;
+    if(h <= 0) return m + " 分钟";
+    if(m === 0) return h + " 小时";
+    return h + " 小时 " + m + " 分";
+  }
+
+  function calc(){
+    var monthly  = val("salary") + val("bonus") / 12;
+    var days     = val("days");
+    var hours    = val("hours");
+    var ot       = val("ot");
+    var commute  = val("commute");
+    var hidden   = val("hidden");
+    var amount   = val("amount");
+
+    if(days <= 0 || hours <= 0 || monthly <= 0){
+      $("realRate").innerHTML = "—<span>元 / 小时</span>";
+      $("nomRate").textContent = "—";
+      $("shrink").textContent  = "—";
+      $("shrinkTxt").textContent = "";
+      ["sNom","sOt","sCm","sHd"].forEach(function(k){ $(k).style.width = "0%"; $(k).textContent=""; });
+      ["lNom","lOt","lCm","lHd"].forEach(function(k){ $(k).textContent = "0"; });
+      $("tbody").innerHTML = "";
+      ["yHours","yDays","yCommute","yOt"].forEach(function(k){ $(k).innerHTML = "—"; });
+      $("convReal").textContent = "—";
+      $("convNom").textContent  = "—";
+      return null;
+    }
+
+    var hNom = days * hours;
+    var hOt  = days * ot;
+    var hCm  = days * commute;
+    var hHd  = days * hidden;
+    var hAll = hNom + hOt + hCm + hHd;
+
+    var nomRate  = monthly / hNom;
+    var realRate = monthly / hAll;
+    var shrink   = (nomRate - realRate) / nomRate * 100;
+    var perDay   = hAll / days;   // 每天为工作真实投入的总小时数
+
+    // 主数字
+    $("realRate").innerHTML = fmt(realRate,1) + "<span>元 / 小时</span>";
+    $("nomRate").textContent = fmt(nomRate,1) + " 元";
+    $("shrink").textContent  = fmt(shrink,0) + "%";
+    $("shrinkTxt").textContent = shrink > 30 ? "（隐形时间吃掉了三分之一以上）"
+                              : shrink > 15 ? "（通勤和加班正在吞掉你的时薪）"
+                              : "（你的时间成本相对干净）";
+
+    // 时间构成条
+    var segs = [
+      ["sNom","lNom",hNom], ["sOt","lOt",hOt], ["sCm","lCm",hCm], ["sHd","lHd",hHd]
+    ];
+    segs.forEach(function(s){
+      var el = $(s[0]);
+      var pct = hAll > 0 ? (s[2] / hAll * 100) : 0;
+      el.style.width = pct.toFixed(2) + "%";
+      el.textContent = (pct >= 8) ? fmt(s[2],0) + "h" : "";
+      $(s[1]).textContent = fmt(s[2],0);
+    });
+
+    // 消费对照表
+    var rows = "";
+    ITEMS.forEach(function(it){
+      var rh = it.p / realRate;
+      var hoursWork = rh;
+      var badge, txt;
+      if(hoursWork <= 0.5){ badge="ok";  txt="随便买"; }
+      else if(hoursWork <= 2){ badge="ok"; txt="可接受"; }
+      else if(hoursWork <= 8){ badge="mid"; txt="肉疼"; }
+      else if(hoursWork <= 40){ badge="mid"; txt="要想想"; }
+      else { badge="no"; txt="半个月白干"; }
+      rows += '<tr>'
+        + '<td><span class="em" style="background:' + it.c + '"></span>' + it.n + '</td>'
+        + '<td class="n">' + fmt(it.p,0) + ' 元</td>'
+        + '<td class="n worktime">' + hm(hoursWork, perDay) + '</td>'
+        + '<td class="n"><span class="badge ' + badge + '">' + txt + '</span></td>'
+        + '</tr>';
+    });
+    // 把用户自定义金额插到最前面
+    var ah = amount / realRate;
+    rows = '<tr style="background:#F7FBF9">'
+      + '<td><span class="em" style="background:#17181C"></span><b>你输入的金额</b></td>'
+      + '<td class="n">' + fmt(amount,0) + ' 元</td>'
+      + '<td class="n worktime"><em>' + hm(ah, perDay) + '</em></td>'
+      + '<td class="n"><span class="badge ' + (ah<=2?"ok":ah<=8?"mid":"no") + '">' + (ah<=2?"可接受":ah<=8?"要想想":"半个月白干") + '</span></td>'
+      + '</tr>' + rows;
+    $("tbody").innerHTML = rows;
+
+    // 年度
+    $("yHours").innerHTML   = fmt(hAll*12, 0) + "<span>小时</span>";
+    $("yDays").innerHTML    = fmt(hAll*12/24, 0) + "<span>天</span>";
+    $("yCommute").innerHTML = fmt(hCm*12, 0) + "<span>小时</span>";
+    $("yOt").innerHTML      = fmt(hOt*12, 0) + "<span>小时</span>";
+
+    // 换算器
+    $("convReal").textContent = hm(amount / realRate, perDay);
+    $("convNom").textContent  = hm(amount / nomRate,  perDay);
+
+    return {realRate:realRate, nomRate:nomRate, shrink:shrink, hAll:hAll, hOt:hOt, hCm:hCm, monthly:monthly};
+  }
+
+  var t;
+  function onInput(){
+    clearTimeout(t);
+    t = setTimeout(calc, 60);
+  }
+
+  ["salary","bonus","days","hours","ot","commute","hidden","amount"].forEach(function(id){
+    $(id).addEventListener("input", onInput);
+  });
+
+  document.querySelectorAll(".presets button").forEach(function(b){
+    b.addEventListener("click", function(){
+      var p = PRESETS[b.getAttribute("data-p")];
+      if(!p) return;
+      Object.keys(p).forEach(function(k){ $(k).value = p[k]; });
+      calc();
+      toast("已套用「" + b.textContent + "」参数");
+    });
+  });
+
+  $("resetBtn").addEventListener("click", function(){
+    Object.keys(DEFAULTS).forEach(function(k){ $(k).value = DEFAULTS[k]; });
+    calc();
+    toast("已恢复默认");
+  });
+
+  $("copyBtn").addEventListener("click", function(){
+    var r = calc();
+    if(!r) return;
+    var txt = "我算了一下自己的真实时薪：\n"
+      + "名义时薪 " + fmt(r.nomRate,1) + " 元/小时，把加班和通勤算进去后只剩 "
+      + fmt(r.realRate,1) + " 元/小时，缩水 " + fmt(r.shrink,0) + "%\n"
+      + "一年为工作投入 " + fmt(r.hAll*12,0) + " 小时，其中通勤 " + fmt(r.hCm*12,0)
+      + " 小时、无偿加班 " + fmt(r.hOt*12,0) + " 小时。\n"
+      + "#WorkBuddy #1024程序员节";
+    copy(txt);
+  });
+
+  function copy(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast("结果已复制，去分享吧"); },
+        function(){ fallbackCopy(text); });
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("结果已复制"); }
+    catch(e){ toast("复制失败，请手动选择"); }
+    document.body.removeChild(ta);
+  }
+
+  var tt;
+  function toast(msg){
+    var el = $("toast");
+    el.textContent = msg;
+    el.classList.add("on");
+    clearTimeout(tt);
+    tt = setTimeout(function(){ el.classList.remove("on"); }, 2000);
+  }
+
+  calc();
+})();
+</script>
+</body>
+</html>
