@@ -6894,29 +6894,6 @@ if (typeof module !== 'undefined' && module.exports) {
           '</div>' +
         '</div>' +
       '</div>' +
-      // 系统行为（V1.0.1 · 2026-09-01：托盘 + 单例锁）
-      '<div class="settings-section">' +
-        '<div class="settings-section-title"><i data-lucide="settings-2"></i><span>系统行为</span></div>' +
-        '<div class="settings-row">' +
-          '<div class="settings-row-info">' +
-            '<div class="settings-row-label">关闭按钮</div>' +
-            '<div class="settings-row-desc">点窗口右上角 X 时的行为。选「最小化到托盘」时，数据常驻内存、托盘菜单可彻底退出；选「直接退出」则会结束进程（vault 自动保存后退出）</div>' +
-          '</div>' +
-          '<div class="settings-segment" id="seg-closetotray">' +
-            '<button data-ctt="true" class="' + (UIState.appSettings.closeToTray !== false ? 'active' : '') + '">最小化到托盘</button>' +
-            '<button data-ctt="false" class="' + (UIState.appSettings.closeToTray === false ? 'active' : '') + '">直接退出</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="settings-row">' +
-          '<div class="settings-row-info">' +
-            '<div class="settings-row-label">单例锁</div>' +
-            '<div class="settings-row-desc">重复启动 Custos 不会开新窗口，而是把已存在的窗口拉到前台。系统层面常驻，无需开关</div>' +
-          '</div>' +
-          '<div class="settings-row-action">' +
-            '<span class="env-badge env-badge-ok">已启用</span>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
       // 数据管理
       '<div class="settings-section">' +
         '<div class="settings-section-title"><i data-lucide="database"></i><span>数据管理</span></div>' +
@@ -6991,7 +6968,7 @@ if (typeof module !== 'undefined' && module.exports) {
             '<div class="settings-row-label">主密码</div>' +
             // Web 分支补丁（replay #3）：cloud 档描述改「云端 + 本机缓存（均密文）」
             '<div class="settings-row-desc">' + (UIState.storageBackend === 'cloud'
-              ? '主密码经 PBKDF2-SHA256（600k 次迭代）派生密钥，数据以 AES-GCM-256 加密存于云端与本机缓存（均为密文）'
+              ? '主密码经 PBKDF2-SHA256（600k 次迭代）派生密钥，数据以 AES-GCM-256 加密后存于云端'
               : '主密码经 PBKDF2-SHA256（600k 次迭代）派生密钥，数据以 AES-GCM-256 加密存于 IndexedDB') + '</div>' +
           '</div>' +
           '<div class="settings-row-action">' +
@@ -7005,18 +6982,6 @@ if (typeof module !== 'undefined' && module.exports) {
           '</div>' +
           '<div class="settings-row-action"><span id="retain-status">检查中…</span></div>' +
         '</div>' +
-        // Web 分支补丁（replay #3）：cloud 档专属——退出登录（断云会话回登录页，切换账号用）
-        (UIState.storageBackend === 'cloud'
-          ? '<div class="settings-row">' +
-              '<div class="settings-row-info">' +
-                '<div class="settings-row-label">退出登录</div>' +
-                '<div class="settings-row-desc">断开云端会话并返回登录页（用于切换账号）。本机密文缓存保留，重新登录并解锁即可继续。</div>' +
-              '</div>' +
-              '<div class="settings-row-action">' +
-                '' +
-              '</div>' +
-            '</div>'
-          : '') +
       '</div>' +
       // 关于
       '<div class="settings-section">' +
@@ -7024,7 +6989,7 @@ if (typeof module !== 'undefined' && module.exports) {
         '<div class="settings-row">' +
           '<div class="settings-row-info">' +
             '<div class="settings-row-label">Custos</div>' +
-            '<div class="settings-row-desc">当前工作台：' + window.escapeHtml(getWorkbenchName()) + ' · v' + window.escapeHtml((window.BUILD_INFO && window.BUILD_INFO.version) || (UIState.state.env && UIState.state.env.version) || 'unknown') + ' · 本地优先的隐私数据管理工作台</div>' +
+            '<div class="settings-row-desc">当前工作台：' + window.escapeHtml(getWorkbenchName()) + ' · v' + window.escapeHtml((window.BUILD_INFO && window.BUILD_INFO.version) || (UIState.state.env && UIState.state.env.version) || 'unknown') + ' · 隐私数据管理工作台</div>' +
           '</div>' +
         '</div>' +
         '<div class="settings-row">' +
