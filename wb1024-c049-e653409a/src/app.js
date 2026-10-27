@@ -167,12 +167,13 @@ function downscaleImage(file, maxDim) {
   });
 }
 function pickPhoto(mid) {
+  document.querySelectorAll("input[data-photo-input]").forEach(el => el.remove());
   const inp = document.createElement("input");
   inp.type = "file";
   inp.accept = "image/*";
+  inp.dataset.photoInput = "";
   inp.style.display = "none";
   document.body.appendChild(inp);
-  inp.oncancel = () => inp.remove();
   inp.onchange = async () => {
     const f = inp.files && inp.files[0];
     inp.remove();
@@ -1822,7 +1823,7 @@ window.addEventListener("scroll", () => {
   render();
   loadUserPhotos().then(() => {
     const r = parseHash();
-    if (r.page === "mine" || r.page === "mystamp") render();
+    if (["mine", "mystamp", "m", "g"].includes(r.page)) render();
   });
 })();
 
