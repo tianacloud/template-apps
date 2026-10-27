@@ -78,7 +78,7 @@
 </style>
 </head>
 <body data-page-node-id="YG1ajLskyhddC4X0YwD5XT">
-<div style="text-align:center;color:#8b91a3;padding:8px">示例体验，数据仅保留在本页 <button id="resetDemo">恢复示例</button></div><div data-page-node-id="szO7lNJ1t6WGPJb7Tl5Qgt" class="wrap">
+<div style="text-align:center;color:#8b91a3;padding:8px">示例体验，数据仅保留在本页 · 先写下今天的一件事 <button id="resetDemo">恢复示例</button></div><div data-page-node-id="szO7lNJ1t6WGPJb7Tl5Qgt" class="wrap">
   <header data-page-node-id="f2q9sbp9UjNAYaGrls0v1j">
     <h1 data-page-node-id="HN66CoSuBNPEBPQCO7dpg5"><span data-page-node-id="XfPCeFyAQUcP29NMOnWlHS" class="pill"><!--pnid:r3DKzysd8DmhGiChJKmOLl-->💊 后悔药</span></h1>
     <div data-page-node-id="A4VoekHjOZsgAL4uj0Rij9" class="slogan"><!--pnid:L6aLXXBRXP5ME8vNWSVsdw-->如果人生可以撤回，你最想撤回哪件事？</div>
@@ -163,6 +163,12 @@ const STORE_KEY = "houhuiyao_unlocked";
 const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 /* 安全存储层：沙箱 iframe 下 localStorage 可能被禁用，自动降级到内存存储 */
 const _mem={};
+function sampleRecords(){
+  const previous = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+  return [{date:previous(1),text:"昨晚刷手机太晚",tag:1,next:"睡前把手机放远一点",ts:Date.now()-86400000},{date:previous(2),text:"冲动买了不需要的东西",tag:0,next:"先冷静一天再决定",ts:Date.now()-172800000}];
+}
+function resetSamples(){ for(const k in _mem) delete _mem[k]; _mem[KEY]=JSON.stringify(sampleRecords()); }
+resetSamples();
 function _get(k){ return (k in _mem)?_mem[k]:null; }
 function _set(k,v){ _mem[k]=v; }
 function _del(k){ delete _mem[k]; }
@@ -243,7 +249,12 @@ function renderTimeline(){
     <span class="r-tag share" style="cursor:pointer" data-d="${r.date}">卡片</span></div>
   </div>`).join("");
   list.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
-    if(true){ save(records().filter(r=>r.date!==b.dataset.d)); renderTimeline(); }
+    const date=b.dataset.d;
+    const bg=document.createElement("div"); bg.className="modal-bg show";
+    bg.innerHTML='<div class="card" style="max-width:360px;width:100%;text-align:center"><p>确定删除 '+date+' 这条记录吗？</p><div class="center"><button class="btn" data-confirm>删除</button> <button class="btn ghost" data-cancel>取消</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector("[data-confirm]").onclick=()=>{save(records().filter(r=>r.date!==date));bg.remove();renderTimeline();renderToday()};
+    bg.querySelector("[data-cancel]").onclick=()=>bg.remove();
   });
   list.querySelectorAll(".share").forEach(b=>b.onclick=()=>openCard(records().find(r=>r.date===b.dataset.d)));
 }
@@ -367,7 +378,9 @@ document.getElementById("dlCard").onclick=()=>{
 document.getElementById("closeModal").onclick=()=>document.getElementById("cardModal").classList.remove("show");
 document.getElementById("cardModal").onclick=e=>{ if(e.target.id==="cardModal") e.target.classList.remove("show"); };
 
-document.getElementById("resetDemo").onclick=()=>{for(const k in _mem) delete _mem[k]; selTag=-1;curFilter=-1; inp.value="";document.getElementById("inputNext").value="";document.getElementById("charCount").textContent="0";picker.querySelectorAll(".tag").forEach(x=>x.classList.remove("sel"));document.querySelector("[data-tab=today]").click();renderToday();toast("已恢复示例");};
+document.getElementById("resetDemo").onclick=()=>{resetSamples(); selTag=-1;curFilter=-1; inp.value="";document.getElementById("inputNext").value="";document.getElementById("charCount").textContent="0";picker.querySelectorAll(".tag").forEach(x=>x.classList.remove("sel"));document.querySelector("[data-tab=today]").click();renderToday();toast("已恢复示例");};
+["exportMd","exportCsv","dlCard"].forEach(id=>{const b=document.getElementById(id);b.disabled=true;b.title="安装后可下载";});
+const note=document.createElement("div"); note.className="hint"; note.textContent="安装后可导出文件和保存卡片"; document.querySelector("#tab-stats .center").appendChild(note);
 renderToday();
 </script>
 </body>
