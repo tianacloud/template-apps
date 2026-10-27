@@ -391,45 +391,15 @@ $("btnCopy").onclick = async () => {
 };
 
 /* ================= 从本地底稿导入 ================= */
-$("btnImport").onclick = async () => {
-  if (!window.showDirectoryPicker) {
-    const input=document.createElement("input"); input.type="file"; input.multiple=true; input.setAttribute("webkitdirectory", "");
-    input.onchange=async()=>{
-      const files=Array.from(input.files).filter(f=>f.name.endsWith(".md") && !f.webkitRelativePath.split("/").some(part=>SKIP.has(part)||part.startsWith(".")));
-      if(!files.length){$("st2").textContent="⚠ 未找到 md 文件";return;}
-      const first=files[0].webkitRelativePath.split("/")[0] || "导入项目";
-      const name=(prompt("导入到哪个项目？（填小说名，如：我的小说）",curProject||first)||"").trim(); if(!name)return;
-      try {const docs=await Promise.all(files.map(async f=>({path:name+"/"+(f.webkitRelativePath.split("/").slice(1).join("/")||f.name),content:await f.text()}))); const r=await api("/api/import",{method:"POST",body:JSON.stringify({docs})});curProject=name;localStorage.setItem(PKEY,curProject);await loadAll();$("st2").textContent="✅ 导入完成：写入 "+r.imported+" 个";}catch(e){$("st2").textContent="❌ 导入失败："+e.message;}
-    }; input.click(); return;
-  }
-  let dir;
-  try { dir = await showDirectoryPicker({mode:"read", id:"xz2-import"}); }
-  catch(e){ return; }
-  const files=[];
-  async function walk(h, prefix){
-    for await (const [name, child] of h.entries()){
-      if (SKIP.has(name) || name.startsWith(".")) continue;
-      if (child.kind === "directory") await walk(child, prefix + name + "/");
-      else if (name.endsWith(".md")) {
-        const f = await child.getFile();
-        files.push({ path: prefix + name, content: await f.text() });
-      }
-    }
-  }
-  $("st2").textContent = "读取本地文件中…";
-  await walk(dir, "");
-  if (!files.length) { $("st2").textContent = "⚠ 未找到 md 文件"; return; }
-  const projName = (prompt("导入到哪个项目？（填小说名，如：我的小说）", curProject || dir.name) || "").trim();
-  if (!projName) { $("st2").textContent = "已取消导入"; return; }
-  const docs = files.map(f => ({ path: projName + "/" + f.path, content: f.content }));
-  $("st2").textContent = "上传中… " + docs.length + " 个文件";
-  try {
-    const r = await api("/api/import", { method:"POST", body: JSON.stringify({ docs }) });
-    curProject = projName;
-    localStorage.setItem(PKEY, curProject);
-    await loadAll();
-    $("st2").textContent = "✅ 导入完成：写入 " + r.imported + " 个" + (r.skipped ? "，跳过 " + r.skipped + " 个" : "");
-  } catch(e) { $("st2").textContent = "❌ 导入失败：" + e.message; }
+const importInput = document.createElement("input");
+importInput.type="file"; importInput.multiple=true; importInput.setAttribute("webkitdirectory", ""); importInput.id="importInput"; importInput.hidden=true; document.body.append(importInput);
+$("btnImport").onclick=()=>{importInput.value="";importInput.click();};
+importInput.onchange=async()=>{
+ const files=Array.from(importInput.files).filter(f=>f.name.endsWith(".md") && !f.webkitRelativePath.split("/").some(part=>SKIP.has(part)||part.startsWith(".")));
+ if(!files.length){$("st2").textContent="⚠ 未找到 md 文件";return;}
+ const first=files[0].webkitRelativePath.split("/")[0] || "导入项目";
+ const name=(prompt("导入到哪个项目？（填小说名，如：我的小说）",curProject||first)||"").trim(); if(!name)return;
+ try {const docs=await Promise.all(files.map(async f=>({path:name+"/"+(f.webkitRelativePath.split("/").slice(1).join("/")||f.name),content:await f.text()}))); const r=await api("/api/import",{method:"POST",body:JSON.stringify({docs})});curProject=name;localStorage.setItem(PKEY,curProject);await loadAll();$("st2").textContent="✅ 导入完成：写入 "+r.imported+" 个";}catch(e){$("st2").textContent="❌ 导入失败："+e.message;}
 };
 
 /* ================= 新建项目 ================= */
