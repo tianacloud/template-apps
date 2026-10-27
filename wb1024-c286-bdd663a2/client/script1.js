@@ -1041,7 +1041,8 @@
         return;
       }catch(e){toast('保存失败：'+e.message);return;}
     }
-    const blob=new Blob([content],{type:mime});
+    const bytes=opts.base64?Uint8Array.from(atob(content),c=>c.charCodeAt(0)):content;
+    const blob=new Blob([bytes],{type:mime});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download=filename;
