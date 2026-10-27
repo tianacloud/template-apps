@@ -23,7 +23,7 @@
     if (loadingPromise) return loadingPromise;
 
     loadingPromise = Tesseract.createWorker('chi_sim', 1, {
-      workerPath: 'heji://worker.min.js',
+      workerPath: new URL('worker.js', document.querySelector('script[data-ocr-entry]').src).href, workerBlobURL: false,
       corePath: '',
       langPath: 'heji://lang',
       logger: function (m) {
