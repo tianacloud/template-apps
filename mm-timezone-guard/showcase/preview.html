@@ -1,0 +1,2635 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>时差保安示例</title><style>/* A/时差保安 — 独立 Client 视觉层。
+   语义色全部收敛在变量声明里，组件样式只引用变量。
+   设计取向：一页一个主角（判定），整页只保留一个状态色（判定区），
+   太阳/月亮只出现在城市旁。 */
+
+:root {
+  --mcode-bg-secondary: #eef0f2;
+  --mcode-surface: #ffffff;
+  --mcode-surface-muted: #f0f1f3;
+  /* 卡片外壳外的底色：卡片浮在它上面，层次才分得开。 */
+  --mcode-canvas: #e8eaec;
+  --mcode-text: #17191c;
+  --mcode-text-muted: #5c6268;
+  --mcode-text-subtle: #6b7178;
+  --mcode-border: #17191c21;
+  --mcode-border-strong: #17191c47;
+  --mcode-focus: #0077d9;
+  --mcode-success: #0f7a3c;
+  --mcode-warning: #a95b08;
+  --mcode-danger: #b42318;
+  --mcode-primary-action-bg: #17191c;
+  --mcode-primary-action-text: #ffffff;
+
+  /* 状态色：fg 用于文字，dot 用于色点。 */
+  --band-ok-fg: var(--mcode-success);
+  --band-ok-dot: var(--mcode-success);
+  --band-warn-fg: var(--mcode-warning);
+  --band-warn-dot: var(--mcode-warning);
+  --band-bad-fg: var(--mcode-danger);
+  --band-bad-dot: var(--mcode-danger);
+
+  /* 窗口宽度默认 560，可拉宽到任意尺寸。
+     上限给到 680：窄窗口下它就是 100%（贴合），
+     宽窗口下也不会让两列时钟被扯得太散。 */
+  --page-max: 680px;
+  --radius-card: 12px;
+  --radius-control: 8px;
+
+  --sans: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo,
+    Consolas, monospace;
+}
+
+:root[data-theme="dark"] {
+  --mcode-bg-secondary: #191c1f;
+  --mcode-surface: #1a1d20;
+  --mcode-surface-muted: #1f2225;
+  --mcode-text: #edeff1;
+  --mcode-text-muted: #9ba1a7;
+  --mcode-text-subtle: #838a90;
+  --mcode-border: #ffffff21;
+  --mcode-border-strong: #ffffff47;
+  /* 焦点色要同时压得住三种相邻底色：深色页面底、控件容器面，
+     以及选中态分段按钮的浅色药丸（#edeff1）。
+     更亮的蓝在浅色药丸上只有 2.53:1，这档更暗的蓝对三处都在 3.9:1 以上。 */
+  --mcode-focus: #0077d9;
+  --mcode-success: #5bd98a;
+  --mcode-warning: #f0a94a;
+  --mcode-danger: #f87171;
+  --mcode-primary-action-bg: #edeff1;
+  --mcode-primary-action-text: #101214;
+  --mcode-canvas: #0b0d0e;
+}
+
+/* 状态色挂在 <html> 上，全页继承：判定文字与色点共用同一套变量。 */
+[data-band="green"] {
+  --band-fg: var(--band-ok-fg);
+  --band-dot: var(--band-ok-dot);
+}
+
+[data-band="yellow"] {
+  --band-fg: var(--band-warn-fg);
+  --band-dot: var(--band-warn-dot);
+}
+
+[data-band="red"] {
+  --band-fg: var(--band-bad-fg);
+  --band-dot: var(--band-bad-dot);
+}
+
+/* 首帧占位：脚本还没跑时不该显示任何状态色，
+   否则会出现「黄色图标配红色文案」这种自相矛盾的第一帧。 */
+[data-band="neutral"] {
+  --band-fg: var(--mcode-text);
+  --band-dot: var(--mcode-border-strong);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* 卡片浮在这层底色上，靠一道灰差建立前后关系，不用投影堆层次。 */
+  background: var(--mcode-canvas);
+  color: var(--mcode-text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding: 16px;
+}
+
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.page {
+  max-width: var(--page-max);
+  /* 铺满一屏：内容不满时，把多出来的空间平均分给各分区之间的间隙，
+     整张卡片从页头到时差行撑到底，而不是在底部堆一块死白。 */
+  min-height: calc(100vh - 32px);
+  margin: 0 auto;
+  padding: 22px 24px 26px;
+  background: var(--mcode-surface);
+  border: 1px solid var(--mcode-border);
+  border-radius: var(--radius-card);
+  /* 投影只用来表达「这张卡片浮在画布上」，不做装饰。 */
+  box-shadow: 0 1px 2px rgb(10 10 10 / 6%);
+  display: flex;
+  flex-direction: column;
+  /* 分区之间的最小间距交给 row-gap；条件允许时再多分一点空气，
+     这样每一段间距都一致，发丝线正好落在每段间距的中间。 */
+  row-gap: 20px;
+  justify-content: space-between;
+}
+
+/* ---------- 页头 ---------- */
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-head-text {
+  min-width: 0;
+}
+
+.page-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 城市对中间的 ⇄：真正可点的一键对调。
+   按钮撑出来的 3px 内边距用 -3px 外边距抵消，所以视觉间距和改之前一模一样，
+   但多了一个 21×21 的点击区。 */
+.page-title .swap-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -3px;
+  padding: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--mcode-text-muted);
+  cursor: pointer;
+}
+
+/* 悬停时把图标提到正文色：浅色主题是变深，深色主题是变亮，
+   两个主题都是"更强调"的方向。 */
+.page-title .swap-btn:hover {
+  color: var(--mcode-text);
+}
+
+/* 焦点语言与全页统一：2px 实色 --mcode-focus 环。
+   offset 2px 时整道环正好落在标题 7px 的间隙里，不会压到城市名上。 */
+.page-title .swap-btn:focus-visible {
+  outline: 2px solid var(--mcode-focus);
+  outline-offset: 2px;
+}
+
+.page-title .swap {
+  width: 15px;
+  height: 15px;
+}
+
+.lede {
+  margin: 3px 0 0;
+  color: var(--mcode-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.head-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 12H / 24H 分段控件：选中段是实心药丸，靠底色差即可分辨。 */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--mcode-border);
+  border-radius: var(--radius-control);
+  background: var(--mcode-surface);
+}
+
+.seg {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: transparent;
+  color: var(--mcode-text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 15px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.seg:hover {
+  color: var(--mcode-text);
+}
+
+/* 选中态由 <html data-fmt> 驱动：首帧就能显示正确的制式，
+   不会出现「先按 12H 画一帧再翻转」的闪烁。 */
+:root[data-fmt="12h"] #fmt-12h,
+:root[data-fmt="24h"] #fmt-24h {
+  background: var(--mcode-primary-action-bg);
+  color: var(--mcode-primary-action-text);
+  font-weight: 600;
+}
+
+.icon-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--mcode-text-muted);
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.icon-button:hover {
+  background: var(--mcode-surface-muted);
+  color: var(--mcode-text);
+}
+
+.icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- 城市切换 ---------- */
+
+.switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field {
+  min-width: 0;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--mcode-text-muted);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.combo {
+  position: relative;
+}
+
+.combo-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--mcode-border);
+  border-radius: var(--radius-control);
+  background: var(--mcode-surface);
+  color: var(--mcode-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.combo-input::placeholder {
+  color: var(--mcode-text-subtle);
+}
+
+.combo-input:hover {
+  border-color: var(--mcode-text-subtle);
+}
+
+.combo-input:focus,
+.combo-input:focus-visible {
+  /* offset 0：实色 outline 紧贴同色 border，合成一道 3px 的实边，
+     不会出现「两条蓝线夹一道缝」的双线。 */
+  outline: 2px solid var(--mcode-focus);
+  outline-offset: 0;
+  border-color: var(--mcode-focus);
+}
+
+/* 焦点语言全页统一：一道 2px 实色 --mcode-focus 环。
+   之前用的是 25% 透明度的软环，合成到浅底上只有 1.4:1，达不到 3:1；
+   而 .seg 与 .icon-button 没有边框变化，这道环是它们唯一的焦点提示。 */
+.seg:focus-visible {
+  outline: 2px solid var(--mcode-focus);
+  outline-offset: -2px;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid var(--mcode-focus);
+  outline-offset: 2px;
+}
+
+.combo-chevron {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--mcode-text-subtle);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.combo-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 264px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--mcode-border);
+  border-radius: var(--radius-card);
+  background: var(--mcode-surface);
+  box-shadow: 0 0 20px rgb(10 10 10 / 8%);
+}
+
+.combo-list[hidden] {
+  display: none;
+}
+
+.combo-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.combo-option:hover,
+.combo-option[data-active="true"] {
+  background: var(--mcode-surface-muted);
+}
+
+.combo-option[aria-selected="true"] {
+  background: var(--mcode-bg-secondary);
+}
+
+.combo-option-title {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--mcode-text);
+}
+
+.combo-option-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--mcode-text-muted);
+}
+
+/* 空态提示放在 listbox 之外，避免 listbox 里混入非 option 子元素 */
+.combo-empty {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--mcode-border);
+  border-radius: var(--radius-card);
+  background: var(--mcode-surface);
+  color: var(--mcode-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.combo-empty[hidden] {
+  display: none;
+}
+
+/* ---------- 分区线：靠留白和发丝线组织版面，不用卡片框 ---------- */
+
+/* 间距由 .page 的 row-gap 统一给，分区线自己不再带外边距，
+   否则「固定 20px 外边距 + 均分空气」两套间距会互相打架。 */
+.rule {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--mcode-border);
+}
+
+/* ---------- 判定区：整页唯一的状态色，也是唯一的焦点 ---------- */
+
+.verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.verdict-dot {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: var(--band-dot);
+}
+
+.verdict-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--band-fg);
+}
+
+.verdict-detail {
+  margin: 5px 0 0;
+  color: var(--mcode-text-muted);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.verdict-extra {
+  margin: 2px 0 0;
+  color: var(--mcode-text-subtle);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ---------- 双方时钟：并排对照，中间一条竖线 ---------- */
+
+.clocks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.clock {
+  min-width: 0;
+  padding: 0 20px;
+}
+
+.clock:first-child {
+  padding-left: 0;
+}
+
+.clock:last-child {
+  padding-right: 0;
+  border-left: 1px solid var(--mcode-border);
+}
+
+.clock-role {
+  margin: 0 0 4px;
+  color: var(--mcode-text-subtle);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+/* 太阳/月亮只在这里出现：每个城市一个，说明那边现在是白昼还是夜里。 */
+.clock-city {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.clock-city .sky {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--mcode-text);
+}
+
+.clock-city .name {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clock-time {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-period {
+  color: var(--mcode-text-muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0;
+}
+
+.clock-date {
+  margin: 4px 0 0;
+  color: var(--mcode-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.clock-zone {
+  margin: 1px 0 0;
+  color: var(--mcode-text-subtle);
+  font-size: 11px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 一天的图标带：对方那一整天 ---------- */
+
+/* 格子间隙由变量给出：刻度要按它算偏移，窄断点改间隙时两处一起变。 */
+.dayline {
+  --hour-gap: 2px;
+}
+
+.dayline-label {
+  margin: 0 0 12px;
+  color: var(--mcode-text-muted);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.hour-bar {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: var(--hour-gap);
+}
+
+/* 一小时一格，格里一枚昼夜图标：太阳 / 半日 / 月亮。
+   形状本身就在说「那边是白天还是夜里」，不再靠灰阶深浅去暗示。 */
+.hour-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+}
+
+.hour-icon {
+  width: 80%;
+  height: 80%;
+  color: var(--mcode-text-subtle);
+}
+
+/* 深夜那几格的墨色再重一档：不靠颜色，只靠一点点重量让「对方在睡」那一段先跳出来。 */
+.hour-cell[data-tone="night"] .hour-icon {
+  color: var(--mcode-text-muted);
+}
+
+/* 当前所在的那一小时：唯一带状态色的一格。
+   图标反白是为了在状态块上还看得清形状，不是给图标上状态色。 */
+.hour-cell[data-now="true"] {
+  background: var(--band-dot);
+}
+
+.hour-cell[data-now="true"] .hour-icon {
+  color: var(--mcode-primary-action-text);
+}
+
+.hour-ticks {
+  position: relative;
+  height: 16px;
+  margin-top: 11px;
+}
+
+/* 刻度必须落在格子的左边缘上。网格的间隙会把每一格整体右推，
+   第 i 格左边缘 = i/24 × 100% + i/24 × 间隙，所以这三档要补上间隙的相应份额，
+   否则 6/12/18 会固定偏左 0.5/1.0/1.5px。 */
+.hour-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: var(--mcode-text-subtle);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.hour-ticks span:nth-child(1) {
+  left: 0;
+  transform: none;
+}
+
+.hour-ticks span:nth-child(2) {
+  left: calc(25% + var(--hour-gap) * 0.25);
+}
+
+.hour-ticks span:nth-child(3) {
+  left: calc(50% + var(--hour-gap) * 0.5);
+}
+
+.hour-ticks span:nth-child(4) {
+  left: calc(75% + var(--hour-gap) * 0.75);
+}
+
+.hour-ticks span:nth-child(5) {
+  left: 100%;
+  transform: translateX(-100%);
+}
+
+/* ---------- 信息行 ---------- */
+
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.fact dt {
+  flex: none;
+  width: 34px;
+  color: var(--mcode-text-subtle);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.fact dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--mcode-text);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* ---------- 响应式 ---------- */
+
+@media (max-width: 460px) {
+  body {
+    padding: 8px;
+  }
+
+  .page {
+    padding: 16px 16px 20px;
+    min-height: calc(100vh - 16px);
+  }
+
+  .switcher {
+    grid-template-columns: 1fr;
+  }
+
+  /* 24 格摊在 ~350px 里时单格只有 12.7px：把间隙收窄、图标吃满格子。
+     否则半日图标的地平线会被抗锯齿吃掉，又读成一个小山包。 */
+  .dayline {
+    --hour-gap: 1px;
+  }
+
+  .hour-icon {
+    width: 100%;
+    height: 100%;
+  }
+
+  .clocks {
+    grid-template-columns: 1fr;
+  }
+
+  .clock {
+    padding: 0;
+  }
+
+  .clock:last-child {
+    border-left: 0;
+    border-top: 1px solid var(--mcode-border);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+.demo-note{max-width:680px;margin:0 auto 8px;font:12px system-ui;color:var(--mcode-text-muted);display:flex;justify-content:space-between;align-items:center}.demo-note button{font:inherit;color:inherit;background:transparent;border:1px solid var(--mcode-border);border-radius:6px;padding:4px 8px;cursor:pointer}</style></head><body><div class="demo-note"><span>示例体验，数据仅保留在本页</span><button id="reset-demo" type="button">恢复示例</button></div><svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="5.2" fill="currentColor" />
+        <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <path d="M12 4.9V1.6M12 19.1v3.3M5 8.7 2.1 7.1M19 8.7l2.9-1.6M5 15.3l-2.9 1.6M19 15.3l2.9 1.6" />
+        </g>
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M20.4 14.4A8.6 8.6 0 0 1 9.6 3.6 8.6 8.6 0 1 0 20.4 14.4Z" />
+      </symbol>
+      <symbol id="i-dusk" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M5.6 15.4a6.4 6.4 0 0 1 12.8 0Z" />
+        <path stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M2.8 15.4h18.4" />
+      </symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 8.5h11l-3.2-3.2M17 15.5H6l3.2 3.2" />
+      </symbol>
+      <symbol id="i-contrast" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.8" />
+        <path fill="currentColor" d="M12 3.6a8.4 8.4 0 0 0 0 16.8Z" />
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m6 9 6 6 6-6" />
+      </symbol>
+    </svg>
+
+    <main class="page">
+      <header class="page-head">
+        <div class="page-head-text">
+          <h1 class="page-title" id="page-title">
+            <span id="page-title-target">洛杉矶</span>
+            <button type="button" class="swap-btn" id="page-title-swap" title="对调两个城市" aria-label="对调两个城市">
+              <svg class="swap" aria-hidden="true" focusable="false"><use href="#i-swap" /></svg>
+            </button>
+            <span id="page-title-home">上海</span>
+          </h1>
+          <p class="lede">实时对照 · 现在该不该开口</p>
+        </div>
+        <div class="head-tools">
+          <div class="segmented" role="group" aria-label="时间制式">
+            <button type="button" class="seg" id="fmt-12h" aria-pressed="true">12H</button>
+            <button type="button" class="seg" id="fmt-24h" aria-pressed="false">24H</button>
+          </div>
+          <button type="button" class="icon-button" id="theme-toggle" aria-pressed="false">
+            <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-contrast" id="theme-icon-use" /></svg>
+            <span class="sr-only" id="theme-toggle-label">切换到深色主题</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="switcher" aria-label="选择城市">
+        <div class="field">
+          <label class="field-label" for="combo-target">对方城市</label>
+          <div class="combo">
+            <input
+              id="combo-target"
+              class="combo-input"
+              type="text"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="listbox-target"
+              placeholder="搜索国家或城市"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <svg class="combo-chevron" aria-hidden="true" focusable="false"><use href="#i-chevron" /></svg>
+            <ul id="listbox-target" class="combo-list" role="listbox" aria-label="对方城市候选" hidden></ul>
+            <p class="combo-empty" id="empty-target" role="status" hidden></p>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="combo-home">我的城市</label>
+          <div class="combo">
+            <input
+              id="combo-home"
+              class="combo-input"
+              type="text"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="listbox-home"
+              placeholder="搜索国家或城市"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+            <svg class="combo-chevron" aria-hidden="true" focusable="false"><use href="#i-chevron" /></svg>
+            <ul id="listbox-home" class="combo-list" role="listbox" aria-label="我的城市候选" hidden></ul>
+            <p class="combo-empty" id="empty-home" role="status" hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="rule" />
+
+      <section class="verdict" id="verdict" aria-label="判定">
+        <span class="verdict-dot" aria-hidden="true"></span>
+        <div>
+          <p class="verdict-title" id="verdict-title" aria-live="polite">正在读取时间…</p>
+          <p class="verdict-detail" id="verdict-detail"></p>
+          <p class="verdict-extra" id="verdict-extra" hidden></p>
+        </div>
+      </section>
+
+      <hr class="rule" />
+
+      <section class="clocks" aria-label="双方当前时间">
+        <article class="clock">
+          <p class="clock-role">对方</p>
+          <p class="clock-city">
+            <svg class="sky" aria-hidden="true" focusable="false"><use href="#i-moon" id="target-icon-use" /></svg>
+            <span class="name" id="target-heading">洛杉矶</span>
+          </p>
+          <p class="clock-time">
+            <span id="target-clock">--:--:--</span>
+            <span class="clock-period" id="target-period"></span>
+          </p>
+          <p class="clock-date" id="target-date"></p>
+          <p class="clock-zone" id="target-meta"></p>
+        </article>
+        <article class="clock">
+          <p class="clock-role">我的</p>
+          <p class="clock-city">
+            <svg class="sky" aria-hidden="true" focusable="false"><use href="#i-sun" id="home-icon-use" /></svg>
+            <span class="name" id="home-heading">上海</span>
+          </p>
+          <p class="clock-time">
+            <span id="home-clock">--:--:--</span>
+            <span class="clock-period" id="home-period"></span>
+          </p>
+          <p class="clock-date" id="home-date"></p>
+          <p class="clock-zone" id="home-meta"></p>
+        </article>
+      </section>
+
+      <hr class="rule" />
+
+      <section class="dayline" aria-label="对方的一天">
+        <p class="dayline-label" id="dayline-label">对方的一天</p>
+        <div class="hour-bar" id="hour-bar" role="img" aria-label="对方城市 24 小时的昼夜分布"></div>
+        <div class="hour-ticks" aria-hidden="true">
+          <span>0</span>
+          <span>6</span>
+          <span>12</span>
+          <span>18</span>
+          <span>24</span>
+        </div>
+      </section>
+
+      <hr class="rule" />
+
+      <dl class="facts">
+        <div class="fact">
+          <dt>时差</dt>
+          <dd id="fact-diff"></dd>
+        </div>
+      </dl>
+    </main><script>const previewStorage={getItem(){return null},setItem(){},clear(){}};
+'use strict';
+
+/**
+ * A/时差保安 — 纯时间计算。
+ *
+ * 浏览器和 Node 跑的是同一份源码：
+ *   - 浏览器里当普通 <script> 加载，挂在 window.TZ_TIME 上；
+ *   - Node 里走 module.exports，供 node --test 直接测。
+ * 不在两处各写一份，免得以后改了一处、另一处悄悄对不上。
+ *
+ * 这里只放不碰 DOM 的纯函数：时区规范化、档位判定、偏移解析、
+ * 时差文案、日历日差。档位文案与页面渲染留在 app.js。
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = api;
+  } else {
+    root.TZ_TIME = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  /** 界面偏好在 localStorage 里的键名。 */
+  var STORAGE_KEY = 'timezone-guard.prefs.v1';
+
+  /**
+   * 部分 IANA 名称在不同 ICU / tzdata 版本下存在与否不同
+   * （Europe/Kyiv vs Europe/Kiev、Asia/Kolkata vs Asia/Calcutta …），
+   * 这里为它们准备退路，保证任何时候都拿得到一个可用时区。
+   */
+  var ZONE_FALLBACKS = {
+    'Europe/Kyiv': ['Europe/Kiev'],
+    'Asia/Ho_Chi_Minh': ['Asia/Saigon'],
+    'Asia/Kolkata': ['Asia/Calcutta'],
+    'America/Montreal': ['America/Toronto'],
+    'America/Argentina/Buenos_Aires': ['America/Rosario'],
+  };
+
+  var resolvedZoneCache = new Map();
+
+  /**
+   * 返回一个在当前运行时确实可用的时区 ID；都不行时返回 null。
+   *
+   * 注意：城市名对应的时区名不一定存在。旧金山、西雅图没有独立的
+   * America/* 时区，慕尼黑没有 Europe/Munich——这类城市必须归到
+   * 本国主时区，否则 new Intl.DateTimeFormat() 会抛 RangeError。
+   */
+  function resolveZone(zone) {
+    if (typeof zone !== 'string' || !zone) return null;
+    var trimmed = zone.trim();
+    if (!trimmed) return null;
+    if (resolvedZoneCache.has(trimmed)) return resolvedZoneCache.get(trimmed);
+    var resolved = null;
+    var candidates = [trimmed].concat(ZONE_FALLBACKS[trimmed] || []);
+    for (var i = 0; i < candidates.length; i++) {
+      try {
+        // 取规范化后的 ID，避免同一个时区出现大小写 / 别名两种写法，
+        // 让「是否同一时区」的比较始终可靠。
+        var canonical = new Intl.DateTimeFormat('en-US', { timeZone: candidates[i] }).resolvedOptions().timeZone;
+        resolved = canonical || candidates[i];
+        break;
+      } catch (error) {
+        /* 试下一个候选 */
+      }
+    }
+    resolvedZoneCache.set(trimmed, resolved);
+    return resolved;
+  }
+
+  /** 中文时段，替代 AM/PM：凌晨 / 上午 / 下午 / 晚上。 */
+  function periodOf(hour) {
+    if (hour < 6) return '凌晨';
+    if (hour < 12) return '上午';
+    if (hour < 18) return '下午';
+    return '晚上';
+  }
+
+  /**
+   * 固定阈值判定：绿 09–18、黄 18–22、红 22–06，清晨 06–09 归黄。
+   *
+   * 返回的是档位 key，档位名称、结论、颜色在 app.js 的 BAND_COPY 里，
+   * 这样这个文件只留判定规则本身，测起来一目了然。
+   */
+  function bandOf(hour, minute) {
+    var t = hour * 60 + minute;
+    if (t >= 22 * 60 || t < 6 * 60) return 'night';
+    if (t < 9 * 60) return 'dawn';
+    if (t < 18 * 60) return 'day';
+    return 'dusk';
+  }
+
+  /** 把 "GMT-07:00" / "GMT+05:30" / "GMT" 解析成分钟偏移。 */
+  function parseOffset(text) {
+    if (!text || text === 'GMT' || text === 'UTC') return 0;
+    var m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(text);
+    if (!m) return 0;
+    var sign = m[1] === '-' ? -1 : 1;
+    return sign * (Number(m[2]) * 60 + Number(m[3] || 0));
+  }
+
+  /**
+   * 时差文案。
+   * 整小时沿用「约 N 小时」；存在 45 分钟这类非整小时偏移时给出精确的
+   * 小时 + 分钟，避免读者拿 5.8 小时去对旁边并排的两个时钟。
+   *
+   * 只回纯文本，不带任何前导或尾随空格：拼到「快 / 慢」后面要不要留一个
+   * 空格是调用方的事（整小时那个「约」自成一词，非整小时直接接数字会连成一团）。
+   */
+  function formatDiff(diffMinutes) {
+    var abs = Math.abs(diffMinutes);
+    var hours = Math.floor(abs / 60);
+    var minutes = abs % 60;
+    if (minutes === 0) return '约 ' + hours + ' 小时';
+    return hours > 0 ? hours + ' 小时 ' + minutes + ' 分钟' : minutes + ' 分钟';
+  }
+
+  /** 目标日期相对对照日期的日历天数差。 */
+  function dayDelta(target, home) {
+    var t = Date.UTC(target.year, target.month - 1, target.day);
+    var h = Date.UTC(home.year, home.month - 1, home.day);
+    return Math.round((t - h) / 86400000);
+  }
+
+  return {
+    STORAGE_KEY: STORAGE_KEY,
+    resolveZone: resolveZone,
+    periodOf: periodOf,
+    bandOf: bandOf,
+    parseOffset: parseOffset,
+    formatDiff: formatDiff,
+    dayDelta: dayDelta,
+  };
+});
+
+/* A/时差保安 — 城市数据表。
+ *
+ * TZ_CITIES：重点城市，带中文名/英文名/国家/口语别名，搜索体验最好。
+ * TZ_ZONE_NAMES：其余全部 IANA 时区的中文名映射，保证「全世界每个地方」都能用中文搜到。
+ *
+ * 两张表合起来覆盖运行时支持的全部时区；极少数运行时有新时区时，
+ * 由 app.js 的 IANA 兜底条目兜底（英文名）。
+ *
+ * 时区 ID 统一走 app.js 的 resolveZone() 规范化，因此写 Europe/Kiev 还是
+ * Europe/Kyiv 都行，不受不同 ICU 版本影响。
+ */
+
+window.TZ_CITIES = [
+  // —— 美国 ——
+  { zone: 'America/Los_Angeles', zh: '洛杉矶', en: 'Los Angeles', abbr: 'LA', countryZh: '美国', countryEn: 'United States', alias: 'la|洛城|加州|california' },
+  { zone: 'America/Los_Angeles', zh: '旧金山', en: 'San Francisco', abbr: 'SF', countryZh: '美国', countryEn: 'United States', alias: '三藩|sf|硅谷|silicon valley' },
+  { zone: 'America/Los_Angeles', zh: '西雅图', en: 'Seattle', abbr: 'SEA', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Los_Angeles', zh: '波特兰', en: 'Portland', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Los_Angeles', zh: '拉斯维加斯', en: 'Las Vegas', abbr: 'Vegas', countryZh: '美国', countryEn: 'United States', alias: 'vegas' },
+  { zone: 'America/Los_Angeles', zh: '圣迭戈', en: 'San Diego', countryZh: '美国', countryEn: 'United States', alias: '圣地亚哥' },
+  { zone: 'America/Denver', zh: '丹佛', en: 'Denver', abbr: 'DEN', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Chicago', zh: '芝加哥', en: 'Chicago', abbr: 'CHI', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Chicago', zh: '奥斯汀', en: 'Austin', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Chicago', zh: '达拉斯', en: 'Dallas', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Chicago', zh: '休斯顿', en: 'Houston', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/New_York', zh: '纽约', en: 'New York', abbr: 'NYC', countryZh: '美国', countryEn: 'United States', alias: 'ny|纽' },
+  { zone: 'America/New_York', zh: '波士顿', en: 'Boston', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/New_York', zh: '华盛顿', en: 'Washington', countryZh: '美国', countryEn: 'United States', alias: 'dc|华盛顿特区' },
+  { zone: 'America/New_York', zh: '亚特兰大', en: 'Atlanta', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/New_York', zh: '迈阿密', en: 'Miami', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Detroit', zh: '底特律', en: 'Detroit', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Indianapolis', zh: '印第安纳波利斯', en: 'Indianapolis', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Louisville', zh: '路易斯维尔', en: 'Louisville', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Boise', zh: '博伊西', en: 'Boise', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Anchorage', zh: '安克雷奇', en: 'Anchorage', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Juneau', zh: '朱诺', en: 'Juneau', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'America/Sitka', zh: '锡特卡', en: 'Sitka', countryZh: '美国', countryEn: 'United States', alias: '' },
+  { zone: 'Pacific/Honolulu', zh: '檀香山', en: 'Honolulu', countryZh: '美国', countryEn: 'United States', alias: '夏威夷|hawaii' },
+
+  // —— 加拿大 ——
+  { zone: 'America/Toronto', zh: '多伦多', en: 'Toronto', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Vancouver', zh: '温哥华', en: 'Vancouver', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Edmonton', zh: '埃德蒙顿', en: 'Edmonton', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Winnipeg', zh: '温尼伯', en: 'Winnipeg', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Montreal', zh: '蒙特利尔', en: 'Montreal', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Halifax', zh: '哈利法克斯', en: 'Halifax', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/St_Johns', zh: '圣约翰斯', en: "St. John's", countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Regina', zh: '里贾纳', en: 'Regina', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Iqaluit', zh: '伊魁特', en: 'Iqaluit', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+  { zone: 'America/Whitehorse', zh: '怀特霍斯', en: 'Whitehorse', countryZh: '加拿大', countryEn: 'Canada', alias: '' },
+
+  // —— 中国（含主要城市；除乌鲁木齐外统一使用 Asia/Shanghai）——
+  { zone: 'Asia/Shanghai', zh: '上海', en: 'Shanghai', countryZh: '中国', countryEn: 'China', alias: '' },
+  { zone: 'Asia/Shanghai', zh: '北京', en: 'Beijing', countryZh: '中国', countryEn: 'China', alias: '' },
+
+  // —— 中国港澳台 ——
+  { zone: 'Asia/Hong_Kong', zh: '香港', en: 'Hong Kong', countryZh: '中国香港', countryEn: 'Hong Kong SAR', alias: 'hongkong|hk' },
+  { zone: 'Asia/Macau', zh: '澳门', en: 'Macau', countryZh: '中国澳门', countryEn: 'Macao SAR', alias: 'macau|macao' },
+  { zone: 'Asia/Taipei', zh: '台北', en: 'Taipei', countryZh: '中国台湾', countryEn: 'Taiwan', alias: 'taiwan' },
+
+  // —— 日本 / 韩国 ——
+  { zone: 'Asia/Tokyo', zh: '东京', en: 'Tokyo', abbr: 'TYO', countryZh: '日本', countryEn: 'Japan', alias: 'japan' },
+  { zone: 'Asia/Tokyo', zh: '大阪', en: 'Osaka', countryZh: '日本', countryEn: 'Japan', alias: '' },
+  { zone: 'Asia/Tokyo', zh: '京都', en: 'Kyoto', countryZh: '日本', countryEn: 'Japan', alias: '' },
+  { zone: 'Asia/Tokyo', zh: '札幌', en: 'Sapporo', countryZh: '日本', countryEn: 'Japan', alias: '' },
+  { zone: 'Asia/Tokyo', zh: '福冈', en: 'Fukuoka', countryZh: '日本', countryEn: 'Japan', alias: '' },
+  { zone: 'Asia/Seoul', zh: '首尔', en: 'Seoul', countryZh: '韩国', countryEn: 'South Korea', alias: 'korea|首爾' },
+
+  // —— 东南亚 / 南亚 ——
+  { zone: 'Asia/Singapore', zh: '新加坡', en: 'Singapore', abbr: 'SIN', countryZh: '新加坡', countryEn: 'Singapore', alias: '' },
+  { zone: 'Asia/Bangkok', zh: '曼谷', en: 'Bangkok', countryZh: '泰国', countryEn: 'Thailand', alias: '' },
+  { zone: 'Asia/Bangkok', zh: '普吉', en: 'Phuket', countryZh: '泰国', countryEn: 'Thailand', alias: '' },
+  { zone: 'Asia/Ho_Chi_Minh', zh: '胡志明市', en: 'Ho Chi Minh City', countryZh: '越南', countryEn: 'Vietnam', alias: '西贡|saigon' },
+  { zone: 'Asia/Ho_Chi_Minh', zh: '河内', en: 'Hanoi', countryZh: '越南', countryEn: 'Vietnam', alias: '' },
+  { zone: 'Asia/Kuala_Lumpur', zh: '吉隆坡', en: 'Kuala Lumpur', countryZh: '马来西亚', countryEn: 'Malaysia', alias: '' },
+  { zone: 'Asia/Jakarta', zh: '雅加达', en: 'Jakarta', countryZh: '印度尼西亚', countryEn: 'Indonesia', alias: '' },
+  { zone: 'Asia/Manila', zh: '马尼拉', en: 'Manila', countryZh: '菲律宾', countryEn: 'Philippines', alias: '' },
+  { zone: 'Asia/Kolkata', zh: '孟买', en: 'Mumbai', abbr: 'BOM', countryZh: '印度', countryEn: 'India', alias: 'bombay' },
+  { zone: 'Asia/Kolkata', zh: '新德里', en: 'New Delhi', abbr: 'DEL', countryZh: '印度', countryEn: 'India', alias: 'delhi' },
+  { zone: 'Asia/Kolkata', zh: '班加罗尔', en: 'Bengaluru', countryZh: '印度', countryEn: 'India', alias: 'bangalore|bengaluru' },
+  { zone: 'Asia/Karachi', zh: '卡拉奇', en: 'Karachi', countryZh: '巴基斯坦', countryEn: 'Pakistan', alias: '' },
+  { zone: 'Asia/Dhaka', zh: '达卡', en: 'Dhaka', countryZh: '孟加拉国', countryEn: 'Bangladesh', alias: '' },
+  { zone: 'Asia/Colombo', zh: '科伦坡', en: 'Colombo', countryZh: '斯里兰卡', countryEn: 'Sri Lanka', alias: '' },
+
+  // —— 中东 ——
+  { zone: 'Asia/Dubai', zh: '迪拜', en: 'Dubai', abbr: 'DXB', countryZh: '阿联酋', countryEn: 'United Arab Emirates', alias: 'uae|迪拜' },
+  { zone: 'Asia/Riyadh', zh: '利雅得', en: 'Riyadh', countryZh: '沙特阿拉伯', countryEn: 'Saudi Arabia', alias: '' },
+  { zone: 'Asia/Qatar', zh: '多哈', en: 'Doha', countryZh: '卡塔尔', countryEn: 'Qatar', alias: '' },
+  { zone: 'Asia/Kuwait', zh: '科威特城', en: 'Kuwait City', countryZh: '科威特', countryEn: 'Kuwait', alias: '' },
+  { zone: 'Asia/Baghdad', zh: '巴格达', en: 'Baghdad', countryZh: '伊拉克', countryEn: 'Iraq', alias: '' },
+  { zone: 'Asia/Tehran', zh: '德黑兰', en: 'Tehran', countryZh: '伊朗', countryEn: 'Iran', alias: '' },
+  { zone: 'Asia/Jerusalem', zh: '耶路撒冷', en: 'Jerusalem', abbr: 'TLV', countryZh: '以色列', countryEn: 'Israel', alias: '' },
+
+  // —— 欧洲 ——
+  { zone: 'Europe/London', zh: '伦敦', en: 'London', abbr: 'LON', countryZh: '英国', countryEn: 'United Kingdom', alias: 'uk|英格兰|england' },
+  { zone: 'Europe/London', zh: '曼彻斯特', en: 'Manchester', countryZh: '英国', countryEn: 'United Kingdom', alias: '' },
+  { zone: 'Europe/London', zh: '爱丁堡', en: 'Edinburgh', countryZh: '英国', countryEn: 'United Kingdom', alias: '' },
+  { zone: 'Europe/Dublin', zh: '都柏林', en: 'Dublin', countryZh: '爱尔兰', countryEn: 'Ireland', alias: '' },
+  { zone: 'Europe/Lisbon', zh: '里斯本', en: 'Lisbon', countryZh: '葡萄牙', countryEn: 'Portugal', alias: '' },
+  { zone: 'Europe/Madrid', zh: '马德里', en: 'Madrid', countryZh: '西班牙', countryEn: 'Spain', alias: '' },
+  { zone: 'Europe/Madrid', zh: '巴塞罗那', en: 'Barcelona', countryZh: '西班牙', countryEn: 'Spain', alias: '' },
+  { zone: 'Europe/Paris', zh: '巴黎', en: 'Paris', abbr: 'PAR', countryZh: '法国', countryEn: 'France', alias: '' },
+  { zone: 'Europe/Brussels', zh: '布鲁塞尔', en: 'Brussels', countryZh: '比利时', countryEn: 'Belgium', alias: '' },
+  { zone: 'Europe/Amsterdam', zh: '阿姆斯特丹', en: 'Amsterdam', countryZh: '荷兰', countryEn: 'Netherlands', alias: '' },
+  { zone: 'Europe/Zurich', zh: '苏黎世', en: 'Zurich', countryZh: '瑞士', countryEn: 'Switzerland', alias: '' },
+  { zone: 'Europe/Berlin', zh: '柏林', en: 'Berlin', abbr: 'BER', countryZh: '德国', countryEn: 'Germany', alias: '' },
+  { zone: 'Europe/Berlin', zh: '慕尼黑', en: 'Munich', countryZh: '德国', countryEn: 'Germany', alias: '' },
+  { zone: 'Europe/Vienna', zh: '维也纳', en: 'Vienna', countryZh: '奥地利', countryEn: 'Austria', alias: '' },
+  { zone: 'Europe/Prague', zh: '布拉格', en: 'Prague', countryZh: '捷克', countryEn: 'Czechia', alias: '' },
+  { zone: 'Europe/Warsaw', zh: '华沙', en: 'Warsaw', countryZh: '波兰', countryEn: 'Poland', alias: '' },
+  { zone: 'Europe/Budapest', zh: '布达佩斯', en: 'Budapest', countryZh: '匈牙利', countryEn: 'Hungary', alias: '' },
+  { zone: 'Europe/Rome', zh: '罗马', en: 'Rome', countryZh: '意大利', countryEn: 'Italy', alias: '' },
+  { zone: 'Europe/Rome', zh: '米兰', en: 'Milan', countryZh: '意大利', countryEn: 'Italy', alias: '' },
+  { zone: 'Europe/Athens', zh: '雅典', en: 'Athens', countryZh: '希腊', countryEn: 'Greece', alias: '' },
+  { zone: 'Europe/Stockholm', zh: '斯德哥尔摩', en: 'Stockholm', countryZh: '瑞典', countryEn: 'Sweden', alias: '' },
+  { zone: 'Europe/Oslo', zh: '奥斯陆', en: 'Oslo', countryZh: '挪威', countryEn: 'Norway', alias: '' },
+  { zone: 'Europe/Copenhagen', zh: '哥本哈根', en: 'Copenhagen', countryZh: '丹麦', countryEn: 'Denmark', alias: '' },
+  { zone: 'Europe/Helsinki', zh: '赫尔辛基', en: 'Helsinki', countryZh: '芬兰', countryEn: 'Finland', alias: '' },
+  { zone: 'Europe/Kyiv', zh: '基辅', en: 'Kyiv', countryZh: '乌克兰', countryEn: 'Ukraine', alias: 'kiev' },
+  { zone: 'Europe/Moscow', zh: '莫斯科', en: 'Moscow', countryZh: '俄罗斯', countryEn: 'Russia', alias: '' },
+  { zone: 'Europe/Istanbul', zh: '伊斯坦布尔', en: 'Istanbul', countryZh: '土耳其', countryEn: 'Turkey', alias: '' },
+  { zone: 'Atlantic/Reykjavik', zh: '雷克雅未克', en: 'Reykjavik', countryZh: '冰岛', countryEn: 'Iceland', alias: '' },
+
+  // —— 非洲 ——
+  { zone: 'Africa/Cairo', zh: '开罗', en: 'Cairo', countryZh: '埃及', countryEn: 'Egypt', alias: '' },
+  { zone: 'Africa/Lagos', zh: '拉各斯', en: 'Lagos', countryZh: '尼日利亚', countryEn: 'Nigeria', alias: '' },
+  { zone: 'Africa/Nairobi', zh: '内罗毕', en: 'Nairobi', countryZh: '肯尼亚', countryEn: 'Kenya', alias: '' },
+  { zone: 'Africa/Johannesburg', zh: '约翰内斯堡', en: 'Johannesburg', countryZh: '南非', countryEn: 'South Africa', alias: '' },
+  { zone: 'Africa/Casablanca', zh: '卡萨布兰卡', en: 'Casablanca', countryZh: '摩洛哥', countryEn: 'Morocco', alias: '' },
+  { zone: 'Africa/Accra', zh: '阿克拉', en: 'Accra', countryZh: '加纳', countryEn: 'Ghana', alias: '' },
+
+  // —— 大洋洲 ——
+  { zone: 'Australia/Sydney', zh: '悉尼', en: 'Sydney', abbr: 'SYD', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Melbourne', zh: '墨尔本', en: 'Melbourne', abbr: 'MEL', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Brisbane', zh: '布里斯班', en: 'Brisbane', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Perth', zh: '珀斯', en: 'Perth', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Adelaide', zh: '阿德莱德', en: 'Adelaide', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Darwin', zh: '达尔文', en: 'Darwin', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Australia/Hobart', zh: '霍巴特', en: 'Hobart', countryZh: '澳大利亚', countryEn: 'Australia', alias: '' },
+  { zone: 'Pacific/Auckland', zh: '奥克兰', en: 'Auckland', countryZh: '新西兰', countryEn: 'New Zealand', alias: '' },
+  { zone: 'Pacific/Fiji', zh: '苏瓦', en: 'Suva', countryZh: '斐济', countryEn: 'Fiji', alias: '' },
+
+  // —— 拉丁美洲 ——
+  { zone: 'America/Mexico_City', zh: '墨西哥城', en: 'Mexico City', countryZh: '墨西哥', countryEn: 'Mexico', alias: '' },
+  { zone: 'America/Monterrey', zh: '蒙特雷', en: 'Monterrey', countryZh: '墨西哥', countryEn: 'Mexico', alias: '' },
+  { zone: 'America/Tijuana', zh: '蒂华纳', en: 'Tijuana', countryZh: '墨西哥', countryEn: 'Mexico', alias: '' },
+  { zone: 'America/Havana', zh: '哈瓦那', en: 'Havana', countryZh: '古巴', countryEn: 'Cuba', alias: '' },
+  { zone: 'America/Guatemala', zh: '危地马拉城', en: 'Guatemala City', countryZh: '危地马拉', countryEn: 'Guatemala', alias: '' },
+  { zone: 'America/Panama', zh: '巴拿马城', en: 'Panama City', countryZh: '巴拿马', countryEn: 'Panama', alias: '' },
+  { zone: 'America/Santo_Domingo', zh: '圣多明各', en: 'Santo Domingo', countryZh: '多米尼加', countryEn: 'Dominican Republic', alias: '' },
+  { zone: 'America/Sao_Paulo', zh: '圣保罗', en: 'São Paulo', countryZh: '巴西', countryEn: 'Brazil', alias: 'sao paulo' },
+  { zone: 'America/Argentina/Buenos_Aires', zh: '布宜诺斯艾利斯', en: 'Buenos Aires', countryZh: '阿根廷', countryEn: 'Argentina', alias: '' },
+  { zone: 'America/Santiago', zh: '圣地亚哥', en: 'Santiago', countryZh: '智利', countryEn: 'Chile', alias: '' },
+  { zone: 'America/Lima', zh: '利马', en: 'Lima', countryZh: '秘鲁', countryEn: 'Peru', alias: '' },
+  { zone: 'America/Bogota', zh: '波哥大', en: 'Bogotá', countryZh: '哥伦比亚', countryEn: 'Colombia', alias: 'bogota' },
+  { zone: 'America/Caracas', zh: '加拉加斯', en: 'Caracas', countryZh: '委内瑞拉', countryEn: 'Venezuela', alias: '' },
+];
+
+/* 其余全部 IANA 时区的中文名：zone -> [中文名, 国家中文名] */
+window.TZ_ZONE_NAMES = {
+  // 非洲
+  'Africa/Abidjan': ['阿比让', '科特迪瓦'],
+  'Africa/Addis_Ababa': ['亚的斯亚贝巴', '埃塞俄比亚'],
+  'Africa/Algiers': ['阿尔及尔', '阿尔及利亚'],
+  'Africa/Asmera': ['阿斯马拉', '厄立特里亚', 'Asmara'],
+  'Africa/Bamako': ['巴马科', '马里'],
+  'Africa/Bangui': ['班吉', '中非'],
+  'Africa/Banjul': ['班珠尔', '冈比亚'],
+  'Africa/Bissau': ['比绍', '几内亚比绍'],
+  'Africa/Blantyre': ['布兰太尔', '马拉维'],
+  'Africa/Brazzaville': ['布拉柴维尔', '刚果（布）'],
+  'Africa/Bujumbura': ['布琼布拉', '布隆迪'],
+  'Africa/Ceuta': ['休达', '西班牙'],
+  'Africa/Conakry': ['科纳克里', '几内亚'],
+  'Africa/Dakar': ['达喀尔', '塞内加尔'],
+  'Africa/Dar_es_Salaam': ['达累斯萨拉姆', '坦桑尼亚'],
+  'Africa/Djibouti': ['吉布提', '吉布提'],
+  'Africa/Douala': ['杜阿拉', '喀麦隆'],
+  'Africa/El_Aaiun': ['阿尤恩', '西撒哈拉'],
+  'Africa/Freetown': ['弗里敦', '塞拉利昂'],
+  'Africa/Gaborone': ['哈博罗内', '博茨瓦纳'],
+  'Africa/Harare': ['哈拉雷', '津巴布韦'],
+  'Africa/Juba': ['朱巴', '南苏丹'],
+  'Africa/Kampala': ['坎帕拉', '乌干达'],
+  'Africa/Khartoum': ['喀土穆', '苏丹'],
+  'Africa/Kigali': ['基加利', '卢旺达'],
+  'Africa/Kinshasa': ['金沙萨', '刚果（金）'],
+  'Africa/Libreville': ['利伯维尔', '加蓬'],
+  'Africa/Lome': ['洛美', '多哥'],
+  'Africa/Luanda': ['罗安达', '安哥拉'],
+  'Africa/Lubumbashi': ['卢本巴希', '刚果（金）'],
+  'Africa/Lusaka': ['卢萨卡', '赞比亚'],
+  'Africa/Malabo': ['马拉博', '赤道几内亚'],
+  'Africa/Maputo': ['马普托', '莫桑比克'],
+  'Africa/Maseru': ['马塞卢', '莱索托'],
+  'Africa/Mbabane': ['姆巴巴内', '斯威士兰'],
+  'Africa/Mogadishu': ['摩加迪沙', '索马里'],
+  'Africa/Monrovia': ['蒙罗维亚', '利比里亚'],
+  'Africa/Ndjamena': ['恩贾梅纳', '乍得'],
+  'Africa/Niamey': ['尼亚美', '尼日尔'],
+  'Africa/Nouakchott': ['努瓦克肖特', '毛里塔尼亚'],
+  'Africa/Ouagadougou': ['瓦加杜古', '布基纳法索'],
+  'Africa/Porto-Novo': ['波多诺伏', '贝宁'],
+  'Africa/Sao_Tome': ['圣多美', '圣多美和普林西比'],
+  'Africa/Tripoli': ['的黎波里', '利比亚'],
+  'Africa/Tunis': ['突尼斯', '突尼斯'],
+  'Africa/Windhoek': ['温得和克', '纳米比亚'],
+
+  // 美洲
+  'America/Adak': ['阿达克', '美国'],
+  'America/Anguilla': ['安圭拉', '安圭拉'],
+  'America/Antigua': ['安提瓜', '安提瓜和巴布达'],
+  'America/Araguaina': ['阿拉瓜伊纳', '巴西'],
+  'America/Aruba': ['阿鲁巴', '阿鲁巴'],
+  'America/Asuncion': ['亚松森', '巴拉圭'],
+  'America/Bahia': ['巴伊亚', '巴西'],
+  'America/Bahia_Banderas': ['巴伊亚班德拉斯', '墨西哥'],
+  'America/Barbados': ['巴巴多斯', '巴巴多斯'],
+  'America/Belem': ['贝伦', '巴西'],
+  'America/Belize': ['伯利兹', '伯利兹'],
+  'America/Blanc-Sablon': ['布兰克萨布隆', '加拿大'],
+  'America/Boa_Vista': ['博阿维斯塔', '巴西'],
+  'America/Buenos_Aires': ['布宜诺斯艾利斯', '阿根廷', 'Buenos Aires'],
+  'America/Cambridge_Bay': ['剑桥湾', '加拿大'],
+  'America/Campo_Grande': ['大坎普', '巴西'],
+  'America/Cancun': ['坎昆', '墨西哥'],
+  'America/Catamarca': ['卡塔马卡', '阿根廷'],
+  'America/Cayenne': ['卡宴', '法属圭亚那'],
+  'America/Cayman': ['开曼群岛', '开曼群岛'],
+  'America/Chihuahua': ['奇瓦瓦', '墨西哥'],
+  'America/Ciudad_Juarez': ['华雷斯城', '墨西哥'],
+  'America/Coral_Harbour': ['科勒尔港', '加拿大'],
+  'America/Cordoba': ['科尔多瓦', '阿根廷'],
+  'America/Costa_Rica': ['圣何塞', '哥斯达黎加'],
+  'America/Coyhaique': ['科伊艾克', '智利'],
+  'America/Creston': ['克雷斯顿', '加拿大'],
+  'America/Cuiaba': ['库亚巴', '巴西'],
+  'America/Curacao': ['库拉索', '库拉索'],
+  'America/Danmarkshavn': ['丹马港', '格陵兰'],
+  'America/Dawson': ['道森', '加拿大'],
+  'America/Dawson_Creek': ['道森克里克', '加拿大'],
+  'America/Dominica': ['多米尼克', '多米尼克'],
+  'America/Eirunepe': ['埃鲁内佩', '巴西'],
+  'America/El_Salvador': ['圣萨尔瓦多', '萨尔瓦多'],
+  'America/Fort_Nelson': ['纳尔逊堡', '加拿大'],
+  'America/Fortaleza': ['福塔莱萨', '巴西'],
+  'America/Glace_Bay': ['格莱斯贝', '加拿大'],
+  'America/Godthab': ['努克', '格陵兰', 'Nuuk'],
+  'America/Goose_Bay': ['古斯湾', '加拿大'],
+  'America/Grand_Turk': ['大特克', '特克斯和凯科斯群岛'],
+  'America/Grenada': ['格林纳达', '格林纳达'],
+  'America/Guadeloupe': ['瓜德罗普', '瓜德罗普'],
+  'America/Guayaquil': ['瓜亚基尔', '厄瓜多尔'],
+  'America/Guyana': ['乔治敦', '圭亚那'],
+  'America/Hermosillo': ['埃莫西约', '墨西哥'],
+  'America/Indiana/Knox': ['诺克斯', '美国'],
+  'America/Indiana/Marengo': ['马伦戈', '美国'],
+  'America/Indiana/Petersburg': ['彼得斯堡', '美国'],
+  'America/Indiana/Tell_City': ['泰尔城', '美国'],
+  'America/Indiana/Vevay': ['维韦', '美国'],
+  'America/Indiana/Vincennes': ['文森', '美国'],
+  'America/Indiana/Winamac': ['威纳马克', '美国'],
+  'America/Inuvik': ['因武维克', '加拿大'],
+  'America/Jamaica': ['牙买加', '牙买加'],
+  'America/Jujuy': ['胡胡伊', '阿根廷'],
+  'America/Kentucky/Monticello': ['蒙蒂塞洛', '美国'],
+  'America/Kralendijk': ['克拉伦代克', '博奈尔'],
+  'America/La_Paz': ['拉巴斯', '玻利维亚'],
+  'America/Argentina/La_Rioja': ['拉里奥哈', '阿根廷'],
+  'America/Lower_Princes': ['下普林斯', '圣马丁'],
+  'America/Maceio': ['马塞约', '巴西'],
+  'America/Managua': ['马那瓜', '尼加拉瓜'],
+  'America/Manaus': ['马瑙斯', '巴西'],
+  'America/Marigot': ['马里戈特', '圣马丁'],
+  'America/Martinique': ['马提尼克', '马提尼克'],
+  'America/Matamoros': ['马塔莫罗斯', '墨西哥'],
+  'America/Mazatlan': ['马萨特兰', '墨西哥'],
+  'America/Mendoza': ['门多萨', '阿根廷'],
+  'America/Menominee': ['梅诺米尼', '美国'],
+  'America/Merida': ['梅里达', '墨西哥'],
+  'America/Metlakatla': ['梅特拉克塔拉', '美国'],
+  'America/Miquelon': ['密克隆', '圣皮埃尔和密克隆'],
+  'America/Moncton': ['蒙克顿', '加拿大'],
+  'America/Montevideo': ['蒙得维的亚', '乌拉圭'],
+  'America/Montserrat': ['蒙特塞拉特', '蒙特塞拉特'],
+  'America/Nassau': ['拿骚', '巴哈马'],
+  'America/Nome': ['诺姆', '美国'],
+  'America/Noronha': ['费尔南多', '巴西'],
+  'America/North_Dakota/Beulah': ['比尤拉', '美国'],
+  'America/North_Dakota/Center': ['森特', '美国'],
+  'America/North_Dakota/New_Salem': ['新塞勒姆', '美国'],
+  'America/Ojinaga': ['奥希纳加', '墨西哥'],
+  'America/Paramaribo': ['帕拉马里博', '苏里南'],
+  'America/Port-au-Prince': ['太子港', '海地'],
+  'America/Port_of_Spain': ['西班牙港', '特立尼达和多巴哥'],
+  'America/Porto_Velho': ['波多韦柳', '巴西'],
+  'America/Puerto_Rico': ['波多黎各', '波多黎各'],
+  'America/Punta_Arenas': ['蓬塔阿雷纳斯', '智利'],
+  'America/Rankin_Inlet': ['兰金因莱特', '加拿大'],
+  'America/Recife': ['累西腓', '巴西'],
+  'America/Resolute': ['雷索卢特', '加拿大'],
+  'America/Rio_Branco': ['里奥布兰科', '巴西'],
+  'America/Argentina/Rio_Gallegos': ['里奥加耶戈斯', '阿根廷'],
+  'America/Argentina/Salta': ['萨尔塔', '阿根廷'],
+  'America/Santarem': ['圣塔伦', '巴西'],
+  'America/Scoresbysund': ['斯科斯比', '格陵兰'],
+  'America/St_Barthelemy': ['圣巴泰勒米', '圣巴泰勒米'],
+  'America/St_Kitts': ['圣基茨', '圣基茨和尼维斯'],
+  'America/St_Lucia': ['圣卢西亚', '圣卢西亚'],
+  'America/St_Thomas': ['圣托马斯', '美属维尔京群岛'],
+  'America/St_Vincent': ['圣文森特', '圣文森特和格林纳丁斯'],
+  'America/Argentina/San_Juan': ['圣胡安', '阿根廷'],
+  'America/Argentina/San_Luis': ['圣路易斯', '阿根廷'],
+  'America/Swift_Current': ['斯威夫特卡伦特', '加拿大'],
+  'America/Tegucigalpa': ['特古西加尔巴', '洪都拉斯'],
+  'America/Thule': ['图勒', '格陵兰'],
+  'America/Tortola': ['托尔托拉', '维尔京群岛'],
+  'America/Argentina/Tucuman': ['图库曼', '阿根廷'],
+  'America/Argentina/Ushuaia': ['乌斯怀亚', '阿根廷'],
+
+  // 南极
+  'Antarctica/Casey': ['凯西站', '南极'],
+  'Antarctica/Davis': ['戴维斯站', '南极'],
+  'Antarctica/DumontDUrville': ['迪蒙达尔维尔站', '南极'],
+  'Antarctica/Macquarie': ['麦夸里站', '南极'],
+  'Antarctica/Mawson': ['莫森站', '南极'],
+  'Antarctica/McMurdo': ['麦克默多站', '南极'],
+  'Antarctica/Palmer': ['帕尔默站', '南极'],
+  'Antarctica/Rothera': ['罗瑟拉站', '南极'],
+  'Antarctica/Syowa': ['昭和站', '南极'],
+  'Antarctica/Troll': ['特罗尔站', '南极'],
+  'Antarctica/Vostok': ['东方站', '南极'],
+
+  // 北极
+  'Arctic/Longyearbyen': ['朗伊尔城', '斯瓦尔巴'],
+
+  // 亚洲
+  'Asia/Aden': ['亚丁', '也门'],
+  'Asia/Amman': ['安曼', '约旦'],
+  'Asia/Anadyr': ['阿纳德尔', '俄罗斯'],
+  'Asia/Aqtau': ['阿克套', '哈萨克斯坦'],
+  'Asia/Aqtobe': ['阿克托别', '哈萨克斯坦'],
+  'Asia/Ashgabat': ['阿什哈巴德', '土库曼斯坦'],
+  'Asia/Atyrau': ['阿特劳', '哈萨克斯坦'],
+  'Asia/Bahrain': ['麦纳麦', '巴林'],
+  'Asia/Baku': ['巴库', '阿塞拜疆'],
+  'Asia/Barnaul': ['巴尔瑙尔', '俄罗斯'],
+  'Asia/Beirut': ['贝鲁特', '黎巴嫩'],
+  'Asia/Bishkek': ['比什凯克', '吉尔吉斯斯坦'],
+  'Asia/Brunei': ['斯里巴加湾市', '文莱'],
+  'Asia/Calcutta': ['加尔各答', '印度', 'Kolkata'],
+  'Asia/Chita': ['赤塔', '俄罗斯'],
+  'Asia/Damascus': ['大马士革', '叙利亚'],
+  'Asia/Dili': ['帝力', '东帝汶'],
+  'Asia/Dushanbe': ['杜尚别', '塔吉克斯坦'],
+  'Asia/Famagusta': ['法马古斯塔', '塞浦路斯'],
+  'Asia/Gaza': ['加沙', '巴勒斯坦'],
+  'Asia/Hebron': ['希伯伦', '巴勒斯坦'],
+  'Asia/Hovd': ['科布多', '蒙古'],
+  'Asia/Irkutsk': ['伊尔库茨克', '俄罗斯'],
+  'Asia/Jayapura': ['查亚普拉', '印度尼西亚'],
+  'Asia/Kabul': ['喀布尔', '阿富汗'],
+  'Asia/Kamchatka': ['堪察加', '俄罗斯'],
+  'Asia/Katmandu': ['加德满都', '尼泊尔', 'Kathmandu'],
+  'Asia/Khandyga': ['汉德加', '俄罗斯'],
+  'Asia/Krasnoyarsk': ['克拉斯诺亚尔斯克', '俄罗斯'],
+  'Asia/Kuching': ['古晋', '马来西亚'],
+  'Asia/Magadan': ['马加丹', '俄罗斯'],
+  'Asia/Makassar': ['望加锡', '印度尼西亚'],
+  'Asia/Muscat': ['马斯喀特', '阿曼'],
+  'Asia/Nicosia': ['尼科西亚', '塞浦路斯'],
+  'Asia/Novokuznetsk': ['新库兹涅茨克', '俄罗斯'],
+  'Asia/Omsk': ['鄂木斯克', '俄罗斯'],
+  'Asia/Oral': ['奥拉尔', '哈萨克斯坦'],
+  'Asia/Phnom_Penh': ['金边', '柬埔寨'],
+  'Asia/Pontianak': ['坤甸', '印度尼西亚'],
+  'Asia/Pyongyang': ['平壤', '朝鲜'],
+  'Asia/Qostanay': ['科斯塔奈', '哈萨克斯坦'],
+  'Asia/Qyzylorda': ['克孜勒奥尔达', '哈萨克斯坦'],
+  'Asia/Rangoon': ['仰光', '缅甸', 'Yangon'],
+  'Asia/Saigon': ['西贡', '越南', 'Ho Chi Minh City'],
+  'Asia/Sakhalin': ['萨哈林', '俄罗斯'],
+  'Asia/Samarkand': ['撒马尔罕', '乌兹别克斯坦'],
+  'Asia/Srednekolymsk': ['中科雷马', '俄罗斯'],
+  'Asia/Tbilisi': ['第比利斯', '格鲁吉亚'],
+  'Asia/Thimphu': ['廷布', '不丹'],
+  'Asia/Tomsk': ['托木斯克', '俄罗斯'],
+  'Asia/Ulaanbaatar': ['乌兰巴托', '蒙古'],
+  'Asia/Ust-Nera': ['乌斯季涅拉', '俄罗斯'],
+  'Asia/Vientiane': ['万象', '老挝'],
+  'Asia/Yakutsk': ['雅库茨克', '俄罗斯'],
+  'Asia/Yerevan': ['埃里温', '亚美尼亚'],
+
+  // 大西洋
+  'Atlantic/Azores': ['亚速尔群岛', '葡萄牙'],
+  'Atlantic/Bermuda': ['哈密尔顿', '百慕大'],
+  'Atlantic/Canary': ['拉斯帕尔马斯', '加那利群岛'],
+  'Atlantic/Cape_Verde': ['普拉亚', '佛得角'],
+  'Atlantic/Faeroe': ['托尔斯港', '法罗群岛', 'Faroe Islands'],
+  'Atlantic/Madeira': ['丰沙尔', '马德拉'],
+  'Atlantic/South_Georgia': ['南乔治亚岛', '南乔治亚岛'],
+  'Atlantic/St_Helena': ['詹姆斯敦', '圣赫勒拿岛'],
+  'Atlantic/Stanley': ['斯坦利', '福克兰群岛'],
+
+  // 澳大利亚
+  'Australia/Broken_Hill': ['布罗肯希尔', '澳大利亚'],
+  'Australia/Eucla': ['尤克拉', '澳大利亚'],
+  'Australia/Lindeman': ['林德曼岛', '澳大利亚'],
+  'Australia/Lord_Howe': ['豪勋爵岛', '澳大利亚'],
+
+  // 欧洲
+  'Europe/Andorra': ['安道尔城', '安道尔'],
+  'Europe/Astrakhan': ['阿斯特拉罕', '俄罗斯'],
+  'Europe/Belgrade': ['贝尔格莱德', '塞尔维亚'],
+  'Europe/Bratislava': ['布拉迪斯拉发', '斯洛伐克'],
+  'Europe/Bucharest': ['布加勒斯特', '罗马尼亚'],
+  'Europe/Busingen': ['布辛根', '德国'],
+  'Europe/Chisinau': ['基希讷乌', '摩尔多瓦'],
+  'Europe/Gibraltar': ['直布罗陀', '英国'],
+  'Europe/Guernsey': ['圣彼得港', '根西岛'],
+  'Europe/Isle_of_Man': ['道格拉斯', '马恩岛'],
+  'Europe/Jersey': ['圣赫利尔', '泽西岛'],
+  'Europe/Kaliningrad': ['加里宁格勒', '俄罗斯'],
+  'Europe/Kiev': ['基辅', '乌克兰', 'Kyiv'],
+  'Europe/Kirov': ['基洛夫', '俄罗斯'],
+  'Europe/Ljubljana': ['卢布尔雅那', '斯洛文尼亚'],
+  'Europe/Luxembourg': ['卢森堡市', '卢森堡'],
+  'Europe/Malta': ['瓦莱塔', '马耳他'],
+  'Europe/Mariehamn': ['玛丽港', '芬兰'],
+  'Europe/Minsk': ['明斯克', '白俄罗斯'],
+  'Europe/Monaco': ['摩纳哥城', '摩纳哥'],
+  'Europe/Podgorica': ['波德戈里察', '黑山'],
+  'Europe/Riga': ['里加', '拉脱维亚'],
+  'Europe/Samara': ['萨马拉', '俄罗斯'],
+  'Europe/San_Marino': ['圣马力诺', '圣马力诺'],
+  'Europe/Sarajevo': ['萨拉热窝', '波斯尼亚和黑塞哥维那'],
+  'Europe/Saratov': ['萨拉托夫', '俄罗斯'],
+  'Europe/Simferopol': ['辛菲罗波尔', '乌克兰'],
+  'Europe/Skopje': ['斯科普里', '北马其顿'],
+  'Europe/Sofia': ['索非亚', '保加利亚'],
+  'Europe/Tallinn': ['塔林', '爱沙尼亚'],
+  'Europe/Tirane': ['地拉那', '阿尔巴尼亚'],
+  'Europe/Ulyanovsk': ['乌里扬诺夫斯克', '俄罗斯'],
+  'Europe/Vaduz': ['瓦杜兹', '列支敦士登'],
+  'Europe/Vatican': ['梵蒂冈城', '梵蒂冈'],
+  'Europe/Vilnius': ['维尔纽斯', '立陶宛'],
+  'Europe/Volgograd': ['伏尔加格勒', '俄罗斯'],
+  'Europe/Zagreb': ['萨格勒布', '克罗地亚'],
+
+  // 印度洋
+  'Indian/Antananarivo': ['塔那那利佛', '马达加斯加'],
+  'Indian/Chagos': ['查戈斯群岛', '英属印度洋领地'],
+  'Indian/Christmas': ['圣诞岛', '澳大利亚'],
+  'Indian/Cocos': ['科科斯群岛', '澳大利亚'],
+  'Indian/Comoro': ['莫罗尼', '科摩罗'],
+  'Indian/Kerguelen': ['凯尔盖朗岛', '法属南方领地'],
+  'Indian/Mahe': ['维多利亚', '塞舌尔'],
+  'Indian/Maldives': ['马累', '马尔代夫'],
+  'Indian/Mauritius': ['路易港', '毛里求斯'],
+  'Indian/Mayotte': ['马穆楚', '马约特'],
+  'Indian/Reunion': ['圣但尼', '留尼汪'],
+
+  'America/Phoenix': ['凤凰城', '美国'],
+  'America/Yakutat': ['亚库塔特', '美国'],
+  'Asia/Almaty': ['阿拉木图', '哈萨克斯坦'],
+  'Asia/Urumqi': ['乌鲁木齐', '中国', 'Ürümqi'],
+  'Asia/Novosibirsk': ['新西伯利亚', '俄罗斯'],
+  'Asia/Tashkent': ['塔什干', '乌兹别克斯坦'],
+  'Asia/Vladivostok': ['海参崴', '俄罗斯'],
+  'Asia/Yekaterinburg': ['叶卡捷琳堡', '俄罗斯'],
+  'Pacific/Apia': ['阿皮亚', '萨摩亚'],
+  'Pacific/Bougainville': ['布干维尔', '巴布亚新几内亚'],
+  'Pacific/Chatham': ['查塔姆', '新西兰'],
+  'Pacific/Easter': ['复活节岛', '智利'],
+  'Pacific/Efate': ['维拉港', '瓦努阿图'],
+  'Pacific/Enderbury': ['坎顿', '基里巴斯', 'Kanton'],
+  'Pacific/Fakaofo': ['法考福', '图瓦卢'],
+  'Pacific/Funafuti': ['富纳富提', '图瓦卢'],
+  'Pacific/Galapagos': ['加拉帕戈斯', '厄瓜多尔'],
+  'Pacific/Gambier': ['甘比尔群岛', '法属波利尼西亚'],
+  'Pacific/Guadalcanal': ['霍尼亚拉', '所罗门群岛'],
+  'Pacific/Guam': ['阿加尼亚', '关岛'],
+  'Pacific/Kiritimati': ['基里蒂马蒂', '基里巴斯'],
+  'Pacific/Kosrae': ['科斯雷', '密克罗尼西亚'],
+  'Pacific/Kwajalein': ['夸贾林', '马绍尔群岛'],
+  'Pacific/Majuro': ['马朱罗', '马绍尔群岛'],
+  'Pacific/Marquesas': ['马克萨斯群岛', '法属波利尼西亚'],
+  'Pacific/Midway': ['中途岛', '美国'],
+  'Pacific/Nauru': ['亚伦', '瑙鲁'],
+  'Pacific/Niue': ['阿洛菲', '纽埃'],
+  'Pacific/Norfolk': ['金斯敦', '诺福克岛'],
+  'Pacific/Noumea': ['努美阿', '新喀里多尼亚'],
+  'Pacific/Pago_Pago': ['帕果帕果', '美属萨摩亚'],
+  'Pacific/Palau': ['恩吉鲁穆德', '帕劳'],
+  'Pacific/Pitcairn': ['亚当斯敦', '皮特凯恩岛'],
+  'Pacific/Ponape': ['波纳佩', '密克罗尼西亚', 'Pohnpei'],
+  'Pacific/Port_Moresby': ['莫尔兹比港', '巴布亚新几内亚', 'Port Moresby'],
+  'Pacific/Rarotonga': ['阿瓦鲁阿', '库克群岛'],
+  'Pacific/Saipan': ['塞班', '北马里亚纳群岛'],
+  'Pacific/Tahiti': ['帕皮提', '法属波利尼西亚'],
+  'Pacific/Tarawa': ['塔拉瓦', '基里巴斯'],
+  'Pacific/Tongatapu': ['努库阿洛法', '汤加'],
+  'Pacific/Truk': ['特鲁克', '密克罗尼西亚'],
+  'Pacific/Wake': ['威克岛', '美国'],
+  'Pacific/Wallis': ['马塔乌图', '瓦利斯和富图纳'],
+};
+
+'use strict';
+
+/**
+ * A/时差保安 — 纯本地计算，零外部依赖、零网络请求。
+ *
+ * 时间与偏移全部通过 IANA 时区 + Intl 计算，夏令时由运行时 tzdata 自动处理。
+ */
+
+/* ------------------------------------------------------------------ *
+ * 纯时间计算
+ * ------------------------------------------------------------------ */
+
+// 时区规范化、档位判定、偏移解析、时差文案都放在 time.js 里：
+// 那份文件浏览器与 Node 共用同一份源码，可以直接跑 node --test，
+// 也不用在这里和别处各留一份、改一处漏一处。
+const { resolveZone, periodOf, parseOffset, formatDiff, dayDelta } = window.TZ_TIME;
+
+/* ------------------------------------------------------------------ *
+ * 城市库
+ * ------------------------------------------------------------------ */
+
+// 重点城市与全部时区中文名放在 cities.js 里，与逻辑分开便于维护。
+const CITIES = Array.isArray(window.TZ_CITIES) ? window.TZ_CITIES : [];
+
+/** 空输入时展示的常用城市。 */
+const POPULAR = [
+  '洛杉矶', '纽约', '旧金山', '伦敦', '巴黎', '柏林', '东京', '首尔', '新加坡',
+  '曼谷', '悉尼', '多伦多', '温哥华', '迪拜', '莫斯科', '上海', '北京', '香港',
+  '台北', '奥克兰', '圣保罗',
+];
+
+/* ------------------------------------------------------------------ *
+ * 判定阈值与文案
+ * ------------------------------------------------------------------ */
+
+/**
+ * 固定三段阈值（所有城市一致）：
+ *   09:00–18:00 白天（绿）
+ *   18:00–22:00 傍晚（黄）
+ *   22:00–06:00 深夜（红）
+ * 06:00–09:00 清晨按黄灯处理：对方刚醒，一句试探即可，别展开。
+ *
+ * verdict 是给用户看的一句话结论；range 是该档的时间区间；
+ * advice 是原「养号窗口」那一行的内容，已并入判定区。
+ * tone 是这一档在图标带里的分档名，sky 决定画太阳、半日还是月亮
+ * （城市旁的身份图标与图标带里的 24 格刻度共用同一套形状）。
+ * 整页只有判定区有状态色，不再有第二套彩色标签。
+ */
+const BAND_COPY = {
+  day: {
+    label: '白天',
+    color: 'green',
+    verdict: '现在可以聊',
+    range: '09:00–18:00',
+    advice: '正常聊，不用刻意',
+    tone: 'day',
+    sky: 'sun',
+  },
+  dawn: {
+    label: '清晨',
+    color: 'yellow',
+    verdict: '先别展开',
+    range: '06:00–09:00',
+    advice: '刚醒不久，别堆长消息',
+    tone: 'dusk',
+    sky: 'dusk',
+  },
+  dusk: {
+    label: '傍晚',
+    color: 'yellow',
+    verdict: '短聊就好',
+    range: '18:00–22:00',
+    advice: '仍可聊，偏下班口味',
+    tone: 'dusk',
+    sky: 'dusk',
+  },
+  night: {
+    label: '深夜',
+    color: 'red',
+    verdict: '先睡，别发',
+    range: '22:00–06:00',
+    advice: '大概率已睡，不建议开口',
+    tone: 'night',
+    sky: 'moon',
+  },
+};
+
+/**
+ * 档位判定在 time.js 里，返回的是档位 key；这里补上文案，
+ * 调用点拿到的仍然是原来那个对象，用法一个字都不用改。
+ */
+const bandOf = (hour, minute) => BAND_COPY[window.TZ_TIME.bandOf(hour, minute)];
+
+/** 城市旁的昼夜图标：太阳 / 半日 / 月亮。 */
+const SKY_ICONS = { sun: '#i-sun', dusk: '#i-dusk', moon: '#i-moon' };
+
+/* ------------------------------------------------------------------ *
+ * 城市索引
+ * ------------------------------------------------------------------ */
+
+/** @typedef {{zone: string, title: string, en: string, countryZh: string, subtitle: string, tokens: string[], zoneText: string, zoneDir: string, baseExact: number, basePrefix: number, city: object|null}} Entry */
+
+/** @type {Entry[]} */
+let INDEX = [];
+
+function buildIndex() {
+  const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
+  /** @type {Entry[]} */
+  const entries = [];
+  const usedZones = new Set();
+
+  // 1) 重点城市（带中文名、口语别名、常用缩写）
+  //    当前运行时不支持的时区直接不进候选，避免用户选中后整页崩掉。
+  const usableCities = CITIES.map((c) => ({ ...c, rawZone: c.zone, zone: resolveZone(c.zone) })).filter((c) => c.zone);
+  for (const c of usableCities) {
+    usedZones.add(c.zone);
+    // tokens 里额外带上时区原名，这样按 IANA 全名/别名也能搜到
+    // （例如「Europe/Kyiv」在部分 ICU 里会被规范化成 Europe/Kiev）。
+    const tokens = [c.zh, c.en, c.abbr, c.countryZh, c.countryEn, c.rawZone, ...(c.alias || '').split('|')]
+      .filter(Boolean)
+      .map((t) => t.toLowerCase());
+    entries.push({
+      zone: c.zone,
+      title: c.zh,
+      en: c.en,
+      countryZh: c.countryZh,
+      subtitle: `${c.en} · ${c.countryZh}`,
+      tokens,
+      zoneText: c.zone.toLowerCase(),
+      zoneDir: c.zone.split('/')[0].toLowerCase(),
+      baseExact: 0,
+      basePrefix: 0,
+      city: c,
+    });
+  }
+
+  // 2) 其余时区补中文名 —— 保证「全世界每个地方」都能用中文搜到。
+  //    注意：与精选城市共用同一时区时**不能**整条跳过，
+  //    例如孟买与加尔各答同属 Asia/Calcutta，两个中文名都该能搜到；
+  //    这里按「中文名是否重复」来去重，而不是按时区。
+  const zoneNames = window.TZ_ZONE_NAMES || {};
+  /** @type {{zone: string, zh: string, en: string, countryZh: string}[]} */
+  const extraCities = [];
+  const usedNames = new Set(usableCities.map((c) => c.zh));
+  for (const [rawZone, info] of Object.entries(zoneNames)) {
+    const zone = resolveZone(rawZone);
+    if (!zone) continue;
+    usedZones.add(zone);
+    const zh = info[0];
+    if (usedNames.has(zh)) continue;
+    usedNames.add(zh);
+    const countryZh = info[1] || '';
+    // 第三项可选：现代英文名（IANA 遗留尾段有时是老拼写，如 Katmandu / Kiev）。
+    const en = info[2] || zone.split('/').pop().replace(/_/g, ' ');
+    extraCities.push({ zone, zh, en, countryZh });
+    entries.push({
+      zone,
+      title: zh,
+      en,
+      countryZh,
+      subtitle: `${en} · ${countryZh}`,
+      tokens: [zh, en.toLowerCase(), countryZh.toLowerCase(), zone.toLowerCase()].filter(Boolean),
+      zoneText: zone.toLowerCase(),
+      zoneDir: zone.split('/')[0].toLowerCase(),
+      baseExact: 2,
+      basePrefix: 4,
+      city: null,
+    });
+  }
+
+  // 3) 国家级条目：仅当该国绝大多数城市落在同一个时区时才给出，
+  //    否则搜「美国」会直接列出纽约/芝加哥/洛杉矶等具体城市，避免误导。
+  //    统计口径必须包含第 2 步的时区，否则俄罗斯会因只留莫斯科而被误判为单时区。
+  const byCountry = new Map();
+  const addToCountry = (countryZh, item) => {
+    if (!countryZh) return;
+    if (!byCountry.has(countryZh)) byCountry.set(countryZh, []);
+    byCountry.get(countryZh).push(item);
+  };
+  for (const c of usableCities) addToCountry(c.countryZh, c);
+  for (const c of extraCities) addToCountry(c.countryZh, c);
+
+  for (const [countryZh, list] of byCountry) {
+    const counts = new Map();
+    for (const c of list) counts.set(c.zone, (counts.get(c.zone) || 0) + 1);
+    let best = null;
+    for (const [zone, n] of counts) if (!best || n > best.n) best = { zone, n };
+    if (!best || best.n / list.length < 0.6) continue;
+    const rep = list.find((c) => c.zone === best.zone);
+    const repEn = rep.en || '';
+    entries.push({
+      zone: best.zone,
+      title: `${countryZh}（默认）`,
+      en: repEn,
+      countryZh,
+      subtitle: `${rep.zh} · ${countryZh}`,
+      tokens: [countryZh, repEn.toLowerCase(), best.zone.toLowerCase()].filter(Boolean),
+      zoneText: best.zone.toLowerCase(),
+      zoneDir: best.zone.split('/')[0].toLowerCase(),
+      // 完全匹配时排在该国具体城市之前（搜「中国」直接选中国）；
+      // 前缀匹配时反而要靠后，否则「荷兰」会抢在「纽约」前面。
+      baseExact: -2,
+      basePrefix: 3,
+      city: {
+        zone: best.zone,
+        zh: countryZh,
+        en: repEn,
+        abbr: '',
+        countryZh,
+        countryEn: '',
+      },
+    });
+  }
+
+  // 4) 兜底：运行时新增、但两张表都没收录的时区，给英文名。
+  for (const rawZone of zones) {
+    const zone = resolveZone(rawZone);
+    if (!zone || usedZones.has(zone)) continue;
+    usedZones.add(zone);
+    const tail = zone.split('/').pop().replace(/_/g, ' ');
+    entries.push({
+      zone,
+      title: tail,
+      en: tail,
+      countryZh: '',
+      subtitle: zone,
+      tokens: [tail.toLowerCase()],
+      zoneText: zone.toLowerCase(),
+      zoneDir: zone.split('/')[0].toLowerCase(),
+      baseExact: 3,
+      basePrefix: 6,
+      city: null,
+    });
+  }
+
+  return entries;
+}
+
+/** scoreEntry 的「无匹配」哨兵。必须与任何真实分数区分开：
+ *  国家默认项的完全匹配分是 -2，若拿 -1 当哨兵会被误判成未命中。 */
+const NO_MATCH = -1000;
+
+/**
+ * 模糊匹配。分级越小越靠前：
+ *   0 标题完全匹配      1 关键词完全匹配
+ *   2 标题前缀          3 关键词前缀
+ *   4 时区全名完全匹配  5 时区目录前缀      6 时区路径包含      7 全文包含
+ *
+ * entry.baseExact / entry.basePrefix 按条目类型整体偏移：
+ *   精选城市 (0/0)、国家默认项 (-2/3)、IANA 兜底 (3/6)。
+ */
+function scoreEntry(entry, query) {
+  const title = entry.title.toLowerCase();
+  if (title === query) return entry.baseExact;
+  for (const token of entry.tokens) {
+    if (token === query) return entry.baseExact + 1;
+  }
+  if (query.includes('/')) {
+    if (entry.zoneText === query) return entry.basePrefix + 4;
+    if (entry.zoneText.startsWith(query)) return entry.basePrefix + 5;
+    if (entry.zoneText.includes(query)) return entry.basePrefix + 6;
+  }
+  if (title.startsWith(query)) return entry.basePrefix + 2;
+  for (const token of entry.tokens) {
+    if (token.startsWith(query)) return entry.basePrefix + 3;
+  }
+  if (query.length >= 3 && entry.zoneDir === query) return entry.basePrefix + 5;
+  if (query.length >= 3 && entry.tokens.some((t) => t.includes(query))) return entry.basePrefix + 7;
+  return NO_MATCH;
+}
+
+// 候选上限。搜一个国家名可能命中几十个城市（美国 40+），
+// 上限过低会把正确结果截掉，所以放宽到 60。
+function searchEntries(query, limit = 60) {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    const popular = new Set(POPULAR);
+    return INDEX.filter((e) => popular.has(e.title)).slice(0, limit);
+  }
+  const scored = [];
+  for (const entry of INDEX) {
+    const score = scoreEntry(entry, q);
+    if (score > NO_MATCH) scored.push({ entry, score });
+  }
+  scored.sort((a, b) => a.score - b.score || a.entry.title.length - b.entry.title.length);
+  return scored.slice(0, limit).map((s) => s.entry);
+}
+
+/* ------------------------------------------------------------------ *
+ * 时区计算
+ * ------------------------------------------------------------------ */
+
+const FORMATTERS = new Map();
+
+function getFormatters(timeZone) {
+  let f = FORMATTERS.get(timeZone);
+  if (!f) {
+    f = {
+      numeric: new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        weekday: 'short',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+      }),
+      weekday: new Intl.DateTimeFormat('zh-CN', { timeZone, weekday: 'short' }),
+      offset: new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }),
+    };
+    FORMATTERS.set(timeZone, f);
+  }
+  return f;
+}
+
+/**
+ * 取某个时区在给定时刻的完整信息。
+ * 时区 ID 先做一次解析兜底，绝不因为一个非法时区让整页渲染抛错。
+ */
+function zonedInfo(timeZone, date) {
+  const zone = resolveZone(timeZone) || 'UTC';
+  const f = getFormatters(zone);
+  const parts = {};
+  for (const part of f.numeric.formatToParts(date)) {
+    if (part.type !== 'literal') parts[part.type] = part.value;
+  }
+  const offsetPart = f.offset.formatToParts(date).find((p) => p.type === 'timeZoneName');
+
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  const second = Number(parts.second);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return {
+    time24: `${pad(hour)}:${pad(minute)}:${pad(second)}`,
+    time12: `${pad(hour % 12 === 0 ? 12 : hour % 12)}:${pad(minute)}:${pad(second)}`,
+    period: periodOf(hour),
+    date: `${Number(parts.month)}月${Number(parts.day)}日 ${f.weekday.format(date)}`,
+    zoneLabel: parts.timeZoneName || '',
+    offsetMinutes: parseOffset(offsetPart ? offsetPart.value : ''),
+    hour,
+    minute,
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+  };
+}
+
+/** 绿 < 黄 < 红，用于比较两边的紧迫程度。 */
+const SEVERITY = { green: 0, yellow: 1, red: 2 };
+
+/* ------------------------------------------------------------------ *
+ * 状态
+ * ------------------------------------------------------------------ */
+
+const STORAGE_KEY = window.TZ_TIME.STORAGE_KEY;
+
+const DEFAULT_TARGET = {
+  zone: 'America/Los_Angeles',
+  title: '洛杉矶',
+  en: 'Los Angeles',
+  abbr: 'LA',
+  countryZh: '美国',
+  countryEn: 'United States',
+};
+const DEFAULT_HOME = {
+  zone: 'Asia/Shanghai',
+  title: '上海',
+  en: 'Shanghai',
+  abbr: '',
+  countryZh: '中国',
+  countryEn: 'China',
+};
+
+let state = {
+  target: { ...DEFAULT_TARGET },
+  home: { ...DEFAULT_HOME },
+  theme: 'auto',
+  clockFormat: '12h',
+};
+
+/**
+ * 以 zone 为准重建展示字段。
+ *
+ * 存档可能缺字段或字段类型不对（例如 title 为 null），直接展开合并会让
+ * 页头显示「洛杉矶时间」而时钟其实是东京时间，同一屏自相矛盾。
+ * 这里对每个展示字段做类型校验，并以 zone 反查补全。
+ */
+function normalizeCity(raw, fallback) {
+  if (!raw || typeof raw !== 'object') return { ...fallback };
+  const zone = resolveZone(raw.zone);
+  if (!zone) return { ...fallback };
+
+  const known = CITIES.find((c) => resolveZone(c.zone) === zone);
+  const fallbackTitle = known ? known.zh : zone.split('/').pop().replace(/_/g, ' ');
+  const text = (value, dflt) => (typeof value === 'string' && value.trim() ? value : dflt);
+
+  return {
+    zone,
+    title: text(raw.title, fallbackTitle),
+    en: text(raw.en, known ? known.en : ''),
+    abbr: text(raw.abbr, known ? known.abbr || '' : ''),
+    countryZh: text(raw.countryZh, known ? known.countryZh : ''),
+    countryEn: text(raw.countryEn, known ? known.countryEn : ''),
+  };
+}
+
+function loadPrefs() {
+  let raw = null;
+  try {
+    raw = previewStorage.getItem(STORAGE_KEY);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    if (saved && typeof saved === 'object') {
+      if (saved.target) state.target = normalizeCity(saved.target, DEFAULT_TARGET);
+      if (saved.home) state.home = normalizeCity(saved.home, DEFAULT_HOME);
+      if (saved.theme === 'light' || saved.theme === 'dark' || saved.theme === 'auto') state.theme = saved.theme;
+      if (saved.clockFormat === '12h' || saved.clockFormat === '24h') state.clockFormat = saved.clockFormat;
+    }
+  } catch {
+    /* 存档损坏时回落到默认值 */
+  }
+}
+
+function savePrefs() {
+  try {
+    previewStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        target: state.target,
+        home: state.home,
+        theme: state.theme,
+        clockFormat: state.clockFormat,
+      }),
+    );
+  } catch {
+    /* 存储不可用不影响使用 */
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * DOM
+ * ------------------------------------------------------------------ */
+
+const el = {
+  pageTitle: document.getElementById('page-title'),
+  pageTitleTarget: document.getElementById('page-title-target'),
+  pageTitleHome: document.getElementById('page-title-home'),
+  pageTitleSwap: document.getElementById('page-title-swap'),
+  verdict: document.getElementById('verdict'),
+  verdictTitle: document.getElementById('verdict-title'),
+  verdictDetail: document.getElementById('verdict-detail'),
+  targetHeading: document.getElementById('target-heading'),
+  targetMeta: document.getElementById('target-meta'),
+  targetClock: document.getElementById('target-clock'),
+  targetDate: document.getElementById('target-date'),
+  targetIconUse: document.getElementById('target-icon-use'),
+  homeHeading: document.getElementById('home-heading'),
+  homeMeta: document.getElementById('home-meta'),
+  homeClock: document.getElementById('home-clock'),
+  homeDate: document.getElementById('home-date'),
+  homeIconUse: document.getElementById('home-icon-use'),
+  comboTarget: document.getElementById('combo-target'),
+  comboHome: document.getElementById('combo-home'),
+  factDiff: document.getElementById('fact-diff'),
+  verdictExtra: document.getElementById('verdict-extra'),
+  targetPeriod: document.getElementById('target-period'),
+  homePeriod: document.getElementById('home-period'),
+  daylineLabel: document.getElementById('dayline-label'),
+  hourBar: document.getElementById('hour-bar'),
+  fmt12: document.getElementById('fmt-12h'),
+  fmt24: document.getElementById('fmt-24h'),
+  themeToggle: document.getElementById('theme-toggle'),
+  themeToggleLabel: document.getElementById('theme-toggle-label'),
+};
+
+function entryToCity(entry) {
+  const c = entry.city;
+  if (c) {
+    return {
+      zone: c.zone,
+      title: c.zh,
+      en: c.en,
+      abbr: c.abbr || '',
+      countryZh: c.countryZh,
+      countryEn: c.countryEn || '',
+    };
+  }
+  // 非精选条目（其余时区的中文名）：标题即中文名，英文名取 IANA 尾段。
+  return {
+    zone: entry.zone,
+    title: entry.title,
+    en: entry.en || entry.title,
+    abbr: '',
+    countryZh: entry.countryZh || '',
+    countryEn: '',
+  };
+}
+
+/**
+ * 只在文本真的变化时写入 DOM。
+ * render() 每秒跑一次，直接赋值会反复触发 aria-live 区域的无谓播报。
+ */
+function setText(node, value) {
+  if (node.textContent !== value) node.textContent = value;
+}
+
+/**
+ * 只在属性值真的变化时写入。
+ * render() 每秒跑一次；Blink 不会把同值 setAttribute 短路掉，
+ * 每帧重写会触发样式失效与 MutationObserver 噪音，
+ * 所以和 setText 一样先比再写。
+ */
+function setAttr(node, name, value) {
+  if (node.getAttribute(name) !== value) node.setAttribute(name, value);
+}
+
+/** hidden 同理：避免每帧写同一个布尔属性。 */
+function setHidden(node, flag) {
+  if (node.hidden !== flag) node.hidden = flag;
+}
+
+/* ------------------------------------------------------------------ *
+ * 一天的图标带
+ * ------------------------------------------------------------------ */
+
+/** 一天 24 格，一格一小时。 */
+const HOUR_COUNT = 24;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** 图标带里 24 格的 DOM 节点（每格一小时）。 */
+let hourCells = [];
+/** 当前所在的小时格下标，用于避免每秒重刷同一格。 */
+let hourNowIndex = -1;
+
+/**
+ * 图标带画的是「对方那一整天」：每小时一格，格里一枚昼夜图标。
+ * 太阳 = 白天，半日 = 清晨/傍晚，月亮 = 深夜——靠形状说明对方在睡还是醒着，
+ * 不再靠灰阶深浅去暗示：灰阶在深色主题下必须反着设，语义容易读反。
+ * 阈值固定，所以格子只建一次；每帧只移动当前格。
+ */
+function buildHourBar() {
+  if (!el.hourBar) return;
+  el.hourBar.textContent = '';
+  hourCells = [];
+  for (let h = 0; h < HOUR_COUNT; h++) {
+    const band = bandOf(h, 0);
+    const cell = document.createElement('span');
+    cell.className = 'hour-cell';
+    // 整点起步，四个阈值（06/09/18/22）都落在格边界上。
+    cell.dataset.tone = band.tone;
+
+    const icon = document.createElementNS(SVG_NS, 'svg');
+    icon.setAttribute('class', 'hour-icon');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.setAttribute('focusable', 'false');
+    const use = document.createElementNS(SVG_NS, 'use');
+    use.setAttribute('href', SKY_ICONS[band.sky]);
+    icon.appendChild(use);
+    cell.appendChild(icon);
+
+    el.hourBar.appendChild(cell);
+    hourCells.push(cell);
+  }
+  hourNowIndex = -1;
+}
+
+/** 把当前时刻对应的那一格标成状态色。 */
+function setHourNow(index) {
+  if (!hourCells.length) return;
+  if (hourNowIndex === index) return;
+  if (hourNowIndex >= 0 && hourCells[hourNowIndex]) {
+    hourCells[hourNowIndex].removeAttribute('data-now');
+  }
+  if (hourCells[index]) hourCells[index].dataset.now = 'true';
+  hourNowIndex = index;
+}
+
+/**
+ * 图标带的文字替代：读屏用户拿不到图标，得靠这句话知道
+ * 「对方那边一天里的哪一段是深夜、现在落在哪一段」。
+ */
+function setHourBarLabel(cityTitle, band) {
+  if (!el.hourBar) return;
+  const label = `${cityTitle} 24 小时昼夜分布（每小时一格）：深夜 22:00–06:00，清晨 06:00–09:00，白天 09:00–18:00，傍晚 18:00–22:00；当前在${band.label}段`;
+  // 值不变就不写：render() 每秒跑一次，无谓地改 aria-label 会让读屏反复重播。
+  setAttr(el.hourBar, 'aria-label', label);
+}
+
+/* ------------------------------------------------------------------ *
+ * 渲染
+ * ------------------------------------------------------------------ */
+
+function render() {
+  const now = new Date();
+  const target = zonedInfo(state.target.zone, now);
+  const home = zonedInfo(state.home.zone, now);
+
+  const band = bandOf(target.hour, target.minute);
+  const homeBand = bandOf(home.hour, home.minute);
+
+  // 页头：两个城市并置。两侧是同一个城市时不重复显示，也不显示交换箭头。
+  // 同城判定同时看中文名和时区 ID：只看名字的话，
+  // 将来出现两个同名不同区的城市时会误判成同城。
+  const sameCity =
+    state.target.title === state.home.title && state.target.zone === state.home.zone;
+  setText(el.pageTitleTarget, state.target.title);
+  setText(el.pageTitleHome, sameCity ? '' : state.home.title);
+  // 隐藏而不是清空：清空会留下一个空的 flex 子项，尾部多出 7px 间隙。
+  const pairDisplay = sameCity ? 'none' : '';
+  if (el.pageTitleHome.style.display !== pairDisplay) {
+    el.pageTitleHome.style.display = pairDisplay;
+  }
+  if (el.pageTitleSwap.style.display !== pairDisplay) {
+    el.pageTitleSwap.style.display = pairDisplay;
+  }
+  // 标题的可访问名显式给：里面的对调按钮若参与 name-from-content，
+  // 标题会被读成「洛杉矶 对调两个城市 上海」。显式命名后标题只报两个城市名，
+  // 按钮本身仍是独立按钮，聚焦到它时会单独播报。
+  setAttr(el.pageTitle, 'aria-label', sameCity ? state.target.title : `${state.target.title} ${state.home.title}`);
+
+  // 判定区：整页唯一的状态色在这里，其余一律中性。
+  // 「养号窗口」的内容并入这一块，不再单独占一行。
+  // 状态色变量挂在 <html> 上，判定文字与色点共用同一套变量。
+  // 每秒重写同一个属性会让样式每秒失效一次，所以先比再写。
+  if (document.documentElement.dataset.band !== band.color) {
+    document.documentElement.dataset.band = band.color;
+  }
+  if (el.verdict.dataset.band !== band.color) el.verdict.dataset.band = band.color;
+  setText(el.verdictTitle, band.verdict);
+  setText(el.verdictDetail, `对方${band.label} ${band.range} · ${band.advice}`);
+
+  // 只在「你这边比对方更晚」时补一句提醒——这是关于你自己而非对方的。
+  const extra = extraNote(band, homeBand);
+  if (extra) {
+    setText(el.verdictExtra, extra);
+    setHidden(el.verdictExtra, false);
+  } else {
+    setHidden(el.verdictExtra, true);
+    setText(el.verdictExtra, '');
+  }
+
+  // 对方时钟
+  setText(el.targetHeading, state.target.title);
+  setText(el.targetMeta, `${state.target.en || state.target.title} · ${target.zoneLabel}`);
+  setText(el.targetClock, state.clockFormat === '24h' ? target.time24 : target.time12);
+  setText(el.targetDate, target.date);
+
+  // 我的时钟
+  setText(el.homeHeading, state.home.title);
+  setText(el.homeMeta, `${state.home.en || state.home.title} · ${home.zoneLabel}`);
+  setText(el.homeClock, state.clockFormat === '24h' ? home.time24 : home.time12);
+  setText(el.homeDate, home.date);
+
+  // 城市旁的昼夜图标：每城一个，太阳 / 半日 / 月亮。
+  setAttr(el.targetIconUse, 'href', SKY_ICONS[band.sky]);
+  setAttr(el.homeIconUse, 'href', SKY_ICONS[homeBand.sky]);
+
+  // 中文时段：12H 模式下它替代 AM/PM；24H 模式本身已含时段，故不重复显示。
+  const showPeriod = state.clockFormat !== '24h';
+  setHidden(el.targetPeriod, !showPeriod);
+  setHidden(el.homePeriod, !showPeriod);
+  if (showPeriod) {
+    setText(el.targetPeriod, target.period);
+    setText(el.homePeriod, home.period);
+  }
+
+  // 一天的图标带：标出对方此刻所在的那一小时。
+  setText(el.daylineLabel, `${state.target.title}的一天`);
+  setHourBarLabel(state.target.title, band);
+  setHourNow(target.hour);
+
+  // 时差
+  const diffMinutes = home.offsetMinutes - target.offsetMinutes;
+  if (state.target.zone === state.home.zone) {
+    setText(el.factDiff, '两边同一时区，时间完全一致');
+  } else if (diffMinutes === 0) {
+    // 同一时刻偏移相同但并非同一时区（例如洛杉矶与凤凰城），
+    // 随夏令时切换会分开，此时不能声称「同一时区」。
+    setText(el.factDiff, '当前时差 0 小时（此刻同步）');
+  } else {
+    // ahead 永远是「时区靠前」的那一侧，所以动词恒为「快」。
+    // 之前这里跟着 diff 的正负写「快/慢」，结果主语换了动词没换，
+    // 会出现「上海比洛杉矶慢约 15 小时」这种自相矛盾的说法。
+    const homeAhead = diffMinutes > 0;
+    const ahead = homeAhead ? state.home.title : state.target.title;
+    const behind = homeAhead ? state.target.title : state.home.title;
+    // formatDiff 只回纯文本：整小时是「约 15 小时」，那个「约」自带分词；
+    // 非整小时是「5 小时 45 分钟」，直接接在「快」后面会连成一团，这里补一个空格。
+    const gap = diffMinutes % 60 === 0 ? '' : ' ';
+    const parts = [`${ahead}比${behind}快${gap}${formatDiff(diffMinutes)}`];
+    const dayDiff = dayDelta(target, home);
+    if (dayDiff < 0) parts.push('对方还在昨天');
+    else if (dayDiff > 0) parts.push('对方那边已是明天');
+    setText(el.factDiff, parts.join(' · '));
+  }
+}
+
+/** 当我方比对方更晚 / 都处于深夜时，补一条给用户自己的提醒。 */
+function extraNote(band, homeBand) {
+  if (SEVERITY[homeBand.color] > SEVERITY[band.color]) {
+    // 注意不能写「比对方更晚」：01:43 和 13:43 并排摆着，
+    // 说「更晚」会和上面的时钟自相矛盾。改成说「该休息」。
+    return `你自己也是${homeBand.label}，比对方更该休息，长对话先收着。`;
+  }
+  if (homeBand.color === 'red' && band.color === 'red') {
+    return '你俩都在深夜，同步作息反而最自然。';
+  }
+  return '';
+}
+
+/* ------------------------------------------------------------------ *
+ * 城市选择器（combobox）
+ * ------------------------------------------------------------------ */
+
+/**
+ * @param {object} options
+ * @param {HTMLInputElement} options.input
+ * @param {HTMLUListElement} options.list
+ * @param {HTMLElement} options.emptyEl 无结果时的提示（放在 listbox 之外）
+ * @param {() => object} options.getValue
+ * @param {(city: object) => void} options.onSelect
+ */
+function createCombo({ input, list, emptyEl, getValue, onSelect }) {
+  let options = [];
+  let activeIndex = -1;
+  let open = false;
+  // 当前候选列表是不是由输入框内容筛出来的。
+  // 聚焦时展开的是「常用城市」列表，与输入框里的城市名对不上，
+  // 这时按 Enter 不能默认选首项，否则会把当前城市悄悄改掉。
+  let listFromInput = false;
+
+  function currentValue() {
+    return getValue();
+  }
+
+  function renderOptions() {
+    list.textContent = '';
+    activeIndex = -1;
+    // 选项重建后旧的 aria-activedescendant 会指向已不存在的元素，
+    // 必须同步清掉，否则读屏拿到的是悬空引用。
+    input.removeAttribute('aria-activedescendant');
+    if (emptyEl) emptyEl.textContent = '没找到这个城市，换个关键词试试';
+
+    const current = currentValue();
+    options.forEach((entry, index) => {
+      const item = document.createElement('li');
+      item.className = 'combo-option';
+      item.id = `${list.id}-opt-${index}`;
+      item.setAttribute('role', 'option');
+      // 国家默认项在列表里叫「中国（默认）」，选中后落到城市名「中国」，
+      // 所以标题比较要去掉「（默认）」后缀，否则选中态永远不同步。
+      const entryTitle = entry.title.replace('（默认）', '');
+      const titleMatches = Boolean(current) && (current.title === entry.title || current.title === entryTitle);
+      const selected = Boolean(current) && current.zone === entry.zone && titleMatches;
+      item.setAttribute('aria-selected', String(selected));
+      item.dataset.index = String(index);
+
+      const title = document.createElement('span');
+      title.className = 'combo-option-title';
+      title.textContent = entry.title;
+
+      const sub = document.createElement('span');
+      sub.className = 'combo-option-sub';
+      sub.textContent = entry.subtitle;
+
+      item.append(title, sub);
+      list.appendChild(item);
+    });
+  }
+
+  function setOpen(next) {
+    open = next;
+    const hasOptions = options.length > 0;
+    // 没有候选时不要留一个空 listbox 盖在空态提示上。
+    // 和 render() 一样先比再写：同值重写会白白触发一次属性变更与样式失效。
+    setHidden(list, !next || !hasOptions);
+    if (emptyEl) setHidden(emptyEl, !next || hasOptions);
+    setAttr(input, 'aria-expanded', String(next && hasOptions));
+    if (!next) {
+      activeIndex = -1;
+      input.removeAttribute('aria-activedescendant');
+    }
+  }
+
+  /**
+   * @param {string} [query] 覆盖输入框内容来筛选（聚焦时用空串展示常用城市）
+   */
+  function refresh(query) {
+    const q = query === undefined ? input.value : query;
+    options = searchEntries(q);
+    // 只有「确实输入了非空关键词」时，候选才算来自输入。
+    // 空查询得到的是常用城市列表，与输入框内容无关，
+    // 这时按 Enter 若回退选首项，会把当前城市悄悄改掉。
+    listFromInput = q.trim() !== '';
+    renderOptions();
+    setOpen(true);
+  }
+
+  function highlight(index) {
+    const items = list.querySelectorAll('.combo-option');
+    items.forEach((item) => item.removeAttribute('data-active'));
+    if (items.length === 0) {
+      input.removeAttribute('aria-activedescendant');
+      activeIndex = -1;
+      return;
+    }
+    // 越界回绕：列表只有一项时连按两次 ↓ 也不会把高亮清空导致 Enter 失效。
+    const next = (((index % items.length) + items.length) % items.length);
+    activeIndex = next;
+    const item = items[next];
+    item.setAttribute('data-active', 'true');
+    input.setAttribute('aria-activedescendant', item.id);
+    item.scrollIntoView({ block: 'nearest' });
+  }
+
+  function commit(entry) {
+    if (!entry) return;
+    setOpen(false);
+    onSelect(entryToCity(entry));
+    input.value = currentValue().title;
+    // 全选新值：用户接着打字时是替换，而不是在末尾追加。
+    input.select();
+  }
+
+  function resetInput() {
+    input.value = currentValue().title;
+  }
+
+  input.addEventListener('focus', () => {
+    // 全选当前城市名，直接输入即可替换。
+    // 必须用 select() 而不是 setSelectionRange()：前者会走一遍聚焦步骤，
+    // 能把 DOM 焦点真正落到输入框上，键盘操作才收得到事件。
+    input.select();
+    // 同时把候选展开成常用城市列表，方便不输入就直接浏览。
+    refresh('');
+  });
+
+  input.addEventListener('click', () => {
+    // 已经获得焦点时再点一下不会触发 focus，这里补一次展开。
+    if (!open) {
+      refresh('');
+      // 同样全选，让用户接着打字是替换当前城市名而不是追加。
+      input.select();
+    }
+  });
+
+  input.addEventListener('input', () => {
+    refresh();
+  });
+
+  input.addEventListener('keydown', (event) => {
+    // 输入法组字过程中的按键不参与候选操作，否则选词回车会误选城市。
+    if (event.isComposing || event.keyCode === 229) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!open) refresh();
+      else highlight(activeIndex + 1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!open) refresh();
+      else highlight(activeIndex < 0 ? options.length - 1 : activeIndex - 1);
+      return;
+    }
+    if (event.key === 'Enter') {
+      if (!open) return;
+      // 有高亮项就用高亮项；没有高亮时，只有当候选确实是按输入内容筛出来的
+      // 才回退选首项 —— 聚焦时的「常用城市」列表与输入内容无关，
+      // 直接回退会把当前城市悄悄改成列表首项。
+      const pick =
+        activeIndex >= 0 && options[activeIndex]
+          ? options[activeIndex]
+          : listFromInput
+            ? options[0]
+            : null;
+      if (pick) {
+        event.preventDefault();
+        commit(pick);
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      if (open) {
+        event.preventDefault();
+        setOpen(false);
+        resetInput();
+      }
+      return;
+    }
+    if (event.key === 'Tab') {
+      setOpen(false);
+      resetInput();
+    }
+  });
+
+  // mousedown 立刻提交：这是最早能拿到选择的时机，早于任何失焦。
+  // 同时 preventDefault，避免输入框失焦导致列表收起。
+  list.addEventListener('mousedown', (event) => {
+    const item = event.target.closest('.combo-option');
+    if (!item) return;
+    event.preventDefault();
+    commit(options[Number(item.dataset.index)]);
+  });
+
+  // 兜底：某些宿主只派发 click，那就走这里（列表已关说明上面已提交过）。
+  list.addEventListener('click', (event) => {
+    if (!open) return;
+    const item = event.target.closest('.combo-option');
+    if (!item) return;
+    commit(options[Number(item.dataset.index)]);
+  });
+
+  input.addEventListener('blur', () => {
+    // 延后一点再收起：部分宿主在点击候选之前会先让输入框失焦，
+    // 立刻收起会让用户点不中。
+    // 这里用真实焦点判断而不是标志位——标志位会粘住（选中过一次之后
+    // 再点空白就收不起来），真实焦点也不会在用户点回输入框时误收起。
+    window.setTimeout(() => {
+      if (document.activeElement === input) return;
+      setOpen(false);
+      resetInput();
+    }, 200);
+  });
+
+  return {
+    setValue(text) {
+      input.value = text;
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 主题
+ * ------------------------------------------------------------------ */
+
+const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+function resolvedTheme() {
+  if (state.theme === 'auto') return media.matches ? 'dark' : 'light';
+  return state.theme;
+}
+
+/**
+ * URL 参数 ?theme=light|dark 覆盖初始主题。
+ * 用途：把同一个页面并排放两份（浅色 / 深色）做视觉对照，
+ * 预览页直接复用这份 index.html，不再维护一份手工同步的副本。
+ */
+function themeFromUrl() {
+  try {
+    const t = new URLSearchParams(window.location.search).get('theme');
+    return t === 'light' || t === 'dark' ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme() {
+  const theme = resolvedTheme();
+  document.documentElement.dataset.theme = theme;
+  const isDark = theme === 'dark';
+  // 主题按钮用固定的半填充圆图标，不跟昼夜图标混用：
+  // 太阳/月亮已经被"对方现在是白天还是夜里"占用了，页面上只应出现两枚。
+  // 主题语义由 aria-pressed + 无障碍文本承担。
+  el.themeToggle.setAttribute('aria-pressed', String(isDark));
+  el.themeToggleLabel.textContent = isDark ? '切换到浅色主题' : '切换到深色主题';
+}
+
+function toggleTheme() {
+  state.theme = resolvedTheme() === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  savePrefs();
+}
+
+/* ------------------------------------------------------------------ *
+ * 时间制式
+ * ------------------------------------------------------------------ */
+
+function applyClockFormat() {
+  const is24 = state.clockFormat === '24h';
+  // data-fmt 是首帧可见的视觉依据（由 head 内联脚本预先写好），
+  // aria-pressed 负责无障碍语义，两者保持同步。
+  document.documentElement.dataset.fmt = state.clockFormat;
+  el.fmt12.setAttribute('aria-pressed', String(!is24));
+  el.fmt24.setAttribute('aria-pressed', String(is24));
+}
+
+function setClockFormat(format) {
+  if (format !== '12h' && format !== '24h') return;
+  state.clockFormat = format;
+  applyClockFormat();
+  savePrefs();
+  render();
+}
+
+/* ------------------------------------------------------------------ *
+ * 城市对调
+ * ------------------------------------------------------------------ */
+
+/**
+ * 一键对调两个城市。
+ *
+ * 判定始终跟着「对方城市」走，所以对调等于换了一个提问视角：
+ * 原本在问「现在能不能找他聊」，对调之后变成「他那边的人想找我聊」。
+ * 两个时钟、时差、图标带、判定全部由 render() 按新的 state 重算，不用额外处理。
+ */
+function swapCities() {
+  const target = state.target;
+  state.target = state.home;
+  state.home = target;
+  savePrefs();
+  render();
+  // 两个城市输入框也要跟着翻。否则标题写「上海 ⇄ 洛杉矶」，
+  // 而标注「对方城市」的框里还是「洛杉矶」——判定会用错人，
+  // 同一个控件内部还自相矛盾（框里的文字与下拉列表里选中项对不上）。
+  // 只能在这里写：render() 每秒跑一次，在那里回写会抹掉用户正在输入的城市名。
+  el.comboTarget.value = state.target.title;
+  el.comboHome.value = state.home.title;
+}
+
+/* ------------------------------------------------------------------ *
+ * 启动
+ * ------------------------------------------------------------------ */
+
+function init() {
+  INDEX = buildIndex();
+  loadPrefs();
+  // URL 里的 ?theme= 优先于存档（用于并排预览同一个页面的两种主题）。
+  const urlTheme = themeFromUrl();
+  if (urlTheme) state.theme = urlTheme;
+  applyTheme();
+  applyClockFormat();
+  buildHourBar();
+
+  el.themeToggle.addEventListener('click', toggleTheme);
+  el.fmt12.addEventListener('click', () => setClockFormat('12h'));
+  el.fmt24.addEventListener('click', () => setClockFormat('24h'));
+  // ⇄ 是真正的 <button>，Enter / Space 由浏览器原生触发 click，不用手写 keydown。
+  el.pageTitleSwap.addEventListener('click', swapCities);
+  media.addEventListener('change', () => {
+    if (state.theme === 'auto') applyTheme();
+  });
+
+  const targetCombo = createCombo({
+    input: document.getElementById('combo-target'),
+    list: document.getElementById('listbox-target'),
+    emptyEl: document.getElementById('empty-target'),
+    getValue: () => state.target,
+    onSelect: (city) => {
+      state.target = city;
+      savePrefs();
+      render();
+    },
+  });
+
+  const homeCombo = createCombo({
+    input: document.getElementById('combo-home'),
+    list: document.getElementById('listbox-home'),
+    emptyEl: document.getElementById('empty-home'),
+    getValue: () => state.home,
+    onSelect: (city) => {
+      state.home = city;
+      savePrefs();
+      render();
+    },
+  });
+
+  targetCombo.setValue(state.target.title);
+  homeCombo.setValue(state.home.title);
+
+  render();
+  window.setInterval(render, 1000);
+}
+
+init();
+
+document.getElementById('reset-demo').addEventListener('click',()=>{ state={target:{...DEFAULT_TARGET},home:{...DEFAULT_HOME},theme:'auto',clockFormat:'12h'};previewStorage.clear();document.getElementById('combo-target').value=state.target.title;document.getElementById('combo-home').value=state.home.title;document.querySelectorAll('.combo-list,.combo-empty').forEach(e=>e.hidden=true);document.querySelectorAll('.combo-input').forEach(e=>{e.setAttribute('aria-expanded','false');e.removeAttribute('aria-activedescendant')});applyTheme();applyClockFormat();render();});</script></body></html>
