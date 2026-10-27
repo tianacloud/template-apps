@@ -5,4 +5,4 @@ const js=await readFile('src/app.js','utf8');
 await writeFile('dist/assets/app.js',`const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\n${js}`);
 await copyFile('public/icon.png','dist/icon.png');
 const source=JSON.parse(await readFile('source.json','utf8'));
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
