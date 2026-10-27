@@ -1,0 +1,11 @@
+import { readFile, mkdir, writeFile, copyFile } from 'node:fs/promises';
+const html=await readFile('dashboard.html','utf8');
+const style=html.match(/<style>[\s\S]*?<\/style>/i)?.[0] ?? '';
+const body=html.match(/<body[^>]*>([\s\S]*)<script>var DO_NOT_EXPORT_CODEPAGE/)[1];
+const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+await mkdir('dist/assets',{recursive:true});
+const js=`document.head.insertAdjacentHTML('beforeend',${JSON.stringify(style)});document.body.innerHTML=${JSON.stringify(body)};\n`+scripts.join('\n;\n')+`document.dispatchEvent(new Event('DOMContentLoaded'));`;
+await writeFile('dist/assets/app.js',js);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
