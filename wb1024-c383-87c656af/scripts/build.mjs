@@ -1,0 +1,13 @@
+import { readFile, writeFile, mkdir, rm, copyFile } from 'node:fs/promises';
+const commit = process.argv[2];
+if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit || '')) throw Error('需要完整源码提交号');
+const source = JSON.parse(await readFile('source.json', 'utf8'));
+if (process.env.TIANA_TEMPLATE_BUILD !== '1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const body = await readFile('client/body.html','utf8');
+await rm('dist', {recursive:true, force:true});
+await mkdir('dist/assets', {recursive:true});
+await writeFile('dist/assets/app.js', `document.title='弹幕幸存者';\nconst css=document.createElement('link');css.rel='stylesheet';css.href=new URL('styles.css',import.meta.url);document.head.appendChild(css);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\nconst script=document.createElement('script');script.src=new URL('game.js',import.meta.url);document.body.appendChild(script);\n`);
+await copyFile('client/styles.css','dist/assets/styles.css');
+await copyFile('client/game.js','dist/assets/game.js');
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));

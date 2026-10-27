@@ -1,0 +1,429 @@
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; overflow:hidden; font-family:'Microsoft YaHei',sans-serif; user-select:none; }
+#game { display:block; cursor:crosshair; }
+#ui { position:fixed; top:0; left:0; width:100%; pointer-events:none; z-index:10; }
+
+/* HUD */
+#hud { position:fixed; top:0; left:0; width:100%; padding:10px 20px; pointer-events:none; z-index:10; }
+/* 🖱 纯展示 HUD 一律不吃指针事件（2026-10-08 修）：这些层只是画给人看的，一旦它们拦住鼠标，
+   canvas 就收不到指针事件 —— 症状是「鼠标一掠过去，瞄准方向就冻在原处、跟不动了」。
+   boss 血条 / 波次信息 / 技能栏 / 双人提示都踩过这个坑。需要点击的元素要自己写回 pointer-events:auto。 */
+#stats, #boss-bar-wrap, #skill-bar, #skill-bar2, #skill-bar3, .skill-label,
+#coop-toast, #net-badge { pointer-events:none; }
+.hp-bar-wrap { width:260px; height:22px; background:rgba(255,255,255,.1); border:2px solid #c33; border-radius:11px; overflow:hidden; }
+.hp-bar { height:100%; background:linear-gradient(90deg,#f44,#c11); transition:width .2s; }
+/* 🌌🌿 世界2/世界3 资源条（魔力=蓝 / 体力=橙）：仅在世界2/世界3 + 指定英雄显示
+   ⚠️ 必须放在 .hp-bar-wrap **外面**（2026-10-12 修）：血条容器是固定 22px 高 + overflow:hidden 的红框槽，
+      资源条原来排在槽内第二行 → 被整条裁掉（症状=「体力和魔力没有显示」）。移出后走正常流：
+      display:none 时不占空间（世界1 布局零影响），显示时把下面的经验条自然推下去。 */
+.res-bar { height:6px; width:260px; background:rgba(255,255,255,.08); border-radius:3px; margin-top:3px; overflow:hidden; display:none; box-shadow:0 0 6px rgba(0,0,0,.5); }
+.res-bar > i { display:block; height:100%; width:100%; transition:width .1s; }
+.res-bar.mana > i { background:linear-gradient(90deg,#5ec8ff,#3a7bff); }
+.res-bar.stamina > i { background:linear-gradient(90deg,#ffd166,#ff8a3d); }
+/* 2P 信息块（血条+经验条+等级）：右上角，波次/局内按钮下方；配色与 1P 一致 */
+#p2-hud { position:absolute; top:112px; right:20px; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+/* 👥 三人模式：3P 信息块挂在 2P 正下方（2P 块约 82px 高） */
+#p3-hud { position:absolute; top:196px; right:20px; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+#level3-info { font-size:16px; color:#4ade80; text-shadow:1px 1px 2px #000; }
+#p3-yield { display:none; font-size:12px; color:#7fe6c0; text-shadow:1px 1px 2px #000; }
+#level2-info { font-size:16px; color:#4cf; text-shadow:1px 1px 2px #000; }
+#p2-yield { display:none; font-size:12px; color:#7fe6c0; text-shadow:1px 1px 2px #000; }
+.hp-text { position:absolute; top:2px; left:0; width:260px; text-align:center; font-size:13px; color:#fff; text-shadow:1px 1px 2px #000; line-height:22px; }
+.xp-bar-wrap { width:260px; height:14px; background:rgba(255,255,255,.1); border:1px solid #4af; border-radius:7px; overflow:hidden; margin-top:4px; }
+.xp-bar { height:100%; background:linear-gradient(90deg,#4cf,#28e); transition:width .15s; }
+#stats { position:absolute; top:10px; right:20px; text-align:right; color:#fff; font-size:14px; text-shadow:1px 1px 2px #000; }
+#wave-info { font-size:22px; font-weight:bold; color:#fc0; }
+#horde-info { position:fixed; top:64px; left:50%; transform:translateX(-50%); text-align:center; font-size:17px; font-weight:bold; color:#8fe8b0; text-shadow:1px 1px 2px #000, 0 0 8px rgba(90,230,150,.45); pointer-events:none; z-index:20; }
+#horde-info .horde-combo { color:#ffd166; }
+#horde-info .horde-elite { color:#ff8f6b; }
+#level-info { font-size:16px; color:#4cf; }
+#timer-info { font-size:14px; color:#aaa; }
+#stat-sub-row { display:flex; gap:12px; justify-content:flex-end; align-items:baseline; margin-top:2px; }
+
+/* ===== 双人模式专属布局（body.coop，仅双人生效） ===== */
+/* 时长/波次/局内按钮 → 中央上方 */
+body.coop #stats { right:auto; left:50%; transform:translateX(-50%); text-align:center; }
+body.coop #stat-sub-row { justify-content:center; }
+body.coop #game-btns { right:auto; left:50%; transform:translateX(-50%); }
+/* 2P 信息块 → 右上角（与 1P 左上对称）；1P 等级移到左上血条/经验条下方 */
+body.coop #p2-hud { top:10px; }
+body.coop #p3-hud { top:92px; } /* 三人：3P 块接在 2P 块下面 */
+body.coop #stats #level-info { display:none; }
+#level1-info { display:none; font-size:16px; color:#4cf; text-shadow:1px 1px 2px #000; margin-top:2px; }
+body.coop #level1-info { display:block; }
+/* 技能分三个区域：左下 1P、右下 2P、中下（第二行）3P，带标注 */
+.skill-label { position:fixed; bottom:64px; font-size:12px; color:#9bd7ff; text-shadow:1px 1px 2px #000; z-index:10; display:none; letter-spacing:1px; }
+#skill-label1 { left:20px; }
+#skill-label2 { right:20px; }
+#skill-label3 { left:50%; transform:translateX(-50%); }
+body.coop #skill-label1, body.coop #skill-label2 { display:block; }
+body.coop.trio #skill-label3 { display:block; }
+body.coop #skill-bar { left:20px; right:auto; transform:none; }
+body.coop #skill-bar2 { left:auto; right:20px; bottom:12px; transform:none; } /* 与 1P 齐平（默认继承 bottom:58px 会偏高） */
+body.coop.trio #skill-bar3 { left:50%; right:auto; transform:translateX(-50%); bottom:58px; } /* 三人：3P 栏居中第二行（显隐由 JS 内联控制） */
+
+/* 局内按钮行（暂停/音效/音乐/设置，位于右上角波次信息下方） */
+#game-btns { position:fixed; top:64px; right:20px; z-index:45; display:none; gap:8px; pointer-events:auto; }
+#game-btns button { width:40px; height:40px; border-radius:8px; background:rgba(0,0,0,.6); border:2px solid #555; color:#fff; font-size:18px; cursor:pointer; }
+#game-btns #pause-btn:hover { border-color:#fc0; background:rgba(255,204,0,.2); }
+/* 暂停界面「返回主页」按钮（暂停时显示在画布中央偏下） */
+#pause-home-btn { display:none; position:fixed; top:56%; left:50%; transform:translateX(-50%); z-index:15; padding:12px 34px; font-size:18px; background:rgba(30,30,50,.92); color:#fff; border:2px solid #888; border-radius:12px; cursor:pointer; }
+#pause-home-btn:hover { border-color:#fc0; background:rgba(255,204,0,.15); }
+/* 暂停时角色数值面板（2026-10-12 新增：暂停可查看当前角色各项数值） */
+#pause-stats { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:14;
+  width:min(880px,92vw); max-height:78vh; overflow:auto; padding:16px 20px; background:rgba(18,18,36,.95);
+  border:1px solid #4a4a6a; border-radius:14px; color:#eee; font-size:14px; box-shadow:0 8px 40px rgba(0,0,0,.6); }
+#pause-stats .ps-title { text-align:center; font-size:15px; color:#9cf; margin-bottom:12px; letter-spacing:1px; }
+#pause-stats .ps-cards { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+#pause-stats .ps-card { flex:1 1 340px; min-width:280px; background:rgba(255,255,255,.04); border:1px solid #3a3a5a; border-radius:10px; padding:12px 14px; }
+#pause-stats .ps-hero { font-size:18px; font-weight:bold; margin-bottom:8px; }
+#pause-stats .ps-hero .ps-lv { color:#9cf; font-size:13px; font-weight:normal; margin-left:6px; }
+#pause-stats .ps-row { display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
+#pause-stats .ps-row span:first-child { color:#9aa; }
+#pause-stats .ps-row span:last-child { color:#fff; font-weight:bold; }
+#pause-stats .ps-skills { margin-top:10px; line-height:1.0; }
+#pause-stats .ps-skill { display:inline-block; margin:3px 4px 3px 0; padding:3px 8px; background:rgba(120,160,255,.15);
+  border:1px solid rgba(120,160,255,.35); border-radius:6px; font-size:12px; }
+#game-btns #g-sound-btn:hover { border-color:#4af; background:rgba(74,207,255,.2); }
+#game-btns #g-music-btn:hover { border-color:#fa4; background:rgba(255,170,68,.2); }
+#game-btns #g-settings-btn:hover { border-color:#4af; background:rgba(74,170,255,.2); }
+#game-btns button, #start-screen .icon-row button { display:inline-flex; align-items:center; justify-content:center; padding:0; }
+
+/* 主界面图标按钮行（音效/音乐/设置） */
+#start-screen .icon-row { display:flex; gap:14px; justify-content:center; margin-top:26px; }
+#start-screen .icon-row button { margin-top:0; padding:0; width:56px; height:44px; font-size:20px; background:rgba(0,0,0,.55); color:#fff; border:2px solid #555; border-radius:10px; }
+#start-screen .icon-row button:hover { background:rgba(74,170,255,.2); color:#fff; }
+#start-screen .icon-row #music-btn:hover { border-color:#fa4; }
+#start-screen .icon-row #pause-btn:hover { border-color:#fc0; }
+#start-screen .icon-row #settings-btn:hover { border-color:#4af; }
+
+/* Skill bar */
+#skill-bar { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:10; }
+#skill-bar2 { position:fixed; bottom:58px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:10; }
+#skill-bar3 { position:fixed; bottom:58px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:10; } /* 👥 三人：3P 栏（显隐与精确位置由 JS/coop.trio 布局接管） */
+#coop-toast { position:fixed; top:150px; left:50%; transform:translateX(-50%); background:rgba(80,20,20,.85); color:#ffb; border:1px solid #f66; padding:10px 22px; border-radius:10px; font-size:16px; z-index:60; transition:opacity .5s; display:none; }
+  /* ===== 🌐 联机（WebRTC 直连 + 可选视频镜像，无服务器，跨设备） ===== */
+  #net-panel { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:82; display:flex; flex-direction:column; align-items:center; justify-content:safe center; gap:9px; padding:20px; overflow:auto; box-sizing:border-box; }
+  #net-panel h2 { margin:0 0 2px; color:#8ff; font-size:22px; }
+  #net-panel .nb { width:min(720px,94vw); box-sizing:border-box; }
+  #net-status { padding:7px 16px; border-radius:8px; background:#121a26; color:#8cf; border:1px solid #2b4a5a; font-size:14px; text-align:center; }
+  #net-status.ok { background:#0f3a2c; color:#6fc; border-color:#2f8; }
+  #net-status.err { background:#3a1418; color:#f89; border-color:#f66; }
+  #net-panel .hint { color:#9ab; font-size:13px; line-height:1.8; background:#0d1118; border-left:3px solid #2b6; padding:10px 14px; border-radius:6px; }
+  #net-panel textarea { width:100%; min-height:74px; background:#0b0e14; color:#8ff; border:1px solid #2b4a5a; border-radius:8px; padding:10px; font:12px/1.6 ui-monospace,monospace; resize:vertical; word-break:break-all; box-sizing:border-box; }
+  #net-panel .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+  #net-panel button { background:#16324a; color:#cfd; border:1px solid #2b6f96; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:14px; }
+  #net-panel button:hover { background:#1e4a6e; }
+  #net-panel .st { color:#4cf; font-weight:bold; font-size:14px; }
+  #net-panel .sep { color:#456; font-size:12px; text-align:center; }
+  /* 🌐 联机入口：同一份 game.html 在手机/电脑浏览器都能互连（手机↔手机镜像，电脑↔手机手机当手柄） */
+  #btn-net { background:#14403a; border-color:#2a8c7a; }
+  #btn-net:hover { background:#1b5a50; }
+  /* 📱 触屏虚拟摇杆（手机当 2P） */
+  #touch-layer { position:fixed; inset:0; z-index:58; display:none; touch-action:none; -webkit-user-select:none; user-select:none; pointer-events:none; } /* 容器透明穿透：只有摇杆圆/技能按钮可点，空白处点得穿到下面的升级/暂停等按钮 */
+  #touch-layer.on { display:block; }
+  .tpad { position:absolute; bottom:34px; width:140px; height:140px; border-radius:50%; background:rgba(120,220,255,.07); border:2px solid rgba(120,220,255,.32); touch-action:none; pointer-events:auto; }
+  #pad-move { left:22px; }
+  #pad-aim { right:22px; }
+  .tpad .knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; background:rgba(120,220,255,.28); border:2px solid rgba(160,235,255,.75); pointer-events:none; }
+  .tpad .cap { position:absolute; left:0; right:0; bottom:-24px; text-align:center; color:#7cf; font-size:12px; pointer-events:none; }
+  /* 📱 技能按钮：右下方圆形，仅在触控启用时显示 */
+  /* 📱 技能按钮：底部居中（双摇杆之间），彻底避开右侧瞄准摇杆与右上角局内按钮行（暂停/音效/音乐/设置），任何屏幕都不重合 */
+  #pad-skill { position:fixed; right:180px; bottom:60px; width:88px; height:88px; border-radius:50%; background:rgba(255,122,40,.9); border:4px solid #fff; color:#fff; font-size:16px; font-weight:bold; z-index:59; display:none; touch-action:none; -webkit-user-select:none; user-select:none; box-shadow:0 0 16px rgba(255,122,40,.6); pointer-events:auto; }
+  #pad-skill:active { transform:scale(.9); background:rgba(255,150,70,1); }
+  /* 📱 竖屏提示：手机横屏模式下竖屏时盖屏提示旋转 */
+  #rotate-hint { position:fixed; inset:0; z-index:95; display:none; background:rgba(0,0,0,.94); color:#fff; align-items:center; justify-content:center; text-align:center; font-size:20px; line-height:1.8; padding:30px; }
+  #rotate-hint .rh-ic { font-size:54px; display:block; margin-bottom:14px; animation:rhspin 1.8s ease-in-out infinite; }
+  @keyframes rhspin { 0%,100%{ transform:rotate(0); } 50%{ transform:rotate(90deg); } }
+  .dev-toggle { display:inline-flex; gap:6px; }
+  .dev-toggle button { padding:6px 12px; border-radius:8px; border:1px solid #2a3a4a; background:#16202c; color:#cfe; cursor:pointer; font-size:13px; }
+  .dev-toggle button.active { background:#2a8c7a; border-color:#3fd0b0; color:#fff; font-weight:bold; }
+  #net-badge { position:fixed; top:6px; right:10px; z-index:59; font-size:12px; color:#8ff; background:rgba(0,0,0,.55); border:1px solid #2b4a5a; border-radius:6px; padding:3px 9px; display:none; }
+  /* ⛶ 全屏按钮：作为局内按钮行（#game-btns）的一员，与 ⏸🔊🎵⚙️ 同排——行内布局，天然不与任何元素重叠 */
+  #game-btns #fs-btn:hover { border-color:#4af; background:rgba(74,207,255,.2); }
+#tut-banner { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(18,38,68,.94); border:2px solid #4af; border-radius:14px; padding:14px 30px; z-index:60; text-align:center; min-width:430px; box-shadow:0 4px 24px rgba(0,0,0,.5); }
+#tut-banner #tut-text { color:#fff; font-size:17px; line-height:1.65; }
+#tut-banner #tut-text b { color:#fc0; }
+#tut-banner button { margin-top:10px; padding:8px 24px; font-size:14px; background:#4af; color:#000; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+#tut-banner button:hover { background:#28e; color:#fff; }
+#tut-banner #tut-next-btn { margin-top:10px; margin-left:8px; padding:8px 20px; font-size:14px; background:#ffd166; color:#000; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+#tut-banner #tut-next-btn:hover { background:#e8b84a; color:#fff; }
+#tut-hero-pick { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #4af; border-radius:16px; padding:20px 26px; z-index:62; display:none; text-align:center; width:min(660px,96vw); max-height:92vh; box-sizing:border-box; overflow:auto; }
+#tut-hero-pick h2 { color:#4af; font-size:22px; margin:0 0 4px; }
+#tut-hero-pick .tut-sub { color:#889; font-size:13px; margin-bottom:10px; line-height:1.6; }
+#tut-hero-pick .tut-group-label { color:#ffd166; font-size:14px; font-weight:bold; text-align:left; margin:12px 0 6px; }
+#tut-hero-pick .tut-group { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+#tut-hero-pick .tut-hero { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; background:rgba(255,255,255,.05); border:2px solid #555; border-radius:10px; cursor:pointer; color:#cde; transition:all .15s; }
+#tut-hero-pick .tut-hero:hover { border-color:#4af; background:rgba(74,207,255,.16); }
+#tut-hero-pick .tut-hero .th-icon { font-size:26px; }
+#tut-hero-pick .tut-hero .th-name { font-size:12px; white-space:nowrap; }
+#tut-hero-pick #tut-pick-back { margin-top:16px; padding:10px 32px; font-size:15px; background:#555; color:#fff; border:none; border-radius:9px; cursor:pointer; }
+#tut-guide { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #ffd166; border-radius:16px; padding:20px 26px; z-index:63; display:none; text-align:left; width:min(720px,96vw); max-height:90vh; box-sizing:border-box; overflow:auto; }
+#tut-guide .tg-head { display:flex; align-items:center; gap:10px; }
+#tut-guide .tg-ic { font-size:34px; }
+#tut-guide .tg-name { font-size:22px; color:#fff; font-weight:bold; }
+#tut-guide .tg-role { color:#ffd166; font-size:13px; margin:4px 0 10px; line-height:1.6; }
+#tut-guide .tg-desc { color:#9ab; font-size:14px; line-height:1.85; margin-bottom:14px; }
+#tut-guide .tg-desc b { color:#4cf; }
+#tut-guide .tg-skills-title { color:#4af; font-size:15px; font-weight:bold; margin:8px 0 8px; }
+#tut-guide .tg-skill { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; background:rgba(255,255,255,.04); border-radius:8px; margin-bottom:5px; font-size:13px; }
+#tut-guide .tg-skill .tg-ic { font-size:16px; flex:0 0 auto; }
+#tut-guide .tg-skill b { color:#fff; white-space:nowrap; flex:0 0 auto; }
+#tut-guide .tg-skill .tg-d { color:#8a98a8; line-height:1.6; }
+#tut-guide #tut-guide-done { display:block; margin:16px auto 0; padding:12px 40px; font-size:17px; background:#5fd18a; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+.skill-icon { width:44px; height:44px; border-radius:8px; background:rgba(0,0,0,.6); border:2px solid #555; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-size:10px; position:relative; }
+.skill-icon.ch-buff { border-color:#4f4; background:rgba(20,60,20,.6); } /* 个人挑战增益因子（绿框） */
+.skill-icon.ch-debuff { border-color:#f66; background:rgba(60,15,15,.6); } /* 个人挑战减益因子（红框） */
+.skill-icon .skill-lv { position:absolute; top:-4px; right:-4px; background:#fc0; color:#000; border-radius:8px; padding:0 4px; font-size:10px; font-weight:bold; }
+.skill-icon .skill-name { font-size:8px; text-align:center; line-height:1.1; margin-top:2px; }
+.skill-icon.ch-buff { border-color:#4f4; background:rgba(20,60,20,.6); } /* 挑战增益因子（绿框） */
+.skill-icon.ch-debuff { border-color:#f66; background:rgba(60,15,15,.6); } /* 挑战减益因子（红框） */
+/* 顶部按钮行里的挑战因子图标（与暂停/音效等按钮同一行） */
+.ch-fact { width:36px; height:36px; border-radius:8px; background:rgba(0,0,0,.6); border:2px solid #555; color:#fff; font-size:17px; display:flex; align-items:center; justify-content:center; position:relative; cursor:help; }
+.ch-fact.ch-buff { border-color:#4f4; }
+.ch-fact.ch-debuff { border-color:#f66; }
+.ch-fact .ftag { position:absolute; top:-8px; left:-5px; font-size:9px; line-height:1.3; background:#1a2a44; border:1px solid #6a8; border-radius:4px; padding:0 3px; color:#cde; white-space:nowrap; }
+
+/* Level up panel */
+#levelup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.96); border:2px solid #4af; border-radius:16px; padding:30px 40px; z-index:20; display:none; text-align:center; min-width:420px; max-width:96vw; max-height:94vh; overflow-y:auto; box-sizing:border-box; }
+#levelup h2 { color:#fc0; font-size:28px; margin-bottom:6px; }
+#levelup p { color:#aaa; font-size:14px; margin-bottom:20px; }
+#lv-reroll { margin-top:16px; padding:10px 26px; font-size:15px; background:#fc0; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#lv-reroll:hover:not(:disabled) { background:#da0; color:#fff; }
+#lv-reroll:disabled { opacity:.4; cursor:default; }
+.choice { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.05); border:1px solid #444; border-radius:10px; padding:14px 18px; margin:10px 0; cursor:pointer; pointer-events:auto; transition:all .2s; }
+.choice:hover { background:rgba(74,207,255,.15); border-color:#4af; transform:translateX(4px); }
+.choice .c-icon { font-size:28px; width:44px; text-align:center; }
+.choice .c-info { text-align:left; }
+.choice .c-name { color:#4cf; font-size:16px; font-weight:bold; }
+.choice .c-desc { color:#aaa; font-size:12px; margin-top:2px; }
+.choice .c-tag { font-size:11px; color:#fc0; }
+
+/* Boss bar */
+#boss-bar-wrap { position:fixed; top:50px; left:50%; transform:translateX(-50%); width:500px; display:none; z-index:10; }
+#boss-name { text-align:center; color:#f44; font-size:18px; font-weight:bold; text-shadow:1px 1px 2px #000; margin-bottom:4px; }
+#boss-bar-bg { height:18px; background:rgba(255,255,255,.1); border:2px solid #f44; border-radius:9px; overflow:hidden; }
+#boss-bar { height:100%; background:linear-gradient(90deg,#f44,#900); transition:width .2s; }
+/* 🛡 Boss 护盾条（斩铁剑皇）：叠在血条上方，青色；有盾时本体不掉血，远程角色打盾只有 50% 伤害 */
+#boss-bar-shield-bg { height:8px; margin-bottom:4px; background:rgba(255,255,255,.08); border:1px solid #3f9fd0; border-radius:4px; overflow:hidden; display:none; }
+#boss-bar-shield { height:100%; background:linear-gradient(90deg,#bff0ff,#2f86bf); transition:width .12s; }
+
+/* Overlays */
+#overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); display:flex; flex-direction:column; align-items:center; justify-content:safe center; overflow-y:auto; padding:16px; box-sizing:border-box; z-index:30; }
+#overlay h1 { font-size:48px; margin-bottom:10px; }
+#overlay p { font-size:18px; color:#aaa; margin-bottom:8px; }
+#overlay button { margin-top:20px; padding:14px 40px; font-size:20px; background:#4af; color:#000; border:none; border-radius:10px; cursor:pointer; pointer-events:auto; font-weight:bold; }
+#overlay button:hover { background:#28e; color:#fff; }
+.hidden { display:none !important; }
+.win-color { color:#4cf !important; text-shadow:0 0 20px #4cf; }
+.lose-color { color:#f44 !important; text-shadow:0 0 20px #f44; }
+
+/* Start screen */
+#start-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,5,15,.95); display:flex; flex-direction:column; align-items:center; justify-content:center; justify-content:safe center; z-index:40; overflow-y:auto; padding:20px 16px 28px; box-sizing:border-box; } /* 内容变高时允许滚动（safe center：够高才居中，否则从顶部开始，不会被裁掉） */
+/* 🌌🌿 世界2/世界3 主界面换肤：选中世界2 给 body 加 .w2（虚空紫）、世界3 加 .w3（腐林绿） */
+body.w2 #start-screen { background:linear-gradient(180deg, rgba(18,8,38,.98), rgba(6,2,14,.98)); }
+body.w2 #start-screen h1 { color:#c9a2ff; text-shadow:0 0 30px #8b5cf6; }
+body.w2 #start-screen .subtitle { color:#a08bd0; }
+body.w2 #start-screen .controls span { color:#c9a2ff; }
+/* 🌿 世界3「蚀根林海」主界面皮肤：暗绿腐化调（与世界1 紫黑 / 世界2 虚空紫彻底分开） */
+body.w3 #start-screen { background:linear-gradient(180deg, rgba(10,30,18,.98), rgba(3,10,6,.98)); }
+body.w3 #start-screen h1 { color:#7fe08a; text-shadow:0 0 30px #2fbf5a; }
+body.w3 #start-screen .subtitle { color:#7fae8b; }
+body.w3 #start-screen .controls span { color:#9fe8ae; }
+#start-screen h1 { font-size:52px; color:#4cf; text-shadow:0 0 30px #4af; margin-bottom:8px; }
+#start-screen .subtitle { font-size:18px; color:#888; margin-bottom:20px; }
+#start-screen .controls { font-size:15px; color:#ccc; line-height:1.85; text-align:center; margin-bottom:20px; max-width:860px; }
+#start-screen .controls span { color:#4cf; font-weight:bold; }
+#start-screen button { margin-top:0; padding:14px 40px; font-size:20px; background:#4af; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#start-screen button:hover { background:#28e; color:#fff; }
+#start-screen button:disabled { cursor:not-allowed; }
+/* 🧱 按钮分行排列（原来 6 个按钮一根竖排会顶出屏幕）：横向自适应 + 窄屏自动换行 */
+#start-screen .btn-row { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:stretch; width:100%; max-width:820px; }
+#start-screen .btn-row + .btn-row { margin-top:12px; }
+#start-screen .btn-row button { margin-top:0; }
+#start-screen .row-main button { flex:1 1 100%; }                  /* ▶ 开始游戏：独占一行、最大最醒目 */
+#start-screen .row-toggle button, #start-screen .row-partner button { flex:1 1 190px; } /* 模式开关 / 组队联机：一行 3 格，放不下就换行 */
+#start-screen button.secondary { padding:10px 26px; font-size:15px; background:#3a4; color:#000; }
+#start-screen button.secondary:hover { background:#2b5; color:#fff; }
+
+/* 挑战模式 */
+#start-screen button.challenge { padding:10px 26px; font-size:15px; background:#a4f; color:#000; }
+#start-screen button.challenge:hover { background:#84d; color:#fff; }
+/* ♾ 无尽模式（开关） */
+#start-screen button.endless { padding:10px 26px; font-size:15px; background:#3ed6b0; color:#000; }
+#start-screen button.endless:hover { background:#2bb894; color:#fff; }
+/* 📖 角色图鉴（主界面按钮 · 12 名角色的介绍只在这里看） */
+#start-screen button.codex { padding:10px 26px; font-size:15px; background:#ffd166; color:#000; }
+#start-screen button.codex:hover { background:#e8b84a; color:#fff; }
+/* 🎬 制作人员（主界面小按钮 · 角色外观墙 + 已删角色纪念像 + 制作名单） */
+#start-screen button.credits { padding:10px 26px; font-size:15px; background:#8ec7ff; color:#000; }
+#start-screen button.credits:hover { background:#6fb4f0; color:#fff; }
+/* 🗡 角色选择 */
+/* 🗡 开局角色选择面板 */
+#hero-pick { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #ffd166; border-radius:16px; padding:26px 34px; z-index:46; display:none; text-align:center; max-width:96vw; max-height:94vh; overflow:auto; }
+/* 🎮 模式选择面板：把主界面一堆模式按钮收敛到一处 */
+#mode-select { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.98); border:2px solid #ffd166; border-radius:16px; padding:24px 30px; z-index:47; display:none; text-align:center; min-width:560px; max-width:96vw; max-height:94vh; overflow:auto; }
+#mode-select h2 { color:#ffd166; font-size:24px; margin-bottom:6px; }
+#mode-select .ms-sub { color:#9ab; font-size:13px; margin-bottom:16px; }
+#mode-select .ms-grid { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:16px; }
+#mode-select .ms-card { width:160px; min-height:78px; padding:12px 10px; border-radius:12px; border:2px solid #555; background:rgba(30,30,48,.9); color:#fff; font-size:15px; font-weight:bold; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; transition:transform .08s, border-color .15s; }
+#mode-select .ms-card small { font-size:11px; font-weight:normal; color:#9ab; }
+#mode-select .ms-card:hover:not(:disabled) { transform:translateY(-2px); border-color:#ffd166; }
+#mode-select .ms-card.sel { border-color:#ffd166; box-shadow:0 0 0 2px rgba(255,209,102,.5), 0 0 18px rgba(255,209,102,.35); background:rgba(48,40,20,.95); }
+#mode-select .ms-card:disabled { opacity:.45; cursor:not-allowed; }
+#mode-select .start-btn { margin-top:4px; padding:13px 30px; font-size:17px; font-weight:bold; border-radius:12px; border:2px solid #ffd166; background:linear-gradient(180deg,#ffd166,#f0b840); color:#221a00; cursor:pointer; }
+#mode-select .start-btn:hover { filter:brightness(1.06); }
+#mode-select .ms-card.pvp { border-color:#d65; background:rgba(60,28,28,.9); }
+#mode-select .ms-toggles { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:16px; }
+#mode-select .ms-toggles button { padding:10px 16px; border-radius:10px; border:2px solid #555; background:rgba(30,30,48,.9); color:#fff; font-size:14px; cursor:pointer; }
+#mode-select .ms-toggles button.challenge { border-color:#f6c; }
+#mode-select .ms-toggles button.endless { border-color:#2a8c7a; }
+#mode-select .ms-toggles button.horde { border-color:#5c8; }
+#hero-pick h2 { color:#ffd166; font-size:24px; margin-bottom:10px; }
+#hero-pick .hp-sub { color:#888; font-size:13px; margin-bottom:16px; }
+#hero-pick .hp-sides { display:flex; gap:20px; justify-content:center; align-items:flex-start; }
+#hero-pick .hp-side { display:flex; flex-direction:column; gap:10px; }
+#hero-pick .hp-side + .hp-side { border-left:1px dashed #445; padding-left:20px; }
+#hero-pick .hp-side-title { font-size:15px; font-weight:bold; letter-spacing:1px; }
+#hero-pick .hp-side.p1 .hp-side-title { color:#4cf; }
+#hero-pick .hp-side.p2 .hp-side-title { color:#f84; }
+#hero-pick .hp-side.p3 .hp-side-title { color:#4ade80; }
+#hero-pick .hp-side .hero-card { width:132px; padding:14px 9px; }
+/* 👥 三人：三栏 9 张卡放不下 96vw —— 卡片整体缩窄一档（单人/双人面板不受影响） */
+#hero-pick.trio { padding:18px 16px; }
+#hero-pick.trio .hp-sides { gap:10px; }
+#hero-pick.trio .hp-side + .hp-side { padding-left:10px; }
+#hero-pick.trio .hp-side .hero-card { width:104px; padding:11px 5px; }
+#hero-pick.trio .hero-card .hc-icon { font-size:26px; }
+#hero-pick.trio .hero-card .hc-name { font-size:14px; margin:5px 0 3px; }
+#hero-pick .hero-card .hc-icon { font-size:32px; }
+#hero-pick .hero-card .hc-name { font-size:17px; margin:6px 0 4px; }
+#hero-pick #hp-go { margin-top:22px; padding:12px 48px; font-size:19px; background:#ffd166; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#hero-pick #hp-go:hover { background:#e8b84a; color:#fff; }
+#hero-pick #hp-go.hidden { display:none; }
+#hero-pick .hp-tip { color:#6a7f8f; font-size:12px; margin-top:14px; } /* 选角卡不再写介绍：只留一行指引回主界面 */
+/* 5 个角色：一行最多 3 张，多了自动换行（单人/双人/三人面板都不会撑出屏幕） */
+.hero-cards { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; max-width:440px; }
+#hero-pick.trio .hero-cards { gap:10px; max-width:340px; }
+.hero-card { width:190px; padding:18px 12px; background:rgba(255,255,255,.05); border:2px solid #555; border-radius:12px; cursor:pointer; transition:all .15s; }
+.hero-card:hover { border-color:#4af; background:rgba(74,207,255,.12); transform:translateY(-3px); }
+.hero-card.sel { border-color:#ffd166; background:rgba(255,209,102,.14); }
+@media (max-width:900px){ #hero-pick .hp-sides { flex-direction:column; align-items:center; } #hero-pick .hp-side + .hp-side { border-left:none; padding-left:0; border-top:1px dashed #445; padding-top:14px; } }
+.hero-card .hc-icon { font-size:42px; }
+.hero-card .hc-name { font-size:20px; color:#fff; font-weight:bold; margin:8px 0 6px; }
+/* 📖 角色图鉴（主界面「📖 角色」按钮打开 · 角色介绍的唯一去处；选角面板只留图标+名字） */
+/* 高度受控：两列各自滚动，面板整体（含「返回主界面」按钮）必须留在视口内（720 高屏幕实测过） */
+#hero-codex { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #ffd166; border-radius:16px; padding:20px 26px; z-index:45; display:none; text-align:center; width:min(880px,96vw); max-height:94vh; overflow-y:auto; box-sizing:border-box; }
+#hero-codex h2 { color:#ffd166; font-size:24px; margin-bottom:4px; }
+#hero-codex .cdx-sub { color:#888; font-size:13px; margin-bottom:12px; }
+#hero-codex .cdx-body { display:flex; gap:16px; align-items:stretch; text-align:left; height:min(456px,58vh); }
+#hero-codex .cdx-list { display:grid; grid-template-columns:1fr 1fr; gap:5px; align-content:start; flex:0 0 300px; overflow:auto; } /* 两列：12 个角色一屏排完，不用滚（实测 6 行 × 36px） */
+#hero-codex .cdx-item { display:flex; align-items:center; gap:8px; padding:6px 10px; background:rgba(255,255,255,.05); border:2px solid #555; border-radius:9px; cursor:pointer; color:#cde; font-size:14px; white-space:nowrap; transition:all .15s; }
+#hero-codex .cdx-item:hover { border-color:#4af; background:rgba(74,207,255,.14); }
+#hero-codex .cdx-item.sel { border-color:#ffd166; background:rgba(255,209,102,.16); color:#fff; font-weight:bold; }
+#hero-codex .cdx-item .ci { font-size:18px; }
+#hero-codex .cdx-info { flex:1 1 auto; min-width:0; background:rgba(255,255,255,.04); border:1px solid #445; border-radius:12px; padding:16px 18px; overflow:auto; }
+#hero-codex .cdx-head { display:flex; align-items:center; gap:10px; }
+#hero-codex .cdx-head .cx-icon { font-size:34px; }
+#hero-codex .cdx-head .cx-name { font-size:22px; color:#fff; font-weight:bold; }
+#hero-codex .cdx-role { color:#ffd166; font-size:13px; margin:4px 0 10px; }
+#hero-codex .cdx-diff { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:0 0 10px; padding:8px 12px; background:rgba(255,255,255,.05); border-left:3px solid #ffd166; border-radius:6px; font-size:13px; color:#8899aa; }
+#hero-codex .cdx-diff .dl { color:#8899aa; }
+#hero-codex .cdx-diff .dv { font-size:15px; letter-spacing:2px; font-weight:bold; }
+#hero-codex .cdx-diff .dt { color:#cde; }
+#hero-codex .cdx-diff .sep { color:#556; }
+#hero-codex .cdx-note { color:#8a98a8; font-size:13px; line-height:1.7; margin:0 0 10px; }
+#hero-codex .cdx-note b { color:#4cf; }
+#hero-codex .cdx-desc { color:#9ab; font-size:14px; line-height:1.85; }
+#hero-codex .cdx-desc b { color:#4cf; }
+#hero-codex #cdx-close { margin-top:18px; padding:12px 40px; font-size:18px; background:#ffd166; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#hero-codex #cdx-close:hover { background:#e8b84a; color:#fff; }
+@media (max-width:700px){ #hero-codex .cdx-body { flex-direction:column; height:auto; max-height:76vh; } #hero-codex .cdx-list { flex:0 0 auto; grid-template-columns:1fr 1fr 1fr; } }
+/* 🎬 制作人员面板（与图鉴同档：主界面才能开） */
+#credits { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #8ec7ff; border-radius:16px; padding:20px 26px; z-index:45; display:none; text-align:center; width:min(880px,96vw); max-height:94vh; overflow-y:auto; box-sizing:border-box; }
+#credits h2 { color:#8ec7ff; font-size:24px; margin-bottom:4px; }
+#credits .cr-sub { color:#888; font-size:13px; margin-bottom:10px; }
+#credits .cr-scroll { height:min(470px,60vh); overflow:auto; text-align:left; padding-right:6px; }
+#credits .cr-sec { color:#ffd166; font-size:15px; font-weight:bold; margin:12px 0 8px; }
+#credits .cr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
+#credits .cr-card { background:rgba(255,255,255,.05); border:2px solid #555; border-radius:10px; padding:6px 4px 5px; text-align:center; }
+#credits .cr-card:hover { border-color:#8ec7ff; }
+#credits .cr-card.mem { border-color:#ffd166; background:rgba(255,209,102,.10); }
+#credits .cr-card canvas { display:block; margin:0 auto; }
+#credits .cr-name { color:#cde; font-size:12px; margin-top:3px; white-space:nowrap; }
+#credits .cr-card.mem .cr-name { color:#ffd166; }
+#credits .cr-list { color:#9ab; font-size:14px; line-height:1.95; }
+#credits .cr-list b { color:#4cf; }
+#credits .cr-note { color:#8a98a8; font-size:12px; line-height:1.7; margin:8px 0 4px; }
+#credits #cr-close { margin-top:14px; padding:12px 40px; font-size:18px; background:#8ec7ff; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#credits #cr-close:hover { background:#6fb4f0; color:#fff; }
+#challenge-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #a4f; border-radius:16px; padding:26px 34px; z-index:50; text-align:center; min-width:420px; max-width:96vw; max-height:94vh; overflow-y:auto; }
+#challenge-panel h2 { color:#a4f; font-size:24px; margin-bottom:6px; }
+#challenge-panel .ch-sub { color:#888; font-size:13px; margin-bottom:16px; }
+#challenge-panel .ch-note { color:#9ab; font-size:12px; margin:10px auto 0; line-height:1.6; max-width:560px; }
+#challenge-panel .ch-note.hidden { display:none; }
+#challenge-panel .ch-mod { display:flex; align-items:center; gap:12px; padding:10px 14px; margin:8px 0; border-radius:10px; text-align:left; }
+#challenge-panel .ch-mod.buff { background:rgba(80,220,120,.12); border:1px solid rgba(80,220,120,.45); }
+#challenge-panel .ch-mod.debuff { background:rgba(240,80,80,.12); border:1px solid rgba(240,80,80,.45); }
+#challenge-panel .ch-icon { font-size:22px; }
+#challenge-panel .ch-name { font-weight:bold; font-size:16px; color:#fff; width:96px; }
+#challenge-panel .ch-desc { font-size:14px; color:#bbb; }
+/* 双人：三段因子横排三栏（1P | 双人 | 2P），避免纵向撑爆屏幕导致「开战」按钮够不着 */
+#challenge-mods.coop { display:flex; gap:14px; justify-content:center; align-items:flex-start; }
+#challenge-mods .ch-col { display:flex; flex-direction:column; width:240px; }
+#challenge-mods .ch-col .set-title { margin-bottom:2px; }
+#challenge-mods .ch-col .ch-mod { padding:7px 10px; margin:5px 0; gap:8px; }
+#challenge-mods .ch-col .ch-icon { font-size:18px; }
+#challenge-mods .ch-col .ch-name { font-size:13px; width:78px; }
+#challenge-mods .ch-col .ch-desc { font-size:12px; }
+#challenge-panel #gift-pick-wrap.hidden { display:none; }
+#gift-pick-wrap { display:flex; gap:20px; justify-content:center; align-items:flex-start; }
+#gift-pick-wrap .gift-block { display:flex; flex-direction:column; align-items:center; max-width:360px; }
+#challenge-panel .gift-grid { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:8px; }
+#challenge-panel .gift-cell { display:flex; align-items:center; gap:6px; padding:8px 12px; background:rgba(0,0,0,.4); border:2px solid #555; border-radius:8px; cursor:pointer; font-size:14px; color:#ddd; }
+#challenge-panel .gift-cell:hover { border-color:#a4f; }
+#challenge-panel .gift-cell.picked { border-color:#a4f; background:rgba(164,80,255,.25); color:#fff; }
+#challenge-panel .gift-cell .g-icon { font-size:18px; }
+#challenge-panel > button { margin-top:18px; padding:12px 42px; font-size:18px; background:#a4f; color:#000; border:none; border-radius:10px; cursor:pointer; font-weight:bold; }
+#challenge-panel > button:hover { background:#84d; color:#fff; }
+
+/* Settings panel */
+#settings-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #4af; border-radius:16px; padding:26px 34px; z-index:50; text-align:center; min-width:400px; max-width:96vw; max-height:94vh; overflow-y:auto; box-sizing:border-box; }
+#settings-panel h2 { color:#fc0; font-size:24px; margin-bottom:18px; }
+#settings-panel .set-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin:12px 0; }
+#settings-panel .set-row span { color:#ccc; font-size:15px; }
+#settings-panel .set-row input[type=range] { width:170px; accent-color:#4af; }
+#settings-panel .set-row button, #settings-panel .set-jumps button { padding:8px 18px; font-size:14px; background:#4af; color:#000; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+#settings-panel .set-row button:hover, #settings-panel .set-jumps button:hover { background:#28e; color:#fff; }
+#settings-panel .set-title { color:#888; font-size:13px; margin:18px 0 8px; text-align:left; }
+#settings-panel .set-jumps { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+#settings-panel > button.close-btn { margin-top:20px; padding:10px 32px; font-size:16px; background:#666; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+#settings-panel > button.close-btn:hover { background:#888; }
+/* Keybinds panel（按键设置） */
+#mode-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #4af; border-radius:16px; padding:26px 34px; z-index:50; text-align:center; min-width:420px; max-width:96vw; max-height:94vh; overflow-y:auto; }
+#mode-panel h2 { color:#fc0; font-size:24px; margin-bottom:18px; }
+#mode-panel .set-jumps button.on { background:#4af; color:#000; border-color:#4af; font-weight:bold; }
+#mode-panel .mode-note { color:#888; font-size:12px; margin:10px 0 4px; }
+#keybind-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,25,.97); border:2px solid #4af; border-radius:16px; padding:22px 30px; z-index:51; text-align:center; min-width:600px; max-width:94vw; }
+#keybind-panel h2 { color:#fc0; font-size:24px; margin-bottom:8px; }
+#keybind-panel .kb-hint { color:#888; font-size:13px; margin-bottom:14px; }
+#keybind-panel .kb-cols { display:flex; gap:30px; justify-content:center; }
+#keybind-panel .kb-col { text-align:left; }
+#keybind-panel .kb-title { color:#4af; font-size:15px; font-weight:bold; margin:4px 0 8px; }
+#keybind-panel .kb-row { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:7px 0; }
+#keybind-panel .kb-row span { color:#ccc; font-size:14px; }
+#keybind-panel .kb-row button { min-width:120px; padding:7px 12px; font-size:13px; background:#2a2a38; color:#ffd; border:1px solid #556; border-radius:8px; cursor:pointer; }
+#keybind-panel .kb-row button:hover { border-color:#4af; }
+#keybind-panel .kb-row button.listening { border-color:#fc0; color:#fc0; background:rgba(255,204,0,.08); }
+#keybind-panel .close-btn { margin-top:18px; padding:9px 26px; font-size:15px; background:#666; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+#keybind-panel .close-btn:hover { background:#888; }
+
+/* Achievement toast */
+#ach-toast { position:fixed; bottom:70px; right:20px; background:#1b2340; color:#ffd75e; border:1px solid #ffd75e; padding:12px 18px; border-radius:10px; font-size:15px; z-index:60; transition:opacity .4s; display:none; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+#ach-toast b { color:#fff; }
+#madness-toast { position:fixed; bottom:120px; right:20px; background:#2a1b40; color:#d9a8ff; border:1px solid #a86af0; padding:12px 18px; border-radius:10px; font-size:15px; z-index:60; transition:opacity .4s; display:none; box-shadow:0 4px 16px rgba(0,0,0,.4); }
+#madness-toast b { color:#fff; }
+/* 🎭 挑战减益「骗人」：选了假技能之后才揭穿（比精神错乱更居中、更大，一眼能看见） */
+#fake-toast { position:fixed; bottom:150px; right:20px; background:#3a1220; color:#ff9db1; border:2px solid #ff4d6d; padding:14px 22px; border-radius:10px; font-size:19px; font-weight:bold; letter-spacing:1px; z-index:61; transition:opacity .4s; display:none; box-shadow:0 4px 20px rgba(255,77,109,.35); }
+/* 📖 剧情模式对话层（全屏遮罩 + 底部居中对话框；响应式、可滚动、可点击推进） */
