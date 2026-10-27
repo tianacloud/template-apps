@@ -1,0 +1,12 @@
+import {readFile,writeFile,mkdir,readdir,copyFile} from 'node:fs/promises';
+const commit=process.argv[2], local=commit==='--local';
+if(!local&&!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit||''))throw Error('构建需要完整源码提交号；本地检查使用 build:local。');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(!local&&!process.env.TIANA_TEMPLATE_BUILD&&!/^[A-Za-z0-9-]{8,128}$/.test(source.git_instance_id))throw Error('请先填写 Git 实例 ID。');
+const html=await readFile('src/layout.html','utf8'),css=await readFile('src/style.css','utf8');
+const files=(await readdir('src/vendor')).filter(x=>x.endsWith('.js')).sort();
+let js='/* Dance Studio */\n'+`document.body.innerHTML=${JSON.stringify(html)};\nconst danceStyle=document.createElement('style');danceStyle.textContent=${JSON.stringify(css)};document.head.appendChild(danceStyle);\n`;
+for(const f of files)js+='\n;(function(){\n'+await readFile('src/vendor/'+f,'utf8')+'\n}).call(window);\n';
+await mkdir('dist/assets',{recursive:true});await writeFile('dist/assets/app.js',js);await copyFile('public/icon.png','dist/icon.png');
+if(local)await writeFile('dist/index.html','<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><title>舞蹈练习模拟器</title></head><body><script src="./assets/app.js"></script></body></html>');
+else console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
