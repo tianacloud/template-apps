@@ -1353,13 +1353,13 @@ $('#btnExport').addEventListener('click', function(){
   a.download='爱音单词-存档-'+todayKey()+'.json'; a.click(); toast('存档已导出');
 });
 $('#btnImport').addEventListener('click', function(){
-  var inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='.json'; inp.id='backupImport'; inp.style.display='none'; document.body.appendChild(inp);
   inp.onchange=function(){
     var f=inp.files[0]; if(!f) return;
     var r=new FileReader();
     r.onload=function(){ try{ var o=JSON.parse(r.result); if(!o.prog) throw 0;
       for(var k in o) S[k]=o[k]; save(); boot(); toast('存档已导入'); }catch(e){ toast('读不出来'); } };
-    r.readAsText(f);
+    r.readAsText(f); inp.remove();
   };
   inp.click();
 });
