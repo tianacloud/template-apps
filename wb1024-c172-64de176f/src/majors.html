@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>专业招录分析 · 2027 国考</title>
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .side{position:sticky; top:86px; align-self:start}
+  .catlist{display:flex; flex-direction:column; gap:3px; margin-top:10px}
+  .catlist a{
+    display:block; padding:9px 12px; border-radius:9px; position:relative; transition:.18s;
+    color:var(--txt2); text-decoration:none; font-size:13px;
+  }
+  .catlist a:hover{background:var(--panel2)}
+  .catlist a.on{background:rgba(212,169,90,.11)}
+  .catlist a.on::before{content:""; position:absolute; left:0; top:8px; bottom:8px; width:2.5px;
+    border-radius:2px; background:var(--gold)}
+  .catlist a .r1{display:flex; align-items:baseline; gap:8px}
+  .catlist a .nm{font-size:13px; color:var(--txt2)}
+  .catlist a.on .nm{color:var(--gold-l); font-weight:600}
+  .catlist a .n{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--txt3); white-space:nowrap}
+  .catlist a .n b{font-size:14px; color:var(--txt); font-weight:700; margin-right:2px}
+  .catlist a.on .n b{color:var(--gold-l)}
+  .catlist a .r2{display:flex; align-items:center; gap:8px; margin-top:6px}
+  .catlist a .r2 .bar{height:4px; min-width:0}
+  .catlist a .r2 .v{font-family:var(--mono); font-size:10.5px; color:var(--txt3); white-space:nowrap}
+  .catlist a.dim{opacity:.6}
+  .catall{
+    display:block; padding:11px 12px; border-radius:9px; margin-top:10px; cursor:pointer; transition:.18s;
+    background:rgba(74,134,255,.09); border:1px solid rgba(74,134,255,.22);
+  }
+  .catall:hover{border-color:var(--blue)}
+  .catall.on{background:rgba(212,169,90,.11); border-color:rgba(212,169,90,.35)}
+  .catall .r1{display:flex; align-items:baseline; gap:8px}
+  .catall .nm{font-size:13px; color:var(--txt); font-weight:600}
+  .catall .n{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--txt3)}
+  .catall .n b{font-size:15px; color:var(--gold-l); font-weight:700; margin-right:2px}
+  .catall .r2{margin-top:5px; font-size:10.8px; color:var(--txt3)}
+  .takeaway{font-size:12.4px; color:var(--txt2); line-height:1.9; margin-top:10px}
+  .takeaway p{margin:0 0 9px}
+  .takeaway p:last-child{margin-bottom:0}
+  .takeaway b{color:var(--gold-l); font-weight:600; font-family:var(--mono); font-size:12.6px}
+  .takeaway .warn{color:var(--txt3); font-size:11.4px; border-top:1px solid var(--line2); padding-top:9px; margin-top:10px}
+  .crumbs{font-size:12.5px; color:var(--txt3); margin-bottom:14px}
+  .crumbs b{color:var(--gold-l); font-weight:600}
+  .crumbs a{color:var(--txt2); text-decoration:none; cursor:pointer}
+  .crumbs a:hover{color:var(--gold)}
+  .seg{display:inline-flex; background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:9px; padding:3px}
+  .seg button{
+    background:none; border:0; color:var(--txt2); font-size:12.5px; padding:6px 14px; border-radius:7px;
+    cursor:pointer; transition:.18s; font-family:inherit;
+  }
+  .seg button.on{background:linear-gradient(140deg,rgba(212,169,90,.9),rgba(168,132,60,.9)); color:#12203A; font-weight:700}
+  .drawer{
+    position:fixed; right:0; top:0; bottom:0; width:520px; max-width:92vw; z-index:100;
+    background:linear-gradient(180deg,#0B1B30,#081426); border-left:1px solid var(--line);
+    transform:translateX(102%); transition:transform .28s ease; overflow-y:auto;
+    box-shadow:-16px 0 48px rgba(0,0,0,.5);
+  }
+  .drawer.on{transform:translateX(0)}
+  .mask{position:fixed; inset:0; background:rgba(4,10,20,.6); z-index:99; opacity:0; pointer-events:none; transition:.25s}
+  .mask.on{opacity:1; pointer-events:auto}
+  .drawer .dh{padding:22px 24px 14px; border-bottom:1px solid var(--line2); position:sticky; top:0;
+    background:linear-gradient(180deg,#0B1B30,rgba(11,27,48,.9)); backdrop-filter:blur(8px); z-index:2}
+  .drawer .db{padding:18px 24px 40px}
+  .close{position:absolute; right:18px; top:18px; cursor:pointer; color:var(--txt3); font-size:18px}
+  .close:hover{color:var(--gold)}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:9px 14px; font-size:12.8px; margin-top:6px}
+  .kv .k{color:var(--txt3)}
+  .searchbox{display:flex; gap:10px; align-items:center; margin-bottom:16px}
+  .searchbox input{
+    flex:1; background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:9px;
+    padding:9px 14px; color:var(--txt); font-size:13px; font-family:inherit; outline:none;
+  }
+  .searchbox input:focus{border-color:var(--gold)}
+  .sugg{position:relative}
+  .sugg .box{
+    position:absolute; left:0; right:0; top:44px; z-index:20; background:#0E1F38;
+    border:1px solid var(--line); border-radius:10px; max-height:280px; overflow-y:auto; display:none;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);
+  }
+  .sugg .box.on{display:block}
+  .sugg .box div{padding:9px 14px; cursor:pointer; font-size:13px; display:flex; gap:8px; align-items:center}
+  .sugg .box div:hover{background:var(--panel2)}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">MAJORS · 13 CATEGORIES / 161 CLASSES / 1,266 NAMES</div>
+    <h1><span class="zh">专业招录分析</span></h1>
+    <div class="sub">
+      按专业三级层级查看招录规模：学科门类（13）→ 专业类（161）→ 专业名（1,266）。
+      点开任意一项，看它的完整画像。
+    </div>
+    <div style="margin-top:16px" class="seg" id="segCal">
+      <button class="on" data-c="wide">能报（宽口径）</button>
+      <button data-c="solo">只写该专业（窄口径）</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="ic">ⓘ</span>
+    <div id="calText">
+      <b>能报（宽口径）：</b>职位专业栏中出现该专业即计入，含「计算机类、经济学类、法学类」这类并列岗位 —— 你能报，但要和其他专业的人一起竞争。
+    </div>
+  </div>
+
+  <div class="grid g-8-4">
+    <div>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="searchbox">
+        <div class="sugg" style="flex:1">
+          <input id="kw" placeholder="搜索专业名，如「计算机」「法学」「软件工程」" autocomplete="off">
+          <div class="box" id="suggBox"></div>
+        </div>
+        <div class="seg" id="segLv" style="flex:none">
+          <button class="on" data-l="2">专业类 161</button>
+          <button data-l="3">专业名 1,266</button>
+        </div>
+      </div>
+      <div class="panel" style="padding:8px 4px">
+        <table class="tbl" id="t_m">
+          <thead><tr>
+            <th class="rk"></th><th>专业</th><th>门类</th>
+            <th style="text-align:right">职位数</th><th style="text-align:right">招录人数</th><th>占比</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel" style="border-color:var(--line)">
+        <h3 style="color:var(--gold-l)">读到这一条就够了 <span class="en">TAKEAWAY</span></h3>
+        <div class="takeaway">
+          <p>专业类前四名清一色财经类：<b id="tk1">—</b>、<b id="tk2">—</b>、
+             <b id="tk3">—</b>、<b id="tk4">—</b>；第五名<b id="tk5">—</b>，
+             是前五里唯一的工科。</p>
+          <p>门类视角看，<b id="tk6">—</b> 人居首、<b id="tk7">—</b> 次之；
+             <b id="tk8">—</b> 人是唯一破万的理工门类。</p>
+          <div class="warn">注：专业之间存在重叠，一个职位可同时属于多个专业 / 门类，故各项占比之和大于 100%。</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>学科门类 <span class="en">13 CATEGORIES</span></h3>
+        <div class="cap">按门类汇总其下<b>所有专业类与专业名</b>，同一职位不重复计算</div>
+        <div class="catall on" id="catAll">
+          <div class="r1"><span class="nm">全部门类</span>
+            <span class="n"><b id="allHc">—</b>人</span></div>
+          <div class="r2" id="allSub">—</div>
+        </div>
+        <div class="catlist" id="cats"></div>
+        <div class="cap" style="margin-top:10px;border-top:1px solid var(--line2);padding-top:9px">
+          数字＝该门类下各专业「能报」的招录人数（宽口径）。点门类可筛选左侧列表。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    数据来源：国家公务员局《中央机关及其直属机构 2027 年度考试录用公务员招考简章》（官方职位表）<br>
+    专业归一说明：专业名（1,266 个）与专业类（161 个）的父子关系需导入教育部专业目录后精确关联，当前按门类归类、按名称检索<br>
+    本页面仅做数据统计与可视化，不提供报名、培训、资料售卖等任何服务
+  </div>
+</div>
+
+<!-- 画像抽屉 -->
+<div class="mask" id="mask"></div>
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <span class="close" id="dclose">✕</span>
+    <div class="eyebrow" style="font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:8px">MAJOR PROFILE</div>
+    <h3 id="dname" style="font-size:20px"></h3>
+    <div id="dtag" style="margin-top:8px"></div>
+  </div>
+  <div class="db">
+    <div class="grid g2" style="gap:12px">
+      <div class="kpi" style="padding:14px 16px"><div class="lab">可报职位</div><div class="num gold" style="font-size:24px" id="dpos">—</div></div>
+      <div class="kpi" style="padding:14px 16px"><div class="lab">招录人数</div><div class="num" style="font-size:24px" id="dhc">—</div></div>
+    </div>
+    <div class="sec" style="margin:22px 0 10px"><h3 style="font-size:13px">机构层级构成</h3></div>
+    <div id="dlevel" class="chart sm"></div>
+    <div class="sec" style="margin:22px 0 10px"><h3 style="font-size:13px">招人最多的部门</h3></div>
+    <div id="ddept" class="chart sm"></div>
+    <div class="sec" style="margin:22px 0 10px"><h3 style="font-size:13px">最常一起出现的专业</h3></div>
+    <div id="dco" class="chart sm"></div>
+    <div class="mini" id="dnote"></div>
+  </div>
+</div>
+
+<script src="assets/echarts.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+App.nav('majors.html');
+const GK = window.GK;
+let CAL = 'wide', CAT = '', LV = 2;
+
+/* 门类导航（数字为该门类下所有专业类 + 专业名汇总，已按职位去重） */
+const l1 = GK.major_l1.slice().sort((a, b) => b.hc - a.hc);
+const L1MAX = l1[0] ? l1[0].hc : 1;
+const NONE = '__none__';   // 未归类
+
+document.getElementById('allHc').textContent = App.fmt(GK.meta.hc);
+document.getElementById('allSub').textContent =
+  `${App.fmt(GK.meta.pos)} 个职位 · ${GK.counters.major_cat} 个门类 · ${GK.counters.major_class} 个专业类 · ${GK.counters.major_name} 个专业名`;
+
+/* 结论卡：数字全部实时取，不写死 */
+(function () {
+  const top2 = GK.major_l2.slice().sort((a, b) => b.hc - a.hc).slice(0, 5);
+  top2.forEach((d, i) => {
+    const el = document.getElementById('tk' + (i + 1));
+    if (el) el.textContent = `${d.name} ${App.fmt(d.hc)} 人`;
+  });
+  const eng = ['工学', '理学'].filter(n => l1.some(c => c.name === n));
+  const wan = l1.filter(c => eng.indexOf(c.name) >= 0 && c.hc >= 10000)
+                .sort((a, b) => b.hc - a.hc);
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('tk6', l1[0] ? `${l1[0].name} ${App.fmt(l1[0].hc)}` : '—');
+  set('tk7', l1[1] ? `${l1[1].name} ${App.fmt(l1[1].hc)}` : '—');
+  set('tk8', wan.length ? `${wan[0].name} ${App.fmt(wan[0].hc)}` : '—');
+})();
+
+document.getElementById('cats').innerHTML = l1.map(c => {
+  const key = c.category ? c.name : NONE;
+  const dim = c.category ? '' : 'dim';
+  const sub = `title="其下 ${c.n_class} 个专业类 / ${c.n_name} 个专业名"`;
+  return `<a href="javascript:;" data-c="${key}" class="${dim}" ${sub}>
+    <div class="r1"><span class="nm">${c.name}</span>
+      <span class="n"><b>${App.fmt(c.hc)}</b>人</span></div>
+    <div class="r2">
+      <div class="bar"><i style="width:${(100 * c.hc / L1MAX).toFixed(1)}%"></i></div>
+      <span class="v">${App.fmt(c.pos)} 职位</span>
+    </div></a>`;
+}).join('');
+
+function pickCat(c) {
+  CAT = c; LV = 2;
+  document.getElementById('catAll').classList.toggle('on', c === '');
+  [...document.querySelectorAll('#cats a')].forEach(x => x.classList.toggle('on', x.dataset.c === c));
+  [...document.querySelectorAll('#segLv button')].forEach(x => x.classList.toggle('on', x.dataset.l == LV));
+  render();
+}
+document.getElementById('cats').onclick = e => {
+  const a = e.target.closest('a'); if (!a) return;
+  pickCat(a.dataset.c);
+};
+document.getElementById('catAll').onclick = () => pickCat('');
+
+/* 口径切换 */
+document.getElementById('segCal').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  CAL = b.dataset.c;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle('on', x === b));
+  document.getElementById('calText').innerHTML = CAL === 'wide'
+    ? '<b>能报（宽口径）：</b>职位专业栏中出现该专业即计入，含「计算机类、经济学类、法学类」这类并列岗位 —— 你能报，但要和其他专业的人一起竞争。'
+    : '<b>只写该专业（窄口径）：</b>整个职位的专业栏只写了这一个专业，不跟任何专业并列。全国仅 1,187 个职位属于此类，数字远小于宽口径。';
+  render();
+};
+
+document.getElementById('segLv').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  LV = +b.dataset.l;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle('on', x === b));
+  render();
+};
+
+function data() {
+  if (CAL === 'solo') {
+    return GK.exclusive.top.map(d => ({ k: d.k, pos: d.pos, hc: d.hc, cat: '—', lv: 'single' }));
+  }
+  const src = LV === 2 ? GK.major_l2 : GK.major_l3;
+  return src.filter(d => {
+    if (!CAT) return true;
+    if (CAT === NONE) return !d.category;
+    return d.category === CAT;
+  }).map(d => ({ k: d.name, pos: d.pos, hc: d.hc, cat: d.category || '未归类', pct: d.pct, lv: LV }));
+}
+
+function render() {
+  const all = data().sort((a, b) => b.hc - a.hc);
+  const rows = all.slice(0, 60);
+  const catName = !CAT ? '全部门类' : (CAT === NONE ? '未归类' : CAT);
+  document.getElementById('crumbs').innerHTML =
+    `<a href="javascript:;" data-home="1">全部</a>` +
+    (CAL === 'wide' ? ` › <b>${catName}</b> › <b>${LV === 2 ? '专业类' : '专业名'}</b>` : ` › <b>单一专业岗位</b>（不分门类）`) +
+    `　<span style="color:var(--txt3)">共 ${all.length} 项${rows.length < all.length ? `，按招录人数显示前 ${rows.length}` : ''}</span>`;
+  document.querySelector('#crumbs a').onclick = () => pickCat('');
+
+  const TH = GK.meta.hc;
+  document.querySelector('#t_m tbody').innerHTML = rows.map((r, i) => {
+    const pct = r.pct !== undefined ? r.pct : 100 * r.hc / TH;
+    return `<tr data-n="${r.k}" data-cat="${r.cat}" data-lv="${r.lv}" style="cursor:pointer">
+      <td class="rk"><i class="${['g1','g2','g3'][i] || ''}">${i + 1}</i></td>
+      <td><b>${r.k}</b></td>
+      <td style="color:var(--txt3)">${r.cat}</td>
+      <td class="n">${App.fmt(r.pos)}</td>
+      <td class="n"><b>${App.fmt(r.hc)}</b></td>
+      <td style="width:150px"><div class="bar-wrap"><div class="bar"><i class="${i === 0 ? 'gold' : ''}" style="width:${100 * r.hc / rows[0].hc}%"></i></div><span class="v">${App.pct(pct, 1)}</span></div></td>
+    </tr>`;
+  }).join('');
+  [...document.querySelectorAll('#t_m tbody tr')].forEach(tr => tr.onclick = () => openD(tr.dataset.n, tr.dataset.lv));
+}
+render();
+
+/* 搜索联想 */
+const kw = document.getElementById('kw'), box = document.getElementById('suggBox');
+kw.oninput = () => {
+  const v = kw.value.trim();
+  if (!v) { box.classList.remove('on'); return; }
+  const hit = GK.major_l2.concat(GK.major_l3).filter(d => d.name.indexOf(v) >= 0)
+    .sort((a, b) => b.hc - a.hc).slice(0, 12);
+  box.innerHTML = hit.length ? hit.map(d =>
+    `<div data-n="${d.name}" data-lv="${d.level}">${d.name}
+      <span class="tag ${d.level == 2 ? 'gold' : 'gray'}">${d.level == 2 ? '专业类' : '专业名'}</span>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--txt3)">${App.fmt(d.hc)} 人</span></div>`).join('')
+    : '<div style="color:var(--txt3)">没有匹配的专业</div>';
+  box.classList.add('on');
+  [...box.querySelectorAll('div[data-n]')].forEach(x => x.onclick = () => {
+    kw.value = ''; box.classList.remove('on'); openD(x.dataset.n, x.dataset.lv);
+  });
+};
+document.addEventListener('click', e => { if (!e.target.closest('.sugg')) box.classList.remove('on'); });
+
+/* 抽屉 */
+const drawer = document.getElementById('drawer'), mask = document.getElementById('mask');
+function closeD() { drawer.classList.remove('on'); mask.classList.remove('on'); }
+document.getElementById('dclose').onclick = closeD;
+mask.onclick = closeD;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeD(); });
+
+let dCharts = [];
+function openD(name, lv) {
+  const p = GK.profiles[name];
+  const info = GK.major_l2.concat(GK.major_l3).find(d => d.name === name) || { pos: 0, hc: 0, category: '—' };
+  document.getElementById('dname').textContent = name;
+  document.getElementById('dtag').innerHTML =
+    `<span class="tag gold">${lv == 2 || lv === '2' ? '专业类' : (lv == 3 || lv === '3' ? '专业名' : '单一专业')}</span>
+     <span class="tag gray">${info.category || '—'}</span>`;
+  document.getElementById('dpos').textContent = App.fmt(info.pos || (p && p.pos) || 0);
+  document.getElementById('dhc').textContent = App.fmt(info.hc || (p && p.hc) || 0);
+
+  dCharts.forEach(c => c && c.dispose()); dCharts = [];
+  if (p) {
+    dCharts.push(App.rose('dlevel', p.org_level.map(d => ({ k: d.k, v: d.hc }))));
+    dCharts.push(App.barH('ddept', p.dept.slice(0, 6).map(d => ({
+      k: d.k.replace('国家税务总局', '').replace('税务局', '税务'), v: d.hc, pos: d.pos })), { barW: 11, labelW: 62 }));
+    dCharts.push(App.barH('dco', p.cooccur.slice(0, 6).map(d => ({ k: d.k, v: d.pos })),
+      { barW: 11, labelW: 88, unit: '共现职位数' }));
+    document.getElementById('dnote').innerHTML =
+      '这些岗位专业栏里同时写了「' + name + '」和其他专业 —— 能报，但不是专属岗位。';
+  } else {
+    const co = GK.cooccur.top.filter(d => d.a === name || d.b === name)
+      .map(d => ({ k: d.a === name ? d.b : d.a, v: d.pos })).slice(0, 6);
+    const same = GK.major_l3.filter(d => d.category === info.category)
+      .sort((a, b) => b.hc - a.hc).slice(0, 6).map(d => ({ k: d.name, v: d.hc, pos: d.pos }));
+    dCharts.push(App.barH('dlevel', same, { barW: 11, labelW: 96 }));
+    dCharts.push(App.barH('ddept', GK.dept_top.slice(0, 6).map(d => ({ k: d.k.replace('国家税务总局', '').replace('税务局', '税务'), v: d.hc })),
+      { barW: 11, labelW: 62 }));
+    dCharts.push(App.barH('dco', co.length ? co : [{ k: '暂无共现数据', v: 1 }], { barW: 11, labelW: 88, unit: '共现职位数' }));
+    document.getElementById('dnote').innerHTML =
+      '该专业未预生成完整画像（平台已缓存计算机类 / 财政学类 / 法学类三个专业的完整画像）。上方「机构层级」位置暂显示同门类下的其他专业名排行，接入接口后自动补全。';
+  }
+  drawer.classList.add('on'); mask.classList.add('on');
+}
+</script>
+</body>
+</html>

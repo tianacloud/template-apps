@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>地域招录分布 · 2027 国考</title>
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .seg{display:inline-flex; background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:9px; padding:3px}
+  .seg button{background:none; border:0; color:var(--txt2); font-size:12.5px; padding:6px 13px;
+    border-radius:7px; cursor:pointer; transition:.18s; font-family:inherit}
+  .seg button.on{background:linear-gradient(140deg,rgba(212,169,90,.9),rgba(168,132,60,.9)); color:#12203A; font-weight:700}
+  .sw{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--txt2); cursor:pointer; user-select:none}
+  .sw i{width:34px; height:19px; border-radius:10px; background:rgba(255,255,255,.12); position:relative; transition:.2s}
+  .sw i::after{content:""; position:absolute; left:2px; top:2px; width:15px; height:15px; border-radius:50%;
+    background:#8A9BB8; transition:.2s}
+  .sw.on i{background:rgba(212,169,90,.35)}
+  .sw.on i::after{left:17px; background:var(--gold)}
+  .barline{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:20px 0 18px}
+  .crumbs{font-size:12.5px; color:var(--txt3); margin-bottom:14px}
+  .crumbs b{color:var(--gold-l)}
+  .crumbs a{color:var(--txt2); text-decoration:none; cursor:pointer}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">REGIONS · 31 PROVINCES / 374 CITY GROUPS</div>
+    <h1><span class="zh">地域招录分布</span></h1>
+    <div class="sub">
+      按职位「工作地点」字段解析到市级：31 个省级行政区、374 个省市组合。点地图或右侧榜单，下钻到市、到机构层级。
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="ic">ⓘ</span>
+    <div>
+      两个坑提前说明：
+      ① <b>「北京市」包含 480 个中央部委职位</b>（工作地点写北京市），可用下方开关排除；
+      ② <b>600 个职位工作地点只写到省级</b>，市字段记为「省直」。
+    </div>
+  </div>
+
+  <div class="barline">
+    <div class="seg" id="segM">
+      <button class="on" data-m="hc">按招录人数</button>
+      <button data-m="pos">按职位数</button>
+    </div>
+    <div class="seg" id="segF">
+      <button class="on" data-f="all">全部专业</button>
+      <button data-f="cs">只看计算机类</button>
+    </div>
+    <div class="sw" id="swNC"><i></i><span>排除中央部委职位</span></div>
+    <div class="crumbs" id="crumbs" style="margin:0 0 0 auto"></div>
+  </div>
+
+  <div class="grid g-7-5">
+    <div class="panel" style="padding:14px">
+      <h3 style="padding:0 8px">招录分布地图 <span class="en">CHOROPLETH</span></h3>
+      <div id="c_map" class="chart xl" style="height:520px"></div>
+      <div class="mini" style="padding:0 8px">
+        地图基于民政部行政区划数据绘制，含台湾省、港澳特别行政区及南海诸岛。
+      </div>
+    </div>
+    <div class="panel">
+      <h3>地区排行 <span class="en">RANKING</span></h3>
+      <div class="cap" id="rankCap">点击任意地区下钻</div>
+      <div style="max-height:520px; overflow-y:auto; margin-top:8px">
+        <table class="tbl" id="t_r">
+          <thead><tr><th class="rk"></th><th>地区</th><th style="text-align:right">职位</th><th style="text-align:right">人数</th><th>占比</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下钻面板 -->
+  <div id="drill" style="display:none">
+    <div class="sec"><h2 id="dtitle">地区下钻</h2><span class="en">DRILL DOWN</span></div>
+    <div class="grid g3">
+      <div class="panel">
+        <h3>机构层级构成 <span class="en">LEVEL</span></h3>
+        <div id="d_level" class="chart sm"></div>
+      </div>
+      <div class="panel">
+        <h3>省内城市分布 <span class="en">CITIES</span></h3>
+        <div id="d_city" class="chart" style="height:270px"></div>
+      </div>
+      <div class="panel">
+        <h3>招人最多的部门 <span class="en">DEPTS</span></h3>
+        <div id="d_dept" class="chart sm"></div>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="panel">
+        <h3>该地招人最多的专业类 <span class="en">MAJORS</span></h3>
+        <div id="d_major" class="chart sm"></div>
+      </div>
+      <div class="panel">
+        <h3>怎么读这些数据</h3>
+        <div id="d_note" style="font-size:12.6px;color:var(--txt2);line-height:2;margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    数据来源：国家公务员局《中央机关及其直属机构 2027 年度考试录用公务员招考简章》（官方职位表）<br>
+    工作地点按原文解析到市级；只写到省级的记为「省直」；中央部委职位工作地多写「北京市」<br>
+    本页面仅做数据统计与可视化，不提供报名、培训、资料售卖等任何服务
+  </div>
+</div>
+
+<script src="assets/echarts.min.js"></script>
+<script src="assets/china.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+App.nav('regions.html');
+const GK = window.GK;
+let METRIC = 'hc', FILTER = 'all', NOCENTER = false, CUR = '';
+
+let mapC = null, drill = [];
+function source() {
+  if (FILTER === 'cs') return GK.region_cs;
+  return NOCENTER ? GK.region_nocenter : GK.regions.province;
+}
+function render() {
+  const rows = source().slice().sort((a, b) => b[METRIC] - a[METRIC]);
+  const TH = GK.meta.hc, TP = GK.meta.pos;
+
+  /* 地图 */
+  if (!mapC) mapC = App.map('c_map', rows.map(d => ({ k: d.k, v: d.hc, pos: d.pos })));
+  else mapC.setOption({
+    visualMap: { max: Math.max.apply(null, rows.map(d => d.v)) },
+    series: [{ data: rows.map(d => ({ name: d.k, value: d.v, pos: d.pos })) }]
+  });
+  mapC.off('click');
+  mapC.on('click', p => { if (p.componentType === 'series') drillTo(p.name); });
+
+  /* 榜单 */
+  const max = rows[0][METRIC];
+  document.getElementById('rankCap').textContent =
+    `按${METRIC === 'hc' ? '招录人数' : '职位数'}排序 · 共 ${rows.length} 个省级行政区`;
+  document.querySelector('#t_r tbody').innerHTML = rows.map((r, i) => {
+    const denom = METRIC === 'hc' ? TH : TP;
+    return `<tr data-n="${r.k}" style="cursor:pointer">
+      <td class="rk"><i class="${['g1','g2','g3'][i] || ''}">${i + 1}</i></td>
+      <td><b>${r.k}</b>${r.k === '北京市' ? ' <span class="tag gray">含中央部委</span>' : ''}</td>
+      <td class="n">${App.fmt(r.pos)}</td>
+      <td class="n"><b>${App.fmt(r.hc)}</b></td>
+      <td style="width:130px"><div class="bar-wrap"><div class="bar"><i class="${i === 0 ? 'gold' : ''}" style="width:${100 * r[METRIC] / max}%"></i></div>
+      <span class="v">${App.pct(100 * r[METRIC] / denom, 1)}</span></div></td></tr>`;
+  }).join('');
+  [...document.querySelectorAll('#t_r tbody tr')].forEach(tr => tr.onclick = () => drillTo(tr.dataset.n));
+}
+
+function drillTo(pv) {
+  CUR = pv;
+  const D = GK.regions.detail[pv];
+  document.getElementById('drill').style.display = 'block';
+  document.getElementById('dtitle').textContent = pv + ' · 下钻明细';
+  document.getElementById('crumbs').innerHTML = `<a href="javascript:;">全国</a> › <b>${pv}</b>`;
+  document.querySelector('#crumbs a').onclick = () => {
+    document.getElementById('drill').style.display = 'none'; CUR = '';
+    document.getElementById('crumbs').innerHTML = '';
+  };
+
+  drill.forEach(c => c && c.dispose()); drill = [];
+  if (!D) { document.getElementById('d_note').textContent = '该地区无下钻数据。'; return; }
+
+  drill.push(App.rose('d_level', D.org_level.map(d => ({ k: d.k, v: d.hc }))));
+  const cities = D.city.slice(0, 10).map(d => ({ k: d.k, v: d.hc, pos: d.pos }));
+  drill.push(App.barH('d_city', cities, { barW: 12, labelW: 74 }));
+  drill.push(App.barH('d_dept', D.dept.slice(0, 6).map(d => ({
+    k: d.k.replace('国家税务总局', '').replace('税务局', '税务'), v: d.hc, pos: d.pos })), { barW: 11, labelW: 58 }));
+  drill.push(App.barH('d_major', D.major.slice(0, 8).map(d => ({ k: d.k, v: d.hc, pos: d.pos })), { barW: 11, labelW: 88 }));
+
+  const tot = D.org_level.reduce((s, x) => s + x.hc, 0);
+  const county = D.org_level.find(x => x.k.indexOf('县') >= 0);
+  const pctCounty = county ? (100 * county.hc / tot).toFixed(1) : '0';
+  document.getElementById('d_note').innerHTML =
+    `${pv} 共招录 <b style="color:var(--gold-l)">${App.fmt(tot)}</b> 人，
+     其中 <b style="color:var(--gold-l)">${pctCounty}%</b> 在县（区）级及以下。<br>
+     共 ${D.city.length} 个市级单位有招录${D.city.find(x => x.k === '省直') ? '，其中「省直」为只写到省级的职位' : ''}。<br>
+     招人最多的部门是 ${D.dept[0] ? D.dept[0].k : '—'}。`;
+  document.getElementById('drill').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('segM').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  METRIC = b.dataset.m;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle('on', x === b)); render();
+};
+document.getElementById('segF').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  FILTER = b.dataset.f;
+  [...e.currentTarget.children].forEach(x => x.classList.toggle('on', x === b)); render();
+};
+document.getElementById('swNC').onclick = function () {
+  NOCENTER = !NOCENTER; this.classList.toggle('on', NOCENTER); render();
+};
+render();
+App.auto(() => [mapC]);
+</script>
+</body>
+</html>
