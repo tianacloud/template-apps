@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c62828">
+<title>双十一优惠监控</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23e5342b'/%3E%3Ctext x='50' y='68' font-size='42' text-anchor='middle' fill='%23fff' font-weight='bold'%3E11%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --ink:#1b1f24;
+    --ink-2:#5b6572;
+    --ink-3:#8d97a3;
+    --line:#e6e9ee;
+    --red:#e5342b;
+    --red-soft:#fff1f0;
+    --red-line:#ffd9d6;
+    --green:#0f9960;
+    --green-soft:#eefaf4;
+    --green-line:#ccecdc;
+    --blue:#2f6bff;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 6px 18px rgba(16,24,40,.05);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 14px}
+
+  /* ---------- 顶部条 ---------- */
+  header{
+    background:linear-gradient(160deg,#e5342b 0%,#c62828 60%,#a81f1f 100%);
+    color:#fff;
+    padding:calc(16px + env(safe-area-inset-top)) 0 18px;
+    border-radius:0 0 20px 20px;
+    box-shadow:0 6px 20px rgba(198,40,40,.22);
+  }
+  .brand{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand h1{
+    font-size:17px;font-weight:700;margin:0;letter-spacing:.3px;
+    display:flex;align-items:center;gap:7px;
+  }
+  .brand h1 .dot{
+    width:8px;height:8px;border-radius:50%;background:#ffd666;
+    box-shadow:0 0 0 4px rgba(255,214,102,.22);
+  }
+  .brand .sub{font-size:12px;opacity:.82;white-space:nowrap}
+
+  /* 倒计时 */
+  .cd{margin-top:14px}
+  .cd-label{font-size:12px;opacity:.85;letter-spacing:.5px;margin-bottom:7px}
+  .cd-row{display:flex;gap:8px;align-items:stretch}
+  .cd-cell{
+    flex:1;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:11px;padding:8px 4px 6px;text-align:center;
+    backdrop-filter:blur(2px);
+  }
+  .cd-cell b{
+    display:block;font-size:24px;line-height:1.15;font-weight:700;
+    font-variant-numeric:tabular-nums;letter-spacing:.5px;
+  }
+  .cd-cell span{display:block;font-size:11px;opacity:.78;margin-top:2px}
+  .cd-cell.sep{
+    flex:0 0 8px;background:none;border:none;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;opacity:.5;font-weight:700;
+  }
+  .cd-note{margin-top:9px;font-size:12px;opacity:.86}
+  .cd-note b{font-weight:600}
+
+  /* ---------- 统计 ---------- */
+  .stats{display:flex;gap:10px;margin-top:16px}
+  .stat{
+    flex:1;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 13px;box-shadow:var(--shadow);
+  }
+  .stat .k{font-size:12px;color:var(--ink-3);letter-spacing:.3px}
+  .stat .v{
+    font-size:26px;font-weight:700;line-height:1.2;margin-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .v small{font-size:12px;font-weight:500;color:var(--ink-3);margin-left:3px}
+  .stat.ok .v{color:var(--green)}
+  .stat .bar{height:4px;border-radius:99px;background:#eef0f4;margin-top:9px;overflow:hidden}
+  .stat .bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#3ecf8e,#0f9960);transition:width .5s cubic-bezier(.2,.7,.3,1)}
+
+  /* ---------- 表单 ---------- */
+  .panel{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-top:14px;overflow:hidden;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 15px;cursor:pointer;user-select:none;
+  }
+  .panel-head h2{font-size:14.5px;margin:0;font-weight:600;display:flex;align-items:center;gap:7px}
+  .panel-head h2 .plus{
+    width:19px;height:19px;border-radius:6px;background:var(--red-soft);color:var(--red);
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;line-height:1;
+  }
+  .chev{font-size:12px;color:var(--ink-3);transition:transform .25s}
+  .panel.open .chev{transform:rotate(180deg)}
+  .panel-body{display:none;padding:0 15px 15px}
+  .panel.open .panel-body{display:block}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:12px;color:var(--ink-2);font-weight:500}
+  .field label .req{color:var(--red)}
+  input,select{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s;
+    appearance:none;
+  }
+  input:focus,select:focus{border-color:#f0a9a4;background:#fff;box-shadow:0 0 0 3px rgba(229,52,43,.10)}
+  input.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,52,43,.10)}
+  input::placeholder{color:#b9c0ca}
+  select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%238d97a3' d='M6 8 0 .8h12z'/></svg>");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;
+  }
+  .hint{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;border:none;border-radius:11px;
+    padding:12px 16px;cursor:pointer;transition:transform .12s,filter .18s,background .18s;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:var(--red);color:#fff;width:100%;margin-top:13px;box-shadow:0 4px 12px rgba(229,52,43,.22)}
+  .btn-primary:hover{filter:brightness(1.05)}
+
+  /* ---------- 工具条 ---------- */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:20px 2px 10px}
+  .toolbar h2{font-size:14.5px;margin:0;font-weight:600}
+  .seg{display:flex;gap:2px;background:#eaedf1;padding:3px;border-radius:9px}
+  .seg button{
+    font-family:inherit;font-size:12.5px;border:none;background:none;color:var(--ink-2);
+    padding:5px 10px;border-radius:7px;cursor:pointer;font-weight:500;transition:.18s;white-space:nowrap;
+  }
+  .seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(16,24,40,.10)}
+
+  /* ---------- 商品卡 ---------- */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .item{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:13px 14px;position:relative;overflow:hidden;
+    animation:fade .28s ease both;
+  }
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .item.hit{border-color:var(--green-line);background:linear-gradient(180deg,#f7fdfa,#fff 55%)}
+  .item.hit::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green)}
+
+  .row1{display:flex;align-items:flex-start;gap:8px}
+  .name{font-size:15.5px;font-weight:600;line-height:1.35;flex:1;word-break:break-word;padding-top:1px}
+  .tag{
+    flex:0 0 auto;font-size:11px;padding:2.5px 7px;border-radius:6px;font-weight:600;
+    background:#f1f3f6;color:var(--ink-2);white-space:nowrap;margin-top:2px;
+  }
+  .tag.tb{background:#fff3ec;color:#e0620d}
+  .tag.jd{background:#ffeceb;color:#d3382f}
+  .tag.pdd{background:#fdeaf0;color:#c2185b}
+  .tag.other{background:#eef2fb;color:#3c5fbf}
+
+  .prices{display:flex;align-items:baseline;gap:16px;margin-top:9px;flex-wrap:wrap}
+  .pz{display:flex;align-items:baseline;gap:5px}
+  .pz .lb{font-size:11.5px;color:var(--ink-3)}
+  .pz .num{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+  .pz.cur .num{color:var(--ink)}
+  .pz.cur .num.flash{animation:flash .8s ease}
+  @keyframes flash{0%{color:var(--green)}60%{color:var(--green)}100%{color:var(--ink)}}
+  .pz.tgt .num{color:var(--ink-2);font-weight:600;font-size:16px}
+
+  .status{
+    margin-top:10px;font-size:13px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:9px;
+  }
+  .status.hit{background:var(--green-soft);color:#0b7b4d;border:1px solid var(--green-line)}
+  .status.hit .ico{font-size:14px}
+  .status.wait{background:#f7f8fa;color:var(--ink-2);border:1px solid var(--line);font-weight:500}
+  .status.wait b{color:var(--red);font-weight:700}
+
+  .ops{display:flex;align-items:center;gap:6px;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
+  .op{
+    font-family:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--line);background:#fff;
+    color:var(--ink-2);padding:6px 11px;border-radius:8px;cursor:pointer;transition:.16s;white-space:nowrap;
+  }
+  .op:hover{background:#f7f8fa}
+  .op.link{color:var(--blue);border-color:#dbe5ff;background:#f6f9ff}
+  .op.link:hover{background:#eef4ff}
+  .op.del{color:var(--ink-3);margin-left:auto}
+  .op.del:hover{color:var(--red);border-color:var(--red-line);background:var(--red-soft)}
+  .op:active{transform:scale(.97)}
+
+  /* 行内编辑 */
+  .edit-box{margin-top:11px;padding:11px;background:#f8f9fb;border:1px solid var(--line);border-radius:11px}
+  .edit-box .lbl{font-size:12px;color:var(--ink-2);margin-bottom:7px;font-weight:500}
+  .edit-row{display:flex;gap:8px}
+  .edit-row input{flex:1;background:#fff}
+  .edit-row .btn{flex:0 0 auto;padding:11px 14px;font-size:14px}
+  .btn-ok{background:var(--ink);color:#fff}
+  .btn-cancel{background:#fff;border:1px solid var(--line);color:var(--ink-2);font-weight:500}
+  .btn-danger{background:var(--red);color:#fff}
+
+  /* 删除二次确认（页面内） */
+  .confirm-box{
+    margin-top:11px;padding:11px 12px;border-radius:11px;
+    background:var(--red-soft);border:1px solid var(--red-line);
+    animation:cfIn .2s ease both;
+  }
+  @keyframes cfIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .confirm-box .cf-text{
+    font-size:13px;color:#8f2a22;line-height:1.5;margin-bottom:10px;word-break:break-word;
+  }
+  .confirm-box .cf-text b{font-weight:700;color:#7a1f18}
+  .confirm-box .cf-actions{display:flex;gap:8px}
+  .confirm-box .btn{
+    flex:1;font-size:13.5px;padding:9px 12px;border-radius:9px;
+  }
+  .item.confirming{border-color:var(--red-line)}
+  .op.del.on{color:var(--red);border-color:var(--red-line);background:var(--red-soft)}
+
+  /* 空状态 */
+  .empty{
+    text-align:center;padding:44px 20px;background:var(--card);
+    border:1px dashed #dfe3ea;border-radius:var(--radius);color:var(--ink-3);
+  }
+  .empty .em{font-size:34px;line-height:1;margin-bottom:10px;opacity:.5}
+  .empty p{margin:0;font-size:13.5px}
+  .empty p+p{margin-top:5px;font-size:12.5px;opacity:.8}
+
+  footer{text-align:center;font-size:11.5px;color:#a8b0ba;margin-top:22px;line-height:1.7}
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+    background:rgba(27,31,36,.93);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:11px;
+    opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:99;max-width:86vw;text-align:center;
+    backdrop-filter:blur(4px);
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:380px){
+    .cd-cell b{font-size:20px}
+    .cd-cell span{font-size:10px}
+    .stat .v{font-size:22px}
+    .grid{grid-template-columns:1fr}
+  }
+  @media (min-width:560px){
+    .grid{grid-template-columns:1fr 1fr 1fr}
+    .field.full{grid-column:auto}
+    .field.name{grid-column:1/-1}
+    .field.link{grid-column:1/-1}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <h1><span class="dot"></span>双十一优惠监控</h1>
+      <span class="sub" id="todayLabel">—</span>
+    </div>
+
+    <div class="cd">
+      <div class="cd-label">距 11·11 大促开场还有</div>
+      <div class="cd-row" id="countdown">
+        <div class="cd-cell"><b id="cdD">--</b><span>天</span></div>
+        <div class="cd-cell sep">:</div>
+        <div class="cd-cell"><b id="cdH">--</b><span>时</span></div>
+        <div class="cd-cell sep">:</div>
+        <div class="cd-cell"><b id="cdM">--</b><span>分</span></div>
+        <div class="cd-cell sep">:</div>
+        <div class="cd-cell"><b id="cdS">--</b><span>秒</span></div>
+      </div>
+      <div class="cd-note" id="cdNote">目标时间：11 月 11 日 00:00</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 统计 -->
+  <div class="stats">
+    <div class="stat">
+      <div class="k">监控中</div>
+      <div class="v"><span id="stTotal">0</span><small>件</small></div>
+      <div class="bar"><i id="stTotalBar" style="background:linear-gradient(90deg,#8ab4ff,#2f6bff)"></i></div>
+    </div>
+    <div class="stat ok">
+      <div class="k">已达标</div>
+      <div class="v"><span id="stHit">0</span><small>件</small></div>
+      <div class="bar"><i id="stHitBar"></i></div>
+    </div>
+  </div>
+
+  <!-- 添加表单 -->
+  <div class="panel open" id="addPanel">
+    <div class="panel-head" id="addToggle">
+      <h2><span class="plus">+</span>添加监控商品</h2>
+      <span class="chev">▾</span>
+    </div>
+    <div class="panel-body">
+      <div class="grid">
+        <div class="field name">
+          <label for="fName">商品名 <span class="req">*</span></label>
+          <input id="fName" type="text" placeholder="例如：某品牌蓝牙耳机 Pro" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="fPlatform">平台</label>
+          <select id="fPlatform">
+            <option value="淘宝">淘宝</option>
+            <option value="京东">京东</option>
+            <option value="拼多多">拼多多</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fCur">当前价 (元) <span class="req">*</span></label>
+          <input id="fCur" type="number" inputmode="decimal" step="0.01" min="0" placeholder="199.00">
+        </div>
+        <div class="field">
+          <label for="fTarget">目标价 (元) <span class="req">*</span></label>
+          <input id="fTarget" type="number" inputmode="decimal" step="0.01" min="0" placeholder="149.00">
+        </div>
+        <div class="field link">
+          <label for="fLink">商品链接（选填）</label>
+          <input id="fLink" type="url" inputmode="url" placeholder="https://..." autocomplete="off">
+        </div>
+      </div>
+      <div class="hint">当前价低于或等于目标价时会自动标红提醒你入手。</div>
+      <button class="btn btn-primary" id="btnAdd">加入监控</button>
+    </div>
+  </div>
+
+  <!-- 列表 -->
+  <div class="toolbar">
+    <h2>我的清单</h2>
+    <div class="seg" id="filterSeg">
+      <button data-f="all" class="on">全部</button>
+      <button data-f="hit">已达标</button>
+      <button data-f="wait">未达标</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>
+    数据仅保存在本机浏览器，不会上传<br>
+    清理浏览器数据会清空清单，重要商品请自行留底
+  </footer>
+</div>
+
+<div style="text-align:center;padding:12px;color:#777">示例体验，数据仅保留在本页 <button id="resetDemo" type="button">恢复示例</button></div><div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var localStorage = {data:{},getItem:function(k){return this.data[k] || null},setItem:function(k,v){this.data[k]=String(v)}};
+  var KEY = 'double11-watchlist-v1';
+  var FILTER_KEY = 'double11-watchlist-filter';
+  var CN_NUM = ['零','一','二','三','四','五','六','七','八','九','十','十一'];
+
+  var state = {
+    items: [],
+    filter: 'all',
+    editingId: null,
+    confirmId: null
+  };
+
+  /* ---------- 存储 ---------- */
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(arr)) arr = [];
+      state.items = arr.filter(function(x){ return x && typeof x === 'object' && x.id; }).map(normalize);
+    }catch(e){
+      state.items = [];
+    }
+    try{
+      var f = localStorage.getItem(FILTER_KEY);
+      if(f === 'hit' || f === 'wait' || f === 'all') state.filter = f;
+    }catch(e){}
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state.items)); }
+    catch(e){ toast('浏览器存储不可用，数据无法保存'); }
+  }
+  function saveFilter(){
+    try{ localStorage.setItem(FILTER_KEY, state.filter); }catch(e){}
+  }
+  function normalize(it){
+    return {
+      id: String(it.id),
+      name: String(it.name || '未命名商品'),
+      platform: ['淘宝','京东','拼多多','其他'].indexOf(it.platform) > -1 ? it.platform : '其他',
+      current: toNum(it.current),
+      target: toNum(it.target),
+      link: it.link ? String(it.link) : '',
+      created: Number(it.created) || Date.now()
+    };
+  }
+  function toNum(v){
+    var n = parseFloat(v);
+    return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0;
+  }
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  /* ---------- 金额格式 ---------- */
+  function money(n){
+    var v = Number(n) || 0;
+    var s = v.toFixed(2);
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '¥' + parts.join('.');
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function safeUrl(u){
+    if(!u) return '';
+    var s = String(u).trim();
+    if(!s) return '';
+    if(/^https?:\/\//i.test(s)) return s;
+    if(/^[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(s)) return 'https://' + s;
+    return '';
+  }
+  function isHit(it){ return it.current <= it.target; }
+
+  /* ---------- 渲染：统计 ---------- */
+  function renderStats(){
+    var total = state.items.length;
+    var hit = state.items.filter(isHit).length;
+    document.getElementById('stTotal').textContent = total;
+    document.getElementById('stHit').textContent = hit;
+    var pct = total ? Math.round(hit / total * 100) : 0;
+    document.getElementById('stHitBar').style.width = pct + '%';
+    document.getElementById('stTotalBar').style.width = total ? '100%' : '0%';
+  }
+
+  /* ---------- 渲染：列表 ---------- */
+  function itemHTML(it){
+    var hit = isHit(it);
+    var gap = Math.round((it.current - it.target) * 100) / 100;
+    var pct = it.current > 0 ? Math.round(it.target / it.current * 100) : null;
+    var url = safeUrl(it.link);
+    var tagCls = it.platform === '淘宝' ? 'tb' : it.platform === '京东' ? 'jd' : it.platform === '拼多多' ? 'pdd' : 'other';
+
+    var statusHTML = hit
+      ? '<div class="status hit"><span class="ico">✓</span>已到目标价，可以入手</div>'
+      : '<div class="status wait">还差 <b>' + money(gap) + '</b>' + (pct !== null ? '（目标价约为现价的 ' + pct + '%）' : '') + '</div>';
+
+    var editHTML = state.editingId === it.id
+      ? '<div class="edit-box">' +
+          '<div class="lbl">更新当前价（元）</div>' +
+          '<div class="edit-row">' +
+            '<input type="number" inputmode="decimal" step="0.01" min="0" value="' + it.current + '" data-edit-input="' + it.id + '">' +
+            '<button class="btn btn-ok" data-act="save" data-id="' + it.id + '">保存</button>' +
+            '<button class="btn btn-cancel" data-act="cancel">取消</button>' +
+          '</div>' +
+        '</div>'
+      : '';
+
+    var confirmHTML = state.confirmId === it.id
+      ? '<div class="confirm-box">' +
+          '<div class="cf-text">确定删除「<b>' + esc(it.name) + '</b>」？删除后不可恢复。</div>' +
+          '<div class="cf-actions">' +
+            '<button class="btn btn-danger" data-act="del-ok" data-id="' + it.id + '">确认删除</button>' +
+            '<button class="btn btn-cancel" data-act="del-cancel" data-id="' + it.id + '">取消</button>' +
+          '</div>' +
+        '</div>'
+      : '';
+
+    return '<div class="item' + (hit ? ' hit' : '') + (state.confirmId === it.id ? ' confirming' : '') + '" data-id="' + it.id + '">' +
+      '<div class="row1">' +
+        '<div class="name">' + esc(it.name) + '</div>' +
+        '<span class="tag ' + tagCls + '">' + esc(it.platform) + '</span>' +
+      '</div>' +
+      '<div class="prices">' +
+        '<div class="pz cur"><span class="lb">当前价</span><span class="num" data-cur="' + it.id + '">' + money(it.current) + '</span></div>' +
+        '<div class="pz tgt"><span class="lb">目标价</span><span class="num">' + money(it.target) + '</span></div>' +
+      '</div>' +
+      statusHTML +
+      editHTML +
+      confirmHTML +
+      '<div class="ops">' +
+        '<button class="op" data-act="edit" data-id="' + it.id + '">更新现价</button>' +
+        (url ? '<a class="op link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">去商品页 ↗</a>' : '') +
+        '<button class="op del' + (state.confirmId === it.id ? ' on' : '') + '" data-act="del" data-id="' + it.id + '">删除</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderList(){
+    var list = document.getElementById('list');
+    var items = state.items.slice();
+
+    // 排序：已达标优先，其次按加购时间倒序
+    items.sort(function(a, b){
+      var ha = isHit(a) ? 0 : 1, hb = isHit(b) ? 0 : 1;
+      if(ha !== hb) return ha - hb;
+      return b.created - a.created;
+    });
+
+    if(state.filter === 'hit') items = items.filter(isHit);
+    if(state.filter === 'wait') items = items.filter(function(x){ return !isHit(x); });
+
+    if(!items.length){
+      var emptyMsg = state.items.length
+        ? '这个筛选条件下没有商品'
+        : '还没有监控的商品';
+      var emptySub = state.items.length
+        ? '试试切换上方的筛选条件'
+        : '在上方添加商品，填好目标价，价格到位会自动提醒';
+      list.innerHTML = '<div class="empty"><div class="em">🛒</div><p>' + emptyMsg + '</p><p>' + emptySub + '</p></div>';
+      return;
+    }
+
+    list.innerHTML = items.map(itemHTML).join('');
+
+    // 编辑框自动聚焦
+    if(state.editingId){
+      var inp = list.querySelector('[data-edit-input]');
+      if(inp){
+        inp.focus();
+        inp.select();
+      }
+    }
+  }
+
+  function render(){ renderStats(); renderList(); }
+
+  /* ---------- 倒计时 ---------- */
+  function targetDate(){
+    var now = new Date();
+    var y = now.getFullYear();
+    var t = new Date(y, 10, 11, 0, 0, 0, 0); // 11月11日 00:00
+    // 若已过今年双十一，则指向明年
+    if(now.getTime() >= t.getTime()){
+      t = new Date(y + 1, 10, 11, 0, 0, 0, 0);
+    }
+    return t;
+  }
+  function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+
+  function tick(){
+    var now = new Date();
+    var t = targetDate();
+    var diff = Math.max(0, t.getTime() - now.getTime());
+
+    var d = Math.floor(diff / 86400000);
+    var h = Math.floor(diff % 86400000 / 3600000);
+    var m = Math.floor(diff % 3600000 / 60000);
+    var s = Math.floor(diff % 60000 / 1000);
+
+    document.getElementById('cdD').textContent = pad2(d);
+    document.getElementById('cdH').textContent = pad2(h);
+    document.getElementById('cdM').textContent = pad2(m);
+    document.getElementById('cdS').textContent = pad2(s);
+
+    var note = document.getElementById('cdNote');
+    var y = t.getFullYear();
+    var yy = String(y).slice(2);
+    if(diff <= 0){
+      note.innerHTML = '<b>双十一已经开始，冲！</b>';
+    }else if(now.getFullYear() === y){
+      note.textContent = '目标时间：' + (y === new Date().getFullYear() ? '' : y + ' 年 ') + '11 月 11 日 00:00';
+    }else{
+      note.textContent = '今年双十一已过，正在为 ' + y + ' 年双十一倒计时';
+    }
+
+    document.getElementById('todayLabel').textContent = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+  }
+
+  /* ---------- 提示 ---------- */
+  var toastTimer = null;
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1900);
+  }
+
+  function flashPrice(id){
+    var el = document.querySelector('[data-cur="' + id + '"]');
+    if(!el) return;
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+  }
+
+  /* ---------- 添加 ---------- */
+  function addItem(e){
+    if(e) e.preventDefault();
+    var nameEl = document.getElementById('fName');
+    var curEl = document.getElementById('fCur');
+    var tgtEl = document.getElementById('fTarget');
+    var name = nameEl.value.trim();
+    var curRaw = curEl.value.trim();
+    var tgtRaw = tgtEl.value.trim();
+
+    nameEl.classList.remove('err');
+    curEl.classList.remove('err');
+    tgtEl.classList.remove('err');
+
+    if(!name){ nameEl.classList.add('err'); nameEl.focus(); toast('请填写商品名'); return; }
+    if(curRaw === '' || !isFinite(parseFloat(curRaw))){
+      curEl.classList.add('err'); curEl.focus(); toast('请填写正确的当前价'); return;
+    }
+    if(tgtRaw === '' || !isFinite(parseFloat(tgtRaw))){
+      tgtEl.classList.add('err'); tgtEl.focus(); toast('请填写正确的目标价'); return;
+    }
+
+    var item = {
+      id: uid(),
+      name: name.slice(0, 80),
+      platform: document.getElementById('fPlatform').value,
+      current: toNum(curRaw),
+      target: toNum(tgtRaw),
+      link: document.getElementById('fLink').value.trim().slice(0, 800),
+      created: Date.now()
+    };
+
+    state.items.unshift(item);
+    save();
+    state.filter = 'all';
+    syncFilterButtons();
+    render();
+    flashPrice(item.id);
+
+    nameEl.value = ''; curEl.value = ''; tgtEl.value = ''; document.getElementById('fLink').value = '';
+    toast(isHit(item) ? '已加入 · 当前价已达目标价' : '已加入监控');
+
+    // 手机上添加后自动收起表单，方便看列表
+    if(window.matchMedia('(max-width: 560px)').matches){
+      document.getElementById('addPanel').classList.remove('open');
+    }
+  }
+
+  /* ---------- 更新现价 ---------- */
+  function savePrice(id){
+    var inp = document.querySelector('[data-edit-input="' + id + '"]');
+    var item = state.items.filter(function(x){ return x.id === id; })[0];
+    if(!inp || !item) return;
+    var v = inp.value.trim();
+    if(v === '' || !isFinite(parseFloat(v))){
+      inp.classList.add('err');
+      toast('请输入正确的价格');
+      return;
+    }
+    var old = item.current;
+    item.current = toNum(v);
+    state.editingId = null;
+    save();
+    render();
+    flashPrice(id);
+
+    if(!isHit({current: old, target: item.target}) && isHit(item)){
+      toast('🎉 ' + item.name + ' 已到目标价！');
+    }else{
+      toast('当前价已更新');
+    }
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function syncFilterButtons(){
+    var btns = document.querySelectorAll('#filterSeg button');
+    for(var i = 0; i < btns.length; i++){
+      btns[i].classList.toggle('on', btns[i].getAttribute('data-f') === state.filter);
+    }
+  }
+
+  document.getElementById('btnAdd').addEventListener('click', addItem);
+
+  // 回车提交
+  ['fName','fCur','fTarget','fLink'].forEach(function(id){
+    document.getElementById(id).addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter'){ ev.preventDefault(); addItem(ev); }
+    });
+  });
+  document.getElementById('fPlatform').addEventListener('keydown', function(ev){
+    if(ev.key === 'Enter'){ ev.preventDefault(); addItem(ev); }
+  });
+
+  document.getElementById('addToggle').addEventListener('click', function(){
+    document.getElementById('addPanel').classList.toggle('open');
+  });
+
+  document.getElementById('filterSeg').addEventListener('click', function(ev){
+    var b = ev.target.closest('button');
+    if(!b) return;
+    state.filter = b.getAttribute('data-f');
+    saveFilter();
+    syncFilterButtons();
+    renderList();
+  });
+
+  document.getElementById('list').addEventListener('click', function(ev){
+    var btn = ev.target.closest('[data-act]');
+    if(!btn) return;
+    var act = btn.getAttribute('data-act');
+    var id = btn.getAttribute('data-id');
+
+    if(act === 'edit'){
+      state.editingId = (state.editingId === id) ? null : id;
+      state.confirmId = null;
+      renderList();
+      return;
+    }
+    if(act === 'cancel'){
+      state.editingId = null;
+      renderList();
+      return;
+    }
+    if(act === 'save'){
+      savePrice(id);
+      return;
+    }
+    if(act === 'del'){
+      // 页面内二次确认：第一次点击只在卡片内展开确认框，不弹原生 dialog
+      state.editingId = null;
+      state.confirmId = (state.confirmId === id) ? null : id;
+      renderList();
+      return;
+    }
+    if(act === 'del-cancel'){
+      state.confirmId = null;
+      renderList();
+      return;
+    }
+    if(act === 'del-ok'){
+      var it = state.items.filter(function(x){ return x.id === id; })[0];
+      if(!it) return;
+      state.items = state.items.filter(function(x){ return x.id !== id; });
+      if(state.editingId === id) state.editingId = null;
+      state.confirmId = null;
+      save();
+      render();
+      toast('已删除「' + it.name + '」');
+    }
+  });
+
+  // 编辑框回车保存 / Esc 取消（同时收起删除确认框）
+  document.getElementById('list').addEventListener('keydown', function(ev){
+    if(ev.key === 'Escape'){
+      if(state.editingId || state.confirmId){
+        state.editingId = null;
+        state.confirmId = null;
+        renderList();
+      }
+      return;
+    }
+    if(!state.editingId) return;
+    if(ev.key === 'Enter' && ev.target.hasAttribute('data-edit-input')){
+      ev.preventDefault();
+      savePrice(state.editingId);
+    }
+  });
+
+  // 跨标签页同步
+  window.addEventListener('storage', function(ev){
+    if(ev.key === KEY){
+      load();
+      render();
+    }
+  });
+
+  /* ---------- 启动 ---------- */
+  function resetDemo(){ state.items=[{id:'demo1',name:'无线耳机',platform:'京东',current:299,target:249,link:'',created:Date.now()},{id:'demo2',name:'保温杯',platform:'淘宝',current:59,target:69,link:'',created:Date.now()-1}];state.filter='all';state.editingId=null;state.confirmId=null;save();syncFilterButtons();render(); }
+  document.getElementById('resetDemo').addEventListener('click',resetDemo);
+  resetDemo();
+  syncFilterButtons();
+  render();
+  tick();
+  setInterval(tick, 1000);
+
+  // 演示数据（仅首次访问、且列表为空时提示用）
+  if(!state.items.length && !localStorage.getItem('double11-seen')){
+    try{ localStorage.setItem('double11-seen', '1'); }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
