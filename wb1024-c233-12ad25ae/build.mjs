@@ -10,4 +10,4 @@ for(const file of scripts){let text=await readFile(new URL('public/'+file,root),
 js+='\nAPP.init();\n';
 await writeFile(new URL('assets/app.js',out),js);
 const params=JSON.parse(await readFile(new URL('source.json',root),'utf8'));
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',git_instance_id:params.git_instance_id}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:params.git_instance_id}));
