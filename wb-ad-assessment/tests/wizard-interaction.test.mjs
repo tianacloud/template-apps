@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mount,settle} from './dom-harness.mjs';
+import {samplePatients} from '../src/rules.js';
+const expose=`export function openStep(value){step=value;view='new';render();} export const state=()=>({step,draft,view});`;
+test('POEM items may stay blank or be cleared; NRS still requires an explicit choice including zero',async()=>{
+ const ui=await mount({list:async()=>samplePatients()},expose);
+ assert.ok(ui.document.querySelector('[data-action=begin]'));
+ ui.app.openStep(1);ui.click('[data-poem="0,0"]');
+ assert.equal(ui.app.state().draft.poem[0],0);
+ assert.equal(ui.document.querySelector('[data-poem="0,0"]').getAttribute('aria-pressed'),'true');
+ ui.click('[data-poem="0,0"]');
+ assert.equal(ui.app.state().draft.poem[0],null);
+ assert.equal(ui.document.querySelector('#poemScoreVal').textContent,'未评分');
+ ui.click('[data-action=next]');
+ assert.equal(ui.app.state().step,2);
+ assert.equal(ui.app.state().draft.poem.filter(v=>v===null).length,7);
+ ui.click('[data-action=next]');
+ assert.equal(ui.app.state().draft.nrs,null);
+ assert.equal(ui.app.state().step,2);
+ ui.input('#nrsRange','0');ui.click('[data-action=next]');
+ assert.equal(ui.app.state().draft.nrs,0);
+ assert.equal(ui.app.state().step,3);
+ await settle();
+});
