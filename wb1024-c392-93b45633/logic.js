@@ -132,8 +132,8 @@ function renderFloor(){const rs=state.rooms;
       <h2 style="margin:0">🧊 立体户型图</h2>
       <span class="sp"></span>
       <div class="toptabs">
-        <button class="${viewMode==='3d'?'on':''}" onclick="viewMode='3d';renderFloor()">立体</button>
-        <button class="${viewMode==='2d'?'on':''}" onclick="viewMode='2d';renderFloor()">平面</button>
+        <button class="${viewMode==='3d'?'on':''}" data-action-click="viewMode='3d';renderFloor()">立体</button>
+        <button class="${viewMode==='2d'?'on':''}" data-action-click="viewMode='2d';renderFloor()">平面</button>
       </div>
     </div>
     <div class="legend" style="margin-bottom:8px">
@@ -151,7 +151,7 @@ function renderFloor(){const rs=state.rooms;
   <div class="card">
     <h2>🏠 全部空间一览</h2>
     <div class="grid g3">
-      ${rs.map(r=>`<div class="room-card ${r.id===selRoom?'sel':''}" onclick="selRoom='${r.id}';renderFloor()">
+      ${rs.map(r=>`<div class="room-card ${r.id===selRoom?'sel':''}" data-action-click="selRoom='${r.id}';renderFloor()">
         <div><div style="font-weight:800">${esc(r.name)}</div>
         <div class="mini">${r.area?r.area+'㎡ · ':''}硬装 ${roomHard(r)}% / 软装 ${roomSoft(r)}%</div></div>
         <span class="sp"></span>
@@ -163,7 +163,7 @@ function renderFloor(){const rs=state.rooms;
 }
 function renderRoomPanel(){const r=state.rooms.find(x=>x.id===selRoom);if(!r)return;
   const box=(it,grp)=>`<div class="flex" style="padding:7px 0;border-bottom:1px solid var(--line)">
-    <div class="cbox ${it.done?'on':''}" onclick="toggleItem('${r.id}','${grp}','${it.id}')">${it.done?'✓':''}</div>
+    <div class="cbox ${it.done?'on':''}" data-action-click="toggleItem('${r.id}','${grp}','${it.id}')">${it.done?'✓':''}</div>
     <span style="font-weight:600;text-decoration:${it.done?'line-through':'none'};color:${it.done?'var(--sub)':'var(--ink)'}">${esc(it.name)}</span></div>`;
   $('roomPanel').innerHTML=`
     <div style="border:1px solid var(--line);border-radius:14px;padding:15px;background:#fbfcff">
@@ -176,8 +176,8 @@ function renderRoomPanel(){const r=state.rooms.find(x=>x.id===selRoom);if(!r)ret
       <div style="font-weight:800;font-size:13px;color:var(--soft);margin:12px 0 4px">🛋 软装清单</div>
       ${r.softItems.length?r.softItems.map(i=>box(i,'soft')).join(''):'<div class="mini">暂无</div>'}
       <div class="flex" style="margin-top:12px">
-        <button class="btn sm" onclick="addItem('${r.id}','hard')">＋硬装项</button>
-        <button class="btn sm" onclick="addItem('${r.id}','soft')">＋软装项</button>
+        <button class="btn sm" data-action-click="addItem('${r.id}','hard')">＋硬装项</button>
+        <button class="btn sm" data-action-click="addItem('${r.id}','soft')">＋软装项</button>
       </div>
     </div>`;
 }
@@ -201,7 +201,7 @@ function isoSVG(){const rs=state.rooms;let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9
     const[ax,ay]=proj(r.x,r.y),[bx,by]=proj(r.x+r.w,r.y),[cx,cy]=proj(r.x+r.w,r.y+r.h),[dx,dy]=proj(r.x,r.y+r.h);
     const au=[ax,ay-WH],bu=[bx,by-WH],du=[dx,dy-WH];
     const sel=r.id===selRoom;
-    s+=`<g style="cursor:pointer" onclick="selRoom='${r.id}';renderFloor()">
+    s+=`<g style="cursor:pointer" data-action-click="selRoom='${r.id}';renderFloor()">
       <polygon points="${ax},${ay} ${bx},${by} ${bx},${by-WH} ${ax},${ay-WH}" fill="${wall}" opacity=".96"/>
       <polygon points="${ax},${ay} ${dx},${dy} ${dx},${dy-WH} ${ax},${ay-WH}" fill="${wall}" opacity=".78"/>
       <polygon points="${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}" fill="${floor}" stroke="${sel?'#1c2434':'#fff'}" stroke-width="${sel?2.5:1.2}"/>
@@ -213,7 +213,7 @@ function isoSVG(){const rs=state.rooms;let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9
 function planSVG(){const rs=state.rooms;const sc=46;let maxX=0,maxY=0;
   rs.forEach(r=>{maxX=Math.max(maxX,r.x+r.w);maxY=Math.max(maxY,r.y+r.h);});
   let s='';rs.forEach(r=>{const o=roomOverall(r);const hue=Math.round(o/100*140);
-    s+=`<g style="cursor:pointer" onclick="selRoom='${r.id}';renderFloor()">
+    s+=`<g style="cursor:pointer" data-action-click="selRoom='${r.id}';renderFloor()">
       <rect x="${r.x*sc}" y="${r.y*sc}" width="${r.w*sc}" height="${r.h*sc}" rx="6"
         fill="hsl(${hue},60%,${80-Math.round(o/100*10)}%)" stroke="${r.id===selRoom?'#1c2434':'#fff'}" stroke-width="${r.id===selRoom?2.5:1.5}"/>
       <text x="${r.x*sc+r.w*sc/2}" y="${r.y*sc+r.h*sc/2-3}" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2434">${esc(r.name)}</text>
@@ -227,7 +227,7 @@ function renderProgress(){const ov=overallPct();
   const groups=[{k:'硬装',items:state.phases.filter(p=>p.group==='硬装')},{k:'软装',items:state.phases.filter(p=>p.group==='软装')}];
   let html=`<div class="card"><div class="flex"><h2 style="margin:0">📅 施工阶段与时间线</h2>
     <span class="sp pill" style="background:#eef0ff;color:var(--primary2);padding:6px 13px;border-radius:20px;font-weight:700">整体进度 ${ov}%</span>
-    <button class="btn p sm" onclick="addPhase()">＋ 新增阶段</button></div></div>`;
+    <button class="btn p sm" data-action-click="addPhase()">＋ 新增阶段</button></div></div>`;
   if(!state.phases.length)html+=`<div class="card empty">暂无阶段。点「新增阶段」或「✦ 示例数据」载入硬装+软装全套阶段。</div>`;
   groups.forEach(g=>{if(!g.items.length)return;
     html+=`<div class="card"><h2><span class="dot" style="background:${GCOL[g.k]};width:12px;height:12px"></span>${g.k}阶段 <span class="tag2" style="background:${g.k==='硬装'?'#e7f3ff':'#f1eaff'};color:${GCOL[g.k]}">${g.items.length} 项</span></h2>`;
@@ -237,14 +237,14 @@ function renderProgress(){const ov=overallPct();
         <span class="tag" style="background:${SC[st]}22;color:${SC[st]}">${st}</span>
         <span class="mini">🗓 ${ph.start||'—'} ~ ${ph.end||'—'}</span>
         <span class="sp"></span>
-        <button class="btn ghost sm" onclick="editPhase('${ph.id}')">编辑</button>
-        <button class="btn ghost sm" onclick="addNode('${ph.id}')">＋节点</button>
-        <button class="btn danger sm" onclick="delPhase('${ph.id}')">删除</button>
+        <button class="btn ghost sm" data-action-click="editPhase('${ph.id}')">编辑</button>
+        <button class="btn ghost sm" data-action-click="addNode('${ph.id}')">＋节点</button>
+        <button class="btn danger sm" data-action-click="delPhase('${ph.id}')">删除</button>
       </div>
       <div class="pbar"><i style="width:${pg}%;background:linear-gradient(90deg,${GCOL[g.k]},${g.k==='硬装'?'#7fc0ff':'#c79bff'})"></i></div>
       <div class="mini" style="margin:6px 0 10px">阶段完成 ${pg}%</div>
       <div class="flex" style="gap:8px;flex-wrap:wrap">
-        ${ph.nodes.length?ph.nodes.map(n=>`<div class="chip" onclick="cycleNode('${ph.id}','${n.id}')">
+        ${ph.nodes.length?ph.nodes.map(n=>`<div class="chip" data-action-click="cycleNode('${ph.id}','${n.id}')">
           <i class="dot" style="background:${SC[n.status]}"></i>${esc(n.name)}<span class="mini">${n.status}</span></div>`).join(''):'<span class="mini">暂无节点</span>'}
       </div></div>`;});
     html+=`</div>`;});
@@ -285,7 +285,7 @@ function renderAccounts(){const b=Number(state.project.totalBudget||0),ex=expens
       <div><label>收款方/来源</label><input type="text" id="f-payee" placeholder="如：XX装修公司"></div>
       <div><label>备注</label><input type="text" id="f-note" placeholder="可选"></div>
     </div>
-    <div style="margin-top:14px"><button class="btn p" onclick="addTx()">💾 保存这笔账目</button></div>
+    <div style="margin-top:14px"><button class="btn p" data-action-click="addTx()">💾 保存这笔账目</button></div>
   </div>
 
   <div class="grid g2">
@@ -312,7 +312,7 @@ function renderAccounts(){const b=Number(state.project.totalBudget||0),ex=expens
         <td><span class="tag" style="background:${t.type==='expense'?'#fff0f3':'#eafaf3'};color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'支出':'收入'}</span></td>
         <td>${esc(t.category)}</td><td>${esc(t.payee||'—')}</td><td>${esc(t.note||'—')}</td>
         <td style="text-align:right;font-weight:700;color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'-':'+'}${money(t.amount)}</td>
-        <td style="text-align:right"><button class="btn danger sm" onclick="delTx('${t.id}')">删</button></td></tr>`).join('')}
+        <td style="text-align:right"><button class="btn danger sm" data-action-click="delTx('${t.id}')">删</button></td></tr>`).join('')}
     </tbody></table>`:`<div class="empty">还没有账目</div>`}
   </div>`;
 }
@@ -335,7 +335,7 @@ function renderSettings(){const p=state.project;
       <div><label>预计完工</label><input id="s-end" type="date" value="${p.endDate}"></div>
       <div><label>硬装/软装预算(元)</label><input id="s-hs" type="text" value="${p.hardBudget+' / '+p.softBudget}" placeholder="如 220000 / 80000"></div>
     </div>
-    <div style="margin-top:14px"><button class="btn p" onclick="saveSettings()">💾 保存</button></div>
+    <div style="margin-top:14px"><button class="btn p" data-action-click="saveSettings()">💾 保存</button></div>
   </div>
 
   <div class="card">
@@ -343,25 +343,25 @@ function renderSettings(){const p=state.project;
     ${['硬装','软装','通用'].map(g=>{const cs=state.categories.filter(c=>c.group===g);if(!cs.length)return'';
       return`<div style="margin-bottom:12px"><div class="mini" style="font-weight:800;color:${GCOL[g]};margin-bottom:6px">${g}类</div>
         ${cs.map(c=>`<div class="flex" style="gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
-          <input value="${esc(c.name)}" style="max-width:200px;font-weight:700" onchange="renameCat('${esc(c.name)}',this.value)">
-          <input type="number" min="0" value="${c.budget}" placeholder="预算" style="max-width:140px" onchange="setCatBudget('${esc(c.name)}',this.value)">
+          <input value="${esc(c.name)}" style="max-width:200px;font-weight:700" data-action-change="renameCat('${esc(c.name)}',this.value)">
+          <input type="number" min="0" value="${c.budget}" placeholder="预算" style="max-width:140px" data-action-change="setCatBudget('${esc(c.name)}',this.value)">
           <span class="mini">已支出 ${money(catSpend(c.name))}</span>
-          <span class="sp"></span><button class="btn danger sm" onclick="delCat('${esc(c.name)}')">删</button></div>`).join('')}
+          <span class="sp"></span><button class="btn danger sm" data-action-click="delCat('${esc(c.name)}')">删</button></div>`).join('')}
       </div>`;}).join('')}
     <div class="flex" style="margin-top:10px;gap:8px">
       <input id="new-cat" placeholder="新分类名" style="max-width:160px">
       <select id="new-grp" style="max-width:120px"><option value="硬装">硬装</option><option value="软装">软装</option><option value="通用">通用</option></select>
-      <button class="btn" onclick="addCat()">＋ 添加</button>
+      <button class="btn" data-action-click="addCat()">＋ 添加</button>
     </div>
   </div>
 
   <div class="card">
     <h2>🗂 数据管理</h2>
     <div class="flex">
-      <button class="btn" onclick="exportJSON()">⬇ 导出备份</button>
-      <button class="btn" onclick="document.getElementById('imp').click()">⬆ 导入</button>
-      <button class="btn" onclick="loadSample()">✦ 示例数据</button>
-      <button class="btn danger" onclick="clearAll()">🗑 清空</button>
+      <button class="btn" data-action-click="exportJSON()">⬇ 导出备份</button>
+      <button class="btn" data-action-click="document.getElementById('imp').click()">⬆ 导入</button>
+      <button class="btn" data-action-click="loadSample()">✦ 示例数据</button>
+      <button class="btn danger" data-action-click="clearAll()">🗑 清空</button>
     </div>
     <p class="mini" style="margin-top:10px">数据保存在本浏览器 localStorage，不上传任何服务器。</p>
   </div>`;
@@ -464,3 +464,16 @@ function loadSample(){
 /* ============ 启动 ============ */
 function initAll(){$('projTitle').textContent=state.project.name;renderOverview();renderFloor();renderProgress();renderAccounts();renderSettings();}
 initAll();
+
+for (const kind of ['click','change']) document.addEventListener(kind, e => {
+  const el=e.target.closest('[data-action-'+kind+']'); if(!el) return;
+  const action=el.getAttribute('data-action-'+kind);
+  for (const part of action.split(';').map(x=>x.trim()).filter(Boolean)) {
+    if(part === "document.getElementById('imp').click()") {document.getElementById('imp').click(); continue;}
+    const assignment=part.match(/^(viewMode|selRoom)='([^']*)'$/);
+    if(assignment) {window[assignment[1]]=assignment[2]; continue;}
+    const call=part.match(/^(\w+)\((.*)\)$/); if(!call || typeof window[call[1]]!=='function') continue;
+    const args=call[2] ? call[2].split(',').map(x=>{x=x.trim(); if(x==='event') return e; if(x==='this.value') return el.value; if(x.startsWith("'")&&x.endsWith("'")) return x.slice(1,-1); return x;}) : [];
+    window[call[1]](...args);
+  }
+});
