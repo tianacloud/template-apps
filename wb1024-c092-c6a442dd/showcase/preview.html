@@ -1,0 +1,3809 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NameSmith 命名工坊 - 专治程序员起名困难症</title>
+<meta name="description" content="输入一句中文描述，生成符合规范的变量、函数、布尔、类、路由、Git 分支命名，附带命名体检、批量转换与团队规范速查。纯本地运行，数据不上传。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%235b5bd6'/><text x='32' y='42' font-size='30' font-family='monospace' font-weight='bold' text-anchor='middle' fill='white'>N</text></svg>">
+<style>/* ============================================================
+ * NameSmith 命名工坊 - 样式系统
+ * ============================================================ */
+
+:root {
+  --bg: #f4f5f8;
+  --bg-deco-1: rgba(99, 102, 241, .13);
+  --bg-deco-2: rgba(255, 138, 61, .12);
+  --surface: #ffffff;
+  --surface-2: #f8f9fc;
+  --surface-3: #eef0f6;
+  --border: #e4e6ef;
+  --border-strong: #d3d6e3;
+  --text: #1b1d29;
+  --text-2: #5a5f75;
+  --text-3: #8b90a5;
+  --brand: #5b5bd6;
+  --brand-2: #7c6cf0;
+  --brand-soft: rgba(91, 91, 214, .1);
+  --accent: #ff8a2b;
+  --accent-soft: rgba(255, 138, 43, .12);
+  --ok: #19955f;
+  --warn: #d98b13;
+  --bad: #dc3b4b;
+  --code-bg: #f1f2f8;
+  --shadow-sm: 0 1px 2px rgba(27, 29, 41, .06), 0 1px 3px rgba(27, 29, 41, .04);
+  --shadow: 0 4px 16px rgba(27, 29, 41, .07), 0 1px 3px rgba(27, 29, 41, .05);
+  --shadow-lg: 0 18px 44px rgba(27, 29, 41, .12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --mono: "JetBrains Mono", "SFMono-Regular", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #13141c;
+  --bg-deco-1: rgba(124, 108, 240, .18);
+  --bg-deco-2: rgba(255, 138, 43, .1);
+  --surface: #1c1e29;
+  --surface-2: #232632;
+  --surface-3: #2b2f3d;
+  --border: #31354a;
+  --border-strong: #41465e;
+  --text: #eef0f8;
+  --text-2: #a7acc4;
+  --text-3: #767c96;
+  --brand: #8b8bf5;
+  --brand-2: #a99bfb;
+  --brand-soft: rgba(139, 139, 245, .16);
+  --accent: #ffa255;
+  --accent-soft: rgba(255, 162, 85, .16);
+  --ok: #3fc98a;
+  --warn: #ffc258;
+  --bad: #ff6b7a;
+  --code-bg: #262a38;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow: 0 6px 20px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 22px 50px rgba(0, 0, 0, .5);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(760px 460px at 8% -8%, var(--bg-deco-1), transparent 62%),
+    radial-gradient(680px 420px at 96% 4%, var(--bg-deco-2), transparent 60%);
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 0 22px 72px; }
+
+/* ---------------- Header ---------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: saturate(1.6) blur(14px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; flex-shrink: 0; }
+
+.logo-mark {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2) 55%, var(--accent));
+  display: grid; place-items: center;
+  color: #fff; font-weight: 800; font-size: 15px;
+  font-family: var(--mono);
+  box-shadow: 0 4px 14px var(--brand-soft);
+  letter-spacing: -.5px;
+}
+
+.logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+.logo-name { font-weight: 700; font-size: 16px; letter-spacing: .2px; }
+.logo-sub { font-size: 11px; color: var(--text-3); letter-spacing: .3px; }
+
+.tabs { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  appearance: none; border: 0; background: transparent;
+  color: var(--text-2); font: inherit; font-size: 14px; font-weight: 500;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  transition: background .18s, color .18s;
+}
+.tab:hover { background: var(--surface-3); color: var(--text); }
+.tab.active { background: var(--brand); color: #fff; box-shadow: 0 3px 10px var(--brand-soft); }
+
+.icon-btn {
+  appearance: none; border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-2); width: 36px; height: 36px; border-radius: 10px; cursor: pointer;
+  display: grid; place-items: center; font-size: 15px; transition: .18s; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--border-strong); color: var(--text); transform: translateY(-1px); }
+
+/* ---------------- Hero ---------------- */
+.hero { padding: 46px 0 26px; text-align: center; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 13px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 12.5px; font-weight: 600; letter-spacing: .2px; margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.hero h1 {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 4.6vw, 44px);
+  line-height: 1.18; font-weight: 800; letter-spacing: -.6px;
+}
+.hero h1 .grad {
+  background: linear-gradient(100deg, var(--brand), var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p { margin: 0 auto; max-width: 620px; color: var(--text-2); font-size: 15.5px; }
+.hero p b { color: var(--text); font-weight: 600; }
+
+/* ---------------- Panels / cards ---------------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 22px;
+}
+
+.view { display: none; animation: rise .34s cubic-bezier(.2, .7, .3, 1); }
+.view.active { display: block; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.section-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 15px; font-weight: 700; margin: 0 0 14px;
+}
+.section-title .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+.section-title small { font-weight: 500; color: var(--text-3); font-size: 12.5px; }
+
+/* ---------------- Input area ---------------- */
+.input-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.big-input {
+  width: 100%; min-height: 92px; resize: vertical;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  color: var(--text);
+  font-family: inherit; font-size: 16.5px; line-height: 1.55;
+  outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.big-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-soft);
+  background: var(--surface);
+}
+.big-input::placeholder { color: var(--text-3); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+
+.chip {
+  appearance: none; cursor: pointer; font: inherit; font-size: 12.5px;
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2);
+  transition: .16s;
+}
+.chip:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.chip.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip.ghost { border-style: dashed; }
+
+/* ---- 语义解析面板 ---- */
+.parse-box {
+  margin-top: 13px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.parse-row { display: flex; align-items: flex-start; gap: 10px; }
+.parse-row + .parse-row { margin-top: 10px; }
+.parse-label {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 700; color: var(--text-2);
+  letter-spacing: .3px; padding-top: 5px; white-space: nowrap;
+}
+.parse-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tk {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 8px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  font-size: 12.5px; transition: .15s; user-select: none;
+  box-shadow: var(--shadow-sm);
+}
+.tk:hover { border-color: var(--brand); box-shadow: 0 2px 10px var(--brand-soft); }
+.tk-src { color: var(--text); }
+.tk-arrow { color: var(--text-3); font-size: 11px; }
+.tk-word { font-family: var(--mono); font-weight: 600; color: var(--brand); }
+.tk-cycle { color: var(--text-3); font-size: 11px; opacity: .5; transition: .15s; }
+.tk:hover .tk-cycle { opacity: 1; color: var(--brand); }
+.tk-del { color: var(--text-3); font-size: 13px; padding: 0 1px; margin-left: 1px; line-height: 1; }
+.tk-del:hover { color: var(--bad); }
+.tk-typo { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.tk-typo .tk-word { color: var(--accent); }
+.tk-py { border-style: dashed; border-color: var(--brand); }
+.tk-unknown { border-color: var(--bad); }
+.tk-unknown .tk-word { color: var(--bad); }
+.tk-unk {
+  font-size: 11px; color: var(--bad); opacity: .75;
+  border-left: 1px solid var(--border); padding-left: 6px;
+}
+
+/* 待补英文的词 */
+.tk-todo { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); cursor: default; }
+.tk-todo:hover { border-color: var(--accent); box-shadow: 0 2px 10px var(--accent-soft); }
+.tk-input {
+  width: 84px; border: 0; border-bottom: 1px dashed var(--accent); background: transparent;
+  font-family: var(--mono); font-size: 12.5px; color: var(--text); outline: none;
+  padding: 1px 2px;
+}
+.tk-input::placeholder { color: var(--accent); opacity: .7; font-family: inherit; }
+.tk-input:focus { border-bottom-style: solid; }
+
+.parse-warn {
+  margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--border);
+  font-size: 12.3px; color: var(--text-2); line-height: 1.5;
+}
+.parse-warn b { color: var(--accent); font-family: var(--mono); }
+.link-btn {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12.3px; color: var(--brand); text-decoration: underline;
+  padding: 0 2px;
+}
+.link-btn:hover { color: var(--brand-2); }
+.parse-types { display: flex; flex-wrap: wrap; gap: 6px; }
+.pt {
+  font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-2);
+}
+.pt b { margin-left: 5px; color: var(--text-3); font-family: var(--mono); font-size: 10.5px; }
+.pt-main { background: var(--brand-soft); border-color: transparent; color: var(--brand); font-weight: 600; }
+.pt-main b { color: var(--brand); }
+
+.control-row {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: .3px; }
+
+select.sel, input.sel {
+  appearance: none;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  font: inherit; font-size: 13.5px; padding: 9px 32px 9px 12px; border-radius: 10px;
+  outline: none; cursor: pointer; min-width: 160px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.5 4.5L6 8l3.5-3.5' fill='none' stroke='%238b90a5' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 11px center;
+}
+select.sel:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+
+.btn {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 14.5px;
+  padding: 11px 22px; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--brand); color: #fff; transition: .18s; box-shadow: 0 4px 14px var(--brand-soft);
+}
+.btn:hover { transform: translateY(-1.5px); box-shadow: 0 8px 20px var(--brand-soft); }
+.btn:active { transform: translateY(0); }
+.btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+.btn.ghost:hover { border-color: var(--brand); color: var(--brand); }
+.btn.sm { padding: 7px 13px; font-size: 13px; border-radius: 9px; }
+.btn.warm { background: linear-gradient(120deg, var(--accent), #ff6a3d); box-shadow: 0 4px 14px var(--accent-soft); }
+
+.spacer { flex: 1; }
+
+.hint-key {
+  font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 5px;
+  background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border);
+}
+
+/* ---------------- Results ---------------- */
+.results-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 26px 0 14px;
+}
+.results-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.results-head .count { font-size: 12.5px; color: var(--text-3); }
+
+.res-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 13px; }
+
+.res-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 15px 16px; position: relative; box-shadow: var(--shadow-sm);
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+  animation: pop .3s cubic-bezier(.2, .8, .3, 1) backwards;
+}
+.res-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--brand); }
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.res-name {
+  font-family: var(--mono); font-size: 17px; font-weight: 600; letter-spacing: -.2px;
+  word-break: break-all; margin: 0 34px 8px 0; color: var(--text);
+}
+.res-name.name-sm { font-size: 13.5px; letter-spacing: -.3px; line-height: 1.4; }
+.res-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+.tag {
+  font-size: 11px; font-weight: 600; padding: 2.5px 8px; border-radius: 6px;
+  background: var(--brand-soft); color: var(--brand); letter-spacing: .2px;
+}
+.tag.a { background: var(--accent-soft); color: var(--accent); }
+.tag.n { background: var(--surface-3); color: var(--text-2); }
+
+.res-why { font-size: 12.8px; color: var(--text-2); line-height: 1.5; margin: 0; }
+
+.copy-btn {
+  position: absolute; top: 12px; right: 12px;
+  width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-3);
+  display: grid; place-items: center; font-size: 13px; transition: .16s;
+}
+.copy-btn:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
+.copy-btn.done { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+
+.stars { font-size: 11.5px; letter-spacing: 1px; color: var(--accent); }
+.stars .off { color: var(--border-strong); }
+
+.res-card.best { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.res-card.best::after {
+  content: "推荐";
+  position: absolute; top: -1px; left: 14px;
+  transform: translateY(-50%);
+  background: linear-gradient(100deg, var(--accent), #ff6a3d); color: #fff;
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  box-shadow: 0 3px 8px var(--accent-soft);
+}
+
+.empty {
+  text-align: center; padding: 54px 20px; color: var(--text-3);
+  border: 1.5px dashed var(--border); border-radius: var(--radius); background: var(--surface-2);
+}
+.empty .big { font-size: 34px; margin-bottom: 10px; opacity: .75; }
+.empty p { margin: 4px 0; font-size: 14px; }
+
+/* ---------------- Convert / audit ---------------- */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+.code-area {
+  width: 100%; min-height: 220px; resize: vertical;
+  font-family: var(--mono); font-size: 13.5px; line-height: 1.75;
+  border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text);
+  border-radius: var(--radius-sm); padding: 14px; outline: none; transition: .18s;
+}
+.code-area:focus { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); background: var(--surface); }
+
+.out-box {
+  font-family: var(--mono); font-size: 13.5px; line-height: 1.8;
+  border: 1.5px solid var(--border); background: var(--code-bg); color: var(--text);
+  border-radius: var(--radius-sm); padding: 14px; min-height: 220px; white-space: pre-wrap; word-break: break-all;
+}
+
+.stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat {
+  flex: 1; min-width: 108px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+}
+.stat .v { font-size: 22px; font-weight: 800; font-family: var(--mono); letter-spacing: -.5px; }
+.stat .l { font-size: 11.5px; color: var(--text-3); font-weight: 600; letter-spacing: .3px; }
+.stat.good .v { color: var(--ok); }
+.stat.warn .v { color: var(--warn); }
+.stat.bad .v { color: var(--bad); }
+
+.audit-item {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+  padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow-sm);
+}
+.audit-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.audit-name { font-family: var(--mono); font-size: 14.5px; font-weight: 600; }
+.audit-issues { margin: 9px 0 0; padding: 0; list-style: none; }
+.audit-issues li {
+  font-size: 12.8px; color: var(--text-2); padding: 5px 0 5px 22px; position: relative; line-height: 1.5;
+}
+.audit-issues li::before {
+  content: "!"; position: absolute; left: 0; top: 5px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 10px; font-weight: 800; display: grid; place-items: center;
+}
+.audit-issues li b { color: var(--text); }
+.audit-fix { margin-top: 8px; font-size: 12.5px; color: var(--text-2); }
+.audit-fix code {
+  font-family: var(--mono); background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok); padding: 2px 7px; border-radius: 6px; font-weight: 600;
+}
+.audit-score {
+  margin-left: auto; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px;
+}
+.s-good { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.s-warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.s-bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+
+/* ---------------- Guide table ---------------- */
+.guide-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.guide-table th, .guide-table td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--border); }
+.guide-table th { font-size: 12px; color: var(--text-3); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.guide-table td:nth-child(3) { font-family: var(--mono); color: var(--bad); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+.guide-table td:nth-child(4) { font-family: var(--mono); color: var(--ok); font-weight: 600; }
+.guide-table tr:last-child td { border-bottom: 0; }
+.guide-table tbody tr:hover { background: var(--surface-2); }
+.scroll-x { overflow-x: auto; }
+
+/* ---- 跨语言对照 ---- */
+.cross-wrap {
+  margin-bottom: 18px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden;
+  animation: rise .3s cubic-bezier(.2, .7, .3, 1);
+}
+.cross-head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border); background: var(--surface-2);
+  font-size: 12.8px; color: var(--text-2);
+}
+.cross-head span { flex: 1; }
+.cross-head .icon-btn { width: 26px; height: 26px; border-radius: 7px; font-size: 14px; }
+.cross-table { font-size: 13px; min-width: 900px; }
+.cross-table th { white-space: nowrap; background: var(--surface-2); position: sticky; top: 0; }
+.cross-wrap .cross-table td { white-space: nowrap; padding: 10px 12px; text-decoration: none !important; }
+.cross-wrap .cross-table td:nth-child(3),
+.cross-wrap .cross-table td:nth-child(4),
+.cross-wrap .cross-table td:nth-child(n+2) { color: var(--brand); }
+.cross-table .mono-cell { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+.cross-table .lang-cell { font-weight: 700; color: var(--text) !important; }
+
+/* ---- 规范页 ---- */
+.guide-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.sel.guide-search {
+  margin-left: auto; min-width: 240px; padding-right: 12px;
+  background-image: none !important; font-family: inherit; cursor: text;
+}
+.guide-table td:first-child { white-space: nowrap; }
+.note-cell { color: var(--text-3); font-size: 12.5px; line-height: 1.5; max-width: 300px; }
+.guide-empty { text-align: center; color: var(--text-3); font-size: 13.5px; padding: 22px 0; margin: 0; }
+.pattern-card { cursor: default; }
+.pattern-name { margin-right: 0; color: var(--brand); }
+.warn-line { margin-top: 8px; color: var(--warn); font-size: 12.2px; }
+
+/* ---- 自查清单 ---- */
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.checklist li {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-2); font-size: 13.2px; line-height: 1.55; color: var(--text-2);
+}
+.ck-num {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--brand-soft); color: var(--brand);
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  display: grid; place-items: center; margin-top: 1px;
+}
+
+/* ---------------- Fun ---------------- */
+.fun-stage {
+  text-align: center; padding: 34px 20px 26px;
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+}
+.fun-name {
+  font-family: var(--mono); font-size: clamp(20px, 3.4vw, 30px); font-weight: 700;
+  word-break: break-all; margin: 0 0 10px;
+  background: linear-gradient(100deg, var(--brand), var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.fun-note { color: var(--text-3); font-size: 13px; margin: 0; }
+.fun-meters { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; }
+.meter { min-width: 118px; }
+.meter .lbl { font-size: 11.5px; color: var(--text-3); font-weight: 600; letter-spacing: .3px; }
+.meter .bar { height: 6px; border-radius: 999px; background: var(--surface-3); margin-top: 5px; overflow: hidden; }
+.meter .bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--accent)); transition: width .5s cubic-bezier(.2,.8,.3,1); }
+
+.joke-box {
+  font-family: var(--mono); font-size: 14.5px; line-height: 1.7; padding: 18px;
+  background: var(--code-bg); border-radius: var(--radius-sm); border: 1px solid var(--border);
+  min-height: 96px; white-space: pre-wrap;
+}
+
+/* ---------------- History & share ---------------- */
+.history-panel { margin-top: 26px; }
+.hist-list { display: flex; flex-direction: column; gap: 7px; max-height: 320px; overflow-y: auto; }
+.hist-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); font-size: 13px;
+}
+.hist-item .src { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.hist-item .nm { font-family: var(--mono); font-weight: 600; color: var(--brand); }
+.hist-item .x { cursor: pointer; color: var(--text-3); border: 0; background: none; font-size: 15px; padding: 0 2px; }
+.hist-item .x:hover { color: var(--bad); }
+
+.share-card {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;
+  background: var(--surface-2); display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+
+/* ---------------- Toast ---------------- */
+.toast-wrap { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast {
+  background: var(--text); color: var(--bg); padding: 9px 18px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-lg);
+  animation: toastIn .26s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+
+/* ---------------- Footer ---------------- */
+.site-footer {
+  margin-top: 46px; padding-top: 22px; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  color: var(--text-3); font-size: 12.8px;
+}
+.site-footer a { color: var(--text-2); text-decoration: none; }
+.site-footer a:hover { color: var(--brand); }
+
+.kbd-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--text-3); }
+
+@media (max-width: 720px) {
+  .header-inner { flex-wrap: wrap; padding: 10px 14px; }
+  .tabs { order: 3; width: 100%; margin-left: 0; padding-bottom: 2px; }
+  .wrap { padding: 0 14px 60px; }
+  .hero { padding: 30px 0 18px; }
+  .control-row { flex-direction: column; align-items: stretch; }
+  .field { width: 100%; }
+  select.sel { min-width: 0; width: 100%; }
+  .btn { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="#" onclick="return false;">
+      <div class="logo-mark">N$</div>
+      <div class="logo-text">
+        <span class="logo-name">NameSmith</span>
+        <span class="logo-sub">命名工坊</span>
+      </div>
+    </a>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="v-gen">命名生成</button>
+      <button class="tab" data-view="v-conv">批量转换</button>
+      <button class="tab" data-view="v-audit">命名体检</button>
+      <button class="tab" data-view="v-fun">彩蛋实验室</button>
+      <button class="tab" data-view="v-guide">规范速查</button>
+    </nav>
+    <button class="icon-btn" id="themeBtn" title="切换深浅色">◐</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ 命名生成 ============ -->
+  <section class="view active" id="v-gen">
+    <div class="hero">
+      <div class="hero-badge">专治 <b>data2 / handleThing / tempFinal</b> 综合症</div>
+      <h1>把 <span class="grad" id="heroQuery">「获取用户列表」</span><br>变成 <span class="grad" id="heroName">getUserList</span></h1>
+      <p>用大白话描述你要什么，它先<b>猜你可能想要什么</b>，再逐个给出候选、解释与评分。</p>
+    </div>
+
+    <div class="input-card">
+      <textarea class="big-input" id="genInput" placeholder="试试：根据订单号查询支付状态&#10;或者：判断用户是否已登录"></textarea>
+      <div class="chips" id="exampleChips"></div>
+      <div class="parse-box" id="parseBox" style="display:none">
+        <div class="parse-row">
+          <span class="parse-label">我理解成</span>
+          <div class="parse-chips" id="parseChips"></div>
+        </div>
+        <div class="parse-row parse-types-row">
+          <span class="parse-label">可能意图</span>
+          <div class="parse-types" id="parseTypes"></div>
+        </div>
+        <div class="parse-warn" id="parseWarn" style="display:none"></div>
+      </div>
+      <div class="control-row">
+        <div class="field">
+          <label for="genType">要命名的东西</label>
+          <select class="sel" id="genType">
+            <option value="auto">智能模糊匹配（推荐）</option>
+            <optgroup label="代码标识符">
+              <option value="variable">变量 / 属性</option>
+              <option value="function">函数 / 方法</option>
+              <option value="boolean">布尔值</option>
+              <option value="class">类 / 组件</option>
+              <option value="constant">常量</option>
+              <option value="interface">接口 / 类型</option>
+              <option value="enum">枚举类型</option>
+              <option value="enumMember">枚举成员</option>
+              <option value="props">组件 Props</option>
+              <option value="hook">React Hook</option>
+              <option value="handler">事件处理函数</option>
+            </optgroup>
+            <optgroup label="数据与接口">
+              <option value="route">REST 路由</option>
+              <option value="table">数据库表</option>
+              <option value="field">数据库字段</option>
+              <option value="dbIndex">数据库索引</option>
+              <option value="redisKey">Redis Key</option>
+            </optgroup>
+            <optgroup label="工程产物">
+              <option value="file">文件名</option>
+              <option value="branch">Git 分支</option>
+              <option value="docker">Docker 镜像</option>
+              <option value="env">环境变量</option>
+              <option value="cli">命令行参数</option>
+              <option value="cssClass">CSS 类名</option>
+              <option value="cssVar">CSS 变量</option>
+            </optgroup>
+            <optgroup label="质量与观测">
+              <option value="test">测试用例</option>
+              <option value="track">埋点事件</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label for="genLang">目标语言</label>
+          <select class="sel" id="genLang">
+            <option value="auto">不限 / 通用</option>
+            <option value="ts">TypeScript</option>
+            <option value="js">JavaScript</option>
+            <option value="py">Python</option>
+            <option value="java">Java</option>
+            <option value="go">Go</option>
+            <option value="cs">C#</option>
+            <option value="rust">Rust</option>
+            <option value="sql">SQL</option>
+            <option value="css">CSS</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="genCase">命名风格</label>
+          <select class="sel" id="genCase">
+            <option value="auto">跟随场景自动</option>
+            <option value="camel">camelCase</option>
+            <option value="pascal">PascalCase</option>
+            <option value="snake">snake_case</option>
+            <option value="kebab">kebab-case</option>
+            <option value="screaming">SCREAMING_SNAKE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="genLen">长度偏好</label>
+          <select class="sel" id="genLen">
+            <option value="normal">适中（推荐）</option>
+            <option value="terse">能短就短</option>
+            <option value="verbose">宁长不模糊</option>
+          </select>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="btnGen">生成命名</button>
+        <button class="btn ghost" id="btnGenClear">清空</button>
+      </div>
+      <div class="kbd-row"><span><span class="hint-key">Ctrl</span> + <span class="hint-key">Enter</span> 快速生成</span><span>所有计算都在你的浏览器里完成，不上传任何内容</span></div>
+    </div>
+
+    <div id="resWrap">
+      <div class="results-head" style="display:none" id="resHead">
+        <h2>候选命名</h2>
+        <span class="count" id="resCount"></span>
+        <div class="spacer"></div>
+        <button class="btn ghost sm" id="btnBatch">换一批 ↻<span id="batchInfo"></span></button>
+        <button class="btn ghost sm" id="btnCross">跨语言对照</button>
+        <button class="btn ghost sm" id="btnCopyAll">复制全部</button>
+        <button class="btn ghost sm" id="btnExportMd">导出 Markdown</button>
+        <button class="btn warm sm" id="btnShareCard">生成分享卡片</button>
+      </div>
+      <div class="cross-wrap" id="crossWrap" style="display:none">
+        <div class="cross-head">
+          <span>同一个意思，八种语言八种写法 —— 复制给队友时别让他再问你一遍</span>
+          <button class="icon-btn" id="btnCrossClose" title="关闭">×</button>
+        </div>
+        <div class="scroll-x"><table class="guide-table cross-table" id="crossTable"></table></div>
+      </div>
+      <div class="chips" id="kindFilter" style="margin:-4px 0 14px;display:none"></div>
+      <div class="res-grid" id="resGrid"></div>
+      <div class="empty" id="resEmpty">
+        <div class="big">⌨️</div>
+        <p>上面写一句中文，比如「购物车已选商品数量」</p>
+        <p>然后点生成 —— 剩下的交给 naming 之神。</p>
+      </div>
+    </div>
+
+    <div class="panel history-panel" id="histPanel" style="display:none">
+      <h3 class="section-title"><span class="dot"></span>最近生成 <small>保存在本机浏览器，随时可清除</small></h3>
+      <div class="hist-list" id="histList"></div>
+      <div style="margin-top:12px"><button class="btn ghost sm" id="btnClearHist">清空历史</button></div>
+    </div>
+  </section>
+
+  <!-- ============ 批量转换 ============ -->
+  <section class="view" id="v-conv">
+    <div class="panel" style="margin-top:34px">
+      <h3 class="section-title"><span class="dot"></span>批量大小写转换 <small>粘贴一堆变量名，一次性统一成团队想要的风格</small></h3>
+      <p style="margin:0 0 16px;color:var(--text-2);font-size:13.5px">支持自动识别已有风格（camelCase / snake_case / kebab-case / 空格短语 / 中文混合），逐行输出。</p>
+      <div class="chips" id="convTargets" style="margin-bottom:14px"></div>
+      <div class="two-col">
+        <div>
+          <textarea class="code-area" id="convIn" placeholder="user_profile_name&#10;getUserList&#10;order-item-price&#10;MAX RETRY COUNT&#10;购物车数量"></textarea>
+        </div>
+        <div>
+          <pre class="out-box" id="convOut">结果会出现在这里</pre>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="stat-row" style="margin:0;flex:1">
+          <div class="stat"><div class="v" id="convCount">0</div><div class="l">识别到行数</div></div>
+          <div class="stat"><div class="v" id="convSkipped">0</div><div class="l">无法转换</div></div>
+        </div>
+        <button class="btn ghost sm" id="btnConvDemo">填入示例</button>
+        <button class="btn ghost sm" id="btnConvSwap">结果回填输入框</button>
+        <button class="btn sm" id="btnConvCopy">复制结果</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 命名体检 ============ -->
+  <section class="view" id="v-audit">
+    <div class="panel" style="margin-top:34px">
+      <h3 class="section-title"><span class="dot"></span>命名体检 <small>把祖传变量名交上来，它会挨骂，也会给解药</small></h3>
+      <textarea class="code-area" id="auditIn" placeholder="data&#10;userInfoList2&#10;handleData&#10;tmp&#10;ProductManagerManager&#10;getUserzar"></textarea>
+      <div class="control-row">
+        <button class="btn" id="btnAudit">开始体检</button>
+        <button class="btn ghost" id="btnAuditDemo">填入反面教材</button>
+        <button class="btn ghost" id="btnAuditClear">清空</button>
+        <div class="spacer"></div>
+        <button class="btn ghost sm" id="btnAuditCopy">复制体检报告</button>
+      </div>
+      <div id="auditResult" style="display:none">
+        <div class="stat-row" style="margin-top:18px">
+          <div class="stat"><div class="v" id="auTotal">0</div><div class="l">受检命名</div></div>
+          <div class="stat" id="auAvgBox"><div class="v" id="auAvg">0</div><div class="l">平均分（100）</div></div>
+          <div class="stat warn"><div class="v" id="auIssues">0</div><div class="l">发现问题</div></div>
+          <div class="stat bad"><div class="v" id="auFail">0</div><div class="l">不及格</div></div>
+        </div>
+        <div id="auditList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 彩蛋实验室 ============ -->
+  <section class="view" id="v-fun">
+    <div class="panel" style="margin-top:34px">
+      <h3 class="section-title"><span class="dot"></span>抽象命名机 <small>请勿用于生产环境，后果自负</small></h3>
+      <div class="fun-stage">
+        <p class="fun-name" id="funName">luminousPancakeEngine</p>
+        <p class="fun-note" id="funNote">点击下面的按钮，让命运替你的变量做决定</p>
+        <div class="fun-meters">
+          <div class="meter"><div class="lbl">抽象指数</div><div class="bar"><i id="mA" style="width:60%"></i></div></div>
+          <div class="meter"><div class="lbl">上线风险</div><div class="bar"><i id="mB" style="width:40%"></i></div></div>
+          <div class="meter"><div class="lbl">唬人程度</div><div class="bar"><i id="mC" style="width:80%"></i></div></div>
+        </div>
+        <div class="control-row" style="justify-content:center;border-top:0;margin-top:20px">
+          <button class="btn warm" id="btnFun">Roll 一个</button>
+          <button class="btn ghost" id="btnFunCopy">复制</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3 class="section-title"><span class="dot"></span>Commit Message 生成器 <small>Conventional Commits 规范，支持正经与放飞两种模式</small></h3>
+      <div class="control-row" style="margin-top:0;padding-top:0;border-top:0">
+        <div class="field">
+          <label for="cmType">类型</label>
+          <select class="sel" id="cmType"></select>
+        </div>
+        <div class="field">
+          <label for="cmScope">作用域（选填）</label>
+          <input class="sel" id="cmScope" placeholder="order / user / ci">
+        </div>
+        <div class="field" style="flex:1;min-width:220px">
+          <label for="cmDesc">干了啥</label>
+          <input class="sel" id="cmDesc" placeholder="修复优惠券金额计算错误" style="background-image:none;padding-right:12px">
+        </div>
+        <div class="field">
+          <label for="cmMode">模式</label>
+          <select class="sel" id="cmMode">
+            <option value="normal">正经模式</option>
+            <option value="wild">放飞模式</option>
+          </select>
+        </div>
+        <button class="btn" id="btnCm">生成</button>
+      </div>
+      <pre class="joke-box" id="cmOut">feat(order): 你还没告诉我改了什么</pre>
+      <div class="control-row"><button class="btn ghost sm" id="btnCmCopy">复制</button></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3 class="section-title"><span class="dot"></span>技术黑话翻译器 <small>把人话翻译成能过评审的版本</small></h3>
+      <input class="big-input" id="buzzIn" style="min-height:64px" placeholder="把这个按钮改好看一点">
+      <div class="control-row">
+        <div class="field">
+          <label for="buzzLevel">黑话浓度</label>
+          <select class="sel" id="buzzLevel">
+            <option value="1">轻度（还能听懂）</option>
+            <option value="2">中度（互联网公司标准）</option>
+            <option value="3">重度（投资人听了想打钱）</option>
+          </select>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="btnBuzz">翻译</button>
+        <button class="btn ghost" id="btnBuzzCopy">复制</button>
+      </div>
+      <pre class="joke-box" id="buzzOut" style="margin-top:14px">结果会出现在这里</pre>
+    </div>
+  </section>
+
+  <!-- ============ 规范速查 ============ -->
+  <section class="view" id="v-guide">
+    <div class="panel" style="margin-top:34px">
+      <div class="guide-head">
+        <h3 class="section-title" style="margin:0"><span class="dot"></span>语言命名规范矩阵 <small>八种语言、六类元素，吵架时直接引用</small></h3>
+        <input class="sel guide-search" id="guideSearch" placeholder="搜索元素 / 规范 / 正例…">
+      </div>
+      <div class="chips" id="langChips" style="margin-top:14px"></div>
+      <div class="scroll-x" style="margin-top:6px">
+        <table class="guide-table">
+          <thead><tr><th>元素</th><th>规范</th><th>反例</th><th>正例</th><th>备注</th></tr></thead>
+          <tbody id="guideBody"></tbody>
+        </table>
+      </div>
+      <p class="guide-empty" id="guideEmpty" style="display:none">没搜到，换个词试试（比如「常量」「接口」「索引」）</p>
+      <div class="control-row">
+        <div class="spacer"></div>
+        <button class="btn ghost sm" id="btnGuideCopy">复制当前语言为 Markdown</button>
+        <button class="btn sm" id="btnGuideDown">下载完整规范 .md</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3 class="section-title"><span class="dot"></span>命名模式库 <small>后缀不是装饰品，每个词都在声明职责</small></h3>
+      <div class="chips" id="patternCats"></div>
+      <div class="res-grid" id="patternGrid"></div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3 class="section-title"><span class="dot"></span>提交前自查清单 <small>改名前过一遍，能省掉三轮 review 往返</small></h3>
+      <ol class="checklist" id="checklist"></ol>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <h3 class="section-title"><span class="dot"></span>命名界的垃圾食品清单 <small>出现即可疑</small></h3>
+      <div class="res-grid" id="smellGrid"></div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div>
+      <strong style="color:var(--text)">NameSmith 命名工坊</strong> · WorkBuddy「1024 造物挑战」参赛作品<br>
+      纯前端本地计算，不联网、不上传、不存储你的任何输入。
+    </div>
+    <div style="text-align:right">
+      <span id="footStat">已生成 0 个命名</span><br>
+      <span>快捷键 Ctrl+Enter 生成 · Ctrl+K 聚焦输入</span>
+    </div>
+  </footer>
+</main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<canvas id="shotCanvas" width="1080" height="1350" style="display:none"></canvas>
+
+<script>/* ============================================================
+ * NameSmith 命名工坊 - 词典与知识库
+ * 纯前端本地运行，不上传任何数据
+ * ============================================================ */
+(function (global) {
+  'use strict';
+
+  /* ---------- 1. 动词：动作 ---------- */
+  const VERBS = [
+    { k: ['获取', '取得', '拉取', '取得', '读取'], w: 'get', alt: ['fetch', 'retrieve'], cn: '获取' },
+    { k: ['异步获取', '远程拉取'], w: 'fetch', alt: ['get'], cn: '获取' },
+    { k: ['列表', '查询列表', '列出'], w: 'list', alt: ['query'], cn: '列出', force: 'v' },
+    { k: ['创建', '新增', '新建', '添加'], w: 'create', alt: ['add', 'insert'], cn: '创建' },
+    { k: ['追加', '插入'], w: 'insert', alt: ['append', 'add'], cn: '插入' },
+    { k: ['更新', '修改', '编辑'], w: 'update', alt: ['modify', 'patch'], cn: '更新' },
+    { k: ['删除', '移除', '删掉'], w: 'delete', alt: ['remove', 'destroy'], cn: '删除' },
+    { k: ['清空', '清除'], w: 'clear', alt: ['purge', 'reset'], cn: '清空' },
+    { k: ['查询', '搜索', '查找', '检索'], w: 'query', alt: ['search', 'find'], cn: '查询' },
+    { k: ['过滤', '筛选', '过滤'], w: 'filter', alt: ['screen'], cn: '筛选' },
+    { k: ['保存', '存储', '持久化'], w: 'save', alt: ['store', 'persist'], cn: '保存' },
+    { k: ['写入'], w: 'write', alt: ['put'], cn: '写入' },
+    { k: ['校验', '验证', '检查', '判断'], w: 'validate', alt: ['verify', 'check'], cn: '校验' },
+    { k: ['断言'], w: 'assert', alt: ['ensure'], cn: '断言' },
+    { k: ['转换', '转成', '转为'], w: 'convert', alt: ['transform', 'to'], cn: '转换' },
+    { k: ['解析'], w: 'parse', alt: ['resolve', 'decode'], cn: '解析' },
+    { k: ['格式化', '美化'], w: 'format', alt: ['stringify', 'pretty'], cn: '格式化' },
+    { k: ['发送', '推送', '提交'], w: 'send', alt: ['post', 'publish'], cn: '发送' },
+    { k: ['订阅', '监听', '接收'], w: 'on', alt: ['listen', 'subscribe'], cn: '订阅' },
+    { k: ['计算', '算'], w: 'calculate', alt: ['compute', 'calc'], cn: '计算' },
+    { k: ['统计', '计数'], w: 'count', alt: ['tally'], cn: '统计' },
+    { k: ['求和', '汇总'], w: 'sum', alt: ['aggregate'], cn: '汇总' },
+    { k: ['渲染', '绘制', '展示'], w: 'render', alt: ['draw', 'paint'], cn: '渲染' },
+    { k: ['比较', '对比', 'diff'], w: 'compare', alt: ['diff'], cn: '比较' },
+    { k: ['初始化', '初始化'], w: 'init', alt: ['initialize', 'setup'], cn: '初始化' },
+    { k: ['重置', '还原'], w: 'reset', alt: ['restore'], cn: '重置' },
+    { k: ['构建', '生成', '构造'], w: 'build', alt: ['generate', 'compose'], cn: '构建' },
+    { k: ['编译'], w: 'compile', alt: ['build'], cn: '编译' },
+    { k: ['上传'], w: 'upload', alt: ['import'], cn: '上传' },
+    { k: ['下载', '导出'], w: 'download', alt: ['export', 'dump'], cn: '下载' },
+    { k: ['导入'], w: 'import', alt: ['ingest'], cn: '导入' },
+    { k: ['合并', 'merge'], w: 'merge', alt: ['join', 'combine'], cn: '合并' },
+    { k: ['拆分', 'split'], w: 'split', alt: ['divide'], cn: '拆分' },
+    { k: ['复制', '克隆'], w: 'copy', alt: ['clone', 'duplicate'], cn: '复制' },
+    { k: ['启动', '开启', '开始'], w: 'start', alt: ['launch', 'begin'], cn: '启动' },
+    { k: ['停止', '暂停', '终止'], w: 'stop', alt: ['pause', 'cancel'], cn: '停止' },
+    { k: ['显示', '打开', '展开'], w: 'show', alt: ['open', 'expand'], cn: '显示' },
+    { k: ['隐藏', '关闭', '收起'], w: 'hide', alt: ['close', 'collapse'], cn: '隐藏' },
+    { k: ['同步', 'sync'], w: 'sync', alt: ['synchronize'], cn: '同步' },
+    { k: ['刷新'], w: 'refresh', alt: ['reload'], cn: '刷新' },
+    { k: ['登录', '登陆'], w: 'login', alt: ['signIn', 'authenticate'], cn: '登录' },
+    { k: ['登出', '退出登录'], w: 'logout', alt: ['signOut'], cn: '登出' },
+    { k: ['注册'], w: 'register', alt: ['signUp'], cn: '注册' },
+    { k: ['授权', '鉴权'], w: 'authorize', alt: ['grant'], cn: '授权' },
+    { k: ['支付', '付款'], w: 'pay', alt: ['charge'], cn: '支付' },
+    { k: ['退款'], w: 'refund', alt: ['revert'], cn: '退款' },
+    { k: ['结算'], w: 'settle', alt: ['checkout'], cn: '结算' },
+    { k: ['通知', '提醒'], w: 'notify', alt: ['remind', 'alert'], cn: '通知' },
+    { k: ['重试', 'retry'], w: 'retry', alt: ['reattempt'], cn: '重试' },
+    { k: ['排序', 'sort'], w: 'sort', alt: ['order'], cn: '排序' },
+    { k: ['加载'], w: 'load', alt: ['fetch'], cn: '加载' },
+    { k: ['预览'], w: 'preview', alt: ['peek'], cn: '预览' },
+    { k: ['提交'], w: 'submit', alt: ['post'], cn: '提交' },
+    { k: ['撤销', '回滚'], w: 'revert', alt: ['undo', 'rollback'], cn: '撤销' },
+    { k: ['审批', '审核'], w: 'review', alt: ['approve', 'audit'], cn: '审批' },
+    { k: ['处理'], w: 'resolve', alt: ['execute', 'run'], cn: '处理' },
+    { k: ['忽略', '跳过'], w: 'ignore', alt: ['skip'], cn: '忽略' },
+    { k: ['禁用'], w: 'disable', alt: ['deactivate'], cn: '禁用' },
+    { k: ['启用'], w: 'enable', alt: ['activate'], cn: '启用' },
+    { k: ['压缩', '打包'], w: 'compress', alt: ['zip', 'pack'], cn: '压缩' },
+    { k: ['加密'], w: 'encrypt', alt: ['encode'], cn: '加密' },
+    { k: ['解密'], w: 'decrypt', alt: ['decode'], cn: '解密' }
+  ];
+
+  /* ---------- 2. 名词：业务实体 ---------- */
+  const NOUNS = [
+    { k: ['用户', '会员', '账号'], w: 'user', p: 'users', alt: ['member', 'account'] },
+    { k: ['客户', '顾客'], w: 'customer', p: 'customers', alt: ['client'] },
+    { k: ['权限', '角色'], w: 'permission', p: 'permissions', alt: ['role', 'grant'] },
+    { k: ['数据', '记录'], w: 'record', p: 'records', alt: ['entry', 'datum'] },
+    { k: ['列表', '集合'], w: 'list', p: 'lists', alt: ['items', 'collection'] },
+    { k: ['配置', '设置', '参数'], w: 'config', p: 'configs', alt: ['settings', 'options'] },
+    { k: ['状态'], w: 'status', p: 'statuses', alt: ['state'] },
+    { k: ['结果', '返回值'], w: 'result', p: 'results', alt: ['outcome'] },
+    { k: ['消息', '通知内容'], w: 'message', p: 'messages', alt: ['notice'] },
+    { k: ['订单'], w: 'order', p: 'orders', alt: ['trade'] },
+    { k: ['商品', '产品'], w: 'product', p: 'products', alt: ['goods', 'item'] },
+    { k: ['库存'], w: 'stock', p: 'stocks', alt: ['inventory'] },
+    { k: ['购物车'], w: 'cart', p: 'carts', alt: ['basket'] },
+    { k: ['文章', '帖子'], w: 'post', p: 'posts', alt: ['article'] },
+    { k: ['评论', '回复'], w: 'comment', p: 'comments', alt: ['reply'] },
+    { k: ['文件', '附件'], w: 'file', p: 'files', alt: ['attachment'] },
+    { k: ['图片', '头像'], w: 'image', p: 'images', alt: ['photo', 'picture'] },
+    { k: ['视频'], w: 'video', p: 'videos', alt: ['clip'] },
+    { k: ['缓存'], w: 'cache', p: 'caches', alt: ['memo'] },
+    { k: ['日志'], w: 'log', p: 'logs', alt: ['journal'] },
+    { k: ['错误', '异常', '报错'], w: 'error', p: 'errors', alt: ['exception', 'fault'] },
+    { k: ['任务', '作业'], w: 'task', p: 'tasks', alt: ['job'] },
+    { k: ['待办'], w: 'todo', p: 'todos', alt: ['task'] },
+    { k: ['标签'], w: 'tag', p: 'tags', alt: ['label'] },
+    { k: ['分类', '类目'], w: 'category', p: 'categories', alt: ['class'] },
+    { k: ['统计', '指标', '埋点'], w: 'metric', p: 'metrics', alt: ['stat'] },
+    { k: ['报表', '报告'], w: 'report', p: 'reports', alt: ['summary'] },
+    { k: ['模板'], w: 'template', p: 'templates', alt: ['preset'] },
+    { k: ['部门', '团队', '组织'], w: 'team', p: 'teams', alt: ['department', 'org'] },
+    { k: ['地址', '位置', '坐标'], w: 'address', p: 'addresses', alt: ['location'] },
+    { k: ['金额', '余额', '价格'], w: 'amount', p: 'amounts', alt: ['price', 'balance'] },
+    { k: ['钱包', '账户资金'], w: 'wallet', p: 'wallets', alt: ['account'] },
+    { k: ['表单'], w: 'form', p: 'forms', alt: ['survey'] },
+    { k: ['按钮'], w: 'button', p: 'buttons', alt: ['action'] },
+    { k: ['弹窗', '对话框'], w: 'dialog', p: 'dialogs', alt: ['modal'] },
+    { k: ['面板', '卡片'], w: 'panel', p: 'panels', alt: ['card'] },
+    { k: ['菜单'], w: 'menu', p: 'menus', alt: ['nav'] },
+    { k: ['图表'], w: 'chart', p: 'charts', alt: ['graph'] },
+    { k: ['画布'], w: 'canvas', p: 'canvases', alt: ['stage'] },
+    { k: ['组件'], w: 'component', p: 'components', alt: ['widget'] },
+    { k: ['页面', '界面'], w: 'page', p: 'pages', alt: ['view'] },
+    { k: ['路由', '网址', '链接'], w: 'route', p: 'routes', alt: ['link', 'url'] },
+    { k: ['接口', 'api'], w: 'api', p: 'apis', alt: ['endpoint'] },
+    { k: ['数据库表', 'table'], w: 'table', p: 'tables', alt: ['entity'] },
+    { k: ['字段'], w: 'field', p: 'fields', alt: ['column'] },
+    { k: ['请求'], w: 'request', p: 'requests', alt: ['req'] },
+    { k: ['响应'], w: 'response', p: 'responses', alt: ['res'] },
+    { k: ['令牌', '凭证', 'token'], w: 'token', p: 'tokens', alt: ['credential'] },
+    { k: ['会话', 'session'], w: 'session', p: 'sessions', alt: ['conversation'] },
+    { k: ['事件'], w: 'event', p: 'events', alt: ['occurrence'] },
+    { k: ['回调', '钩子触发'], w: 'callback', p: 'callbacks', alt: ['handler'] },
+    { k: ['工作流', '流程'], w: 'workflow', p: 'workflows', alt: ['flow', 'process'] },
+    { k: ['素材', '资源'], w: 'asset', p: 'assets', alt: ['resource'] },
+    { k: ['项目', '工程'], w: 'project', p: 'projects', alt: ['repo'] },
+    { k: ['版本', '版本号'], w: 'version', p: 'versions', alt: ['revision'] },
+    { k: ['进度'], w: 'progress', p: 'progresses', alt: ['percent'] },
+    { k: ['明细', '详情'], w: 'detail', p: 'details', alt: ['item'] },
+    { k: ['内容'], w: 'content', p: 'contents', alt: ['body'] },
+    { k: ['标题'], w: 'title', p: 'titles', alt: ['heading'] },
+    { k: ['描述', '详情说明'], w: 'description', p: 'descriptions', alt: ['desc'] },
+    { k: ['头像图片'], w: 'avatar', p: 'avatars', alt: ['profileImage'] },
+    { k: ['昵称'], w: 'nickname', p: 'nicknames', alt: ['displayName'] },
+    { k: ['手机号'], w: 'phone', p: 'phones', alt: ['mobile'] },
+    { k: ['邮箱', '邮件'], w: 'email', p: 'emails', alt: ['mail'] },
+    { k: ['密码'], w: 'password', p: 'passwords', alt: ['pwd'] },
+    { k: ['验证码'], w: 'code', p: 'codes', alt: ['captcha'] },
+    { k: ['时间表', '日程'], w: 'schedule', p: 'schedules', alt: ['calendar'] },
+    { k: ['通知'], w: 'notification', p: 'notifications', alt: ['notice'] },
+    { k: ['积分'], w: 'point', p: 'points', alt: ['credit'] },
+    { k: ['优惠券'], w: 'coupon', p: 'coupons', alt: ['voucher'] },
+    { k: ['记录日志'], w: 'logEntry', p: 'logEntries', alt: ['log'] },
+    { k: ['数量', '个数', '多少'], w: 'count', p: 'counts', alt: ['total', 'quantity'] },
+    { k: ['折扣', '优惠券金额'], w: 'discount', p: 'discounts', alt: ['promotion'] },
+    { k: ['评价', '评分', '星级'], w: 'rating', p: 'ratings', alt: ['score'] },
+    { k: ['限制', '上限', '阈值'], w: 'limit', p: 'limits', alt: ['threshold'] },
+    { k: ['日期'], w: 'date', p: 'dates', alt: ['day'] },
+    { k: ['时间', '时间戳'], w: 'time', p: 'times', alt: ['timestamp', 'datetime'] },
+    { k: ['字符串', '文本'], w: 'text', p: 'texts', alt: ['string'] },
+    { k: ['时长', '耗时'], w: 'duration', p: 'durations', alt: ['elapsed'] },
+    { k: ['原因', '理由'], w: 'reason', p: 'reasons', alt: ['cause'] },
+    { k: ['渠道', '来源'], w: 'channel', p: 'channels', alt: ['source'] },
+    { k: ['设备'], w: 'device', p: 'devices', alt: ['terminal'] },
+    { k: ['主题', '皮肤'], w: 'theme', p: 'themes', alt: ['skin'] },
+    { k: ['规则'], w: 'rule', p: 'rules', alt: ['policy'] },
+    { k: ['快照'], w: 'snapshot', p: 'snapshots', alt: ['marker'] },
+    /* ---- 开放词表补充：业务 / 医疗 / 供应链 / 运营 / 运维 ---- */
+    { k: ['工单'], w: 'workOrder', p: 'workOrders', alt: ['ticket'] },
+    { k: ['报销'], w: 'reimbursement', p: 'reimbursements', alt: ['expense'] },
+    { k: ['发票'], w: 'invoice', p: 'invoices', alt: ['bill'] },
+    { k: ['合同'], w: 'contract', p: 'contracts', alt: ['agreement'] },
+    { k: ['物料'], w: 'material', p: 'materials', alt: ['supply'] },
+    { k: ['运单'], w: 'waybill', p: 'waybills', alt: ['shipment'] },
+    { k: ['仓库'], w: 'warehouse', p: 'warehouses', alt: ['depot'] },
+    { k: ['门店'], w: 'store', p: 'stores', alt: ['shop', 'outlet'] },
+    { k: ['课程'], w: 'course', p: 'courses', alt: ['lesson'] },
+    { k: ['题库'], w: 'questionBank', p: 'questionBanks', alt: ['quizBank'] },
+    { k: ['试卷', '考卷'], w: 'examPaper', p: 'examPapers', alt: ['paper'] },
+    { k: ['排班', '值班'], w: 'roster', p: 'rosters', alt: ['shift'] },
+    { k: ['考勤'], w: 'attendance', p: 'attendances', alt: ['checkin'] },
+    { k: ['薪资', '工资'], w: 'salary', p: 'salaries', alt: ['payroll'] },
+    { k: ['社保'], w: 'insurance', p: 'insurances', alt: ['socialSecurity'] },
+    { k: ['公积金'], w: 'providentFund', p: 'providentFunds', alt: ['housingFund'] },
+    { k: ['体检'], w: 'checkup', p: 'checkups', alt: ['physicalExam'] },
+    { k: ['挂号'], w: 'registration', p: 'registrations', alt: ['appointment'] },
+    { k: ['病历'], w: 'medicalRecord', p: 'medicalRecords', alt: ['chart'] },
+    { k: ['处方'], w: 'prescription', p: 'prescriptions', alt: ['rx'] },
+    { k: ['病房'], w: 'ward', p: 'wards', alt: ['room'] },
+    { k: ['床位'], w: 'bed', p: 'beds', alt: ['slot'] },
+    { k: ['患者', '病人'], w: 'patient', p: 'patients', alt: ['client'] },
+    { k: ['医生', '医师'], w: 'doctor', p: 'doctors', alt: ['physician'] },
+    { k: ['护士'], w: 'nurse', p: 'nurses', alt: [] },
+    { k: ['药品'], w: 'medicine', p: 'medicines', alt: ['drug'] },
+    { k: ['供应商'], w: 'supplier', p: 'suppliers', alt: ['vendor'] },
+    { k: ['采购'], w: 'purchase', p: 'purchases', alt: ['procurement'] },
+    { k: ['盘点'], w: 'stocktaking', p: 'stocktakings', alt: ['inventoryCheck'] },
+    { k: ['调拨'], w: 'transfer', p: 'transfers', alt: ['allocation'] },
+    { k: ['货架'], w: 'shelf', p: 'shelves', alt: ['rack'] },
+    { k: ['物流'], w: 'logistics', p: 'logistics', alt: ['shipping'] },
+    { k: ['快递'], w: 'express', p: 'expresses', alt: ['courier'] },
+    { k: ['配送'], w: 'delivery', p: 'deliveries', alt: ['dispatch'] },
+    { k: ['秒杀'], w: 'flashSale', p: 'flashSales', alt: ['seckill'] },
+    { k: ['拼团'], w: 'groupBuy', p: 'groupBuys', alt: ['groupon'] },
+    { k: ['直播'], w: 'liveStream', p: 'liveStreams', alt: ['live'] },
+    { k: ['弹幕'], w: 'danmaku', p: 'danmakus', alt: ['barrage'] },
+    { k: ['粉丝'], w: 'follower', p: 'followers', alt: ['fan'] },
+    { k: ['收藏夹', '收藏'], w: 'favorite', p: 'favorites', alt: ['bookmark'] },
+    { k: ['举报', '投诉'], w: 'complaint', p: 'complaints', alt: ['report'] },
+    { k: ['字典'], w: 'dictionary', p: 'dictionaries', alt: ['dict'] },
+    { k: ['网关'], w: 'gateway', p: 'gateways', alt: ['proxy'] },
+    { k: ['限流'], w: 'rateLimit', p: 'rateLimits', alt: ['throttle'] },
+    { k: ['熔断'], w: 'circuitBreaker', p: 'circuitBreakers', alt: ['breaker'] },
+    { k: ['灰度'], w: 'grayRelease', p: 'grayReleases', alt: ['canary'] },
+    { k: ['开关', '特性开关'], w: 'featureFlag', p: 'featureFlags', alt: ['toggle'] },
+    { k: ['埋点'], w: 'trackPoint', p: 'trackPoints', alt: ['analytics'] },
+    { k: ['漏斗'], w: 'funnel', p: 'funnels', alt: ['funnelChart'] },
+    { k: ['留存'], w: 'retention', p: 'retentions', alt: ['retain'] },
+    { k: ['看板', '仪表盘'], w: 'dashboard', p: 'dashboards', alt: ['board'] },
+    { k: ['大屏'], w: 'screen', p: 'screens', alt: ['display'] },
+    { k: ['告警', '报警'], w: 'alarm', p: 'alarms', alt: ['alert'] },
+    { k: ['监控'], w: 'monitor', p: 'monitors', alt: ['watch'] },
+    { k: ['调用链'], w: 'trace', p: 'traces', alt: ['tracing'] },
+    { k: ['拓扑'], w: 'topology', p: 'topologies', alt: ['graph'] },
+    { k: ['对账'], w: 'reconciliation', p: 'reconciliations', alt: ['settleCheck'] },
+    { k: ['提现'], w: 'withdraw', p: 'withdrawals', alt: ['cashout'] },
+    { k: ['充值'], w: 'recharge', p: 'recharges', alt: ['topup'] },
+    { k: ['余额'], w: 'balance', p: 'balances', alt: ['remain'] },
+    { k: ['流水', '账单'], w: 'transactionFlow', p: 'transactionFlows', alt: ['statement'] },
+    { k: ['运费'], w: 'shippingFee', p: 'shippingFees', alt: ['freight'] },
+    { k: ['税费'], w: 'tax', p: 'taxes', alt: ['duty'] },
+    { k: ['会员卡'], w: 'memberCard', p: 'memberCards', alt: ['loyaltyCard'] },
+    { k: ['兑换'], w: 'exchange', p: 'exchanges', alt: ['redeem'] },
+    { k: ['预约'], w: 'appointment', p: 'appointments', alt: ['booking'] },
+    { k: ['签到'], w: 'checkIn', p: 'checkIns', alt: ['signIn'] },
+    { k: ['打卡'], w: 'clockIn', p: 'clockIns', alt: ['punch'] },
+    { k: ['请假'], w: 'leaveRequest', p: 'leaveRequests', alt: ['leave'] },
+    { k: ['加班'], w: 'overtime', p: 'overtimes', alt: ['extraShift'] },
+    { k: ['培训'], w: 'training', p: 'trainings', alt: ['course'] },
+    { k: ['考试'], w: 'exam', p: 'exams', alt: ['test'] },
+    { k: ['成绩', '分数'], w: 'grade', p: 'grades', alt: ['score'] },
+    { k: ['证书'], w: 'certificate', p: 'certificates', alt: ['cert'] },
+    { k: ['认证'], w: 'certification', p: 'certifications', alt: ['verifyRecord'] },
+    /* ---- 技术名词补充 ---- */
+    { k: ['调度器'], w: 'scheduler', p: 'schedulers', alt: ['dispatcher'] },
+    { k: ['队列'], w: 'queue', p: 'queues', alt: ['mq'] },
+    { k: ['引擎'], w: 'engine', p: 'engines', alt: ['runtime'] },
+    { k: ['中间件'], w: 'middleware', p: 'middlewares', alt: ['plugin'] },
+    { k: ['容器'], w: 'container', p: 'containers', alt: ['holder'] },
+    { k: ['集群'], w: 'cluster', p: 'clusters', alt: ['group'] },
+    { k: ['节点'], w: 'node', p: 'nodes', alt: ['peer'] },
+    { k: ['副本'], w: 'replica', p: 'replicas', alt: ['copy'] },
+    { k: ['分片'], w: 'shard', p: 'shards', alt: ['partition'] },
+    { k: ['事务'], w: 'transaction', p: 'transactions', alt: ['tx'] },
+    { k: ['心跳'], w: 'heartbeat', p: 'heartbeats', alt: ['ping'] },
+    { k: ['阈值'], w: 'threshold', p: 'thresholds', alt: ['bound'] },
+    { k: ['配额'], w: 'quota', p: 'quotas', alt: ['allowance'] },
+    { k: ['策略'], w: 'policy', p: 'policies', alt: ['strategy'] },
+    { k: ['白名单'], w: 'whitelist', p: 'whitelists', alt: ['allowList'] },
+    { k: ['黑名单'], w: 'blacklist', p: 'blacklists', alt: ['denyList'] },
+    { k: ['解析器'], w: 'parser', p: 'parsers', alt: ['reader'] },
+    { k: ['适配器'], w: 'adapter', p: 'adapters', alt: ['bridge'] },
+    { k: ['拦截器'], w: 'interceptor', p: 'interceptors', alt: ['hook'] },
+    { k: ['转换器'], w: 'converter', p: 'converters', alt: ['transformer'] },
+    { k: ['生成器'], w: 'generator', p: 'generators', alt: ['builder'] }
+  ];
+
+  /* ---------- 3. 修饰词 ---------- */
+  const MODS = [
+    { k: ['最大', '最大值'], w: 'max', alt: ['maximum'] },
+    { k: ['最小', '最小值'], w: 'min', alt: ['minimum'] },
+    { k: ['平均'], w: 'avg', alt: ['average'] },
+    { k: ['总', '合计', '总计'], w: 'total', alt: ['sum'] },
+    { k: ['当前', '现在'], w: 'current', alt: ['now'] },
+    { k: ['上一个', '前一个', '上一'], w: 'previous', alt: ['prev', 'last'] },
+    { k: ['下一个', '下一'], w: 'next', alt: ['upcoming'] },
+    { k: ['唯一', 'main'], w: 'primary', alt: ['unique'] },
+    { k: ['默认'], w: 'default', alt: ['fallback'] },
+    { k: ['最新'], w: 'latest', alt: ['recent'] },
+    { k: ['历史'], w: 'history', alt: ['past', 'archive'] },
+    { k: ['本地'], w: 'local', alt: ['offline'] },
+    { k: ['远程', '远端'], w: 'remote', alt: ['server'] },
+    { k: ['临时'], w: 'temporary', alt: ['transient'] },
+    { k: ['全局'], w: 'global', alt: ['app'] },
+    { k: ['私有'], w: 'private', alt: ['internal'] },
+    { k: ['公共', '公开'], w: 'public', alt: ['shared'] },
+    { k: ['已选中', '选中', '已选'], w: 'selected', alt: ['active'] },
+    { k: ['推荐'], w: 'recommended', alt: ['suggested'] },
+    { k: ['热门'], w: 'popular', alt: ['trending'] },
+    { k: ['有效'], w: 'valid', alt: ['active'] },
+    { k: ['过期', '失效'], w: 'expired', alt: ['stale'] }
+  ];
+
+  /* ---------- 4. 状态/形容词 ---------- */
+  const STATES = [
+    { k: ['成功', '成功'], w: 'success', adj: 'successful', truthy: true },
+    { k: ['失败', '错误', '报错'], w: 'failed', adj: 'failed', truthy: false },
+    { k: ['完成', '已完成'], w: 'completed', adj: 'done', truthy: true },
+    { k: ['登录', '已登录'], w: 'loggedIn', adj: 'authenticated', truthy: true },
+    { k: ['过期', '失效'], w: 'expired', adj: 'stale', truthy: false },
+    { k: ['可用', '有效'], w: 'available', adj: 'valid', truthy: true },
+    { k: ['禁用', '关闭'], w: 'disabled', adj: 'inactive', truthy: false },
+    { k: ['可见', '显示'], w: 'visible', adj: 'shown', truthy: true },
+    { k: ['空', '为空'], w: 'empty', adj: 'blank', truthy: true },
+    { k: ['加载中', '请求中'], w: 'loading', adj: 'pending', truthy: true },
+    { k: ['就绪', '准备好'], w: 'ready', adj: 'prepared', truthy: true },
+    { k: ['支付'], w: 'paid', adj: 'settled', truthy: true },
+    { k: ['删除'], w: 'deleted', adj: 'removed', truthy: true },
+    { k: ['修改', '变更'], w: 'dirty', adj: 'modified', truthy: true },
+    { k: ['只读'], w: 'readOnly', adj: 'readonly', truthy: true },
+    { k: ['首屏', '首次'], w: 'first', adj: 'initial', truthy: true },
+    { k: ['末次', '最后'], w: 'last', adj: 'final', truthy: true },
+    { k: ['今日', '当天'], w: 'today', adj: 'daily', truthy: true },
+    { k: ['星期'], w: 'weekly', adj: 'weekly', truthy: true },
+    { k: ['月度', '每月'], w: 'monthly', adj: 'monthly', truthy: true }
+  ];
+
+  /* ---------- 5. 疑问/布尔信号 ---------- */
+  const BOOL_HINTS = ['是否', '有没有', '能否', '能不能', '可否', '判断', '是否要', '需不需要', '要不要', '会不会', '是不是'];
+
+  /* ---------- 6. 垃圾词黑名单（命名界的地沟油） ---------- */
+  const SMELL = [
+    { w: 'data', why: '「data」跟「东西」一样，等于没说', tip: '说明它是什么数据，例如 userList / orderSummary' },
+    { w: 'info', why: '「info」是「我懒得想」的拉丁语写法', tip: '具体化：userProfile / shipmentDetail' },
+    { w: 'item', why: '「item」万能又无用', tip: '换成业务实体：cartItem / menuEntry' },
+    { w: 'list2', why: '数字后缀=命名已放弃治疗', tip: '第二个列表请说出它的不同之处：activeList / archivedList' },
+    { w: 'temp', why: '「temp」往往活到项目下线', tip: '说明用途：pendingBuffer / previousSnapshot' },
+    { w: 'tmp', why: '同上，只是更短更理直气壮', tip: '同上' },
+    { w: 'obj', why: 'JavaScript 里万物皆 obj，谢谢', tip: '直接写它的语义：orderFilter' },
+    { w: 'flag', why: '「flag」不如布尔语义前缀', tip: '用 is / has / should 开头' },
+    { w: 'manager', why: '「Manager」是面向对象世界的垃圾桶', tip: '具体职责：OrderScheduler / PriceCalculator' },
+    { w: 'helper', why: '「Helper」= 什么都往里塞', tip: '按职责命名：DateFormatter / UrlBuilder' },
+    { w: 'util', why: '「utils.js」是项目的杂物抽屉', tip: '拆到具体模块：stringCase / dateMath' },
+    { w: 'utils', why: '同上', tip: '同上' },
+    { w: 'handle', why: 'handleData 什么都没说', tip: '动词要具体：submitOrder / validateCoupon' },
+    { w: 'process', why: 'processData 是无效动词', tip: '改成 transformUserInput 之类的真动作' },
+    { w: 'do', why: 'doSomething 是命名界的」呃那个啥」', tip: '写出具体动作' },
+    { w: 'thing', why: 'thing', tip: '别写了，删掉重写' },
+    { w: 'old', why: '版本管理靠 Git，不靠变量后缀', tip: '删除旧变量，让 Git 记住它' },
+    { w: 'new', why: '同上', tip: '同上' },
+    { w: 'xxx', why: '占位符忘了改？', tip: '换成实际语义' },
+    { w: 'aaa', why: '我猜这是为了排序靠前', tip: '删掉' },
+    { w: 'test', why: 'test1/test2 会在半年后复活成线上逻辑', tip: '如果是原型请明确：prototypeParser' },
+    { w: 'final', why: 'final2 / finalFinal 的经典开头', tip: '版本号交给 Git' },
+    { w: 'value', why: '「value」需要上下文才成立', tip: '写明值的含义：discountRate' },
+    { w: 'result', why: '到处都是 result', tip: '写明是什么的结果：validationResult' },
+    { w: 'content', why: '太空泛', tip: '写明内容类型：articleBody / modalContent' },
+    { w: 'array', why: '类型不该出现在名字里，除非你在写 C', tip: '用复数：users' },
+    { w: 'string', why: '同上', tip: '用语义：nickname' }
+  ];
+
+  /* ---------- 7. 常见缩写（体检时提示展开） ---------- */
+  const ABBR = {
+    pwd: 'password', cfg: 'config', tmp: 'temporary', msg: 'message', btn: 'button',
+    img: 'image', doc: 'document', qty: 'quantity', amt: 'amount', desc: 'description',
+    val: 'value', calc: 'calculate', db: 'database', env: 'environment', pkg: 'package',
+    btn: 'button', txt: 'text', num: 'number', idx: 'index', cb: 'callback',
+    usr: 'user', addr: 'address', param: 'parameter', prop: 'property', pos: 'position'
+  };
+
+  /* ---------- 8. 类后缀建议 ---------- */
+  const CLASS_SUFFIX = [
+    { s: 'Service', hint: '对外提供业务能力' },
+    { s: 'Repository', hint: '数据访问封装' },
+    { s: 'Store', hint: '状态容器' },
+    { s: 'Controller', hint: '请求编排' },
+    { s: 'Provider', hint: '资源/依赖提供' },
+    { s: 'Parser', hint: '解析转换' },
+    { s: 'Builder', hint: '构造复杂对象' },
+    { s: 'Validator', hint: '校验规则' },
+    { s: 'Resolver', hint: 'GraphQL / 依赖解析' },
+    { s: 'Handler', hint: '事件处理' }
+  ];
+
+  /* ---------- 9. 彩蛋：抽象命名词库 ---------- */
+  const FUN_ADJ = [
+    'quantum', 'ephemeral', 'luminous', 'recursive', 'sentient', 'velvet', 'chaotic',
+    'serendipitous', 'oblique', 'crystalline', 'wandering', 'invisible', 'phantom',
+    'harmonious', 'stochastic', 'ethereal', 'graceful', 'voracious', 'melancholy',
+    'hyperbolic', 'nomadic', 'incandescent', 'turbulent', 'sacred'
+  ];
+  const FUN_NOUN = [
+    'pancake', 'widget', 'llama', 'beacon', 'origami', 'kettle', 'nebula', 'cactus',
+    'monolith', 'susurrus', 'playground', 'chandelier', 'anomaly', 'platypus',
+    'labyrinth', 'espresso', 'avalanche', 'hamster', 'tapestry', 'sandwich',
+    'meridian', 'origami', 'carburetor', 'ukulele'
+  ];
+  const FUN_SUFFIX = ['Engine', 'Optimizer', 'Adapter', 'Pipeline', 'Oracle', 'Fabric', 'Kernel', 'Glyph', 'Matrix'];
+
+  /* ---------- 10. Commit 词典 ---------- */
+  const COMMIT_TYPES = [
+    { t: 'feat', cn: '新功能', desc: '新增能力' },
+    { t: 'fix', cn: '修 Bug', desc: '修复缺陷' },
+    { t: 'refactor', cn: '重构', desc: '不动行为的内部结构优化' },
+    { t: 'perf', cn: '性能', desc: '性能提升' },
+    { t: 'style', cn: '样式', desc: '格式、样式调整' },
+    { t: 'docs', cn: '文档', desc: '文档变更' },
+    { t: 'test', cn: '测试', desc: '测试相关' },
+    { t: 'chore', cn: '杂项', desc: '构建/依赖/工具' },
+    { t: 'revert', cn: '回滚', desc: '撤销提交' }
+  ];
+
+  const COMMIT_JOKES = [
+    '修复了一个在我机器上不存在的 bug',
+    '把三年前的 TODO 注释原样保留并加了两个',
+    '改动很小，但危险程度很高',
+    '为了这一个空格我重启了十七次服务',
+    '重构了昨天的重构',
+    '删了一行代码，测试覆盖率下降了 2%',
+    '这次真的最后一次改这里了',
+    '把魔法数字换成了另一个魔法数字',
+    '如果一个 bug 消失了但没人知道为什么，它就真的消失了吗',
+    '注释写得很清楚，代码我不保证',
+    '让它可以跑起来，原因待查',
+    '把昨天那坨我自己都没看懂的东西换了一坨新的'
+  ];
+
+  /* ---------- 11. 一键示例 ---------- */
+  const EXAMPLES = [
+    '获取用户列表',
+    '判断用户是否已登录',
+    '根据订单号查询支付状态',
+    '上传头像图片',
+    '订单支付成功后的回调',
+    '商品库存数量',
+    '格式化日期时间',
+    '当前选中的标签id',
+    '批量删除过期日志',
+    '是否允许修改个人信息'
+  ];
+
+  /* ---------- 12. 命名规范速查 ---------- */
+  const GUIDE = [
+    { scope: '普通变量 / 函数', style: 'camelCase', bad: 'User_List / userlist', good: 'userList' },
+    { scope: '类 / 组件 / 类型', style: 'PascalCase', bad: 'userCard', good: 'UserCard' },
+    { scope: '常量', style: 'SCREAMING_SNAKE_CASE', bad: 'maxRetry', good: 'MAX_RETRY_COUNT' },
+    { scope: '文件名（资产 / 组件）', style: 'kebab-case', bad: 'UserProfile.vue', good: 'user-profile.vue' },
+    { scope: '数据库表 / 字段', style: 'snake_case（表名复数）', bad: 'userOrderItems', good: 'order_items' },
+    { scope: 'CSS class', style: 'kebab-case 或 BEM', bad: 'cardTitle', good: 'card__title' },
+    { scope: '布尔值', style: 'is / has / can / should 前缀', bad: 'loginFlag', good: 'isLoggedIn' },
+    { scope: '事件处理', style: 'handle + 名词 + 动作', bad: 'onclick', good: 'handleSubmitClick' },
+    { scope: '布尔 prop 传递', style: 'on + 动作 / 回调', bad: 'clickCb', good: 'onClick' },
+    { scope: 'React Hook', style: 'use + 名词', bad: 'getUsers', good: 'useUserList' },
+    { scope: 'Git 分支', style: 'type/scope-描述', bad: 'dev2', good: 'feat/order-refund' },
+    { scope: 'REST 路径', style: '全小写复数 + 中划线', bad: '/getUserInfo', good: '/users/{id}' }
+  ];
+
+  /* ---------- 13. 语言命名规范矩阵 ---------- */
+  const LANG_MATRIX = [
+    {
+      id: 'ts', name: 'TypeScript / JavaScript', short: 'TS / JS',
+      rows: [
+        { el: '变量 / 属性', rule: 'camelCase', good: 'userProfile', bad: 'user_profile', note: '名词性；布尔值统一 is / has / can / should 前缀' },
+        { el: '常量', rule: 'SCREAMING_SNAKE_CASE', good: 'MAX_RETRY_COUNT', bad: 'maxRetryCount', note: '模块级导出常量；函数内不可变值可用 camelCase' },
+        { el: '函数 / 方法', rule: 'camelCase，动词开头', good: 'fetchUserList', bad: 'getUserListData', note: '不要用 get 假装万能，取数用 fetch / query / find' },
+        { el: '类 / 组件', rule: 'PascalCase', good: 'UserCard', bad: 'userCard', note: '组件文件名常见 kebab-case 或与组件同名' },
+        { el: '接口 / 类型', rule: 'PascalCase，不加 I 前缀', good: 'OrderPayload', bad: 'IOrder', note: '现代 TS 风格不再用 I 前缀；用 Props / Params / Result 后缀区分用途' },
+        { el: '枚举 / 成员', rule: '枚举 PascalCase，成员 SCREAMING_SNAKE 或 PascalCase', good: 'OrderStatus.PAID', bad: 'order_status.paid', note: '成员用「值语义」而不是数字' },
+        { el: '事件处理', rule: 'handle + 名词 + 动作；props 回调用 on + 动作', good: 'handleSubmitClick / onSubmit', bad: 'onClick2 / clickHandler', note: 'handle 是自己处理，on 是别人传进来的回调' },
+        { el: '文件名', rule: 'kebab-case 或与默认导出同名', good: 'user-profile.tsx', bad: 'User_Profile.tsx', note: '同一仓库内只选一种，别中途换风格' },
+        { el: '测试', rule: 'describe 名词 + it should 行为', good: 'should return empty when no order', bad: 'test1', note: '测试名是一句可执行的规格说明' },
+        { el: '布尔变量', rule: 'is / has / can / should 前缀', good: 'isLoading', bad: 'loadingFlag', note: 'flag / status 是布尔命名的两大恶习' },
+        { el: '异步函数', rule: '动词 + 名词，团队统一是否加 Async', good: 'fetchUserList', bad: 'getAsyncUser', note: '返回 Promise 不代表要把 Async 写进名字，选一种全组统一' },
+        { el: '常量对象 / 配置', rule: 'SCREAMING_SNAKE_CASE', good: 'DEFAULT_PAGE_SIZE', bad: 'defaultPageSize', note: '导出给外部用的配置对象，语义同常量' }
+      ]
+    },
+    {
+      id: 'py', name: 'Python', short: 'Python',
+      rows: [
+        { el: '变量 / 函数', rule: 'snake_case（PEP 8）', good: 'fetch_user_list', bad: 'fetchUserList', note: 'PEP 8 是硬要求，不是建议' },
+        { el: '常量', rule: 'SCREAMING_SNAKE_CASE', good: 'MAX_RETRY_COUNT', bad: 'maxRetryCount', note: '模块级常量' },
+        { el: '类', rule: 'PascalCase', good: 'OrderRepository', bad: 'order_repository', note: '异常类用 Error 后缀' },
+        { el: '私有成员', rule: '单下划线前缀', good: '_cache', bad: '__cache', note: '双下划线会触发 name mangling，慎用' },
+        { el: '模块 / 文件', rule: 'snake_case', good: 'user_profile.py', bad: 'UserProfile.py', note: '包名同样全小写' },
+        { el: '类型变量', rule: 'PascalCase 或 T / K / V', good: 'ItemType', bad: 'item_type', note: 'TypeVar 用简洁大写' },
+        { el: '测试', rule: 'test_ 前缀 + 行为描述', good: 'test_fetch_user_returns_empty', bad: 'test1', note: 'pytest 靠前缀收集用例' },
+        { el: '数据类 / TypedDict', rule: 'PascalCase', good: 'UserPayload', bad: 'user_payload', note: '类型层面用类命名法，与变量区分' },
+        { el: '类型别名', rule: 'PascalCase', good: 'OrderId', bad: 'order_id_type', note: 'Alias 后缀很少需要，直接用语义名' },
+        { el: '字典 key / JSON 字段', rule: 'snake_case（跟 API 保持一致）', good: 'created_at', bad: 'createdAt', note: '外部契约优先，别在入口处做风格转换' }
+      ]
+    },
+    {
+      id: 'java', name: 'Java', short: 'Java',
+      rows: [
+        { el: '变量 / 方法', rule: 'camelCase', good: 'fetchUserList', bad: 'fetch_user_list', note: '方法用动词开头，名词方法只用于获取属性' },
+        { el: '常量', rule: 'SCREAMING_SNAKE_CASE', good: 'MAX_RETRY_COUNT', bad: 'maxRetryCount', note: 'static final' },
+        { el: '类 / 接口', rule: 'PascalCase', good: 'OrderService', bad: 'orderService', note: '接口不加 I 前缀（与 C# 相反）' },
+        { el: '包名', rule: '全小写点分，域名倒序', good: 'com.example.order', bad: 'com.Example.Order', note: '' },
+        { el: '泛型参数', rule: '单个大写字母', good: 'T / K / V / E', bad: 'Type', note: '复杂场景可用 ResultT 但很少见' },
+        { el: '布尔方法', rule: 'is / has / can 前缀', good: 'isPaid()', bad: 'getPaid()', note: '让调用处读起来像一句话' },
+        { el: '测试方法', rule: 'should_ 前缀或 camelCase 行为描述', good: 'shouldThrowWhenEmpty', bad: 'test1', note: 'JUnit 5 支持 @DisplayName 中文描述' },
+        { el: '枚举成员', rule: 'SCREAMING_SNAKE_CASE', good: 'OrderStatus.PAID', bad: 'OrderStatus.paid', note: '成员之间保持同一抽象层级' },
+        { el: '测试类', rule: '被测类 + Test', good: 'OrderServiceTest', bad: 'TestOrder', note: '' },
+        { el: 'DTO / VO', rule: 'PascalCase + 职责后缀', good: 'OrderCreateDTO', bad: 'OrderData', note: '后缀说明这一层要干什么，别只写 Data' },
+        { el: '常量池 / 错误码', rule: 'SCREAMING_SNAKE 或 E + 数字', good: 'ERR_ORDER_NOT_FOUND', bad: 'error1', note: '错误码要和文案一一对应，别复用' }
+      ]
+    },
+    {
+      id: 'go', name: 'Go', short: 'Go',
+      rows: [
+        { el: '包名', rule: '全小写、单数、无下划线', good: 'orderrepo', bad: 'order_repo', note: '包名会被调用方当作前缀，别自我重复' },
+        { el: '导出标识符', rule: 'PascalCase（首字母大写才能导出）', good: 'FetchUserList', bad: 'fetchUserList', note: 'Go 用首字母大小写表达可见性，这是语言级约定' },
+        { el: '未导出标识符', rule: 'camelCase', good: 'fetchUserList', bad: 'FetchUserList', note: '' },
+        { el: '接口', rule: '单方法接口用 -er 后缀', good: 'Reader / Stringer', bad: 'IReader', note: '接口越小越好用，一到两个方法最合适' },
+        { el: '常量', rule: 'camelCase 或 PascalCase，不用下划线', good: 'maxRetryCount / MaxRetryCount', bad: 'MAX_RETRY_COUNT', note: 'Go 的常量不像 Java 那样大写' },
+        { el: '错误变量', rule: 'Err 前缀', good: 'ErrNotFound', bad: 'NotFoundError', note: '' },
+        { el: '测试文件', rule: '_test.go 后缀', good: 'user_test.go', bad: 'test_user.go', note: '测试函数 TestXxx' },
+        { el: 'struct 字段', rule: 'PascalCase（导出）/ camelCase（私有）', good: 'OrderID', bad: 'order_id', note: '字段可见性同样靠首字母' },
+        { el: '缩写统一大写', rule: 'ID / URL / HTTP 保持全大写', good: 'UserID / BaseURL', bad: 'UserId / BaseUrl', note: 'Go 社区共识，混写会被 lint 挑出来' },
+        { el: '接收者名', rule: '类型首字母小写，1-2 字符', good: 'func (s *Service)', bad: 'func (this *Service)', note: '别用 this / self，Go 里不流行' }
+      ]
+    },
+    {
+      id: 'cs', name: 'C#', short: 'C#',
+      rows: [
+        { el: '公共成员', rule: 'PascalCase', good: 'FetchUserList', bad: 'fetchUserList', note: 'C# 的公共成员几乎全用 PascalCase' },
+        { el: '私有字段', rule: '_camelCase', good: '_cache', bad: 'cache', note: '下划线前缀是 .NET 团队最常见约定' },
+        { el: '接口', rule: 'I + PascalCase', good: 'IOrderService', bad: 'OrderServiceInterface', note: '与 Java 相反，C# 保留 I 前缀' },
+        { el: '常量', rule: 'PascalCase', good: 'MaxRetryCount', bad: 'MAX_RETRY_COUNT', note: '' },
+        { el: '异步方法', rule: 'Async 后缀', good: 'FetchUserListAsync', bad: 'FetchUserList', note: '返回 Task / ValueTask 时加' },
+        { el: '局部变量', rule: 'camelCase', good: 'userList', bad: '_userList', note: '' }
+      ]
+    },
+    {
+      id: 'rust', name: 'Rust', short: 'Rust',
+      rows: [
+        { el: '变量 / 函数', rule: 'snake_case', good: 'fetch_user_list', bad: 'fetchUserList', note: '编译器会直接警告 non_snake_case' },
+        { el: '类型 / trait / enum', rule: 'PascalCase', good: 'OrderRepository', bad: 'order_repository', note: '' },
+        { el: '常量 / 静态', rule: 'SCREAMING_SNAKE_CASE', good: 'MAX_RETRY_COUNT', bad: 'maxRetryCount', note: '' },
+        { el: '模块 / 文件', rule: 'snake_case', good: 'user_profile.rs', bad: 'UserProfile.rs', note: '' },
+        { el: '生命周期', rule: '短小写', good: "'a / 'ctx", bad: "'LIFETIME", note: '' },
+        { el: '测试', rule: '#[test] + snake_case 行为描述', good: 'fetch_user_returns_empty', bad: 'test1', note: '' }
+      ]
+    },
+    {
+      id: 'sql', name: 'SQL / 数据库', short: 'SQL',
+      rows: [
+        { el: '表名', rule: '小写、复数、snake_case', good: 'order_items', bad: 'OrderItems', note: '跨库时统一复数能少吵架' },
+        { el: '字段', rule: 'snake_case', good: 'created_at', bad: 'createdAt', note: '' },
+        { el: '主键', rule: 'id 或 表名单数_id', good: 'order_id', bad: 'orderId', note: '外键必须与引用表主键同名' },
+        { el: '外键', rule: '引用表名单数_id', good: 'user_id', bad: 'uid', note: '' },
+        { el: '索引', rule: 'idx_表_字段', good: 'idx_orders_user_id', bad: 'index1', note: '唯一索引用 uk_，普通索引用 idx_' },
+        { el: '布尔字段', rule: 'is_ / has_ 前缀', good: 'is_paid', bad: 'paid_flag', note: '' },
+        { el: '时间字段', rule: '_at 后缀', good: 'paid_at', bad: 'pay_time', note: '同一张表里 at / time 只选一种' },
+        { el: '视图', rule: 'v_ 前缀或 _view 后缀', good: 'v_order_summary', bad: 'summary', note: '' },
+        { el: '存储过程 / 函数', rule: 'sp_ / fn_ 前缀', good: 'sp_close_order', bad: 'proc1', note: '有争议但统一就赢' },
+        { el: '临时表', rule: 'tmp_ 前缀 + 日期', good: 'tmp_order_20261022', bad: 'temp', note: '临时对象必须自带过期语义，方便清理' },
+        { el: '分区表', rule: '主表名_p + 分区标识', good: 'orders_p202610', bad: 'orders_new', note: '' }
+      ]
+    },
+    {
+      id: 'css', name: 'CSS', short: 'CSS',
+      rows: [
+        { el: 'class', rule: 'kebab-case，推荐 BEM', good: 'card__title', bad: 'cardTitle', note: 'BEM：block__element--modifier' },
+        { el: 'CSS 变量', rule: '--kebab-case', good: '--color-primary', bad: '--colorPrimary', note: '语义化命名，别用色值当名字' },
+        { el: '状态类', rule: 'is- / has- 前缀', good: 'is-active', bad: 'active2', note: '状态类只加不改' },
+        { el: '工具类', rule: 'u- 前缀', good: 'u-mt-8', bad: 'mt8', note: '便于和业务类区分' },
+        { el: '动画', rule: '动作用动词，关键帧用名词', good: 'fade-in / slideUp', bad: 'anim1', note: '' }
+      ]
+    }
+  ];
+
+  /* ---------- 14. 命名模式库（后缀语义字典） ---------- */
+  const PATTERNS = [
+    { n: 'Service', cat: '分层', use: '承载业务用例，编排多个数据源', ex: 'OrderService', warn: '不直接写 SQL，不直接操作 DOM' },
+    { n: 'Repository', cat: '分层', use: '封装数据访问，屏蔽存储细节', ex: 'OrderRepository', warn: '只做增删改查，别塞业务规则' },
+    { n: 'Controller', cat: '分层', use: '接收请求、校验入参、返回响应', ex: 'OrderController', warn: '不做业务计算，薄一点更好' },
+    { n: 'Store', cat: '状态', use: '前端状态容器', ex: 'useCartStore', warn: '别让它变成全局垃圾桶' },
+    { n: 'Provider', cat: '依赖', use: '提供资源或依赖注入', ex: 'ConfigProvider', warn: '有生命周期，别写成静态方法集合' },
+    { n: 'Factory', cat: '创建', use: '封装复杂对象的创建过程', ex: 'ClientFactory', warn: '只是 new 一下就别用 Factory' },
+    { n: 'Builder', cat: '创建', use: '分步骤构造复杂对象', ex: 'QueryBuilder', warn: '参数少于 3 个没必要' },
+    { n: 'Adapter', cat: '结构', use: '把不兼容的接口转成可用接口', ex: 'PayAdapter', warn: '不做业务增强，只做协议转换' },
+    { n: 'Mapper', cat: '转换', use: '实体与 DTO 互转', ex: 'OrderMapper', warn: '别在 Mapper 里查数据库' },
+    { n: 'Strategy', cat: '行为', use: '可替换的算法族', ex: 'PricingStrategy', warn: '只有一个实现就别抽象' },
+    { n: 'Handler', cat: '事件', use: '处理单一事件或消息', ex: 'PaymentHandler', warn: '一个 Handler 只处理一件事' },
+    { n: 'Listener', cat: '事件', use: '监听并响应事件', ex: 'OrderCreatedListener', warn: '别在监听器里做耗时同步操作' },
+    { n: 'Middleware', cat: '请求链', use: '请求管道的横切逻辑', ex: 'AuthMiddleware', warn: '保持无副作用，注意执行顺序' },
+    { n: 'Guard', cat: '请求链', use: '权限/条件守卫', ex: 'AdminGuard', warn: '只做判断，不做业务' },
+    { n: 'Interceptor', cat: '请求链', use: '请求前后的统一处理', ex: 'LoggingInterceptor', warn: '别在里面改业务数据' },
+    { n: 'Reducer', cat: '状态', use: '纯函数式的状态演进', ex: 'cartReducer', warn: '必须是纯函数，不能有副作用' },
+    { n: 'Selector', cat: '状态', use: '从状态树派生计算值', ex: 'selectCartTotal', warn: '不要返回新对象引用导致重渲染' },
+    { n: 'Validator', cat: '校验', use: '集中校验规则', ex: 'CouponValidator', warn: '只返回校验结果，别直接改数据' },
+    { n: 'Policy', cat: '校验', use: '权限/业务策略判定', ex: 'RefundPolicy', warn: '命名要说清策略维度' },
+    { n: 'Serializer', cat: '转换', use: '对象与传输格式互转', ex: 'OrderSerializer', warn: '与 Mapper 只选一个词，别混用' },
+    { n: 'Scheduler', cat: '调度', use: '定时/延时任务编排', ex: 'ReportScheduler', warn: '注意幂等与失败重试' },
+    { n: 'Client', cat: '通信', use: '对外部服务的调用封装', ex: 'PaymentClient', warn: '超时、重试、熔断要写在里面' },
+    { n: 'Gateway', cat: '通信', use: '聚合多个下游的统一入口', ex: 'UserGateway', warn: '别把业务逻辑沉到这里' },
+    { n: 'DTO', cat: '数据', use: '跨层传输的数据结构', ex: 'OrderDTO', warn: '不放业务方法' },
+    { n: 'VO', cat: '数据', use: '面向展示的视图对象', ex: 'OrderVO', warn: '与 DTO 混用是团队混乱的开始' },
+    { n: 'BO', cat: '数据', use: '聚合后的业务对象', ex: 'OrderBO', warn: '别直接暴露给外部接口' },
+    { n: 'PO', cat: '数据', use: '与数据库表一一对应的持久化对象', ex: 'OrderPO', warn: '' },
+    { n: 'DAO', cat: '数据', use: '数据访问对象（老派写法）', ex: 'OrderDAO', warn: '新项目用 Repository 替代' },
+    { n: 'Hook', cat: '前端', use: '复用有状态逻辑', ex: 'useUserList', warn: '必须以 use 开头，否则规则检查失效' },
+    { n: 'Context', cat: '前端', use: '跨层级共享数据', ex: 'ThemeContext', warn: '高频变化的数据别放 Context' }
+  ];
+
+  /* ---------- 15. 提交前自查清单 ---------- */
+  const NAMING_CHECKLIST = [
+    '念一遍：这个名字能在 code review 时被一眼读出来吗？念不顺的通常也有问题',
+    '去掉上下文：在 obj.field 里只看 field，还能知道它是什么吗',
+    '找数字：名字里有 2 吗？有的话说清它为什么必须是 2',
+    '看布尔：是否以 is / has / can / should 开头，调用处能不能读成一句话',
+    '看单复数：集合用复数，单个对象用单数，别用 list 硬凑',
+    '搜万能词：有没有 data / info / item / manager / helper 这类说了等于没说的词',
+    '数单词：超过 4 个单词，说明这函数干的事太多了，先拆逻辑再改名',
+    '查同义词：get / fetch / query / find 是不是混着用？统一一个动词表',
+    '查拼写：lenght / heigth / recieve / adress 是四大高发区',
+    '时光机测试：半年后的新人，能不能只看名字猜出用途'
+  ];
+
+  /* ---------- 16. 拼音 / 首字母容错表 ---------- */
+  const PINYIN = {
+    yonghu: '用户', yh: '用户', dingdan: '订单', dd: '订单', shangpin: '商品', sp: '商品',
+    huoqu: '获取', hq: '获取', chaxun: '查询', cx: '查询', shanchu: '删除', sc: '删除',
+    gengxin: '更新', gx: '更新', chuangjian: '创建', cj: '创建', tianjia: '添加',
+    liebiao: '列表', lb: '列表', shuliang: '数量', sl: '数量', zhuangtai: '状态', zt: '状态',
+    xinxi: '信息', peizhi: '配置', pz: '配置', wenjian: '文件', wj: '文件',
+    tupian: '图片', tp: '图片', sousuo: '搜索', ss: '搜索', baocun: '保存', bc: '保存',
+    xiugai: '修改', xg: '修改', yanzheng: '校验', yz: '校验', zhifu: '支付', zf: '支付',
+    tuikuan: '退款', kucun: '库存', kc: '库存', gouwuche: '购物车', gwc: '购物车',
+    huodong: '活动', wenzhang: '文章', wz: '文章', pinglun: '评论', pl: '评论',
+    biaoqian: '标签', bq: '标签', fenlei: '分类', fl: '分类', tongji: '统计', tj: '统计',
+    baobiao: '报表', bb: '报表', muban: '模板', mb: '模板', bumen: '部门', bm: '部门',
+    dizhi: '地址', dz: '地址', jine: '金额', je: '金额', qianbao: '钱包', qb: '钱包',
+    biaodan: '表单', bd: '表单', anniu: '按钮', an: '按钮', tanchuang: '弹窗',
+    caidan: '菜单', cd: '菜单', tubiao: '图表', tb: '图表', zujian: '组件', zj: '组件',
+    yemian: '页面', ym: '页面', luyou: '路由', ly: '路由', jiekou: '接口', jk: '接口',
+    shujuku: '数据库', ziduan: '字段', zd: '字段', qingqiu: '请求', qq: '请求',
+    xiangying: '响应', xy: '响应', lingpai: '令牌', huihua: '会话', hh: '会话',
+    shijian: '事件', sj: '事件', gongju: '工具', gj: '工具', wendang: '文档', wd: '文档',
+    rizhi: '日志', rz: '日志', cuowu: '错误', cw: '错误', renwu: '任务', rw: '任务',
+    daiban: '待办', db: '待办', mima: '密码', mm: '密码', youxiang: '邮箱',
+    shoujihao: '手机号', touxiang: '头像', tx: '头像', nicheng: '昵称', jifen: '积分',
+    youhuiquan: '优惠券', shijianchuo: '时间戳', riqi: '日期', rq: '日期',
+    shichang: '时长', leixing: '类型', lx: '类型', mingcheng: '名称', mc: '名称',
+    xiangqing: '详情', xq: '详情', huizong: '汇总', hz: '汇总', paixu: '排序',
+    daochu: '导出', daoru: '导入', shangchuan: '上传', xiazai: '下载',
+    zhuce: '注册', denglu: '登录', tuichu: '退出', shouquan: '授权',
+    piliang: '批量', pl_: '批量', guolv: '过滤', shaixuan: '筛选',
+    gongyingshang: '供应商', kehu: '客户', huiyuan: '会员', zhifubao: '支付'
+  };
+
+  /* ---------- 17. 近义动词的语义差异（不是换个词，是换个语义） ---------- */
+  const VERB_HINTS = {
+    get: '本地/内存里的同步取值，没有网络成本',
+    fetch: '发起一次远程请求，通常是异步的，有网络开销',
+    retrieve: '从存储中取回完整对象，语气正式，SDK 里常见',
+    query: '按条件检索，天然适合数据库与搜索引擎',
+    find: '查找并返回第一个匹配项，找不到就返回空',
+    search: '全文/模糊搜索，暗示有匹配度和排序',
+    load: '把数据装进内存、懒加载资源，强调"装载"这个动作',
+    create: '创建新实体，强调从无到有',
+    add: '往已有集合里追加，不强调实体本身',
+    insert: '插入到指定位置或底层存储，偏数据库语境',
+    update: '更新已有实体的字段',
+    modify: '修改，泛指，语气比 update 弱',
+    patch: '局部更新，只改动差异部分',
+    delete: '真删除，数据不再存在',
+    remove: '从集合中移出，未必销毁底层数据',
+    destroy: '彻底销毁并释放资源',
+    clear: '清空内容但保留容器本身',
+    send: '发送消息/请求，关注传输动作',
+    post: '提交到服务端，对应 HTTP POST',
+    publish: '发布给订阅者，事件驱动语境',
+    validate: '校验合法性，返回布尔或抛错',
+    verify: '核实真实性，常带外部比对',
+    check: '轻量检查，通常不阻塞流程',
+    calculate: '计算，强调过程与算法',
+    compute: '计算，偏底层与性能语境',
+    format: '格式化为可读字符串',
+    parse: '把字符串解析成结构化对象',
+    render: '把数据渲染成界面',
+    build: '构建出完整对象或产物',
+    generate: '按规则生成新内容'
+  };
+
+  /* ---------- 18. 常见错别字纠错表（表驱动，宁可少纠也不能误伤生词） ---------- */
+  const TYPO_FIX = {
+    '用互': '用户', '用护': '用户', '护户': '用户', '获职': '获取', '获取': '获取',
+    '列装': '列表', '列标': '列表', '定单': '订单', '订当': '订单', '帐号': '账号',
+    '帐单': '账单', '密玛': '密码', '秘码': '密码', '支附': '支付', '支伏': '支付',
+    '删出': '删除', '删徐': '删除', '添家': '添加', '修该': '修改', '休改': '修改',
+    '更心': '更新', '够物车': '购物车', '购务车': '购物车', '库纯': '库存', '库寸': '库存',
+    '状太': '状态', '壮态': '状态', '配志': '配置', '配直': '配置', '文见': '文件',
+    '图骗': '图片', '上船': '上传', '下栽': '下载', '暴存': '保存', '保村': '保存',
+    '查旬': '查询', '察询': '查询', '校检': '校验', '验正': '校验', '通只': '通知',
+    '通之': '通知', '消系': '消息', '信心': '信息', '评轮': '评论', '标牵': '标签',
+    '分内': '分类', '统记': '统计', '报标': '报表', '模版': '模板', '部们': '部门',
+    '地只': '地址', '金俄': '金额', '表但': '表单', '按牛': '按钮', '弹闯': '弹窗',
+    '菜但': '菜单', '图彪': '图表', '组见': '组件', '页免': '页面', '路又': '路由',
+    '接扣': '接口', '数据裤': '数据库', '请球': '请求', '响因': '响应', '令排': '令牌',
+    '事见': '事件', '文当': '文档', '日只': '日志', '错吴': '错误', '任物': '任务',
+    '头相': '头像', '昵成': '昵称', '积份': '积分', '优惠卷': '优惠券', '祥情': '详情',
+    '内同': '内容', '标提': '标题', '描术': '描述', '手机号玛': '手机号', '邮相': '邮箱',
+    '验证玛': '验证码', '日成': '日程', '进渡': '进度', '明戏': '明细', '素才': '素材',
+    '项木': '项目', '版木': '版本', '工单': '工单', '报消': '报销', '发飘': '发票',
+    '合铜': '合同', '物聊': '物料', '运但': '运单', '仓裤': '仓库', '门电': '门店',
+    '课成': '课程', '考题': '考题', '排般': '排班', '考琴': '考勤', '薪紫': '薪资'
+  };
+
+  global.DICT = {
+    VERBS, NOUNS, MODS, STATES, BOOL_HINTS, SMELL, ABBR, CLASS_SUFFIX,
+    FUN_ADJ, FUN_NOUN, FUN_SUFFIX, COMMIT_TYPES, COMMIT_JOKES, EXAMPLES, GUIDE,
+    LANG_MATRIX, PATTERNS, NAMING_CHECKLIST, PINYIN, VERB_HINTS, TYPO_FIX
+  };
+})(window);
+</script>
+<script>/* ============================================================
+ * NameSmith 命名工坊 - 应用逻辑
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  const D = window.DICT;
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+
+  /* ---------------------------------------------------------
+   * 0. 小工具
+   * ------------------------------------------------------- */
+  const lower = (s) => String(s || '').toLowerCase();
+  const cap = (s) => {
+    s = String(s || '');
+    if (!s) return '';
+    // 已含内部大写的词（loggedIn / readOnly）只抬首字母，别把驼峰量纲毁掉
+    if (/[a-z][A-Z]/.test(s)) return s[0].toUpperCase() + s.slice(1);
+    return s[0].toUpperCase() + s.slice(1).toLowerCase();
+  };
+  const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const uniq = (arr) => Array.prototype.filter.call(arr, (v, i, a) => a.indexOf(v) === i && v);
+
+  function pluralize(w) {
+    w = String(w || '');
+    if (!w) return w;
+    if (/(s|x|z|ch|sh)$/i.test(w)) return w + 'es';
+    if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + 'ies';
+    return w + 's';
+  }
+
+  function splitWords(raw) {
+    return String(raw || '')
+      .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2')
+      .replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2')
+      .split(/[^a-zA-Z0-9\u4e00-\u9fa5]+/)
+      .filter(Boolean);
+  }
+
+  const CASER = {
+    camel: (ws) => ws.map((w, i) => (i === 0 ? lower(w) : cap(w))).join(''),
+    pascal: (ws) => ws.map(cap).join(''),
+    snake: (ws) => ws.map(lower).join('_'),
+    kebab: (ws) => ws.map(lower).join('-'),
+    screaming: (ws) => ws.map((w) => lower(w).toUpperCase()).join('_'),
+    lower: (ws) => ws.map(lower).join('')
+  };
+
+  function applyCase(words, style) {
+    const flat = [];
+    words.forEach((w) => { splitWords(w).forEach((p) => flat.push(p)); });
+    const fn = CASER[style] || CASER.camel;
+    return fn(flat);
+  }
+
+  function toast(msg) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    $('#toastWrap').appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity .25s, transform .25s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(10px)';
+      setTimeout(() => el.remove(), 260);
+    }, 1700);
+  }
+
+  function copyText(text, okMsg) {
+    const done = () => toast(okMsg || '已复制到剪贴板');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+    } else {
+      fallback();
+    }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动选择'); }
+      ta.remove();
+    }
+  }
+
+  const COPY_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const CHECK_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  /* ---------------------------------------------------------
+   * 1. 词典索引
+   * ------------------------------------------------------- */
+  const IX = { v: {}, n: {}, m: {}, s: {} };
+
+  function putEntry(dict, role) {
+    dict.forEach((e) => {
+      // 只把「主词」写进语义索引，近义词仅用于候选派生，避免语义漂移
+      const pool = [e.w];
+      if (e.p) pool.push(e.p);
+      if (e.adj) pool.push(e.adj);
+      uniq(pool.filter(Boolean).map(lower)).forEach((w) => { IX[role][w] = e; });
+    });
+  }
+  putEntry(D.NOUNS, 'n');
+  putEntry(D.VERBS, 'v');
+  putEntry(D.MODS, 'm');
+  putEntry(D.STATES, 's');
+
+  /* ---- 自定义词库：用户补过的词会记在本地，下次自动识别 ---- */
+  const LEX_KEY = 'namesmith.lexicon.v1';
+  let LEXICON = {};
+  let CUSTOM_SEQ = 0;
+
+  function loadLexicon() {
+    try { LEXICON = JSON.parse(localStorage.getItem(LEX_KEY) || '{}') || {}; } catch (e) { LEXICON = {}; }
+  }
+  function saveLexicon() {
+    try { localStorage.setItem(LEX_KEY, JSON.stringify(LEXICON)); } catch (e) { /* ignore */ }
+  }
+
+  const CN_KEY_MAP = {}; // key → {role, e}，供纠错表反查
+  const CN_PAIRS = (function () {
+    const pairs = [];
+    // 顺序即优先级：名词 > 动词 > 修饰 > 状态
+    D.NOUNS.forEach((e) => e.k.forEach((k) => pairs.push({ k: k, role: 'n', e: e })));
+    D.VERBS.forEach((e) => e.k.forEach((k) => pairs.push({ k: k, role: 'v', e: e })));
+    D.MODS.forEach((e) => e.k.forEach((k) => pairs.push({ k: k, role: 'm', e: e })));
+    D.STATES.forEach((e) => e.k.forEach((k) => pairs.push({ k: k, role: 's', e: e })));
+    pairs.forEach((p) => { if (!CN_KEY_MAP[p.k]) CN_KEY_MAP[p.k] = { role: p.role, e: p.e }; });
+    return pairs.sort((a, b) => b.k.length - a.k.length);
+  })();
+
+  // 自定义词条动态并入匹配表（最长优先），用户补过的词下次直接命中
+  let CN_PAIRS_LIVE = null;
+  let STOP_PAIRS = null; // 惰性构建：STOPWORDS 定义在下方
+
+  function getPairs() {
+    if (CN_PAIRS_LIVE) return CN_PAIRS_LIVE;
+    if (!STOP_PAIRS) STOP_PAIRS = STOPWORDS.map((w) => ({ k: w, role: 'stop' }));
+    const extra = Object.keys(LEXICON).map((cn) => ({
+      k: cn, role: 'n', e: null, custom: true, word: LEXICON[cn]
+    }));
+    // 停用词放在最前：同长度时优先被丢弃，避免"对账"被"对"劈开
+    CN_PAIRS_LIVE = STOP_PAIRS.concat(CN_PAIRS, extra).sort((a, b) => b.k.length - a.k.length);
+    return CN_PAIRS_LIVE;
+  }
+  function invalidatePairs() { CN_PAIRS_LIVE = null; }
+
+  const STOPWORDS = ['帮我', '我想', '我要', '需要', '请', '生成', '起名', '取个', '命名', '叫做', '名字',
+    '的变量', '变量', '属性', '的函数', '函数', '方法', '布尔', '的类', '组件名', '常量', '路由',
+    '数据库表', '数据表', '表名', '文件名', '分支名', '分支', '钩子', 'hook', '的', '了', '和', '与',
+    '或', '把', '将', '在', '给', '对', '从', '到', '为', '是', '有', '那个', '这个', '一个', '一下',
+    '怎样', '怎么', '什么', '名称', '程序员', '代码', '给我', '希望', '应该', '可以', '求', '大佬',
+    '谢谢', '并', '然后', '以及', '还有', '一些', '所有', '每个'];
+
+  // 顺序敏感：长词在前，避免「列表」被误判成「表」
+  const TYPE_HINT = [
+    ['数据库表', 'table'], ['数据表', 'table'], ['表名', 'table'],
+    ['文件名', 'file'], ['文件', 'file'], ['分支', 'branch'],
+    ['hook', 'hook'], ['钩子', 'hook'], ['事件处理', 'handler'], ['回调', 'handler'], ['事件', 'handler'],
+    ['路由', 'route'], ['接口', 'route'], ['api', 'route'],
+    ['布尔', 'boolean'], ['是否', 'boolean'],
+    ['常量', 'constant'], ['组件', 'class'], ['类', 'class'],
+    ['函数', 'function'], ['方法', 'function'], ['变量', 'variable'], ['属性', 'variable'], ['字段', 'variable']
+  ];
+
+  /* ---------------------------------------------------------
+   * 2. 分词 / 语义 tokenize
+   * ------------------------------------------------------- */
+  /* ---------------------------------------------------------
+   * 2. 分词 / 语义 tokenize（带容错）
+   * ------------------------------------------------------- */
+
+  // 全角转半角 + 统一小写
+  function normalizeText(raw) {
+    return String(raw || '')
+      .replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+      .replace(/\u3000/g, ' ')
+      .toLowerCase()
+      .trim();
+  }
+
+  // 编辑距离（只用于 2-4 字短串，成本可忽略）
+  function editDistance(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    let prev = [];
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) {
+        cur[j] = Math.min(
+          prev[j] + 1,
+          cur[j - 1] + 1,
+          prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  // 精确最长匹配（含用户自定义词）
+  function exactMatch(text, i) {
+    const pairs = getPairs();
+    for (let p = 0; p < pairs.length; p++) {
+      if (text.substr(i, pairs[p].k.length) === pairs[p].k) return pairs[p];
+    }
+    return null;
+  }
+
+  // 纠错：只查显式错别字表。通用编辑距离会把「量子」硬掰成「帖子」，误伤生词
+  function fuzzyMatch(text, i) {
+    if (!/[\u4e00-\u9fa5]/.test(text[i] || '')) return null;
+    for (let len = 4; len >= 2; len--) {
+      const seg = text.substr(i, len);
+      if (seg.length < 2) continue;
+      const fixed = D.TYPO_FIX[seg];
+      if (!fixed || fixed === seg) continue;
+      const hit = CN_KEY_MAP[fixed];
+      if (hit) return { role: hit.role, e: hit.e, k: fixed, consumed: len };
+    }
+    return null;
+  }
+
+  // 中文扫描：产出 token，同时收集英文碎片与「没看懂的中文」
+  function scanChinese(text) {
+    const tokens = [];
+    const leftovers = [];
+    const unknowns = [];
+    let i = 0;
+    let buffer = '';
+    let cnBuf = '';
+    const flushEn = () => { if (buffer) { leftovers.push(buffer); buffer = ''; } };
+    // 词库里没有的中文：不再丢弃，转成「待补英文」的语义单元，直接参与生成
+    const flushCn = () => {
+      if (!cnBuf) return;
+      const cn = cnBuf;
+      cnBuf = '';
+      const mapped = LEXICON[cn];
+      const word = mapped || ('custom' + (++CUSTOM_SEQ));
+      tokens.push({
+        role: 'n', e: null, word: word, plural: pluralize(word), alt: [],
+        raw: cn, rawText: cn, cnText: cn,
+        unknownWord: !mapped, mappedWord: mapped || null
+      });
+    };
+
+    while (i < text.length) {
+      let hit = exactMatch(text, i);
+      let typo = false;
+      let consumed = hit ? hit.k.length : 0;
+      if (!hit) {
+        const fz = fuzzyMatch(text, i);
+        if (fz) { hit = fz; typo = true; consumed = fz.consumed; }
+      }
+      if (hit) {
+        // 停用词：丢弃，但不 flush 中文缓冲，避免"玄学的调度器"被切成两段
+        if (hit.role === 'stop') { flushEn(); i += hit.k.length; continue; }
+        flushEn(); flushCn();
+        let tk;
+        if (hit.custom) {
+          tk = { role: 'n', e: null, word: hit.word, plural: pluralize(hit.word), alt: [], raw: hit.k, mappedWord: hit.word };
+        } else {
+          tk = mkToken(hit.role, hit.e, hit.k);
+        }
+        if (typo) { tk.typo = true; tk.guess = hit.k; tk.rawText = text.substr(i, consumed); }
+        tokens.push(tk);
+        i += consumed;
+      } else {
+        const ch = text[i];
+        if (/[a-zA-Z0-9]/.test(ch)) { flushCn(); buffer += ch; }
+        else if (/[\u4e00-\u9fa5]/.test(ch)) { flushEn(); cnBuf += ch; }
+        else { flushEn(); flushCn(); }
+        i++;
+      }
+    }
+    flushEn(); flushCn();
+    return { tokens: tokens, leftovers: leftovers, unknowns: unknowns };
+  }
+
+  function tokenize(raw) {
+    const text = normalizeText(raw);
+    CUSTOM_SEQ = 0;
+    let typeHint = null;
+    TYPE_HINT.forEach((pair) => {
+      if (!typeHint && text.indexOf(pair[0]) !== -1) typeHint = pair[1];
+    });
+    // 全大写的英文短语（MAX RETRY COUNT）几乎必然是常量
+    if (!typeHint && !/[\u4e00-\u9fa5]/.test(String(raw)) && /[A-Z]/.test(String(raw)) &&
+        String(raw) === String(raw).toUpperCase() && /[A-Z_ ]{3,}/.test(String(raw))) {
+      typeHint = 'constant';
+    }
+
+    let clean = text;
+    // 停用词不再预先剥离（会劈坏"对账"这类词），改由分词阶段丢弃
+    const boolHint = D.BOOL_HINTS.some((h) => text.indexOf(h) !== -1) ||
+      ['吗', '能否', '有没有'].some((h) => text.indexOf(h) !== -1);
+
+    const hasCN = /[\u4e00-\u9fa5]/.test(clean);
+    let tokens = [];
+    let leftovers = [];
+    let unknowns = [];
+
+    if (hasCN) {
+      const scanned = scanChinese(clean);
+      tokens = scanned.tokens;
+      leftovers = scanned.leftovers;
+      unknowns = scanned.unknowns;
+    }
+
+    // 残余英文片段：先查词库，再查拼音表（yonghu → 用户），最后当成原样名词
+    const restWords = hasCN ? splitWords(leftovers.join(' ')) : splitWords(clean);
+    restWords.filter((w) => !/^[\u4e00-\u9fa5]+$/.test(w)).forEach((w) => {
+      const lw = lower(w);
+      let found = null;
+      const roles = ['n', 'v', 'm', 's']; // 名词优先：英文短语多数时候是名词短语
+      for (let r = 0; r < roles.length && !found; r++) {
+        if (IX[roles[r]][lw]) found = { role: roles[r], e: IX[roles[r]][lw] };
+      }
+      if (found) { tokens.push(mkToken(found.role, found.e, lw)); return; }
+
+      // 拼音 / 首字母容错
+      const py = D.PINYIN[lw];
+      if (py) {
+        const sub = scanChinese(py);
+        if (sub.tokens.length) {
+          sub.tokens.forEach((tk) => { tk.pinyin = lw; tk.rawText = lw; tokens.push(tk); });
+          return;
+        }
+      }
+      tokens.push({ role: 'n', e: null, word: lw, plural: pluralize(lw), alt: [], raw: lw, isRaw: true });
+    });
+
+    return { tokens: tokens, boolHint: boolHint, typeHint: typeHint, hasCN: hasCN, source: String(raw), unknowns: unknowns };
+  }
+
+  function mkToken(role, e, rawKey) {
+    if (role === 'n') return { role: 'n', e: e, word: e.w, plural: e.p || pluralize(e.w), alt: (e.alt || []).slice(0, 2), raw: rawKey };
+    if (role === 'v') return { role: 'v', e: e, word: e.w, alt: (e.alt || []).slice(0, 2), raw: rawKey };
+    if (role === 'm') return { role: 'm', e: e, word: e.w, alt: (e.alt || []).slice(0, 1), raw: rawKey };
+    return { role: 's', e: e, word: e.w, adj: e.adj || e.w, truthy: e.truthy, alt: [], raw: rawKey };
+  }
+
+  /* ---------------------------------------------------------
+   * 3. 候选命名生成
+   * ------------------------------------------------------- */
+  const DEFAULT_CASE = {
+    variable: 'camel', function: 'camel', boolean: 'camel', 'class': 'pascal', constant: 'screaming',
+    handler: 'camel', hook: 'camel', route: 'kebab', table: 'snake', field: 'snake',
+    file: 'kebab', branch: 'kebab', interface: 'pascal', enum: 'pascal', enumMember: 'screaming',
+    props: 'pascal', dbIndex: 'snake', redisKey: 'lower', docker: 'kebab', env: 'screaming',
+    cli: 'kebab', cssClass: 'kebab', cssVar: 'kebab', test: 'snake', track: 'snake'
+  };
+
+  const KIND_LABEL = {
+    variable: '变量', function: '函数', boolean: '布尔', 'class': '类', constant: '常量',
+    handler: '事件处理', hook: 'Hook', route: '路由', table: '数据表', field: '数据库字段',
+    file: '文件名', branch: '分支', interface: '接口 / 类型', enum: '枚举', enumMember: '枚举成员',
+    props: 'Props', dbIndex: '数据库索引', redisKey: 'Redis Key', docker: '镜像', env: '环境变量',
+    cli: '命令行参数', cssClass: 'CSS 类', cssVar: 'CSS 变量', test: '测试用例', track: '埋点事件'
+  };
+
+  // 各语言对风格的覆盖（未列出的沿用 DEFAULT_CASE）
+  const LANG_OVERRIDE = {
+    ts: {},
+    js: {},
+    py: { variable: 'snake', function: 'snake', boolean: 'snake', props: 'snake', hook: 'snake', handler: 'snake', route: 'snake', file: 'snake', test: 'snake', field: 'snake' },
+    java: { file: 'pascal', test: 'camel' },
+    go: { function: 'pascal', constant: 'camel', test: 'snake' },
+    cs: { variable: 'pascal', function: 'pascal', boolean: 'pascal', constant: 'pascal', handler: 'pascal', hook: 'pascal', props: 'pascal', test: 'pascal' },
+    rust: { variable: 'snake', function: 'snake', boolean: 'snake', handler: 'snake', hook: 'snake', test: 'snake', props: 'pascal' },
+    sql: { variable: 'snake', function: 'snake' },
+    css: { variable: 'kebab', function: 'kebab' }
+  };
+
+  const LANG_NAME = {
+    ts: 'TypeScript', js: 'JavaScript', py: 'Python', java: 'Java',
+    go: 'Go', cs: 'C#', rust: 'Rust', sql: 'SQL', css: 'CSS'
+  };
+
+  function pickTarget(parsed, explicit) {
+    if (explicit && explicit !== 'auto') return explicit;
+    if (parsed.typeHint) return parsed.typeHint;
+    const t = parsed.tokens;
+    const has = (r) => t.some((x) => x.role === r);
+    if (parsed.boolHint && (has('s') || !has('v'))) return 'boolean';
+    if (has('v') && has('n')) return 'function';
+    if (has('v')) return 'function';
+    if (has('s')) return 'boolean';
+    return 'variable';
+  }
+
+  function dedupe(list) {
+    const seen = {};
+    return list.filter((c) => {
+      const k = c.name;
+      if (seen[k]) return false;
+      seen[k] = 1;
+      return true;
+    });
+  }
+
+  function demoteVerbs(tokens) {
+    return tokens.map((x) => (x.role === 'v'
+      ? { role: 'n', e: x.e, word: x.word, plural: pluralize(x.word), alt: x.alt || [], raw: x.raw }
+      : x));
+  }
+
+  /**
+   * 模糊匹配：一次算出「这句话可能是什么类型」，按置信度排序
+   * 用户不该被迫在下拉里做单选题
+   */
+  function detectTypes(parsed) {
+    const t = parsed.tokens;
+    const has = (r) => t.some((x) => x.role === r);
+    const list = [];
+    const push = (tp, w) => { if (list.every((x) => x.type !== tp)) list.push({ type: tp, weight: w }); };
+
+    if (parsed.boolHint) push('boolean', 99);
+    if (has('v') && has('n')) push('function', 96);
+    else if (has('v')) push('function', 88);
+
+    if (has('n')) {
+      push('variable', has('v') ? 76 : 94);
+      if (has('v')) push('handler', 58);
+      push('class', 66);
+      push('interface', 57);
+      push('route', has('v') ? 52 : 42);
+      push('constant', 50);
+      push('table', 46);
+      push('props', 38);
+      push('field', 34);
+    } else if (has('v')) {
+      push('handler', 60);
+      push('variable', 55);
+    }
+
+    // 描述里自带类型词时，直接置顶
+    if (parsed.typeHint) {
+      const hit = list.filter((x) => x.type === parsed.typeHint)[0];
+      if (hit) hit.weight = 100;
+      else list.push({ type: parsed.typeHint, weight: 100 });
+    }
+    return list.sort((a, b) => b.weight - a.weight);
+  }
+
+  function buildFor(target, t, lenPref) {
+    const mods = t.filter((x) => x.role === 'm');
+    const states = t.filter((x) => x.role === 's');
+
+    let rawOut = [];
+
+    switch (target) {
+      case 'boolean': rawOut = genBoolean(t, lenPref); break;
+      case 'class': rawOut = genClass(t); break;
+      case 'constant': rawOut = genConstant(t, mods, lenPref); break;
+      case 'handler': rawOut = genHandler(t, states); break;
+      case 'hook': rawOut = genHook(t); break;
+      case 'route': rawOut = genRoute(t, states); break;
+      case 'table': rawOut = genTable(t); break;
+      case 'file': rawOut = genFile(t); break;
+      case 'branch': rawOut = genBranch(t); break;
+      case 'function': rawOut = genFunction(t, lenPref); break;
+      case 'interface': rawOut = genAffix(t, '接口 / 类型', [
+        ['suffix', 'Props', '组件的 props 类型：一眼看出这是 UI 入参'],
+        ['suffix', 'Params', '函数的入参集合'],
+        ['suffix', 'Options', '可选配置项'],
+        ['suffix', 'Payload', '请求 / 事件负载'],
+        ['suffix', 'Result', '返回值结构']
+      ], false); break;
+      case 'enum': rawOut = genAffix(t, '枚举', [
+        ['suffix', 'Status', '状态枚举：最常见的枚举场景'],
+        ['suffix', 'Type', '类型枚举'],
+        ['suffix', 'Mode', '模式枚举'],
+        ['suffix', 'Level', '等级枚举']
+      ], false); break;
+      case 'enumMember': rawOut = genAffix(t, '枚举成员', [
+        ['suffix', 'Active', '成员用「值 + 状态」表达：OrderStatus.Active 读起来像一句话'],
+        ['suffix', 'Pending', '待处理状态，和 Active 成对出现'],
+        ['prefix', 'Active', '前缀式：同类成员共享后缀也常见']
+      ], false); break;
+      case 'props': rawOut = genAffix(t, 'Props', [
+        ['suffix', 'Props', '组件入参类型，React 社区通用写法'],
+        ['suffix', 'PropsWithChildren', '需要插槽 / 子节点时'],
+        ['prefix', 'I', 'C# / 老派 TS 风格（现代 TS 不建议）']
+      ], false); break;
+      case 'field': rawOut = genField(t); break;
+      case 'dbIndex': rawOut = genRaw(t, '索引', [
+        ['idx_', '_index', 'idx_ + 表名 + 字段：运维一眼看懂作用对象'],
+        ['uk_', '_unique', '唯一索引用 uk_ 前缀，和普通索引区分开']
+      ]); break;
+      case 'redisKey': rawOut = genRedis(t); break;
+      case 'docker': rawOut = genRaw(t, '镜像', [
+        ['', '_plain', '镜像名只能小写，用中划线分词'],
+        ['', '_tag', '显式打 tag，别把 latest 当时尚']
+      ]); break;
+      case 'env': rawOut = genRaw(t, '环境变量', [
+        ['APP_', '_upper', '大写 + 下划线 + 应用前缀，避免与其他服务撞名'],
+        ['VITE_', '_vite', 'Vite 只把 VITE_ 前缀暴露给前端']
+      ]); break;
+      case 'cli': rawOut = genRaw(t, '命令行参数', [
+        ['--', '_long', 'POSIX 风格长参数'],
+        ['-', '_short', '短参数：取首字母，别滥用']
+      ]); break;
+      case 'cssClass': rawOut = genRaw(t, 'CSS 类', [
+        ['', '_plain', 'kebab-case 是 CSS 的母语'],
+        ['', '_bem', 'BEM：block__element，元素名统一用 item 最省心'],
+        ['is-', '_status', '状态类：is- 前缀，只叠加不改写']
+      ]); break;
+      case 'cssVar': rawOut = genRaw(t, 'CSS 变量', [
+        ['--', '_var', 'CSS 自定义属性必须双中划线开头'],
+        ['--color-', '_color', '带语义分组前缀，主题切换时更好管']
+      ]); break;
+      case 'test': rawOut = genTest(t); break;
+      case 'track': rawOut = genRaw(t, '埋点事件', [
+        ['', '_click', '事件名以动作收尾：用户做了什么一眼可知'],
+        ['evt_', '_prefix', '统一前缀，方便数据侧批量过滤']
+      ]); break;
+      default: rawOut = genVariable(t, lenPref); break;
+    }
+    return rawOut;
+  }
+
+  function generate(raw, type, casePref, lenPref, lang) {
+    return generateFromParsed(tokenize(raw), type, casePref, lenPref, lang);
+  }
+
+  /**
+   * 从已解析的 token 直接生成 —— 解析面板改词后走这条路径，不必重新分词
+   */
+  // 语序规范化：动词前置、集合类名词殿后（"列表 用户 获取" → get + user + list）
+  const COLLECTION_LIKE = ['list', 'lists', 'items', 'count', 'counts', 'total', 'collection',
+    'array', 'set', 'detail', 'details', 'result', 'summary', 'metric', 'stat', 'logEntry'];
+
+  function normalizeOrder(tokens) {
+    const verbs = tokens.filter((x) => x.role === 'v');
+    const mods = tokens.filter((x) => x.role === 'm');
+    const states = tokens.filter((x) => x.role === 's');
+    const nouns = tokens.filter((x) => x.role === 'n').slice().sort((a, b) => {
+      const pa = COLLECTION_LIKE.indexOf(a.word) !== -1 ? 1 : 0;
+      const pb = COLLECTION_LIKE.indexOf(b.word) !== -1 ? 1 : 0;
+      return pa - pb; // 稳定排序：同类保持原始语序
+    });
+    if (!verbs.length) return mods.concat(nouns, states);
+    return [verbs[0]].concat(verbs.slice(1), mods, nouns, states);
+  }
+
+  function generateFromParsed(input, type, casePref, lenPref, lang) {
+    // 拷贝一份，避免降级逻辑污染解析面板持有的 tokens
+    const parsed = {
+      tokens: input.tokens.slice(),
+      boolHint: input.boolHint,
+      typeHint: input.typeHint,
+      hasCN: input.hasCN,
+      source: input.source
+    };
+
+    // 没有任何实体名词时（例如「max retry count」），动词整体降级为名词，按名词短语处理
+    if (!parsed.tokens.some((x) => x.role === 'n') && parsed.tokens.some((x) => x.role === 'v')) {
+      parsed.tokens = demoteVerbs(parsed.tokens);
+      if (!parsed.typeHint) parsed.typeHint = 'variable';
+    } else {
+      // 动词前面挂着修饰词（max retry count / 最新的用户需求），整体更像名词短语
+      const firstV = parsed.tokens.findIndex((x) => x.role === 'v');
+      if (firstV > 0 && parsed.tokens.slice(0, firstV).some((x) => x.role === 'm') && !parsed.typeHint) {
+        parsed.tokens = demoteVerbs(parsed.tokens);
+        parsed.typeHint = 'variable';
+      }
+    }
+
+    const t = normalizeOrder(parsed.tokens);
+    const langOverride = LANG_OVERRIDE[lang] || {};
+    const auto = (!type || type === 'auto');
+    const styleOf = (tp) => (casePref === 'auto'
+      ? (langOverride[tp] || DEFAULT_CASE[tp] || 'camel')
+      : casePref);
+
+    if (!t.length) {
+      return { target: auto ? 'variable' : type, style: 'camel', lang: lang || 'auto', types: [], multi: false, list: [], parsed: parsed, tokens: t };
+    }
+
+    const picked = auto ? detectTypes(parsed).slice(0, 5) : [{ type: type, weight: 100 }];
+    const primary = picked[0].type;
+
+    const pool = [];
+    picked.forEach((item, gi) => {
+      const st = styleOf(item.type);
+      const out = buildFor(item.type, t, lenPref);
+      const take = gi === 0 ? 8 : 3; // 主类型给足候选，其余类型各来三个「备选理解」
+      out.slice(0, take).forEach((p, idx) => {
+        const isRaw = p.name !== undefined && p.name !== null;
+        let nm = isRaw ? p.name : applyCase(p.words, st);
+        if (item.type === 'hook') nm = nm.replace(/^Use/, 'use');
+        if (!nm) return;
+        const sc = scoreName(nm, isRaw ? 'raw' : st);
+        // 含未确认词的候选：降权并说明，避免它挤掉干净的方案
+        const hasTodo = /custom\d+/i.test(nm);
+        pool.push({
+          name: nm,
+          kind: item.type,
+          why: hasTodo ? p.why + '（含待补词，补上英文更准）' : p.why,
+          tag: p.tag || KIND_LABEL[item.type],
+          extra: p.extra || '',
+          score: hasTodo ? Math.max(0, sc.score - 10) : sc.score,
+          stars: stars(sc.score),
+          prio: gi * 100 + idx
+        });
+      });
+    });
+
+    let list = dedupe(pool);
+    list.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.prio !== b.prio) return a.prio - b.prio;
+      const la = a.name.length, lb = b.name.length;
+      if (lenPref === 'terse') return la - lb;
+      if (lenPref === 'verbose') return lb - la;
+      return Math.abs(la - 14) - Math.abs(lb - 14);
+    });
+
+    return {
+      target: primary,
+      style: styleOf(primary),
+      lang: lang || 'auto',
+      types: picked.map((x) => x.type),
+      typeMeta: picked.map((x) => ({ type: x.type, weight: x.weight })),
+      multi: auto && picked.length > 1,
+      list: list,
+      parsed: parsed,
+      tokens: t
+    };
+  }
+
+  function nounPhrase(nouns, mods, plural) {
+    if (!nouns.length) return [];
+    const words = mods.map((m) => m.word);
+    nouns.forEach((n, i) => {
+      const last = i === nouns.length - 1;
+      words.push(last && plural ? (n.plural || pluralize(n.word)) : n.word);
+    });
+    return words;
+  }
+
+  /* ---- 通用生成器：前后缀 / 原生格式 ---- */
+  function genAffix(t, label, affixes, allowPlural) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const base = nounPhrase(nouns, mods, false);
+    const basePlural = nounPhrase(nouns, mods, true);
+    const out = [];
+    if (!base.length) return out;
+    affixes.forEach((a) => {
+      const words = a[0] === 'suffix' ? base.concat([a[1]]) : [a[1]].concat(base);
+      out.push({ words: words, why: a[2], tag: label });
+    });
+    if (allowPlural !== false) {
+      out.push({ words: basePlural, why: '复数主体：明确这是一个集合类型', tag: label });
+    }
+    out.push({ words: base, why: '不加任何后缀：上下文足够明确时最干净', tag: label });
+    return out;
+  }
+
+  /**
+   * 生成原生格式的名字（不走 applyCase）
+   * variants: [prefix, mode, why]
+   */
+  function genRaw(t, label, variants) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const words = nounPhrase(nouns, mods, false);
+    const wordsP = nounPhrase(nouns, mods, true);
+    if (!words.length) return [];
+    const out = [];
+    variants.forEach((v) => {
+      const prefix = v[0], mode = v[1], why = v[2];
+      let name = '';
+      switch (mode) {
+        case '_plain': name = CASER.kebab(words); break;
+        case '_plainUpper': name = CASER.screaming(words); break;
+        case '_upper': name = prefix + CASER.screaming(words); break;
+        case '_state': name = CASER.screaming(words); break;
+        case '_tag': name = CASER.kebab(words) + ':latest'; break;
+        case '_index': name = prefix + words.map(lower).join('_'); break;
+        case '_unique': name = prefix + words.map(lower).join('_'); break;
+        case '_long': name = '--' + CASER.kebab(words); break;
+        case '_short': name = '-' + lower(words[0]).charAt(0); break;
+        case '_bem': name = CASER.kebab(words) + '__item'; break;
+        case '_status': name = prefix + CASER.kebab(words) + '-active'; break;
+        case '_var': name = prefix + CASER.kebab(words); break;
+        case '_color': name = prefix + CASER.kebab(words); break;
+        case '_click': name = words.map(lower).join('_') + '_click'; break;
+        case '_prefix': name = prefix + words.map(lower).join('_'); break;
+        case '_vite': name = prefix + CASER.screaming(words); break;
+        default: name = CASER.kebab(words);
+      }
+      if (name) out.push({ name: name, why: why, tag: label });
+    });
+    return out;
+  }
+
+  function genField(t) {
+    const words = nounPhrase(t.filter((x) => x.role === 'n'), t.filter((x) => x.role === 'm'), false);
+    if (!words.length) return [];
+    const segs = words.map(lower);
+    const out = [
+      { name: segs.join('_'), why: 'snake_case 字段名，与表名保持同一风格', tag: '字段' },
+      { name: segs.join('_') + '_at', why: '_at 后缀：时间点字段的通用约定', tag: '字段' },
+      { name: 'is_' + segs.join('_'), why: 'is_ 前缀：布尔字段一眼识别', tag: '字段' }
+    ];
+    out.push({ name: lower(segs[segs.length - 1]) + '_id', why: '外键统一用「表名单数_id」，join 时不用查文档', tag: '字段' });
+    return out;
+  }
+
+  function genRedis(t) {
+    const words = nounPhrase(t.filter((x) => x.role === 'n'), t.filter((x) => x.role === 'm'), false);
+    if (!words.length) return [];
+    const segs = words.map(lower);
+    return [
+      { name: 'app:' + segs.join(':'), why: '冒号分层：业务:实体:id，SCAN 时天然可分组', tag: 'Redis Key' },
+      { name: 'app:' + segs.join(':') + ':{id}', why: '用占位符标出变量段，读代码时不用猜', tag: 'Redis Key' },
+      { name: 'app:' + segs.join(':') + ':list', why: '后缀标明数据结构，排查内存占用时省事', tag: 'Redis Key' }
+    ];
+  }
+
+  function genTest(t) {
+    const words = nounPhrase(t.filter((x) => x.role === 'n'), t.filter((x) => x.role === 'm'), false);
+    if (!words.length) return [];
+    const phrase = words.map(lower).join(' ');
+    return [
+      { name: 'should handle ' + phrase + ' correctly', why: '行为描述式：测试名本身就是一份可执行的规格', tag: '测试' },
+      { name: 'should throw when ' + phrase + ' is empty', why: '边界场景：把异常路径也写进测试名', tag: '边界测试' },
+      { name: 'test_' + words.map(lower).join('_'), why: 'pytest 风格：test_ 前缀 + 行为描述', tag: '测试' },
+      { name: words.map(cap).join('') + 'Test', why: 'JUnit 风格：被测对象 + Test', tag: '测试' }
+    ];
+  }
+
+  function genVariable(t, lenPref) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const states = t.filter((x) => x.role === 's');
+    const out = [];
+    const push = (words, why, tag) => { if (words && words.length) out.push({ words: words, why: why, tag: tag || '变量' }); };
+
+    if (nouns.length) {
+      const core = nouns[nouns.length - 1];
+      const quals = nouns.slice(0, -1);
+      const build = (q, m, pluralLast) => {
+        const w = [];
+        (m || []).forEach((x) => w.push(x.word));
+        (q || []).forEach((x) => w.push(x.word));
+        w.push(pluralLast ? (core.plural || pluralize(core.word)) : core.word);
+        return w;
+      };
+
+      push(build(quals, mods, false), describes(nouns, mods, false));
+      push(build(quals, mods, true), '复数形态：暗示这是一个集合或列表');
+      if (mods.length) push(build(quals, [], false), '省略修饰词，上下文足够时更清爽');
+      if (quals.length) push(build(quals.slice(-1), mods, false), '只保留最近的一层限定语');
+      (core.alt || []).slice(0, 2).forEach((a) => {
+        push(build(quals, mods, false).slice(0, -1).concat([a]), '核心词换成同义词 ' + a);
+      });
+      if (quals.length) {
+        (quals[0].alt || []).slice(0, 1).forEach((a) => {
+          push(build([{ word: a }].concat(quals.slice(1)), mods, false), '限定语同义替换，' + a + ' 更地道');
+        });
+      }
+      if (states.length) push([states[0].word].concat(build(quals, mods, false)), '状态词 + 主体，读起来像一句断言');
+      if (lenPref === 'terse') push([core.word], '极简版：上下文足够时最短即可');
+      if (lenPref === 'verbose') push(build(quals, mods, false).concat(['value']), '宁长不模糊：把语义写全');
+    }
+    return out;
+  }
+
+  function describes(nouns, mods, isPlural) {
+    const core = nouns[nouns.length - 1];
+    const parts = [];
+    if (mods.length) parts.push('修饰词 ' + mods.map((m) => m.word).join('/'));
+    if (nouns.length > 1) parts.push('限定语 ' + nouns.slice(0, -1).map((n) => n.word).join('/'));
+    if (core) parts.push('主体 ' + (isPlural ? core.plural || pluralize(core.word) : core.word));
+    return parts.length ? parts.join(' + ') : '按语义直译';
+  }
+
+  function verbWhy(word, base) {
+    const h = D.VERB_HINTS[word];
+    return base + (h ? '；' + word + ' 侧重「' + h + '」' : '');
+  }
+
+  function genFunction(t, lenPref) {
+    const verbs = t.filter((x) => x.role === 'v');
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const out = [];
+    if (!verbs.length) return genVariable(t, lenPref);
+    const v = verbs[0];
+
+    // 无宾语时，把多余的动词降级为宾语（"max retry count" → retryCount）
+    let objNouns = nouns;
+    if (!objNouns.length && verbs.length > 1) {
+      objNouns = verbs.slice(1).map((x) => ({ role: 'n', word: x.word, plural: pluralize(x.word), alt: x.alt || [] }));
+    }
+
+    const objSing = nounPhrase(objNouns, mods, false);
+    const objPlur = nounPhrase(objNouns, mods, true);
+
+    const push = (words, why) => out.push({ words: words, why: why, tag: '函数' });
+
+    if (objSing.length) {
+      push([v.word].concat(objSing), verbWhy(v.word, '动词 + 宾语，最标准的动宾结构'));
+      push([v.word].concat(objPlur), verbWhy(v.word, '宾语用复数，暗示批量或集合'));
+    } else {
+      push([v.word], verbWhy(v.word, '纯动作动词，无宾语时使用'));
+    }
+    (v.alt || []).slice(0, 3).forEach((altV) => {
+      if (objSing.length) push([altV].concat(objSing), '换成 ' + altV + '：' + (D.VERB_HINTS[altV] || '语气略有差别'));
+      if (objPlur.length) push([altV].concat(objPlur), '换成 ' + altV + ' + 复数宾语，批量场景');
+    });
+    if (lenPref !== 'terse' && objSing.length) {
+      push([v.word].concat(objSing, ['result']), '把返回值语义写进名字（冗长版）');
+    }
+    if (lenPref === 'terse' && objSing.length > 1 && objNouns.length) {
+      push([v.word, objNouns[objNouns.length - 1].word], '精简版：只留核心宾语');
+    }
+    if (mods.length && objNouns.length) {
+      push([v.word].concat(objNouns.map((n) => n.word)), '去掉修饰词，把范围收敛到核心');
+    }
+    if (objNouns.length) {
+      const core = objNouns[objNouns.length - 1];
+      (core.alt || []).slice(0, 1).forEach((a) => {
+        push([v.word].concat(objSing.slice(0, -1), [a]), '宾语换同义词 ' + a);
+      });
+    }
+    return out;
+  }
+
+  function genBoolean(t) {
+    const BOOL_HINT = {
+      is: '判断「是不是」，适合状态与身份',
+      has: '判断「有没有」，适合拥有关系',
+      should: '判断「该不该」，适合业务规则',
+      can: '判断「能不能」，适合权限与能力'
+    };
+    const nouns = t.filter((x) => x.role === 'n');
+    const states = t.filter((x) => x.role === 's');
+    const mods = t.filter((x) => x.role === 'm');
+    const out = [];
+    const prefixes = ['is', 'has', 'should', 'can'];
+    const baseNoun = nounPhrase(nouns, mods, false);
+    const st = states[0];
+    const push = (words, why) => out.push({ words: words, why: why, tag: '布尔' });
+
+    if (st) {
+      const adj = st.adj || st.word;
+      push(['is'].concat([adj]), 'is + 形容词：最地道的布尔命名；' + BOOL_HINT.is);
+      push(['is'].concat([st.word]), 'is + 状态词：直接可读');
+      if (baseNoun.length) {
+        push(['is'].concat(baseNoun, [cap(adj)]), '主体写全，避免上下文依赖');
+        push(['has'].concat(baseNoun, [cap(st.word)]), 'has + 主体 + 过去分词：强调「是否已发生」');
+      }
+      if (st.truthy === false) {
+        push(['is', 'not'].concat([cap(adj)]), '反向表达有时比 wasFailed 更清楚');
+      }
+    } else if (baseNoun.length) {
+      prefixes.slice(0, 4).forEach((p) => {
+        push([p].concat(baseNoun), BOOL_HINT[p]);
+      });
+      const pn = baseNoun.slice(0, -1).concat([pluralize(baseNoun[baseNoun.length - 1])]);
+      push(['has'].concat(pn), '是否包含多个成员');
+    } else {
+      push(['is', 'ready'], '实在没解析出来，先给个占位');
+    }
+    return out;
+  }
+
+  function genClass(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const out = [];
+    const base = nounPhrase(nouns, mods, false);
+    const core = cap(base[base.length - 1] || 'entity');
+    const full = base.map(cap);
+    const picks = D.CLASS_SUFFIX.slice(0, 4);
+    picks.forEach((p) => {
+      out.push({ words: full.concat([p.s]), why: p.s + '：' + p.hint, tag: '类' });
+    });
+    if (full.length) out.push({ words: full, why: '纯名词作为类名，不暴露实现细节', tag: '类' });
+    out.push({ words: [core].concat(['Factory']), why: 'Factory：负责创建实例', tag: '类' });
+    return out;
+  }
+
+  function genConstant(t, mods, lenPref) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const states = t.filter((x) => x.role === 's');
+    const out = [];
+    const base = nounPhrase(nouns, mods, false);
+    if (base.length) {
+      out.push({ words: base, why: '名词短语直接全大写', tag: '常量' });
+      out.push({ words: ['default'].concat(base), why: 'default 前缀：默认值场景', tag: '常量' });
+      out.push({ words: ['max'].concat(base), why: 'max 前缀：上限场景', tag: '常量' });
+      if (states.length) {
+        out.push({ words: base.concat([states[0].truthy === false ? 'failed' : states[0].adj || states[0].word]), why: '状态 + 主体，表达配置分支', tag: '常量' });
+      }
+      out.push({ words: base.concat(['limit']), why: '带上限定词，说明这是边界值', tag: '常量' });
+    }
+    return out;
+  }
+
+  function genHandler(t, states) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const verbs = t.filter((x) => x.role === 'v');
+    const out = [];
+    const base = nounPhrase(nouns, [], false).map(cap);
+    const act = verbs.length ? cap(verbs[0].word) : 'Change';
+    if (base.length) {
+      out.push({ words: ['handle'].concat(base, [act]), why: 'handle + 主体 + 动作：事件的自我说明', tag: '处理函数' });
+      out.push({ words: ['on'].concat(base, [act]), why: 'on 前缀：作为 props 传递的回调', tag: '回调 props' });
+      if (states.length) {
+        out.push({ words: ['on'].concat(base, [cap(states[0].adj || states[0].word)]), why: '事件 + 结果状态', tag: '回调 props' });
+      }
+      out.push({ words: ['handle'].concat([act]), why: '简版：上下文已明确主体时', tag: '处理函数' });
+    } else {
+      out.push({ words: ['handle', act], why: '只有动作，没有主体', tag: '处理函数' });
+    }
+    return out;
+  }
+
+  function genHook(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const verbs = t.filter((x) => x.role === 'v');
+    const out = [];
+    const base = nounPhrase(nouns, [], false).map(cap);
+    const v = verbs[0] ? cap(verbs[0].word) : null;
+    if (base.length) {
+      out.push({ words: ['use'].concat(base), why: 'use + 资源：Hook 的标准形态', tag: 'Hook' });
+      if (v) out.push({ words: ['use'].concat(base, [v]), why: '把动作写进去，语义更完整', tag: 'Hook' });
+      out.push({ words: ['use'].concat(base, ['State']), why: 'State 后缀：纯状态 Hook', tag: 'Hook' });
+      out.push({ words: ['use'].concat(base, ['Query']), why: 'Query 后缀：取数类 Hook', tag: 'Hook' });
+    }
+    return out;
+  }
+
+  const HTTP_MAP = {
+    create: 'POST', add: 'POST', insert: 'POST', send: 'POST', submit: 'POST', register: 'POST', upload: 'POST',
+    delete: 'DELETE', remove: 'DELETE', clear: 'DELETE',
+    update: 'PUT', modify: 'PATCH', edit: 'PATCH', toggle: 'PATCH'
+  };
+
+  function genRoute(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const verbs = t.filter((x) => x.role === 'v');
+    const out = [];
+    const segs = nouns.map((n) => lower(n.word)).filter(Boolean);
+    if (!segs.length) return out;
+    const last = segs[segs.length - 1];
+    const parents = segs.slice(0, -1);
+    const pl = pluralize(last);
+    const parentPath = parents.length
+      ? '/' + parents.map((s) => pluralize(s)).join('/') + '/{' + parents[parents.length - 1] + 'Id}'
+      : '';
+    const full = parentPath ? parentPath + '/' + pl : '/' + pl;
+
+    out.push({ words: [], name: 'GET ' + full, why: parentPath ? '嵌套资源：把从属关系写进路径，语义最完整' : 'REST 集合资源，复数形式是共识', tag: 'GET', extra: '列表' });
+    out.push({ words: [], name: 'GET ' + full + '/{' + last + 'Id}', why: '单个资源用 {id} 路径参数', tag: 'GET', extra: '详情' });
+    if (parentPath) {
+      out.push({ words: [], name: 'GET /' + pl + '?' + parents[parents.length - 1] + 'Id={' + parents[parents.length - 1] + 'Id}', why: '平铺 + 查询参数：跨层筛选时更灵活', tag: 'GET', extra: '筛选' });
+    }
+    const v = verbs[0];
+    if (v) {
+      const m = HTTP_MAP[v.word] || 'POST';
+      out.push({ words: [], name: m + ' ' + full, why: '写操作用对应 HTTP 方法，动词不进 URL', tag: m, extra: '写操作' });
+      out.push({ words: [], name: m + ' /' + pl + '/{' + last + 'Id}/' + lower(v.word), why: '子动作确实是 RPC 语义时才把动词放进路径', tag: m, extra: '动作' });
+    }
+    return out;
+  }
+
+  function genTable(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const mods = t.filter((x) => x.role === 'm');
+    const out = [];
+    const segs = nouns.map((n) => lower(n.word));
+    const modWords = mods.map((m) => lower(m.word));
+    if (!segs.length) return out;
+    const core = pluralize(segs[segs.length - 1]);
+    out.push({ words: modWords.concat(segs.slice(0, -1), [core]), why: '表名用复数 snake_case，主流 ORM 默认约定', tag: '数据表' });
+    out.push({ words: segs.slice(0, -1).concat([core]), why: '只保留实体层级', tag: '数据表' });
+    if (segs.length > 1) {
+      out.push({ words: [segs[0] + '_' + core].concat(modWords), why: '前缀式：同一库内的模块分组', tag: '数据表' });
+    }
+    out.push({ words: segs.concat(['id']).map(lower), why: '字段命名参考：主键统一用 id', tag: '字段' });
+    return out;
+  }
+
+  function genFile(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const verbs = t.filter((x) => x.role === 'v');
+    const out = [];
+    const base = nounPhrase(nouns, [], false).map(lower);
+    if (!base.length) return out;
+    const kebab = base.join('-');
+    out.push({ words: [], name: kebab + '.ts', why: '工具/模块文件：kebab-case + .ts', tag: '文件' });
+    out.push({ words: [], name: kebab + '.tsx', why: 'React 组件：kebab-case + .tsx', tag: '文件' });
+    out.push({ words: [], name: kebab + '.module.css', why: '样式模块', tag: '文件' });
+    if (verbs.length) out.push({ words: [], name: base.map(cap).join('') + '.tsx', why: '组件文件也可与组件同名（PascalCase）', tag: '文件' });
+    return out;
+  }
+
+  function genBranch(t) {
+    const nouns = t.filter((x) => x.role === 'n');
+    const verbs = t.filter((x) => x.role === 'v');
+    const out = [];
+    const desc = nounPhrase(nouns, [], false).map(lower).join('-') || 'update';
+    const v = verbs[0] ? verbs[0].word : '';
+    let type = 'feat';
+    if (['fix', 'delete', 'remove', 'clear'].indexOf(v) !== -1) type = v === 'fix' ? 'fix' : 'chore';
+    if (['update', 'modify', 'edit', 'patch'].indexOf(v) !== -1) type = 'refactor';
+    if (['test'].indexOf(v) !== -1) type = 'test';
+    if (v === 'format' || v === 'style') type = 'style';
+    if (v === 'build' || v === 'compile') type = 'build';
+    out.push({ words: [], name: type + '/' + desc, why: 'type/短描述，最主流的分支约定', tag: 'Git 分支' });
+    out.push({ words: [], name: 'feature/' + desc, why: '另一种写法：完整单词前缀', tag: 'Git 分支' });
+    if (nouns.length) out.push({ words: [], name: type + '/' + lower(nouns[nouns.length - 1].word), why: '极简版：只留核心词', tag: 'Git 分支' });
+    return out;
+  }
+
+  /* ---------------------------------------------------------
+   * 4. 命名打分
+   * ------------------------------------------------------- */
+  const KNOWN = (function () {
+    const set = {};
+    const addRole = (dict) => dict.forEach((e) => {
+      [e.w].concat(e.alt || []).concat([e.p, e.adj]).filter(Boolean).forEach((w) => { set[lower(w)] = 1; });
+    });
+    addRole(D.VERBS); addRole(D.NOUNS); addRole(D.MODS); addRole(D.STATES);
+    ['id', 'url', 'api', 'http', 'https', 'json', 'uuid', 'ui', 'db', 'key', 'value', 'state', 'props',
+      'index', 'count', 'total', 'list', 'items', 'params', 'args', 'callback', 'event', 'error', 'err',
+      'name', 'type', 'code', 'time', 'date', 'day', 'result', 'res', 'req', 'item', 'node', 'tree',
+      'input', 'output', 'current', 'prev', 'next', 'default', 'max', 'min', 'sum', 'avg', 'to', 'by',
+      'use', 'handle', 'on', 'get', 'set', 'is', 'has', 'can', 'should', 'will', 'did', 'not', 'and', 'or',
+      'profile', 'settings', 'options', 'detail', 'details', 'info', 'meta', 'payload', 'context', 'ctx',
+      'filter', 'sort', 'page', 'size', 'offset', 'limit', 'token', 'session', 'cache', 'store', 'value',
+      'enable', 'disable', 'visible', 'hidden', 'ready', 'loading', 'pending', 'success', 'successful',
+      'work', 'line', 'entry', 'base', 'core', 'main', 'sub', 'pre', 'post', 'auto', 'custom', 'quick',
+      'big', 'small', 'long', 'short', 'high', 'low', 'new', 'first', 'last', 'next', 'prev', 'top',
+      'bottom', 'left', 'right', 'inner', 'outer', 'show', 'hide', 'open', 'close', 'edit', 'save',
+      'group', 'role', 'rule', 'flow', 'step', 'node', 'tree', 'map', 'set', 'tag', 'note', 'path',
+      'link', 'uri', 'app', 'web', 'mode', 'level', 'rate', 'page', 'size', 'num', 'str', 'group',
+      'batch', 'single', 'multi', 'custom1', 'custom2', 'custom3',
+      'medical', 'financial', 'physical', 'social', 'digital', 'virtual', 'mobile', 'desktop',
+      'server', 'client', 'master', 'primary', 'secondary', 'internal', 'external', 'detail'
+    ].forEach((w) => { set[w] = 1; });
+    Object.keys(D.ABBR).forEach((w) => { set[w] = 1; });
+    return set;
+  })();
+
+  function detectStyle(name) {
+    if (/^[a-z][a-zA-Z0-9]*$/.test(name)) return /[A-Z]/.test(name) ? 'camel' : 'lower';
+    if (/^[A-Z][a-zA-Z0-9]*$/.test(name)) return 'pascal';
+    if (/^[A-Z][A-Z0-9_]*$/.test(name)) return 'screaming';
+    if (/^[a-z][a-z0-9_]*$/.test(name)) return 'snake';
+    if (/^[a-z][a-z0-9-]*$/.test(name)) return 'kebab';
+    return 'mixed';
+  }
+
+  function scoreName(name, style) {
+    let score = 100;
+    const issues = [];
+    const words = splitWords(name).map(lower);
+    const st = style || detectStyle(name);
+    // 路由 / 文件名 / CSS 变量 / Redis Key / 测试名等非标识符走宽松检查
+    const isPath = /[\/.]/.test(name) || st === 'raw' || /^--/.test(name) || name.indexOf(':') !== -1;
+
+    if (/[\u4e00-\u9fa5]/.test(name)) { score -= 35; issues.push('混入了中文：跨团队协作时这会变成坑'); }
+    if (name.length <= 2) { score -= 28; issues.push('太短了，三个月后连你自己都认不出来'); }
+    else if (name.length > 32) { score -= 14; issues.push('超过 32 字符，写测试的时候你会恨它'); }
+
+    if (st !== 'raw' && !isPath) {
+      words.forEach((w) => {
+        const hit = D.SMELL.filter((s) => s.w === w)[0];
+        if (hit) { score -= 16; issues.push(hit.why + '（建议：' + hit.tip + '）'); }
+      });
+    }
+
+    if (/\d+$/.test(name)) { score -= 12; issues.push('数字后缀：命名已经放弃治疗的经典标志'); }
+    if (/^\d/.test(name)) { score -= 25; issues.push('以数字开头，大多数语言不允许'); }
+
+    if (!isPath) {
+      if ((st === 'camel' || st === 'pascal' || st === 'lower') && /[_-]/.test(name)) { score -= 20; issues.push('大小写风格里混用了下划线或中划线'); }
+      if (st === 'snake' && /[A-Z]/.test(name)) { score -= 15; issues.push('snake_case 里出现了大写字母'); }
+      if (st === 'snake' && /-/.test(name)) { score -= 12; issues.push('混入了中划线，请统一用下划线'); }
+      if (st === 'kebab' && /[A-Z]/.test(name)) { score -= 15; issues.push('kebab-case 里出现了大写字母'); }
+      if (st === 'kebab' && /_/.test(name)) { score -= 12; issues.push('混入了下划线，请统一用中划线'); }
+      if (st === 'screaming' && /[a-z]/.test(name.replace(/[^a-zA-Z]/g, ''))) { score -= 12; issues.push('常量请全部大写'); }
+      if (st === 'camel' && /^[A-Z]/.test(name)) { score -= 12; issues.push('camelCase 的首字母应当小写'); }
+      if (st === 'pascal' && /^[a-z]/.test(name)) { score -= 10; issues.push('PascalCase 的首字母应当大写'); }
+      if (st === 'mixed') { score -= 18; issues.push('风格不统一：挑一种命名法并贯彻到底'); }
+    }
+
+    if (words.length === 1 && words[0].length <= 2) { score -= 16; issues.push('单字词信息量不足'); }
+    if (words.length >= 6) { score -= 8; issues.push('六个单词以上，考虑拆一拆'); }
+
+    const dup = {};
+    words.forEach((w) => { dup[w] = (dup[w] || 0) + 1; });
+    Object.keys(dup).forEach((w) => {
+      if (dup[w] > 1) { score -= 12; issues.push('「' + w + '」重复出现了一次以上'); }
+    });
+
+    if (st !== 'raw') {
+      words.forEach((w) => {
+        const isSmell = D.SMELL.some((s) => s.w === w);
+        if (D.ABBR[w] && w.length <= 5) { score -= 5; issues.push('缩写 ' + w + ' 建议展开为 ' + D.ABBR[w]); }
+        // 只对较长的陌生词提示：camelCase 拆出来的短碎片（work / line）不该被扣分
+        else if (!isSmell && !KNOWN[w] && w.length >= 5) { score -= 3; issues.push('「' + w + '」不是常见词，确认一下拼写'); }
+      });
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    return { score: score, issues: uniq(issues), style: st };
+  }
+
+  function stars(score) {
+    const n = score >= 92 ? 5 : score >= 84 ? 4 : score >= 72 ? 3 : score >= 60 ? 2 : 1;
+    return n;
+  }
+
+  function fixSuggestion(name) {
+    const words = splitWords(name).map(lower);
+    const out = [];
+    words.forEach((w) => {
+      if (D.ABBR[w]) out.push(D.ABBR[w]);
+      else {
+        const smell = D.SMELL.filter((s) => s.w === w)[0];
+        out.push(smell ? null : w);
+      }
+    });
+    const cleaned = out.filter(Boolean);
+    return cleaned.length ? cleaned : ['value'];
+  }
+
+  /* ---------------------------------------------------------
+   * 5. 渲染：生成结果
+   * ------------------------------------------------------- */
+  let LAST_RESULT = null;
+
+  let RES_FILTER = 'all';
+  let RES_PAGE = 0;
+  let CURRENT_PARSED = null;
+  let CURRENT_QUERY = '';
+  let LAST_SIG = '';
+  const PAGE_SIZE = 13;
+
+  function filteredItems(res) {
+    return RES_FILTER === 'all' ? res.list : res.list.filter((c) => c.kind === RES_FILTER);
+  }
+
+  function renderCards(res) {
+    const grid = $('#resGrid');
+    const items = filteredItems(res);
+    const total = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    if (RES_PAGE >= total) RES_PAGE = 0;
+    const pageItems = items.slice(RES_PAGE * PAGE_SIZE, (RES_PAGE + 1) * PAGE_SIZE);
+
+    grid.innerHTML = '';
+    pageItems.forEach((c, i) => {
+      const el = document.createElement('div');
+      const isMain = c.kind === res.target;
+      el.className = 'res-card' + (i === 0 && RES_PAGE === 0 && RES_FILTER === 'all' ? ' best' : '');
+      el.style.animationDelay = (Math.min(i, 10) * 34) + 'ms';
+      const tags = '<span class="tag' + (isMain ? '' : ' n') + '">' + escapeHtml(c.tag) + '</span>' +
+        (c.extra ? '<span class="tag a">' + escapeHtml(c.extra) + '</span>' : '') +
+        '<span class="tag n">' + c.name.length + ' 字符</span>';
+      el.innerHTML =
+        '<h4 class="res-name' + (c.name.length > 19 ? ' name-sm' : '') + '">' + escapeHtml(c.name) + '</h4>' +
+        '<div class="res-meta">' + tags + '<span class="stars">' + starStr(c.stars) + '</span></div>' +
+        '<p class="res-why">' + escapeHtml(c.why) + '</p>' +
+        '<button class="copy-btn" data-copy="' + escapeAttr(c.name) + '" title="复制">' + COPY_ICON + '</button>';
+      grid.appendChild(el);
+    });
+
+    $('#batchInfo').textContent = total > 1 ? ' ' + (RES_PAGE + 1) + '/' + total : '';
+    $('#btnBatch').style.display = total > 1 ? '' : 'none';
+    $('#resCount').textContent = items.length + ' 个候选' +
+      (RES_FILTER === 'all' ? '' : '（' + KIND_LABEL[RES_FILTER] + '）') +
+      ' · ' + (res.multi ? '模糊匹配 ' + res.types.length + ' 类' : KIND_LABEL[res.target]) + ' · ' + res.style;
+  }
+
+  function renderKindFilter(res) {
+    const box = $('#kindFilter');
+    box.innerHTML = '';
+    if (!res.multi || res.types.length < 2) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+
+    const mk = (label, key, count, on) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (on ? ' on' : '');
+      b.textContent = label + ' · ' + count;
+      b.addEventListener('click', () => {
+        RES_FILTER = key;
+        RES_PAGE = 0;
+        $$('#kindFilter .chip').forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        renderCards(res);
+      });
+      box.appendChild(b);
+    };
+    mk('全部理解', 'all', res.list.length, RES_FILTER === 'all');
+    (res.typeMeta || []).forEach((meta) => {
+      const n = res.list.filter((c) => c.kind === meta.type).length;
+      if (n) mk(KIND_LABEL[meta.type] + ' ' + meta.weight + '%', meta.type, n, RES_FILTER === meta.type);
+    });
+  }
+
+  /* ---- 语义解析面板：看得见理解结果，也改得动 ---- */
+  function renderParse() {
+    const box = $('#parseBox');
+    const tokens = (CURRENT_PARSED && CURRENT_PARSED.tokens) || [];
+    if (!tokens.length) { box.style.display = 'none'; return; }
+    box.style.display = '';
+
+    const chips = $('#parseChips');
+    chips.innerHTML = '';
+    tokens.forEach((tk, idx) => {
+      // 词库外的词：给一个输入框，补上英文就记住（下次自动识别）
+      if (tk.unknownWord) {
+        const wrap = document.createElement('span');
+        wrap.className = 'tk tk-todo';
+        wrap.innerHTML = '<span class="tk-src">' + escapeHtml(tk.cnText || tk.raw) + '</span>' +
+          '<span class="tk-arrow">→</span>' +
+          '<input class="tk-input" maxlength="24" placeholder="补英文" value="' + escapeAttr(tk.mappedWord || '') + '">' +
+          '<span class="tk-del" title="忽略这个词">×</span>';
+        const input = wrap.querySelector('.tk-input');
+        const commit = () => {
+          const v = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (!v) return;
+          tk.word = v;
+          tk.plural = pluralize(v);
+          tk.unknownWord = false;
+          tk.mappedWord = v;
+          LEXICON[tk.cnText || tk.raw] = v;
+          saveLexicon();
+          invalidatePairs();
+          refreshFromParsed();
+          toast('已记住：' + (tk.cnText || tk.raw) + ' → ' + v);
+        };
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        });
+        input.addEventListener('blur', commit);
+        wrap.querySelector('.tk-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          CURRENT_PARSED.tokens.splice(idx, 1);
+          refreshFromParsed();
+        });
+        chips.appendChild(wrap);
+        return;
+      }
+
+      const unknown = tk.role === 'n' && !tk.e;
+      const el = document.createElement('span');
+      el.className = 'tk' + (tk.typo ? ' tk-typo' : '') + (tk.pinyin ? ' tk-py' : '') + (unknown ? ' tk-unknown' : '');
+      const src = tk.rawText || tk.raw || tk.word;
+      el.innerHTML =
+        '<span class="tk-src">' + escapeHtml(src) + '</span>' +
+        '<span class="tk-arrow">→</span>' +
+        '<span class="tk-word">' + escapeHtml(tk.word) + '</span>' +
+        (tk.alt && tk.alt.length ? '<span class="tk-cycle" title="点击切换同义词">⇄</span>' : '') +
+        '<span class="tk-del" title="移除这个语义">×</span>';
+      el.title = tk.typo ? '疑似错别字，已按「' + tk.guess + '」理解'
+        : tk.pinyin ? '按拼音「' + tk.pinyin + '」理解'
+          : (tk.alt && tk.alt.length ? '点击切换同义词：' + [tk.word].concat(tk.alt).join(' / ') : '');
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tk-del')) {
+          CURRENT_PARSED.tokens.splice(idx, 1);
+          refreshFromParsed();
+          return;
+        }
+        if (!tk.alt || !tk.alt.length) return;
+        const pool = [tk.e ? tk.e.w : tk.word].concat(tk.alt);
+        const cur = pool.indexOf(tk.word);
+        tk.word = pool[(cur + 1) % pool.length];
+        tk.plural = pluralize(tk.word);
+        tk.pinyin = null;
+        refreshFromParsed();
+      });
+      chips.appendChild(el);
+    });
+
+    // 未确认词提示 / 自定义词库状态
+    const todo = tokens.filter((t) => t.unknownWord).length;
+    const lexCount = Object.keys(LEXICON).length;
+    const warn = $('#parseWarn');
+    if (todo) {
+      warn.style.display = '';
+      warn.innerHTML = '有 <b>' + todo + '</b> 个词不在词库，补上英文我帮你记住 —— 也可以点 × 忽略。';
+    } else if (lexCount) {
+      warn.style.display = '';
+      warn.innerHTML = '已记住 <b>' + lexCount + '</b> 个自定义词 <button class="link-btn" id="btnLexClear">清空词库</button>';
+      $('#btnLexClear').addEventListener('click', () => {
+        LEXICON = {};
+        saveLexicon();
+        invalidatePairs();
+        refreshFromParsed();
+        toast('自定义词库已清空');
+      });
+    } else {
+      warn.style.display = 'none';
+    }
+
+    $('#parseTypes').innerHTML = '';
+    const typesBox = $('#parseTypes');
+    const meta = (LAST_PARSE_META || []);
+    meta.forEach((m, i) => {
+      const s = document.createElement('span');
+      s.className = 'pt' + (i === 0 ? ' pt-main' : '');
+      s.innerHTML = KIND_LABEL[m.type] + '<b>' + m.weight + '%</b>';
+      typesBox.appendChild(s);
+    });
+  }
+
+  let SILENT = false;
+
+  function refreshFromParsed() {
+    if (!CURRENT_PARSED) return;
+    const res = generateFromParsed(CURRENT_PARSED, $('#genType').value, $('#genCase').value, $('#genLen').value, $('#genLang').value);
+    LAST_PARSE_META = res.typeMeta || [];
+    SILENT = true;
+    renderParse();
+    renderResult(res, CURRENT_QUERY);
+    SILENT = false;
+  }
+
+  function renderResult(res, query) {
+    const empty = $('#resEmpty');
+    const head = $('#resHead');
+    RES_FILTER = 'all';
+    RES_PAGE = 0;
+
+    if (!res.list.length) {
+      empty.style.display = '';
+      empty.innerHTML = '<div class="big">🤔</div><p>这句话里我没找到能翻译的关键词。</p><p>换个说法试试，例如「<b>购物车里已选商品的数量</b>」或直接写英文关键词。</p>';
+      head.style.display = 'none';
+      $('#kindFilter').style.display = 'none';
+      $('#resGrid').innerHTML = '';
+      LAST_RESULT = null;
+      return;
+    }
+
+    empty.style.display = 'none';
+    head.style.display = 'flex';
+    renderCards(res);
+    renderKindFilter(res);
+
+    LAST_RESULT = { query: query, res: res };
+    $('#heroQuery').textContent = '「' + (query.length > 16 ? query.slice(0, 15) + '…' : query) + '」';
+    $('#heroName').textContent = res.list[0].name;
+    if (!SILENT) bumpCount(res.list.length);
+  }
+
+  let LAST_PARSE_META = [];
+
+  function starStr(n) {
+    let s = '';
+    for (let i = 1; i <= 5; i++) s += i <= n ? '★' : '<span class="off">★</span>';
+    return s;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  /* ---------------------------------------------------------
+   * 6. 历史记录
+   * ------------------------------------------------------- */
+  const HIST_KEY = 'namesmith.history.v1';
+  const COUNT_KEY = 'namesmith.count.v1';
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(list.slice(0, 40))); } catch (e) { /* ignore */ }
+  }
+  function pushHistory(item) {
+    const h = loadHistory();
+    h.unshift(item);
+    saveHistory(h);
+    renderHistory();
+  }
+  function renderHistory() {
+    const h = loadHistory();
+    const box = $('#histList');
+    const panel = $('#histPanel');
+    panel.style.display = h.length ? '' : 'none';
+    box.innerHTML = '';
+    h.forEach((it, i) => {
+      const el = document.createElement('div');
+      el.className = 'hist-item';
+      el.innerHTML = '<span class="src">' + escapeHtml(it.q) + '</span>' +
+        '<span class="tag n">' + escapeHtml(it.kind) + '</span>' +
+        '<span class="nm">' + escapeHtml(it.name) + '</span>' +
+        '<button class="x" data-idx="' + i + '" title="删除">×</button>';
+      box.appendChild(el);
+    });
+  }
+  function bumpCount(n) {
+    let c = 0;
+    try { c = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10) || 0; } catch (e) { c = 0; }
+    c += n;
+    try { localStorage.setItem(COUNT_KEY, String(c)); } catch (e) { /* ignore */ }
+    $('#footStat').textContent = '本机已生成 ' + c + ' 个命名';
+  }
+  function initFoot() {
+    let c = 0;
+    try { c = parseInt(localStorage.getItem(COUNT_KEY) || '0', 10) || 0; } catch (e) { c = 0; }
+    $('#footStat').textContent = '本机已生成 ' + c + ' 个命名';
+  }
+
+  /* ---------------------------------------------------------
+   * 7. 导出：Markdown / 分享卡片
+   * ------------------------------------------------------- */
+  function buildMarkdown() {
+    if (!LAST_RESULT) return '';
+    const r = LAST_RESULT.res;
+    const lines = ['## NameSmith 命名结果', '', '> 需求描述：' + LAST_RESULT.query, '',
+      '- 目标类型：' + KIND_LABEL[r.target], '- 命名风格：' + r.style, '',
+      '| 命名 | 类型 | 评分 | 说明 |', '| --- | --- | --- | --- |'];
+    r.list.forEach((c) => {
+      lines.push('| `' + c.name + '` | ' + c.tag + ' | ' + c.score + ' | ' + c.why + ' |');
+    });
+    lines.push('', '> 由 NameSmith 命名工坊生成 · WorkBuddy 1024 造物挑战');
+    return lines.join('\n');
+  }
+
+  function download(filename, content, mime) {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  }
+
+  function drawShareCard() {
+    if (!LAST_RESULT) { toast('先生成一批命名'); return; }
+    const cv = $('#shotCanvas');
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#f7f8ff');
+    g.addColorStop(1, '#fff4ec');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部装饰条
+    const gg = ctx.createLinearGradient(0, 0, W, 0);
+    gg.addColorStop(0, '#5b5bd6');
+    gg.addColorStop(0.55, '#7c6cf0');
+    gg.addColorStop(1, '#ff8a2b');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, 0, W, 14);
+
+    const pad = 76;
+    ctx.fillStyle = '#5b5bd6';
+    ctx.font = 'bold 30px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('NameSmith 命名工坊', pad, 110);
+    ctx.fillStyle = '#8b90a5';
+    ctx.font = '24px system-ui, "PingFang SC", sans-serif';
+    ctx.fillText('专治 data2 / handleThing / tempFinal 综合症', pad, 152);
+
+    // 需求卡片
+    roundRect(ctx, pad, 190, W - pad * 2, 168, 22);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#e4e6ef';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#8b90a5';
+    ctx.font = '22px system-ui, "PingFang SC", sans-serif';
+    ctx.fillText('需求描述', pad + 32, 236);
+
+    ctx.fillStyle = '#1b1d29';
+    ctx.font = 'bold 34px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif';
+    wrapText(ctx, LAST_RESULT.query, pad + 32, 288, W - pad * 2 - 64, 46);
+
+    // 候选列表
+    let y = 420;
+    ctx.fillStyle = '#8b90a5';
+    ctx.font = '22px system-ui, "PingFang SC", sans-serif';
+    ctx.fillText('AI 推荐命名 TOP ' + Math.min(5, LAST_RESULT.res.list.length), pad, y);
+    y += 42;
+
+    LAST_RESULT.res.list.slice(0, 5).forEach((c, i) => {
+      const h = 150;
+      roundRect(ctx, pad, y, W - pad * 2, h, 20);
+      ctx.fillStyle = i === 0 ? '#fffaf4' : '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = i === 0 ? '#ff8a2b' : '#e4e6ef';
+      ctx.lineWidth = i === 0 ? 3 : 2;
+      ctx.stroke();
+
+      if (i === 0) {
+        roundRect(ctx, pad + 28, y + 26, 96, 40, 12);
+        ctx.fillStyle = '#ff8a2b';
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 22px system-ui, "PingFang SC", sans-serif';
+        ctx.fillText('推荐', pad + 48, y + 54);
+      }
+
+      ctx.fillStyle = '#1b1d29';
+      ctx.font = 'bold 36px "JetBrains Mono", Consolas, monospace';
+      const nm = c.name.length > 26 ? c.name.slice(0, 25) + '…' : c.name;
+      ctx.fillText(nm, pad + (i === 0 ? 140 : 30), y + 58);
+
+      ctx.fillStyle = '#ff8a2b';
+      ctx.font = '26px system-ui, sans-serif';
+      let st = '';
+      for (let s = 0; s < c.stars; s++) st += '★';
+      ctx.fillText(st, W - pad - 30 - ctx.measureText(st).width, y + 58);
+
+      ctx.fillStyle = '#5a5f75';
+      ctx.font = '23px system-ui, "PingFang SC", sans-serif';
+      wrapText(ctx, c.why, pad + 30, y + 104, W - pad * 2 - 60, 34);
+
+      y += h + 18;
+    });
+
+    ctx.fillStyle = '#a0a5bb';
+    ctx.font = '22px system-ui, "PingFang SC", sans-serif';
+    ctx.fillText('由 NameSmith 生成 · WorkBuddy「1024 造物挑战」参赛作品', pad, H - 54);
+
+    const url = cv.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'namesmith-' + Date.now() + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast('分享卡片已下载，发朋友圈时请务必带上素质');
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    let line = '';
+    let yy = y;
+    const chars = String(text).split('');
+    for (let i = 0; i < chars.length; i++) {
+      const test = line + chars[i];
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line, x, yy);
+        line = chars[i];
+        yy += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    if (line) ctx.fillText(line, x, yy);
+    return yy;
+  }
+
+  /* ---------------------------------------------------------
+   * 8. 事件绑定
+   * ------------------------------------------------------- */
+  function doGenerate() {
+    const q = $('#genInput').value.trim();
+    if (!q) { toast('先写点东西，我可不会读心术'); $('#genInput').focus(); return; }
+    CURRENT_QUERY = q;
+    CURRENT_PARSED = tokenize(q);
+    LAST_SIG = q + '::' + $('#genType').value + $('#genCase').value + $('#genLen').value + $('#genLang').value;
+    const res = generateFromParsed(CURRENT_PARSED, $('#genType').value, $('#genCase').value, $('#genLen').value, $('#genLang').value);
+    LAST_PARSE_META = res.typeMeta || [];
+    $('#crossWrap').style.display = 'none';
+    renderParse();
+    renderResult(res, q);
+    if (res.list.length) {
+      pushHistory({ q: q, kind: KIND_LABEL[res.target], name: res.list[0].name, ts: Date.now() });
+    }
+  }
+
+  /* ---- 跨语言对照：同一个概念，八种语言八种写法 ---- */
+  function buildCrossTable(query) {
+    const langs = [['ts', 'TypeScript'], ['js', 'JavaScript'], ['py', 'Python'], ['java', 'Java'],
+      ['go', 'Go'], ['cs', 'C#'], ['rust', 'Rust'], ['sql', 'SQL']];
+    const types = [['variable', '变量'], ['function', '函数'], ['boolean', '布尔'], ['class', '类'],
+      ['constant', '常量'], ['interface', '接口'], ['table', '表名'], ['enumMember', '枚举成员']];
+    let html = '<thead><tr><th>语言</th>' + types.map((t) => '<th>' + t[1] + '</th>').join('') + '</tr></thead><tbody>';
+    langs.forEach((pair) => {
+      const cells = types.map((tp) => {
+        const r = generate(query, tp[0], 'auto', 'normal', pair[0]);
+        const first = r.list[0];
+        return '<td class="mono-cell">' + (first ? escapeHtml(first.name) : '—') + '</td>';
+      });
+      html += '<tr><td class="lang-cell">' + pair[1] + '</td>' + cells.join('') + '</tr>';
+    });
+    return html + '</tbody>';
+  }
+
+  function bindTabs() {
+    $$('#tabs .tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        $$('#tabs .tab').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        $$('.view').forEach((v) => v.classList.remove('active'));
+        $('#' + btn.dataset.view).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  function initExamples() {
+    const box = $('#exampleChips');
+    D.EXAMPLES.forEach((ex) => {
+      const b = document.createElement('button');
+      b.className = 'chip ghost';
+      b.textContent = ex;
+      b.addEventListener('click', () => {
+        $('#genInput').value = ex;
+        doGenerate();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---- 转换 ---- */
+  const CONV_TARGETS = [
+    { id: 'camel', label: 'camelCase' },
+    { id: 'pascal', label: 'PascalCase' },
+    { id: 'snake', label: 'snake_case' },
+    { id: 'kebab', label: 'kebab-case' },
+    { id: 'screaming', label: 'SCREAMING_SNAKE' },
+    { id: 'lower', label: '全小写连写' }
+  ];
+  let convTarget = 'camel';
+
+  function initConvert() {
+    const box = $('#convTargets');
+    CONV_TARGETS.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (i === 0 ? ' on' : '');
+      b.textContent = t.label;
+      b.addEventListener('click', () => {
+        convTarget = t.id;
+        $$('#convTargets .chip').forEach((c) => c.classList.remove('on'));
+        b.classList.add('on');
+        doConvert();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  const ZH2EN = {
+    '购物车': 'cart', '数量': 'count', '单价': 'unitPrice', '总价': 'totalPrice', '订单': 'order',
+    '时间': 'time', '用户': 'user', '名称': 'name', '状态': 'status', '地址': 'address',
+    '价格': 'price', '图片': 'image', '列表': 'list', '详情': 'detail', '编号': 'id'
+  };
+
+  function doConvert() {
+    const lines = $('#convIn').value.split('\n');
+    const out = [];
+    let n = 0, skip = 0;
+    lines.forEach((ln) => {
+      const raw = ln.trim();
+      if (!raw) return;
+      n++;
+      let words = splitWords(raw);
+      // 中文词组
+      const zh = words.filter((w) => /[\u4e00-\u9fa5]/.test(w));
+      const en = words.filter((w) => !/[\u4e00-\u9fa5]/.test(w));
+      const mapped = [];
+      let leftoverCn = zh.join('');
+      Object.keys(ZH2EN).forEach((k) => {
+        while (leftoverCn.indexOf(k) !== -1) {
+          mapped.push(ZH2EN[k]);
+          leftoverCn = leftoverCn.replace(k, '|');
+        }
+      });
+      const finalWords = en.concat(mapped);
+      if (!finalWords.length) { skip++; out.push(raw + '   // 无法识别'); return; }
+      out.push(applyCase(finalWords, convTarget));
+    });
+    $('#convOut').textContent = out.join('\n') || '结果会出现在这里';
+    $('#convCount').textContent = String(n);
+    $('#convSkipped').textContent = String(skip);
+  }
+
+  /* ---- 体检 ---- */
+  function doAudit() {
+    const lines = $('#auditIn').value.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) { toast('先交上来几个变量名'); return; }
+    const box = $('#auditList');
+    box.innerHTML = '';
+    let sum = 0, issues = 0, fail = 0;
+    lines.forEach((name) => {
+      const sc = scoreName(name);
+      sum += sc.score;
+      issues += sc.issues.length;
+      if (sc.score < 60) fail++;
+      const fixed = applyCase(fixSuggestion(name), name === name.toUpperCase() && name.length > 4 && /_/.test(name) ? 'screaming' : 'camel');
+      const cls = sc.score >= 80 ? 's-good' : sc.score >= 60 ? 's-warn' : 's-bad';
+      const el = document.createElement('div');
+      el.className = 'audit-item';
+      el.innerHTML =
+        '<div class="audit-top">' +
+        '<span class="audit-name">' + escapeHtml(name) + '</span>' +
+        '<span class="stars">' + starStr(stars(sc.score)) + '</span>' +
+        '<span class="audit-score ' + cls + '">' + sc.score + ' 分</span>' +
+        '</div>' +
+        (sc.issues.length
+          ? '<ul class="audit-issues">' + sc.issues.map((i) => '<li>' + escapeHtml(i) + '</li>').join('') + '</ul>'
+          : '<ul class="audit-issues"><li>没挑出毛病，这名字可以放心上线。</li></ul>') +
+        (sc.score < 95 ? '<div class="audit-fix">建议改名：<code>' + escapeHtml(fixed) + '</code></div>' : '');
+      box.appendChild(el);
+    });
+    const avg = Math.round(sum / lines.length);
+    $('#auTotal').textContent = String(lines.length);
+    $('#auAvg').textContent = String(avg);
+    $('#auIssues').textContent = String(issues);
+    $('#auFail').textContent = String(fail);
+    const avgBox = $('#auAvgBox');
+    avgBox.className = 'stat ' + (avg >= 80 ? 'good' : avg >= 60 ? 'warn' : 'bad');
+    $('#auditResult').style.display = '';
+  }
+
+  function buildAuditReport() {
+    const lines = $('#auditIn').value.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) return '';
+    const out = ['# 命名体检报告', '', '> 由 NameSmith 命名工坊生成', '', '| 命名 | 得分 | 问题 |', '| --- | --- | --- |'];
+    lines.forEach((name) => {
+      const sc = scoreName(name);
+      out.push('| `' + name + '` | ' + sc.score + ' | ' + (sc.issues.join('；') || '无') + ' |');
+    });
+    return out.join('\n');
+  }
+
+  /* ---- 彩蛋 ---- */
+  function rollFun() {
+    const adj = rnd(D.FUN_ADJ);
+    const noun = rnd(D.FUN_NOUN);
+    const useSuffix = Math.random() > 0.35;
+    const name = applyCase([adj, noun], 'pascal') + (useSuffix ? rnd(D.FUN_SUFFIX) : '');
+    $('#funName').textContent = name;
+    const notes = [
+      '念出来试试，它会不会比 userInfo2 更有灵魂？',
+      '如果这个进了代码 review，记得提前准备好解释。',
+      '抽象得恰到好处，以至于没人敢删它。',
+      '命名即艺术，维护者即考古学家。',
+      '它在代码里存在了三年，没人知道它做什么。',
+      '建议配一句注释：// TODO 解释一下这个是干嘛的'
+    ];
+    $('#funNote').textContent = rnd(notes);
+    $('#mA').style.width = (55 + Math.random() * 45) + '%';
+    $('#mB').style.width = (30 + Math.random() * 65) + '%';
+    $('#mC').style.width = (50 + Math.random() * 50) + '%';
+  }
+
+  function initCommitTypes() {
+    const sel = $('#cmType');
+    D.COMMIT_TYPES.forEach((t) => {
+      const o = document.createElement('option');
+      o.value = t.t;
+      o.textContent = t.t + ' - ' + t.cn;
+      sel.appendChild(o);
+    });
+  }
+
+  function doCommit() {
+    const type = $('#cmType').value || 'feat';
+    const scope = $('#cmScope').value.trim();
+    const desc = $('#cmDesc').value.trim();
+    const wild = $('#cmMode').value === 'wild';
+    const head = type + (scope ? '(' + scope + ')' : '') + ': ';
+    if (wild) {
+      $('#cmOut').textContent = head + rnd(D.COMMIT_JOKES);
+    } else if (!desc) {
+      $('#cmOut').textContent = head + '请填写具体改动，例如「修复优惠券金额精度丢失」';
+    } else {
+      const body = [
+        '',
+        '- 变更动机：' + desc,
+        '- 影响范围：' + (scope || '全局'),
+        '- 自测情况：本地已验证，边界场景待补充'
+      ];
+      $('#cmOut').textContent = head + desc + body.join('\n');
+    }
+  }
+
+  const BUZZ = {
+    target: ['核心转化路径', '用户全生命周期', '首屏体验水位', '履约链路履约率', '心智触点矩阵', '端到端闭环'],
+    verb: ['策略调优', '链路治理', '能力沉淀', '颗粒度细化', '维度打通', '对齐打法'],
+    method: ['中台化能力复用', '原子化组件编排', '灰度实验机制', '数据驱动闭环', '低代码编排', '领域模型重塑'],
+    asset: ['方法论沉淀', '标准化能力资产', '可复用中台模块', '行业最佳实践', '组织级复用件'],
+    goal: ['降本增效', 'GMV 第二增长曲线', '用户 LTV 提升', '心智占位', '留存水位抬升']
+  };
+
+  function doBuzz() {
+    const raw = $('#buzzIn').value.trim();
+    if (!raw) { toast('先说点人话'); return; }
+    const lv = parseInt($('#buzzLevel').value, 10);
+    const has = (w) => raw.indexOf(w) !== -1;
+    let t = rnd(BUZZ.target);
+    if (has('按钮') || has('交互')) t = '核心交互触点';
+    else if (has('数据') || has('报表')) t = '底层数据资产';
+    else if (has('性能') || has('慢')) t = '性能水位';
+    else if (has('bug') || has('报错') || has('bug'.toUpperCase())) t = '历史技术债';
+    else if (has('接口') || has('联调')) t = '服务间契约';
+    else if (has('文档')) t = '知识资产沉淀';
+    else if (has('重构') || has('祖传')) t = '架构韧性';
+    else if (has('页面') || has('UI') || has('界面')) t = '用户视觉体验';
+
+    let out = '';
+    if (lv === 1) {
+      out = '围绕「' + raw + '」这件事，我们先从' + t + '切入，做一轮' + rnd(BUZZ.verb) + '，预期整体效率提升 ' + (8 + Math.random() * 20).toFixed(1) + '%。';
+    } else if (lv === 2) {
+      out = '本次以' + t + '为切入点，通过' + rnd(BUZZ.method) + '完成一轮' + rnd(BUZZ.verb) +
+        '，形成"度量—归因—迭代"的数据闭环，沉淀为可复用的' + rnd(BUZZ.asset) + '，最终赋能业务实现' + rnd(BUZZ.goal) + '。';
+    } else {
+      out = '立足于' + t + '的长期价值锚点，我们将以' + rnd(BUZZ.method) + '为底座，对' + t +
+        '实施全链路' + rnd(BUZZ.verb) + '，打通"' + rnd(BUZZ.goal) + '"的战略传导链路，' +
+        '沉淀组织级' + rnd(BUZZ.asset) + '，最终实现' + rnd(BUZZ.goal) + '的指数级跃迁。\n\n（人话版本：' + raw + '）';
+    }
+    $('#buzzOut').textContent = out;
+  }
+
+  /* ---- 规范表 ---- */
+  const GUIDE_STATE = { lang: 'ts', cat: '全部', q: '' };
+
+  function curLang() {
+    return D.LANG_MATRIX.filter((x) => x.id === GUIDE_STATE.lang)[0] || D.LANG_MATRIX[0];
+  }
+
+  function renderGuideTable() {
+    const L = curLang();
+    const q = GUIDE_STATE.q;
+    const rows = L.rows.filter((r) => {
+      if (!q) return true;
+      return [r.el, r.rule, r.good, r.bad, r.note].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    $('#guideBody').innerHTML = rows.map((r) =>
+      '<tr><td>' + escapeHtml(r.el) + '</td>' +
+      '<td>' + escapeHtml(r.rule) + '</td>' +
+      '<td>' + escapeHtml(r.bad) + '</td>' +
+      '<td>' + escapeHtml(r.good) + '</td>' +
+      '<td class="note-cell">' + escapeHtml(r.note) + '</td></tr>'
+    ).join('');
+    $('#guideEmpty').style.display = rows.length ? 'none' : '';
+  }
+
+  function renderPatterns() {
+    const list = D.PATTERNS.filter((p) => GUIDE_STATE.cat === '全部' || p.cat === GUIDE_STATE.cat);
+    $('#patternGrid').innerHTML = list.map((p) =>
+      '<div class="res-card pattern-card">' +
+      '<h4 class="res-name pattern-name">' + escapeHtml(p.n) + '</h4>' +
+      '<div class="res-meta"><span class="tag">' + escapeHtml(p.cat) + '</span>' +
+      '<span class="tag n">' + escapeHtml(p.ex) + '</span></div>' +
+      '<p class="res-why">' + escapeHtml(p.use) + '</p>' +
+      (p.warn ? '<p class="res-why warn-line">注意：' + escapeHtml(p.warn) + '</p>' : '') +
+      '</div>'
+    ).join('');
+  }
+
+  function initGuide() {
+    const langBox = $('#langChips');
+    D.LANG_MATRIX.forEach((L, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (i === 0 ? ' on' : '');
+      b.textContent = L.short;
+      b.addEventListener('click', () => {
+        GUIDE_STATE.lang = L.id;
+        $$('#langChips .chip').forEach((c) => c.classList.remove('on'));
+        b.classList.add('on');
+        renderGuideTable();
+      });
+      langBox.appendChild(b);
+    });
+
+    $('#guideSearch').addEventListener('input', (e) => {
+      GUIDE_STATE.q = e.target.value.trim().toLowerCase();
+      renderGuideTable();
+    });
+
+    const cats = ['全部'].concat(uniq(D.PATTERNS.map((p) => p.cat)));
+    const catBox = $('#patternCats');
+    cats.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (i === 0 ? ' on' : '');
+      b.textContent = c;
+      b.addEventListener('click', () => {
+        GUIDE_STATE.cat = c;
+        $$('#patternCats .chip').forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        renderPatterns();
+      });
+      catBox.appendChild(b);
+    });
+
+    const grid = $('#smellGrid');
+    D.SMELL.forEach((s) => {
+      const el = document.createElement('div');
+      el.className = 'res-card';
+      el.style.cursor = 'default';
+      el.innerHTML = '<h4 class="res-name" style="margin-right:0">' + escapeHtml(s.w) + '</h4>' +
+        '<div class="res-meta"><span class="tag a">禁用词</span></div>' +
+        '<p class="res-why">' + escapeHtml(s.why) + '</p>' +
+        '<p class="res-why" style="margin-top:8px;color:var(--ok)">→ ' + escapeHtml(s.tip) + '</p>';
+      grid.appendChild(el);
+    });
+
+    renderGuideTable();
+    renderPatterns();
+
+    const cl = $('#checklist');
+    D.NAMING_CHECKLIST.forEach((item, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="ck-num">' + (i + 1) + '</span><span>' + escapeHtml(item) + '</span>';
+      cl.appendChild(li);
+    });
+  }
+
+  function guideMarkdown(onlyCurrent) {
+    const langs = onlyCurrent ? [curLang()] : D.LANG_MATRIX;
+    const lines = ['# 团队命名规范速查', '', '> Generated by NameSmith 命名工坊 · https://workbuddy.cn', ''];
+    langs.forEach((L) => {
+      lines.push('## ' + L.name, '', '| 元素 | 规范 | 反例 | 正例 | 备注 |', '| --- | --- | --- | --- | --- |');
+      L.rows.forEach((r) => {
+        lines.push('| ' + r.el + ' | ' + r.rule + ' | ~~' + r.bad + '~~ | `' + r.good + '` | ' + (r.note || '') + ' |');
+      });
+      lines.push('');
+    });
+    if (!onlyCurrent) {
+      lines.push('## 命名模式库', '', '| 后缀 | 分类 | 职责 | 示例 | 常见误用 |', '| --- | --- | --- | --- | --- |');
+      D.PATTERNS.forEach((p) => lines.push('| ' + p.n + ' | ' + p.cat + ' | ' + p.use + ' | `' + p.ex + '` | ' + (p.warn || '') + ' |'));
+      lines.push('', '## 禁用词清单', '');
+      D.SMELL.forEach((s) => lines.push('- **' + s.w + '**：' + s.why + ' → ' + s.tip));
+    }
+    return lines.join('\n');
+  }
+
+  /* ---------------------------------------------------------
+   * 9. 全局事件
+   * ------------------------------------------------------- */
+  function bindAll() {
+    $('#btnGen').addEventListener('click', doGenerate);
+    $('#btnGenClear').addEventListener('click', () => {
+      $('#genInput').value = '';
+      $('#resGrid').innerHTML = '';
+      $('#resEmpty').style.display = '';
+      $('#resHead').style.display = 'none';
+      $('#parseBox').style.display = 'none';
+      $('#kindFilter').style.display = 'none';
+      CURRENT_PARSED = null;
+      LAST_RESULT = null;
+      $('#genInput').focus();
+    });
+
+    document.addEventListener('click', (e) => {
+      const cb = e.target.closest ? e.target.closest('.copy-btn') : null;
+      if (cb) {
+        copyText(cb.dataset.copy, '已复制 ' + cb.dataset.copy);
+        cb.classList.add('done');
+        cb.innerHTML = CHECK_ICON;
+        setTimeout(() => { cb.classList.remove('done'); cb.innerHTML = COPY_ICON; }, 1200);
+        return;
+      }
+      const x = e.target.closest ? e.target.closest('.hist-item .x') : null;
+      if (x) {
+        const idx = parseInt(x.dataset.idx, 10);
+        const h = loadHistory();
+        h.splice(idx, 1);
+        saveHistory(h);
+        renderHistory();
+      }
+    });
+
+    $('#btnCopyAll').addEventListener('click', () => {
+      if (!LAST_RESULT) return;
+      copyText(LAST_RESULT.res.list.map((c) => c.name).join('\n'), '已复制全部候选');
+    });
+    $('#btnExportMd').addEventListener('click', () => {
+      if (!LAST_RESULT) return;
+      download('namesmith-' + Date.now() + '.md', buildMarkdown(), 'text/markdown;charset=utf-8');
+      toast('Markdown 已导出');
+    });
+    $('#btnShareCard').addEventListener('click', drawShareCard);
+    $('#btnClearHist').addEventListener('click', () => { saveHistory([]); renderHistory(); toast('历史已清空'); });
+
+    $('#convIn').addEventListener('input', doConvert);
+    $('#btnConvDemo').addEventListener('click', () => {
+      $('#convIn').value = ['user_profile_name', 'getUserList', 'order-item-price', 'MAX RETRY COUNT', '购物车数量', 'is_user_login'].join('\n');
+      doConvert();
+    });
+    $('#btnConvCopy').addEventListener('click', () => copyText($('#convOut').textContent, '结果已复制'));
+    $('#btnConvSwap').addEventListener('click', () => { $('#convIn').value = $('#convOut').textContent; doConvert(); toast('已回填'); });
+
+    $('#btnAudit').addEventListener('click', doAudit);
+    $('#btnAuditDemo').addEventListener('click', () => {
+      $('#auditIn').value = ['data', 'userInfoList2', 'handleData', 'tmp', 'ProductManagerManager', 'getUsr Password', '我是一个变量', 'a'].join('\n');
+      doAudit();
+    });
+    $('#btnAuditClear').addEventListener('click', () => { $('#auditIn').value = ''; $('#auditResult').style.display = 'none'; });
+    $('#btnAuditCopy').addEventListener('click', () => copyText(buildAuditReport(), '体检报告已复制'));
+
+    $('#btnFun').addEventListener('click', rollFun);
+    $('#btnFunCopy').addEventListener('click', () => copyText($('#funName').textContent, '抽象命名已复制'));
+    $('#btnCm').addEventListener('click', doCommit);
+    $('#btnCmCopy').addEventListener('click', () => copyText($('#cmOut').textContent, 'commit 已复制'));
+    $('#btnBuzz').addEventListener('click', doBuzz);
+    $('#btnBuzzCopy').addEventListener('click', () => copyText($('#buzzOut').textContent, '黑话已复制'));
+
+    $('#btnGuideCopy').addEventListener('click', () => copyText(guideMarkdown(true), '当前语言的规范已复制'));
+    $('#btnGuideDown').addEventListener('click', () => download('team-naming-convention.md', guideMarkdown(false), 'text/markdown;charset=utf-8'));
+
+    // 跨语言对照
+    $('#btnCross').addEventListener('click', () => {
+      const q = $('#genInput').value.trim();
+      if (!q) { toast('先写个需求描述'); return; }
+      $('#crossTable').innerHTML = buildCrossTable(q);
+      $('#crossWrap').style.display = '';
+      toast('同一概念，八种语言写法一次看全');
+    });
+    $('#btnCrossClose').addEventListener('click', () => { $('#crossWrap').style.display = 'none'; });
+
+    // 任何选项变化都实时重算，不用反复点"生成"
+    ['genType', 'genCase', 'genLen', 'genLang'].forEach((id) => {
+      $('#' + id).addEventListener('change', () => {
+        const q = $('#genInput').value.trim();
+        if (!q) return;
+        CURRENT_QUERY = q;
+        CURRENT_PARSED = tokenize(q);
+        refreshFromParsed();
+        $('#crossWrap').style.display = 'none';
+      });
+    });
+
+    // 换一批：候选池翻页，避免"就这几个"
+    $('#btnBatch').addEventListener('click', () => {
+      if (!LAST_RESULT) return;
+      RES_PAGE += 1;
+      renderCards(LAST_RESULT.res);
+    });
+
+    // 边打边解析：输入停顿 400ms 后即时刷新理解结果
+    let inputTimer = null;
+    $('#genInput').addEventListener('input', () => {
+      clearTimeout(inputTimer);
+      inputTimer = setTimeout(() => {
+        const q = $('#genInput').value.trim();
+        if (!q) return;
+        const sig = q + '::' + $('#genType').value + $('#genCase').value + $('#genLen').value + $('#genLang').value;
+        if (sig === LAST_SIG) return;
+        LAST_SIG = sig;
+        CURRENT_QUERY = q;
+        CURRENT_PARSED = tokenize(q);
+        refreshFromParsed();
+      }, 400);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if ($('#v-gen').classList.contains('active')) doGenerate();
+      }
+      if ((e.ctrlKey || e.metaKey) && lower(e.key) === 'k') {
+        e.preventDefault();
+        $('#genInput').focus();
+      }
+    });
+
+    $('#themeBtn').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('namesmith.theme', next); } catch (err) { /* ignore */ }
+      toast(next === 'dark' ? '已切换到深色模式' : '已切换到浅色模式');
+    });
+  }
+
+  /* ---------------------------------------------------------
+   * 10. 启动
+   * ------------------------------------------------------- */
+  function init() {
+    loadLexicon();
+    try {
+      const t = localStorage.getItem('namesmith.theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) { /* ignore */ }
+    bindTabs();
+    initExamples();
+    initConvert();
+    initCommitTypes();
+    initGuide();
+    bindAll();
+    renderHistory();
+    initFoot();
+    rollFun();
+    if (!$('#genInput').value.trim()) $('#genInput').value = '获取用户列表';
+    CURRENT_QUERY = $('#genInput').value.trim();
+    CURRENT_PARSED = tokenize(CURRENT_QUERY);
+    const demoRes = generateFromParsed(CURRENT_PARSED, 'auto', 'auto', 'normal', $('#genLang').value);
+    LAST_PARSE_META = demoRes.typeMeta || [];
+    renderParse();
+    renderResult(demoRes, CURRENT_QUERY);
+
+    // 深链直达：index.html#audit / #conv / #fun / #guide，方便把某个功能直接分享给别人
+    const hash = (location.hash || '').replace(/^#/, '');
+    const HASH_MAP = {
+      gen: 'v-gen', generate: 'v-gen', cross: 'v-gen', demo: 'v-gen', conv: 'v-conv',
+      convert: 'v-conv', audit: 'v-audit', fun: 'v-fun', guide: 'v-guide'
+    };
+    const view = HASH_MAP[hash] || (/^v-[a-z]+$/.test(hash) ? hash : null);
+    if (view) {
+      const btn = document.querySelector('.tab[data-view="' + view + '"]');
+      if (btn) {
+        btn.click();
+        if (hash === 'cross') {
+          $('#crossTable').innerHTML = buildCrossTable($('#genInput').value.trim());
+          $('#crossWrap').style.display = '';
+        } else if (hash === 'demo') {
+          $('#genInput').value = '螺蛳粉库存数量';
+          doGenerate();
+        } else if (view === 'v-audit') {
+          $('#auditIn').value = ['data', 'userInfoList2', 'handleData', 'tmp', 'ProductManagerManager', 'getUsr Password', 'MAX RETRY COUNT', 'a'].join('\n');
+          doAudit();
+        } else if (view === 'v-conv') {
+          $('#convIn').value = ['user_profile_name', 'getUserList', 'order-item-price', 'MAX RETRY COUNT', '购物车数量', 'is_user_login'].join('\n');
+          doConvert();
+        } else if (view === 'v-fun') {
+          rollFun();
+          $('#cmDesc').value = '修复优惠券金额精度丢失';
+          $('#cmScope').value = 'coupon';
+          doCommit();
+          $('#buzzIn').value = '把这个按钮改好看一点';
+          doBuzz();
+        }
+      }
+    }
+  }
+
+  // 对外暴露引擎 API，方便你在控制台里玩（也方便写测试）
+  window.NameSmith = {
+    generate: generate, generateFromParsed: generateFromParsed, tokenize: tokenize,
+    scoreName: scoreName, detectStyle: detectStyle, detectTypes: detectTypes,
+    applyCase: applyCase, splitWords: splitWords, stars: stars, version: '1.2.0',
+    loadLexicon: loadLexicon, getLexicon: () => Object.assign({}, LEXICON),
+    setLexiconEntry: (cn, en) => { LEXICON[cn] = en; saveLexicon(); invalidatePairs(); },
+    renderResult: renderResult, doGenerate: doGenerate
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+</body>
+</html>
