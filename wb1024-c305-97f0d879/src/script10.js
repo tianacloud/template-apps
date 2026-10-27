@@ -22,14 +22,15 @@
     if (ready) return Promise.resolve(worker);
     if (loadingPromise) return loadingPromise;
 
-    loadingPromise = Tesseract.createWorker('chi_sim', 1, {
-      workerPath: new URL('worker.js', document.querySelector('script[data-ocr-entry]').src).href, workerBlobURL: false,
+    loadingPromise = Promise.resolve(Tesseract.createWorker({
+      workerPath: new URL('worker.js?v=22', document.querySelector('script[data-ocr-entry]').src).href, workerBlobURL: false,
       corePath: '',
       langPath: 'heji://lang',
       logger: function (m) {
         if (onProgress) onProgress(m);
       }
-    }).then(function (w) {
+    })).then(async function (w) {
+      await w.load(); await w.loadLanguage('chi_sim'); await w.initialize('chi_sim');
       worker = w;
       ready = true;
       // 中文单行文本：关掉词典纠错反而更稳，打开会乱改数字与人名
