@@ -886,6 +886,23 @@
     }
   });
 
+  // Touch supplies the same coordinates to the existing drawing and drag handlers.
+  let lastTap = 0;
+  bubbleCanvas.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    e.preventDefault(); const t=e.touches[0];
+    bubbleCanvas.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:t.clientX,clientY:t.clientY}));
+  }, {passive:false});
+  bubbleCanvas.addEventListener('touchmove', e => {
+    if(e.touches.length!==1)return; e.preventDefault(); const t=e.touches[0];
+    bubbleCanvas.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,button:0,clientX:t.clientX,clientY:t.clientY}));
+  }, {passive:false});
+  bubbleCanvas.addEventListener('touchend', e => {
+    e.preventDefault(); const t=e.changedTouches[0];
+    bubbleCanvas.dispatchEvent(new MouseEvent('mouseup',{bubbles:true,button:0,clientX:t.clientX,clientY:t.clientY}));
+    const now=Date.now(); if(now-lastTap<350 && state.mode==='select') bubbleCanvas.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,button:0,clientX:t.clientX,clientY:t.clientY})); lastTap=now;
+  }, {passive:false});
+
   bubbleCanvas.addEventListener('dblclick', e => {
     const pos = getDocPos(e);
     const hit = hitTest(pos);
