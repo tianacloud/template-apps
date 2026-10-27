@@ -4,6 +4,21 @@ const assetRoot = new URL('../', import.meta.url);
 document.title = '老李的世界Online｜我的人物面板';
 for (const path of ['assets/css/style.css','assets/css/pets.css']) { const l=document.createElement('link'); l.rel='stylesheet'; l.href=new URL(path, assetRoot).href; document.head.append(l); }
 document.getElementById('app').innerHTML=body;
+
+// CSP disallows inline event handlers. Delegate the original actions, including dynamically rendered controls.
+for (const type of ['click','change','submit']) document.addEventListener(type, event => {
+  const el=event.target.closest('[on'+type+']'); if (!el) return;
+  let action=el.getAttribute('on'+type).trim();
+  if (action.startsWith('if(event.target===this)')) { if(event.target!==el) return; action=action.slice('if(event.target===this)'.length); }
+  if (action.startsWith('event.stopPropagation();')) { event.stopPropagation(); action=action.slice('event.stopPropagation();'.length); }
+  if (action.startsWith('this.nextElementSibling.style.display=')) { const next=el.nextElementSibling; next.style.display=next.style.display==='none'?'block':'none'; el.textContent=next.style.display==='none'?'▶ 查看原始输入':'▼ 收起原始输入'; return; }
+  action=action.replace(/^return\s+/, '').replace(/;$/, '');
+  const m=action.match(/^(?:window\.)?([\w$]+)\((.*)\)$/s); if (!m || typeof window[m[1]] !== 'function') return;
+  const args=m[2].trim() ? (m[2].match(/'(?:\\.|[^'])*'|"(?:\\.|[^"])*"|[^,]+/g)||[]).map(x=>{x=x.trim();if(x==='this') return el;if(x==='this.checked') return el.checked;if(x==='event') return event;if(/^['"]/.test(x)) return x.slice(1,-1).replace(/\\(['"\\])/g,'$1');if(/^-?\d+(?:\.\d+)?$/.test(x)) return Number(x);return x;}) : [];
+  if (type==='submit') event.preventDefault();
+  window[m[1]](...args);
+}, true);
+
 async function start() {
   const c=await window.tiana.connection();
   if (!window.tiana.auth?.getAccessToken || c.sql_api !== 'hrana-v3') throw Error('数据库连接不可用');
