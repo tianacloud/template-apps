@@ -1,0 +1,13 @@
+import { mkdir, rm, cp, readFile, writeFile } from "node:fs/promises";
+await rm("dist", { recursive: true, force: true });
+await mkdir("dist/assets", { recursive: true });
+await cp("assets", "dist/assets", { recursive: true });
+await cp("public", "dist", { recursive: true });
+const markup = await readFile("markup.html", "utf8");
+await writeFile("dist/assets/app.js", `document.title = "ModelLite · 网页3D模型轻量化预处理工具";
+document.querySelector("#app").innerHTML = ${JSON.stringify(markup)};
+const css=document.createElement("link");css.rel="stylesheet";css.href=new URL("./style.css",import.meta.url).href;document.head.append(css);
+import("./model.js");
+`);
+const source=JSON.parse(await readFile("source.json","utf8"));
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
