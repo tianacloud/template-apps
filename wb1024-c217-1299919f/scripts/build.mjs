@@ -8,6 +8,7 @@ const style=html.match(/<style>([\s\S]*?)<\/style>/)[1];
 const body=html.match(/<body[^>]*>([\s\S]*?)<script>/)[1];
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 await mkdir('dist/assets',{recursive:true});
-await writeFile('dist/assets/app.js',`document.title='阳光积分乐园';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst script=document.createElement('script');script.textContent=${JSON.stringify(script)};document.body.appendChild(script);`);
+await writeFile('dist/assets/logic.js',script);
+await writeFile('dist/assets/app.js',`document.title='阳光积分乐园';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst script=document.createElement('script');script.src=new URL('./logic.js',import.meta.url).href;document.body.appendChild(script);`);
 await copyFile('public/icon.png','dist/icon.png');
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
