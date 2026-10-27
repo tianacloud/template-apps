@@ -1,0 +1,717 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  :root{
+    /* 全站统一配色（与 game-portal/style.css 保持一致） */
+    --bg:#f7f4ed; --bg-soft:#efe9dd; --panel:#ffffff; --card-hover:#fffdf9;
+    --line:#e5dfd2; --border-strong:#d3cbb8;
+    --txt:#2c2c2a; --sub:#8a8880; --text-dim:#5f5e5a;
+    --acc:#1f4e79; --acc2:#b8860b; --accbg:#eaf1f7; --ok:#3b6d11; --bad:#b3392c;
+    --radius:14px; --shadow:0 6px 22px rgba(60,50,30,.09);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",sans-serif;
+       background:var(--bg); color:var(--txt); height:100vh; display:flex; flex-direction:column; overflow:hidden; line-height:1.55;}
+  .bg-orbs{position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(760px 520px at 88% -8%, rgba(184,134,11,.055), transparent 70%),
+      radial-gradient(680px 480px at 6% 104%, rgba(31,78,121,.05), transparent 70%);}
+  button{background:var(--accbg); color:var(--acc); border:1px solid var(--border-strong); border-radius:var(--radius-sm,9px); padding:6px 13px; font-size:13px; cursor:pointer; white-space:nowrap; transition:background .15s,border-color .15s;}
+  button:hover{background:#dfeaf5;}
+  button.primary{background:var(--acc); color:#fff; border-color:var(--acc);}
+  button.primary:hover{background:#173d5e;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  /* 站点风格顶栏 */
+  .site-header{position:sticky; top:0; z-index:30; backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%);
+    background:rgba(247,244,237,.9); border-bottom:1px solid var(--line);}
+  .header-inner{max-width:100%; padding:11px 20px 9px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand-icon{font-size:23px; width:44px; height:44px; display:grid; place-items:center; border-radius:12px;
+    background:var(--acc); color:#fff; box-shadow:0 4px 14px rgba(31,78,121,.2);}
+  .brand-text h2{font-size:16px; letter-spacing:.5px; color:var(--txt);}
+  .brand-text p{font-size:12px; color:var(--sub); margin-top:1px;}
+  .header-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .btn-ghost{display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:99px;
+    border:1px solid var(--line); background:var(--panel); color:var(--text-dim); font-size:13px; text-decoration:none; cursor:pointer; transition:all .15s;}
+  .btn-ghost:hover{border-color:var(--border-strong); color:var(--acc); background:var(--card-hover);}
+  .toolbar{display:flex; gap:8px; align-items:center; padding:7px 16px 9px; flex-wrap:wrap;}
+  .proj-sel{padding:7px 10px; border:1px solid var(--border-strong); border-radius:9px; background:var(--panel);
+    color:var(--txt); font-size:13px; outline:none; min-width:118px; max-width:200px; cursor:pointer;}
+  .proj-sel:focus{border-color:var(--acc);}
+  .tb-div{width:1px; height:22px; background:var(--line); margin:0 3px;}
+  header{display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  header h1{font-size:16px; margin-right:8px; color:var(--acc); white-space:nowrap;}
+  #userbox{margin-left:auto; font-size:12px; color:var(--sub); display:flex; align-items:center; gap:8px;}
+  main{flex:1; display:flex; min-height:0; position:relative; z-index:2;}
+  #treewrap{width:250px; min-width:200px; background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:8px;}
+  .dir{font-weight:bold; color:var(--acc); margin-top:6px; font-size:13px;}
+  .file{padding-left:16px; cursor:pointer; font-size:13px; padding-top:2px; padding-bottom:2px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .file:hover{background:var(--accbg);}
+  .file.active{background:var(--accbg); color:var(--acc); font-weight:bold;}
+  .file.outline{color:var(--acc2);}
+  #viewwrap{flex:1; display:flex; flex-direction:column; min-width:0;}
+  #viewbar{display:flex; gap:8px; align-items:center; padding:6px 12px; background:var(--panel); border-bottom:1px solid var(--line); font-size:12px; color:var(--sub); flex-wrap:wrap;}
+  #viewbar .fname{font-weight:bold; color:var(--txt);}
+  #viewbar .grow{flex:1;}
+  #content{flex:1; overflow:auto; padding:22px 30px; line-height:1.85; font-size:15px;}
+  #editor{flex:1; display:none; width:100%; border:none; resize:none; padding:18px 24px; font-size:14px; line-height:1.9; font-family:Consolas,"Microsoft YaHei",monospace; background:var(--card-hover); outline:none;}
+  #content h1{font-size:22px; border-bottom:2px solid var(--accbg); padding-bottom:8px; margin:18px 0 14px; color:var(--acc);}
+  #content h2{font-size:18px; margin:20px 0 10px; color:var(--acc);}
+  #content h3{font-size:15px; margin:14px 0 8px;}
+  #content p{margin:8px 0;}
+  #content blockquote{border-left:4px solid var(--accbg); background:#fbf8f2; padding:8px 14px; color:#6b6353; margin:10px 0; font-size:13.5px;}
+  #content table{border-collapse:collapse; margin:12px 0; font-size:13.5px; width:100%;}
+  #content th,#content td{border:1px solid var(--line); padding:6px 10px; text-align:left;}
+  #content th{background:var(--accbg);}
+  #content code{background:#f0ede6; padding:1px 5px; border-radius:3px; font-size:13px;}
+  #content pre{background:#f0ede6; padding:12px; border-radius:6px; overflow:auto; font-size:13px; margin:10px 0;}
+  #content pre code{background:none; padding:0;}
+  #content ul,#content ol{margin:8px 0 8px 24px;}
+  #content hr{border:none; border-top:1px dashed var(--line); margin:16px 0;}
+  #content .fm{background:#fbf8f2; border:1px dashed #d8c9ad; border-radius:6px; padding:10px 14px; font-size:12.5px; color:#6b6353; white-space:pre-wrap; margin-bottom:14px;}
+  #panel{width:280px; min-width:230px; background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column;}
+  #tabs{display:flex; border-bottom:1px solid var(--line);}
+  #tabs div{flex:1; text-align:center; padding:8px 0; font-size:13px; cursor:pointer; color:var(--sub); border-bottom:2px solid transparent;}
+  #tabs div.on{color:var(--acc); border-bottom-color:var(--acc); font-weight:bold;}
+  #panelbody{flex:1; overflow:auto; padding:10px; font-size:12.5px;}
+  .pitem{padding:6px 8px; border-bottom:1px solid #f0ede6; line-height:1.6;}
+  .pitem b{color:var(--acc);}
+  .tag{display:inline-block; font-size:11px; padding:0 6px; border-radius:8px; background:var(--accbg); color:var(--acc); margin-left:4px;}
+  .tag.warn{background:#fdeeea; color:var(--bad);}
+  footer{display:flex; gap:16px; padding:5px 14px; font-size:12px; color:var(--sub); background:var(--panel); border-top:1px solid var(--line); flex-wrap:wrap;}
+  .pass{color:var(--ok); font-weight:bold;} .fail{color:var(--bad); font-weight:bold;}
+  dialog{border:1px solid var(--line); border-radius:10px; padding:20px; box-shadow:0 8px 30px rgba(0,0,0,.15); max-width:420px;}
+  dialog::backdrop{background:rgba(0,0,0,.25);}
+  dialog h3{margin-bottom:12px; color:var(--acc);}
+  dialog label{display:block; font-size:13px; margin:10px 0 4px;}
+  dialog input{width:100%; padding:6px 10px; border:1px solid var(--line); border-radius:5px; font-size:14px;}
+  dialog select{width:100%; padding:6px 10px; border:1px solid var(--line); border-radius:5px; font-size:14px; background:#fff;}
+  dialog .btns{margin-top:16px; text-align:right;}
+  #loginView{flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px; position:relative; z-index:2;}
+  #loginView .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:40px 48px; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.06);}
+  #loginView h2{color:var(--acc); margin-bottom:8px; font-size:22px;}
+  #loginView p{color:var(--sub); font-size:13px; margin-bottom:18px; line-height:1.8;}
+  #loginView input{width:260px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:14px; text-align:center;}
+  #loginErr{color:var(--bad); font-size:13px; margin-top:12px; min-height:18px;}
+</style><body>
+
+<div class="bg-orbs"></div>
+
+<div id="loginView">
+  <div class="card">
+    <div style="font-size:34px; margin-bottom:6px;">📝</div>
+    <h2>写作台</h2>
+    <p>云端写作台 · 设定 / 细纲 / 正文<br>输入访问口令即可继续写作</p>
+    <input id="inToken" type="password" placeholder="访问口令" autocomplete="current-password">
+    <div style="margin-top:14px"><button id="btnLogin" class="primary" style="font-size:15px; padding:9px 30px;">进入写作台</button></div>
+    <div id="loginErr"></div>
+    <div style="margin-top:18px; font-size:13px;">
+      <a href="#" onclick="return false;" style="color:var(--text-dim); text-decoration:none; border-bottom:1px dotted var(--border-strong);">✦ 演示站（示例数据）</a>
+    </div>
+  </div>
+</div>
+
+<div id="appView" style="display:none; flex:1; flex-direction:column; min-height:0; position:relative; z-index:2;">
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">📝</span>
+        <div class="brand-text">
+          <h2>写作台</h2>
+          <p>云端写作台 · 设定 / 细纲 / 正文</p>
+        </div>
+      </div>
+      <div class="header-tools">
+        <button class="btn-ghost" id="btnBack">← 返回</button>
+        <a class="btn-ghost" href="#" onclick="return false;">🏠 首页</a>
+        <span id="uname" style="font-size:12px; color:var(--sub);"></span>
+        <button class="btn-ghost" id="btnLogout">退出</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <select id="projSel" class="proj-sel" title="切换小说项目"></select>
+      <button id="btnNewProj" class="btn-ghost">＋ 新项目</button>
+      <button id="btnDelProj" class="btn-ghost" title="删除当前项目（含全部文件）">🗑 删项目</button>
+      <span class="tb-div"></span>
+      <button id="btnNewFile">＋ 新建文件</button>
+      <button id="btnNew">＋ 新建细纲</button>
+      <button id="btnSave" disabled>💾 保存</button>
+      <button id="btnDel" disabled>🗑 删除本文件</button>
+      <button id="btnLint" disabled>🔍 门禁检查</button>
+      <button id="btnCopy" disabled>📋 复制扩写指令</button>
+      <button id="btnImport">📥 从本地底稿导入</button>
+    </div>
+  </header>
+  <main>
+    <div id="treewrap"><div style="color:var(--sub); font-size:12px; padding:6px;">正在加载…</div></div>
+    <div id="viewwrap">
+      <div id="viewbar">
+        <span class="fname" id="fname">（未打开文件）</span>
+        <span id="fmode"></span>
+        <span class="grow"></span>
+        <span id="fcount"></span>
+      </div>
+      <div id="content"><p style="color:var(--sub)">左侧选择文件。所有文件都可直接编辑保存。</p></div>
+      <textarea id="editor" spellcheck="false" placeholder="编辑区"></textarea>
+    </div>
+    <div id="panel">
+      <div id="tabs">
+        <div class="on" data-t="fs">伏笔</div>
+        <div data-t="chars">角色</div>
+        <div data-t="chaps">章节</div>
+        <div data-t="rules">规则</div>
+      </div>
+      <div id="panelbody"></div>
+    </div>
+  </main>
+  <footer>
+    <span id="st1">就绪</span><span id="st2"></span><span id="st3"></span>
+  </footer>
+</div>
+
+<dialog id="dlgNew">
+  <h3>新建章节细纲</h3>
+  <label>章号</label><input id="inNum" type="number" min="1" placeholder="4">
+  <label>章名</label><input id="inTitle" placeholder="例：骨纹">
+  <div class="btns">
+    <button onclick="dlgNew.close()">取消</button>
+    <button id="btnNewGo" class="primary">创建</button>
+  </div>
+</dialog>
+
+<dialog id="dlgFile">
+  <h3>新建文件</h3>
+  <label>文件路径（相对项目根目录）</label>
+  <input id="inPath" placeholder="例：30-正文/第01卷/第004章-骨纹.md">
+  <label>模板</label>
+  <select id="inTpl">
+    <option value="chapter">正文章节（自动填 frontmatter）</option>
+    <option value="blank">空白文件</option>
+    <option value="world">世界观条目</option>
+    <option value="char">角色卡</option>
+  </select>
+  <div class="btns">
+    <button onclick="dlgFile.close()">取消</button>
+    <button id="btnFileGo" class="primary">创建</button>
+  </div>
+</dialog>
+
+<script>"use strict";
+const OUTLINE_DIR = "20-大纲/细纲";
+const SKIP = new Set([".versions",".workbuddy","tools"]);
+const TKEY = "wr_token";
+const PKEY = "wr_project";
+let allDocs = {};     // path -> {category,name,content,updated_at}（path 形如 项目名/目录/文件.md）
+let curPath = null;
+let curProject = localStorage.getItem(PKEY) || "";
+let token = localStorage.getItem(TKEY) || "";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const projOf = p => p.split("/")[0];
+const catOf = p => p.split("/")[1] || "_根";
+const nameOf = p => p.split("/").pop();
+const relOf = p => p.split("/").slice(2).join("/") || nameOf(p);
+
+/* ================= API ================= */
+let demoDocs={"示例项目·银河便利店/00-项目管理/总控.md":"# 银河便利店\n\n在银河边缘开一家便利店。","示例项目·银河便利店/20-大纲/章节摘要.md":"# 章节摘要\n\n| 章 | 章名 | 卷 | 一句话摘要 | 状态 |\n| 1 | 夜班 | 1 | 新店员接手夜班 | 草稿 |","示例项目·银河便利店/40-线索与时间线/伏笔追踪.md":"# 伏笔追踪\n\n| F-001 | 小票末尾多出的无名商品 | 谜团 | 1 | 待定 | | 待回收 |"}; async function api(path,opts={}) {if(path.startsWith('/api/docs'))return {docs:Object.entries(demoDocs).map(([path,content])=>({path,content}))}; if(path==='/api/doc'){let d=JSON.parse(opts.body);demoDocs[d.path]=d.content;return {}} if(path.startsWith('/api/doc?')){delete demoDocs[new URLSearchParams(path.split('?')[1]).get('path')];return {}} if(path.startsWith('/api/project?')){let name=new URLSearchParams(path.split('?')[1]).get('name');let keys=Object.keys(demoDocs).filter(p=>p.startsWith(name+'/'));keys.forEach(p=>delete demoDocs[p]);return {name,removed:keys.length}} if(path==='/api/import'){let d=JSON.parse(opts.body).docs;d.forEach(x=>demoDocs[x.path]=x.content);return {imported:d.length}} }
+/* ================= 登录 ================= */
+async function tryEnter(tk, silent){
+  token = tk;
+  try {
+    const d = await api("/api/docs?full=1");
+    localStorage.setItem(TKEY, tk);
+    allDocs = {};
+    (d.docs||[]).forEach(r => { allDocs[r.path] = r; });
+    $("loginView").style.display = "none";
+    $("appView").style.display = "flex";
+    $("uname").textContent = "🔒 已连接云端";
+    renderProjectSel(); buildTree(); renderPanels();
+    $("st1").textContent = "✅ 已加载 " + Object.keys(allDocs).length + " 个文件 · 项目「" + curProject + "」";
+    if (!Object.keys(allDocs).length) {
+      $("st1").textContent = "⚠ 服务器还没有资料，点「＋ 新项目」或「📥 从本地底稿导入」开始";
+    }
+    return true;
+  } catch(e) {
+    token = "";
+    localStorage.removeItem(TKEY);
+    if (!silent) $("loginErr").textContent = e.message;
+    else $("loginErr").textContent = "上次的口令已失效，请重新输入。";
+    return false;
+  }
+}
+$("btnLogin").onclick = async () => {
+  const v = $("inToken").value.trim();
+  if (!v) { $("loginErr").textContent = "请输入访问口令"; return; }
+  $("loginErr").textContent = "验证中…";
+  await tryEnter(v, false);
+};
+$("inToken").addEventListener("keydown", e => { if (e.key === "Enter") $("btnLogin").click(); });
+$("btnLogout").onclick = () => { location.href = window.tiana?.logoutUrl || "/"; };
+$("btnBack").onclick = () => {
+  if (document.referrer) history.back();
+  else location.reload();
+};
+
+/* ================= 数据操作 ================= */
+async function loadAll(){
+  $("st1").textContent = "正在加载…";
+  try {
+    const d = await api("/api/docs?full=1");
+    allDocs = {};
+    (d.docs||[]).forEach(r => { allDocs[r.path] = r; });
+    renderProjectSel(); buildTree(); renderPanels();
+    $("st1").textContent = "✅ 已加载 " + Object.keys(allDocs).length + " 个文件 · 项目「" + curProject + "」";
+  } catch(e) { $("st1").textContent = "❌ 加载失败：" + e.message; }
+}
+async function saveDoc(path, content){
+  await api("/api/doc", { method:"POST", body: JSON.stringify({ path, content }) });
+  allDocs[path] = { path, category: catOf(path), name: nameOf(path), content, updated_at: new Date().toISOString() };
+}
+async function deleteDoc(path){
+  await api("/api/doc?path=" + encodeURIComponent(path), { method:"DELETE" });
+  delete allDocs[path];
+}
+
+/* ================= 项目切换 ================= */
+function projectList(){
+  const s = new Set();
+  Object.keys(allDocs).forEach(p => s.add(projOf(p)));
+  return [...s].sort((a,b)=>a.localeCompare(b,"zh"));
+}
+function renderProjectSel(){
+  const sel = $("projSel");
+  const list = projectList();
+  if (!list.length) { sel.innerHTML = '<option>（无项目）</option>'; return; }
+  if (!curProject || list.indexOf(curProject) < 0) curProject = list[0];
+  sel.innerHTML = list.map(p =>
+    '<option value="' + esc(p) + '"' + (p === curProject ? " selected" : "") + '>' + esc(p) + '</option>'
+  ).join("");
+  localStorage.setItem(PKEY, curProject);
+}
+function resetView(){
+  curPath = null;
+  $("fname").textContent = "（未打开文件）";
+  $("fmode").textContent = "";
+  $("fcount").textContent = "";
+  $("editor").style.display = "none";
+  $("content").style.display = "block";
+  $("content").innerHTML = '<p style="color:var(--sub)">左侧选择文件。所有文件都可直接编辑保存。</p>';
+  $("btnSave").disabled = $("btnDel").disabled = $("btnLint").disabled = $("btnCopy").disabled = true;
+}
+$("projSel").onchange = () => {
+  curProject = $("projSel").value;
+  localStorage.setItem(PKEY, curProject);
+  resetView(); buildTree(); renderPanels();
+  $("st1").textContent = "✅ 已加载 " + Object.keys(allDocs).length + " 个文件 · 项目「" + curProject + "」";
+};
+
+/* ================= 文件树 ================= */
+function buildTree(){
+  const tree = $("treewrap"); tree.innerHTML = "";
+  const paths = Object.keys(allDocs).filter(p => projOf(p) === curProject).sort();
+  if (!paths.length) {
+    tree.innerHTML = '<div style="color:var(--sub);font-size:12px;padding:6px;">（本项目还没有文件）</div>';
+    return;
+  }
+  const cats = {};
+  paths.forEach(p => (cats[catOf(p)] = cats[catOf(p)] || []).push(p));
+  Object.keys(cats).sort((a,b)=> (a==="_根"? -1 : b==="_根"? 1 : a.localeCompare(b,"zh"))).forEach(c => {
+    const d = document.createElement("div"); d.className = "dir"; d.textContent = "📁 " + (c === "_根" ? "根目录" : c); tree.appendChild(d);
+    cats[c].forEach(p => {
+      const f = document.createElement("div");
+      f.className = "file" + (p.indexOf("/" + OUTLINE_DIR + "/") > -1 ? " outline" : "") + (p === curPath ? " active" : "");
+      f.textContent = relOf(p);
+      f.title = p;
+      f.onclick = () => openFile(p);
+      tree.appendChild(f);
+    });
+  });
+}
+
+/* ================= 打开 / 保存 / 删除 ================= */
+function openFile(path){
+  const doc = allDocs[path];
+  if (!doc) return;
+  curPath = path;
+  $("fname").textContent = path;
+  $("fmode").textContent = "✏ 可编辑（改动需点「💾 保存」）";
+  $("content").style.display = "none";
+  $("editor").style.display = "block";
+  $("editor").value = doc.content || "";
+  $("btnSave").disabled = false;
+  $("btnDel").disabled = false;
+  $("btnLint").disabled = path.indexOf("/30-正文/") < 0;
+  $("btnCopy").disabled = path.indexOf("/" + OUTLINE_DIR + "/") < 0;
+  updateCount(); buildTree();
+}
+async function saveCurrent(){
+  if (!curPath) return;
+  $("st2").textContent = "保存中…";
+  try {
+    await saveDoc(curPath, $("editor").value);
+    $("st2").textContent = "✅ 已保存 " + new Date().toLocaleTimeString();
+    renderPanels(); buildTree();
+  } catch(e) { $("st2").textContent = "❌ 保存失败：" + e.message; }
+}
+$("btnSave").onclick = saveCurrent;
+$("editor").addEventListener("input", updateCount);
+$("editor").addEventListener("keydown", e => {
+  if ((e.ctrlKey||e.metaKey) && e.key === "s") { e.preventDefault(); saveCurrent(); }
+});
+function updateCount(){
+  const body = $("editor").value.replace(/^---[\s\S]*?---\r?\n/, "");
+  $("fcount").textContent = "字数：" + body.replace(/\s/g,"").length;
+}
+$("btnDel").onclick = async () => {
+  if (!curPath) return;
+  if (!confirm("确定删除「" + curPath + "」？此操作不可恢复。")) return;
+  try {
+    await deleteDoc(curPath);
+    curPath = null;
+    $("fname").textContent = "（未打开文件）";
+    $("editor").style.display = "none"; $("content").style.display = "block";
+    $("content").innerHTML = '<p style="color:var(--sub)">已删除。左侧选择其他文件。</p>';
+    $("btnSave").disabled = $("btnDel").disabled = $("btnLint").disabled = $("btnCopy").disabled = true;
+    buildTree(); renderPanels(); $("st2").textContent = "🗑 已删除";
+    $("st1").textContent = "✅ 已加载 " + Object.keys(allDocs).length + " 个文件";
+  } catch(e) { $("st2").textContent = "❌ 删除失败：" + e.message; }
+};
+
+/* ================= Markdown 渲染 ================= */
+function renderMD(src){
+  let s = esc(src);
+  s = s.replace(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/, (m,fm)=>'<div class="fm">ⓘ 元信息\n'+fm+'</div>\n');
+  const codes=[];
+  s = s.replace(/```([\s\S]*?)```/g,(m,c)=>{codes.push(c);return "\u0000"+(codes.length-1)+"\u0000";});
+  const lines = s.split("\n"); const out=[]; let i=0;
+  const inline = t => t
+    .replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<span style="color:var(--acc)">$1</span>');
+  while(i<lines.length){
+    const L=lines[i];
+    if(/^\s*$/.test(L)){i++;continue;}
+    if(/^(---|\*\*\*)\s*$/.test(L)){out.push("<hr>");i++;continue;}
+    let m;
+    if(m=L.match(/^(#{1,4})\s+(.*)/)){const n=Math.min(m[1].length,4);out.push(`<h${n}>${inline(m[2])}</h${n}>`);i++;continue;}
+    if(m=L.match(/^&gt;\s?(.*)/)){const buf=[];while(i<lines.length&&/^&gt;/.test(lines[i])){buf.push(lines[i].replace(/^&gt;\s?/,""));i++;}out.push("<blockquote>"+inline(buf.join(" "))+"</blockquote>");continue;}
+    if(/^\|.+\|/.test(L) && i+1<lines.length && /^\|[\s:|-]+\|/.test(lines[i+1])){
+      const head=L.split("|").slice(1,-1).map(x=>x.trim());
+      i+=2; const rows=[];
+      while(i<lines.length&&/^\|.+\|/.test(lines[i])){rows.push(lines[i].split("|").slice(1,-1).map(x=>x.trim()));i++;}
+      out.push("<table><tr>"+head.map(h=>`<th>${inline(h)}</th>`).join("")+"</tr>"
+        + rows.map(r=>"<tr>"+r.map(c=>`<td>${inline(c)}</td>`).join("")+"</tr>").join("")+"</table>");
+      continue;
+    }
+    if(/^[-*]\s+/.test(L)){const buf=[];while(i<lines.length&&/^[-*]\s+/.test(lines[i])){buf.push(lines[i].replace(/^[-*]\s+/,""));i++;}out.push("<ul>"+buf.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ul>");continue;}
+    if(/^\d+\.\s+/.test(L)){const buf=[];while(i<lines.length&&/^\d+\.\s+/.test(lines[i])){buf.push(lines[i].replace(/^\d+\.\s+/,""));i++;}out.push("<ol>"+buf.map(x=>"<li>"+inline(x)+"</li>").join("")+"</ol>");continue;}
+    const buf=[L];i++;
+    while(i<lines.length&&!/^\s*$/.test(lines[i])&&!/^(#{1,4}\s|[-*]\s|\d+\.\s|&gt;|\||---)/.test(lines[i])){buf.push(lines[i]);i++;}
+    out.push("<p>"+inline(buf.join(" ")).replace(/\n/g,"<br>")+"</p>");
+  }
+  let html=out.join("\n");
+  html = html.replace(/\u0000(\d+)\u0000/g,(m,n)=>"<pre><code>"+codes[n]+"</code></pre>");
+  return html;
+}
+
+/* ================= 门禁 ================= */
+const BAN=["不禁","与此同时","一股","涌上心头","然而","内心深处","缓缓说道","命运的齿轮","宿命感","忍不住","下意识地","不由自主地"];
+const WARN=["深吸一口气","时间来到了","另一边","仿佛","似乎"];
+function lintText(body){
+  const text=body.replace(/^---[\s\S]*?---\r?\n/,"");
+  const words=text.replace(/\s/g,"").length;
+  const dash=(text.match(/——/g)||[]).length;
+  const ban=BAN.filter(w=>text.includes(w));
+  const warnHits=WARN.filter(w=>text.includes(w));
+  const feel=(text.match(/感到|觉得/g)||[]).length;
+  const lines=text.split("\n").filter(x=>x.trim());
+  const last=lines.length?lines[lines.length-1].trim():"";
+  const issues=[];
+  if(words<2500) issues.push("❌ 字数 "+words+"，不足 2500");
+  else if(words>3200) issues.push("⚠ 字数 "+words+"，超出 3000 较多（确认是否有意）");
+  else issues.push("✅ 字数 "+words+"（2500–3000 达标）");
+  issues.push((dash<=12?"✅":"❌")+" 破折号 "+dash+"/12");
+  issues.push((ban.length===0?"✅":"❌")+" ban词："+(ban.length?ban.join("、"):"0"));
+  issues.push((warnHits.length<=3?"✅":"⚠")+" warn词："+(warnHits.length?warnHits.join("、"):0)+"（≤3）");
+  issues.push((feel<=2?"✅":"⚠")+" 感到/觉得："+feel+"（≤2）");
+  const endBad=/[?？!！]\s*$/.test(last)||/^（?第.+章完/.test(last);
+  issues.push(endBad?"❌ 章末为反问/感叹/平收":"✅ 章末收在陈述句");
+  return {issues, words, pass: ban.length===0 && dash<=12 && words>=2500 && !endBad};
+}
+$("btnLint").onclick = () => {
+  if (!curPath) return;
+  const doc = allDocs[curPath];
+  const r = lintText(doc.content || "");
+  const html = "<b>🔍 量化门禁 · "+esc(curPath)+"</b><br>"+r.issues.map(x=>'<div class="li">'+esc(x)+"</div>").join("")
+    + '<div class="li" style="margin-top:8px">'+(r.pass?'<span class="pass">总体：通过</span>':'<span class="fail">总体：未通过，需修订</span>')+"</div>";
+  $("editor").style.display = "none";
+  $("content").style.display = "block";
+  $("content").innerHTML = '<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-bottom:16px">'+html+"</div>"
+    + renderMD(doc.content||"")
+    + '<p style="margin-top:16px"><button onclick="backToEditor()">✏ 返回编辑</button></p>';
+};
+function backToEditor(){
+  $("content").style.display = "none";
+  $("editor").style.display = "block";
+}
+
+/* ================= 新建细纲 ================= */
+const FALLBACK_TPL = "---\nchapter: 0\ntitle: 章名\nstatus: 待扩写\npov: 许临\ntimeline: 新纪·今·（时间点）\ncharacters: []\nlocations: []\nthreads: []\nforeshadow: []\npayoff: []\nhook: 悬疑\nwords_target: 2500-3000\n---\n\n# 第000章 章名 · 细纲\n\n## 本章任务\n\n（一句话）\n\n## 场景节拍\n\n1. **开场钩子**：\n2. **发展**：\n3. **转折**：\n4. **章末钩子**：\n\n## 必须出现\n\n- **角色**：\n- **设定**：\n- **伏笔**：埋 / 收\n- **爽点**：\n\n## 禁止\n\n- \n\n## 备注\n\n- ";
+$("btnNew").onclick = ()=>$("dlgNew").showModal();
+$("btnNewGo").onclick = async () => {
+  if (!curProject) { alert("请先选择或新建一个项目"); return; }
+  const n=parseInt($("inNum").value,10), t=$("inTitle").value.trim();
+  if(!n||!t){alert("章号和章名都要填");return;}
+  const nn=String(n).padStart(3,"0");
+  const tplPath = curProject + "/" + OUTLINE_DIR + "/_细纲模板.md";
+  let tpl = (allDocs[tplPath]||{}).content || FALLBACK_TPL;
+  tpl = tpl.replace(/^chapter: 0$/m,"chapter: "+n).replace(/^title: 章名$/m,"title: "+t)
+           .replace("# 第000章 章名 · 细纲", "# 第"+nn+"章 "+t+" · 细纲");
+  const path = curProject + "/" + OUTLINE_DIR + "/第"+nn+"章-"+t+"-细纲.md";
+  $("st2").textContent = "创建中…";
+  try {
+    await saveDoc(path, tpl);
+    $("dlgNew").close();
+    $("inNum").value=""; $("inTitle").value="";
+    buildTree(); openFile(path);
+    $("st2").textContent = "✅ 细纲已创建";
+    $("st1").textContent = "✅ 已加载 " + Object.keys(allDocs).length + " 个文件";
+  } catch(e){ $("st2").textContent = "❌ 创建失败：" + e.message; }
+};
+
+/* ================= 新建正文 / 任意文件 ================= */
+function tplChapter(path){
+  const fname = nameOf(path).replace(/\.md$/,"");
+  const m = fname.match(/^第(\d+)章[-_ ]*(.*)$/);
+  const num = m ? parseInt(m[1],10) : 0;
+  const nm = m ? (m[2] || "（章名）") : fname;
+  const vol = parseInt((path.match(/第(\d+)卷/)||[])[1] || "1", 10);
+  const nn = String(num).padStart(3,"0");
+  const today = new Date().toISOString().slice(0,10);
+  return `---\nchapter: ${num}\nvolume: ${vol}\ntitle: 第${nn}章 ${nm}\nstatus: 草稿\npov: \ntimeline: \ncharacters: []\nlocations: []\nthreads: []\nforeshadow: []\npayoff: []\nwords: 0\nupdated: ${today}\n---\n\n# 第${nn}章 ${nm}\n\n（正文从这里开始。一段一行，段间空行。）\n`;
+}
+function tplWorld(path){
+  const fname = nameOf(path).replace(/\.md$/,"");
+  const m = fname.match(/^(W-\d+)[-_ ]*(.*)$/);
+  const id = m ? m[1] : "W-000";
+  const topic = m ? (m[2] || "主题") : fname;
+  const today = new Date().toISOString().slice(0,10);
+  return `---\nid: ${id}\ntopic: ${topic}\ncategory: 待定\nstatus: 初稿\nrefs: []\nupdated: ${today}\n---\n\n# ${topic}\n\n## 一句话概括\n\n（待补充）\n\n## 核心内容\n\n\n## 规则与限制\n\n| 项 | 说明 |\n| --- | --- |\n| 能做到什么 | |\n| 不能做到什么 | |\n| 代价 / 成本 | |\n\n## 关联条目\n\n- 相关：\n`;
+}
+function tplChar(path){
+  const fname = nameOf(path).replace(/\.md$/,"");
+  const m = fname.match(/^(C-\d+)[-_ ]*(.*)$/);
+  const id = m ? m[1] : "C-000";
+  const nm = m ? (m[2] || "姓名") : fname;
+  const today = new Date().toISOString().slice(0,10);
+  return `---\nid: ${id}\nname: ${nm}\nrole: 配角\nfaction: \nstatus: 未登场\nfirst_appear: \ntags: []\nupdated: ${today}\n---\n\n# ${nm}\n\n## 一句话人设\n\n（待补充）\n\n## 核心三件套\n\n| 项 | 内容 |\n| --- | --- |\n| **想要**（表层目标） | |\n| **需要**（深层缺口） | |\n| **恐惧** | |\n\n## 关系网\n\n| 对象 | 关系 | 情感基调 | 起始章节 | 备注 |\n| --- | --- | --- | --- | --- |\n`;
+}
+$("btnNewFile").onclick = () => {
+  if (!curProject) { alert("请先选择或新建项目"); return; }
+  $("inPath").value = "";
+  $("dlgFile").showModal();
+};
+$("btnFileGo").onclick = async () => {
+  if (!curProject) return;
+  const rel = $("inPath").value.trim().replace(/^\/+/, "");
+  if (!rel) { alert("请填写文件路径"); return; }
+  if (!/\.md$/i.test(rel)) { alert("文件名必须以 .md 结尾"); return; }
+  const path = curProject + "/" + rel;
+  if (allDocs[path] && !confirm("该文件已存在，确定覆盖？")) return;
+  const t = $("inTpl").value;
+  const content = t === "chapter" ? tplChapter(path)
+                : t === "world" ? tplWorld(path)
+                : t === "char" ? tplChar(path) : "";
+  $("st2").textContent = "创建中…";
+  try {
+    await saveDoc(path, content);
+    $("dlgFile").close();
+    await loadAll();
+    openFile(path);
+    $("st2").textContent = "✅ 已创建 " + rel;
+  } catch(e) { $("st2").textContent = "❌ 创建失败：" + e.message; }
+};
+
+/* ================= 删除项目 ================= */
+$("btnDelProj").onclick = async () => {
+  if (!curProject) return;
+  const cnt = Object.keys(allDocs).filter(p => projOf(p) === curProject).length;
+  if (!confirm("确定删除项目「" + curProject + "」及其全部 " + cnt + " 个文件？\n\n此操作不可恢复（服务器保留 docs.json.bak）。")) return;
+  const typed = prompt("再次确认：请输入项目名「" + curProject + "」");
+  if (typed !== curProject) { $("st2").textContent = "已取消（项目名不匹配）"; return; }
+  try {
+    const r = await api("/api/project?name=" + encodeURIComponent(curProject), { method:"DELETE" });
+    curProject = "";
+    localStorage.removeItem(PKEY);
+    await loadAll();
+    resetView();
+    $("st2").textContent = "🗑 已删除项目「" + r.name + "」，共移除 " + r.removed + " 个文件";
+  } catch(e) { $("st2").textContent = "❌ 删除失败：" + e.message; }
+};
+
+/* ================= 复制扩写指令 ================= */
+$("btnCopy").onclick = async () => {
+  if (!curPath) return;
+  const doc = allDocs[curPath];
+  const fm = (doc.content||"").match(/^---\n([\s\S]*?)\n---/);
+  let meta="";
+  if (fm) {
+    const get=k=>{const m=fm[1].match(new RegExp("^"+k+":\\s*(.*)$","m"));return m?m[1].trim():"";};
+    meta=`（章号 ${get("chapter")}｜章名「${get("title")}」｜钩子类型 ${get("hook")}｜目标字数 ${get("words_target")||"2500-3000"}）`;
+  }
+  const numMatch = curPath.match(/第(\d+)章/);
+  const num = numMatch ? numMatch[1] : "000";
+  const cmd = `请按《${projOf(curPath)}》写作台（自建服务器 （写作台服务））的细纲「${curPath}」扩写本章正文，2500–3000 字，写入文档路径「${projOf(curPath)}/30-正文/第01卷/第${num}章-（章名）.md」。要求：先读细纲与相关设定（W 系列 / 角色卡 / 伏笔追踪），扩写后跑量化门禁（字数≥2500、破折号≤12、ban词0、warn≤3、感到/觉得≤2、章末陈述句钩子），并更新「${projOf(curPath)}/20-大纲/章节摘要.md」与「${projOf(curPath)}/40-线索与时间线/伏笔追踪.md」。细纲元信息：${meta}`;
+  try { await navigator.clipboard.writeText(cmd); $("st2").textContent = "✅ 扩写指令已复制，去对话粘贴即可"; }
+  catch(e){ prompt("复制失败，请手动复制：", cmd); }
+};
+
+/* ================= 从本地底稿导入 ================= */
+$("btnImport").onclick = async () => {
+  if (!window.showDirectoryPicker) { alert("当前浏览器不支持本地目录读取，请用 Chrome / Edge。"); return; }
+  let dir;
+  try { dir = await showDirectoryPicker({mode:"read", id:"xz2-import"}); }
+  catch(e){ return; }
+  const files=[];
+  async function walk(h, prefix){
+    for await (const [name, child] of h.entries()){
+      if (SKIP.has(name) || name.startsWith(".")) continue;
+      if (child.kind === "directory") await walk(child, prefix + name + "/");
+      else if (name.endsWith(".md")) {
+        const f = await child.getFile();
+        files.push({ path: prefix + name, content: await f.text() });
+      }
+    }
+  }
+  $("st2").textContent = "读取本地文件中…";
+  await walk(dir, "");
+  if (!files.length) { $("st2").textContent = "⚠ 未找到 md 文件"; return; }
+  const projName = (prompt("导入到哪个项目？（填小说名，如：我的小说）", curProject || dir.name) || "").trim();
+  if (!projName) { $("st2").textContent = "已取消导入"; return; }
+  const docs = files.map(f => ({ path: projName + "/" + f.path, content: f.content }));
+  $("st2").textContent = "上传中… " + docs.length + " 个文件";
+  try {
+    const r = await api("/api/import", { method:"POST", body: JSON.stringify({ docs }) });
+    curProject = projName;
+    localStorage.setItem(PKEY, curProject);
+    await loadAll();
+    $("st2").textContent = "✅ 导入完成：写入 " + r.imported + " 个" + (r.skipped ? "，跳过 " + r.skipped + " 个" : "");
+  } catch(e) { $("st2").textContent = "❌ 导入失败：" + e.message; }
+};
+
+/* ================= 新建项目 ================= */
+$("btnNewProj").onclick = async () => {
+  const raw = prompt("新项目名称（小说名，如：骨临天下）");
+  if (!raw) return;
+  const n = raw.trim().replace(/[\/\\]/g, "");
+  if (!n) { alert("名称不能为空"); return; }
+  if (projectList().indexOf(n) >= 0) { alert("已存在同名项目： " + n); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const skeleton = [
+    ["00-项目管理/项目总览.md",
+`---
+project: ${n}
+type: 长篇小说
+status: 立项中
+started: ${today}
+updated: ${today}
+---
+
+# 《${n}》
+
+## 一句话简介
+
+（待补充）
+
+## 核心设定
+
+| 项目 | 内容 |
+| --- | --- |
+| 题材类型 | |
+| 目标读者 | |
+| 整体基调 | |
+| 预计篇幅 | |
+
+## 进度看板
+
+| 指标 | 当前 | 目标 |
+| --- | --- | --- |
+| 已写正文字数 | 0 | |
+`],
+    ["20-大纲/章节摘要.md",
+`---
+doc: 章节摘要
+book: ${n}
+updated: ${today}
+---
+
+# 章节摘要
+
+| 章 | 章名 | 卷 | 一句话摘要 | 状态 |
+| --- | --- | --- | --- | --- |
+`],
+    ["40-线索与时间线/伏笔追踪.md",
+`---
+doc: 伏笔追踪
+book: ${n}
+updated: ${today}
+---
+
+# 伏笔追踪
+
+| 编号 | 伏笔内容 | 类型 | 埋设章节 | 计划回收 | 实际回收 | 状态 | 重要度 | 关联角色 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+`],
+    ["20-大纲/细纲/_细纲模板.md", FALLBACK_TPL],
+  ];
+  $("st2").textContent = "创建项目中…";
+  try {
+    for (const [p, c] of skeleton) await saveDoc(n + "/" + p, c);
+    curProject = n;
+    localStorage.setItem(PKEY, curProject);
+    await loadAll();
+    resetView();
+    $("st2").textContent = "✅ 项目「" + n + "」已创建（含项目总览/章节摘要/伏笔追踪/细纲模板）";
+  } catch(e) { $("st2").textContent = "❌ 创建失败：" + e.message; }
+};
+
+/* ================= 右侧面板 ================= */
+document.querySelectorAll("#tabs div").forEach(t=>{
+  t.onclick=()=>{ document.querySelectorAll("#tabs div").forEach(x=>x.classList.remove("on")); t.classList.add("on"); renderPanels(t.dataset.t); };
+});
+function renderPanels(tab){
+  tab = tab || document.querySelector("#tabs .on").dataset.t;
+  const b=$("panelbody");
+  const P = (curProject || "") + "/";
+  if (tab==="fs") {
+    const ft = allDocs[P + "40-线索与时间线/伏笔追踪.md"];
+    const rows = ft ? [...(ft.content||"").matchAll(/^\| (F-\d+) \|([^|]+)\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|\s*(待回收|部分回收|已回收|弃用)/gm)] : [];
+    b.innerHTML = rows.length
+      ? rows.map(m=>`<div class="pitem"><b>${m[1]}</b><span class="tag ${m[3]==="待回收"?"warn":""}">${m[3]}</span><br>${esc(m[2].trim().slice(0,40))}…</div>`).join("")
+      : '<div class="pitem">（本项目暂无伏笔数据）</div>';
+  } else if (tab==="chars") {
+    const out = Object.keys(allDocs).filter(p=>p.startsWith(P + "10-设定/角色/C-")).sort().map(p=>{
+      const t=allDocs[p].content||"";
+      const g=k=>{const m=t.match(new RegExp("^"+k+":\\s*(.+)$","m"));return m?m[1].trim():"";};
+      return `<div class="pitem"><b>${esc(g("name")||nameOf(p))}</b><span class="tag">${esc(g("id")||"")}</span><br>${esc(g("role"))} · ${esc(g("status"))}</div>`;
+    }).join("");
+    b.innerHTML = out || '<div class="pitem">（本项目暂无角色卡）</div>';
+  } else if (tab==="chaps") {
+    const sum = allDocs[P + "20-大纲/章节摘要.md"];
+    const rows = sum ? [...(sum.content||"").matchAll(/^\| (\d+) \| ([^|]+) \| \d+ \|([^|]+)\|/gm)] : [];
+    b.innerHTML = rows.length
+      ? rows.map(m=>`<div class="pitem"><b>第${m[1]}章 ${esc(m[2].trim())}</b><br>${esc(m[3].trim().slice(0,30))}…</div>`).join("")
+      : '<div class="pitem">（本项目暂无章节数据）</div>';
+  } else {
+    b.innerHTML = `
+      <div class="pitem"><b>境界即职级</b><br>骨醒(无籍)→练气·塑形(劳务)→筑基·神通(技术岗)→金丹·真人(管理岗)→元婴·骨婴(决策层)</div>
+      <div class="pitem"><b>塑形顺序</b><br>内五脏六腑 → 中筋肉 → 外皮毛（练气九层）</div>
+      <div class="pitem"><b>神通两途</b><br>肉体神通＝贵途（直通真人）／法术神通＝贱途（不动血肉）</div>
+      <div class="pitem"><b>体系铁律</b><br>①塑形要真料 ②读骨担执念 ③骨是根不是壳 ④体法价值反转＝制度筛选器</div>
+      <div class="pitem"><b>门禁规则</b><br>≥2500字 · 破折号≤12 · ban词0 · warn≤3 · 感到/觉得≤2 · 章末陈述句钩子</div>
+      <div class="pitem"><b>钩子类型</b><br>危机/悬疑/反转/信息/情感/时间/选择/生存（连续三章不重样）</div>`;
+  }
+}
+
+window.backToEditor = backToEditor;
+tryEnter("", false);
+</script></body></html>
