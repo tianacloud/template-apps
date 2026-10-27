@@ -10,4 +10,4 @@ const css=document.createElement("link");css.rel="stylesheet";css.href=new URL("
 import("./model.js");
 `);
 const source=JSON.parse(await readFile("source.json","utf8"));
-console.log("TIANA_PROJECT_PARAMS="+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
