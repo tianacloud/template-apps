@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitDeNoise · 提交降噪器</title>
+<meta name="description" content="把被构建部署噪音淹没的 git log 还原成真实工作记录，并生成可直接使用的工作总结。" />
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #0e0e0e;
+    --surface-2: #141414;
+    --surface-3: #1a1a1a;
+    --line: #222222;
+    --line-strong: #2e2e2e;
+    --text: #f2f2f2;
+    --text-2: #9a9a9a;
+    --text-3: #5c5c5c;
+    --text-4: #3a3a3a;
+    --white: #ffffff;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { -webkit-font-smoothing: antialiased; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  ::selection { background: #333; color: #fff; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- 顶部 ---------- */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 0 24px;
+  }
+  .head-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+
+  /* 纯 CSS 画的标识：一道被滤掉的噪点带 */
+  .mark {
+    width: 34px; height: 34px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 6px;
+    flex-shrink: 0;
+  }
+  .mark i { background: var(--text-4); border-radius: 1px; }
+  .mark i.on { background: var(--white); }
+
+  .brand h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .brand h1 span { color: var(--text-3); font-weight: 400; margin-left: 6px; font-size: 13px; }
+  .tagline {
+    color: var(--text-2);
+    font-size: 13px;
+    margin-top: 5px;
+    max-width: 560px;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-3);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 12px;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+
+  /* ---------- 输入区 ---------- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .panel-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .panel-note { font-size: 12px; color: var(--text-3); font-family: var(--mono); }
+
+  textarea {
+    width: 100%;
+    min-height: 168px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: vertical;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    padding: 16px 18px;
+    display: block;
+  }
+  textarea::placeholder { color: var(--text-4); }
+
+  .panel-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: var(--sans);
+    font-size: 13px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-2);
+    color: var(--text-2);
+    border-radius: 7px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+    white-space: nowrap;
+  }
+  button:hover { color: var(--text); border-color: #3d3d3d; }
+  button:active { transform: translateY(0.5px); }
+
+  button.primary {
+    background: var(--white);
+    color: #0a0a0a;
+    border-color: var(--white);
+    font-weight: 500;
+  }
+  button.primary:hover { background: #d8d8d8; color: #0a0a0a; }
+
+  button.ghost { background: transparent; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  .spacer { flex: 1; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-3);
+    font-family: var(--mono);
+  }
+
+  /* ---------- 结果区 ---------- */
+  #results { margin-top: 22px; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .kpi-value.dim { color: var(--text-3); }
+  .kpi-sub { font-size: 11.5px; color: var(--text-3); margin-top: 6px; font-family: var(--mono); }
+
+  /* 信噪比条 */
+  .ratio-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface-3);
+    border: 1px solid var(--line);
+    margin: 4px 0 10px;
+  }
+  .ratio-bar i { display: block; height: 100%; }
+
+  /* 降噪强度 */
+  .levels {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .levels-label {
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-right: 4px;
+  }
+  .levels button.on {
+    background: var(--white);
+    color: #0a0a0a;
+    border-color: var(--white);
+    font-weight: 500;
+  }
+
+  /* 脱敏开关 */
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    color: var(--text-2);
+    background: transparent;
+    border: none;
+    padding: 4px 2px;
+  }
+  .toggle:hover { color: var(--text); }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch {
+    width: 30px; height: 16px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    border: 1px solid var(--line-strong);
+    position: relative;
+    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--text-3);
+    transition: transform .15s, background .15s;
+  }
+  .toggle input:checked + .switch { background: var(--white); border-color: var(--white); }
+  .toggle input:checked + .switch::after { transform: translateX(14px); background: #0a0a0a; }
+  .tag.author { color: var(--text-3); border-style: dashed; }
+
+  /* 分类分布 */
+  .dist { padding: 18px; border-top: 1px solid var(--line); }
+  .dist-row {
+    display: grid;
+    grid-template-columns: 88px 1fr 62px;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 0;
+    font-size: 12.5px;
+  }
+  .dist-name { color: var(--text-2); white-space: nowrap; }
+  /* 当前强度下会被过滤的类别：名字压暗，条形也压暗，不再额外加字避免窄屏换行 */
+  .dist-name.filtered { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-4); }
+  .dist-track { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+  .dist-track i { display: block; height: 100%; border-radius: 3px; }
+  .dist-num { font-family: var(--mono); color: var(--text-3); text-align: right; font-size: 12px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 18px;
+    border-top: 1px solid var(--line);
+  }
+  .tabs button {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    border-bottom: 1px solid transparent;
+    padding: 12px 14px;
+    color: var(--text-3);
+    font-size: 13px;
+  }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--white); }
+
+  .tab-body { padding: 6px 18px 18px; }
+
+  /* 提交列表 */
+  .commit {
+    display: grid;
+    grid-template-columns: 76px 1fr auto;
+    gap: 14px;
+    align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid #161616;
+    font-size: 13px;
+  }
+  .commit:last-child { border-bottom: none; }
+  .commit-date { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); }
+  .commit-subject { color: var(--text); word-break: break-word; }
+  .commit-hash { font-family: var(--mono); font-size: 11px; color: var(--text-4); }
+
+  .commit.noise .commit-subject { color: var(--text-2); }
+  .commit.noise .commit-date { color: var(--text-3); }
+  .commit.dim-all { opacity: .5; }
+
+  /* 噪音折叠提示条 */
+  .fold-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: 1px dashed var(--line-strong);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-3);
+    font-family: var(--mono);
+  }
+
+  .day-group {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.5px;
+    padding: 16px 0 6px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  /* 节律热力图 */
+  .rhythm { display: grid; gap: 3px; }
+  .rhythm-row { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; }
+  .rhythm-label { font-family: var(--mono); font-size: 11px; color: var(--text-3); text-align: right; }
+  .rhythm-cells { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+  .rhythm-cell {
+    aspect-ratio: 1;
+    background: var(--surface-3);
+    border-radius: 2px;
+    min-height: 12px;
+  }
+  .rhythm-cell.l1 { background: #2c2c2c; }
+  .rhythm-cell.l2 { background: #4a4a4a; }
+  .rhythm-cell.l3 { background: #7a7a7a; }
+  .rhythm-cell.l4 { background: #b4b4b4; }
+  .rhythm-cell.l5 { background: #ffffff; }
+
+  .rhythm-legend {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-3); font-family: var(--mono);
+    margin-top: 12px;
+  }
+
+  /* 导出 */
+  pre.out {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+
+  /* 空状态 */
+  .empty {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--text-3);
+  }
+  .empty-title { font-size: 14px; color: var(--text-2); margin-bottom: 6px; }
+  .empty-sub { font-size: 12.5px; font-family: var(--mono); }
+
+  /* 页脚 */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 20px 0 40px;
+    margin-top: 32px;
+    color: var(--text-3);
+    font-size: 12px;
+  }
+  .foot-row {
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .foot-row .dot { color: var(--text-4); }
+
+  /* 使用说明（主页常驻） */
+  .docs { margin-top: 26px; }
+
+  .docs-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .docs-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .docs-sub { font-size: 12.5px; color: var(--text-3); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 16px 18px;
+    min-width: 0;
+  }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-4);
+    letter-spacing: 1.5px;
+  }
+  .step-title { font-size: 14px; font-weight: 500; margin: 5px 0 6px; }
+  .step-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+  .step-note {
+    font-size: 11.5px;
+    color: var(--text-4);
+    line-height: 1.55;
+    margin-top: 10px;
+  }
+
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    background: var(--surface-3);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 6px 5px 9px;
+    min-width: 0;
+  }
+  .cmd code {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-2);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .copy-mini {
+    padding: 2px 8px;
+    font-size: 10.5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    color: var(--text-3);
+  }
+  .copy-mini:hover { color: var(--text); }
+
+  .fmt-list { list-style: none; margin-top: 8px; }
+  .fmt-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #161616;
+    font-size: 11.5px;
+    min-width: 0;
+  }
+  .fmt-list li:last-child { border-bottom: none; }
+  .fmt-list code {
+    font-family: var(--mono);
+    color: var(--text-2);
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .fmt-list span { color: var(--text-4); font-size: 10.5px; flex-shrink: 0; }
+
+  kbd {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    border: 1px solid var(--line-strong);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--text-2);
+    background: var(--surface-3);
+  }
+
+  .rules-wrap {
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .rules { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .rules th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+  .rules td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #161616;
+    color: var(--text-2);
+    vertical-align: top;
+  }
+  .rules tr:last-child td { border-bottom: none; }
+  .rules td:first-child { color: var(--text); }
+  .rules code {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-2);
+    background: var(--surface-3);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  /* 过滤是这一列的关键信息，给正常亮度；保留压暗，让"会发生什么"一眼可扫 */
+  .rules td.on { color: var(--text-2); }
+  .rules td.off { color: var(--text-4); }
+  .rules td.partial { color: var(--text-3); }
+  .rules td.keep { color: var(--text); }
+
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .note-title {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+  .note p { font-size: 12px; color: var(--text-3); line-height: 1.65; }
+  .note code {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-2);
+    background: var(--surface-3);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  #notice {
+    font-size: 12.5px;
+    color: var(--text-2);
+    font-family: var(--mono);
+    padding: 0 2px 12px;
+    min-height: 18px;
+  }
+  #notice.err { color: #e0e0e0; }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 0 16px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .kpi-value { font-size: 22px; }
+    .commit { grid-template-columns: 64px 1fr; }
+    .commit-hash { display: none; }
+    .rhythm-cells { grid-template-columns: repeat(12, 1fr); }
+    .dist-row { grid-template-columns: 72px 1fr 48px; }
+    .tagline { font-size: 12.5px; }
+    .steps { grid-template-columns: 1fr; }
+    .notes { grid-template-columns: 1fr; }
+    .rules th, .rules td { padding: 8px 10px; }
+    .rules { font-size: 11.5px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-row">
+    <div>
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <i class="on"></i><i></i><i></i>
+          <i></i><i></i><i class="on"></i>
+          <i></i><i></i><i></i>
+        </div>
+        <div>
+          <h1>GitDeNoise<span>提交降噪器</span></h1>
+          <p class="tagline">被 <code style="font-family:var(--mono)">build: 更新A环境</code> 淹没的 git log，还原成真实工作记录，并生成能直接用的工作总结。</p>
+        </div>
+      </div>
+    </div>
+    <div class="badge">1024 · 造物挑战</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 输入 -->
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">输入 git log</div>
+      <div class="panel-note">纯本地解析 · 数据不上传</div>
+    </div>
+    <label class="sr-only" for="log-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">git log 内容</label>
+    <textarea id="log-input" spellcheck="false" placeholder="在此粘贴 git log 输出，例如：
+
+git log --pretty=format:'%h|%ad|%an|%s' --date=short
+
+a1b2c3d|2026-10-14|dev-a|build: web 更新正式环境
+e4f5a6b|2026-10-14|dev-a|feat: 活动页支持配置化选中态"></textarea>
+    <div class="panel-foot">
+      <button class="primary" id="btn-run">开始降噪</button>
+      <button class="ghost" id="btn-sample">载入示例</button>
+      <button class="ghost" id="btn-file">导入文件</button>
+      <input type="file" id="file-input" accept=".txt,.log,.md,text/plain" hidden />
+      <div class="spacer"></div>
+      <span class="hint" id="line-count">0 行</span>
+      <button class="ghost" id="btn-clear">清空</button>
+    </div>
+  </section>
+
+  <div id="notice"></div>
+
+  <!-- 结果 -->
+  <section id="results" hidden>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-label">总提交</div>
+        <div class="kpi-value" id="kpi-total">0</div>
+        <div class="kpi-sub" id="kpi-span">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">真实提交</div>
+        <div class="kpi-value" id="kpi-real">0</div>
+        <div class="kpi-sub" id="kpi-real-sub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">噪音占比</div>
+        <div class="kpi-value dim" id="kpi-noise">0%</div>
+        <div class="kpi-sub" id="kpi-noise-sub">—</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">信噪比</div>
+        <div class="kpi-value" id="kpi-snr">—</div>
+        <div class="kpi-sub" id="kpi-snr-sub">—</div>
+      </div>
+    </div>
+
+    <div class="ratio-bar" aria-label="真实提交与噪音占比">
+      <i id="bar-real" style="background:#ffffff;width:0%"></i>
+      <i id="bar-noise" style="background:#3a3a3a;width:100%"></i>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">分类分布</div>
+        <div class="panel-note" id="dist-note">—</div>
+      </div>
+      <div class="dist" id="dist"></div>
+      <div class="levels">
+        <span class="levels-label">降噪强度</span>
+        <button data-level="soft">温和</button>
+        <button data-level="standard" class="on">标准</button>
+        <button data-level="strict">严格</button>
+        <div class="spacer"></div>
+        <label class="toggle" title="把作者名替换为 dev-01 这类代号，便于对外分享">
+          <input type="checkbox" id="toggle-desensitize" checked />
+          <span class="switch" aria-hidden="true"></span>
+          <span>作者脱敏</span>
+        </label>
+      </div>
+      <div class="levels" style="border-top:none;padding-top:0">
+        <span class="hint" id="level-hint">过滤构建部署 / 合并 / 版本号 / 回滚</span>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:14px">
+      <div class="tabs" role="tablist">
+        <button class="on" data-tab="timeline" role="tab">真实时间线</button>
+        <button data-tab="rhythm" role="tab">工作节律</button>
+        <button data-tab="export" role="tab">导出总结</button>
+      </div>
+      <div class="tab-body" id="tab-timeline"></div>
+      <div class="tab-body" id="tab-rhythm" hidden></div>
+      <div class="tab-body" id="tab-export" hidden></div>
+    </section>
+
+  </section>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty">
+    <div class="empty-title">等待输入</div>
+    <div class="empty-sub">粘贴 git log，或点「载入示例」看效果</div>
+  </div>
+
+  <!-- 使用说明：主页常驻，不需要展开 -->
+  <section class="docs" id="docs">
+    <div class="docs-head">
+      <h2 class="docs-title">使用说明</h2>
+      <p class="docs-sub">三步拿到一份能直接写进周报的工作记录</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">复制命令</div>
+        <p class="step-desc">在仓库根目录执行，把整段输出复制下来。三选一，按需要的精度挑。</p>
+        <div class="cmd">
+          <code>git log --pretty=format:'%h|%ad|%an|%s' --date=short</code>
+          <button class="copy-mini" data-copy="git log --pretty=format:'%h|%ad|%an|%s' --date=short">复制</button>
+        </div>
+        <div class="cmd">
+          <code>git log --pretty=format:'%h|%ad|%an|%s' --date=format:'%Y-%m-%d %H:%M'</code>
+          <button class="copy-mini" data-copy="git log --pretty=format:'%h|%ad|%an|%s' --date=format:'%Y-%m-%d %H:%M'">复制</button>
+        </div>
+        <div class="cmd">
+          <code>git log --since="2026-10-01" --pretty=format:'%h|%ad|%an|%s' --date=short</code>
+          <button class="copy-mini" data-copy="git log --since=&quot;2026-10-01&quot; --pretty=format:'%h|%ad|%an|%s' --date=short">复制</button>
+        </div>
+        <p class="step-note">第二条带时间，能看小时级分布；第三条限定时间范围，适合按季度取数。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">粘贴解析</div>
+        <p class="step-desc">贴进上方输入框，点「开始降噪」，或按 <kbd>Ctrl</kbd>+<kbd>Enter</kbd>。也可以直接导入 .txt / .log 文件。</p>
+        <p class="step-desc" style="margin-top:10px">不挑格式，下面这些都能读：</p>
+        <ul class="fmt-list">
+          <li><code>a1b2c3d|2026-10-14|dev-a|feat: xxx</code><span>管道</span></li>
+          <li><code>2026-10-14 dev-a feat: xxx</code><span>空格</span></li>
+          <li><code>a1b2c3d feat: xxx</code><span>oneline</span></li>
+          <li><code>commit / Author: / Date:</code><span>完整多行</span></li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">导出总结</div>
+        <p class="step-desc">切到「导出总结」，拿到按日期分节的 Markdown。三种取用方式：</p>
+        <ul class="fmt-list">
+          <li><code>复制 Markdown</code><span>贴周报</span></li>
+          <li><code>复制纯净列表</code><span>只留 commit</span></li>
+          <li><code>下载 .md</code><span>存归档</span></li>
+        </ul>
+        <p class="step-note">导出只含真实提交，噪音不进结果；作者名默认已脱敏。</p>
+      </div>
+    </div>
+
+    <div class="docs-head" style="margin-top:26px">
+      <h2 class="docs-title">降噪规则</h2>
+      <p class="docs-sub">按提交信息文本判定，不需要读 diff</p>
+    </div>
+
+    <div class="rules-wrap">
+      <table class="rules">
+        <thead>
+          <tr>
+            <th style="width:20%">类别</th>
+            <th style="width:44%">命中特征</th>
+            <th style="width:18%">温和</th>
+            <th style="width:18%">标准 / 严格</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>构建部署</td><td><code>build:</code> <code>ci:</code> 部署 / 上线 / 更正式 / 更新X环境</td><td class="on">过滤</td><td class="on">过滤</td></tr>
+          <tr><td>合并提交</td><td><code>Merge</code> / 合并</td><td class="off">保留</td><td class="on">过滤</td></tr>
+          <tr><td>版本号</td><td>纯版本号 / <code>bump</code> / <code>chore(release)</code></td><td class="off">保留</td><td class="on">过滤</td></tr>
+          <tr><td>回滚</td><td><code>Revert</code> / 回滚 / 撤销</td><td class="off">保留</td><td class="on">过滤</td></tr>
+          <tr><td>文档</td><td><code>docs:</code> / 文档 / readme</td><td class="off">保留</td><td class="partial">仅严格过滤</td></tr>
+          <tr><td>真实开发</td><td>其余全部（feat / fix / refactor / perf…）</td><td class="keep">保留</td><td class="keep">保留</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <div class="note-title">按季度取数</div>
+        <p>填绩效或述职时，用 <code>--since</code> 把范围限定在本季度，噪音占比和真实提交数就是这一季的实际值。</p>
+      </div>
+      <div class="note">
+        <div class="note-title">作者脱敏</div>
+        <p>默认开启，作者名按出现顺序替换为 <code>dev-01</code>、<code>dev-02</code>。导出的记录常要贴进周报或对外文档，真实姓名不该跟着走。需要核对时再关掉。</p>
+      </div>
+      <div class="note">
+        <div class="note-title">数据不出本机</div>
+        <p>全部解析在浏览器内完成，零网络请求。这个页面可以直接断网使用，也能存到本地随时打开。</p>
+      </div>
+      <div class="note">
+        <div class="note-title">分类的边界</div>
+        <p>规则看的是提交信息，不解析 diff。团队若完全不写规范（全是"修改""提交"），分类会失准——但这类提交本来也写不进周报。</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-row">
+    <span>GitDeNoise · 1024 造物挑战参赛作品</span>
+    <span><span class="dot">纯前端</span> &nbsp;·&nbsp; <span class="dot">零依赖</span> &nbsp;·&nbsp; <span class="dot">本地解析</span></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 1. 分类规则
+   * 基于真实仓库的提交样本归纳（含中文提交习惯）
+   * ========================================================== */
+
+  // 每类：key / 名称 / 判定函数 / 属于噪音 / 各强度下是否过滤
+  var CATEGORIES = [
+    {
+      key: 'build', name: '构建部署', noise: true,
+      level: ['soft', 'standard', 'strict'],
+      test: function (s) {
+        return /^(build|ci|deploy|release|publish)[:：（(]/i.test(s)
+          || /部署|上线|更正式|更新[A-Za-z0-9]*环境|发布到|打包/.test(s);
+      }
+    },
+    {
+      key: 'merge', name: '合并提交', noise: true,
+      level: ['standard', 'strict'],
+      test: function (s) {
+        return /^(merge|merging)\b/i.test(s) || /^合并/.test(s) || /remote-tracking branch/.test(s);
+      }
+    },
+    {
+      key: 'version', name: '版本号', noise: true,
+      level: ['standard', 'strict'],
+      test: function (s) {
+        var t = s.trim();
+        return /^v?\d+\.\d+(\.\d+)?([-+.\w]*)?$/.test(t)
+          || /^bump\b/i.test(t)
+          || /^版本/.test(t)
+          || /^chore\(release\)/i.test(t);
+      }
+    },
+    {
+      key: 'revert', name: '回滚', noise: true,
+      level: ['standard', 'strict'],
+      test: function (s) {
+        return /^revert\b/i.test(s) || /^回滚/.test(s) || /^撤销/.test(s);
+      }
+    },
+    {
+      key: 'docs', name: '文档', noise: false,
+      level: ['strict'],
+      test: function (s) {
+        return /^docs[:：（(]/i.test(s) || /^文档/.test(s) || /^readme/i.test(s);
+      }
+    }
+  ];
+
+  var REAL = { key: 'real', name: '真实开发', noise: false, level: [] };
+
+  var LEVEL_TEXT = {
+    soft: '仅过滤构建部署',
+    standard: '过滤构建部署 / 合并 / 版本号 / 回滚',
+    strict: '上述全部，另加文档提交'
+  };
+
+  /**
+   * 判断一条提交的类型与"当前强度下是否算噪音"
+   */
+  function classify(subject, level) {
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      var c = CATEGORIES[i];
+      if (c.test(subject)) {
+        return { cat: c, hidden: c.level.indexOf(level) !== -1 };
+      }
+    }
+    return { cat: REAL, hidden: false };
+  }
+
+  /* ============================================================
+   * 2. 解析器
+   * 支持：管道分隔 / 空格分隔 / oneline / git log 完整多行
+   * ========================================================== */
+
+  var HASH_RE = /^[0-9a-z]{7,40}$/i;
+  var DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/;
+
+  /** 形如 "build:" / "feat(" / "部署" / "合并" 的 token，说明这是正文开头而非作者名 */
+  var SUBJECT_START_RE = /^(build|ci|deploy|release|publish|feat|fix|docs|refactor|perf|test|style|chore|revert|merge|wip|init)[:：（(]/i
+    || /^(部署|合并|回滚|撤销|版本|文档|更新|上线|发布|修复|新增|优化|支持|调整)/;
+
+  /** 从一段文本里抽出作者名（日期之后、正文之前那个 token） */
+  function extractAuthor(rest) {
+    if (!rest) return '';
+    var m = rest.match(/^(\S+)\s+(.*)$/);
+    if (!m) return '';
+    var token = m[1];
+    var tail = m[2];
+    // 若这个 token 长得像正文开头，则它不是作者
+    if (SUBJECT_START_RE.test(token) || token.indexOf(':') !== -1 || token.indexOf('：') !== -1) {
+      return '';
+    }
+    return token;
+  }
+
+  /**
+   * 解析单行，返回 {hash, date, time, author, subject} 或 null
+   */
+  function parseLine(raw) {
+    var line = raw.replace(/\s+$/, '');
+    if (!line.trim()) return null;
+
+    // —— 管道 / 制表符分隔 ——
+    if (line.indexOf('|') !== -1 || line.indexOf('\t') !== -1) {
+      var sep = line.indexOf('|') !== -1 ? '|' : '\t';
+      var parts = line.split(sep);
+      if (parts.length >= 2) {
+        var p0 = parts[0].trim();
+        var p1 = parts[1].trim();
+        var rec = { hash: '', date: '', time: '', author: '', subject: '' };
+
+        if (HASH_RE.test(p0)) { rec.hash = p0; parts.shift(); }
+        if (parts.length && DATE_RE.test(parts[0].trim())) {
+          var dm = parts[0].trim().match(DATE_RE);
+          rec.date = dm[1] + '-' + dm[2] + '-' + dm[3];
+          if (dm[4]) rec.time = dm[4] + ':' + (dm[5] || '00');
+          parts.shift();
+        }
+        // 剩余第一段若是作者（非 hash 非日期非正文开头）
+        if (parts.length && !HASH_RE.test(parts[0].trim()) && !DATE_RE.test(parts[0].trim())) {
+          var tok = parts[0].trim();
+          if (tok && !SUBJECT_START_RE.test(tok) && tok.indexOf(':') === -1 && tok.indexOf('：') === -1) {
+            rec.author = tok;
+            parts.shift();
+          }
+        }
+        rec.subject = parts.join(sep).trim();
+        return rec.subject ? rec : null;
+      }
+    }
+
+    // —— 以日期开头：date [time] [author] subject ——
+    var dm2 = line.match(DATE_RE);
+    if (dm2) {
+      var rec2 = {
+        hash: '',
+        date: dm2[1] + '-' + dm2[2] + '-' + dm2[3],
+        time: dm2[4] ? dm2[4] + ':' + (dm2[5] || '00') : '',
+        author: '',
+        subject: ''
+      };
+      var rest = line.slice(dm2[0].length).trim();
+      var auth = extractAuthor(rest);
+      if (auth) {
+        rec2.author = auth;
+        rest = rest.slice(auth.length).trim();
+      }
+      rec2.subject = rest;
+      return rec2.subject ? rec2 : null;
+    }
+
+    // —— 以 hash 开头：hash subject ——
+    var hm = line.match(/^([0-9a-f]{7,40})\s+(.*)$/i);
+    if (hm) {
+      return { hash: hm[1], date: '', time: '', author: '', subject: hm[2].trim() };
+    }
+
+    // —— 兜底：整行当正文 ——
+    return { hash: '', date: '', time: '', author: '', subject: line.trim() };
+  }
+
+  /** 解析 git log 完整多行格式 */
+  function parseVerbose(text) {
+    var commits = [];
+    var blocks = text.split(/^commit\s/m);
+    for (var i = 1; i < blocks.length; i++) {
+      var b = blocks[i];
+      var hash = (b.match(/^([0-9a-f]{7,40})/) || [])[1] || '';
+      var author = (b.match(/^Author:\s*(.+?)\s*$/m) || [])[1] || '';
+      var dateRaw = (b.match(/^Date:\s*(.+?)\s*$/m) || [])[1] || '';
+      var date = '', time = '';
+      var d = dateRaw.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (d) {
+        date = d[1] + '-' + d[2] + '-' + d[3];
+        var t = dateRaw.match(/(\d{2}):(\d{2})(?::(\d{2}))?/);
+        if (t) time = t[1] + ':' + t[2];
+      }
+      // 正文：Date 行之后、缩进的内容
+      var bodyMatch = b.match(/^Date:[^\n]*\n+\s{4}([\s\S]*)$/m);
+      var subject = bodyMatch ? bodyMatch[1].split('\n')[0].trim() : '';
+      if (subject) commits.push({ hash: hash, date: date, time: time, author: author, subject: subject });
+    }
+    return commits;
+  }
+
+  function parseInput(text) {
+    if (!text || !text.trim()) return [];
+    if (/^commit\s+[0-9a-f]{7,40}/m.test(text)) return parseVerbose(text);
+    var out = [];
+    var lines = text.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var r = parseLine(lines[i]);
+      if (r && r.subject) out.push(r);
+    }
+    return out;
+  }
+
+  /* ============================================================
+   * 3. 状态与渲染
+   * ========================================================== */
+
+  var state = { commits: [], level: 'standard', desensitize: true, authorMap: {}, showNoise: false };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var input = $('log-input');
+
+  /**
+   * 建立作者名 → 代号 的映射，按出现顺序编号。
+   * 用于「脱敏」：导出的工作记录常要贴进周报或对外文档，真实姓名不该跟着走。
+   */
+  function buildAuthorMap(commits) {
+    var map = {};
+    var n = 0;
+    commits.forEach(function (c) {
+      if (c.author && !map[c.author]) {
+        n++;
+        map[c.author] = 'dev-' + (n < 10 ? '0' + n : n);
+      }
+    });
+    return map;
+  }
+
+  /** 取用于展示的作者名（脱敏开启时返回代号） */
+  function authorLabel(author) {
+    if (!author) return '';
+    if (!state.desensitize) return author;
+    return state.authorMap[author] || 'dev-??';
+  }
+
+  function fmtInt(n) { return n.toLocaleString('zh-CN'); }
+
+  /** 计算"跨度"描述 */
+  function spanText(dates) {
+    var ds = dates.filter(Boolean).sort();
+    if (!ds.length) return '—';
+    if (ds.length === 1) return ds[0];
+    return ds[0] + ' → ' + ds[ds.length - 1];
+  }
+
+  function render() {
+    var commits = state.commits;
+    var level = state.level;
+
+    var total = commits.length;
+    var real = 0, noise = 0;
+    var catCount = {};
+    var byDate = {};
+    var byHour = new Array(24).fill(0);
+    var dates = [];
+
+    // 分类统计
+    var classified = commits.map(function (c) {
+      var r = classify(c.subject, level);
+      var key = r.cat.key;
+      catCount[key] = (catCount[key] || 0) + 1;
+      if (r.hidden) noise++; else real++;
+      if (c.date) { dates.push(c.date); byDate[c.date] = (byDate[c.date] || 0) + (r.hidden ? 0 : 1); }
+      if (c.time && !r.hidden) {
+        var h = parseInt(c.time.split(':')[0], 10);
+        if (!isNaN(h)) byHour[h]++;
+      }
+      return { c: c, cat: r.cat, hidden: r.hidden };
+    });
+
+    // —— KPI ——
+    $('kpi-total').textContent = fmtInt(total);
+    $('kpi-span').textContent = spanText(dates);
+    $('kpi-real').textContent = fmtInt(real);
+    var days = Object.keys(byDate).length;
+    $('kpi-real-sub').textContent = days ? '覆盖 ' + days + ' 天' : '无日期信息';
+    var noisePct = total ? Math.round(noise / total * 100) : 0;
+    $('kpi-noise').textContent = noisePct + '%';
+    $('kpi-noise-sub').textContent = fmtInt(noise) + ' 条被过滤';
+    $('kpi-snr').textContent = noise === 0 ? '∞' : (real / noise).toFixed(1);
+    $('kpi-snr-sub').textContent = noise === 0 ? '零噪音' : (noise > real ? '噪音多于真实' : '真实多于噪音');
+
+    // —— 信噪比条 ——
+    var realPct = total ? Math.round(real / total * 100) : 0;
+    $('bar-real').style.width = realPct + '%';
+    $('bar-noise').style.width = (100 - realPct) + '%';
+
+    // —— 分类分布 ——
+    var distEl = $('dist');
+    distEl.innerHTML = '';
+    $('dist-note').textContent = LEVEL_TEXT[level];
+    var order = CATEGORIES.map(function (c) { return c.key; }).concat(['real']);
+    var maxCount = 1;
+    order.forEach(function (k) { if ((catCount[k] || 0) > maxCount) maxCount = catCount[k]; });
+
+    order.forEach(function (key) {
+      var n = catCount[key] || 0;
+      var cat = null;
+      for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === key) cat = CATEGORIES[i];
+      if (!cat) cat = REAL;
+      var isNoise = cat.noise && cat.level.indexOf(level) !== -1;
+      var row = document.createElement('div');
+      row.className = 'dist-row';
+
+      var name = document.createElement('div');
+      name.className = 'dist-name' + (isNoise ? ' filtered' : '');
+      name.textContent = cat.name;
+      row.appendChild(name);
+
+      var track = document.createElement('div');
+      track.className = 'dist-track';
+      var fill = document.createElement('i');
+      fill.style.width = (n / maxCount * 100) + '%';
+      fill.style.background = isNoise ? '#3a3a3a' : (key === 'real' ? '#ffffff' : '#7a7a7a');
+      track.appendChild(fill);
+      row.appendChild(track);
+
+      var num = document.createElement('div');
+      num.className = 'dist-num';
+      num.textContent = fmtInt(n);
+      row.appendChild(num);
+
+      distEl.appendChild(row);
+    });
+
+    // —— 时间线 ——
+    // 默认把噪音折叠掉：产品叫「降噪」，列表默认就该是干净的。
+    var tl = $('tab-timeline');
+    tl.innerHTML = '';
+    if (!total) {
+      tl.innerHTML = '<div class="empty"><div class="empty-title">没有解析到提交</div><div class="empty-sub">检查输入格式</div></div>';
+    } else {
+      var groups = {};
+      classified.forEach(function (item) {
+        var k = item.c.date || '（无日期）';
+        (groups[k] = groups[k] || []).push(item);
+      });
+      var keys = Object.keys(groups).sort().reverse();
+      // 被折叠的噪音总数 = 全部被判定为噪音的条目数（与日期分组无关）
+      var foldedCount = classified.filter(function (i) { return i.hidden; }).length;
+
+      keys.forEach(function (k) {
+        var dayItems = groups[k];
+        var visible = dayItems.filter(function (i) { return !i.hidden || state.showNoise; });
+        var realInDay = dayItems.filter(function (i) { return !i.hidden; }).length;
+        var hiddenInDay = dayItems.length - realInDay;
+        if (!visible.length) return;
+
+        var head = document.createElement('div');
+        head.className = 'day-group';
+        var right = realInDay + ' 条真实';
+        if (hiddenInDay) right += ' · ' + hiddenInDay + ' 条噪音';
+        head.innerHTML = '<span>' + k + '</span><span>' + right + '</span>';
+        tl.appendChild(head);
+
+        var sorted = visible.slice().sort(function (a, b) {
+          if (a.hidden !== b.hidden) return a.hidden ? 1 : -1;
+          return (b.c.time || '').localeCompare(a.c.time || '');
+        });
+        sorted.forEach(function (item) {
+          tl.appendChild(commitRow(item));
+        });
+      });
+
+      // 折叠提示条
+      if (foldedCount > 0 || state.showNoise) {
+        var bar = document.createElement('div');
+        bar.className = 'fold-bar';
+        var txt = document.createElement('span');
+        txt.textContent = state.showNoise
+          ? '已显示全部 ' + total + ' 条（含噪音）'
+          : '已折叠 ' + foldedCount + ' 条噪音';
+        bar.appendChild(txt);
+
+        var b = document.createElement('button');
+        b.className = 'ghost';
+        b.style.padding = '4px 10px';
+        b.style.fontSize = '12px';
+        b.textContent = state.showNoise ? '只看真实提交' : '展开噪音';
+        b.onclick = function () {
+          state.showNoise = !state.showNoise;
+          render();
+        };
+        bar.appendChild(b);
+        tl.appendChild(bar);
+      }
+    }
+
+    // —— 工作节律 ——
+    // 按星期分布只依赖日期，始终可用；小时热力图需要日志带时间，没有就降级。
+    var rh = $('tab-rhythm');
+    rh.innerHTML = '';
+    var hasTime = byHour.some(function (v) { return v > 0; });
+
+    var weekNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    var byWeek = [0, 0, 0, 0, 0, 0, 0];
+    Object.keys(byDate).forEach(function (d) {
+      var dt = new Date(d + 'T00:00:00');
+      if (isNaN(dt.getTime())) return;
+      var idx = (dt.getDay() + 6) % 7; // 周一=0 … 周日=6
+      byWeek[idx] += byDate[d];
+    });
+    var weekTotal = byWeek.reduce(function (a, b) { return a + b; }, 0);
+
+    if (weekTotal > 0) {
+      var wHead = document.createElement('div');
+      wHead.className = 'rhythm-legend';
+      wHead.style.marginTop = '4px';
+      wHead.style.marginBottom = '10px';
+      wHead.textContent = '按星期 · 真实提交分布';
+      rh.appendChild(wHead);
+
+      var maxW = Math.max.apply(null, byWeek.concat([1]));
+      weekNames.forEach(function (nm, i) {
+        var v = byWeek[i];
+        var row = document.createElement('div');
+        row.className = 'dist-row';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'dist-name';
+        nameEl.textContent = nm;
+        nameEl.style.color = i >= 5 ? 'var(--text-3)' : 'var(--text-2)';
+        row.appendChild(nameEl);
+
+        var tr = document.createElement('div');
+        tr.className = 'dist-track';
+        var f = document.createElement('i');
+        f.style.width = (v / maxW * 100) + '%';
+        f.style.background = i >= 5 ? '#4a4a4a' : '#ffffff';
+        tr.appendChild(f);
+        row.appendChild(tr);
+
+        var num = document.createElement('div');
+        num.className = 'dist-num';
+        num.textContent = v + ' 条';
+        row.appendChild(num);
+        rh.appendChild(row);
+      });
+
+      var weekend = byWeek[5] + byWeek[6];
+      var wPct = Math.round(weekend / weekTotal * 100);
+      var tip = document.createElement('div');
+      tip.className = 'rhythm-legend';
+      tip.style.marginTop = '12px';
+      tip.textContent = '周末提交占 ' + wPct + '%' + (wPct >= 30 ? '，加班痕迹明显' : '');
+      rh.appendChild(tip);
+    }
+
+    if (hasTime) {
+      var hHead = document.createElement('div');
+      hHead.className = 'rhythm-legend';
+      hHead.style.marginTop = '22px';
+      hHead.style.marginBottom = '8px';
+      hHead.textContent = '按小时 · 真实提交分布';
+      rh.appendChild(hHead);
+
+      var maxH = Math.max.apply(null, byHour.concat([1]));
+      var grid = document.createElement('div');
+      grid.className = 'rhythm';
+      var row = document.createElement('div');
+      row.className = 'rhythm-row';
+      var lab = document.createElement('div');
+      lab.className = 'rhythm-label';
+      lab.textContent = '00-23';
+      row.appendChild(lab);
+      var cells = document.createElement('div');
+      cells.className = 'rhythm-cells';
+      for (var h = 0; h < 24; h++) {
+        var cell = document.createElement('div');
+        var v = byHour[h];
+        var ratio = v / maxH;
+        var lv = v === 0 ? 0 : ratio > 0.8 ? 5 : ratio > 0.6 ? 4 : ratio > 0.4 ? 3 : ratio > 0.2 ? 2 : 1;
+        cell.className = 'rhythm-cell' + (lv ? ' l' + lv : '');
+        cell.title = (h < 10 ? '0' + h : h) + ':00 · ' + v + ' 条真实提交';
+        cells.appendChild(cell);
+      }
+      row.appendChild(cells);
+      grid.appendChild(row);
+      rh.appendChild(grid);
+
+      var legend = document.createElement('div');
+      legend.className = 'rhythm-legend';
+      legend.innerHTML = '<span>少</span>';
+      for (var l = 1; l <= 5; l++) {
+        var s = document.createElement('span');
+        s.className = 'rhythm-cell l' + l;
+        s.style.width = '12px'; s.style.height = '12px'; s.style.display = 'inline-block';
+        legend.appendChild(s);
+      }
+      legend.appendChild(document.createTextNode('多'));
+      var peak = byHour.indexOf(maxH);
+      var note = document.createElement('span');
+      note.style.marginLeft = 'auto';
+      note.textContent = '高峰 ' + (peak < 10 ? '0' + peak : peak) + ':00';
+      legend.appendChild(note);
+      rh.appendChild(legend);
+
+      // 时段归纳
+      var buckets = [
+        { name: '凌晨 00-06', from: 0, to: 6 },
+        { name: '上午 06-12', from: 6, to: 12 },
+        { name: '下午 12-18', from: 12, to: 18 },
+        { name: '晚间 18-24', from: 18, to: 24 }
+      ];
+      var sum = document.createElement('div');
+      sum.style.marginTop = '18px';
+      buckets.forEach(function (b) {
+        var v2 = 0;
+        for (var x = b.from; x < b.to; x++) v2 += byHour[x];
+        var pct = real ? Math.round(v2 / real * 100) : 0;
+        var r = document.createElement('div');
+        r.className = 'dist-row';
+        r.innerHTML = '<div class="dist-name">' + b.name + '</div>';
+        var tr = document.createElement('div');
+        tr.className = 'dist-track';
+        var f = document.createElement('i');
+        f.style.width = pct + '%';
+        f.style.background = '#7a7a7a';
+        tr.appendChild(f);
+        r.appendChild(tr);
+        var n2 = document.createElement('div');
+        n2.className = 'dist-num';
+        n2.textContent = pct + '%';
+        r.appendChild(n2);
+        sum.appendChild(r);
+      });
+      rh.appendChild(sum);
+    } else if (weekTotal > 0) {
+      var hint = document.createElement('div');
+      hint.className = 'rhythm-legend';
+      hint.style.marginTop = '18px';
+      hint.textContent = '要看小时级分布？用 --date=format:"%ad %H:%M" 带上时间再解析';
+      rh.appendChild(hint);
+    } else {
+      rh.innerHTML = '<div class="empty"><div class="empty-title">没有日期数据</div>'
+        + '<div class="empty-sub">日志需包含 YYYY-MM-DD 形式的日期</div></div>';
+    }
+
+    // —— 导出 ——
+    renderExport(classified, { total: total, real: real, noise: noise, noisePct: noisePct, span: spanText(dates), level: level });
+  }
+
+  function commitRow(item) {
+    var el = document.createElement('div');
+    el.className = 'commit' + (item.hidden ? ' noise' : '');
+    var d = document.createElement('div');
+    d.className = 'commit-date';
+    d.textContent = item.c.date || '—';
+    el.appendChild(d);
+
+    var s = document.createElement('div');
+    s.className = 'commit-subject';
+    s.textContent = item.c.subject;
+    if (item.c.author) {
+      var a = document.createElement('span');
+      a.className = 'tag author';
+      a.textContent = authorLabel(item.c.author);
+      a.title = state.desensitize ? '作者已脱敏' : item.c.author;
+      s.appendChild(a);
+    }
+    if (item.cat !== REAL) {
+      var t = document.createElement('span');
+      t.className = 'tag';
+      t.textContent = item.cat.name;
+      s.appendChild(t);
+    }
+    el.appendChild(s);
+
+    var h = document.createElement('div');
+    h.className = 'commit-hash';
+    h.textContent = item.c.hash || '';
+    el.appendChild(h);
+    return el;
+  }
+
+  /** 生成可直接粘贴的 Markdown 工作总结 */
+  function renderExport(classified, st) {
+    var box = $('tab-export');
+    box.innerHTML = '';
+
+    var realList = classified.filter(function (i) { return !i.hidden; })
+      .map(function (i) { return i.c; });
+
+    var lines = [];
+    lines.push('## 开发工作记录（' + st.span + '）');
+    lines.push('');
+    lines.push('- 提交总数：' + st.total + '，其中真实开发提交 ' + st.real + ' 条，构建部署等噪音 ' + st.noise + ' 条（' + st.noisePct + '%）');
+    lines.push('- 降噪强度：' + LEVEL_TEXT[st.level]);
+    lines.push('');
+
+    if (realList.length) {
+      // 按日期归纳
+      var byD = {};
+      realList.forEach(function (c) {
+        var k = c.date || '未标注日期';
+        (byD[k] = byD[k] || []).push(c.subject);
+      });
+      Object.keys(byD).sort().reverse().forEach(function (k) {
+        lines.push('### ' + k);
+        byD[k].forEach(function (s) { lines.push('- ' + s); });
+        lines.push('');
+      });
+    } else {
+      lines.push('_未解析到真实开发提交_');
+      lines.push('');
+    }
+
+    lines.push('---');
+    lines.push('由 GitDeNoise 生成 · 数据本地解析');
+
+    var pre = document.createElement('pre');
+    pre.className = 'out';
+    pre.textContent = lines.join('\n');
+    box.appendChild(pre);
+
+    var bar = document.createElement('div');
+    bar.style.marginTop = '12px';
+    bar.style.display = 'flex';
+    bar.style.gap = '10px';
+    bar.style.flexWrap = 'wrap';
+
+    var b1 = document.createElement('button');
+    b1.className = 'primary';
+    b1.textContent = '复制 Markdown';
+    b1.onclick = function () { copy(pre.textContent, b1); };
+    bar.appendChild(b1);
+
+    var b2 = document.createElement('button');
+    b2.textContent = '复制纯净 commit 列表';
+    b2.onclick = function () {
+      copy(realList.map(function (c) { return (c.hash ? c.hash + ' ' : '') + c.subject; }).join('\n'), b2);
+    };
+    bar.appendChild(b2);
+
+    var b3 = document.createElement('button');
+    b3.textContent = '下载 .md';
+    b3.onclick = function () { download(lines.join('\n'), 'git-denoise-report.md'); };
+    bar.appendChild(b3);
+
+    box.appendChild(bar);
+  }
+
+  function copy(text, btn) {
+    var done = function () {
+      var old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function () { btn.textContent = old; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    } else {
+      fallbackCopy(text); done();
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function download(text, name) {
+    var blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  /* ============================================================
+   * 4. 交互绑定
+   * ========================================================== */
+
+  function showNotice(msg, isErr) {
+    var n = $('notice');
+    n.textContent = msg || '';
+    n.className = isErr ? 'err' : '';
+  }
+
+  function run() {
+    var text = input.value;
+    var commits = parseInput(text);
+    if (!commits.length) {
+      showNotice('没有解析到任何提交，请检查输入格式（可点「载入示例」对照）', true);
+      $('results').hidden = true;
+      $('empty').hidden = false;
+      return;
+    }
+    state.commits = commits;
+    state.authorMap = buildAuthorMap(commits);
+    showNotice('解析到 ' + commits.length + ' 条提交');
+    $('empty').hidden = true;
+    $('results').hidden = false;
+    render();
+  }
+
+  $('btn-run').onclick = run;
+
+  $('btn-clear').onclick = function () {
+    input.value = '';
+    updateCount();
+    $('results').hidden = true;
+    $('empty').hidden = false;
+    showNotice('');
+    input.focus();
+  };
+
+  function updateCount() {
+    var n = input.value ? input.value.split(/\r?\n/).filter(function (l) { return l.trim(); }).length : 0;
+    $('line-count').textContent = n + ' 行';
+  }
+  input.addEventListener('input', updateCount);
+
+  // Ctrl/Cmd + Enter 直接运行
+  input.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  });
+
+  // 降噪强度
+  Array.prototype.forEach.call(document.querySelectorAll('.levels button'), function (btn) {
+    btn.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.levels button'), function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      state.level = btn.dataset.level;
+      $('level-hint').textContent = LEVEL_TEXT[state.level];
+      if (state.commits.length) render();
+    };
+  });
+
+  // Tabs
+  Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (btn) {
+    btn.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      ['timeline', 'rhythm', 'export'].forEach(function (t) {
+        $('tab-' + t).hidden = (t !== btn.dataset.tab);
+      });
+    };
+  });
+
+  // 脱敏开关
+  $('toggle-desensitize').onchange = function (e) {
+    state.desensitize = e.target.checked;
+    if (state.commits.length) render();
+  };
+
+  // 示例数据：结构取自真实仓库形态，但作者名、项目名、分支名均已脱敏替换，
+  // 不含任何真实内部信息，可安全用于演示与对外分享。
+  var SAMPLE = [
+    "a1b2c3d|2026-10-14|dev-a|build: web 更新正式环境-2026-10-14 16:50:59",
+    "e4f5a6b|2026-10-14|dev-b|build: webapp 更新A环境-2026-10-14 14:03:51",
+    "c7d8e9f|2026-10-14|dev-a|build: 活动模块 更新C环境-2026-10-14 09:31:32",
+    "b2c3d4e|2026-10-13|dev-a|feat: 活动页倒计时支持服务端下发",
+    "f5a6b7c|2026-10-13|dev-b|build: webapp 更新C环境-2026-10-13 14:22:24",
+    "d8e9f0a|2026-10-13|dev-a|fix: 修复首充页选中态在低版本 WebView 下失效",
+    "a9b0c1d|2026-10-12|dev-a|refactor: 抽取通用游戏卡片组件",
+    "e2f3a4b|2026-10-12|dev-b|Merge branch 'release/2.4' into 'master'",
+    "c5d6e7f|2026-10-11|dev-a|perf: 游戏列表图片改为懒加载，首屏体积降 38%",
+    "b8c9d0e|2026-10-11|dev-a|docs: 补充活动系统接入说明",
+    "f1a2b3c|2026-10-10|dev-a|build: 活动模块 更新A环境-2026-10-10 14:56:49",
+    "d4e5f6a|2026-10-10|dev-a|feat: 登录弹窗接入统一 campaign init 接口",
+    "a7b8c9d|2026-10-09|dev-a|v1.4.0",
+    "e0f1a2b|2026-10-09|dev-a|build: webapp 更新A环境-2026-10-09 11:37:48",
+    "c3d4e5f|2026-10-09|dev-a|fix: 修复 iOS 下 100vh 导致底部按钮被遮挡",
+    "b6c7d8e|2026-10-08|dev-a|feat: 资格校验链路接入 eligibility check",
+    "f9a0b1c|2026-10-08|dev-a|Revert \"feat: 试验性接入新版支付 SDK\"",
+    "d2e3f4a|2026-10-08|dev-a|style: 统一活动页间距与字号 token",
+    "a5b6c7d|2026-10-07|dev-a|chore: 剔除旧版详情页残留入口代码",
+    "e8f9a0b|2026-10-07|dev-a|优化 PC 端部分页面布局，修复 1280 宽度下的错位",
+    "c1d2e3f|2026-10-06|dev-a|build: 活动模块 更新C环境-2026-10-06 18:12:03",
+    "b4c5d6e|2026-10-06|dev-a|test: 补充活动资格校验单元测试"
+  ].join('\n');
+
+  $('btn-sample').onclick = function () {
+    input.value = SAMPLE;
+    updateCount();
+    run();
+  };
+
+  // 文件导入
+  $('btn-file').onclick = function () { $('file-input').click(); };
+  $('file-input').onchange = function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      input.value = String(reader.result || '');
+      updateCount();
+      run();
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+
+  // 使用说明区：命令一键复制
+  Array.prototype.forEach.call(document.querySelectorAll('.copy-mini'), function (btn) {
+    btn.onclick = function () { copy(btn.dataset.copy, btn); };
+  });
+
+  updateCount();
+})();
+</script>
+</body>
+</html>
