@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>15分钟居家训练计时器</title></head><body><script type="module">const j = "*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,PingFang SC,Microsoft YaHei,sans-serif;-webkit-tap-highlight-color:transparent}body{background:#121212;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}.container{width:100%;max-width:700px;text-align:center}.stage-name{font-size:clamp(22px,6vw,38px);font-weight:700;margin-bottom:16px;color:#4fc3f7}.timer{font-size:clamp(64px,20vw,120px);font-weight:900;line-height:1.1;margin:20px 0;transition:color .3s;font-variant-numeric:tabular-nums}.normal{color:#fff}.warn{color:#ffca28}.alert{color:#ff5252}.task-desc{font-size:clamp(16px,4.6vw,32px);line-height:1.6;margin-bottom:28px;min-height:120px;color:#e0e0e0}.stage-chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}.chip{font-size:clamp(12px,3.4vw,16px);padding:6px 14px;border-radius:999px;background:#242424;color:#9e9e9e;border:1px solid #333;transition:all .25s}.chip.active{background:#4fc3f7;color:#06222e;border-color:#4fc3f7;font-weight:700}.chip.done{color:#29c75f;border-color:#2e5c3c}.btn-group{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}button{font-size:clamp(16px,4.4vw,28px);padding:14px 28px;border:0;border-radius:12px;cursor:pointer;font-weight:700;transition:opacity .2s,transform .1s;min-width:110px}button:active{transform:scale(.96)}button:disabled{opacity:.45;cursor:default}#start{background:#29c75f;color:#000}#pause{background:#ffb300;color:#000}#reset{background:#f44336;color:#fff}#full{background:#333;color:#fff}.progress-bar{width:100%;height:14px;background:#333;border-radius:8px;margin-top:26px;overflow:hidden}.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#4fc3f7,#29c75f);transition:width .3s}.progress-text{margin-top:10px;font-size:clamp(12px,3.4vw,16px);color:#9e9e9e}.hint{margin-top:18px;font-size:clamp(11px,3vw,14px);color:#616161;line-height:1.7}", A = document.createElement("style");
+A.textContent = j;
+document.head.appendChild(A);
+const h = [
+  { name: "🔹 热身 3分钟", seconds: 180, desc: ["1.原地慢踏步 1分钟", "2.肩关节绕环 各方向30秒", "3.髋关节画圈 左右各30秒", "4.膝关节小幅绕环 30秒"] },
+  { name: "🔹 主训练 9分钟", seconds: 540, desc: ["1.徒手深蹲 10次", "2.靠墙静蹲 25秒", "3.俯卧撑8次（做不动换墙面俯卧撑）", "4.椅子坐立 10次", "5.站姿后抬腿 每侧8次", "6.站姿收腹 20秒 ×2组", "动作之间休息30秒"] },
+  { name: "🔹 拉伸 3分钟", seconds: 180, desc: ["1.大腿前侧拉伸 每侧30秒", "2.大腿后侧拉伸 每侧30秒", "3.肩背拉伸 每侧30秒", "4.腹部放松深呼吸30秒"] }
+];
+document.body.innerHTML = '<main class="container"><div class="stage-name" id="stage"></div><div class="timer normal" id="timer" aria-live="polite"></div><div class="task-desc" id="desc"></div><div class="stage-chips" id="chips"></div><div class="btn-group"><button id="start">开始训练</button><button id="pause">暂停</button><button id="reset">重置</button><button id="full">全屏</button></div><div class="progress-bar"><div class="progress-fill" id="fill"></div></div><div class="progress-text" id="progress"></div><div class="hint">空格 开始 / 暂停 · R 重置 · F 全屏</div></main>';
+const t = (e) => document.getElementById(e);
+let r = 0, n = !1, c = !1, i = !1, L = 0, v = null, g = null, o = null, w = 0, x = null;
+const M = (e) => `${String(Math.floor(Math.max(0, e) / 60)).padStart(2, "0")}:${String(Math.max(0, e) % 60).padStart(2, "0")}`;
+function z(e) {
+  return e < 180 ? [0, 180 - e] : e < 720 ? [1, 720 - e] : [2, 900 - e];
+}
+function f(e, a = 0.12, s = 0.16, u = "sine") {
+  try {
+    const T = window.AudioContext || window.webkitAudioContext;
+    if (!T) return;
+    o ||= new T(), o.state === "suspended" && o.resume();
+    let d = o.createOscillator(), p = o.createGain(), m = o.currentTime;
+    d.type = u, d.frequency.value = e, p.gain.setValueAtTime(1e-4, m), p.gain.linearRampToValueAtTime(s, m + 0.02), p.gain.exponentialRampToValueAtTime(1e-4, m + a), d.connect(p).connect(o.destination), d.start(), d.stop(m + a + 0.02);
+  } catch {
+  }
+}
+function b(e) {
+  try {
+    navigator.vibrate?.(e);
+  } catch {
+  }
+}
+async function S() {
+  try {
+    if (navigator.wakeLock && n) {
+      const e = await navigator.wakeLock.request("screen");
+      n ? g = e : e.release();
+    }
+  } catch {
+  }
+}
+function q() {
+  g && (g.release(), g = null);
+}
+function l() {
+  let [e, a] = z(r);
+  t("stage").textContent = i ? "🎉 训练完成！" : c ? h[e].name : "准备开始训练", t("timer").textContent = M(i ? 0 : a), t("timer").className = "timer " + (c && !i && a <= 10 ? "alert" : c && !i && a <= 30 ? "warn" : "normal"), t("desc").innerHTML = i ? "全部训练结束，好好休息" : c ? h[e].desc.join("<br>") : "点击「开始训练」，启动 15 分钟训练计划", t("chips").innerHTML = h.map((s, u) => `<div class="chip ${i ? "" : u === e ? "active" : u < e ? "done" : ""}">${s.name.replace("🔹", "").trim()}</div>`).join(""), t("fill").style.width = `${r / 9}%`, t("progress").textContent = `已完成 ${M(r)} / 15:00`, t("start").disabled = n, t("pause").disabled = !n, t("start").textContent = i ? "再来一次" : n ? "训练中" : c ? "继续" : "开始训练";
+}
+function y() {
+  clearInterval(v), v = null, n = !1, q();
+}
+function k() {
+  let e = Math.min(900, Math.max(0, 900 - Math.ceil((L - Date.now()) / 1e3)));
+  if (e === r) return;
+  if (r = e, r >= 900) {
+    y(), i = !0, f(660, 0.18, 0.2), setTimeout(() => f(880, 0.18, 0.2), 180), setTimeout(() => f(1170, 0.45, 0.22), 360), b([200, 100, 200, 100, 400]), l();
+    return;
+  }
+  let [a, s] = z(r);
+  a !== w && (f(1200, 0.28, 0.2, "triangle"), b([250, 80, 120]), w = a, x = null), s > 0 && s <= 3 && x !== s && (x = s, f(880), b(80)), l();
+}
+function C() {
+  y(), r = 0, c = !1, i = !1, w = 0, x = null, l();
+}
+function $() {
+  if (!n) {
+    i && C(), c = !0, n = !0, L = Date.now() + (900 - r) * 1e3;
+    try {
+      const e = window.AudioContext || window.webkitAudioContext;
+      e && (o ||= new e(), o.resume());
+    } catch {
+    }
+    S(), v = setInterval(k, 200), l();
+  }
+}
+function E() {
+  n && (k(), n && y(), l());
+}
+t("start").onclick = $;
+t("pause").onclick = E;
+t("reset").onclick = C;
+t("full").onclick = () => {
+  try {
+    document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+  } catch {
+  }
+};
+document.addEventListener("visibilitychange", () => {
+  document.visibilityState === "visible" && n && (k(), S());
+});
+document.addEventListener("keydown", (e) => {
+  e.code === "Space" ? (e.preventDefault(), n ? E() : $()) : e.key.toLowerCase() === "r" ? C() : e.key.toLowerCase() === "f" && t("full").click();
+});
+l();
+</script><script type="module">const note=document.createElement('div');note.textContent='示例体验，训练状态仅保留在本页；预览中全屏不可用。';note.style.cssText='position:fixed;bottom:4px;left:0;right:0;text-align:center;color:#777;font:12px system-ui;pointer-events:none';document.body.appendChild(note);const full=document.getElementById('full');full.disabled=true;full.title='预览中全屏不可用';</script></body></html>
