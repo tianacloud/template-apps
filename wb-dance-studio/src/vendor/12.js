@@ -1469,8 +1469,6 @@ window.CHEER_MODELS={"hips_pelvis":{"j":"hips","m":"suitDeep","v":[0.0000,-0.100
         if (state.modelMode === 'real') rebuildTeam();
       } catch (e) { fail(e); }
     }, fail);
-    // 内嵌 GLB 不一定提供进度事件；避免无限停留在“加载中”。
-    setTimeout(() => { if (!settled && !REAL_READY) fail(new Error('GLB load timeout')); }, 30000);
   }
   function realFailed() {
     REAL_FAILED = true;
