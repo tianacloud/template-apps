@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>理想L6 · 百公里成本计算器</title>
+<style>
+  :root {
+    /* === Brand Colors - 理想汽车品牌色系 === */
+    --brand-deep:    #0A1F3F;
+    --brand-navy:    #0D2B5E;
+    --brand-mid:     #1A3A6B;
+    --brand-light:   #E8EFF9;
+
+    /* === Energy Color Coding === */
+    --color-electric:      #00B4D8;
+    --color-electric-bg:   #E0F7FB;
+    --color-electric-dark: #007C9E;
+    --color-fuel:          #F59E0B;
+    --color-fuel-bg:       #FFF7E0;
+    --color-fuel-dark:     #B45309;
+
+    /* === Semantic === */
+    --color-success:  #10B981;
+    --color-success-bg: #D1FAE5;
+    --color-warning:  #F59E0B;
+    --color-error:    #EF4444;
+
+    /* === Neutral Scale === */
+    --gray-50:  #F8FAFC;
+    --gray-100: #F1F5F9;
+    --gray-200: #E2E8F0;
+    --gray-300: #CBD5E1;
+    --gray-400: #94A3B8;
+    --gray-500: #64748B;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1E293B;
+    --gray-900: #0F172A;
+
+    /* === Surface === */
+    --surface-bg:    #F5F7FA;
+    --surface-card:  #FFFFFF;
+    --border-light:  #E8ECF1;
+    --border-medium: #D0D5DD;
+
+    /* === Shadows === */
+    --shadow-xs:  0 1px 2px rgba(10, 31, 63, 0.04);
+    --shadow-sm:  0 1px 3px rgba(10, 31, 63, 0.06), 0 1px 2px rgba(10, 31, 63, 0.04);
+    --shadow-md:  0 4px 12px rgba(10, 31, 63, 0.06), 0 2px 4px rgba(10, 31, 63, 0.04);
+    --shadow-lg:  0 8px 24px rgba(10, 31, 63, 0.08), 0 4px 8px rgba(10, 31, 63, 0.04);
+    --shadow-result: 0 12px 40px rgba(10, 31, 63, 0.10), 0 4px 12px rgba(10, 31, 63, 0.06);
+
+    /* === Radius === */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+
+    /* === Spacing === */
+    --space-unit: 4px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--surface-bg);
+    color: var(--gray-800);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === Header === */
+  .header {
+    background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand-navy) 50%, var(--brand-mid) 100%);
+    padding: 28px 0 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 80%, rgba(0,180,216,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, rgba(245,158,11,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .header-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+  }
+  .header-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 6px rgba(16,185,129,0.5);
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.01em;
+  }
+  .header h1 span {
+    background: linear-gradient(135deg, #00B4D8, #48CAE4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  /* === Main Dashboard === */
+  .dashboard {
+    max-width: 1100px;
+    margin: -16px auto 0;
+    padding: 0 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* === Cards === */
+  .card {
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .card-icon.driving { background: var(--brand-light); color: var(--brand-navy); }
+  .card-icon.energy  { background: #FEF3C7; color: #B45309; }
+  .card-icon.result  { background: #D1FAE5; color: #059669; }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+
+  /* === Form Fields === */
+  .field-group {
+    margin-bottom: 18px;
+  }
+  .field-group:last-child { margin-bottom: 0; }
+  .field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-weight: 400;
+  }
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-wrapper {
+    position: relative;
+    flex: 1;
+  }
+  .input-wrapper input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    border: 1.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .input-wrapper input:focus {
+    border-color: var(--brand-navy);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(10, 31, 63, 0.08);
+  }
+  .input-unit {
+    font-size: 13px;
+    color: var(--gray-500);
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+
+  /* Slider */
+  .slider-group {
+    margin-top: 4px;
+  }
+  .slider-group input[type="range"] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--gray-200);
+    border-radius: 2px;
+    outline: none;
+  }
+  .slider-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--brand-navy);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(10,31,63,0.2);
+    transition: transform 0.15s ease;
+  }
+  .slider-group input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--gray-400);
+    margin-top: 4px;
+  }
+
+  /* === Coupon Selector === */
+  .coupon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .coupon-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 6px;
+    border: 1.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    background: var(--gray-50);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .coupon-chip:hover {
+    border-color: var(--brand-navy);
+    background: var(--brand-light);
+    color: var(--brand-navy);
+  }
+  .coupon-chip.active {
+    border-color: var(--color-fuel);
+    background: var(--color-fuel-bg);
+    color: var(--color-fuel-dark);
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.15);
+  }
+  .coupon-chip .discount-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-top: 2px;
+  }
+  .coupon-chip .discount-tag.hot {
+    background: #FEE2E2;
+    color: #DC2626;
+  }
+  .coupon-chip .discount-tag.warm {
+    background: #FEF3C7;
+    color: #B45309;
+  }
+
+  .custom-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--gray-100);
+  }
+  .custom-input-row input {
+    width: 80px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    border: 1.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-family: inherit;
+    outline: none;
+  }
+  .custom-input-row input:focus {
+    border-color: var(--brand-navy);
+    box-shadow: 0 0 0 3px rgba(10,31,63,0.06);
+  }
+  .custom-input-row span {
+    font-size: 13px;
+    color: var(--gray-500);
+  }
+
+  /* === Result Area === */
+  .result-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .result-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .result-card {
+    border-radius: var(--radius-md);
+    padding: 22px 18px;
+    text-align: center;
+    border: 1.5px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .result-card.electric {
+    background: var(--color-electric-bg);
+    border-color: rgba(0,180,216,0.2);
+  }
+  .result-card.fuel {
+    background: var(--color-fuel-bg);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .result-card .rc-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .result-card .rc-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-500);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .result-card .rc-value {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    transition: all 0.3s ease;
+  }
+  .result-card.electric .rc-value { color: var(--color-electric-dark); }
+  .result-card.fuel .rc-value { color: var(--color-fuel-dark); }
+  .result-card .rc-unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-500);
+  }
+
+  /* === Diff Bar === */
+  .diff-section {
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-xs);
+  }
+  .diff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .diff-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+  }
+  .diff-value {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .diff-value.cheaper-electric { color: var(--color-electric-dark); }
+  .diff-value.cheaper-fuel    { color: var(--color-fuel-dark); }
+  .diff-bar-track {
+    height: 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .diff-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+    position: relative;
+  }
+  .diff-bar-fill.electric-win { background: linear-gradient(90deg, #00B4D8, #48CAE4); }
+  .diff-bar-fill.fuel-win    { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+  .diff-bar-marker {
+    position: absolute;
+    top: 50%;
+    width: 2px;
+    height: 16px;
+    background: var(--gray-600);
+    transform: translate(-50%, -50%);
+    border-radius: 1px;
+    transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .diff-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  /* === Break-even === */
+  .breakeven-card {
+    background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .breakeven-card .be-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #059669;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+  }
+  .breakeven-card .be-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #047857;
+    letter-spacing: -0.02em;
+  }
+  .breakeven-card .be-unit {
+    font-size: 13px;
+    color: #059669;
+    font-weight: 500;
+  }
+  .breakeven-gauge {
+    margin-top: 12px;
+    position: relative;
+    height: 6px;
+    background: #E5E7EB;
+    border-radius: 3px;
+  }
+  .breakeven-gauge-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    position: relative;
+  }
+  .breakeven-gauge-marker {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 2.5px solid #10B981;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    transition: left 0.5s ease;
+  }
+  .breakeven-gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--gray-400);
+  }
+
+  /* === Preset Bar === */
+  .preset-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .preset-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    background: var(--gray-50);
+    border: 1.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .preset-btn:hover {
+    border-color: var(--brand-navy);
+    color: var(--brand-navy);
+    background: var(--brand-light);
+  }
+  .preset-btn.active {
+    border-color: var(--brand-navy);
+    background: var(--brand-navy);
+    color: #FFFFFF;
+  }
+  .preset-btn .preset-name {
+    font-weight: 600;
+  }
+  .preset-btn .preset-desc {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  /* === Highlight Tag === */
+  .highlight-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    letter-spacing: 0.01em;
+  }
+  .highlight-tag.electric-tag {
+    background: var(--color-electric-bg);
+    color: var(--color-electric-dark);
+  }
+  .highlight-tag.fuel-tag {
+    background: var(--color-fuel-bg);
+    color: var(--color-fuel-dark);
+  }
+  .highlight-tag.green-tag {
+    background: var(--color-success-bg);
+    color: #059669;
+  }
+
+  /* === Footer Bar === */
+  .footer-bar {
+    max-width: 1100px;
+    margin: 0 auto 40px;
+    padding: 0 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .footer-chip {
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray-500);
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .footer-chip strong { color: var(--gray-700); }
+
+  /* === Share Card Button === */
+  .share-card-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    margin-top: 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, var(--brand-navy), var(--brand-mid));
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 12px rgba(10, 31, 63, 0.2);
+  }
+  .share-card-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(10, 31, 63, 0.28);
+  }
+  .share-card-btn:active {
+    transform: translateY(0);
+  }
+
+  /* === Modal === */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 31, 63, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-content {
+    position: relative;
+    background: var(--surface-card);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 24px 64px rgba(10, 31, 63, 0.18);
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    transform: translateY(20px) scale(0.96);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal-overlay.active .modal-content {
+    transform: translateY(0) scale(1);
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.9);
+    color: var(--gray-600);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .modal-close:hover {
+    background: #FFFFFF;
+    color: var(--gray-800);
+    transform: rotate(90deg);
+  }
+
+  /* === Share Card Preview === */
+  .share-card-preview {
+    padding: 0;
+    background: var(--surface-card);
+  }
+  .share-card-preview canvas {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+  .share-card-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px 20px;
+  }
+  .share-card-actions .btn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .share-card-actions .btn-primary {
+    background: linear-gradient(135deg, var(--brand-navy), var(--brand-mid));
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(10, 31, 63, 0.2);
+  }
+  .share-card-actions .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(10, 31, 63, 0.28);
+  }
+  .share-card-actions .btn-ghost {
+    background: var(--gray-50);
+    color: var(--gray-600);
+    border: 1.5px solid var(--border-medium);
+  }
+  .share-card-actions .btn-ghost:hover {
+    background: var(--gray-100);
+    color: var(--gray-800);
+  }
+
+  /* === Tooltip === */
+  .share-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray-400);
+    padding: 0 20px 12px;
+  }
+
+  /* === Responsive === */
+  @media (max-width: 768px) {
+    .dashboard {
+      grid-template-columns: 1fr;
+      margin-top: -8px;
+    }
+    .header h1 { font-size: 24px; }
+    .result-cards { grid-template-columns: 1fr 1fr; }
+    .result-card .rc-value { font-size: 28px; }
+    .coupon-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .dashboard { padding: 0 12px 40px; gap: 16px; }
+    .card { padding: 20px; }
+    .header h1 { font-size: 20px; }
+    .result-cards { grid-template-columns: 1fr; }
+    .coupon-grid { grid-template-columns: repeat(2, 1fr); }
+    .preset-bar { flex-direction: column; }
+  }
+
+  /* === Animations === */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .value-animate {
+    animation: countUp 0.4s ease-out;
+  }
+</style>
+</head>
+<body><div style="text-align:center;background:#e8eff9;padding:8px;font-size:12px">示例体验，数据仅保留在本页 <button onclick="document.getElementById('presetBar').querySelector('[data-preset=commute]').click()">恢复示例</button></div>
+
+<!--pnid:duXLyF8ItKLsLjkJKmb4ce--><!-- ===== Header ===== -->
+<header class="header">
+  <div class="header-content">
+    <div class="header-badge">
+      <span class="dot"></span><!--pnid:cYt9vs2cx29Iwo3FgfWhDW--> 理想L6 成本分析工具
+    </div>
+    <h1><!--pnid:pBelkiRnF8jgY8RnGZrHx5-->百公里成本<span><!--pnid:pFPIxiO2Aw1jaAbvjrSBEv-->计算器</span></h1>
+    <p class="header-sub"><!--pnid:tu52gMfDadrroVPRMNHFzk-->LI AUTO L6 · COST PER 100KM ESTIMATOR</p>
+  </div>
+</header>
+
+<!--pnid:QvsmCrMFJayY9Za3Q8Tw8Y--><!-- ===== Dashboard ===== -->
+<main class="dashboard" id="app">
+
+  <!--pnid:g5JqdtP3HmBeWVUvYHSFkc--><!-- ===== LEFT COLUMN: Inputs ===== -->
+  <div class="input-section" style="display:flex; flex-direction:column; gap:20px">
+
+    <!--pnid:EDpFWUAKi8hIlys8CE1TVH--><!-- Preset Bar -->
+    <div class="preset-bar" id="presetBar">
+      <button class="preset-btn active" data-preset="commute">
+        <div class="preset-name"><!--pnid:04RYPvmQAJ2ew6996Ko0Ke-->日常通勤</div>
+        <div class="preset-desc"><!--pnid:vp2zrwEQxwCz7BXTtjBgl6-->市区 · 温和驾驶</div>
+      </button>
+      <button class="preset-btn" data-preset="highway">
+        <div class="preset-name"><!--pnid:LKg1XORYLhbsjDqXjF97bi-->长途高速</div>
+        <div class="preset-desc"><!--pnid:Mv4a6ehKOab0pJGzqGNSig-->高速 · 匀速巡航</div>
+      </button>
+      <button class="preset-btn" data-preset="eco">
+        <div class="preset-name"><!--pnid:lCfSRdaallI6Xtt3DBaRG2-->极致省油</div>
+        <div class="preset-desc"><!--pnid:kuoEGqmrt5boDIC98LzBeR-->经济 · 最优工况</div>
+      </button>
+    </div>
+
+    <!--pnid:seegBpu6bKgRe5byC0kfBl--><!-- Card 1: Driving Data -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon driving"><!--pnid:ZZc0HxJxMoWx1KbQvU9pXG-->📊</div>
+        <div class="card-title"><!--pnid:IyjWv3T1DqTEYHIPw9fIdP-->行驶数据</div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:CAtzIYu3FFc1xTXRSkEmnH-->电耗</span>
+          <span class="field-hint"><!--pnid:Ri44nb1vVTLuy0LEMsWNgd-->kWh / 100km</span>
+        </div>
+        <div class="field-row">
+          <div class="input-wrapper">
+            <input id="elecConsumption" max="40" min="10" step="0.1" type="number" value="18.5">
+          </div>
+          <span class="input-unit"><!--pnid:bv5Wp9oJo1zfykG0dWDcnt-->kWh</span>
+        </div>
+        <div class="slider-group">
+          <input id="elecSlider" max="40" min="10" step="0.1" type="range" value="18.5">
+          <div class="slider-ticks"><span><!--pnid:qdVuIM4bKTaiNN7ysvOHZm-->10</span><span><!--pnid:AhF7cjLhknGPjwow624caN-->20</span><span><!--pnid:iRgqwrRCp3T8Lo4tdA3y2W-->30</span><span><!--pnid:o84B1cAKcLQatfkUhI45Zq-->40</span></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:2m6Fwuz9IcrNR6tJbPGV4s-->油耗</span>
+          <span class="field-hint"><!--pnid:G6jsImdA9S4jdQzX9PpyfP-->L / 100km</span>
+        </div>
+        <div class="field-row">
+          <div class="input-wrapper">
+            <input id="fuelConsumption" max="15" min="3" step="0.1" type="number" value="7.5">
+          </div>
+          <span class="input-unit"><!--pnid:6hPCPG72d50mFccbzfmTmK-->L</span>
+        </div>
+        <div class="slider-group">
+          <input id="fuelSlider" max="15" min="3" step="0.1" type="range" value="7.5">
+          <div class="slider-ticks"><span><!--pnid:yz1vIigduTOXBvbochORS8-->3</span><span><!--pnid:h5ekpabYyWy24cYvUwjBaC-->6</span><span><!--pnid:KUYBQJXSzF95Q1jpThufqM-->9</span><span><!--pnid:4pjwrbLzXs9kSxPBj4acBK-->12</span><span><!--pnid:qZ85AQ9IvcgG1VSEll8NVS-->15</span></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:ZBTWwpoQAQ51q8VYQTGjUI-->电耗占比</span>
+          <span class="field-hint"><!--pnid:SJP0iJmDA3qDkgXaHRpAgl-->电驱耗电占总耗电比例</span>
+        </div>
+        <div class="field-row">
+          <div class="input-wrapper">
+            <input id="elecRatio" max="100" min="0" step="1" type="number" value="80">
+          </div>
+          <span class="input-unit"><!--pnid:pAUKvJBQ6fZmnvXCWAvaPB-->%</span>
+        </div>
+        <div class="slider-group">
+          <input id="ratioSlider" max="100" min="0" step="1" type="range" value="80">
+          <div class="slider-ticks"><span><!--pnid:QqntmDQtyOj0aSFR3hKWal-->0%</span><span><!--pnid:2UEsjgn2Ubp5JEuD3ScIyu-->25%</span><span><!--pnid:nFY0j2yCQtaTB3nBUZzNwv-->50%</span><span><!--pnid:eSkvYdpUbr2j8h0hfJM0Gv-->75%</span><span><!--pnid:TtYE5OD1XOvkZ8ziRbgqIk-->100%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!--pnid:vVHOdFsrwZxxSLn3HnOysT--><!-- Card 2: Energy Price -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon energy"><!--pnid:CwNg2b3y0hMZrFHB0amx9J-->⚡</div>
+        <div class="card-title"><!--pnid:BFY0Ig6BryMUPU13c7CMsj-->能源价格</div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:OQWOm5uOjfu2alzKEM1NX2-->充电电价</span>
+          <span class="field-hint"><!--pnid:4JKaBxPiQ2eNgHKGZRjfm7-->元 / kWh</span>
+        </div>
+        <div class="field-row">
+          <div class="input-wrapper">
+            <input id="elecPrice" max="3" min="0.1" step="0.01" type="number" value="0.60">
+          </div>
+          <span class="input-unit"><!--pnid:9OmEhggSdTBbo6Y1WPAyB5-->元/kWh</span>
+        </div>
+        <div class="slider-group">
+          <input id="elecPriceSlider" max="3" min="0.1" step="0.01" type="range" value="0.60">
+          <div class="slider-ticks"><span><!--pnid:GUGX7sg7O7IVgHugXcwXjZ-->0.1</span><span><!--pnid:4lavz3pVgpHhYT3gKZnpRz-->1.0</span><span><!--pnid:TYksjgo5EDKIe56Wl65Tmq-->2.0</span><span><!--pnid:zbkIR8YtAcLmtn57tSMUkt-->3.0</span></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:M1hcalT918dMVTwoMV06ob-->95#汽油标准价</span>
+          <span class="field-hint" style="align-items:center; display:flex; gap:4px">
+            <span style="color:#059669"><!--pnid:5lOt55QtHQm5ZcgAiAqOpt-->长沙 7月4日调价</span>
+          </span>
+        </div>
+        <div class="field-row">
+          <div class="input-wrapper">
+            <input id="fuelPrice" max="15" min="5" step="0.01" type="number" value="8.43">
+          </div>
+          <span class="input-unit"><!--pnid:MrVvcuzS0sRiqE9kPUL5du-->元/L</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span><!--pnid:IT6RMh9LidEMjXO0E4CHyW-->加油优惠券</span>
+          <span class="field-hint" style="color:var(--color-fuel)"><!--pnid:H9XqeTGUZgffHtwrGOQOez-->可选优惠</span>
+        </div>
+        <div class="coupon-grid" id="couponGrid">
+          <div class="coupon-chip active" data-coupon="none" data-pay="0" data-value="0">
+            <span><!--pnid:M5wgSl8o1NrYqOxPVYIMbJ-->无优惠</span>
+            <span class="discount-tag warm"><!--pnid:oV6jX3MILfVFZUEuWs9NpK-->原价</span>
+          </div>
+          <div class="coupon-chip" data-coupon="90-100" data-pay="90" data-value="100">
+            <span><!--pnid:7QFw6B6HMJ3TXCBbvwkIwh-->90抵100</span>
+            <span class="discount-tag hot"><!--pnid:RI9E8cxsjgJ9zIIWhLvKML-->9折</span>
+          </div>
+          <div class="coupon-chip" data-coupon="180-200" data-pay="180" data-value="200">
+            <span><!--pnid:vLdwZHUaOn9w7h6dhBhTDs-->180抵200</span>
+            <span class="discount-tag hot"><!--pnid:COv4O3s9IhTBbayyphIBpq-->9折</span>
+          </div>
+          <div class="coupon-chip" data-coupon="270-300" data-pay="270" data-value="300">
+            <span><!--pnid:9n15i9eFAbiZ2OVeruarpj-->270抵300</span>
+            <span class="discount-tag hot"><!--pnid:wqJ17Yi5anZlnS9ZAzdmVY-->9折</span>
+          </div>
+          <div class="coupon-chip" data-coupon="85-100" data-pay="85" data-value="100">
+            <span><!--pnid:D9m6IfrdONYkOGrxNFr5AL-->85抵100</span>
+            <span class="discount-tag hot"><!--pnid:Ah2RLi17Es5hJ2dsrXXSWx-->85折</span>
+          </div>
+          <div class="coupon-chip" data-coupon="170-200" data-pay="170" data-value="200">
+            <span><!--pnid:Wv6EmC2IJy9MqUTqiQwaYY-->170抵200</span>
+            <span class="discount-tag hot"><!--pnid:KKVhJMicM3xZiCGCaxwBau-->85折</span>
+          </div>
+        </div>
+        <div class="custom-input-row">
+          <span style="color:var(--gray-500); font-size:12px"><!--pnid:nntmPTurv4KoiNmnoCwhWc-->自定义：</span>
+          <input id="customPay" min="0" placeholder="支付" type="number" style="width:70px">
+          <span><!--pnid:3VcAaMIwiM07x9sM4VB5AG-->元 抵</span>
+          <input id="customValue" min="1" placeholder="面值" type="number" style="width:70px">
+          <span><!--pnid:C1TD6uA2KPpBRnqEevnptp-->元</span>
+        </div>
+        <div style="background:var(--gray-50); border-radius:var(--radius-sm); color:var(--gray-600); font-size:13px; font-weight:500; margin-top:12px; padding:10px 12px"><!--pnid:E1Sqk5XEEVacYLcyhqBxHE-->
+          实际油价 <strong id="effectiveFuelPrice" style="color:var(--color-fuel-dark); font-size:16px"><!--pnid:mpfUvKl4RRU2NkcVZctB0s-->8.43</strong><!--pnid:2KiOSu0eJKrBCcqX2sXwlg--> 元/L
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--pnid:ujz5A7rp2Q4wPS8WzjGEsv--><!-- ===== RIGHT COLUMN: Results ===== -->
+  <div class="result-section">
+
+    <!--pnid:qBlDmaR6QExiJ93uC39fV7--><!-- Card 3: Results Overview -->
+    <div class="card" style="box-shadow:var(--shadow-result)">
+      <div class="card-header">
+        <div class="card-icon result"><!--pnid:7fgBhi8j621X9NbwoFO3pZ-->💰</div>
+        <div class="card-title"><!--pnid:f6HD8C0FzgOaoM1hvvxXt4-->百公里费用对比</div>
+      </div>
+
+      <div class="result-cards">
+        <div class="result-card electric">
+          <div class="rc-icon"><!--pnid:CwCHIGAzrs8bGkQUiSem4m-->⚡</div>
+          <div class="rc-label"><!--pnid:OB7eSP4ilF7S2uGNIfeiEN-->纯电行驶</div>
+          <div class="rc-value" id="elecCost"><!--pnid:j9Inmin6LSsGk13DLi5si8-->11.10</div>
+          <div class="rc-unit"><!--pnid:Q6w2UubTTHWE43oyiH7EnZ-->元 / 100km</div>
+        </div>
+        <div class="result-card fuel">
+          <div class="rc-icon"><!--pnid:CsCkJ4lXl8ztRs9ghoR0My-->⛽</div>
+          <div class="rc-label"><!--pnid:AtKixAPMYTiA4t8zotlYFV-->纯油行驶</div>
+          <div class="rc-value" id="fuelCost"><!--pnid:RmCkLpAMXK3vIklYR7ju8W-->63.23</div>
+          <div class="rc-unit"><!--pnid:gi4TMkbmXXUNfzewFBOzje-->元 / 100km</div>
+        </div>
+      </div>
+
+      <!--pnid:sDgWv7SpYVq1KFSyRGJItX--><!-- Diff Bar -->
+      <div class="diff-section" style="margin-top:16px">
+        <div class="diff-header">
+          <span class="diff-label"><!--pnid:QcTP8M9U0Qg89l0NgCfuIa-->每百公里节省</span>
+          <span class="diff-value cheaper-electric" id="diffValue"><!--pnid:fIyi8SsMSo4MfTymdMC2JK-->-52.13 元</span>
+        </div>
+        <div class="diff-bar-track">
+          <div class="diff-bar-fill electric-win" id="diffBar" style="width:82%"></div>
+          <div class="diff-bar-marker" id="diffMarker" style="left:18%"></div>
+        </div>
+        <div class="diff-bar-labels">
+          <span class="highlight-tag electric-tag"><!--pnid:KmWshNYhzlRR7JNYLqcdEt-->⚡ 更省</span>
+          <span style="color:var(--gray-400); font-size:10px"><!--pnid:cAos2ADL5mz4fWCv3rFcBd-->平衡点</span>
+          <span class="highlight-tag fuel-tag"><!--pnid:EUlk6aiSnhjLHQoPnto8W8-->⛽ 更贵</span>
+        </div>
+      </div>
+
+      <!--pnid:drRBg2bQjHWnWJB9HnQpOA--><!-- Break-even -->
+      <div class="breakeven-card" style="margin-top:16px">
+        <div class="be-label"><!--pnid:Jj2QPGqFaD9lYVppLo2FBO-->盈亏平衡电价</div>
+        <span class="be-value" id="breakevenPrice"><!--pnid:s7U4jl62KzEl7kpeZsX2CV-->3.42</span>
+        <span class="be-unit"><!--pnid:EPTyM2sREJ9u1phjuvuh5J--> 元/kWh</span>
+        <p style="color:#6B7280; font-size:11px; margin-top:4px"><!--pnid:dGhbgo6aoUpWY80REtN73f-->用电费用 = 用油费用时的充电电价</p>
+        <div class="breakeven-gauge" style="margin-top:10px">
+          <div class="breakeven-gauge-fill" id="beGaugeFill" style="background:linear-gradient(90deg,#10B981,#34D399); width:18%"></div>
+          <div class="breakeven-gauge-marker" id="beGaugeMarker" style="left:18%"></div>
+        </div>
+        <div class="breakeven-gauge-labels">
+          <span><!--pnid:mXMD5bERUmGDQFFUYrigMB-->0 元/kWh</span>
+          <span><!--pnid:1qYbH9aKRbZIvN7Bi6yXUU-->当前电价 <strong id="currentPriceMarker" style="color:var(--color-electric-dark)"><!--pnid:0Yp5BIW3BTbWlhk6RmT8EQ-->0.60</strong></span>
+          <span id="beMaxLabel"><!--pnid:KRSVYod3JtD5zd1ihNojYe-->4.00 元/kWh</span>
+        </div>
+      </div>
+
+      <!--pnid:sy8FeiipRYQHkVAuZruzKs--><!-- Generate Share Card Button -->
+      <button class="share-card-btn" id="shareCardBtn">
+        <span><!--pnid:U4gB9gtlYjZMUN5ltmQwVr-->📸</span><!--pnid:MQUSh9XajslBA86v4ZWRPh--> 生成对比卡片
+      </button>
+    </div>
+  </div>
+</main>
+
+<!--pnid:ayv5NTbUrAr95rChJUsutB--><!-- ===== Share Card Modal ===== -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal-content">
+    <button class="modal-close" id="modalClose"><!--pnid:m6ZuJ5CIXrvEPFew5vJ56j-->&times;</button>
+    <div class="share-card-preview">
+      <canvas height="1280" id="shareCanvas" width="720"></canvas>
+    </div>
+    <div class="share-card-actions">
+      <button class="btn btn-primary" id="downloadBtn" disabled><!--pnid:1n1uGmpUehbxkUnGtlxF70-->安装后可下载图片</button>
+      <button class="btn btn-ghost" id="closeModalBtn"><!--pnid:KM7629SySNdwLaMPIcEyCX-->关闭</button>
+    </div>
+    <div class="share-hint"><!--pnid:AyfiF8WHUDKIZkRXaWGd1s-->长按图片可保存至相册，或点击下载按钮保存到本地</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // --- DOM Refs ---
+  const $ = id => document.getElementById(id);
+
+  const elecConsumption   = $('elecConsumption');
+  const elecSlider        = $('elecSlider');
+  const fuelConsumption   = $('fuelConsumption');
+  const fuelSlider        = $('fuelSlider');
+  const elecRatio         = $('elecRatio');
+  const ratioSlider       = $('ratioSlider');
+  const elecPrice         = $('elecPrice');
+  const elecPriceSlider   = $('elecPriceSlider');
+  const fuelPrice         = $('fuelPrice');
+  const effectiveFuelPrice= $('effectiveFuelPrice');
+  const customPay         = $('customPay');
+  const customValue       = $('customValue');
+
+  const elecCostEl        = $('elecCost');
+  const fuelCostEl        = $('fuelCost');
+  const diffValueEl       = $('diffValue');
+  const diffBar           = $('diffBar');
+  const diffMarker        = $('diffMarker');
+  const breakevenPriceEl  = $('breakevenPrice');
+  const beGaugeFill       = $('beGaugeFill');
+  const beGaugeMarker     = $('beGaugeMarker');
+  const beMaxLabel        = $('beMaxLabel');
+  const currentPriceMarker= $('currentPriceMarker');
+
+  // --- State ---
+  let activeCoupon = { pay: 0, value: 0 }; // 0 means no coupon
+
+  // --- Sync input <-> slider ---
+  function bindPair(input, slider, onChange) {
+    input.addEventListener('input', () => {
+      slider.value = input.value;
+      onChange();
+    });
+    slider.addEventListener('input', () => {
+      input.value = slider.value;
+      onChange();
+    });
+  }
+
+  // --- Calculate ---
+  function calc() {
+    const ec = parseFloat(elecConsumption.value) || 18.5;
+    const fc = parseFloat(fuelConsumption.value) || 7.5;
+    const ep = parseFloat(elecPrice.value) || 0.60;
+    const fp = parseFloat(fuelPrice.value) || 8.43;
+
+    // Effective fuel price with coupon
+    let efp = fp;
+    if (activeCoupon.pay > 0 && activeCoupon.value > 0) {
+      const discount = activeCoupon.pay / activeCoupon.value;
+      efp = fp * discount;
+    }
+    effectiveFuelPrice.textContent = efp.toFixed(2);
+
+    // Costs
+    const elecCost = ec * ep;
+    const fuelCost = fc * efp;
+    const diff = fuelCost - elecCost; // positive = electric cheaper
+    const bePrice = ec > 0 ? (fuelCost / ec) : 0;
+
+    // Update displays
+    elecCostEl.textContent = elecCost.toFixed(2);
+    fuelCostEl.textContent = fuelCost.toFixed(2);
+
+    const absDiff = Math.abs(diff);
+    diffValueEl.textContent = (diff >= 0 ? '-' : '+') + absDiff.toFixed(2) + ' 元';
+    diffValueEl.className = 'diff-value ' + (diff >= 0 ? 'cheaper-electric' : 'cheaper-fuel');
+
+    // Diff bar: show electric proportion
+    const maxCost = Math.max(elecCost, fuelCost, 1);
+    const elecPct = (elecCost / maxCost) * 100;
+    const fuelPct = (fuelCost / maxCost) * 100;
+    const diffPct = Math.abs(diff) / maxCost * 100;
+
+    if (diff >= 0) {
+      // Electric cheaper: show bar as electric advantage
+      diffBar.style.width = (fuelPct) + '%';
+      diffBar.className = 'diff-bar-fill fuel-win';
+      diffMarker.style.left = (elecPct) + '%';
+    } else {
+      diffBar.style.width = (elecPct) + '%';
+      diffBar.className = 'diff-bar-fill electric-win';
+      diffMarker.style.left = (fuelPct) + '%';
+    }
+
+    // Breakeven
+    breakevenPriceEl.textContent = bePrice.toFixed(2);
+
+    const beMax = Math.max(bePrice * 1.5, ep * 3, 3);
+    beMaxLabel.textContent = beMax.toFixed(2) + ' 元/kWh';
+    const beGaugePct = beMax > 0 ? Math.min((ep / beMax) * 100, 100) : 0;
+    beGaugeFill.style.width = beGaugePct + '%';
+    beGaugeMarker.style.left = beGaugePct + '%';
+
+    // Color the gauge based on position relative to break-even
+    if (ep <= bePrice) {
+      beGaugeFill.style.background = 'linear-gradient(90deg, #10B981, #34D399)';
+    } else {
+      beGaugeFill.style.background = 'linear-gradient(90deg, #F59E0B, #FBBF24)';
+    }
+
+    currentPriceMarker.textContent = ep.toFixed(2);
+  }
+
+  // --- Bind all input pairs ---
+  bindPair(elecConsumption, elecSlider, calc);
+  bindPair(fuelConsumption, fuelSlider, calc);
+  bindPair(elecRatio, ratioSlider, calc);
+  bindPair(elecPrice, elecPriceSlider, calc);
+
+  fuelPrice.addEventListener('input', calc);
+
+  // --- Coupon Selection ---
+  const couponGrid = $('couponGrid');
+  couponGrid.addEventListener('click', (e) => {
+    const chip = e.target.closest('.coupon-chip');
+    if (!chip) return;
+
+    document.querySelectorAll('.coupon-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+
+    const pay = parseFloat(chip.dataset.pay) || 0;
+    const value = parseFloat(chip.dataset.value) || 0;
+    activeCoupon = { pay, value };
+    calc();
+  });
+
+  // --- Custom coupon ---
+  function applyCustomCoupon() {
+    const pay = parseFloat(customPay.value);
+    const value = parseFloat(customValue.value);
+    if (pay > 0 && value > 0 && pay < value) {
+      document.querySelectorAll('.coupon-chip').forEach(c => c.classList.remove('active'));
+      activeCoupon = { pay, value };
+      calc();
+    }
+  }
+  customPay.addEventListener('input', applyCustomCoupon);
+  customValue.addEventListener('input', applyCustomCoupon);
+
+  // --- Presets ---
+  const presets = {
+    commute: { ec: 18.5, fc: 7.5, er: 80, ep: 0.60 },
+    highway: { ec: 22.0, fc: 8.5, er: 70, ep: 0.90 },
+    eco:     { ec: 15.0, fc: 6.0, er: 85, ep: 0.50 }
+  };
+
+  $('presetBar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.preset-btn');
+    if (!btn) return;
+
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const key = btn.dataset.preset;
+    const p = presets[key];
+    if (!p) return;
+
+    elecConsumption.value = p.ec;
+    elecSlider.value = p.ec;
+    fuelConsumption.value = p.fc;
+    fuelSlider.value = p.fc;
+    elecRatio.value = p.er;
+    ratioSlider.value = p.er;
+    elecPrice.value = p.ep;
+    elecPriceSlider.value = p.ep;
+
+    calc();
+  });
+
+  // --- Initial calc ---
+  calc();
+
+  // ===== Share Card Modal =====
+  const shareModal = $('shareModal');
+  const shareCardBtn = $('shareCardBtn');
+  const modalClose = $('modalClose');
+  const closeModalBtn = $('closeModalBtn');
+  const downloadBtn = $('downloadBtn');
+  const shareCanvas = $('shareCanvas');
+
+  function openModal() {
+    shareModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    // Render canvas after modal is visible (so layout is computed)
+    requestAnimationFrame(() => renderShareCard());
+  }
+  function closeModal() {
+    shareModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  shareCardBtn.addEventListener('click', openModal);
+  modalClose.addEventListener('click', closeModal);
+  closeModalBtn.addEventListener('click', closeModal);
+  shareModal.addEventListener('click', (e) => {
+    if (e.target === shareModal) closeModal();
+  });
+
+  // ===== Render Share Card on Canvas =====
+  function renderShareCard() {
+    const c = shareCanvas;
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+
+    // Clear
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(0, 0, W, H);
+
+    // Top gradient area
+    const grad = ctx.createLinearGradient(0, 0, 0, 520);
+    grad.addColorStop(0, '#0A1F3F');
+    grad.addColorStop(1, '#0D2B5E');
+    ctx.fillStyle = grad;
+    roundRect(ctx, 0, 0, W, 520, 0);
+    ctx.fill();
+
+    // Decorative glow
+    const glow = ctx.createRadialGradient(560, 120, 0, 560, 120, 260);
+    glow.addColorStop(0, 'rgba(0,180,216,0.18)');
+    glow.addColorStop(1, 'rgba(0,180,216,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(560, 120, 260, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Decorative glow 2 (orange)
+    const glow2 = ctx.createRadialGradient(120, 380, 0, 120, 380, 180);
+    glow2.addColorStop(0, 'rgba(245,158,11,0.10)');
+    glow2.addColorStop(1, 'rgba(245,158,11,0)');
+    ctx.fillStyle = glow2;
+    ctx.beginPath();
+    ctx.arc(120, 380, 180, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Brand "L" logo
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(ctx, 40, 40, 48, 48, 10);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('L', 64, 64);
+
+    // Title
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('理想L6', 108, 55);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 46px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('百公里成本', 40, 118);
+    ctx.fillStyle = '#00B4D8';
+    ctx.fillText('对比报告', 40, 172);
+
+    // Subtitle
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '400 18px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('LI AUTO L6 · COST ANALYSIS', 40, 214);
+
+    // Car silhouette (simplified side profile)
+    drawCarSilhouette(ctx, 80, 280, 560, 200);
+
+    // Scene badge
+    const activePreset = document.querySelector('.preset-btn.active');
+    const sceneName = activePreset ? activePreset.querySelector('.preset-name').textContent : '自定义';
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    roundRect(ctx, 40, 460, 140, 36, 18);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(sceneName, 110, 482);
+
+    // Data cards section
+    const cardY = 560;
+    const cardW = (W - 80 - 24) / 3;
+    const cardH = 160;
+    const cardGap = 12;
+
+    // Card 1: Electric
+    ctx.fillStyle = '#E0F7FB';
+    roundRect(ctx, 40, cardY, cardW, cardH, 14);
+    ctx.fill();
+    ctx.fillStyle = '#00B4D8';
+    ctx.font = '600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ 纯电行驶', 40 + cardW/2, cardY + 32);
+    ctx.fillStyle = '#007C9E';
+    ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(elecCostEl.textContent, 40 + cardW/2, cardY + 80);
+    ctx.fillStyle = '#00B4D8';
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('元 / 100km', 40 + cardW/2, cardY + 108);
+
+    // Card 2: Fuel
+    ctx.fillStyle = '#FFF7E0';
+    roundRect(ctx, 40 + cardW + cardGap, cardY, cardW, cardH, 14);
+    ctx.fill();
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = '600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('⛽ 纯油行驶', 40 + cardW + cardGap + cardW/2, cardY + 32);
+    ctx.fillStyle = '#B45309';
+    ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(fuelCostEl.textContent, 40 + cardW + cardGap + cardW/2, cardY + 80);
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('元 / 100km', 40 + cardW + cardGap + cardW/2, cardY + 108);
+
+    // Card 3: Diff
+    const diffVal = parseFloat(diffValueEl.textContent.replace(/[+-\s元]/g, ''));
+    const isElectricCheaper = diffValueEl.textContent.includes('-');
+    ctx.fillStyle = isElectricCheaper ? '#ECFDF5' : '#FEF2F2';
+    roundRect(ctx, 40 + (cardW + cardGap) * 2, cardY, cardW, cardH, 14);
+    ctx.fill();
+    ctx.fillStyle = isElectricCheaper ? '#10B981' : '#EF4444';
+    ctx.font = '600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(isElectricCheaper ? '💰 每百公里省' : '💰 每百公里多花', 40 + (cardW + cardGap) * 2 + cardW/2, cardY + 32);
+    ctx.fillStyle = isElectricCheaper ? '#047857' : '#B91C1C';
+    ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(diffVal.toFixed(2), 40 + (cardW + cardGap) * 2 + cardW/2, cardY + 80);
+    ctx.fillStyle = isElectricCheaper ? '#10B981' : '#EF4444';
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('元', 40 + (cardW + cardGap) * 2 + cardW/2, cardY + 108);
+
+    // Break-even section
+    const beY = cardY + cardH + 28;
+    ctx.fillStyle = '#ECFDF5';
+    roundRect(ctx, 40, beY, W - 80, 140, 14);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(16,185,129,0.15)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 40, beY, W - 80, 140, 14);
+    ctx.stroke();
+
+    ctx.fillStyle = '#059669';
+    ctx.font = '600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('盈亏平衡电价', 64, beY + 36);
+    ctx.fillStyle = '#047857';
+    ctx.font = 'bold 42px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(breakevenPriceEl.textContent + ' 元/kWh', 64, beY + 82);
+
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('用电费用 = 用油费用时的充电电价', 64, beY + 112);
+
+    // Conclusion
+    const conY = beY + 180;
+    const ep = parseFloat(elecPrice.value) || 0.60;
+    const be = parseFloat(breakevenPriceEl.textContent) || 0;
+    const conclusion = ep < be
+      ? '✓ 当前电价下，纯电行驶更省钱'
+      : '⚠ 当前电价已高于盈亏平衡点，需关注';
+    const conColor = ep < be ? '#047857' : '#B45309';
+    const conBg = ep < be ? '#ECFDF5' : '#FFF7E0';
+    const conBorder = ep < be ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)';
+
+    ctx.fillStyle = conBg;
+    roundRect(ctx, 40, conY, W - 80, 60, 14);
+    ctx.fill();
+    ctx.strokeStyle = conBorder;
+    ctx.lineWidth = 2;
+    roundRect(ctx, 40, conY, W - 80, 60, 14);
+    ctx.stroke();
+    ctx.fillStyle = conColor;
+    ctx.font = '600 18px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(conclusion, W/2, conY + 30);
+
+    // Parameters summary
+    const sumY = conY + 90;
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '400 13px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`电耗 ${elecConsumption.value}kWh  油耗 ${fuelConsumption.value}L  电价 ${elecPrice.value}元/kWh  油费 ${effectiveFuelPrice.textContent}元/L`, W/2, sumY);
+
+    // Footer brand
+    ctx.fillStyle = '#CBD5E1';
+    ctx.font = '500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText('理想L6 · 百公里成本计算器', W/2, H - 60);
+    ctx.fillStyle = '#E2E8F0';
+    ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif';
+    ctx.fillText(new Date().toLocaleDateString('zh-CN'), W/2, H - 36);
+
+    // Bottom decorative line
+    ctx.fillStyle = '#00B4D8';
+    roundRect(ctx, 40, H - 20, 120, 4, 2);
+    ctx.fill();
+    ctx.fillStyle = '#F59E0B';
+    roundRect(ctx, 164, H - 20, 80, 4, 2);
+    ctx.fill();
+    ctx.fillStyle = '#10B981';
+    roundRect(ctx, 248, H - 20, 60, 4, 2);
+    ctx.fill();
+  }
+
+  // Helper: draw rounded rect path
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  // Helper: draw car silhouette
+  function drawCarSilhouette(ctx, x, y, w, h) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    // Simplified SUV side profile
+    ctx.moveTo(40, h - 50);
+    ctx.lineTo(60, h - 110);
+    ctx.lineTo(120, h - 150);
+    ctx.lineTo(320, h - 150);
+    ctx.lineTo(360, h - 120);
+    ctx.lineTo(440, h - 110);
+    ctx.lineTo(460, h - 50);
+    ctx.lineTo(460, h - 30);
+    ctx.lineTo(40, h - 30);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wheel wells
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(120, h - 30, 42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(380, h - 30, 42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Wheels
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.arc(120, h - 30, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(380, h - 30, 34, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Windows
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.moveTo(130, h - 140);
+    ctx.lineTo(310, h - 140);
+    ctx.lineTo(340, h - 115);
+    ctx.lineTo(120, h - 115);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Download
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = '理想L6_成本对比_' + new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.png';
+    link.href = shareCanvas.toDataURL('image/png');
+    link.click();
+  });
+})();
+</script>
+
+</body>
+</html>
