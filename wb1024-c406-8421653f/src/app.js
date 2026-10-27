@@ -65,8 +65,7 @@
     ['dragleave', 'drop'].forEach(function (ev) {
       dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('dragover'); });
     });
-    dz.addEventListener('drop', function (e) {
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    function readLogFile(f) {
       if (!f) return;
       if (f.size > 20 * 1024 * 1024) { toast('文件超过 20MB，请截取关键片段'); return; }
       const r = new FileReader();
@@ -77,7 +76,9 @@
       };
       r.onerror = function () { toast('文件读取失败'); };
       r.readAsText(f);
-    });
+    }
+    dz.addEventListener('drop', function (e) { readLogFile(e.dataTransfer.files && e.dataTransfer.files[0]); });
+    $('logFile').addEventListener('change', function (e) { readLogFile(e.target.files && e.target.files[0]); e.target.value = ''; });
   }
 
   /* ---------- 渲染 ---------- */
