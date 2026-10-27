@@ -1,0 +1,5 @@
+import {readFileSync,writeFileSync,cpSync,mkdirSync,rmSync} from 'node:fs';
+const out='dist';rmSync(out,{recursive:true,force:true});mkdirSync(out+'/assets',{recursive:true});cpSync('public/assets/demo',out+'/assets/demo',{recursive:true});cpSync('public/icon.png',out+'/icon.png');
+const body=readFileSync('src/body.html','utf8'),css=readFileSync('src/styles.css','utf8'),data=readFileSync('src/data.js','utf8').replaceAll('assets/demo/','demo/'),app=readFileSync('src/app.js','utf8');
+writeFileSync(out+'/assets/app.js',`document.head.insertAdjacentHTML('beforeend',${JSON.stringify('<style>'+css+'</style>')});document.getElementById('app').innerHTML=${JSON.stringify(body)};\n${data}\nfor (const p of window.APP_DATA.PAIRS) for (const m of p.members) m.url=new URL(m.url,import.meta.url).href; for (const w of window.APP_DATA.WALLPAPERS) w.url=new URL(w.url,import.meta.url).href;\n${app}`);
+console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',git_instance_id:JSON.parse(readFileSync('source.json')).git_instance_id}));
