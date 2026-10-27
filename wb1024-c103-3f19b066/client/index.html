@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport">
+<title>码农人生 · 1024 — 程序员节人生模拟器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0F0F16;--bg2:#15151F;--panel:#1B1B27;--panel2:#222231;--line:#2C2C3E;
+  --ink:#ECECF4;--ink2:#A6A6BE;--ink3:#6E6E88;
+  --green:#4ADE80;--green2:#22C55E;--blue:#60A5FA;--yellow:#FBBF24;--red:#F87171;
+  --purple:#C084FC;--teal:#2DD4BF;--orange:#FB923C;
+  --mono:"Cascadia Code","JetBrains Mono","Fira Code",Consolas,"Courier New",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(74,222,128,.07),transparent),
+             radial-gradient(ellipse 60% 40% at 90% 110%,rgba(96,165,250,.05),transparent)}
+#app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:22px 16px 60px;min-height:100%}
+.hide{display:none!important}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.mono{font-family:var(--mono)}
+
+/* ── 标题屏 ── */
+#scr-title{padding-top:6vh;text-align:center;animation:fadeUp .5s ease both}
+.logo-line{font-family:var(--mono);color:var(--green);font-size:13px;letter-spacing:.14em;margin-bottom:14px;opacity:.85}
+.logo-line::before{content:"> ";color:var(--ink3)}
+h1{font-size:clamp(38px,8vw,58px);font-weight:900;letter-spacing:-.01em;line-height:1.15;
+  background:linear-gradient(135deg,#ECECF4 20%,#4ADE80 55%,#2DD4BF 90%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{margin-top:10px;font-size:15px;color:var(--ink2)}
+.subtitle b{color:var(--yellow);font-weight:700}
+.intro{margin:22px auto 0;max-width:560px;text-align:left;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:13.5px;color:var(--ink2)}
+.intro b{color:var(--ink)}
+.intro .hl{color:var(--green)}
+.career-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:18px}
+.career{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 13px 11px;
+  text-align:left;transition:.16s;position:relative;overflow:hidden}
+.career:hover,.career.sel{border-color:var(--green);transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(74,222,128,.12)}
+.career .ci{font-size:22px;line-height:1}
+.career b{display:block;font-size:14px;margin-top:7px;font-weight:800}
+.career span{display:block;font-size:11.5px;color:var(--ink3);margin-top:3px;line-height:1.5}
+.career .cv{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--ink2);line-height:1.7}
+.career .cv i{font-style:normal}
+.career.sel::after{content:"✓ 已选择";position:absolute;top:9px;right:10px;font-size:10px;
+  color:var(--green);font-family:var(--mono)}
+.btn-main{margin-top:22px;display:inline-flex;align-items:center;gap:9px;background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#062B14;font-size:15.5px;font-weight:800;border-radius:999px;padding:13px 34px;
+  box-shadow:0 4px 22px rgba(74,222,128,.32);transition:.16s;font-family:var(--mono)}
+.btn-main:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(74,222,128,.45)}
+.btn-main:active{transform:scale(.97)}
+.btn-gh{margin-top:12px;display:inline-block;background:var(--panel);border:1px solid var(--line);
+  color:var(--ink2);font-size:13px;border-radius:999px;padding:9px 22px;transition:.16s;font-family:var(--mono)}
+.btn-gh:hover{border-color:var(--ink3);color:var(--ink)}
+.foot-note{margin-top:26px;font-size:11px;color:var(--ink3);font-family:var(--mono)}
+
+/* ── 游戏屏 ── */
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.age-chip{font-family:var(--mono);font-size:13px;font-weight:700;background:var(--panel);
+  border:1px solid var(--line);border-radius:999px;padding:5px 14px;white-space:nowrap}
+.age-chip b{color:var(--green)}
+.turn-chip{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.topbar .sp{flex:1}
+.tbtn{font-family:var(--mono);font-size:12px;color:var(--ink2);background:var(--panel);
+  border:1px solid var(--line);border-radius:999px;padding:5px 13px;transition:.15s;white-space:nowrap}
+.tbtn:hover{color:var(--ink);border-color:var(--ink3)}
+
+.stats{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px}
+.stat-row{display:flex;align-items:center;gap:10px;padding:4px 0}
+.stat-row .si{width:20px;text-align:center;font-size:13px;flex-shrink:0}
+.stat-row .sn{width:44px;font-size:11.5px;color:var(--ink2);flex-shrink:0;font-weight:600}
+.stat-row .sb{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden;position:relative}
+.stat-row .sb i{position:absolute;inset:0;border-radius:99px;transition:width .55s cubic-bezier(.4,0,.2,1)}
+.stat-row .sv{width:34px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--ink2);flex-shrink:0;font-variant-numeric:tabular-nums}
+.stat-row.warn .sv{color:var(--red)}
+.stat-row .flag{margin-left:2px;font-size:10px;flex-shrink:0}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;
+  position:relative;overflow:hidden;animation:cardIn .38s cubic-bezier(.2,.8,.3,1) both}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--green),var(--teal),var(--blue))}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+.ev-tag{font-family:var(--mono);font-size:10.5px;color:var(--green);letter-spacing:.12em;margin-bottom:7px}
+.ev-tag.mile{color:var(--yellow)}
+.ev-title{font-size:19px;font-weight:800;letter-spacing:-.01em;margin-bottom:9px}
+.ev-desc{font-size:14px;color:var(--ink2);margin-bottom:18px;white-space:pre-line}
+.choices{display:flex;flex-direction:column;gap:9px}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;width:100%;background:var(--panel2);
+  border:1px solid var(--line);border-radius:12px;padding:12px 15px;font-size:13.5px;color:var(--ink);
+  transition:.15s;animation:cardIn .3s ease both}
+.choice:nth-child(2){animation-delay:.06s}
+.choice:nth-child(3){animation-delay:.12s}
+.choice:hover{border-color:var(--green);background:#262638;transform:translateX(3px)}
+.choice:active{transform:scale(.99)}
+.choice .kbd{font-family:var(--mono);font-size:10.5px;color:var(--ink3);border:1px solid var(--line);
+  border-radius:6px;padding:2px 7px;flex-shrink:0;background:var(--bg)}
+.choice .cx{flex:1}
+.choice .lock{font-size:10.5px;color:var(--ink3);flex-shrink:0}
+.choice.disabled{opacity:.45;pointer-events:none}
+
+.result{border-top:1px dashed var(--line);margin-top:16px;padding-top:15px;animation:cardIn .3s ease both}
+.result p{font-size:13.5px;color:var(--ink);margin-bottom:12px}
+.deltas{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.delta{font-family:var(--mono);font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 11px;
+  animation:pop .35s cubic-bezier(.2,1.4,.4,1) both}
+.delta.up{background:rgba(74,222,128,.13);color:var(--green);border:1px solid rgba(74,222,128,.3)}
+.delta.down{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+@keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.btn-next{display:inline-flex;align-items:center;gap:7px;background:var(--green);color:#062B14;
+  font-weight:800;font-size:13.5px;border-radius:999px;padding:9px 24px;transition:.15s;font-family:var(--mono)}
+.btn-next:hover{filter:brightness(1.1)}
+
+/* ── 抽屉（历史/成就） ── */
+.drawer-bg{position:fixed;inset:0;background:rgba(6,6,12,.62);z-index:40;opacity:0;pointer-events:none;transition:.22s}
+.drawer-bg.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);background:var(--bg2);
+  border-left:1px solid var(--line);z-index:41;transform:translateX(102%);transition:.28s cubic-bezier(.2,.8,.3,1);
+  display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.drawer header{padding:16px 18px 13px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.drawer header b{font-size:15px}
+.drawer header .x{margin-left:auto;color:var(--ink3);font-size:16px;padding:4px 9px;border-radius:8px}
+.drawer header .x:hover{color:var(--ink);background:var(--panel)}
+.drawer .body{flex:1;overflow-y:auto;padding:14px 16px 30px}
+.h-item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:9px}
+.h-item .ha{font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-bottom:3px}
+.h-item b{display:block;font-size:13px;font-weight:700}
+.h-item span{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
+.a-item{display:flex;gap:11px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;padding:10px 13px;margin-bottom:9px}
+.a-item.locked{opacity:.38}
+.a-item .ai{font-size:17px;line-height:1.3}
+.a-item b{display:block;font-size:13px;font-weight:700}
+.a-item.locked b{color:var(--ink2)}
+.a-item span{display:block;font-size:11.5px;color:var(--ink3);margin-top:2px;line-height:1.5}
+.empty-tip{color:var(--ink3);font-size:12.5px;text-align:center;padding:30px 0}
+
+/* ── 结局屏 ── */
+#scr-end{animation:fadeUp .5s ease both;text-align:center}
+.end-rank{font-family:var(--mono);font-size:64px;font-weight:900;line-height:1;letter-spacing:-.02em;
+  filter:drop-shadow(0 0 26px currentColor);animation:pop .6s cubic-bezier(.2,1.3,.4,1) both}
+.end-rank.S{color:var(--yellow)}.end-rank.A{color:var(--green)}.end-rank.B{color:var(--blue)}
+.end-rank.C{color:var(--ink2)}.end-rank.X{color:var(--red)}
+.end-title{font-size:clamp(24px,5.4vw,34px);font-weight:900;margin-top:10px;letter-spacing:-.01em}
+.end-desc{max-width:600px;margin:14px auto 0;font-size:14px;color:var(--ink2);text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 19px;white-space:pre-line}
+.end-desc .tip{display:block;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:12.5px;color:var(--ink3)}
+.end-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:600px;margin:16px auto 0}
+.end-stat{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 6px}
+.end-stat .v{font-family:var(--mono);font-size:19px;font-weight:800}
+.end-stat .k{font-size:10.5px;color:var(--ink3);margin-top:2px}
+.end-score{font-family:var(--mono);font-size:13px;color:var(--ink2);margin-top:14px}
+.end-score b{color:var(--yellow);font-size:16px}
+.end-achs{max-width:600px;margin:18px auto 0;text-align:left}
+.end-achs h3{font-size:13px;color:var(--ink2);margin-bottom:9px;font-family:var(--mono)}
+.end-ach-row{display:flex;flex-wrap:wrap;gap:7px}
+.end-ach{font-size:11.5px;font-family:var(--mono);background:rgba(74,222,128,.1);color:var(--green);
+  border:1px solid rgba(74,222,128,.28);border-radius:999px;padding:3px 11px}
+.end-ach.no{background:var(--panel);color:var(--ink3);border-color:var(--line)}
+.end-btns{margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-end{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:11px 26px;font-size:13.5px;
+  font-weight:700;font-family:var(--mono);transition:.15s}
+.btn-end.pri{background:linear-gradient(135deg,var(--green),var(--green2));color:#062B14}
+.btn-end.sec{background:var(--panel);border:1px solid var(--line);color:var(--ink2)}
+.btn-end:hover{transform:translateY(-1px)}
+
+/* ── toast ── */
+#toasts{position:fixed;top:16px;right:16px;z-index:60;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--panel2);border:1px solid var(--green);border-radius:12px;padding:10px 15px;
+  box-shadow:0 8px 30px rgba(0,0,0,.45);animation:tIn .35s cubic-bezier(.2,1.2,.4,1) both;max-width:250px}
+.toast.out{animation:tOut .3s ease both}
+.toast b{display:block;font-size:12.5px;color:var(--green)}
+.toast span{display:block;font-size:11px;color:var(--ink2);margin-top:1px}
+@keyframes tIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+@keyframes tOut{to{transform:translateX(110%);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+@media (max-width:560px){
+  .end-stats{grid-template-columns:repeat(5,1fr);gap:5px}
+  .end-stat .v{font-size:15px}
+  .stat-row .sn{width:38px;font-size:10.5px}
+  .card{padding:16px 15px 15px}
+  .ev-title{font-size:17px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ 标题屏 ═══ -->
+  <section id="scr-title">
+    <div class="logo-line">WorkBuddy 1024 造物挑战 · 参赛作品</div>
+    <h1>码农人生 · 1024</h1>
+    <p class="subtitle">一款程序员的人生模拟器 —— 从 <b>22 岁</b> 毕业入职，到 <b>52 岁</b> 退休，30 年职业生涯，你能否活成自己想要的样子？</p>
+    <div class="intro">
+      你将同时经营五项属性：<b>💻 技术力</b>、<b>💰 财富</b>、<b>❤️ 健康</b>、<b>🧠 心态</b>，以及程序员最宝贵的<span class="hl">头发</span>。<br>
+      需求变更、凌晨告警、35 岁魔咒、相亲角、植发广告…… 60+ 真实职场事件，每一次选择都通向不同的结局。<br>
+      <span class="hl">规则：</span>任何一项核心属性归零，人生强制关机；活到 52 岁，按最终属性评定结局。共 12 种结局、16 项成就，等你解锁。
+    </div>
+    <div class="career-grid" id="careerGrid"></div>
+    <br>
+    <button class="btn-main" id="btnStart">▶ 开始新人生</button>
+    <button class="btn-gh hide" id="btnContinue">⏵ 继续上一局</button>
+    <div class="foot-note">// 键盘 1/2/3 快捷选择 · Enter 继续 · 支持自动存档</div>
+  </section>
+
+  <!-- ═══ 游戏屏 ═══ -->
+  <section class="hide" id="scr-game">
+    <div class="topbar">
+      <span class="age-chip" id="ageChip">🎂 <b>22</b> 岁 · 2026 年</span>
+      <span class="turn-chip mono" id="turnChip">TURN 01/30</span>
+      <span class="sp"></span>
+      <button class="tbtn" id="btnAch">🏆 成就</button>
+      <button class="tbtn" id="btnHis">📜 履历</button>
+      <button class="tbtn" id="btnRestart">↻ 重开</button>
+    </div>
+    <div class="stats" id="statsPanel"></div>
+    <div class="card" id="evCard"></div>
+  </section>
+
+  <!-- ═══ 结局屏 ═══ -->
+  <section class="hide" id="scr-end">
+    <div class="end-rank" id="endRank">S</div>
+    <div class="end-title" id="endTitle"></div>
+    <div class="end-desc" id="endDesc"></div>
+    <div class="end-stats" id="endStats"></div>
+    <div class="end-score" id="endScore"></div>
+    <div class="end-achs">
+      <h3>// 本局成就</h3>
+      <div class="end-ach-row" id="endAchs"></div>
+    </div>
+    <div class="end-btns">
+      <button class="btn-end pri" id="btnAgain">↻ 再来一次</button>
+      <button class="btn-end sec" id="btnShare">📋 复制成绩单</button>
+    </div>
+  </section>
+</div>
+
+<!-- 抽屉 -->
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer">
+  <header><b id="drawerTitle"></b><button class="x" id="drawerX">✕</button></header>
+  <div class="body" id="drawerBody"></div>
+</aside>
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* ═══════════════ 基础工具 ═══════════════ */
+var $=function(id){return document.getElementById(id)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function clamp(v){return v<0?0:(v>100?100:v)}
+function rnd(a,b){return a+Math.random()*(b-a)}
+
+/* ═══════════════ 属性元数据 ═══════════════ */
+var SM={
+  tech:{n:"技术力",i:"💻",c:"#60A5FA"},
+  money:{n:"财富",i:"💰",c:"#FBBF24"},
+  health:{n:"健康",i:"❤️",c:"#F87171"},
+  mood:{n:"心态",i:"🧠",c:"#C084FC"},
+  hair:{n:"头发",i:"💇",c:"#2DD4BF"}
+};
+var SMORDER=["tech","money","health","mood","hair"];
+
+/* ═══════════════ 职业路线 ═══════════════ */
+var CAREERS=[
+  {id:"bigco",ci:"🏢",n:"大厂螺丝钉",d:"入职万人互联网大厂，流程规范、福利齐全，也从拧螺丝开始。",
+   st:{tech:22,money:18,health:78,mood:72,hair:95},flag:{bigco:1}},
+  {id:"unicorn",ci:"🦄",n:"独角兽先锋",d:"加入高速扩张的创业公司，身兼数职，野蛮生长。",
+   st:{tech:18,money:12,health:84,mood:84,hair:92},flag:{unicorn:1}},
+  {id:"state",ci:"🏛️",n:"国企信息部",d:"稳定的编制，规律的作息，以及十年如一日的技术栈。",
+   st:{tech:10,money:14,health:88,mood:76,hair:97},flag:{state:1}},
+  {id:"free",ci:"🚀",n:"自由开发者",d:"自己做自己的老板，收入起伏，但时间属于自己。",
+   st:{tech:26,money:8,health:82,mood:70,hair:94},flag:{free:1}}
+];
+
+/* ═══════════════ 成就定义 ═══════════════ */
+var ACHS=[
+  {id:"first_blood",i:"👶",n:"Hello World",d:"完成人生第一个年头"},
+  {id:"cat_lord",i:"🐱",n:"铲屎官",d:"收养一只猫主子"},
+  {id:"homeowner",i:"🏠",n:"有房一族",d:"买下属于自己的房子"},
+  {id:"married",i:"💍",n:"脱单成功",d:"走进婚姻殿堂"},
+  {id:"startup",i:"⚡",n:"连续创业",d:"开启自己的创业之路"},
+  {id:"ipo",i:"🔔",n:"敲钟人",d:"创办的公司成功上市"},
+  {id:"oss",i:"⭐",n:"开源之星",d:"开源项目 Star 破千"},
+  {id:"fullstack",i:"🧙",n:"全栈传说",d:"技术力达到 90"},
+  {id:"rich",i:"💎",n:"小目标",d:"财富达到 90"},
+  {id:"health_master",i:"🧘",n:"养生大师",d:"52 岁时健康 ≥ 80"},
+  {id:"night_owl",i:"🦉",n:"夜猫子",d:"累计 3 次选择通宵路线"},
+  {id:"hair_ace",i:"💪",n:"发际线守护者",d:"40 岁时头发 ≥ 60"},
+  {id:"bald_rich",i:"🌟",n:"聪明绝顶",d:"头发归零仍活到 52 岁"},
+  {id:"slacker",i:"🐟",n:"摸鱼宗师",d:"技术 ≤ 35 且活到 52 岁"},
+  {id:"resilient",i:"🛡️",n:"韧性玩家",d:"心态曾低于 20 仍未崩溃"},
+  {id:"wlb",i:"⚖️",n:"WLB 大师",d:"52 岁时心态 ≥ 75 且健康 ≥ 65"}
+];
+
+/* ═══════════════ 里程碑事件 ═══════════════ */
+var MILE={
+  25:{id:"m_jump",mile:1,t:"跳槽季 · 25 岁",d:"三年之痒已到。猎头的电话、同学的内部推荐、隔壁组 leader 的橄榄枝同时摆在你面前。\n技术群里都在说：「跳槽是涨薪最快的捷径。」",
+    c:[
+      {x:"跳槽！薪资涨 30%",e:{money:14,tech:4,mood:-3,hair:-2},r:"你成功上岸，薪资 +30%。新公司的工牌还没捂热，你就开始怀念老公司的食堂。"},
+      {x:"留守深耕，等一个内部机会",e:{tech:8,mood:2},r:"你选择留下。leader 拍拍你：「再等等，名额明年一定给你。」你点点头，把这句话记进了日记。"},
+      {x:"裸辞，Gap 三个月",e:{mood:14,health:6,money:-6,tech:2},r:"你给自己放了毕业以来第一个长假。回来时钱包瘦了，人精神了，看代码的眼神都温柔了。",g:function(s){return s.stats.money>=25}}
+    ]},
+  28:{id:"m_date",mile:1,t:"相亲角 · 28 岁",d:"母亲第 17 次打来电话：「你王阿姨的外甥女，公务员，照片我看了，挺好。」\n你抱着笔记本电脑走进咖啡厅。对方落座后第一句话是：「听说你们程序员，三十五岁都会被淘汰？还有，你是不是快秃了？」",
+    c:[
+      {x:"幽默化解，从诗词歌赋聊到人生理想",e:{mood:8,hair:-1},r:"你用三个段子化解了尴尬，聊到天黑。她送你到地铁口：「你们程序员也不都是无趣嘛。」",set:{married:1}},
+      {x:"打开笔记本，现场给她看我的开源项目",e:{tech:6,mood:4},r:"她盯着你的 commit 记录看了十分钟，认真地说：「原来你真的在改变世界。」",set:{married:1}},
+      {x:"礼貌告别，继续我的技术理想",e:{tech:6,mood:-4,hair:1},r:"你回到工位修完了那个 P0 故障。凌晨两点你忽然想：其实刚才，也挺想有个家的。"}
+    ]},
+  30:{id:"m_thirty",mile:1,t:"三十而立 · 30 岁",d:"生日蛋糕上插着「30」的蜡烛。你盘点毕业八年：技术攒了一身，存款涨了，体检报告上的异常项也从 0 涨到了 7。\n深夜你打开收藏夹，发现「学习计划」的收藏时间是 2019 年。",
+    c:[
+      {x:"立个 Flag：今年系统学习一门新技术",e:{tech:9,mood:3},r:"你报了课、做了笔记、肝完了三个实战项目。年终述职上，你的方案惊艳了全场。"},
+      {x:"搞钱优先，all in 一个副业",e:{money:11,mood:-4,health:-3},r:"你接起了私活、做起了课、运营起公众号。钱是真的，累也是真的。"},
+      {x:"和自己和解，平凡的日子认真过",e:{mood:12,health:5},r:"你关掉了收藏夹里吃灰的课程，第一次在十一点前合上电脑。原来晚上的风是暖的。"}
+    ]},
+  32:{id:"m_house",mile:1,t:"买房时刻 · 32 岁",d:"中介发来第 43 套房源：「哥，这套真的笋，首付 80，月供 1 万 2，电梯房，通勤 40 分钟。」\n你算了算余额，又想了想未来 30 年的现金流。",
+    c:[
+      {x:"上车！掏空六个钱包",e:{money:-30,mood:10,health:-3},r:"签字那天手是抖的。从此你有了房贷，也有了家。",set:{house:1},g:function(s){return s.stats.money>=30}},
+      {x:"再观望观望",e:{mood:-5,money:3},r:"你关掉链家，打开王者。快乐是今晚的，房价是明天的。"},
+      {x:"回老家全款买大平层",e:{money:-24,mood:12,health:4},r:"你收拾行李离开一线。老家 200 平，楼下就是烧烤摊。真香。",set:{house:1},g:function(s){return s.stats.money>=26}}
+    ]},
+  35:{id:"m_crisis",mile:1,t:"35 岁魔咒 · 35 岁",d:"HR 约你「聊聊职业发展」。同行群在传：某厂「裁员广进」，某司「年轻化转型」。\n你看着工位上贴满的便利贴，突然意识到：这行吃的青春饭，好像快凉了。",
+    c:[
+      {x:"转管理路线，带团队打正规军",e:{tech:-6,money:12,mood:-2},set:{manager:1},r:"你开始学着写周报、开例会、抢资源。代码写得少了，白头发长得快了，但钱包鼓了。"},
+      {x:"深耕技术，做不可替代的专家",e:{tech:12,money:3,health:-3},r:"你把自己钉在技术的悬崖边上往下挖。三年后，公司遇到搞不定的问题，第一个想到的还是你。"},
+      {x:"拿赔偿，体面离开",e:{money:18,tech:-5,mood:-8},set:{laidoff:1},r:"N+1 到账那天你请全家吃了顿好的。然后默默打开了招聘软件。"},
+      {x:"悄悄准备 Plan B，副业已经超过工资",e:{money:8,mood:6},g:function(s){return s.stats.money>=55},r:"你早就不是把命拴在一份工资上的人了。HR 约谈时，你心里毫无波澜。"}
+    ]},
+  40:{id:"m_forty",mile:1,t:"不惑之年 · 40 岁",d:"四十岁生日，你独自在天台站了很久。往下看是车流，往上看是星空。\n前半生你回答了太多「这个需求能不能做」，却很少问自己：「这，是不是我想要的人生？」",
+    c:[
+      {x:"全面转管理，追求事业上限",e:{money:12,tech:-5,mood:-3},set:{manager:1},r:"你升了总监，办公室换到了靠窗的位置。只是再也找不回当年写出第一行 Hello World 的快乐。"},
+      {x:"坚守技术一线，做一辈子的工程师",e:{tech:10,mood:5,hair:2},r:"你依然是组里 review 最严的人。年轻人叫你「老师」，你摆摆手：「叫我前辈，我还想写代码。」"},
+      {x:"培养一个能养自己的爱好",e:{mood:14,health:6,money:-4},r:"你捡起了年轻时放下的吉他 / 相机 / 山地车。生活突然有了工作之外的支点。"}
+    ]},
+  45:{id:"m_mid",mile:1,t:"中场战事 · 45 岁",d:"公司「降本增效」的风吹到了你的部门。年轻同事的效率工具用得飞起，AI 写的代码比你的实习生还快。\n你泡了杯枸杞，开始认真思考后半场怎么打。",
+    c:[
+      {x:"带团队，把经验变成杠杆",e:{money:9,mood:2},g:function(s){return s.flags.manager},r:"你把二十年的踩坑经验浓缩成三页新人手册。团队离职率降了一半。"},
+      {x:"All in AI，和年轻人同台竞技",e:{tech:10,money:5,health:-5,mood:-3},r:"你从头学起了 Prompt 和智能体。第一次让 AI 帮你写完一个模块时，你沉默了很久——然后笑了。"},
+      {x:"半退状态，把生活还给生活",e:{mood:13,health:8,money:-6},r:"你换了个清闲的岗位，准点下班接孩子、遛狗、做饭。工资少了，日子满了。"}
+    ]},
+  50:{id:"m_fifty",mile:1,t:"知天命 · 50 岁",d:"五十大寿。儿女（或者猫）给你准备了礼物，公司给你准备了「光荣退休」的纪念奖杯。\n翻开三十年的履历，你最难忘的不是某个千万级项目，而是某个凌晨三点改完 bug 后，看到的那场日出。",
+    c:[
+      {x:"再创业，最后一次 all in",e:{money:0,mood:10,health:-8,tech:4},set:{late_startup:1},r:"你用三十年积蓄换了一张新的办公桌。这次，你给自己打工。"},
+      {x:"退休生活：带孙、钓鱼、写回忆录",e:{mood:14,health:9},r:"你的生活从 sprint 变成了 long walk。钓鱼竿和键盘并排挂在墙上，岁月忽然很慢。"},
+      {x:"回公司做技术顾问，发挥余热",e:{money:7,tech:3,mood:3},r:"每周上两天班，喝喝茶，指点下江山。年轻人们围着叫你「大佬」，你很受用。"}
+    ]}
+};
+
+/* ═══════════════ 随机事件池 ═══════════════ */
+var EVENTS=[
+{id:"legacy",t:"祖传代码",d:"入职第三周，导师甩给你一个没有注释、没有文档、Git 历史只有一句 \"init commit\" 的祖传项目。\n「能跑，别动。」他语重心长地说。",
+ c:[
+  {x:"硬啃三天，重构核心模块",e:{tech:9,health:-5,mood:-3,hair:-2},r:"你不仅看懂了，还顺手还了二十万行技术债。leader 在全员会上点名表扬了你。"},
+  {x:"先补日志和注释，稳字当头",e:{tech:5,mood:1},r:"你给屎山装上了监控。下次它半夜崩溃时，你是全组最快定位问题的人。"},
+  {x:"不动如山，只修表面 Bug",e:{mood:4,tech:-3},r:"你恪守「能跑就别动」的祖训。三年后它果然没出问题，也果然没人敢动。"}
+]},
+{id:"pm_change",t:"第 3 次需求变更",d:"产品经理第 3 次走到你工位前：「就改一个小地方，很简单的，对吧？」\n你看着已经定稿的 PRD 和明天要上线的排期，深吸了一口气。",
+ c:[
+  {x:"通宵改完，客户第一",e:{health:-8,mood:-6,tech:3,money:5,hair:-3},tag:"night",r:"凌晨两点你提交了代码。镜子里，你的黑眼圈已经可以代言熊猫了。"},
+  {x:"拿出数据，据理力争",e:{mood:3,tech:-2,money:-2},r:"评审会上你用三页数据说服了 PM。虽然赢了，但 PM 看你的眼神有点复杂。"},
+  {x:"表面答应，排期到下季度",e:{tech:-2,mood:4,money:-1},r:"你把工期排到了下个季度。这一课，叫职场生存智慧。"}
+]},
+{id:"p0",t:"凌晨三点的告警",d:"凌晨 3:17，手机炸响：「【P0 故障】核心服务不可用，影响全部用户！」\n你一个激灵坐起来，室友在隔壁嘟囔：「又来了……」",
+ c:[
+  {x:"秒起，开电脑，肝到通宵",e:{health:-9,mood:-4,tech:7,money:4,hair:-2},tag:"night",r:"早上八点故障恢复，leader 在群里发了个大拇指。你趴在工位上，睡了今天最香的一觉。"},
+  {x:"先电话值班同学，远程指挥",e:{tech:4,mood:1,health:-2},r:"你躺在床上完成了精准指挥。挂了电话你想：管理能力也是能力。"},
+  {x:"设置静音，天塌了明天再说",e:{mood:3,health:3,tech:-4,money:-4},r:"第二天你被叫去开了三个小时的复盘会。从那以后，你的闹钟再也没有关过。"}
+]},
+{id:"cr",t:"代码评审大战",d:"你的 PR 收到了 47 条评论。最长的一条写着：「这个变量命名风格和 2019 年的项目不一致，建议全局统一，否则后患无穷。」\n你看了看那个变量名：它叫 a。",
+ c:[
+  {x:"逐条回复，全部改完",e:{tech:6,mood:-3,hair:-1},r:"你的 PR 最终 merge 了。 reviewer 留下两个字：「严谨。」你突然觉得头发掉了也值。"},
+  {x:"约他当面 battle，用数据说话",e:{tech:4,mood:2,money:-1},r:"白板前你们画了半小时架构图，最后拥抱（物理）达成共识。他成了你的饭搭子。"},
+  {x:"已读，敷衍，懂得都懂",e:{mood:4,tech:-3},r:"你回复了「收到」，然后一个都没改。三个月后那个变量引发了一个诡异 Bug。天道好轮回。"}
+]},
+{id:"stack",t:"技术选型站队",d:"新项目启动会上，会议室分成三派：Vue 派、React 派、以及「都不如我们自研框架」派。\n三方目光齐齐投向沉默的你。",
+ c:[
+  {x:"选主流生态，招人好招",e:{tech:5,money:2},r:"你的选型稳如老狗。半年后项目扩编，简历果然雪花一样飞进来。"},
+  {x:"选最新技术栈，赌一个未来",e:{tech:8,mood:2,health:-3},r:"你踩遍了新框架的坑，也给官方提了 5 个 PR。简历上这行字，后来闪闪发光。"},
+  {x:"自研！程序员要有自己的框架",e:{tech:6,mood:-4,health:-4,hair:-2},r:"你们的自研框架跑起来了，也只在你们公司跑起来了。但它确实很酷。"}
+]},
+{id:"new_fw",t:"又出了个新框架",d:"刷推看到某个新框架登顶 HN，简介写着：「比 React 快 10 倍，比 Vue 简单 5 倍，GitHub Star 一夜 20k。」\n你的收藏癖犯了。",
+ c:[
+  {x:"周末肝完官方 Tutorial",e:{tech:7,health:-4,mood:2,hair:-1},r:"周一你用它在组内分享会上技惊四座。虽然生产环境依然谁也不敢上。"},
+  {x:"等等看，让子弹飞一会儿",e:{mood:3,tech:-2},r:"半年后那个框架的仓库归档了。你在群里发了句「还好没学」，感觉自己省下了一个亿。"},
+  {x:"收藏 = 学会",e:{mood:5},r:"你熟练地按下 Star，加入「以后一定看」收藏夹。那里已经躺着 237 个未读项目了。"}
+]},
+{id:"ai_copilot",t:"AI 编程助手",d:"公司全员推广 AI 编程助手。宣传语是：「让 AI 写代码，让你专注于创造。」\n你半信半疑地打开，它 30 秒生成了你原本要写两小时的函数。",
+ c:[
+  {x:"全面拥抱，效率起飞",e:{tech:6,money:5,health:2},r:"你的产能翻了三倍，用省下的时间……接了更多需求。"},
+  {x:"坚持手写，保持手感",e:{tech:4,mood:-2,health:-3},r:"你的代码依然优雅。只是每晚你是最后一个关灯的。"},
+  {x:"让 AI 写，我负责喝茶",e:{tech:-5,mood:6,money:-2},r:"AI 写的代码跑得挺好，直到某天它重构了你没看过的模块。你端起茶杯的手，微微颤抖。"}
+]},
+{id:"agent",t:"智能体风暴",d:"行业大会的主题变成了「Agent 元年」。竞品的演示视频里，一串智能体自己开会、自己写代码、自己上线，全程无人工。\n台下掌声雷动，你的手心在出汗。",
+ c:[
+  {x:"All in 智能体，转型新赛道",e:{tech:9,mood:-4,health:-3},r:"你做的第一个智能体工具帮团队省了 40% 的重复劳动。时代列车发车时，你挤上去了。"},
+  {x:"深耕不可自动化的硬核技术",e:{tech:6,money:2},r:"你一头扎进底层与分布式。AI 越强，你这种「知道为什么」的人越贵。"},
+  {x:"继续写业务代码，岁月静好",e:{mood:5,tech:-4,money:-2},r:"你依然写着熟练的 CRUD。只是深夜刷到「AI 取代程序员」的推送时，手指会停一下。"}
+]},
+{id:"weekly",t:"周报文学奖",d:"周五下午四点，你盯着空白的周报文档。本周实际工作：修了 3 个 Bug，开了 8 个会，摸了若干鱼。\n你的嘴角泛起一丝文学的微笑。",
+ c:[
+  {x:"「主导核心模块稳定性专项，输出方法论 3 篇」",e:{mood:4,money:1},r:"leader 回复：「很好，下周继续。」你看着自己的良心，它陷入了短暂的沉默。"},
+  {x:"如实写，清清白白",e:{tech:2,mood:-2},r:"你的周报被当成了反面典型：「这位同学的工作饱和度有待提升。」"},
+  {x:"写太长，写到 leader 看不完",e:{mood:3,money:-1},r:"你用 5000 字详细描述了改一个错别字的全过程。leader 回了个「阅」。文学，输了。"}
+]},
+{id:"okr",t:"OKR 对齐会",d:"季度 OKR 对齐会，会议室吵成菜市场。你的 O 被挑战了 4 轮，KR 被拆解了 3 次。\n四个小时后，所有人举手通过了那份谁也没看懂的 OKR。",
+ c:[
+  {x:"据理力争，守护团队节奏",e:{tech:3,mood:-4,money:1},r:"你砍掉了两个拍脑袋 KR。散会时同事偷偷给你比了个大拇指。"},
+  {x:"全盘接受，反正都能改",e:{mood:3,tech:-2,money:-2},r:"你的 OKR 最终变成了「配合其他部门完成配合工作」。哲学上，这无懈可击。"},
+  {x:"主动认领最难的 KR",e:{tech:5,money:2,health:-3},r:"你成了组里的「困难问题终结者」。年终奖和发际线，注定有一个保不住。"}
+]},
+{id:"review_ppt",t:"年终述职",d:"述职 PPT  Deadline 还有 6 小时。你对着空白的幻灯片突然顿悟：这一年干的活，很难用 PPT 讲出来。\n但讲不出来，就等于没干。",
+ c:[
+  {x:"熬一个史诗级 PPT，动画拉满",e:{mood:-5,health:-5,money:5,hair:-2},tag:"night",r:"你的 PPT 有 68 页动画和 3 个感人故事。答辩完你赢了，也虚脱了。"},
+  {x:"用数据说话，简洁是美德",e:{tech:3,mood:2},r:"三页图表，全部用数据支撑。高管点头：「这是今年最扎实的述职。」"},
+  {x:"临场发挥，口语艺术",e:{mood:4,money:-3},r:"你现场白板画架构，边画边讲，行云流水。评委面面相觑：这到底是述职还是技术分享？"}
+]},
+{id:"perf_c",t:"绩效 C",d:"绩效沟通会。leader 斟酌再三：「你的产出……呃，很有特点。但今年部门只有一个 C 的名额。」\n你知道，那个名额姓你。",
+ c:[
+  {x:"接受，默默努力明年翻身",e:{tech:4,mood:-7,money:-4},r:"你把委屈咽下去，变成了下一年commit记录里的深夜。第二年，你拿了个 B。"},
+  {x:"找 leader 深聊一次",e:{mood:2,tech:1,money:1},r:"你们聊了一小时。原来 C 的原因是你的项目太稳，缺乏「曝光」。你学到了比技术更重要的东西。"},
+  {x:"更新简历，世界那么大",e:{mood:-3,money:4,tech:-2},r:"你把简历挂出去三天，面试邀约排到了下个月。有时候，C 是市场给你发的 offer 预告函。"}
+]},
+{id:"rollback",t:"周五上线综合症",d:"产品经理周五下午五点探过头：「咱们趁周末没人，上线呗？」\n你看了看那个覆盖了 37 个服务的发布计划，又看了看窗外美丽的夕阳。",
+ c:[
+  {x:"上！年轻人就该迎难而上",e:{health:-6,mood:-4,tech:4,money:3,hair:-2},tag:"night",r:"周六凌晨两点，你执行了第 4 次回滚。从此公司多了一条铁律：周五禁止发布。"},
+  {x:"坚决不，周一再说",e:{mood:5,tech:-2},r:"你在周会上讲了半小时的「发布风险管理」。产品经理表面赞同，心里给你记了一笔。"},
+  {x:"上了，但挂了自动回滚和值班",e:{tech:5,mood:2,health:-2},r:"周日凌晨真的出事了，自动回滚 30 秒搞定。你在被窝里看着监控，深藏功与名。"}
+]},
+{id:"bugs",t:"测试提了 99 个 Bug",d:"测试同学的表格标题叫《关于本版本 99 个问题的友好交流》。\n其中第 47 个写道：「UI 像素级偏差 1px，虽然用户永远看不见，但我看得见。」",
+ c:[
+  {x:"全部修完，追求像素级完美",e:{tech:6,health:-5,mood:-4,hair:-1},r:"你修完了 99 个。测试同学给你发了个表情包：respect。你的颈椎发了条微信：尊敬的用户，您好。"},
+  {x:"分级修复，抓大放小",e:{tech:4,mood:2},r:"你拉着测试对齐了严重级别。第 47 个 Bug 被重新定级为「建议」，双方都很满意。"},
+  {x:"这是 Feature，不是 Bug",e:{mood:5,tech:-3,money:-2},r:"你写了一份 20 页的《关于 1px 偏差的艺术价值》文档。测试沉默了，PM 怀疑了，你释怀了。"}
+]},
+{id:"refactor",t:"重构上瘾",d:"你接手了一个「只是稍微优化一下」的任务。三周后，你重写了 40% 的模块，引入了 2 个设计模式，测试覆盖率从 12% 干到 87%。\nleader 路过你的工位，站了很久。",
+ c:[
+  {x:"继续重构，技术人的浪漫",e:{tech:9,mood:3,health:-6,hair:-2},r:"重构后的模块一年零 Bug。你在组里有了个外号：「人形格式化工具」。"},
+  {x:"紧急刹车，够用就好",e:{mood:3,tech:1},r:"你及时收手。leader 也及时出现：「重构得……差不多了吧？该做需求了。」"},
+  {x:"拉着全组一起重构",e:{tech:5,mood:-3,money:2},r:"你发起了一次「技术债清偿运动」。有人爱你，有人恨你，但代码库从此站起来了。"}
+]},
+{id:"slow_sql",t:"一条慢查询",d:"监控告警：某接口 P99 延迟 8 秒。你顺藤摸瓜，找到一条 Join 了 11 张表、嵌套 6 层子查询的「史诗级 SQL」。\n注释写着：2013 年，勿动。",
+ c:[
+  {x:"重写 SQL，加上索引",e:{tech:8,mood:3,money:2},r:"接口延迟降到 80ms。运营同学以为服务器升级了，你去领了一杯免费的咖啡。"},
+  {x:"加缓存，先扛住再说",e:{tech:4,mood:1},r:"缓存一上，延迟降到 20ms。你正得意，缓存雪崩的应急预案一个字还没写。"},
+  {x:"供起来，只读不改",e:{mood:2,tech:-2},r:"你给它上了香（并不是），然后在监控上把告警阈值调到了 10 秒。世界安静了。"}
+]},
+{id:"zhongtai",t:"中台建设",d:"公司宣布「全面中台化」。动员会上，总裁说：「要打通、要复用、要沉淀！」\n你被任命为中台核心开发。散会时你算了算，这等于把过去三年的轮子再造一遍。",
+ c:[
+  {x:"躬身入局，造最好的轮子",e:{tech:8,mood:-4,health:-4,money:3},r:"你们的中台支撑了 12 条业务线。庆功宴上你多喝了两杯，想起了被重构的那些深夜。"},
+  {x:"做个安静的接入方",e:{mood:4,tech:-2,money:-2},r:"你优雅地接入了中台 API。接入本身，就花了三周。"},
+  {x:"公开质疑：这真的有必要吗",e:{mood:-3,tech:2,money:-3},r:"你的提问被记录在会议纪要第 7 页。半年后中台裁撤，有人想起你那句话。"}
+]},
+{id:"digital",t:"数字化转型",d:"领导在群里转发《传统企业数字化转型十大趋势》，附言：「我们要全面转型，人人都要有互联网思维！」\n你看了看需求文档：把 Excel 搬到线上，做一个「云表格」。",
+ c:[
+  {x:"认真做，云表格也是生产力",e:{tech:5,mood:-2,money:2},r:"你的云表格上线了，用户骂声一片。你默默加了一键导出 Excel。真香。"},
+  {x:"做个 MVP，快速验证",e:{tech:4,mood:3},r:"三周上线最小版本。数据证明方向错了，你及时止损，还学会了「小步快跑」这个词。"},
+  {x:"劝领导：先把线下流程理理顺",e:{mood:-2,tech:2,money:-2},r:"领导沉思三秒：「你很有想法，但这个项目还是得做。」你学会了成年人的沉默。"}
+]},
+{id:"cost_down",t:"降本增效",d:"公司发布「降本增效」通知：下午茶取消，打印机上锁，厕纸换成单层，工位密度提升 30%。\n唯一的好消息是：给全组每人发了一张「奋斗者」奖状。",
+ c:[
+  {x:"理解公司，共渡难关",e:{mood:-4,money:-3},r:"你把奖状贴在了工位上。路过的大佬看了一眼，什么也没说。"},
+  {x:"偷偷升级装备，提升单位产出",e:{mood:3,money:-3,tech:2},r:"你自费换了把好键盘。敲代码的幸福感，是对抗通胀的最后堡垒。"},
+  {x:"开始看外部机会",e:{mood:-2,money:2},r:"更新简历的手速，比写代码还快。机会总在降本增效后悄悄出现。"}
+]},
+{id:"outsource",t:"驻场开发",d:"公司接了个大单，需要派人驻场。名单上有你。客户方在 80 公里外，工位在机房隔壁，网速取决于客户的VPN。",
+ c:[
+  {x:"去！补贴可观还能攒人脉",e:{money:11,mood:-6,health:-4},r:"你的驻场补贴每月多 4000。你在机房的嗡嗡声里，写出了职业生涯最多的文档。"},
+  {x:"拒绝，守护代码与作息",e:{mood:4,money:-3},r:"你留在了本部。leader 意味深长地看了你一眼，你的年终奖微妙地少了 8%。"},
+  {x:"远程支持，绝不肉身驻场",e:{tech:2,mood:1,money:-2},r:"你用远程协作工具远程支持了三个月。客户感叹：「你们公司的程序员，原来是虚拟的。」"}
+]},
+{id:"checkup",t:"年度体检",d:"体检报告出来了：颈椎生理曲度变直、轻度脂肪肝、视力涨了 100 度、心率偶尔「窦性心律不齐」。\n医生推了推眼镜：「少熬夜，多运动。你今年……贵庚？」",
+ c:[
+  {x:"立刻办卡，重启健身计划",e:{health:12,mood:3,money:-4},r:"你在健身房坚持了两个月。某天照镜子，居然看见了若隐若现的腹肌轮廓。"},
+  {x:"买齐保健品，朋克养生",e:{health:4,money:-3,mood:1},r:"你的工位变成了药房：护肝片、叶黄素、维生素。你一边熬夜一边吞片，赛博朋克。"},
+  {x:"只要不看报告就没生病",e:{mood:4,health:-4},r:"你把报告折好放进抽屉。那些数字，明天再说。"}
+]},
+{id:"gym",t:"健身房年卡",d:"楼下健身房跑路了，新开那家的会籍顾问是你粉丝：「哥，办卡吗？程序员专享价，三年卡打五折，再送 10 节私教课。」\n你的脑内小人和钱包小人打了一架。",
+ c:[
+  {x:"办！这次一定坚持",e:{health:8,mood:3,money:-5},r:"你果然坚持了……两个月。但两个月，也比以前的零个强。"},
+  {x:"先月卡试试水",e:{health:4,money:-2},r:"月卡策略让你进退自如。月底续费时，你罕见地体验到了「掌握主动权」的快感。"},
+  {x:"跑步不要钱，公园就是健身房",e:{health:6,mood:2},r:"你开始了夜跑。凌晨的街道、耳机里的播客、多巴胺的分泌——免费，但无价。"}
+]},
+{id:"supper",t:"深夜食堂",d:"凌晨一点，你饿了。泡面、楼下烧烤、以及「反正都这么晚了」的恶魔低语同时在耳边回响。\n冰箱里还有半盒昨天点的麻辣香锅。",
+ c:[
+  {x:"加餐！代码要跑，人要吃饱",e:{mood:5,health:-5,hair:-1},tag:"night",r:"麻辣香锅真香。你边吃边修完了最后一个 Bug，感觉人生达到了巅峰（血糖意义的）。"},
+  {x:"煮碗清汤面，对自己好一点",e:{health:3,mood:2},r:"热气腾腾的面下肚，你忽然有点想家。给妈发了条微信：「吃了，面。」"},
+  {x:"扛饿睡觉，明天再战",e:{health:4,mood:-2},r:"你带着饥饿入睡，梦见了火锅。凌晨四点你饿醒了，后悔占了 60%。"}
+]},
+{id:"coffee",t:"咖啡机坏了",d:"公司唯一的咖啡机彻底罢工。维修师傅说主板烧了，配件要从德国调，预计一周。\n整个办公区陷入一种悲怆的氛围，同事们眼神空洞，如同行尸走肉。",
+ c:[
+  {x:"自费点手冲咖啡外卖",e:{mood:6,money:-4,tech:2},r:"你请全组喝了杯 38 块的耶加雪菲。那一小时，代码Review都变温柔了。"},
+  {x:"和同事拼单买速溶",e:{mood:2,money:-2},r:"速溶咖啡的味道穿透了办公室。那一刻，你们仿佛回到了大学宿舍。"},
+  {x:"戒咖啡，顺便早睡一周",e:{health:6,mood:-4},r:"你痛苦地戒断了三天，第四天开始，早晨的阳光居然变得可爱起来。"}
+]},
+{id:"insomnia",t:"失眠之夜",d:"凌晨两点，你睁着眼睛数羊。脑子里循环播放着：明天的排期、没回的邮件、那个诡异的偶现 Bug、以及三年前说错的一句话。\n程序员的大脑，连失眠都是多线程的。",
+ c:[
+  {x:"起来把想到的记进备忘录",e:{tech:2,mood:-3,health:-4,hair:-1},tag:"night",r:"你爬起来写了 12 条待办和 1 个自认为绝妙的架构想法。第二天一看，绝妙个鬼。"},
+  {x:"听播客，让脑子换个频道",e:{mood:5,health:1},r:"一期历史播客听到一半你睡着了。第二天醒来，大脑像被格式化重启了一样清爽。"},
+  {x:"硬躺，与床和解",e:{health:2,mood:-2},r:"你在床上煎鱼到四点。第六次看时间时，你悟了：失眠是大脑在单方面加班。"}
+]},
+{id:"hair_ad",t:"电梯里的植发广告",d:"电梯间屏幕循环播放：「植发只要 998，青春重新拥有！\」画面里的程序员小哥植完发，当场升职加薪、抱得美人归。\n你摸了摸自己的头顶，陷入了沉思。",
+ c:[
+  {x:"心动，预约一个毛囊检测",e:{mood:-3,money:-5,hair:3},r:"检测完顾问说：「哥，你这发量在我们客户里算富翁。」你开心地走了，顺手买了套餐。"},
+  {x:"嗤之以鼻，智慧的光芒不需要头发",e:{mood:4,hair:1},r:"你对着电梯屏幕冷笑。屏幕里的小哥对你回以微笑，自信得仿佛他才是客户。"},
+  {x:"买防脱洗发水，心理安慰也是安慰",e:{mood:2,money:-2,hair:1},r:"生姜味的泡沫包裹着你。成分表第二位是水，但你洗得很虔诚。"}
+]},
+{id:"shampoo",t:"防脱研究会",d:"你潜伏在一个 3000 人的「防脱发技术交流」群里。今晚的议题是：咖啡因洗发水 vs 米诺地尔 vs 光头戴假发，哪种 ROI 最高？\n群主是一位 45 岁的架构师，头发浓密得可疑。",
+ c:[
+  {x:"购入全套，科学防脱",e:{mood:3,money:-4,hair:3},r:"你的浴室变成了实验室。两周后，枕头上头发少了——大概是因为你换了真丝枕套。"},
+  {x:"早睡！从根本上解决问题",e:{health:5,mood:2,hair:2},r:"你连续一周十一点前睡觉。头发掉没掉不知道，但世界的恶意明显降低了。"},
+  {x:"加入光头帮，提前布局",e:{mood:4,hair:-1},r:"你研究了 12 款光头假发和 7 顶帽子。群主评价：「这位群友，很有前瞻性。」"}
+]},
+{id:"backache",t:"久坐的审判",d:"下午三点，你的腰发出了一声只有你能听见的抗议。你站起来接了杯水，顺便在工位做了两个伸展。\n同事看你的眼神，像看一个正在孵化的原始人。",
+ c:[
+  {x:"入手升降桌，站坐交替",e:{health:7,mood:3,money:-5},r:"升降桌到货那天，你站立办公了一下午。腰很舒服，腿有点想罢工。"},
+  {x:"下载护腰教程，每小时活动",e:{health:5,mood:1},r:"你设了每小时闹钟。同事嫌吵，但你腰的满意度达到了年度峰值。"},
+  {x:"人体工学椅，坐就要坐得舒服",e:{health:6,money:-6,mood:2},r:"新椅子到货，你坐下去的瞬间发出了叹息。腰：感谢老铁的一发火箭。"}
+]},
+{id:"eyes",t:"干眼症袭击",d:"下午你发现眼前的世界开始打码——看什么都像没加载完成的图片。眼科诊断：重度干眼 + 视疲劳。\n医生：「你的眨眼次数，比正常人少了 60%。」",
+ c:[
+  {x:"严格执行 20-20-20 法则",e:{health:5,mood:1},r:"每 20 分钟看 20 英尺外 20 秒。你做到了，世界也重新变回了高清。"},
+  {x:"眼药水常备，人工泪液续命",e:{health:4,mood:1,money:-2},r:"你的口袋里永远有一支人工泪液。滴下去的那一刻，眼睛像久旱逢甘霖。"},
+  {x:"换个墨水屏显示器试试",e:{health:4,money:-6,mood:2},r:"墨水屏到货，你看代码的样子像在看 Kindle。护眼是真护眼，卡也是真卡。"}
+]},
+{id:"news_death",t:"深夜的群消息",d:"凌晨，技术大群突然炸了：「兄弟们，X 厂那个 32 岁的哥们，心梗，没抢救过来……」\n群里沉默了很久。有人发了句：「大家……都早点睡。」你盯着天花板，一夜无眠。",
+ c:[
+  {x:"卸载加班软件，今晚必须早睡",e:{health:12,mood:6,hair:2},r:"你十一点关了手机。这是三年来第一次，你见到了凌晨前的夜晚。"},
+  {x:"买份重疾险，给未来上把锁",e:{mood:3,money:-4,health:1},r:"签字时保险顾问欲言又止。你想：有些安全感，只能自己给自己。"},
+  {x:"沉默地继续改 Bug",e:{tech:4,mood:-8,health:-6,hair:-2},r:"你什么也没说，只是把烟掐了。那个 Bug 修到一半，你鬼使神差地打开了体检预约。"},
+ ],g:null,w:0},
+{id:"keyboard",t:"机械键盘的诅咒",d:"深夜，你刷到了一段客制化键盘的开箱视频：麻将音的敲击声像 ASMR 一样钻进耳朵。\n你的手指，背叛了你的钱包。",
+ c:[
+  {x:"剁！顶级套件一步到位",e:{mood:8,money:-7,tech:2},r:"键盘到货那晚，你写了一篇 5000 字的使用体验。代码没写几行，快乐是真的。"},
+  {x:"买个套件自己组，乐趣在过程",e:{mood:6,tech:4,money:-5,health:-2},r:"你焊了三小时轴，调了一晚卫星轴。成品手感一般，但成就感直接拉满。"},
+  {x:"薄膜键盘，程序员的内敛",e:{mood:-2,money:1},r:"你关掉了购物车。深夜的指尖，只属于公司发的那块黑色薄膜。"}
+]},
+{id:"gpu",t:"显卡大降价",d:"「4090 暴跌至 8 字头！」「XX 卡历史最低价！」购物软件的推送像恶魔低语。\n你想起家里那台跟着你六年的老显卡，风扇声已经像拖拉机了。",
+ c:[
+  {x:"冲！性能就是生产力",e:{mood:8,money:-10,tech:3},r:"新显卡点亮那一刻，4K 画质全开。你的世界，从此帧数自由。"},
+  {x:"买张甜品卡，理性消费",e:{mood:4,money:-4},r:"甜品卡真香。你一边跑着本地大模型，一边夸自己理性。"},
+  {x:"云 GPU 更香，按需付费",e:{mood:2,money:-1,tech:1},r:"你开通了云算力。训练完就关机，钱包的压力瞬间归零。"}
+]},
+{id:"monitor",t:"4K 的诱惑",d:"组里大佬晒出了新到的 4K 双屏，代码一屏看全，再也不用滚动。配文：「程序员对自己好一点。」\n你看着自己 1080P 上需要横向拖动的代码，陷入了嫉妒。",
+ c:[
+  {x:"上 4K！程序员的时间就是金钱",e:{tech:4,mood:5,money:-6},r:"4K 到货当天，你的代码一屏看全了，脖子前伸的毛病都好了。真·生产力工具。"},
+  {x:"双 1080P 也够用",e:{mood:1,money:-2},r:"你组了个双屏。虽然不是 4K，但左右开弓的快感实实在在。"},
+  {x:"单屏极简，心远地自偏",e:{mood:2},r:"你继续用着单屏。奇怪的是，专注度反而提升了——选择少，干扰就少。"}
+]},
+{id:"keycaps",t:"键帽收藏家",d:"你入坑了客制化键帽。今晚限量发售的「程序员专属配色」：Esc 是红色电源键，空格上印着 Hello World。\n抢购倒计时：3、2、1……",
+ c:[
+  {x:"秒杀！为信仰充值",e:{mood:7,money:-4},r:"键帽上机那一刻，你的键盘成了工位上的艺术品。隔壁工位来了三拨围观。"},
+  {x:"只买一套最爱的，点到为止",e:{mood:4,money:-3},r:"理性与热爱的平衡术，你在深夜的购物车里悟到了。"},
+  {x:"忍住，键帽是消费主义陷阱",e:{mood:-3,money:1},r:"你关掉页面，继续敲击原厂键帽。理性胜利了，但你的手指记住了那声叹息。"}
+]},
+{id:"blindbox",t:"程序员盲盒",d:"公司楼下开了家潮玩店，新品是「程序员日常」盲盒：隐藏款是「没有 Bug 的程序员」。\n售价 59，中奖概率 1/72。你命运的齿轮开始转动。",
+ c:[
+  {x:"端盒！12 个全要",e:{mood:7,money:-8},r:"你端了一整盒。拆到第 11 个，隐藏款出现了。你举着它站了一会儿，像举着青春。"},
+  {x:"买三个，见好就收",e:{mood:4,money:-2},r:"三个拆完，虽然没有隐藏款，但「凌晨下班的程序员」那个神情，像极了你自己。"},
+  {x:"路过，潮玩是另一个次元",e:{mood:-1},r:"你路过三次，最终只带走了一杯奶茶。省钱是真的，空虚也是真的。"}
+]},
+{id:"btc",t:"币圈风云",d:"家族群里，表哥晒出了合约收益截图：「最近牛市，随便买随便赚。」配图是一辆新车。\n你想起六年前那个 3000 块没买的币，和那个擦肩而过的财富自由。",
+ c:[
+  {x:"小仓位试试，归零也无所谓",e:{money:0,mood:2},r:"波动让你心率跟着K线起伏。一周后你平静地清仓了：这钱，不是程序员该赚的。"},
+  {x:"定投，做时间的朋友",e:{money:6,mood:-2},r:"你设置了每周定投。涨跌不惊，像你的代码一样——低耦合，高可用。"},
+  {x:"不碰，代码之外不冒险",e:{mood:3},r:"你把家族群设了免打扰。继续回去写你的确定性逻辑——那里的 Bug 至少能复现。"}
+]},
+{id:"side_job",t:"私活召唤",d:"前同事甩来一个单：「给做个商城小程序，预算 8000，两周交。」\n你心算了一下：两周，8000，相当于时薪 250。你的肝和你的钱包同时亮了。",
+ c:[
+  {x:"接！肝就完了",e:{money:10,health:-7,mood:-4,hair:-2},tag:"night",r:"你肝了十个深夜交付了。尾款到账那天你发誓：这是最后一单。人类的本质是真香。"},
+  {x:"砍半报价，只接核心模块",e:{money:6,health:-3,mood:-1},r:"你用专业报价过滤掉了 80% 的麻烦客户。剩下的，都是讲理的有缘人。"},
+  {x:"婉拒，业余时间是神圣的",e:{mood:5,tech:-1,money:-2},r:"你礼貌回复：「最近在啃分布式。」然后打开了游戏。这句话，一半是真的一半是演的。"}
+]},
+{id:"course",t:"知识付费浪潮",d:"朋友圈刷屏：「35 岁程序员转行做课，年入百万！」配图是销售额后台和喜提新车。\n你看了看自己收藏夹里吃灰三年的「Java 高并发从入门到入土」，陷入了沉思。",
+ c:[
+  {x:"做课！把经验变成睡后收入",e:{money:9,mood:-4,health:-3},r:"你的课上线首月卖了 400 份。学员好评如潮，你熬夜答疑的样子，像极了当年改 Bug。"},
+  {x:"写免费教程，攒个人品牌",e:{tech:5,mood:3,money:1},r:"你的系列博文被转载了 200 多次。半年后，有出版社编辑找上了门。"},
+  {x:"割韭菜的事，不干",e:{mood:4},r:"你关掉页面继续写代码。深夜的 commit，是你最干净的变现。"}
+]},
+{id:"livestream",t:"老板让你直播写代码",d:"运营部门搞了个大创意：「程序员直播写代码，这多有反差萌！」老板大手一挥：全组都要上。\n你的工位被架上了补光灯和环形麦克风。",
+ c:[
+  {x:"播！顺便分享技术干货",e:{mood:4,tech:3,money:2},r:"你直播讲解架构设计，意外涨了 2000 粉。弹幕说：「哥，你讲得比课还清楚。」"},
+  {x:"全程摸鱼直播，反向涨薪",e:{mood:5,tech:-2,money:-2},r:"你直播了三小时「研究技术文档」（其实是看番）。运营看完回放，默默取消了下一场。"},
+  {x:"找借口请假，程序员不上镜",e:{mood:-2,money:-1},r:"你以「服务器要维护」为由逃了。当晚真的在维护服务器——逃避可耻但有用。"}
+]},
+{id:"lottery",t:"年会抽奖",d:"年会高潮，抽奖环节。一等奖：最新款顶配笔记本。主持人念到第三个字时，你听到了自己的工号。\n全场掌声雷动，你踩着红地毯走上了舞台。",
+ c:[{x:"发表获奖感言：感谢公司，感谢 C++",e:{mood:10,money:5,hair:-1},r:"你抱着奖品下了台。室友听说后沉默了：为什么他的公司年会只有阳光普照奖。"},
+  {x:"低调领奖，深藏功与名",e:{mood:6,money:4},r:"你默默领了奖。第二天工位上多了台顶配笔记本，和一句「也就一般吧」的凡尔赛。"}
+]},
+{id:"option",t:"期权激励",d:"HR 找你谈「长期激励」：给你 10000 股期权，分四年归属，行权价不低。\n画的重点是：如果公司上市，这将是一笔可观的财富。当然，前提是——公司上市。",
+ c:[
+  {x:"签！赌一个未来",e:{mood:3,money:2,health:-3},r:"你在协议上签了字。此后每年，你都会想起这笔「如果」。"},
+  {x:"换算成工资更实在",e:{money:6,mood:-2},r:"你和 HR 谈成了加薪。落袋为安，是程序员的美德。"},
+  {x:"仔细研究条款，发现全是坑",e:{tech:2,mood:-3},r:"你逐条审完，在群里发了篇 3000 字避坑分析。HR 从此对你客客气气。"}
+]},
+{id:"mortgage",t:"利率风云",d:"新闻推送：「房贷利率再度下调！」你的业主群瞬间炸锅，没上车的在哀嚎，上了车的在研究提前还款。\n你算了算自己的那 30 年，点了一支并不抽的烟。",
+ c:[
+  {x:"提前还一笔，少给银行打工",e:{money:-8,mood:6},r:"还款成功那晚，你睡了毕业以来最沉的一觉。无债一身轻，古人诚不我欺。"},
+  {x:"不动，现金流为王",e:{mood:2,money:1},r:"你把现金留在手里。深夜看理财收益时，你对「流动性溢价」有了肉身理解。"},
+  {x:"换个城市生活，把房卖了",e:{mood:6,money:6,health:2},r:"你挂出了房源。一周后成交，你带着全部家当，去了那个一直想去的城市。"}
+]},
+{id:"intern",t:"带实习生",d:"leader 甩给你一个实习生：「小伙子很崇拜你，你多带带。」小伙子眼睛发亮：「哥！你就是我偶像！我能跟你学架构吗？」\n你看了看他，仿佛看到了六年前的自己。",
+ c:[
+  {x:"倾囊相授，传承薪火",e:{tech:5,mood:4,health:-2},r:"三个月后他能独立负责模块了。转正那天他请你吃饭：「哥，以后我也要带人。」"},
+  {x:"扔个文档，自己悟",e:{mood:2,tech:-1},r:"你发了他一份 80 页的入门文档。三天后他看完了，也跑路（字面意义地）去别的组了。"},
+  {x:"让他先修 100 个 Bug 练手",e:{tech:4,mood:1},r:"小伙子修完 Bug 后脱胎换骨。他给你发了个红包，你没收，截屏存进了「人生高光」相册。"}
+]},
+{id:"hackathon",t:"周末黑客松",d:"公司黑客松海报贴满食堂：「48 小时，做个改变世界的 Demo！」奖品：最新顶配设备 +  CEO 面基机会。\n你的极客之魂，熊熊燃烧。",
+ c:[
+  {x:"参赛！拉上最强的队友",e:{tech:8,mood:5,health:-6,hair:-2},tag:"night",r:"48 小时后你们的 Demo 拿了冠军。领奖时你靠着队友睡着了——幸福的那种。"},
+  {x:"摸鱼参赛，重在参与",e:{mood:3,tech:1},r:"你们做了个「自动回复老板消息」的机器人。演示时全场爆笑，你收获了快乐。"},
+  {x:"不去，周末属于床",e:{health:5,mood:2,tech:-1},r:"你在床上躺平了两天。周一上班神采奕奕，同事们像被抽干的海绵。"}
+]},
+{id:"conf",t:"技术大会",d:"行业顶级技术大会在你城市举办，票价 1800。嘉宾名单里有你崇拜了十年的技术大牛。\n你去请示 leader，leader：「想去就去，算团建。」",
+ c:[
+  {x:"去！朝圣之旅",e:{tech:7,mood:5,money:-3},r:"大牛的分享让你热血沸腾。茶歇时你鼓起勇气要了合影，设为屏保三个月。"},
+  {x:"看线上直播，内容一样",e:{tech:4,mood:1},r:"你在工位上看完了全程直播。虽然没有现场氛围，但知识是实打实的。"},
+  {x:"不去，有那时间不如写代码",e:{tech:3,mood:-2},r:"你把 1800 换算成 12 杯奶茶，顿时觉得会议也没什么非去不可。"}
+]},
+{id:"oss",t:"开源时刻",d:"你业余维护的小工具突然被大厂转载，GitHub Star 一夜破千。Issue 区涌入了各国开发者，有人提了 PR，有人许愿：「求求你，别弃坑。」\n你看着通知栏，手在抖。",
+ c:[
+  {x:"认真维护，对得起 Star",e:{tech:9,mood:6,health:-5,hair:-2},r:"你的项目进了 awesome 榜单，简历引用者无数。深夜回复 issue 的你，比白天上班还认真。"},
+  {x:"交给社区，共建生态",e:{tech:5,mood:3},r:"你扶持了几个核心贡献者。项目脱离了你也蓬勃生长——这才是开源的浪漫。"},
+  {x:" Archived：生活优先",e:{mood:-3,tech:-2},r:"你设置了只读仓库。置顶 issue 写着：「感谢陪伴，江湖再见。」"}
+]},
+{id:"blog",t:"博客爆款",d:"你半夜写的技术复盘《一次线上 P0 故障的完整复盘》突然被推上首页，阅读量 10w+。\n评论区一片：「楼主救我一命」「终于有人讲清楚了」「求更新分布式系列」。",
+ c:[
+  {x:"乘势更新系列，做成专栏",e:{tech:6,mood:5,money:2,health:-3},r:"你的专栏成了站内精品。有出版社编辑私信你：「有兴趣出书吗？」"},
+  {x:"回复每一条评论",e:{mood:4,tech:2,health:-2},r:"你回复了 800 条评论。有人说：「这是我见过最认真的技术博主。」"},
+  {x:"深藏功与名，继续搬砖",e:{mood:2,tech:1},r:"你关掉通知继续写业务代码。周末的风穿过窗户，你忽然觉得这样也挺好。"}
+]},
+{id:"cat",t:"雨夜的流浪猫",d:"加班回家的雨夜，垃圾桶旁传来微弱的叫声。一只橘猫浑身湿透，冲你「喵」了一声，然后蹭了蹭你的裤脚。\n它看起来，比你还像这个城市的漂泊者。",
+ c:[
+  {x:"抱回家！从此我有猫了",e:{mood:12,health:2,money:-4,hair:1},set:{cat:1},r:"你有了猫。凌晨它踩键盘写出的代码，居然比你写的优雅。你甘之如饴。"},
+  {x:"买粮喂食，做它的定点饭票",e:{mood:5,money:-2},r:"它成了小区的「编外成员」。每天下班，它都在老地方等你，像在查岗。"},
+  {x:"联系救助站，专业的事交给专业的人",e:{mood:2},r:"救助站的小姐姐夸你有责任心。你转身走进雨里，心里空了一块。"}
+]},
+{id:"reunion",t:"同学聚会",d:"毕业十年同学聚会。当年的室友成了创业者，同桌继承了家业，连最不爱学习的兄弟都开了三家火锅店。\n轮到你，你推了推眼镜：「我……还在写代码。」",
+ c:[
+  {x:"为热爱骄傲，代码改变世界",e:{mood:8,tech:3,hair:1},r:"你讲起正在做的项目，眼里有光。散场时创业者室友说：「兄弟，我敬你是条极客。」"},
+  {x:"默默较劲，暗中发力",e:{tech:5,mood:-4,money:2},r:"那晚你回家打开了尘封的副业计划。成年人的世界，比较才是第一生产力。"},
+  {x:"佛系社交，开心就好",e:{mood:4,health:2},r:"你和当年的下铺喝到半夜，聊起宿舍断电后点蜡烛补考的青春。代码暂且放下了。"}
+]},
+{id:"parents_call",t:"父母的电话",d:"母亲打来电话，第 N 次开启催婚程序：「你表妹家孩子都会打酱油了！你到底什么时候让我们抱外孙？」\n你看了看屏幕右下角的时间：23:47。你还在公司。",
+ c:[
+  {x:"耐心解释，程序员先改变世界",e:{mood:-2,hair:-1},r:"电话那头沉默了几秒：「行，你忙。记得吃饭。」你挂了电话，盯着屏幕发了很久呆。"},
+  {x:"转移话题，汇报工资",e:{mood:2,money:-1},r:"你报出工资数字后，电话那头的语气明显轻快了：「……那你确实忙。」"},
+  {x:"承诺春节一定带人回家",e:{mood:-3},r:"你在日历上标了个红圈。距离春节还有 89 天，距离脱单，还差一个未知数。"}
+],g:function(s){return !s.flags.married}},
+{id:"game_night",t:"兄弟，开黑吗",d:"大学室友群里炸了：「五缺一！速上！」你看了眼工位：需求文档还差三个模块，测试环境还有 Bug 在跳舞。\n你的鬼鬼祟祟，不，你的踌躇满志，只维持了 0.3 秒。",
+ c:[
+  {x:"上号！今晚不谈工作",e:{mood:9,health:-3,money:-1},r:"你们五连败到凌晨两点，笑到腹肌抽筋。散队时你说：这局输了，但今晚没输。"},
+  {x:"打完这局就写代码",e:{mood:5,tech:-3,money:-1},r:"你打到了凌晨四点。那三个模块，最终在周日深夜哭着写完。"},
+  {x:"忍住，事业上升期",e:{tech:4,mood:-4,health:-2},r:"你在群里回了个「在忙」，然后继续敲键盘。窗外的游戏欢呼声，与你无关。"}
+]},
+{id:"script_kill",t:"团建剧本杀",d:"行政宣布团建改玩剧本杀，主题《谁毒死了产品经理》。你抽到的角色是：一名深夜改 Bug 的程序员，凶器是一把冒蓝火的加特林。\n你从未觉得人生如此贴合角色。",
+ c:[
+  {x:"沉浸式飙戏，拿 MVP",e:{mood:6,tech:1},r:"你推理缜密、演技爆炸，拿了本场 MVP。PM 笑着把「最佳戏精」奖颁给了你。"},
+  {x:"默默盘线索，技术型玩家",e:{tech:3,mood:2},r:"你画了张时间线表格，逻辑严密到 DM 卡壳。技术人的浪漫，连游戏都不放过。"},
+  {x:"借口加班，逃了团建",e:{mood:-2,money:-1},r:"你在公司真的加了班。深夜路过团建餐厅，里面传出大笑声，你顿了顿脚步。"}
+]},
+{id:"camping",t:"周末露营",d:"同事拉你入伙周末露营：「去看星星，忘掉 OKR！」你看着帐篷、天幕、卡式炉的采购清单，钱包和灵魂同时苏醒了。\n目的地：城郊水库，无信号。",
+ c:[
+  {x:"去！大自然是最好的 IDE",e:{health:9,mood:9,money:-4,hair:1},r:"你在没有信号的山里躺了一天。回城时大脑像被 GC 过一样干净，bug 都想通了。"},
+  {x:"带上笔记本，露营办公两不误",e:{tech:2,mood:2,health:-2},r:"你在星空下写了三小时代码。抬头是银河，低头是终端——这很程序员。"},
+  {x:"在家躺平，同样的周末",e:{health:4,mood:1},r:"你在家躺了两天，看了三部老电影。灵魂得到了休整，虽然方式比较废柴。"}
+]},
+{id:"meet_parents",t:"见家长",d:"第一次正式见家长。准岳父翻开你的体检报告，又看了看你的发际线，缓缓开口：「小伙子，你们这行……稳定吗？」\n你端起茶杯的手，稳如生产环境的 P99。",
+ c:[
+  {x:"展示技术实力与职业规划",e:{mood:5,money:1},r:"你打开笔记本电脑展示作品。准岳父看完半晌：「……确实比我们单位那套先进。」",g:function(s){return s.flags.married}},
+  {x:"真诚是最好的套路",e:{mood:4},r:"你老实讲了行业现状与规划。准岳母听完：「实在孩子。稳定不稳定，看人。」",g:function(s){return s.flags.married}}
+]},
+{id:"broke",t:"吃土的一个月",d:"房东催租、花呗还款、随礼三连击。你看着银行卡余额：¥37.5。\n冰箱里有半袋挂面，和一盒前任留下的老干妈。你陷入了对人生的哲学思考。",
+ c:[
+  {x:"接个急单，回血要紧",e:{money:9,health:-5,mood:-3,hair:-1},r:"你三天肝完一个小单，钱包复活。客户说「下次还找你」，你希望这是最后一次。"},
+  {x:"极致节俭，泡面度日",e:{money:4,health:-5,mood:-4},r:"你吃了 21 天泡面。月底称重，轻了 6 斤——最朋克的减肥法。"},
+  {x:"向父母坦白，寻求支援",e:{money:8,mood:-3},r:"母亲转了 5000，附言：「不够再说。」你盯着那行字，眼眶热了很久。"}
+],w:0},
+{id:"burnout",t:"精神内耗",d:"周一早晨，你盯着电脑屏幕，突然什么都不想干。需求文档像天书，代码像仇人，连最爱的那杯咖啡都淡如白水。\n你知道，这是身体在拉警报。",
+ c:[
+  {x:"请年假，逃离一切",e:{mood:12,health:6,money:-2},r:"你关掉工作群，去海边发了三天呆。回来时，世界居然又能要了。"},
+  {x:"摸鱼自救，降低期待",e:{mood:5,tech:-3},r:"你开启了「60 分万岁」模式。奇怪的是，天没塌，绩效也没崩。"},
+  {x:"深夜 emo，写篇长文",e:{mood:3,tech:1,health:-3},r:"你写了 3000 字《一个程序员的崩溃与自愈》。发在无人关注的角落，然后沉沉睡去。"}
+],w:0}
+];
+
+/* 条件事件：低状态时提高权重 */
+EVENTS.forEach(function(e){
+  if(e.id==="broke")e.cond=function(s){return s.stats.money<=12};
+  if(e.id==="news_death")e.cond=function(s){return s.stats.health<=28};
+  if(e.id==="burnout")e.cond=function(s){return s.stats.mood<=28};
+});
+
+/* ═══════════════ 结局定义 ═══════════════ */
+var ENDS={
+death_health:{rank:"X",t:"【强制关机】英年早逝",d:"长期熬夜、久坐、高压，你的身体比代码先一步崩溃。凌晨的工位上，你的光标还停在那行未写完的循环里。\n同事们记得你，HR 记得你，ICU 的账单也记得你。",tip:"程序员的第一行代码是 Hello World，但人生的第一行应该是「好好活着」。会休息的人，才走得远。"},
+death_mood:{rank:"X",t:"【进程终止】精神离职",d:"你依然每天打卡、开会、提交代码，只是灵魂早已提交了辞职信。\n某个普通的加班夜，你平静地合上电脑，收拾了工位上的手办，从此再也没有打开过 IDE。",tip:"代码可以重写，人生不能回滚。当心态亮红灯时，停下来不是失败，是自愈。"},
+death_tech:{rank:"X",t:"【404 Not Found】被优化",d:"技术停滞的你，在一次「降本增效」的名单上看到了自己的名字。\nHR 说这是「毕业」，是「向社会输送人才」。你抱着纸箱子站在写字楼下，突然想起十年前那个热爱技术的自己。",tip:"唯一不可替代的，是持续进化的能力。技术的世界里，没有一劳永逸的岸。"},
+legend:{rank:"S",t:"财富自由 · 技术传奇",d:"52 岁这年，你同时拥有了财富与技术话语权。你的技术决策影响行业风向，你的被动收入覆盖全家开销。\n更重要的是，你依然热爱写代码——因为热爱，从来与年龄无关。",tip:"你活成了程序员这个职业的终极浪漫：把钱挣了，把梦做了。"},
+ipo:{rank:"S",t:"敲钟时刻",d:"你创办的公司成功上市。敲钟那一刻，你想起二十年前那个在出租屋里通宵改 Bug 的少年。\n他不会想到，有一天自己的名字会出现在交易所的大屏上。",tip:"从 0 到 1 的路，你一步都没少走。这一钟，敬所有深夜的 commit。"},
+oss:{rank:"A",t:"开源之星",d:"你的开源项目被写进了无数开发者的依赖列表，GitHub Star 六位数。全球的工程师用着你写的工具，构建着他们的世界。\n而你，依然是那个会在深夜给社区新人回复 issue 的「普通开发者」。",tip:"技术会过时，贡献给社区的东西不会。你是数字世界的无名基建者。"},
+winner:{rank:"A",t:"平凡而幸福的人生赢家",d:"52 岁的你，有家有热爱，有猫有生活。早晨不再被闹钟惊醒，周末不再被需求@。\n你会给年轻程序员讲当年的故事，讲到凌晨三点的日出时，眼里有光。",tip:"不是所有人生都要成为传奇。把普通的日子过得热气腾腾，本身就是一种成就。"},
+exec:{rank:"B",t:"高管在任",d:"三十年后，你已是行业里小有名声的技术管理者。办公室在高层，落地窗外是这座城市的天际线。\n偶尔路过研发区，你会停下脚步，看那些年轻人写代码的样子，像看当年的自己。",tip:"从写代码到带团队，你换了一种方式热爱这个行业。"},
+safe:{rank:"B",t:"平安是福",d:"三十年职业生涯，没有惊天动地，但每一步都踩得踏实。你经历过寒冬，也等来了春天；送走了许多同事，也迎来了许多新人。\n退休那天，你把工牌放进抽屉，忽然觉得：平平安安活到终场，已经很了不起。",tip:"健康、家庭、内心秩序——职业生涯的尽头，这些才是真正的积分。"},
+slacker:{rank:"C",t:"摸鱼宗师",d:"三十年来，你精通一切摸鱼技艺：键盘宏自动回复、定时提交 commit、会议隐身术……\n神奇的是，你不仅没被开除，还成了组里最资深的「吉祥物」。",tip:"摸鱼是艺术，但别让它成为全部。你本可以，再认真一点点。"},
+bald_rich:{rank:"A",t:"聪明绝顶",d:"头发随风而逝，财富与智慧与日俱增。52 岁的你头顶反射着吊灯的光，像一盏锃亮的氪金灯泡。\n年轻人尊称你「光头大佬」，你摸着滑溜溜的头顶，笑而不语。",tip:"每一个秃顶的程序员，都是被知识淬炼过的智者。"}
+};
+
+/* ═══════════════ 游戏状态 ═══════════════ */
+var S=null;
+var SAVE_KEY="coderlife1024_save_v1";
+var selCareer=0;
+var pendingResult=null;
+
+function newGame(idx){
+  var c=CAREERS[idx];
+  S={
+    age:22,year:2026,turn:1,maxTurn:30,
+    stats:Object.assign({},c.st),
+    flags:Object.assign({},c.flag),
+    career:c,
+    recent:[],shown:{},usedMile:[],history:[],achs:[],
+    nightCount:0,moodLow:false,over:false
+  };
+  save();
+}
+
+function save(){
+  if(!S)return;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(S))}catch(e){}
+}
+function hasSave(){try{return !!localStorage.getItem(SAVE_KEY)}catch(e){return false}}
+function loadSave(){
+  try{var d=JSON.parse(localStorage.getItem(SAVE_KEY));if(d&&!d.over)S=d;return S}catch(e){return null}
+}
+
+/* ═══════════════ 事件选择 ═══════════════ */
+function pickEvent(){
+  var m=MILE[S.age];
+  if(m&&S.usedMile.indexOf(m.id)<0){
+    if(m.g&&!m.g(S))return pickRandom();
+    return m;
+  }
+  return pickRandom();
+}
+function pickRandom(){
+  var pool=[],i,e;
+  for(i=0;i<EVENTS.length;i++){
+    e=EVENTS[i];
+    if(e.g&&!e.g(S))continue;
+    pool.push(e);
+  }
+  var fresh=[];
+  for(i=0;i<pool.length;i++)if(S.recent.indexOf(pool[i].id)<0)fresh.push(pool[i]);
+  var list=fresh.length?fresh:pool;
+  var total=0,ws=[];
+  for(i=0;i<list.length;i++){
+    var w=10;
+    if(S.shown[list[i].id])w=3.5;
+    if(list[i].cond&&list[i].cond(S))w=38;
+    ws.push(w);total+=w;
+  }
+  var r=Math.random()*total;
+  for(i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}
+  return list[list.length-1];
+}
+
+/* ═══════════════ 渲染 ═══════════════ */
+function show(scr){
+  ["scr-title","scr-game","scr-end"].forEach(function(id){$(id).classList.add("hide")});
+  $(scr).classList.remove("hide");
+  window.scrollTo(0,0);
+}
+
+function renderTitle(){
+  var g=$("careerGrid"),h="";
+  CAREERS.forEach(function(c,i){
+    h+='<button class="career'+(i===selCareer?" sel":"")+'" data-i="'+i+'">'
+      +'<div class="ci">'+c.ci+'</div><b>'+esc(c.n)+'</b><span>'+esc(c.d)+'</span>'
+      +'<div class="cv">'
+      +'<i style="color:#60A5FA">💻'+c.st.tech+'</i> '
+      +'<i style="color:#FBBF24">💰'+c.st.money+'</i> '
+      +'<i style="color:#F87171">❤️'+c.st.health+'</i><br>'
+      +'<i style="color:#C084FC">🧠'+c.st.mood+'</i> '
+      +'<i style="color:#2DD4BF">💇'+c.st.hair+'</i>'
+      +'</div></button>';
+  });
+  g.innerHTML=h;
+  Array.prototype.forEach.call(g.querySelectorAll(".career"),function(b){
+    b.onclick=function(){selCareer=parseInt(b.dataset.i,10);renderTitle()};
+  });
+  $("btnContinue").classList.toggle("hide",!hasSave());
+}
+
+function renderStats(){
+  var h="";
+  SMORDER.forEach(function(k){
+    var v=S.stats[k],meta=SM[k];
+    var warn=(v<=25&&k!=="hair")?' class="stat-row warn"':' class="stat-row"';
+    var flag="";
+    if(k==="tech"&&S.flags.manager)flag='<span class="flag">👔管理</span>';
+    if(k==="money"&&S.flags.house)flag='<span class="flag">🏠房贷</span>';
+    if(k==="mood"&&S.flags.married)flag='<span class="flag">💍已婚</span>';
+    if(k==="health"&&S.flags.cat)flag='<span class="flag">🐱有猫</span>';
+    h+='<div'+warn+'><span class="si">'+meta.i+'</span><span class="sn">'+meta.n+'</span>'
+      +'<span class="sb"><i style="width:'+v+'%;background:'+meta.c+'"></i></span>'
+      +'<span class="sv">'+Math.round(v)+'</span>'+flag+'</div>';
+  });
+  $("statsPanel").innerHTML=h;
+  $("ageChip").innerHTML="🎂 <b>"+S.age+"</b> 岁 · "+S.year+" 年";
+  $("turnChip").textContent="TURN "+String(S.turn).padStart(2,"0")+"/"+S.maxTurn;
+}
+
+function renderEvent(ev){
+  pendingResult=null;
+  var tag=ev.mile?'<div class="ev-tag mile">◆ MILESTONE · 第 '+S.turn+' 年</div>'
+                :'<div class="ev-tag">// EVENT · 第 '+S.turn+' 年</div>';
+  var h=tag+'<div class="ev-title">'+esc(ev.t)+'</div>'
+    +'<div class="ev-desc">'+esc(ev.d)+'</div><div class="choices" id="choices">';
+  ev.c.forEach(function(ch,i){
+    var ok=!ch.g||ch.g(S);
+    h+='<button class="choice'+(ok?"":" disabled")+'" data-i="'+i+'">'
+      +'<span class="kbd">'+(i+1)+'</span><span class="cx">'+esc(ch.x)+'</span>'
+      +(ok?"":'<span class="lock">🔒 条件不足</span>')+'</button>';
+  });
+  h+='</div>';
+  var card=$("evCard");
+  card.innerHTML=h;
+  card.style.animation="none";void card.offsetWidth;card.style.animation="";
+  Array.prototype.forEach.call(card.querySelectorAll(".choice"),function(b){
+    b.onclick=function(){choose(ev,parseInt(b.dataset.i,10))};
+  });
+}
+
+function choose(ev,ci){
+  if(pendingResult)return;
+  var ch=ev.c[ci];
+  if(ch.g&&!ch.g(S))return;
+  pendingResult={ev:ev,ch:ch,ci:ci};
+  /* 应用效果 */
+  var deltas=[];
+  Object.keys(ch.e||{}).forEach(function(k){
+    if(!(k in S.stats))return;
+    var d=ch.e[k];
+    if(!d)return;
+    var before=S.stats[k];
+    var after=clamp(Math.round(before+d));
+    S.stats[k]=after;
+    deltas.push({k:k,d:after-Math.round(before)});
+  });
+  if(ch.set)Object.keys(ch.set).forEach(function(k){S.flags[k]=ch.set[k]});
+  if(ch.tag==="night")S.nightCount++;
+  /* 记录 */
+  S.history.push({age:S.age,ev:ev.t,choice:ch.x});
+  S.recent.push(ev.id);
+  if(S.recent.length>10)S.recent.shift();
+  S.shown[ev.id]=1;
+  if(ev.mile)S.usedMile.push(ev.id);
+  /* 渲染结果 */
+  var dh="";
+  deltas.forEach(function(x,idx){
+    if(!x.d)return;
+    dh+='<span class="delta '+(x.d>0?"up":"down")+'" style="animation-delay:'+(idx*0.07)+'s">'
+      +SM[x.k].i+' '+SM[x.k].n+' '+(x.d>0?"+":"")+x.d+'</span>';
+  });
+  var card=$("evCard");
+  var cs=card.querySelector("#choices");
+  if(cs){cs.style.transition="opacity .18s";cs.style.opacity="0";
+    setTimeout(function(){if(cs.parentNode)cs.parentNode.removeChild(cs)},180);}
+  var r=document.createElement("div");
+  r.className="result";r.id="resultBox";
+  r.innerHTML='<p>'+esc(ch.r)+'</p><div class="deltas">'+(dh||'<span class="delta up">无变化</span>')+'</div>'
+    +'<button class="btn-next" id="btnNext">继续 ›</button>';
+  card.appendChild(r);
+  $("btnNext").onclick=nextTurn;
+  renderStats();
+  checkAchs();
+  save();
+}
+
+function nextTurn(){
+  /* 死亡判定 */
+  var end=checkDeath();
+  if(end){gameOver(end);return}
+  S.age++;S.year++;S.turn++;
+  if(S.age>52){gameOver(checkRetire());return}
+  var ev=pickEvent();
+  renderEvent(ev);
+  renderStats();
+  save();
+}
+
+function checkDeath(){
+  if(S.stats.health<=0)return ENDS.death_health;
+  if(S.stats.mood<=0)return ENDS.death_mood;
+  if(S.stats.tech<=0)return ENDS.death_tech;
+  return null;
+}
+function checkRetire(){return evalEnd()}
+
+function evalEnd(){
+  var s=S.stats;
+  if(s.money>=85&&s.tech>=85)return ENDS.legend;
+  if(s.money>=90)return ENDS.ipo;
+  if(s.tech>=85)return ENDS.oss;
+  if(s.hair<=0&&s.money>=70)return ENDS.bald_rich;
+  if(s.mood>=80&&s.health>=70)return ENDS.winner;
+  if(s.money>=70&&s.mood>=55)return ENDS.exec;
+  if(s.tech<=35&&s.mood>=60)return ENDS.slacker;
+  return ENDS.safe;
+}
+
+/* ═══════════════ 成就 ═══════════════ */
+function unlock(id){
+  if(S.achs.indexOf(id)>=0)return;
+  var a=null;
+  ACHS.forEach(function(x){if(x.id===id)a=x});
+  if(!a)return;
+  S.achs.push(id);
+  toast(a.i+" 成就解锁","「"+a.n+"」"+a.d);
+}
+function checkAchs(){
+  var s=S.stats;
+  if(S.turn>=2)unlock("first_blood");
+  if(s.tech>=90)unlock("fullstack");
+  if(s.money>=90)unlock("rich");
+  if(S.flags.cat)unlock("cat_lord");
+  if(S.flags.house)unlock("homeowner");
+  if(S.flags.married)unlock("married");
+  if(S.flags.startup||S.flags.late_startup)unlock("startup");
+  if(s.hair>=60&&S.age>=40)unlock("hair_ace");
+  if(S.nightCount>=3)unlock("night_owl");
+  if(s.mood<=20)S.moodLow=true;
+  if(S.moodLow&&S.age>=40)unlock("resilient");
+  if(S.age>=52){
+    if(s.health>=80)unlock("health_master");
+    if(s.hair<=0)unlock("bald_rich");
+    if(s.tech<=35)unlock("slacker");
+    if(s.mood>=75&&s.health>=65)unlock("wlb");
+    if(s.money>=90)unlock("ipo");
+  }
+  if(S.shown["oss"]&&s.tech>=85)unlock("oss");
+}
+function toast(t,sub){
+  var box=$("toasts");
+  var el=document.createElement("div");
+  el.className="toast";
+  el.innerHTML="<b>"+esc(t)+"</b>"+(sub?"<span>"+esc(sub)+"</span>":"");
+  box.appendChild(el);
+  setTimeout(function(){el.classList.add("out");setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},320)},2600);
+}
+
+/* ═══════════════ 结局 ═══════════════ */
+function gameOver(end){
+  S.over=true;
+  try{localStorage.removeItem(SAVE_KEY)}catch(e){}
+  show("scr-end");
+  var score=Math.round(S.stats.tech+S.stats.money+S.stats.health*0.8+S.stats.mood*0.7);
+  $("endRank").className="end-rank "+end.rank;
+  $("endRank").textContent=end.rank==="X"?"GAME OVER":end.rank;
+  $("endTitle").textContent=end.t;
+  $("endDesc").innerHTML=esc(end.d)+(end.tip?'<span class="tip">💡 '+esc(end.tip)+'</span>':"");
+  var sh="";
+  SMORDER.forEach(function(k){
+    sh+='<div class="end-stat"><div class="v" style="color:'+SM[k].c+'">'+Math.round(S.stats[k])+'</div><div class="k">'+SM[k].i+" "+SM[k].n+'</div></div>';
+  });
+  $("endStats").innerHTML=sh;
+  $("endScore").innerHTML="人生成就分 <b>"+score+"</b> / 350 · 职业路线："+esc(S.career.n)+" · 存活 "+S.age+" 岁";
+  var ah="";
+  ACHS.forEach(function(a){
+    var got=S.achs.indexOf(a.id)>=0;
+    ah+='<span class="end-ach'+(got?"":" no")+'">'+(got?a.i+" "+a.n:"🔒 未解锁")+'</span>';
+  });
+  $("endAchs").innerHTML=ah;
+  window.__endInfo={rank:end.rank,title:end.t,score:score,age:S.age,achs:S.achs.slice(),career:S.career.n};
+}
+
+/* ═══════════════ 抽屉 ═══════════════ */
+function openDrawer(title,html){
+  $("drawerTitle").textContent=title;
+  $("drawerBody").innerHTML=html;
+  $("drawerBg").classList.add("on");
+  $("drawer").classList.add("on");
+}
+function closeDrawer(){
+  $("drawerBg").classList.remove("on");
+  $("drawer").classList.remove("on");
+}
+function showHis(){
+  var h="";
+  if(!S.history.length)h='<div class="empty-tip">还没有任何履历</div>';
+  else S.history.forEach(function(x){
+    h+='<div class="h-item"><div class="ha">'+x.age+' 岁</div><b>'+esc(x.ev)+'</b><span>› '+esc(x.choice)+'</span></div>';
+  });
+  openDrawer("📜 人生履历",h);
+}
+function showAch(){
+  var h="";
+  ACHS.forEach(function(a){
+    var got=S.achs.indexOf(a.id)>=0;
+    h+='<div class="a-item'+(got?"":" locked")+'"><span class="ai">'+(got?a.i:"❔")+'</span><div><b>'+esc(a.n)+'</b><span>'+esc(a.d)+'</span></div></div>';
+  });
+  openDrawer("🏆 成就（"+S.achs.length+"/"+ACHS.length+"）",h);
+}
+
+/* ═══════════════ 分享 ═══════════════ */
+function shareResult(){
+  var e=window.__endInfo||{};
+  var txt="【码农人生·1024】我的程序员人生模拟成绩单\n"
+    +"路线："+(e.career||"-")+"｜结局评级："+(e.rank||"-")+"\n"
+    +"结局："+(e.title||"-")+"\n"
+    +"人生成就分："+(e.score||0)+"/350｜存活年龄："+(e.age||0)+" 岁\n"
+    +"解锁成就："+(e.achs||[]).length+"/"+ACHS.length+"\n"
+    +"—— 用 WorkBuddy 参加「1024 造物挑战」制作";
+  copyText(txt).then(function(){toast("📋 成绩单已复制","去粘贴给你的程序员朋友吧")});
+}
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t);
+  return new Promise(function(res,rej){
+    var ta=document.createElement("textarea");
+    ta.value=t;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");res(true)}catch(e){rej(e)}
+    document.body.removeChild(ta);
+  });
+}
+
+/* ═══════════════ 启动绑定 ═══════════════ */
+function startGame(fromSave){
+  if(fromSave){S=loadSave()}
+  if(!S||S.over){newGame(selCareer)}
+  show("scr-game");
+  var ev=pickEvent();
+  renderEvent(ev);
+  renderStats();
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  renderTitle();
+  $("btnStart").onclick=function(){startGame(false)};
+  $("btnContinue").onclick=function(){startGame(true)};
+  $("btnAch").onclick=showAch;
+  $("btnHis").onclick=showHis;
+  $("btnRestart").onclick=function(){
+    if(confirm("确定要放弃当前人生，重新开始吗？")){
+      try{localStorage.removeItem(SAVE_KEY)}catch(e){}
+      S=null;show("scr-title");renderTitle();
+    }
+  };
+  $("drawerX").onclick=closeDrawer;
+  $("drawerBg").onclick=closeDrawer;
+  $("btnAgain").onclick=function(){S=null;show("scr-title");renderTitle()};
+  $("btnShare").onclick=shareResult;
+  /* 键盘操作 */
+  document.addEventListener("keydown",function(e){
+    if($("drawer").classList.contains("on")){if(e.key==="Escape")closeDrawer();return}
+    if($("scr-game").classList.contains("hide"))return;
+    if(e.key==="1"||e.key==="2"||e.key==="3"){
+      var b=$("evCard").querySelectorAll(".choice")[parseInt(e.key,10)-1];
+      if(b&&!b.classList.contains("disabled"))b.click();
+    }else if(e.key==="Enter"||e.key===" "){
+      var n=$("btnNext");if(n){e.preventDefault();n.click()}
+    }
+  });
+});
+</script>
+</body>
+</html>
