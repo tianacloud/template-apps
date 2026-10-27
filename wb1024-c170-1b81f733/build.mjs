@@ -3,4 +3,4 @@ await mkdir("dist/assets",{recursive:true});
 for (const f of ["app.js","app.css"]) await copyFile(`src/${f}`,`dist/assets/${f}`);
 await copyFile("public/icon.png","dist/icon.png");
 const s=JSON.parse(await readFile("source.json","utf8"));
-console.log("TIANA_PROJECT_PARAMS="+JSON.stringify({entry:"assets/app.js",git_instance_id:s.git_instance_id}));
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:s.git_instance_id}));
