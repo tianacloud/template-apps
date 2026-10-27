@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora 声光律动引擎 · 音乐驱动的智能灯效引擎</title>
+<style>
+:root{
+  --bg:#08080f; --bg2:#0e0e1a; --card:rgba(255,255,255,.04);
+  --line:rgba(255,255,255,.09); --fg:#eceaf6; --dim:#9a97b5;
+  --bass:#ff3d81; --mid:#7c5cff; --high:#22d3ee; --ok:#34d399; --warn:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(124,92,255,.20), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(34,211,238,.14), transparent 60%),
+    var(--bg);
+  color:var(--fg);
+  font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  min-height:100%;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px 80px}
+
+/* ── header ── */
+header{padding:44px 0 26px;display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap}
+.logo{width:46px;height:46px;border-radius:13px;flex:none;
+  background:linear-gradient(135deg,var(--bass),var(--mid) 55%,var(--high));
+  display:grid;place-items:center;font-size:23px;box-shadow:0 8px 28px rgba(124,92,255,.42)}
+h1{font-size:27px;letter-spacing:-.4px;font-weight:650}
+.tagline{color:var(--dim);margin-top:5px;font-size:14px;max-width:660px}
+.badge{display:inline-block;padding:3px 11px;border-radius:99px;background:rgba(52,211,153,.13);
+  color:var(--ok);border:1px solid rgba(52,211,153,.28);font-size:12px;margin-left:8px;vertical-align:3px}
+
+/* ── stage ── */
+.stage{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(180deg,#0b0b16,#05050a);height:430px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+#viz{display:block;width:100%;height:100%}
+.stage-hud{position:absolute;left:20px;top:18px;display:flex;gap:26px;flex-wrap:wrap;pointer-events:none}
+.hud-i b{display:block;font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.hud-i span{font-size:11px;color:var(--dim);letter-spacing:1.4px;text-transform:uppercase}
+.hud-i.beat b{color:var(--bass)}
+.hud-i.bpm b{color:var(--high)}
+.hud-i.key b{color:var(--mid)}
+.hud-note{position:absolute;right:20px;top:18px;text-align:right;pointer-events:none}
+.hud-note .n{font-size:42px;font-weight:700;letter-spacing:-2px;line-height:1;
+  background:linear-gradient(135deg,#fff,#8f8ac0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hud-note .c{font-size:12px;color:var(--dim);margin-top:4px}
+.beat-flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 120%,rgba(255,61,129,.5),transparent 62%);opacity:0;transition:opacity .09s}
+
+/* ── controls ── */
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);
+  padding:9px 17px;border-radius:11px;font-size:13.5px;cursor:pointer;transition:.16s;font-family:inherit}
+.btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2)}
+.btn.primary{background:linear-gradient(135deg,var(--bass),var(--mid));border-color:transparent;font-weight:600;
+  box-shadow:0 8px 24px rgba(124,92,255,.34)}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.ghost{color:var(--dim)}
+input[type=file]{display:none}
+.track{min-width:230px;flex:1;max-width:400px;height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+.track .fill{position:absolute;inset:0 100% 0 0;background:linear-gradient(90deg,var(--bass),var(--high));transition:right .1s linear}
+.hint{color:var(--dim);font-size:12.5px}
+
+/* ── grid ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:20px 22px;backdrop-filter:blur(8px)}
+.card h3{font-size:14px;font-weight:600;letter-spacing:.4px;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card h3 .dot{width:7px;height:7px;border-radius:99px;background:var(--mid)}
+.card .sub{color:var(--dim);font-size:12.5px;margin-bottom:16px}
+
+/* spectrum */
+#spectrum{width:100%;height:120px;display:block;border-radius:10px;background:rgba(0,0,0,.32)}
+.bands{display:flex;gap:14px;margin-top:14px}
+.band{flex:1}
+.band .bl{font-size:11px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:5px}
+.band .bl b{color:var(--fg);font-variant-numeric:tabular-nums}
+.band .bt{height:5px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+.band .bf{height:100%;width:0;border-radius:99px;transition:width .07s linear}
+
+/* effects */
+.eff-list{display:flex;flex-direction:column;gap:9px}
+.eff{display:flex;gap:13px;align-items:flex-start;padding:12px 14px;border-radius:12px;
+  border:1px solid transparent;background:rgba(255,255,255,.028);cursor:pointer;transition:.16s}
+.eff:hover{background:rgba(255,255,255,.065)}
+.eff.on{border-color:rgba(124,92,255,.55);background:rgba(124,92,255,.11)}
+.eff .sw{width:30px;height:30px;border-radius:9px;flex:none;margin-top:2px}
+.eff .body{flex:1;min-width:0}
+.eff .t{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.eff .t .tag{font-size:10.5px;font-weight:500;padding:1.5px 7px;border-radius:99px;
+  background:rgba(255,255,255,.09);color:var(--dim)}
+.eff .d{color:var(--dim);font-size:12.2px;margin-top:2px}
+.eff .score{margin-left:auto;flex:none;text-align:right}
+.eff .score b{font-size:16px;font-variant-numeric:tabular-nums}
+.eff .score span{display:block;font-size:10px;color:var(--dim)}
+
+/* plan */
+.plan-rows{display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.prow{display:grid;grid-template-columns:1.1fr .9fr .9fr .8fr;gap:8px;padding:9px 12px;
+  border-radius:9px;background:rgba(255,255,255,.03);align-items:center}
+.prow.head{color:var(--dim);font-size:11px;letter-spacing:.8px;text-transform:uppercase;background:none;padding-bottom:2px}
+.prow .mono{font-variant-numeric:tabular-nums}
+.bar{height:5px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--bass),var(--high))}
+pre.out{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:11px;padding:14px;
+  font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#c9c6e6;
+  max-height:290px;overflow:auto;margin:0}
+.note{color:var(--dim);font-size:12.2px;margin-top:12px;line-height:1.7}
+.note code{background:rgba(255,255,255,.08);padding:1.5px 6px;border-radius:5px;font-size:11.5px}
+footer{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🌌</div>
+    <div style="flex:1;min-width:260px">
+      <h1>Aurora 声光律动引擎<span class="badge">纯前端 · 零依赖</span></h1>
+      <p class="tagline">把一段音乐变成一套可下发到灯具的灯效方案。浏览器内实时做频谱分析、节拍与音高检测，再用规则引擎匹配出最合适的灯光效果，导出标准 JSON。无需注册、无需联网、音频不出本机。</p>
+    </div>
+  </header>
+
+  <section class="stage">
+    <canvas id="viz"></canvas>
+    <div class="beat-flash" id="flash"></div>
+    <div class="stage-hud">
+      <div class="hud-i beat"><b id="hBeat">—</b><span>节拍</span></div>
+      <div class="hud-i bpm"><b id="hBpm">—</b><span>BPM</span></div>
+      <div class="hud-i key"><b id="hKey">—</b><span>调性</span></div>
+    </div>
+    <div class="hud-note">
+      <div class="n" id="hNote">—</div>
+      <div class="c" id="hCents">等待音频</div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="btn primary" id="btnPlay">▶ 播放内置示例</button>
+    <button class="btn" id="btnFile">📂 载入本地音频</button>
+    <input type="file" id="file" accept="audio/*">
+    <button class="btn" id="btnMic">🎤 麦克风输入</button>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <span class="hint" id="hint">内置示例为程序实时合成的 100 BPM 律动循环</span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3><span class="dot"></span>实时频谱</h3>
+      <div class="sub">FFT 频域数据，2048 点，采样自 Web Audio AnalyserNode</div>
+      <canvas id="spectrum"></canvas>
+      <div class="bands">
+        <div class="band"><div class="bl"><span>低频</span><b id="vBass">0</b></div><div class="bt"><i class="bf" id="bBass" style="background:var(--bass)"></i></div></div>
+        <div class="band"><div class="bl"><span>中频</span><b id="vMid">0</b></div><div class="bt"><i class="bf" id="bMid" style="background:var(--mid)"></i></div></div>
+        <div class="band"><div class="bl"><span>高频</span><b id="vHigh">0</b></div><div class="bt"><i class="bf" id="bHigh" style="background:var(--high)"></i></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot"></span>灯效匹配</h3>
+      <div class="sub">规则引擎按「能量 / 速度 / 亮度」三维契合度排序，点击可选中并写入方案</div>
+      <div class="eff-list" id="effList"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot"></span>灯效方案</h3>
+      <div class="sub">可下发到灯具控制器的参数，含同步方式与节拍阈值</div>
+      <div class="plan-rows">
+        <div class="prow head"><span>效果</span><span>亮度</span><span>速度</span><span>同步</span></div>
+        <div id="planRows"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn primary" id="btnExport">⬇ 导出灯效 JSON</button>
+        <button class="btn" id="btnCopy">📋 复制方案</button>
+      </div>
+      <p class="note">导出的 <code>aurora.lightplan/v1</code> 包含分析元数据与逐条灯效参数（亮度 / 速度 / 色相 / 饱和度 / 衰减 / 同步阈值），可直接被灯具固件或上层编排系统消费。</p>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot"></span>方案预览</h3>
+      <div class="sub">实时生成的 JSON，可直接查看结构</div>
+      <pre class="out" id="jsonOut">// 播放或载入音频后，这里会实时生成灯效方案 JSON</pre>
+    </div>
+  </div>
+
+  <footer>
+    <span>Aurora 声光律动引擎</span>
+    <span>零依赖 ES Module · 音频全程本地处理，不上传任何数据</span>
+  </footer>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
