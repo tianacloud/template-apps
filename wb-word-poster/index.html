@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>词象工坊 · 一句话生成极简海报</title>
+<style>
+  /* ============ 主题变量：深色 UI + 绿色点缀 ============ */
+  :root{
+    --bg:#0B0E12;
+    --card:#12161D;
+    --card-2:#171D26;
+    --line:#242D3A;
+    --text:#E8EEF4;
+    --muted:#8B98A6;
+    --accent:#3DDC84;
+    --accent-strong:#57E89B;
+    --accent-soft:rgba(61,220,132,.12);
+    --radius:16px;
+    --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Helvetica Neue",Arial,sans-serif;
+    --mono:"SF Mono","Cascadia Mono","Cascadia Code",Consolas,"Roboto Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:
+      radial-gradient(1100px 520px at 18% -8%, rgba(61,220,132,.09), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:26px 22px 44px;
+  }
+  ::selection{background:rgba(61,220,132,.32)}
+
+  /* ============ 顶栏 ============ */
+  .topbar{
+    max-width:1400px;margin:0 auto 22px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:46px;height:46px;border-radius:13px;flex:none;
+    background:linear-gradient(135deg,var(--accent),#1FA65F);
+    color:#06140C;font-weight:900;font-size:22px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 22px rgba(61,220,132,.35);
+  }
+  .brand h1{font-size:21px;letter-spacing:1px}
+  .brand .tagline{font-size:12px;color:var(--muted);margin-top:3px;letter-spacing:.4px}
+  .badge{
+    font-family:var(--mono);font-size:11px;color:var(--accent);
+    border:1px solid rgba(61,220,132,.35);background:var(--accent-soft);
+    padding:7px 13px;border-radius:999px;letter-spacing:.6px;white-space:nowrap;
+  }
+
+  /* ============ 主体布局：桌面左右分栏 / 移动端上下堆叠 ============ */
+  .layout{
+    max-width:1400px;margin:0 auto;
+    display:grid;grid-template-columns:minmax(330px,390px) 1fr;gap:22px;align-items:start;
+  }
+  .panel{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px;
+  }
+  .card h2{
+    font-size:12px;font-weight:600;color:var(--muted);
+    letter-spacing:2px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;margin-bottom:13px;
+  }
+  .card h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 8px rgba(61,220,132,.8)}
+
+  textarea,input[type=text]{
+    width:100%;background:#0D1117;border:1px solid var(--line);border-radius:11px;
+    color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;
+    padding:11px 13px;outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  textarea{resize:vertical;min-height:74px}
+  textarea:focus,input[type=text]:focus{
+    border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,132,.16);
+  }
+  textarea::placeholder,input::placeholder{color:#5B6673}
+
+  /* 示例句 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .chip{
+    font-size:12px;color:var(--muted);background:var(--card-2);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;
+    transition:all .15s;font-family:var(--sans);
+  }
+  .chip:hover{color:var(--accent);border-color:rgba(61,220,132,.5);background:var(--accent-soft)}
+
+  /* 风格四选一 */
+  .style-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{
+    background:var(--card-2);border:1px solid var(--line);border-radius:13px;
+    padding:10px;cursor:pointer;display:flex;align-items:center;gap:10px;
+    transition:all .15s;text-align:left;font-family:var(--sans);color:var(--text);min-width:0;
+  }
+  .opt:hover{border-color:#39465A}
+  .opt.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+  .opt .thumb{flex:none;line-height:0}
+  .opt .thumb svg{width:32px;height:42px;border-radius:6px;display:block}
+  .opt .opt-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .opt .opt-text b{font-size:13px}
+  .opt .opt-text i{font-size:10.5px;color:var(--muted);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* 尺寸三选一 */
+  .size-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .size-opt{flex-direction:column;gap:7px;padding:13px 6px;align-items:center;text-align:center}
+  .size-opt svg{width:22px;height:22px}
+  .size-opt b{font-size:12px}
+  .size-opt i{font-size:10px;color:var(--muted);font-style:normal}
+
+  /* 操作按钮 */
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600;
+    cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:var(--sans);
+  }
+  .btn svg{width:16px;height:16px;flex:none}
+  .btn.primary{background:var(--accent);color:#06140C}
+  .btn.primary:hover{background:var(--accent-strong);box-shadow:0 6px 20px rgba(61,220,132,.3)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--text)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.small{padding:9px 14px;font-size:13px;background:var(--card-2);border-color:var(--line);color:var(--text)}
+  .btn.small:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ============ 右侧预览舞台 ============ */
+  .stage{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;position:sticky;top:22px;
+  }
+  .canvas-wrap{display:flex;justify-content:center;align-items:center;padding:6px}
+  #poster{
+    display:block;max-width:100%;max-height:72vh;width:auto;height:auto;
+    border-radius:12px;background:#000;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .meta{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap;
+  }
+  .meta-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .meta-info b{color:var(--accent);font-weight:600}
+  .meta-info .tag{font-family:var(--sans)}
+
+  .footnote{
+    max-width:1400px;margin:26px auto 0;text-align:center;
+    font-size:11.5px;color:#5B6673;font-family:var(--mono);letter-spacing:.5px;
+  }
+
+  /* Toast 提示 */
+  #toast{
+    position:fixed;left:50%;bottom:28px;transform:translate(-50%,10px);
+    background:#1A2230;border:1px solid var(--line);color:var(--text);
+    font-size:13px;padding:10px 20px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:all .25s;z-index:99;
+    box-shadow:0 10px 32px rgba(0,0,0,.5);
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+
+  /* ============ 响应式：窄屏上下堆叠 ============ */
+  @media (max-width:960px){
+    .layout{grid-template-columns:1fr}
+    .stage{position:static}
+    #poster{max-height:58vh}
+    body{padding:18px 14px 32px}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">词</div>
+    <div>
+      <h1>词象工坊</h1>
+      <p class="tagline">WORD · POSTER STUDIO — 输入一句话，实时生成一张可导出的极简海报</p>
+    </div>
+  </div>
+  <div class="badge">1024 · 纯前端 · 零依赖 · 确定性渲染</div>
+</header>
+
+<main class="layout">
+  <!-- ================= 左侧设置面板 ================= -->
+  <aside class="panel">
+    <section class="card">
+      <h2><span class="dot"></span>一句话标题</h2>
+      <textarea id="titleInput" placeholder="输入你的一句话，例如：凌晨四点的代码，是写给未来的诗"></textarea>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>副标题 / 署名</h2>
+      <input id="subInput" type="text" placeholder="可选，例如：致 1024 程序员节">
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>风格</h2>
+      <div class="style-grid" id="styleGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>尺寸</h2>
+      <div class="size-row" id="sizeRow"></div>
+    </section>
+
+    <div class="actions">
+      <button id="exportBtn" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出 PNG
+      </button>
+      <button id="copyBtn" class="btn ghost">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        复制文案
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= 右侧实时预览 ================= -->
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="poster" width="1080" height="1080" aria-label="海报预览画布"></canvas>
+    </div>
+    <div class="meta">
+      <button id="variantBtn" class="btn small">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        换一张
+      </button>
+      <div class="meta-info">
+        <span>种子 <b id="metaSeed">—</b></span>
+        <span id="metaVariant">variant 0</span>
+        <span class="tag" id="metaStyle">瑞士网格</span>
+        <span class="tag" id="metaSize">1:1 方图</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<p class="footnote">所有渲染均在本地浏览器完成 · 相同输入永远得到相同海报 · 数据不离开你的设备</p>
+<div id="toast" role="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
