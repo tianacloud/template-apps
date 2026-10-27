@@ -278,7 +278,6 @@ async function boot() {
   cartBar.className='cart-bar is-hidden';
   cartBar.addEventListener('click', async e => {const target=e.target.closest('[data-act]');if(target) await handleAction(target,e)});
   el.app.appendChild(cartBar);
-  if (!location.hash) history.replaceState(null,'',`${location.pathname}#/home`);
   render();
 }
 boot().catch(err => showBoot(describeError(err)));
