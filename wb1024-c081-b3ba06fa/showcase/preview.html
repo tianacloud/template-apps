@@ -281,7 +281,7 @@ details.tips li{margin-bottom:6px}
 <header>
   <div class="hrow"><h1>建材进销存助手-王小小特供版</h1><div class="htools"><span class="hdate" id="hdate"></span><button class="hbtn" data-act="fontScale" title="点我放大或缩小字号，方便查看" type="button">字 标准</button></div></div>
   <div class="hsub">支出 · 收入 · 利润 · 库存，一部手机管清账</div>
-</header>
+<div style="font-size:12px;padding:5px 12px;background:#eff6ff;color:#1e40af">示例体验，数据仅保留在本页。可填写水泥单价和数量并保存。 <button id="demoReset" type="button">恢复示例</button></div></header>
 <main id="view"></main>
 <nav id="nav"></nav>
 <div id="modal"></div>
@@ -292,6 +292,8 @@ details.tips li{margin-bottom:6px}
 <script>
 'use strict';
 const localStorage=(()=>{const d={};return {getItem:k=>d[k]??null,setItem:(k,v)=>{d[k]=String(v)},removeItem:k=>delete d[k]}})();
+const confirm=()=>{toast('示例中此操作不可用，安装后可使用');return false};
+const alert=msg=>toast(msg);
 /* ================= 工具 ================= */
 const $=s=>document.querySelector(s);
 const R2=n=>Math.round((+n||0)*100)/100;
@@ -2018,6 +2020,19 @@ function cycleFontScale(){
  toast('字号：'+(FS_LEVELS[fsIdx]===1?'标准':Math.round(FS_LEVELS[fsIdx]*100)+'%')+'（已记住）');
 }
 
+/* 示例只在本页内存中运行。 */
+function resetDemo(){
+ db=defaultDB();const m=db.materials[1];
+ db.purchases.push({id:'demo-buy',ts:1,date:todayStr(),mid:m.id,price:80,qty:10,total:800,note:'示例'});
+ DRAFT={date:todayStr(),prices:{},qtys:{},note:'',cleared:false};tab='buy';buySeg='all';incSeg='all';localStorage.removeItem(BK_KEY);draftSave();render();toast('已恢复示例');
+}
+document.addEventListener('click',e=>{
+ if(e.target.id==='demoReset'){resetDemo();return;}
+ const b=e.target.closest('[data-act]');if(!b)return;
+ if(['buyCSV','sellCSV','stockCSV','profitCSV','buyPrint','sellPrint','profitPrint','backup','importBtn'].includes(b.dataset.act)){
+  e.stopImmediatePropagation();toast('示例不提供文件操作，安装后可使用');
+ }
+},true);
 /* ================= 启动 ================= */
 (function init(){
  const d=new Date();
@@ -2026,7 +2041,7 @@ function cycleFontScale(){
  if(['buy','sell','profit'].includes(h))tab=h;
  draftLoad();
  applyFontScale();
- render();
+ resetDemo();
 })();
 </script>
 </body>
