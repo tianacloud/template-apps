@@ -1,0 +1,10 @@
+import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
+const html=await readFile('index.html','utf8');
+const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body>([\s\S]*?)<script>/)[1];
+const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='四象限待办助手';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${script}\nObject.assign(window,{toggleAxis,addTask,removeTask,toggleDone,clearDone,exportTasks,startEdit,onDragStart,dragOver,dragLeave,drop,setFilter,render});`);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
