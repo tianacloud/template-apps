@@ -1267,8 +1267,8 @@ document.addEventListener('click', function (ev) {
   else if (act === 'exportJson') exportJSON();
   else if (act === 'exportCsv') exportCSV();
   else if (act === 'importJson') {
-    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
-    inp.onchange = function () { if (inp.files && inp.files[0]) importJSON(inp.files[0]); };
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json'; inp.hidden = true; inp.id = 'backup-file-input'; document.body.appendChild(inp);
+    inp.onchange = function () { if (inp.files && inp.files[0]) importJSON(inp.files[0]); inp.remove(); };
     inp.click();
   }
   else if (act === 'clearDemo') {
