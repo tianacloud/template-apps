@@ -1,0 +1,11 @@
+import { readFile, mkdir, writeFile, copyFile, rm } from 'node:fs/promises';
+const html = await readFile('app.html','utf8');
+const style = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1];
+const body = html.match(/<body[^>]*>([\s\S]*?)<script>/i)?.[1];
+const script = html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+if (!style || !body || !script) throw Error('Invalid application HTML');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js', `document.title="课后反馈生成器";\nconst style=document.createElement("style");style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\n`+script);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
