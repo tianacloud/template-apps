@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今天干了啥 · 干完打一句，下班出日报</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --text:#1f2328; --muted:#6b7280;
+    --line:#e6e3dd; --accent:#2f6f5e; --accent-soft:#eaf2ef;
+    --warn:#b45309; --warn-soft:#fdf3e7; --danger:#b91c1c; --done:#9ca3af;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.6;
+    padding-bottom:96px; -webkit-font-smoothing:antialiased;
+  }
+  header{
+    position:sticky; top:0; z-index:20; background:rgba(246,245,242,.94);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  }
+  .head-in{
+    max-width:1080px; margin:0 auto; padding:14px 18px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .brand{font-size:17px; font-weight:600; letter-spacing:.3px; line-height:1.35}
+  .brand span{color:var(--accent)}
+  .brand-sub{font-size:11.5px; font-weight:400; color:var(--muted); letter-spacing:0; margin-top:1px}
+  @media (max-width:620px){ .brand-sub{display:none} }
+  .head-meta{margin-left:auto; display:flex; align-items:center; gap:14px; font-size:13px; color:var(--muted)}
+  .clock{font-variant-numeric:tabular-nums; font-size:15px; color:var(--text)}
+  main{max-width:1080px; margin:0 auto; padding:18px; display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start}
+  @media (max-width:880px){ main{grid-template-columns:1fr} }
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+  .card-h{padding:14px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px}
+  .card-h h2{font-size:14px; font-weight:600; letter-spacing:.4px}
+  .card-h .hint{font-size:12px; color:var(--muted); margin-left:auto}
+  .card-b{padding:14px 16px}
+
+  /* ---------- 记录区 ---------- */
+  .composer{display:flex; gap:8px; margin-bottom:12px}
+  .composer input[type=text]{
+    flex:1; border:1px solid var(--line); border-radius:9px; padding:10px 12px;
+    font-size:14px; font-family:inherit; background:#fbfaf8; outline:none;
+  }
+  .composer input[type=text]:focus{border-color:var(--accent); background:#fff}
+  .btn{
+    border:1px solid var(--line); background:#fff; color:var(--text); cursor:pointer;
+    padding:9px 14px; border-radius:9px; font-size:14px; font-family:inherit;
+    transition:.15s; white-space:nowrap;
+  }
+  .btn:hover{background:#f2f1ed}
+  .btn-primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn-primary:hover{background:#275c4e}
+  .btn-sm{padding:6px 10px; font-size:13px}
+  .btn-ghost{background:transparent; border-color:transparent; color:var(--muted)}
+  .btn-ghost:hover{background:#f2f1ed; color:var(--text)}
+
+  .log-list{list-style:none; display:flex; flex-direction:column; gap:2px}
+  .log-item{
+    display:flex; align-items:flex-start; gap:10px; padding:9px 6px;
+    border-radius:8px; font-size:14px;
+  }
+  .log-item:hover{background:#faf9f7}
+  .log-time{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; padding-top:2px; min-width:40px}
+  .log-text{flex:1; word-break:break-word}
+  .log-item.is-done .log-text{color:var(--done); text-decoration:line-through}
+  .log-item input[type=checkbox]{
+    margin-top:4px; width:15px; height:15px; accent-color:var(--accent); cursor:pointer; flex-shrink:0;
+  }
+  .del{
+    opacity:0; border:none; background:none; color:var(--muted); cursor:pointer;
+    font-size:16px; line-height:1; padding:2px 6px; border-radius:6px;
+  }
+  .log-item:hover .del{opacity:1}
+  .del:hover{background:#f2f1ed; color:var(--danger)}
+
+  .empty{color:var(--muted); font-size:13px; text-align:center; padding:26px 10px; line-height:1.9}
+
+  /* ---------- 任务区 ---------- */
+  .task-form{display:flex; flex-direction:column; gap:9px; margin-bottom:14px}
+  .row{display:flex; gap:9px; flex-wrap:wrap}
+  .row > *{flex:1; min-width:0}
+  .field{display:flex; flex-direction:column; gap:4px}
+  .field label{font-size:12px; color:var(--muted)}
+  .field input,.field select,.field textarea{
+    border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+    font-size:13px; font-family:inherit; background:#fbfaf8; outline:none; width:100%;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent); background:#fff}
+  .field textarea{resize:vertical; min-height:46px}
+
+  .task-list{list-style:none; display:flex; flex-direction:column; gap:9px}
+  .task{
+    border:1px solid var(--line); border-radius:10px; padding:11px 12px;
+    background:#fdfcfa; transition:.15s;
+  }
+  .task:hover{border-color:#d8d4cb}
+  .task.overdue{border-color:#f0c9a8; background:var(--warn-soft)}
+  .task.done{opacity:.55}
+  .task-top{display:flex; align-items:flex-start; gap:9px}
+  .task-title{font-size:14px; font-weight:500; flex:1; word-break:break-word}
+  .task.done .task-title{text-decoration:line-through; color:var(--done)}
+  .task-goal{font-size:12.5px; color:var(--muted); margin-top:5px; padding-left:24px; white-space:pre-wrap}
+  .task-meta{display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:7px; padding-left:24px}
+  .task-meta b{font-weight:500; color:var(--text); font-variant-numeric:tabular-nums}
+  .remain{color:var(--accent); font-weight:500}
+  .remain.soon{color:var(--warn)}
+  .remain.over{color:var(--danger)}
+
+  /* ---------- 底部操作 ---------- */
+  .bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+  }
+  .bar-in{max-width:1080px; margin:0 auto; padding:10px 18px; display:flex; gap:9px; align-items:center; flex-wrap:wrap}
+  .bar .spacer{flex:1}
+  .bar-note{font-size:12px; color:var(--muted)}
+
+  /* ---------- 弹层 ---------- */
+  .modal{position:fixed; inset:0; background:rgba(28,28,28,.42); display:none; align-items:center; justify-content:center; z-index:60; padding:18px}
+  .modal.show{display:flex}
+  .modal-box{background:#fff; border-radius:14px; width:100%; max-width:720px; max-height:86vh; display:flex; flex-direction:column; overflow:hidden}
+  .modal-h{padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px}
+  .modal-h h3{font-size:15px; font-weight:600}
+  .modal-h .close{margin-left:auto; border:none; background:none; font-size:20px; color:var(--muted); cursor:pointer; padding:0 4px}
+  .modal-b{padding:16px 18px; overflow:auto}
+  .modal-b textarea{
+    width:100%; min-height:340px; border:1px solid var(--line); border-radius:10px;
+    padding:12px; font-family:ui-monospace,"SF Mono",Consolas,"PingFang SC",monospace;
+    font-size:13px; line-height:1.75; background:#fbfaf8; outline:none; resize:vertical;
+  }
+  .modal-f{padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+  .modal-f .spacer{flex:1}
+
+  /* ---------- 提醒横幅 ---------- */
+  #banner{position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:80; width:calc(100% - 32px); max-width:560px; display:none}
+  #banner.show{display:block}
+  .banner-in{
+    background:#1f2328; color:#fff; border-radius:12px; padding:12px 14px;
+    display:flex; align-items:flex-start; gap:11px; box-shadow:0 8px 28px rgba(0,0,0,.18);
+  }
+  .banner-icon{font-size:17px; line-height:1.4}
+  .banner-txt{flex:1; font-size:13.5px; line-height:1.65}
+  .banner-txt b{display:block; font-size:14px; margin-bottom:2px}
+  .banner-in button{border:none; background:rgba(255,255,255,.16); color:#fff; border-radius:7px; padding:5px 10px; font-size:12.5px; cursor:pointer; font-family:inherit}
+
+  .tag{display:inline-block; font-size:11px; padding:1px 7px; border-radius:20px; background:var(--accent-soft); color:var(--accent); margin-left:6px; vertical-align:1px}
+  .tag.warn{background:var(--warn-soft); color:var(--warn)}
+
+  /* ---------- 日历 ---------- */
+  .cal-quick{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px}
+  .cal-head{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+  .cal-head .month{font-size:15px; font-weight:600; font-variant-numeric:tabular-nums}
+  .cal-head .nav{margin-left:auto; display:flex; gap:6px}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
+  .cal-dow{font-size:11.5px; color:var(--muted); text-align:center; padding:2px 0 4px}
+  .cal-day{
+    aspect-ratio:1/1; border:1px solid var(--line); border-radius:9px; background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; cursor:pointer; transition:.12s; position:relative;
+    user-select:none; font-variant-numeric:tabular-nums; color:var(--text);
+  }
+  .cal-day:hover{border-color:#cfcac0; background:#faf9f7}
+  .cal-day.other{visibility:hidden; pointer-events:none}
+  .cal-day.sel{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .cal-day.sel:hover{background:#275c4e}
+  .cal-day.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .cal-day.has::after{
+    content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%);
+    width:4px; height:4px; border-radius:50%; background:var(--accent);
+  }
+  .cal-day.sel.has::after{background:#fff}
+  .cal-day.future{color:#c9c4ba}
+  footer{max-width:1080px; margin:0 auto; padding:6px 18px 26px; font-size:12px; color:var(--muted); line-height:1.9}
+  .kbd{font-family:ui-monospace,monospace; background:#efede8; padding:1px 5px; border-radius:4px; font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-in">
+    <div class="brand">今天<span>干了啥</span>
+      <div class="brand-sub">牛马不需要日记，只需要证据。干完打一句，下班自动出日报。</div>
+    </div>
+    <div class="head-meta">
+      <span id="today-label">—</span>
+      <span class="clock" id="clock">--:--:--</span>
+      <button class="btn btn-sm" id="btn-notify">启用桌面提醒</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 左：记录 -->
+  <section class="card">
+    <div class="card-h">
+      <h2>今天做了什么</h2>
+      <span class="hint" id="log-count">0 条</span>
+    </div>
+    <div class="card-b">
+      <div class="composer">
+        <input type="text" id="log-input" placeholder="刚做完什么？回车间隔回车就记下（例：核完供应商对账表）" autocomplete="off">
+        <button class="btn btn-primary" id="btn-add-log">记下</button>
+      </div>
+      <ul class="log-list" id="log-list"></ul>
+      <div class="empty" id="log-empty">
+        还没记东西。<br>
+        想到什么写一句就行，别管措辞——晚上出日志的时候会自动整理。
+      </div>
+    </div>
+  </section>
+
+  <!-- 右：任务 -->
+  <section class="card">
+    <div class="card-h">
+      <h2>待办与提醒</h2>
+      <span class="hint" id="task-count">0 个在办</span>
+    </div>
+    <div class="card-b">
+      <div class="task-form">
+        <div class="field">
+          <label>任务</label>
+          <input type="text" id="t-title" placeholder="要做什么">
+        </div>
+        <div class="field">
+          <label>目标要求（可空）</label>
+          <textarea id="t-goal" placeholder="做到什么程度算完成。例：把三家报价拉平，差价超 5% 的标出来"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>开始时间</label>
+            <input type="datetime-local" id="t-start">
+          </div>
+          <div class="field">
+            <label>截止时间</label>
+            <input type="datetime-local" id="t-due">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>提前多久提醒</label>
+            <select id="t-lead">
+              <option value="0">不提前</option>
+              <option value="5">5 分钟</option>
+              <option value="15" selected>15 分钟</option>
+              <option value="30">30 分钟</option>
+              <option value="60">1 小时</option>
+              <option value="1440">1 天</option>
+            </select>
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn btn-primary" id="btn-add-task" style="height:36px">加入待办</button>
+          </div>
+        </div>
+      </div>
+      <ul class="task-list" id="task-list"></ul>
+      <div class="empty" id="task-empty">
+        没有待办。<br>
+        提醒只在这个页面开着时生效，关了就在下次打开时补给你。
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  数据只存在这台设备的浏览器里，不上传任何服务器。<span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> 快速记一条。
+  清空全部数据：浏览器设置里清除本站数据即可。
+</footer>
+
+<!-- 底部操作条 -->
+<div class="bar">
+  <div class="bar-in">
+    <button class="btn btn-primary" id="btn-daily">生成今日日志</button>
+    <button class="btn" id="btn-weekly">生成周报</button>
+    <span class="spacer"></span>
+    <span class="bar-note" id="bar-note"></span>
+    <button class="btn btn-ghost btn-sm" id="btn-copy-ai">复制给 AI 润色</button>
+  </div>
+</div>
+
+<!-- 弹层 -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-h">
+      <h3 id="modal-title">生成的文本</h3>
+      <button class="close" id="modal-close">×</button>
+    </div>
+    <div class="modal-b">
+      <textarea id="modal-text" spellcheck="false"></textarea>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-primary" id="btn-copy-text">复制</button>
+      <button class="btn" id="btn-download">下载 .md</button>
+      <span class="spacer"></span>
+      <span class="bar-note" id="copy-hint"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 选日期 -->
+<div class="modal" id="modal-date">
+  <div class="modal-box" style="max-width:470px">
+    <div class="modal-h">
+      <h3>挑几天，合成一份</h3>
+      <button class="close" id="date-close">×</button>
+    </div>
+    <div class="modal-b">
+      <div class="cal-quick">
+        <button class="btn btn-sm" data-quick="thisWeek">本周</button>
+        <button class="btn btn-sm" data-quick="lastWeek">上周</button>
+        <button class="btn btn-sm" data-quick="thisMonth">本月</button>
+        <button class="btn btn-sm" data-quick="last7">近 7 天</button>
+        <button class="btn btn-sm btn-ghost" data-quick="clear">清空</button>
+      </div>
+      <div class="cal-head">
+        <span class="month" id="cal-month">—</span>
+        <div class="nav">
+          <button class="btn btn-sm" id="cal-prev">‹</button>
+          <button class="btn btn-sm" id="cal-next">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="bar-note" style="margin-top:12px" id="cal-count">还没选</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-primary" id="cal-gen">生成</button>
+      <span class="spacer"></span>
+      <span class="bar-note">底下有圆点 = 那天有记录</span>
+    </div>
+  </div>
+</div>
+
+<div id="banner">
+  <div class="banner-in">
+    <div class="banner-icon">⏰</div>
+    <div class="banner-txt"><b id="banner-title">提醒</b><span id="banner-body"></span></div>
+    <button id="banner-close">知道了</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const KEY = "what-i-did-today-v1";
+  const pad = n => String(n).padStart(2, "0");
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hm  = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const WEEK = ["周日","周一","周二","周三","周四","周五","周六"];
+
+  let db = load();
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && Array.isArray(o.logs) && Array.isArray(o.tasks)) return o;
+      }
+    }catch(e){ console.warn("读取失败", e); }
+    return { logs: [], tasks: [] };
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(db)); }
+    catch(e){ console.warn("保存失败", e); }
+  }
+
+  /* ============ 时钟 ============ */
+  function tick(){
+    const now = new Date();
+    document.getElementById("clock").textContent =
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById("today-label").textContent =
+      `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${WEEK[now.getDay()]}`;
+    renderTasks();
+  }
+
+  /* ============ 记录 ============ */
+  function todayLogs(){
+    const t = ymd(new Date());
+    return db.logs.filter(l => l.date === t).sort((a,b) => a.ts - b.ts);
+  }
+
+  function addLog(text){
+    text = (text || "").trim();
+    if(!text) return;
+    const now = new Date();
+    db.logs.push({
+      id: "l" + now.getTime() + Math.random().toString(36).slice(2,6),
+      date: ymd(now),
+      ts: now.getTime(),
+      time: hm(now),
+      text,
+      done: true
+    });
+    save();
+    renderLogs();
+  }
+
+  function renderLogs(){
+    const list = document.getElementById("log-list");
+    const items = todayLogs();
+    document.getElementById("log-count").textContent = items.length + " 条";
+    document.getElementById("log-empty").style.display = items.length ? "none" : "block";
+    list.innerHTML = "";
+    items.forEach(l => {
+      const li = document.createElement("li");
+      li.className = "log-item" + (l.done ? " is-done" : "");
+      li.innerHTML =
+        `<span class="log-time">${l.time}</span>
+         <input type="checkbox" ${l.done ? "checked" : ""}>
+         <span class="log-text"></span>
+         <button class="del" title="删除">×</button>`;
+      li.querySelector(".log-text").textContent = l.text;
+      li.querySelector("input").addEventListener("change", e => {
+        l.done = e.target.checked; save(); renderLogs();
+      });
+      li.querySelector(".del").addEventListener("click", () => {
+        db.logs = db.logs.filter(x => x.id !== l.id); save(); renderLogs();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  /* ============ 任务 ============ */
+  function addTask(){
+    const title = document.getElementById("t-title").value.trim();
+    const goal  = document.getElementById("t-goal").value.trim();
+    const start = document.getElementById("t-start").value;
+    const due   = document.getElementById("t-due").value;
+    const lead  = parseInt(document.getElementById("t-lead").value, 10) || 0;
+
+    if(!title){ alert("任务名不能空"); return; }
+    if(!due){ alert("截止时间得填一个，不然没法提醒"); return; }
+
+    const dueTs = new Date(due).getTime();
+    const startTs = start ? new Date(start).getTime() : null;
+
+    db.tasks.push({
+      id: "t" + Date.now() + Math.random().toString(36).slice(2,6),
+      title, goal, startTs, dueTs, lead,
+      done: false,
+      firedLead: false,
+      firedDue: false,
+      created: Date.now()
+    });
+    save();
+    document.getElementById("t-title").value = "";
+    document.getElementById("t-goal").value = "";
+    document.getElementById("t-start").value = "";
+    document.getElementById("t-due").value = "";
+    renderTasks();
+  }
+
+  function fmtLocal(ts){
+    if(!ts) return "—";
+    const d = new Date(ts);
+    return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function remainText(dueTs){
+    const diff = dueTs - Date.now();
+    const abs = Math.abs(diff);
+    const h = Math.floor(abs / 3600000);
+    const m = Math.floor(abs % 3600000 / 60000);
+    const str = h > 0 ? `${h} 小时 ${m} 分` : `${m} 分`;
+    if(diff < 0) return { text: `已逾期 ${str}`, cls: "over" };
+    if(diff < 2 * 3600000) return { text: `还剩 ${str}`, cls: "soon" };
+    return { text: `还剩 ${str}`, cls: "" };
+  }
+
+  function renderTasks(){
+    const list = document.getElementById("task-list");
+    const items = db.tasks.slice().sort((a,b) => {
+      if(a.done !== b.done) return a.done ? 1 : -1;
+      return a.dueTs - b.dueTs;
+    });
+    const openCount = items.filter(t => !t.done).length;
+    document.getElementById("task-count").textContent = openCount + " 个在办";
+    document.getElementById("task-empty").style.display = items.length ? "none" : "block";
+    list.innerHTML = "";
+
+    items.forEach(t => {
+      const r = remainText(t.dueTs);
+      const li = document.createElement("li");
+      li.className = "task" + (t.done ? " done" : "") + (!t.done && t.dueTs < Date.now() ? " overdue" : "");
+      const goalHtml = t.goal ? `<div class="task-goal"></div>` : "";
+      li.innerHTML =
+        `<div class="task-top">
+           <input type="checkbox" ${t.done ? "checked" : ""} style="margin-top:4px;width:15px;height:15px;accent-color:var(--accent);cursor:pointer">
+           <div class="task-title"></div>
+           <button class="del" title="删除">×</button>
+         </div>
+         ${goalHtml}
+         <div class="task-meta">
+           <span>截止 <b>${fmtLocal(t.dueTs)}</b></span>
+           ${t.startTs ? `<span>开始 <b>${fmtLocal(t.startTs)}</b></span>` : ""}
+           <span>提醒 <b>${t.lead ? "提前 " + (t.lead >= 60 ? (t.lead/60) + " 小时" : t.lead + " 分") : "不提前"}</b></span>
+           ${t.done ? `<span>已完成</span>` : `<span class="remain ${r.cls}">${r.text}</span>`}
+         </div>`;
+      li.querySelector(".task-title").textContent = t.title;
+      if(t.goal) li.querySelector(".task-goal").textContent = t.goal;
+      li.querySelector("input").addEventListener("change", e => {
+        t.done = e.target.checked; save(); renderTasks();
+        if(t.done) addLog("完成：" + t.title);
+      });
+      li.querySelector(".del").addEventListener("click", () => {
+        db.tasks = db.tasks.filter(x => x.id !== t.id); save(); renderTasks();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  /* ============ 提醒检查 ============ */
+  let bannerTimer = null;
+  function showBanner(title, body){
+    const b = document.getElementById("banner");
+    document.getElementById("banner-title").textContent = title;
+    document.getElementById("banner-body").textContent = body;
+    b.classList.add("show");
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.classList.remove("show"), 20000);
+  }
+
+  function notify(title, body){
+    try{
+      if(window.Notification && Notification.permission === "granted"){
+        new Notification(title, { body, tag: title + body });
+      }
+    }catch(e){ /* 忽略 */ }
+    showBanner(title, body);
+  }
+
+  function checkReminders(){
+    const now = Date.now();
+    let changed = false;
+    db.tasks.forEach(t => {
+      if(t.done) return;
+      const leadTs = t.dueTs - t.lead * 60000;
+      if(!t.firedLead && t.lead > 0 && now >= leadTs && now < t.dueTs){
+        t.firedLead = true; changed = true;
+        notify("快到了：" + t.title, `还有 ${t.lead} 分钟到截止（${fmtLocal(t.dueTs)}）。`);
+      }
+      if(!t.firedDue && now >= t.dueTs){
+        t.firedDue = true; changed = true;
+        notify("到点了：" + t.title, `截止时间 ${fmtLocal(t.dueTs)} 已到。`);
+      }
+    });
+    if(changed){ save(); renderTasks(); }
+  }
+
+  /* ============ 文本生成 ============ */
+  function logsOfDate(dateStr){
+    return db.logs.filter(l => l.date === dateStr).sort((a,b) => a.ts - b.ts);
+  }
+
+  function buildDaily(dateStr){
+    const d = new Date(dateStr + "T00:00:00");
+    const items = logsOfDate(dateStr);
+    const done = items.filter(l => l.done);
+    const undone = items.filter(l => !l.done);
+    const tasksToday = db.tasks.filter(t => ymd(new Date(t.dueTs)) === dateStr);
+    const taskDone = tasksToday.filter(t => t.done);
+    const taskOpen = tasksToday.filter(t => !t.done);
+
+    let out = `# ${dateStr} ${WEEK[d.getDay()]} 工作日志\n\n`;
+    out += `## 已完成\n`;
+    if(done.length){
+      done.forEach(l => { out += `- ${l.time}　${l.text}\n`; });
+    }else{
+      out += `- （今天没有记录）\n`;
+    }
+
+    if(undone.length){
+      out += `\n## 未完成\n`;
+      undone.forEach(l => { out += `- ${l.time}　${l.text}\n`; });
+    }
+
+    if(tasksToday.length){
+      out += `\n## 任务情况\n`;
+      out += `- 完成 ${taskDone.length} 个，在办 ${taskOpen.length} 个\n`;
+      taskDone.forEach(t => { out += `  - 已完成：${t.title}\n`; });
+      taskOpen.forEach(t => { out += `  - 未完成：${t.title}（截止 ${fmtLocal(t.dueTs)}）\n`; });
+    }
+
+    out += `\n## 明日计划\n`;
+    const followUps = db.tasks.filter(t => !t.done && t.dueTs >= new Date(dateStr + "T00:00:00").getTime());
+    if(followUps.length){
+      followUps.forEach(t => {
+        out += `- 跟进：${t.title}${t.goal ? "（" + t.goal + "）" : ""}\n`;
+      });
+    }
+    out += `- \n`;
+    out += `\n---\n记 ${items.length} 条，完成率 ${items.length ? Math.round(done.length / items.length * 100) : 0}%\n`;
+    return out;
+  }
+
+  function mondayOf(d){
+    const t = new Date(d);
+    const day = t.getDay() || 7;
+    t.setDate(t.getDate() - day + 1);
+    t.setHours(0,0,0,0);
+    return t;
+  }
+
+  // 按用户挑的若干天合并
+  function buildRange(dates){
+    if(!dates || !dates.length) return "# 还没有挑日期\n";
+    const sorted = dates.slice().sort();
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    let out = `# 工作记录汇总（${first} ~ ${last}，共 ${sorted.length} 天）\n\n`;
+    let total = 0, doneCount = 0, blankRun = [];
+
+    const flushBlanks = () => {
+      if(!blankRun.length) return;
+      if(blankRun.length === 1){
+        out += `（${blankRun[0].slice(5)} 没有记录）\n\n`;
+      }else{
+        out += `（${blankRun[0].slice(5)} ~ ${blankRun[blankRun.length-1].slice(5)}，${blankRun.length} 天没有记录）\n\n`;
+      }
+      blankRun = [];
+    };
+
+    sorted.forEach(ds => {
+      const items = logsOfDate(ds);
+      if(!items.length){ blankRun.push(ds); return; }
+      flushBlanks();
+
+      const d = new Date(ds + "T00:00:00");
+      out += `## ${ds.slice(5)} ${WEEK[d.getDay()]}\n`;
+      items.forEach(l => {
+        out += `- ${l.time}　${l.text}${l.done ? "" : "　（未完成）"}\n`;
+        total++;
+        if(l.done) doneCount++;
+      });
+      out += "\n";
+    });
+    flushBlanks();
+
+    out += `---\n共 ${sorted.length} 天，${total} 条记录`;
+    if(total) out += `，完成率 ${Math.round(doneCount / total * 100)}%`;
+    out += "\n";
+    return out;
+  }
+
+  function buildWeekly(){
+    const end = new Date();
+    const start = mondayOf(end);
+    const days = [];
+    for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
+      days.push(ymd(new Date(d)));
+    }
+
+    let out = `# 本周工作周报（${ymd(start)} ~ ${ymd(end)}）\n\n`;
+    let total = 0;
+
+    days.forEach(ds => {
+      const items = logsOfDate(ds);
+      if(!items.length) return;
+      total += items.length;
+      const d = new Date(ds + "T00:00:00");
+      out += `## ${ds.slice(5)} ${WEEK[d.getDay()]}\n`;
+      items.forEach(l => { out += `- ${l.time}　${l.text}\n`; });
+      out += `\n`;
+    });
+
+    if(!total){
+      out += `本周还没有记录。\n`;
+    }else{
+      const dTasks = db.tasks.filter(t => t.done && t.dueTs >= start.getTime() && t.dueTs <= end.getTime());
+      out += `---\n本周记录 ${total} 条`;
+      if(dTasks.length){
+        out += `，完成任务 ${dTasks.length} 个：\n`;
+        dTasks.forEach(t => { out += `- ${t.title}\n`; });
+      }else{
+        out += `。\n`;
+      }
+    }
+    return out;
+  }
+
+  function buildAIPrompt(kind){
+    const body = kind === "week" ? buildWeekly() : buildDaily(ymd(new Date()));
+    return `下面是我${kind === "week" ? "这一周" : "今天"}的工作记录，请帮我整理成一份可以直接发给领导的${kind === "week" ? "周报" : "日报"}。
+
+要求：
+1. 按重要程度排序，不要按时间顺序罗列
+2. 同类事项合并成一条，不要一条一条堆
+3. 每条写清「做了什么 + 结果如何」，有数字的保留数字
+4. 不要加形容词，不要写"非常""顺利""圆满完成"这类空话
+5. 最后单列一段「需要支持/风险」，从记录里推断，不要编
+6. 全文不超过 400 字
+
+原始记录：
+
+${body}`;
+  }
+
+  /* ============ 弹层 ============ */
+  function openModal(title, text, kind){
+    document.getElementById("modal-title").textContent = title;
+    document.getElementById("modal-text").value = text;
+    document.getElementById("copy-hint").textContent = "";
+    document.getElementById("modal").classList.add("show");
+    document.getElementById("modal").dataset.kind = kind || "daily";
+  }
+  function closeModal(){
+    document.getElementById("modal").classList.remove("show");
+  }
+
+  function copyText(){
+    const ta = document.getElementById("modal-text");
+    const text = ta.value;
+    const done = () => {
+      document.getElementById("copy-hint").textContent = "已复制";
+      setTimeout(() => { document.getElementById("copy-hint").textContent = ""; }, 2000);
+    };
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(ta, done));
+    }else{
+      fallbackCopy(ta, done);
+    }
+  }
+  function fallbackCopy(ta, done){
+    ta.select(); ta.setSelectionRange(0, 999999);
+    try{ document.execCommand("copy"); done(); }catch(e){ alert("复制失败，手动选中复制吧"); }
+  }
+
+  function download(){
+    const kind = document.getElementById("modal").dataset.kind || "daily";
+    const text = document.getElementById("modal-text").value;
+    const name = kind === "week"
+      ? `周报_${ymd(new Date())}.md`
+      : kind === "ai"
+        ? `AI润色请求_${ymd(new Date())}.md`
+        : `工作日志_${ymd(new Date())}.md`;
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  }
+
+  /* ============ 事件 ============ */
+  document.getElementById("btn-add-log").addEventListener("click", () => {
+    const el = document.getElementById("log-input");
+    addLog(el.value); el.value = ""; el.focus();
+  });
+  document.getElementById("log-input").addEventListener("keydown", e => {
+    if(e.key === "Enter" && !e.shiftKey){
+      e.preventDefault();
+      addLog(e.target.value); e.target.value = "";
+    }
+  });
+  document.addEventListener("keydown", e => {
+    if((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+      const el = document.getElementById("log-input");
+      if(document.activeElement !== el){ e.preventDefault(); el.focus(); }
+    }
+    if(e.key === "Escape") closeModal();
+  });
+
+  document.getElementById("btn-add-task").addEventListener("click", addTask);
+
+  document.getElementById("btn-daily").addEventListener("click", () => {
+    openModal("今日工作日志", buildDaily(ymd(new Date())), "daily");
+  });
+  document.getElementById("btn-weekly").addEventListener("click", openDatePicker);
+  document.getElementById("btn-copy-ai").addEventListener("click", () => {
+    openModal("复制给 AI 润色", buildAIPrompt("day"), "ai");
+  });
+
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal").addEventListener("click", e => {
+    if(e.target.id === "modal") closeModal();
+  });
+  document.getElementById("btn-copy-text").addEventListener("click", copyText);
+  document.getElementById("btn-download").addEventListener("click", download);
+  document.getElementById("banner-close").addEventListener("click", () => {
+    document.getElementById("banner").classList.remove("show");
+  });
+
+  document.getElementById("btn-notify").addEventListener("click", async () => {
+    if(!window.Notification){
+      alert("这个浏览器不支持桌面通知，页面内的提醒照常工作。");
+      return;
+    }
+    if(Notification.permission === "granted"){
+      alert("桌面提醒已经开着。");
+      return;
+    }
+    const p = await Notification.requestPermission();
+    if(p === "granted"){ alert("好了。页面开着的时候，到点会弹桌面通知。"); }
+    else{ alert("没给权限。页面内的横幅提醒照常工作。"); }
+  });
+
+  /* ============ 日期选择器 ============ */
+  const selDates = new Set();
+  let calMonth = new Date();
+
+  function ymdOf(y, m, d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+
+  function renderCal(){
+    const y = calMonth.getFullYear(), m = calMonth.getMonth();
+    document.getElementById("cal-month").textContent = `${y} 年 ${m+1} 月`;
+    const grid = document.getElementById("cal-grid");
+    grid.innerHTML = "";
+
+    ["一","二","三","四","五","六","日"].forEach(w => {
+      const el = document.createElement("div");
+      el.className = "cal-dow";
+      el.textContent = w;
+      grid.appendChild(el);
+    });
+
+    const firstDay = new Date(y, m, 1);
+    const offset = (firstDay.getDay() + 6) % 7;
+    for(let i = 0; i < offset; i++){
+      const el = document.createElement("div");
+      el.className = "cal-day other";
+      grid.appendChild(el);
+    }
+
+    const daysInMonth = new Date(y, m+1, 0).getDate();
+    const todayStr = ymd(new Date());
+    const todayNoon = new Date(todayStr + "T23:59:59").getTime();
+
+    for(let d = 1; d <= daysInMonth; d++){
+      const ds = ymdOf(y, m, d);
+      const hasLog = db.logs.some(l => l.date === ds);
+      const isFuture = new Date(ds + "T23:59:59").getTime() > todayNoon;
+      const el = document.createElement("div");
+      el.className = "cal-day"
+        + (hasLog ? " has" : "")
+        + (selDates.has(ds) ? " sel" : "")
+        + (ds === todayStr ? " today" : "")
+        + (isFuture ? " future" : "");
+      el.textContent = d;
+      el.title = ds + (hasLog ? `（${logsOfDate(ds).length} 条记录）` : "（无记录）");
+      el.addEventListener("click", () => {
+        if(selDates.has(ds)) selDates.delete(ds);
+        else selDates.add(ds);
+        renderCal();
+        updateCalCount();
+      });
+      grid.appendChild(el);
+    }
+  }
+
+  function updateCalCount(){
+    const n = selDates.size;
+    const btn = document.getElementById("cal-gen");
+    document.getElementById("cal-count").textContent = n
+      ? `已选 ${n} 天`
+      : "还没选，点在日期上挑，或者用上面的快捷按钮";
+    btn.disabled = n === 0;
+    btn.style.opacity = n ? "1" : ".45";
+    btn.style.cursor = n ? "pointer" : "not-allowed";
+  }
+
+  function quickSelect(kind){
+    const now = new Date();
+    if(kind === "clear"){ selDates.clear(); }
+
+    if(kind === "thisWeek"){
+      const s = mondayOf(now);
+      for(let d = new Date(s); d <= now; d.setDate(d.getDate() + 1)){
+        selDates.add(ymd(new Date(d)));
+      }
+    }
+    if(kind === "lastWeek"){
+      const s = mondayOf(now);
+      s.setDate(s.getDate() - 7);
+      for(let i = 0; i < 7; i++){
+        const d = new Date(s);
+        d.setDate(d.getDate() + i);
+        selDates.add(ymd(d));
+      }
+    }
+    if(kind === "thisMonth"){
+      const y = now.getFullYear(), m = now.getMonth();
+      const n = new Date(y, m+1, 0).getDate();
+      for(let d = 1; d <= n; d++) selDates.add(ymdOf(y, m, d));
+    }
+    if(kind === "last7"){
+      for(let i = 6; i >= 0; i--){
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        selDates.add(ymd(d));
+      }
+    }
+    // 选完把日历翻到能看到的位置
+    if(selDates.size && kind !== "clear"){
+      const arr = [...selDates].sort();
+      calMonth = new Date(arr[arr.length - 1] + "T00:00:00");
+    }
+    renderCal();
+    updateCalCount();
+  }
+
+  function openDatePicker(){
+    if(selDates.size === 0) quickSelect("thisWeek");
+    else { renderCal(); updateCalCount(); }
+    document.getElementById("modal-date").classList.add("show");
+  }
+
+  function closeDatePicker(){
+    document.getElementById("modal-date").classList.remove("show");
+  }
+
+  document.getElementById("date-close").addEventListener("click", closeDatePicker);
+  document.getElementById("modal-date").addEventListener("click", e => {
+    if(e.target.id === "modal-date") closeDatePicker();
+  });
+  document.getElementById("cal-prev").addEventListener("click", () => {
+    calMonth.setMonth(calMonth.getMonth() - 1);
+    renderCal();
+  });
+  document.getElementById("cal-next").addEventListener("click", () => {
+    calMonth.setMonth(calMonth.getMonth() + 1);
+    renderCal();
+  });
+  document.querySelectorAll("[data-quick]").forEach(b => {
+    b.addEventListener("click", () => quickSelect(b.dataset.quick));
+  });
+  document.getElementById("cal-gen").addEventListener("click", () => {
+    if(!selDates.size) return;
+    const arr = [...selDates].sort();
+    closeDatePicker();
+    openModal(`汇总 ${arr.length} 天`, buildRange(arr), "week");
+  });
+
+  /* ============ 初始化 ============ */
+  function init(){
+    const now = new Date();
+    const plus1h = new Date(now.getTime() + 3600000);
+    const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    document.getElementById("t-start").value = iso(now);
+    document.getElementById("t-due").value = iso(plus1h);
+
+    renderLogs(); renderTasks(); tick();
+    setInterval(tick, 1000);
+    setInterval(checkReminders, 20000);
+
+    // 页面加载时，补一次错过的提醒
+    setTimeout(() => {
+      const missed = db.tasks.filter(t => !t.done && !t.firedDue && t.dueTs < Date.now());
+      if(missed.length){
+        notify(`有 ${missed.length} 个任务过期了`, missed.map(t => t.title).join("、"));
+        missed.forEach(t => { t.firedDue = true; });
+        save(); renderTasks();
+      }
+    }, 1200);
+
+    const t = todayLogs().length;
+    document.getElementById("bar-note").textContent = t ? `今天已记 ${t} 条` : "";
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
