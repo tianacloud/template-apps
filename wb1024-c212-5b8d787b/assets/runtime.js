@@ -1353,6 +1353,7 @@ $('#btnExport').addEventListener('click', function(){
   a.download='爱音单词-存档-'+todayKey()+'.json'; a.click(); toast('存档已导出');
 });
 $('#btnImport').addEventListener('click', function(){
+  var old=document.getElementById('backupImport'); if(old) old.remove();
   var inp=document.createElement('input'); inp.type='file'; inp.accept='.json'; inp.id='backupImport'; inp.style.display='none'; document.body.appendChild(inp);
   inp.onchange=function(){
     var f=inp.files[0]; if(!f) return;
