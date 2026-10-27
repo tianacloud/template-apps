@@ -170,8 +170,12 @@ function pickPhoto(mid) {
   const inp = document.createElement("input");
   inp.type = "file";
   inp.accept = "image/*";
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+  inp.oncancel = () => inp.remove();
   inp.onchange = async () => {
     const f = inp.files && inp.files[0];
+    inp.remove();
     if (!f) return;
     toast("正在保存照片…");
     const blob = await downscaleImage(f, 1600);
