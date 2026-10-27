@@ -1,4 +1,5 @@
-import "./style.css";
+import css from "./style.css?inline";
+const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
 import body from "./body.html?raw";
 document.title="本周工作台"; document.body.innerHTML=body;
 
@@ -336,11 +337,11 @@ function shareLink(){
   } else { prompt('复制这个链接分享：',url); }
 }
 
-/* 预置示例数据（来自本周真实工作安排整理稿） */
+/* 预置示例数据 */
 function seed(){ tasks=[{id:uid(),title:'整理本周工作',note:'示例任务',date:todayStr(),time:'',prio:1,done:false,doneAt:'',images:[],createdAt:new Date().toISOString()}]; }
 
 /* ========== 初始化 ========== */
-document.addEventListener('DOMContentLoaded',function(){
+function init(){
   var d=new Date();
   var wd='日一二三四五六'[d.getDay()];
   document.getElementById('dateLabel').textContent=d.getMonth()+1+'月'+d.getDate()+'日 周'+wd;
@@ -362,6 +363,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('editMask').addEventListener('click',function(e){ if(e.target===this)closeEdit(); });
   document.getElementById('viewer').addEventListener('click',function(e){ if(e.target===this)this.classList.remove('show'); });
   refreshAll();
-});
+}
+init();
 
 Object.assign(window,{load,save,flashSync,uid,toast,pad,fmt,todayStr,weekRange,inWeek,sorted,getTodayItems,getWeekTasks,weekStats,dayCounts,esc,prioChip,imgHtml,taskHtml,renderToday,renderWeekList,renderStats,renderTools,renderWelcome,refreshAll,toggleDone,delTask,addTask,openEdit,closeEdit,saveEdit,shiftDate,shiftNextWeek,edToggleDone,edDelete,viewImg,compress,onPickImgs,renderPending,rmPending,exportJSON,exportDone,importJSON,clearSeed,makeMine,dismissWelcome,closeWelcome,shareLink,seed});
