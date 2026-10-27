@@ -1,0 +1,2129 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>/* ==========================================================================
+   车辆年检到期提醒工具 —— 样式表
+   设计基调：浅色底 + 卡片化信息层级，状态色区分（绿=有效 / 橙=临期 / 红=逾期 / 蓝=免检）
+   ========================================================================== */
+
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e3e8ef;
+  --border-strong: #cbd5e1;
+  --text: #1e293b;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --ok: #16a34a;
+  --ok-soft: #f0fdf4;
+  --warn: #ea580c;
+  --warn-soft: #fff7ed;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --info: #0891b2;
+  --info-soft: #ecfeff;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #172033;
+    --border: #334155;
+    --border-strong: #475569;
+    --text: #e2e8f0;
+    --text-2: #94a3b8;
+    --text-3: #64748b;
+    --primary: #60a5fa;
+    --primary-dark: #3b82f6;
+    --primary-soft: #1e3a5f;
+    --ok: #4ade80;
+    --ok-soft: #14321f;
+    --warn: #fb923c;
+    --warn-soft: #3a2412;
+    --danger: #f87171;
+    --danger-soft: #3d1a1a;
+    --info: #22d3ee;
+    --info-soft: #12313a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  width: min(1360px, 100% - 40px);
+  margin: 0 auto;
+}
+
+.hidden { display: none !important; }
+
+/* ------------------------------- 顶部导航 ------------------------------- */
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 700;
+  flex: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+/* --------------------------------- 布局 --------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  padding: 22px 0 40px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.form-panel {
+  padding: 20px;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 650;
+}
+
+.hint { margin: 0; color: var(--text-3); font-size: 12px; }
+.req { color: var(--danger); font-weight: 600; }
+
+/* --------------------------------- 表单 --------------------------------- */
+.group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 14px 6px;
+  margin: 0 0 14px;
+}
+
+.group legend {
+  padding: 0 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.field { margin-bottom: 12px; flex: 1 1 0; min-width: 0; }
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+input.invalid, select.invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.err {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+  min-height: 0;
+  display: none;
+}
+
+.err.show { display: block; }
+
+.checkbox-field { display: flex; flex-direction: column; justify-content: flex-end; }
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-top: 20px;
+}
+
+#dangerRow .switch { padding-top: 0; margin-bottom: 8px; }
+
+.switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* --------------------------------- 按钮 --------------------------------- */
+.btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+.btn.ghost { background: transparent; }
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.form-actions .btn { flex: 1; padding: 10px; }
+.form-actions .btn.ghost, .form-actions .btn:not(.primary) { flex: 0 0 auto; }
+
+/* -------------------------------- 示例区 -------------------------------- */
+.samples {
+  border-top: 1px dashed var(--border-strong);
+  padding-top: 14px;
+}
+
+.samples-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.3px;
+}
+
+.sample-list { display: flex; flex-direction: column; gap: 6px; }
+
+.sample-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.sample-btn:hover { border-color: var(--primary); background: var(--primary-soft); }
+.sample-btn b { font-weight: 600; }
+.sample-btn span { color: var(--text-3); font-size: 11.5px; white-space: nowrap; }
+
+/* -------------------------------- 结果区 -------------------------------- */
+.result-panel { padding: 22px; min-height: 420px; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 380px;
+  color: var(--text-3);
+}
+
+.empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.75; }
+.empty-state h2 { margin: 0 0 6px; font-size: 15px; color: var(--text-2); font-weight: 600; }
+.empty-state p { margin: 0; font-size: 13px; max-width: 460px; }
+
+.status-head {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.ok { background: var(--ok-soft); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+.status-badge.warn { background: var(--warn-soft); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 32%, transparent); }
+.status-badge.danger { background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); }
+.status-badge.info { background: var(--info-soft); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); }
+
+.status-plate {
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-2);
+}
+
+.status-desc { margin: 10px 0 0; color: var(--text-2); font-size: 13px; }
+
+/* ------------------------------- 指标卡片 ------------------------------- */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.metric {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 13px;
+}
+
+.metric-label {
+  font-size: 11.5px;
+  color: var(--text-3);
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 680;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+.metric-value small { font-size: 12px; font-weight: 500; color: var(--text-2); margin-left: 3px; }
+.metric-sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+
+.metric.accent-ok .metric-value { color: var(--ok); }
+.metric.accent-warn .metric-value { color: var(--warn); }
+.metric.accent-danger .metric-value { color: var(--danger); }
+.metric.accent-info .metric-value { color: var(--info); }
+
+/* -------------------------------- 区块 -------------------------------- */
+.block { margin-top: 22px; }
+
+.block h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* ------------------------------- 时间轴 ------------------------------- */
+.timeline {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 14px 6px 6px;
+}
+
+.tl-item {
+  flex: 1 0 auto;
+  min-width: 128px;
+  position: relative;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.tl-item::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.tl-item:first-child::before { display: none; }
+
+.tl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  margin: 0 auto 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.tl-item.start .tl-dot { border-color: var(--primary); }
+.tl-item.exempt .tl-dot { border-color: var(--info); }
+.tl-item.last .tl-dot { border-color: var(--text-3); }
+.tl-item.due .tl-dot { border-color: var(--warn); background: var(--warn); box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 18%, transparent); }
+
+.tl-date { font-size: 12.5px; font-weight: 650; }
+.tl-label { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+/* ------------------------------- 推演步骤 ------------------------------- */
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+
+.steps li {
+  position: relative;
+  padding: 0 0 16px 38px;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.steps li::after {
+  content: "";
+  position: absolute;
+  left: 11.5px;
+  top: 27px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--border);
+}
+
+.steps li:last-child { padding-bottom: 0; }
+.steps li:last-child::after { display: none; }
+
+.step-title { font-size: 13.5px; font-weight: 650; margin-bottom: 3px; }
+.step-detail { font-size: 12.5px; color: var(--text-2); }
+
+.step-formula {
+  margin-top: 6px;
+  padding: 7px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-family: "SF Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+/* ------------------------------ 提示 / 建议 ------------------------------ */
+.warn-list, .advice-list { margin: 0; padding-left: 18px; }
+
+.warn-list li {
+  font-size: 12.8px;
+  color: var(--text);
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+
+.advice-list li {
+  font-size: 12.8px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+
+.basis-block {
+  border-top: 1px dashed var(--border-strong);
+  padding-top: 16px;
+}
+
+.basis { display: grid; gap: 8px; }
+
+.basis-item {
+  display: flex;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+.basis-key {
+  flex: none;
+  width: 92px;
+  color: var(--text-3);
+}
+
+.basis-val { color: var(--text-2); flex: 1; }
+
+/* --------------------------------- 弹层 --------------------------------- */
+.modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; }
+
+.modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.modal-box {
+  position: relative;
+  width: min(920px, calc(100% - 40px));
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-head h2 { margin: 0; font-size: 15.5px; }
+.modal-body { padding: 18px 20px 22px; overflow-y: auto; }
+
+.rule-table { width: 100%; border-collapse: collapse; font-size: 12.8px; }
+
+.rule-table th, .rule-table td {
+  border: 1px solid var(--border);
+  padding: 9px 11px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rule-table th { background: var(--surface-2); font-weight: 650; color: var(--text-2); white-space: nowrap; }
+.rule-table td:first-child { font-weight: 600; }
+
+.modal-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.7;
+}
+
+/* --------------------------------- 页脚 --------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 18px 0 26px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.site-footer p { margin: 0 0 5px; }
+.disclaimer { color: var(--text-3); opacity: 0.9; }
+
+/* -------------------------------- 响应式 -------------------------------- */
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+  .form-panel { position: static; max-height: none; }
+}
+
+@media (max-width: 560px) {
+  .wrap { width: calc(100% - 24px); }
+  .field-row { flex-direction: column; gap: 0; }
+  .header-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .result-panel, .form-panel { padding: 16px; }
+}
+</style></head><body><div style="text-align:center;padding:6px;background:#edf4ff">示例体验，数据仅保留在本页</div>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <div aria-hidden="true" class="brand-mark">检</div>
+        <div>
+          <h1>车辆年检到期提醒工具</h1>
+          <p class="subtitle">按车辆类型与车龄套用检验周期，自动推算到期日、剩余天数与处置建议</p>
+        </div>
+      </div>
+      <nav class="header-actions">
+        <button class="btn ghost" id="btnRules" type="button">检验周期规则</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <!-- ============================ 表单区 ============================ -->
+    <section aria-labelledby="formTitle" class="panel form-panel">
+      <div class="panel-head">
+        <h2 id="formTitle">车辆信息</h2>
+        <p class="hint">带 <span class="req">*</span> 为必填项</p>
+      </div>
+
+      <form id="form" novalidate>
+        <!-- 车辆基本信息 -->
+        <fieldset class="group">
+          <legend>基本信息</legend>
+
+          <div class="field">
+            <label for="plate">车牌号 <span class="req">*</span></label>
+            <input autocomplete="off" id="plate" name="plate" placeholder="例如 京A12345 / 粤BD12345" type="text">
+            <p class="err" data-err="plate"></p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vehicleType">车辆类型 <span class="req">*</span></label>
+              <select id="vehicleType" name="vehicleType"></select>
+              <p class="err" data-err="vehicleType"></p>
+            </div>
+            <div class="field">
+              <label for="usage">使用性质 <span class="req">*</span></label>
+              <select id="usage" name="usage"></select>
+              <p class="err" data-err="usage"></p>
+            </div>
+          </div>
+
+          <div class="field-row" id="seatsRow">
+            <div class="field">
+              <label for="seats">核定载人数 <span class="req">*</span></label>
+              <input id="seats" max="99" min="1" name="seats" placeholder="例如 5" step="1" type="number">
+              <p class="err" data-err="seats"></p>
+            </div>
+            <div class="field checkbox-field">
+              <label class="switch">
+                <input id="isNewEnergy" name="isNewEnergy" type="checkbox">
+                <span>新能源车辆</span>
+              </label>
+              <p class="err" data-err="isNewEnergy"></p>
+            </div>
+          </div>
+
+          <div class="field hidden" id="dangerRow">
+            <label class="switch">
+              <input id="isDangerous" name="isDangerous" type="checkbox">
+              <span>危险货物运输车辆（检验有效期 6 个月）</span>
+            </label>
+            <p class="err" data-err="isDangerous"></p>
+          </div>
+        </fieldset>
+
+        <!-- 日期与判定方式 -->
+        <fieldset class="group">
+          <legend>日期与判定方式</legend>
+
+          <div class="field">
+            <label for="firstRegDate">首次登记日期 <span class="req">*</span></label>
+            <input id="firstRegDate" name="firstRegDate" type="date">
+            <p class="err" data-err="firstRegDate"></p>
+          </div>
+
+          <div class="field">
+            <label for="lastInspectionDate">上次年检日期</label>
+            <input id="lastInspectionDate" name="lastInspectionDate" type="date">
+            <p class="err" data-err="lastInspectionDate"></p>
+          </div>
+
+          <div class="field">
+            <label for="method">推算方式</label>
+            <select id="method" name="method">
+              <option value="auto">自动（有上次年检日期则按其推算）</option>
+              <option value="lastInspection">按上次年检时间推算</option>
+              <option value="firstRegistration">按首次登记日期推算</option>
+            </select>
+            <p class="err" data-err="method"></p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="baseDate">判定基准日</label>
+              <input id="baseDate" name="baseDate" type="date">
+              <p class="err" data-err="baseDate"></p>
+            </div>
+            <div class="field">
+              <label for="warnDays">到期提醒阈值（天）</label>
+              <input id="warnDays" max="365" min="0" name="warnDays" step="1" type="number" value="30">
+              <p class="err" data-err="warnDays"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <button class="btn primary" type="button" id="previewRun">开始判定</button>
+          <button class="btn" id="btnReset" type="button">重置</button>
+        </div>
+      </form>
+
+      <div class="samples">
+        <p class="samples-title">示例输入（基准日 2026-10-22）</p>
+        <div class="sample-list" id="sampleList"></div>
+      </div>
+    </section>
+
+    <!-- ============================ 结果区 ============================ -->
+    <section aria-live="polite" class="panel result-panel">
+      <div class="empty-state" id="resultEmpty">
+        <div aria-hidden="true" class="empty-icon">📋</div>
+        <h2>请先填写车辆信息并点击"开始判定"</h2>
+        <p>工具会展示：检验周期依据 → 到期日推演 → 剩余/逾期天数 → 是否需要上线检测</p>
+      </div>
+
+      <div class="hidden" id="result">
+        <!-- 状态头部 -->
+        <div class="status-head">
+          <div class="status-main">
+            <span class="status-badge" id="statusBadge">检验有效</span>
+            <span class="status-plate" id="statusPlate">京A88888</span>
+          </div>
+          <p class="status-desc" id="statusDesc"></p>
+        </div>
+
+        <!-- 关键指标 -->
+        <div class="metrics" id="metrics"></div>
+
+        <!-- 时间轴 -->
+        <div class="block">
+          <h3>检验周期时间轴</h3>
+          <div class="timeline" id="timeline"></div>
+        </div>
+
+        <!-- 推演过程 -->
+        <div class="block">
+          <h3>判定推演过程 <span class="tag">从输入到结论</span></h3>
+          <ol class="steps" id="steps"></ol>
+        </div>
+
+        <!-- 提示与建议 -->
+        <div class="block hidden" id="warnBox">
+          <h3>风险提示</h3>
+          <ul class="warn-list" id="warnList"></ul>
+        </div>
+
+        <div class="block">
+          <h3>处置建议</h3>
+          <ul class="advice-list" id="adviceList"></ul>
+        </div>
+
+        <div class="block basis-block">
+          <h3>判断依据</h3>
+          <div class="basis" id="basis"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================ 规则表弹层 ============================ -->
+  <div aria-labelledby="rulesTitle" aria-modal="true" class="modal hidden" id="rulesModal" role="dialog">
+    <div class="modal-mask" data-close></div>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="rulesTitle">检验周期规则速查</h2>
+        <button class="btn ghost" data-close type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <table class="rule-table" id="ruleTable"></table>
+        <p class="modal-note">
+          依据：《机动车登记规定》（公安部令第 164 号，2022-04-01 施行）关于定期安全技术检验期限的规定、
+          小型/微型载客汽车 6 年内（含第 6 年）免检政策、《道路交通安全法实施条例》第九十二条。
+          本工具仅作到期提醒推演，最终检验结论以公安交管部门业务系统为准。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>车辆年检到期提醒工具 · 规则引擎与界面分离 · 全部计算在浏览器本地完成，不上传任何车辆信息</p>
+      <p class="disclaimer">免责声明：本工具依据公开法规整理，仅用于年检到期提醒参考，不构成法律意见；各地执行口径可能存在差异，实际检验要求请以当地公安交管部门及检测站通知为准。</p>
+    </div>
+  </footer>
+
+  <script>/**
+ * ============================================================================
+ * 车辆年检提醒工具 —— 核心规则引擎（纯函数，无 DOM 依赖）
+ * ----------------------------------------------------------------------------
+ * 设计要点：
+ * 1. UMD 包装，浏览器（window.VIR）与 Node（require）双端可直接运行；
+ * 2. 判定过程全部记录在 result.steps 中，供界面展示"从输入到结论"的推演逻辑；
+ * 3. 规则以数据（spec）方式描述，法规更新时只需改 getCycleSpec()；
+ * 4. 所有日期按"自然日"计算（忽略时分秒），到期日与检验有效期对齐。
+ *
+ * 法规依据（整理自公开规定，截至 2026-10）：
+ * - 《机动车登记规定》（公安部令第 164 号，2022-04-01 施行）关于定期安全技术检验期限；
+ * - 《道路交通安全法实施条例》第九十二条（机动车定期检验）；
+ * - 《机动车安全技术检验规程》GB 38900 及配套检验方法标准；
+ * - 小型/微型载客汽车 6 年内（含第 6 年）免检政策。
+ *
+ * 免责说明：本工具仅用于到期提醒推演，最终检验结论以公安交管部门业务系统为准。
+ * ============================================================================
+ */
+(function (root, factory) {
+  'use strict';
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.VIR = factory();
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  /* ============================ 1. 基础时间工具 ============================ */
+
+  const MS_PER_DAY = 86400000;
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+  /** 统一格式化为 YYYY-MM-DD */
+  function fmtDate(d) {
+    if (!d) return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  /** 取当天零点，去除时分秒影响 */
+  function startOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  /**
+   * 解析日期字符串，支持 YYYY-MM-DD / YYYY/M/D / YYYY.M.D / YYYY年M月D日
+   * 非法日期（含 2026-02-30 这类不存在的日期）返回 null
+   */
+  function parseDate(value) {
+    if (value instanceof Date) return startOfDay(value);
+    if (value === null || value === undefined || value === '') return null;
+    const m = /^(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?$/.exec(String(value).trim());
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const da = Number(m[3]);
+    if (mo < 0 || mo > 11 || da < 1 || da > 31) return null;
+    const d = new Date(y, mo, da);
+    // 回读校验，排除"自动进位"型非法日期
+    if (d.getFullYear() !== y || d.getMonth() !== mo || d.getDate() !== da) return null;
+    return d;
+  }
+
+  /** 加月份，遇到月末自动收敛（如 1-31 + 1 月 → 2-28/29） */
+  function addMonths(d, months) {
+    const y = d.getFullYear();
+    const m = d.getMonth() + months;
+    const day = d.getDate();
+    const target = new Date(y, m, 1);
+    const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, daysInMonth));
+    return target;
+  }
+
+  function addYears(d, years) { return addMonths(d, years * 12); }
+
+  /** a - b 的自然日天数（a 在后为正） */
+  function diffDays(a, b) {
+    return Math.round((startOfDay(a).getTime() - startOfDay(b).getTime()) / MS_PER_DAY);
+  }
+
+  /** 已满周年数（整年数），用于 6 年 / 10 年 等阈值判定 */
+  function fullYears(from, to) {
+    let y = to.getFullYear() - from.getFullYear();
+    if (addYears(from, y).getTime() > to.getTime()) y -= 1;
+    return y;
+  }
+
+  /** 车龄文本，如 "8年4个月" */
+  function ageText(from, to) {
+    const y = fullYears(from, to);
+    const anniv = addYears(from, y);
+    let m = 0;
+    while (m < 11 && addMonths(anniv, m + 1).getTime() <= to.getTime()) m += 1;
+    return y + '年' + (m > 0 ? m + '个月' : '整');
+  }
+
+  /* ====================== 2. 车辆类型 / 使用性质定义 ====================== */
+
+  const VEHICLE_TYPES = [
+    { value: 'passenger', label: '载客汽车（轿车 / SUV / 客车等）' },
+    { value: 'truck', label: '载货汽车' },
+    { value: 'trailer', label: '挂车' },
+    { value: 'motorcycle', label: '摩托车' },
+    { value: 'schoolBus', label: '校车' },
+    { value: 'specialVehicle', label: '专项作业车' },
+    { value: 'tractor', label: '拖拉机 / 低速载货汽车' }
+  ];
+
+  const USAGE_NATURES = [
+    { value: 'nonOperating', label: '非营运' },
+    { value: 'operating', label: '营运' },
+    { value: 'operatingToNon', label: '营转非' },
+    { value: 'nonToOperating', label: '非营转营' }
+  ];
+
+  /** 需要填写核定载人数的车辆类型 */
+  const SEATS_REQUIRED_TYPES = ['passenger', 'schoolBus'];
+
+  /**
+   * 检验周期规则表（按车辆类型 + 使用性质 + 车龄阈值划分）
+   * thresholdYears：达到该年限后检验周期缩短为 12 个月（每年 1 次）
+   * cycleBefore / cycleAfter：阈值前后的检验周期（月）
+   * exemptable：是否适用"6 年内免检"政策
+   */
+  function getCycleSpec(type, usage, seats, isDangerous) {
+    switch (type) {
+      case 'passenger': {
+        const isOperating = usage === 'operating' || usage === 'nonToOperating';
+        if (isOperating) {
+          // 营运载客汽车：5 年以内每 2 年 1 次，5 年以上每年 1 次
+          return {
+            regime: '营运载客汽车',
+            thresholdYears: 5,
+            cycleBefore: 24,
+            cycleAfter: 12,
+            exemptable: false,
+            basis: '营运载客汽车：5 年以内每 2 年检验 1 次，5 年以上每年检验 1 次。'
+          };
+        }
+        if (Number(seats) <= 9) {
+          // 小型、微型载客汽车：6 年内（含第 6 年）可免检，6 年以上每年 1 次
+          return {
+            regime: '小型、微型载客汽车（9 座以下非营运）',
+            thresholdYears: 6,
+            cycleBefore: 24,
+            cycleAfter: 12,
+            exemptable: true,
+            basis: '小型、微型载客汽车：登记 6 年以内（含第 6 年）可申请免检；6 年以上每年检验 1 次。'
+          };
+        }
+        // 其他非营运载客汽车：10 年以内每 2 年，10 年以上每年
+        return {
+          regime: '非营运载客汽车（10 座及以上）',
+          thresholdYears: 10,
+          cycleBefore: 24,
+          cycleAfter: 12,
+          exemptable: false,
+          basis: '非营运载客汽车：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
+        };
+      }
+      case 'truck': {
+        if (isDangerous) {
+          // 危险货物运输车辆：检验有效期 6 个月
+          return {
+            regime: '危险货物运输车辆',
+            fixedMonths: 6,
+            exemptable: false,
+            basis: '危险货物运输车辆检验有效期 6 个月，即每半年检验 1 次。'
+          };
+        }
+        return {
+          regime: '载货汽车',
+          thresholdYears: 10,
+          cycleBefore: 24,
+          cycleAfter: 12,
+          exemptable: false,
+          basis: '载货汽车：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
+        };
+      }
+      case 'trailer':
+        return {
+          regime: '挂车',
+          thresholdYears: 10,
+          cycleBefore: 24,
+          cycleAfter: 12,
+          exemptable: false,
+          basis: '挂车按载货汽车周期执行：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
+        };
+      case 'motorcycle':
+        // 摩托车为特殊排期：第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次
+        return {
+          regime: '摩托车',
+          motorcycle: true,
+          exemptable: false,
+          basis: '摩托车：自注册之日起第 3 年、第 5 年、第 6 年各检验 1 次，此后每年检验 1 次。'
+        };
+      case 'schoolBus':
+        return {
+          regime: '校车',
+          fixedMonths: 12,
+          exemptable: false,
+          basis: '校车每年检验 1 次。'
+        };
+      case 'specialVehicle':
+        return {
+          regime: '专项作业车',
+          fixedMonths: 12,
+          exemptable: false,
+          basis: '专项作业车每年检验 1 次。'
+        };
+      case 'tractor':
+        return {
+          regime: '拖拉机、低速载货汽车',
+          fixedMonths: 12,
+          exemptable: false,
+          basis: '拖拉机、低速载货汽车每年检验 1 次。'
+        };
+      default:
+        return {
+          regime: '未知车辆类型',
+          fixedMonths: 12,
+          exemptable: false,
+          basis: '未识别的车辆类型，按每年检验 1 次保守处理。'
+        };
+    }
+  }
+
+  /** 用于界面"规则速查表"展示 */
+  const RULE_TABLE = [
+    { type: '小型、微型载客汽车（9 座以下非营运）', cycle: '6 年内免检（每 2 年一周期，可申请免检）；满 6 年后每年 1 次', basis: '小型、微型载客汽车 6 年内（含第 6 年）免检政策' },
+    { type: '非营运载客汽车（10 座及以上）', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '《机动车登记规定》定期检验期限' },
+    { type: '营运载客汽车', cycle: '5 年以内每 2 年 1 次；5 年以上每年 1 次', basis: '《机动车登记规定》定期检验期限' },
+    { type: '载货汽车', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '《机动车登记规定》定期检验期限' },
+    { type: '危险货物运输车辆', cycle: '检验有效期 6 个月（每半年 1 次）', basis: '危险货物运输车辆专项要求' },
+    { type: '挂车', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '与载货汽车周期一致' },
+    { type: '摩托车', cycle: '第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次', basis: '《机动车登记规定》定期检验期限' },
+    { type: '校车 / 专项作业车 / 拖拉机（低速载货汽车）', cycle: '每年检验 1 次', basis: '《机动车登记规定》定期检验期限' }
+  ];
+
+  /* ============================ 3. 输入校验 ============================ */
+
+  const PLATE_PROVINCES = '京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领学港澳';
+  const PLATE_RE = new RegExp('^[' + PLATE_PROVINCES + '][A-Z][A-Z0-9]{5,7}$');
+
+  /**
+   * 校验用户输入，返回错误数组 [{field, message}]
+   * @param {object} input 表单原始输入
+   * @param {Date}   today 计算基准日
+   */
+  function validateInput(input, today) {
+    const errors = [];
+    const base = today || startOfDay(new Date());
+
+    // --- 车牌号：省份简称 + 字母 + 5~7 位（新能源多 1 位），挂车可带"挂"后缀 ---
+    const plate = String(input.plate || '').trim().toUpperCase().replace(/\s|·/g, '');
+    if (!plate) {
+      errors.push({ field: 'plate', message: '请输入车牌号' });
+    } else if (plate.endsWith('挂')) {
+      if (!new RegExp('^[' + PLATE_PROVINCES + '][A-Z][A-Z0-9]{4,6}挂$').test(plate)) {
+        errors.push({ field: 'plate', message: '挂车号牌格式有误，应为"省份简称+字母+4~6 位+挂"，例如 冀A1234挂' });
+      }
+    } else if (!PLATE_RE.test(plate)) {
+      errors.push({
+        field: 'plate',
+        message: '车牌号格式不正确：应为"省份简称+字母+5~7 位"，例如 京A12345、粤BD12345（新能源 6 位）'
+      });
+    }
+
+    // --- 车辆类型 / 使用性质 ---
+    if (!input.vehicleType || !VEHICLE_TYPES.some((t) => t.value === input.vehicleType)) {
+      errors.push({ field: 'vehicleType', message: '请选择车辆类型' });
+    }
+    if (!input.usage || !USAGE_NATURES.some((u) => u.value === input.usage)) {
+      errors.push({ field: 'usage', message: '请选择车辆使用性质' });
+    }
+
+    // --- 核定载人数（载客汽车 / 校车必填）---
+    if (SEATS_REQUIRED_TYPES.includes(input.vehicleType)) {
+      const seats = Number(input.seats);
+      if (input.seats === '' || input.seats === null || input.seats === undefined || Number.isNaN(seats)) {
+        errors.push({ field: 'seats', message: '请填写核定载人数（用于判断小型/中型载客汽车）' });
+      } else if (!Number.isInteger(seats) || seats < 1 || seats > 99) {
+        errors.push({ field: 'seats', message: '核定载人数需为 1~99 之间的整数' });
+      }
+    }
+
+    // --- 首次登记日期 ---
+    const firstReg = parseDate(input.firstRegDate);
+    if (!input.firstRegDate) {
+      errors.push({ field: 'firstRegDate', message: '请选择车辆首次登记日期' });
+    } else if (!firstReg) {
+      errors.push({ field: 'firstRegDate', message: '首次登记日期格式不合法，请使用 YYYY-MM-DD' });
+    } else if (firstReg.getTime() > base.getTime()) {
+      errors.push({ field: 'firstRegDate', message: '首次登记日期不能晚于判定基准日' });
+    } else if (firstReg.getFullYear() < 1990) {
+      errors.push({ field: 'firstRegDate', message: '首次登记日期早于 1990 年，请核对输入' });
+    }
+
+    // --- 上次年检日期（可选）---
+    let lastInsp = null;
+    if (input.lastInspectionDate) {
+      lastInsp = parseDate(input.lastInspectionDate);
+      if (!lastInsp) {
+        errors.push({ field: 'lastInspectionDate', message: '上次年检日期格式不合法，请使用 YYYY-MM-DD' });
+      } else if (lastInsp.getTime() > base.getTime()) {
+        errors.push({ field: 'lastInspectionDate', message: '上次年检日期不能晚于判定基准日' });
+      } else if (firstReg && lastInsp.getTime() < firstReg.getTime()) {
+        errors.push({ field: 'lastInspectionDate', message: '上次年检日期不能早于首次登记日期' });
+      }
+    }
+
+    // --- 判定方式与必填联动 ---
+    const method = input.method || 'auto';
+    if (!['auto', 'lastInspection', 'firstRegistration'].includes(method)) {
+      errors.push({ field: 'method', message: '未知的判定方式' });
+    } else if (method === 'lastInspection' && !lastInsp) {
+      errors.push({ field: 'lastInspectionDate', message: '选择"按上次年检时间推算"时，必须填写上次年检日期' });
+    }
+
+    // --- 提醒阈值 ---
+    const warnDays = Number(input.warnDays);
+    if (Number.isNaN(warnDays) || warnDays < 0 || warnDays > 365) {
+      errors.push({ field: 'warnDays', message: '提醒阈值需为 0~365 之间的天数' });
+    }
+
+    return errors;
+  }
+
+  /* ====================== 4. 检验周期与到期日推算 ====================== */
+
+  /** 某次检验日对应的下一检验周期（月）；摩托车走专用排期 */
+  function cycleMonthsAt(spec, firstReg, inspectionDate) {
+    if (spec.fixedMonths) return spec.fixedMonths;
+    if (spec.motorcycle) return 12;
+    const age = fullYears(firstReg, inspectionDate);
+    return age < spec.thresholdYears ? spec.cycleBefore : spec.cycleAfter;
+  }
+
+  /**
+   * 由"某次检验日"推算下一次到期日
+   * 若检验周期跨过了年限阈值（如 6 年 / 10 年），按阈值后的年度周期提前到期
+   */
+  function nextDueFromInspection(spec, firstReg, inspectionDate) {
+    const months = cycleMonthsAt(spec, firstReg, inspectionDate);
+    let due = addMonths(inspectionDate, months);
+
+    if (!spec.fixedMonths && !spec.motorcycle && months > 12) {
+      const thresholdDate = addYears(firstReg, spec.thresholdYears);
+      const crosses = inspectionDate.getTime() < thresholdDate.getTime() && due.getTime() > thresholdDate.getTime();
+      if (crosses) {
+        const yearlyDue = addMonths(thresholdDate, 12);
+        if (yearlyDue.getTime() < due.getTime()) due = yearlyDue;
+      }
+    }
+    return due;
+  }
+
+  /** 摩托车专用检验排期：第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次（count 为逐年项数量） */
+  function motorcycleSchedule(firstReg, count) {
+    const list = [addYears(firstReg, 3), addYears(firstReg, 5), addYears(firstReg, 6)];
+    const years = count || 40;
+    for (let y = 7; y < 7 + years; y += 1) list.push(addYears(firstReg, y));
+    return list;
+  }
+
+  /** 生成自首次登记起的完整检验周期序列（用于"按首次登记推算"与一致性核对） */
+  function buildDueSequence(spec, firstReg, count) {
+    const n = count || 40;
+    if (spec.motorcycle) return motorcycleSchedule(firstReg, n);
+    const seq = [];
+    let cursor = startOfDay(firstReg);
+    for (let i = 0; i < n; i += 1) {
+      cursor = nextDueFromInspection(spec, firstReg, cursor);
+      seq.push(cursor);
+    }
+    return seq;
+  }
+
+  /**
+   * 免检判定
+   * 依据：小型、微型载客汽车登记 6 年以内（含第 6 年）可申请免检上线检验
+   */
+  function getExemption(spec, firstReg, baseDate) {
+    if (!spec.exemptable) {
+      return {
+        applicable: false,
+        active: false,
+        endDate: null,
+        reason: '该车辆类型不适用"6 年内免检"政策（仅小型、微型载客汽车适用）'
+      };
+    }
+    const endDate = addYears(firstReg, 6);
+    // 基准日早于或等于免检截止日 → 仍在免检期内（diffDays(baseDate, endDate) <= 0）
+    const active = diffDays(baseDate, endDate) <= 0;
+    return {
+      applicable: true,
+      active: active,
+      endDate: endDate,
+      reason: active
+        ? '车龄未满 6 年，登记 6 年以内（含第 6 年）可申请免检上线检验'
+        : '车龄已满 6 年，免检政策不再适用，需按周期上线检验'
+    };
+  }
+
+  /* ========================= 5. 主判定流程 ========================= */
+
+  /**
+   * 车辆年检到期判定主函数
+   * @param {object} input  表单输入
+   * @param {object} options { today, warnDays }
+   * @returns {object} 判定结果（含推演步骤 steps）
+   */
+  function evaluate(input, options) {
+    const opts = options || {};
+    const baseDate = parseDate(opts.today) || startOfDay(new Date());
+    const warnDays = opts.warnDays != null ? Number(opts.warnDays) : 30;
+
+    const errors = validateInput(input, baseDate);
+    if (errors.length) {
+      return { ok: false, errors: errors, steps: [], timeline: [], warnings: [], advice: [] };
+    }
+
+    const steps = [];
+    const warnings = [];
+    const advice = [];
+    const push = (title, detail, formula) => steps.push({ index: steps.length + 1, title, detail, formula: formula || '' });
+
+    /* 步骤 1：输入解析 */
+    const plate = String(input.plate || '').trim().toUpperCase().replace(/\s|·/g, '');
+    const typeLabel = VEHICLE_TYPES.find((t) => t.value === input.vehicleType).label;
+    const usageLabel = USAGE_NATURES.find((u) => u.value === input.usage).label;
+    const firstReg = parseDate(input.firstRegDate);
+    const lastInsp = input.lastInspectionDate ? parseDate(input.lastInspectionDate) : null;
+    const seats = input.vehicleType === 'truck' ? null : Number(input.seats || 0);
+
+    push(
+      '输入解析与校验',
+      `车牌 ${plate}、车辆类型「${typeLabel}」、使用性质「${usageLabel}」` +
+        (seats ? `、核定载人数 ${seats} 人` : '') +
+        `、首次登记日期 ${fmtDate(firstReg)}` +
+        (lastInsp ? `、上次年检日期 ${fmtDate(lastInsp)}` : '、未填写上次年检日期'),
+      '校验通过：无空值、日期合法、车牌格式合法、日期先后关系正确'
+    );
+
+    /* 步骤 2：车龄计算 */
+    const ageYears = fullYears(firstReg, baseDate);
+    const ageTextValue = ageText(firstReg, baseDate);
+    push(
+      '车龄计算',
+      `首次登记 ${fmtDate(firstReg)} → 判定基准日 ${fmtDate(baseDate)}，车龄 ${ageTextValue}（已满 ${ageYears} 年）`,
+      `车龄 = 基准日 ${fmtDate(baseDate)} − 首次登记日 ${fmtDate(firstReg)} = ${ageTextValue}`
+    );
+
+    /* 步骤 3：检验周期判定 */
+    const spec = getCycleSpec(input.vehicleType, input.usage, seats, !!input.isDangerous);
+    let cycleMonths;
+    let cycleText;
+    if (spec.motorcycle) {
+      cycleMonths = 12;
+      cycleText = '特殊排期（第 3 / 5 / 6 年各 1 次，此后每年 1 次）';
+    } else if (spec.fixedMonths) {
+      cycleMonths = spec.fixedMonths;
+      cycleText = cycleMonths + ' 个月（' + (cycleMonths === 6 ? '每半年 1 次' : '每年 1 次') + '）';
+    } else {
+      cycleMonths = ageYears < spec.thresholdYears ? spec.cycleBefore : spec.cycleAfter;
+      const beforeText = spec.cycleBefore === 24 ? '每 2 年 1 次' : '每年 1 次';
+      const afterText = spec.cycleAfter === 24 ? '每 2 年 1 次' : '每年 1 次';
+      cycleText = cycleMonths + ' 个月（' + (ageYears < spec.thresholdYears ? beforeText : afterText) + '）';
+    }
+    push(
+      '检验周期判定',
+      `适用规则：${spec.regime} → 当前周期 ${cycleText}；依据：${spec.basis}`,
+      spec.motorcycle
+        ? `摩托车按第 3、5、6 年及此后每年排期`
+        : spec.fixedMonths
+        ? `固定周期 = ${cycleMonths} 个月`
+        : `车龄 ${ageYears} 年 ${ageYears < spec.thresholdYears ? '<' : '≥'} 阈值 ${spec.thresholdYears} 年 → 周期 = ${cycleMonths} 个月`
+    );
+
+    /* 步骤 4：免检判定 */
+    const exemption = getExemption(spec, firstReg, baseDate);
+    let exemptionDue = null;
+    if (exemption.applicable) {
+      if (exemption.active) {
+        // 免检期内：满 6 年后转入年度周期，首次需要上线的到期日 = 免检截止日 + 12 个月
+        exemptionDue = addMonths(exemption.endDate, 12);
+        push(
+          '免检政策判定',
+          `符合免检条件，免检期至 ${fmtDate(exemption.endDate)}；首个需上线检验的到期日预计 ${fmtDate(exemptionDue)}`,
+          `免检截止日 = 首次登记日 ${fmtDate(firstReg)} + 6 年 = ${fmtDate(exemption.endDate)}；满 6 年后按年度周期 → ${fmtDate(exemptionDue)}`
+        );
+      } else {
+        push(
+          '免检政策判定',
+          `车龄已满 6 年，免检政策不再适用（免检截止日 ${fmtDate(exemption.endDate)}）`,
+          `基准日 ${fmtDate(baseDate)} > 免检截止日 ${fmtDate(exemption.endDate)}`
+        );
+      }
+    } else {
+      push('免检政策判定', exemption.reason, '不满足小型、微型载客汽车免检适用条件');
+    }
+
+    /* 步骤 5：推算下一次到期日 */
+    const method = input.method || 'auto';
+    const effectiveMethod = method === 'auto' ? (lastInsp ? 'lastInspection' : 'firstRegistration') : method;
+
+    // 检验周期序列（自首次登记起）：两种推算方式与一致性核对共用
+    const sequence = buildDueSequence(spec, firstReg, 40);
+
+    let dueDate = null;    // 主到期日（界面主展示）
+    let periodDue = null;  // 本检验周期到期日
+    let nextAfter = null;  // 完成本次检验后的下一到期日
+    let dueSource = '';
+    let dueSourceLabel = '';
+
+    if (effectiveMethod === 'lastInspection') {
+      // 方式一：上次年检日 + 检验周期
+      dueDate = nextDueFromInspection(spec, firstReg, lastInsp);
+      periodDue = dueDate;
+      nextAfter = nextDueFromInspection(spec, firstReg, dueDate);
+      dueSource = 'lastInspection';
+      dueSourceLabel = '按上次年检时间推算';
+      push(
+        '推算下次到期日（以上次年检为基准）',
+        `上次年检 ${fmtDate(lastInsp)} + 检验周期 ${cycleMonths} 个月 → 本次检验到期日 ${fmtDate(dueDate)}；` +
+          `若本次检验合格，下一到期日为 ${fmtDate(nextAfter)}`,
+        `本次到期日 = 上次年检日 ${fmtDate(lastInsp)} + ${cycleMonths} 个月 = ${fmtDate(dueDate)}`
+      );
+    } else {
+      // 方式二：首次登记日按周期序列推演
+      // 取"已到期但未推演到的上一个周期"作为本检验周期到期日，避免漏判逾期
+      const passed = sequence.filter((d) => diffDays(baseDate, d) >= 0);
+      periodDue = passed.length ? passed[passed.length - 1] : sequence[0];
+      const upcoming = sequence.find((d) => diffDays(d, baseDate) > 0);
+      nextAfter = upcoming || sequence[sequence.length - 1];
+      dueDate = periodDue;
+      dueSource = 'firstRegistration';
+      dueSourceLabel = '按首次登记日期推算';
+      const recent = sequence.filter((d) => diffDays(baseDate, d) >= 0).slice(-4);
+      push(
+        '推算检验周期序列与到期日（以首次登记为基准）',
+        `周期序列：${recent.map(fmtDate).join(' → ')} → …；` +
+          `本检验周期到期日 ${fmtDate(periodDue)}，完成检验后下一到期日 ${fmtDate(nextAfter)}`,
+        `序列推演：${recent.map(fmtDate).join(' → ')} → ${fmtDate(periodDue)}（≤ ${fmtDate(baseDate)}）→ ${fmtDate(nextAfter)}`
+      );
+      if (!exemption.active) {
+        warnings.push(
+          '未填写"上次年检日期"：以上到期日由首次登记日期按周期序列推演得到。若该周期已完成过检验，' +
+            '请补充上次年检日期，系统将自动切换为"按上次年检时间推算"精确判定。'
+        );
+      }
+    }
+
+    /* 步骤 6：一致性与边界核对 */
+    if (effectiveMethod === 'lastInspection' && !spec.motorcycle) {
+      const nearest = sequence.reduce((best, d) => {
+        const dist = Math.abs(diffDays(d, lastInsp));
+        return !best || dist < best.dist ? { date: d, dist } : best;
+      }, null);
+      if (nearest && nearest.dist > 45) {
+        warnings.push(
+          `填写的上次年检日期 ${fmtDate(lastInsp)} 与按首次登记推算的检验周期序列（最近一次 ${fmtDate(nearest.date)}）相差 ${nearest.dist} 天，请核对是否填错。`
+        );
+        push(
+          '检验周期一致性核对',
+          `上次年检 ${fmtDate(lastInsp)} 与周期序列最近节点 ${fmtDate(nearest.date)} 相差 ${nearest.dist} 天（超过 45 天容差），请核对填报日期`,
+          `|${fmtDate(lastInsp)} − ${fmtDate(nearest.date)}| = ${nearest.dist} 天 > 45 天容差`
+        );
+      } else {
+        push(
+          '检验周期一致性核对',
+          `上次年检 ${fmtDate(lastInsp)} 与周期序列最近节点 ${fmtDate(nearest.date)} 相差 ${nearest.dist} 天，数据自洽`,
+          `|${fmtDate(lastInsp)} − ${fmtDate(nearest.date)}| = ${nearest.dist} 天 ≤ 45 天容差`
+        );
+      }
+    } else {
+      push(
+        '检验周期一致性核对',
+        effectiveMethod === 'firstRegistration'
+          ? '本次结论直接由首次登记日期的检验周期序列推演得出，无需交叉核对'
+          : '摩托车采用第 3 / 5 / 6 年及此后逐年的专用排期，不与常规周期序列交叉核对',
+        '核对方式：按车辆类型选用对应周期序列'
+      );
+    }
+
+    /* 步骤 6.5：免检期内到期日改按"首个需上线检验日" */
+    const exemptMode = exemption.active;
+    if (exemptMode) {
+      dueDate = exemptionDue;
+      nextAfter = addMonths(exemptionDue, 12);
+      dueSource = 'exemption';
+      dueSourceLabel = '免检期内（按满 6 年后年度周期推算首个上线日）';
+    }
+
+    /* 步骤 7：天数计算 */
+    const days = diffDays(dueDate, baseDate);
+    const remaining = days >= 0 ? days : 0;
+    const overdue = days < 0 ? -days : 0;
+    push(
+      '剩余天数计算',
+      days >= 0
+        ? `基准日 ${fmtDate(baseDate)} → 到期日 ${fmtDate(dueDate)}，剩余 ${days} 天`
+        : `基准日 ${fmtDate(baseDate)} → 到期日 ${fmtDate(dueDate)}，已逾期 ${-days} 天`,
+      days >= 0
+        ? `剩余天数 = ${fmtDate(dueDate)} − ${fmtDate(baseDate)} = ${days} 天`
+        : `逾期天数 = ${fmtDate(baseDate)} − ${fmtDate(dueDate)} = ${-days} 天`
+    );
+
+    /* 步骤 8：状态判定 */
+    let status;
+    let statusLabel;
+    let statusTone;
+    if (exemptMode) {
+      status = 'exempt';
+      statusLabel = '免检期内';
+      statusTone = 'info';
+    } else if (days < 0) {
+      status = 'overdue';
+      statusLabel = '已逾期';
+      statusTone = 'danger';
+    } else if (days <= warnDays) {
+      status = 'expiring';
+      statusLabel = days === 0 ? '今日到期' : '即将到期';
+      statusTone = 'warn';
+    } else {
+      status = 'valid';
+      statusLabel = '检验有效';
+      statusTone = 'ok';
+    }
+    push(
+      '状态判定',
+      `剩余 ${days >= 0 ? days + ' 天' : '逾期 ' + -days + ' 天'}，提醒阈值 ${warnDays} 天 → 判定为「${statusLabel}」`,
+      status === 'exempt'
+        ? '免检政策生效 → 免检期内'
+        : status === 'overdue'
+          ? `${days} < 0 → 已逾期`
+          : status === 'expiring'
+            ? `0 ≤ ${days} ≤ ${warnDays} → 即将到期`
+            : `${days} > ${warnDays} → 检验有效`
+    );
+
+    /* 是否需要上线检测 */
+    const needOnSite = status === 'expiring' || status === 'overdue';
+    const inspectNote = spec.motorcycle
+      ? '摩托车检验需将车辆送至具备摩托车检测能力的检测站上线检测'
+      : spec.fixedMonths === 6
+        ? '危险货物运输车辆须每半年到检测站上线检验并取得检验合格标志'
+        : '安全技术检验需将车辆驶入检测站上线检测';
+
+    /* 连续 3 个检验周期未检验提示 */
+    const cycleSpanMonths = spec.motorcycle ? 12 : cycleMonths;
+    if (!exemptMode && overdue > 0 && overdue > cycleSpanMonths * 30) {
+      warnings.push(
+        `已连续超过 3 个检验周期（≈ ${cycleSpanMonths * 3} 个月）未参加定期检验，车辆可能已达到强制报废/注销条件，请尽快到检测站检验并咨询车管所。`
+      );
+    }
+
+    /* 处罚与提示 */
+    if (status === 'overdue') {
+      warnings.push(
+        `逾期未检验的机动车上道路行驶，将被扣留机动车并处罚款（通常 200 元），且未按规定定期进行安全技术检验的，一次记 3 分（以实际执法为准）。`
+      );
+    }
+    if (exemptMode) {
+      advice.push('免检期内仍需在每个检验周期到期前，通过"交管 12123"办理免检申请（需无违法未处理、无未结事故，并已投保交强险）。');
+      advice.push(`免检期至 ${fmtDate(exemption.endDate)}，首个需上线检验的到期日预计 ${fmtDate(exemptionDue)}，建议提前 30 天关注。`);
+    } else if (status === 'valid') {
+      advice.push(`当前检验有效，下次到期日 ${fmtDate(dueDate)}，建议在到期前 30 天内预约检测。`);
+    } else if (status === 'expiring') {
+      advice.push(`请尽快到具备资质的检测站进行上线检验，检验合格后由系统自动更新检验有效期；${inspectNote}。`);
+    } else {
+      advice.push(`车辆已逾期 ${overdue} 天，请立即联系检测站预约上线检验，检验合格前不得上路行驶。`);
+    }
+
+    /* 时间轴 */
+    const timeline = [];
+    timeline.push({ date: fmtDate(firstReg), label: '首次登记', type: 'start' });
+    if (exemption.applicable) {
+      timeline.push({
+        date: fmtDate(exemption.endDate),
+        label: exemption.active ? '免检截止' : '免检期结束',
+        type: 'exempt'
+      });
+    }
+    if (lastInsp) timeline.push({ date: fmtDate(lastInsp), label: '上次年检', type: 'last' });
+    timeline.push({ date: fmtDate(dueDate), label: exemptMode ? '首个上线日' : '下次到期', type: 'due' });
+
+    return {
+      ok: true,
+      input: {
+        plate,
+        vehicleType: input.vehicleType,
+        vehicleTypeLabel: typeLabel,
+        usage: input.usage,
+        usageLabel,
+        seats: seats || null,
+        isNewEnergy: !!input.isNewEnergy,
+        isDangerous: !!input.isDangerous,
+        firstRegDate: fmtDate(firstReg),
+        lastInspectionDate: lastInsp ? fmtDate(lastInsp) : '',
+        method,
+        effectiveMethod,
+        warnDays
+      },
+      baseDate: fmtDate(baseDate),
+      age: { years: ageYears, text: ageTextValue },
+      spec: { regime: spec.regime, basis: spec.basis, thresholdYears: spec.thresholdYears || null },
+      cycle: { months: cycleMonths, text: cycleText },
+      exemption: {
+        applicable: exemption.applicable,
+        active: exemption.active,
+        endDate: exemption.endDate ? fmtDate(exemption.endDate) : '',
+        firstOnSiteDue: exemptionDue ? fmtDate(exemptionDue) : '',
+        remainingDays: exemption.endDate ? Math.max(0, diffDays(exemption.endDate, baseDate)) : null,
+        reason: exemption.reason
+      },
+      due: {
+        date: fmtDate(dueDate),
+        periodDue: fmtDate(periodDue),
+        nextAfterThis: fmtDate(nextAfter),
+        source: dueSource,
+        sourceLabel: dueSourceLabel,
+        methodLabel: dueSourceLabel
+      },
+      days: {
+        raw: days,
+        remaining: remaining,
+        overdue: overdue,
+        isOverdue: days < 0
+      },
+      status: status,
+      statusLabel: statusLabel,
+      statusTone: statusTone,
+      needOnSite: needOnSite,
+      inspectNote: inspectNote,
+      warnings: warnings,
+      advice: advice,
+      steps: steps,
+      timeline: timeline
+    };
+  }
+
+  /* ============================ 6. 导出 ============================ */
+
+  return {
+    VEHICLE_TYPES,
+    USAGE_NATURES,
+    SEATS_REQUIRED_TYPES,
+    RULE_TABLE,
+    parseDate,
+    fmtDate,
+    addMonths,
+    addYears,
+    diffDays,
+    fullYears,
+    ageText,
+    getCycleSpec,
+    getExemption,
+    buildDueSequence,
+    nextDueFromInspection,
+    motorcycleSchedule,
+    validateInput,
+    evaluate
+  };
+});
+
+/**
+ * 示例数据集：覆盖"正常未到期 / 即将到期 / 已逾期 / 免检期内 / 摩托车特殊排期"五类典型场景
+ * baseDate 固定为 2026-10-22，保证演示结果可复现（可在界面中修改基准日）
+ */
+(function (root, factory) {
+  'use strict';
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.VIR_SAMPLES = factory();
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  return [
+    {
+      key: 'valid',
+      title: '正常未到期',
+      badge: '检验有效',
+      desc: '小型微客满 6 年后每年检验一次，上次年检在有效期内',
+      input: {
+        plate: '京A88888',
+        vehicleType: 'passenger',
+        usage: 'nonOperating',
+        seats: 5,
+        isNewEnergy: false,
+        isDangerous: false,
+        firstRegDate: '2018-03-15',
+        lastInspectionDate: '2026-03-16',
+        method: 'lastInspection',
+        baseDate: '2026-10-22',
+        warnDays: 30
+      },
+      expect: {
+        status: 'valid',
+        statusLabel: '检验有效',
+        dueDate: '2027-03-16',
+        remaining: 145,
+        overdue: 0,
+        needOnSite: false
+      }
+    },
+    {
+      key: 'expiring',
+      title: '即将到期',
+      badge: '剩余 14 天',
+      desc: '距离到期不足 30 天，需要尽快预约上线检测',
+      input: {
+        plate: '粤BD12345',
+        vehicleType: 'passenger',
+        usage: 'nonOperating',
+        seats: 5,
+        isNewEnergy: true,
+        isDangerous: false,
+        firstRegDate: '2019-11-01',
+        lastInspectionDate: '2025-11-05',
+        method: 'lastInspection',
+        baseDate: '2026-10-22',
+        warnDays: 30
+      },
+      expect: {
+        status: 'expiring',
+        statusLabel: '即将到期',
+        dueDate: '2026-11-05',
+        remaining: 14,
+        overdue: 0,
+        needOnSite: true
+      }
+    },
+    {
+      key: 'overdue',
+      title: '已逾期',
+      badge: '逾期 157 天',
+      desc: '载货汽车 10 年以内每 2 年检验一次，已超过检验有效期',
+      input: {
+        plate: '川AD66H66',
+        vehicleType: 'truck',
+        usage: 'nonOperating',
+        seats: null,
+        isNewEnergy: false,
+        isDangerous: false,
+        firstRegDate: '2016-05-20',
+        lastInspectionDate: '2024-05-18',
+        method: 'lastInspection',
+        baseDate: '2026-10-22',
+        warnDays: 30
+      },
+      expect: {
+        status: 'overdue',
+        statusLabel: '已逾期',
+        dueDate: '2026-05-18',
+        remaining: 0,
+        overdue: 157,
+        needOnSite: true
+      }
+    },
+    {
+      key: 'exempt',
+      title: '免检期内',
+      badge: '免检至 2030-05-10',
+      desc: '小型微客登记未满 6 年，本周期可申请免检上线检验',
+      input: {
+        plate: '沪C88888',
+        vehicleType: 'passenger',
+        usage: 'nonOperating',
+        seats: 5,
+        isNewEnergy: false,
+        isDangerous: false,
+        firstRegDate: '2024-05-10',
+        lastInspectionDate: '',
+        method: 'firstRegistration',
+        baseDate: '2026-10-22',
+        warnDays: 30
+      },
+      expect: {
+        status: 'exempt',
+        statusLabel: '免检期内',
+        dueDate: '2031-05-10',
+        exemptionEnd: '2030-05-10',
+        needOnSite: false
+      }
+    },
+    {
+      key: 'motorcycle',
+      title: '摩托车特殊排期',
+      badge: '逾期 63 天',
+      desc: '摩托车第 3 年首次检验，自注册满 3 年起算，当前已错过检验期',
+      input: {
+        plate: '桂D88888',
+        vehicleType: 'motorcycle',
+        usage: 'nonOperating',
+        seats: null,
+        isNewEnergy: false,
+        isDangerous: false,
+        firstRegDate: '2023-08-20',
+        lastInspectionDate: '',
+        method: 'firstRegistration',
+        baseDate: '2026-10-22',
+        warnDays: 30
+      },
+      expect: {
+        status: 'overdue',
+        statusLabel: '已逾期',
+        dueDate: '2026-08-20',
+        overdue: 63,
+        needOnSite: true
+      }
+    }
+  ];
+});
+
+/**
+ * ============================================================================
+ * 车辆年检提醒工具 —— 界面逻辑
+ * ----------------------------------------------------------------------------
+ * 职责：表单采集 → 调用 VIR.evaluate() → 渲染状态、指标、时间轴、推演过程与建议
+ * 说明：所有判定均由 src/rules.js 完成，本文件不重复实现任何法规规则
+ * ============================================================================
+ */
+(function () {
+  'use strict';
+
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  /* ------------------------------ 工具函数 ------------------------------ */
+
+  function todayStr() {
+    const d = new Date();
+    const p = (n) => (n < 10 ? '0' + n : String(n));
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  /** HTML 转义，防止用户输入的车牌等内容破坏页面结构 */
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* ------------------------------ 表单初始化 ------------------------------ */
+
+  const form = $('#form');
+  const els = {
+    plate: $('#plate'),
+    vehicleType: $('#vehicleType'),
+    usage: $('#usage'),
+    seats: $('#seats'),
+    isNewEnergy: $('#isNewEnergy'),
+    isDangerous: $('#isDangerous'),
+    firstRegDate: $('#firstRegDate'),
+    lastInspectionDate: $('#lastInspectionDate'),
+    method: $('#method'),
+    baseDate: $('#baseDate'),
+    warnDays: $('#warnDays')
+  };
+
+  function initOptions() {
+    els.vehicleType.innerHTML = VIR.VEHICLE_TYPES.map(
+      (t) => '<option value="' + t.value + '">' + esc(t.label) + '</option>'
+    ).join('');
+    els.usage.innerHTML = VIR.USAGE_NATURES.map(
+      (u) => '<option value="' + u.value + '">' + esc(u.label) + '</option>'
+    ).join('');
+    els.baseDate.value = todayStr();
+    els.firstRegDate.value = '2018-03-15';
+    els.warnDays.value = 30;
+  }
+
+  /** 根据车辆类型动态显示/隐藏关联字段 */
+  function syncConditionalFields() {
+    const type = els.vehicleType.value;
+    const needSeats = VIR.SEATS_REQUIRED_TYPES.includes(type);
+    $('#seatsRow').classList.toggle('hidden', !needSeats);
+    els.seats.required = needSeats;
+    if (needSeats && !els.seats.value) els.seats.value = type === 'schoolBus' ? 40 : 5;
+    $('#dangerRow').classList.toggle('hidden', type !== 'truck');
+  }
+
+  /* ------------------------------ 读取表单值 ------------------------------ */
+
+  function readForm() {
+    return {
+      plate: els.plate.value.trim().toUpperCase(),
+      vehicleType: els.vehicleType.value,
+      usage: els.usage.value,
+      seats: els.seats.value === '' ? '' : Number(els.seats.value),
+      isNewEnergy: els.isNewEnergy.checked,
+      isDangerous: els.isDangerous.checked,
+      firstRegDate: els.firstRegDate.value,
+      lastInspectionDate: els.lastInspectionDate.value,
+      method: els.method.value,
+      baseDate: els.baseDate.value,
+      warnDays: Number(els.warnDays.value)
+    };
+  }
+
+  /* ------------------------------ 错误提示渲染 ------------------------------ */
+
+  function clearErrors() {
+    $$('.err').forEach((p) => {
+      p.textContent = '';
+      p.classList.remove('show');
+    });
+    $$('input, select').forEach((i) => i.classList.remove('invalid'));
+  }
+
+  function showErrors(errors) {
+    errors.forEach((e) => {
+      const p = document.querySelector('.err[data-err="' + e.field + '"]');
+      if (p) {
+        p.textContent = e.message;
+        p.classList.add('show');
+      }
+      const input = els[e.field];
+      if (input) input.classList.add('invalid');
+    });
+    const first = errors[0];
+    if (first) {
+      const target = els[first.field] || document.querySelector('.err[data-err="' + first.field + '"]');
+      if (target && target.focus) target.focus();
+    }
+  }
+
+  /* ------------------------------ 结果渲染 ------------------------------ */
+
+  function render(r) {
+    $('#resultEmpty').classList.add('hidden');
+    $('#result').classList.remove('hidden');
+
+    // 状态徽章
+    const badge = $('#statusBadge');
+    badge.textContent = r.statusLabel;
+    badge.className = 'status-badge ' + r.statusTone;
+    $('#statusPlate').textContent = r.input.plate;
+    $('#statusDesc').textContent = statusDesc(r);
+
+    // 关键指标
+    const metrics = [];
+    if (r.status === 'exempt') {
+      metrics.push(metric('免检截止日', r.exemption.endDate, '登记 6 年以内可申请免检', 'info'));
+      metrics.push(metric('免检期剩余', r.exemption.remainingDays, '天', 'info'));
+      metrics.push(metric('首个需上线日', r.exemption.firstOnSiteDue, '满 6 年后按年度周期', 'info'));
+    } else {
+      metrics.push(metric('检验到期日', r.due.date, r.due.sourceLabel, r.days.isOverdue ? 'danger' : ''));
+      if (r.days.isOverdue) {
+        metrics.push(metric('已逾期', r.days.overdue, '天', 'danger'));
+      } else {
+        metrics.push(metric('剩余天数', r.days.remaining, '天', r.days.remaining <= r.input.warnDays ? 'warn' : 'ok'));
+      }
+      // 周期描述去掉"12 个月（…）"的外壳，只保留括号内的频率说明
+      const cycleFreq = r.cycle.text.replace(/^[\d.]+ ?个月（/, '').replace(/）$/, '');
+      metrics.push(metric('检验周期', r.cycle.months, '个月', '', cycleFreq));
+    }
+    metrics.push(metric('车辆类型', r.input.vehicleTypeLabel, '', '', r.spec.regime === r.input.vehicleTypeLabel ? '' : r.spec.regime));
+    metrics.push(metric('车龄', r.age.text, '', ''));
+    metrics.push(
+      metric(
+        '是否需上线检测',
+        r.needOnSite ? '需要' : '暂不需要',
+        '',
+        r.needOnSite ? 'warn' : 'ok',
+        r.needOnSite ? r.inspectNote : '当前无需驶入检测站'
+      )
+    );
+    $('#metrics').innerHTML = metrics.join('');
+
+    // 时间轴
+    $('#timeline').innerHTML = r.timeline
+      .map(
+        (t) =>
+          '<div class="tl-item ' + t.type + '">' +
+          '<div class="tl-dot"></div>' +
+          '<div class="tl-date">' + esc(t.date) + '</div>' +
+          '<div class="tl-label">' + esc(t.label) + '</div>' +
+          '</div>'
+      )
+      .join('');
+
+    // 推演过程
+    $('#steps').innerHTML = r.steps
+      .map(
+        (s) =>
+          '<li><div class="step-title">' + esc(s.title) + '</div>' +
+          '<div class="step-detail">' + esc(s.detail) + '</div>' +
+          (s.formula ? '<div class="step-formula">' + esc(s.formula) + '</div>' : '') +
+          '</li>'
+      )
+      .join('');
+
+    // 风险提示
+    const warnBox = $('#warnBox');
+    if (r.warnings && r.warnings.length) {
+      warnBox.classList.remove('hidden');
+      $('#warnList').innerHTML = r.warnings.map((w) => '<li>' + esc(w) + '</li>').join('');
+    } else {
+      warnBox.classList.add('hidden');
+    }
+
+    // 处置建议
+    $('#adviceList').innerHTML = r.advice.map((a) => '<li>' + esc(a) + '</li>').join('');
+
+    // 判断依据
+    $('#basis').innerHTML = [
+      basisItem('车辆类型', r.input.vehicleTypeLabel + ' · ' + r.input.usageLabel + (r.input.seats ? ' · ' + r.input.seats + ' 座' : '')),
+      basisItem('适用规则', r.spec.regime),
+      basisItem('规则依据', r.spec.basis),
+      basisItem('检验周期', r.cycle.text + '（车龄 ' + r.age.text + '，阈值 ' + (r.spec.thresholdYears != null ? r.spec.thresholdYears + ' 年' : '固定周期') + '）'),
+      basisItem('推算方式', r.due.sourceLabel),
+      basisItem('免检政策', r.exemption.reason + (r.exemption.applicable ? '（免检截止 ' + r.exemption.endDate + '）' : '')),
+      basisItem('判定基准日', r.baseDate + ' · 提醒阈值 ' + r.input.warnDays + ' 天')
+    ].join('');
+  }
+
+  function metric(label, value, unit, tone, sub) {
+    return (
+      '<div class="metric' + (tone ? ' accent-' + tone : '') + '">' +
+      '<div class="metric-label">' + esc(label) + '</div>' +
+      '<div class="metric-value">' + esc(value) + (unit ? '<small>' + esc(unit) + '</small>' : '') + '</div>' +
+      (sub ? '<div class="metric-sub">' + esc(sub) + '</div>' : '') +
+      '</div>'
+    );
+  }
+
+  function basisItem(key, val) {
+    return '<div class="basis-item"><div class="basis-key">' + esc(key) + '</div><div class="basis-val">' + esc(val) + '</div></div>';
+  }
+
+  function statusDesc(r) {
+    switch (r.status) {
+      case 'exempt':
+        return '车辆登记未满 6 年，处于免检政策覆盖范围内，本检验周期无需上线检测，但需在到期前办理免检申请。';
+      case 'valid':
+        return '当前检验有效，距离本次检验到期还有 ' + r.days.remaining + ' 天（提醒阈值 ' + r.input.warnDays + ' 天）。';
+      case 'expiring':
+        return r.days.remaining === 0
+          ? '今天即为检验到期日，请立即安排上线检测。'
+          : '距离检验到期仅剩 ' + r.days.remaining + ' 天，已进入提醒区间，请尽快预约检测。';
+      case 'overdue':
+        return '车辆已超过检验有效期 ' + r.days.overdue + ' 天，未按规定定期检验的机动车上路行驶将被扣留并处罚。';
+      default:
+        return '';
+    }
+  }
+
+  /* ------------------------------ 提交处理 ------------------------------ */
+
+  function run() {
+    clearErrors();
+    const input = readForm();
+    const baseDate = input.baseDate || todayStr();
+    const r = VIR.evaluate(input, { today: baseDate, warnDays: input.warnDays });
+
+    if (!r.ok) {
+      showErrors(r.errors);
+      return false;
+    }
+    render(r);
+    return true;
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    run();
+  });
+
+  // 输入时清除该字段的错误态
+  $$('input, select').forEach((el) => {
+    el.addEventListener('input', () => {
+      el.classList.remove('invalid');
+      const p = document.querySelector('.err[data-err="' + el.name + '"]');
+      if (p) {
+        p.textContent = '';
+        p.classList.remove('show');
+      }
+    });
+  });
+
+  els.vehicleType.addEventListener('change', syncConditionalFields);
+
+  $('#btnReset').addEventListener('click', () => {
+    form.reset();
+    clearErrors();
+    initOptions();
+    syncConditionalFields();
+    $('#result').classList.add('hidden');
+    $('#resultEmpty').classList.remove('hidden');
+  });
+
+  /* ------------------------------ 示例一键填充 ------------------------------ */
+
+  /** 将示例数据回填到表单并立即执行判定 */
+  function loadSample(s) {
+    if (!s) return;
+    const v = s.input;
+    els.plate.value = v.plate;
+    els.vehicleType.value = v.vehicleType;
+    els.usage.value = v.usage;
+    els.seats.value = v.seats == null ? '' : v.seats;
+    els.isNewEnergy.checked = !!v.isNewEnergy;
+    els.isDangerous.checked = !!v.isDangerous;
+    els.firstRegDate.value = v.firstRegDate;
+    els.lastInspectionDate.value = v.lastInspectionDate || '';
+    els.method.value = v.method;
+    els.baseDate.value = v.baseDate;
+    els.warnDays.value = v.warnDays;
+    syncConditionalFields();
+    clearErrors();
+    run();
+  }
+
+  function renderSamples() {
+    $('#sampleList').innerHTML = VIR_SAMPLES.map(
+      (s) =>
+        '<button type="button" class="sample-btn" data-key="' + s.key + '">' +
+        '<b>' + esc(s.title) + '</b><span>' + esc(s.badge) + '</span>' +
+        '</button>'
+    ).join('');
+
+    $$('.sample-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const s = VIR_SAMPLES.find((x) => x.key === btn.dataset.key);
+        loadSample(s);
+        $('#result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  }
+
+  /* ------------------------------ 规则表弹层 ------------------------------ */
+
+  function renderRules() {
+    $('#ruleTable').innerHTML =
+      '<thead><tr><th>车辆类型</th><th>检验周期</th><th>依据</th></tr></thead><tbody>' +
+      VIR.RULE_TABLE.map(
+        (r) =>
+          '<tr><td>' + esc(r.type) + '</td><td>' + esc(r.cycle) + '</td><td>' + esc(r.basis) + '</td></tr>'
+      ).join('') +
+      '</tbody>';
+  }
+
+  function openModal() {
+    $('#rulesModal').classList.remove('hidden');
+  }
+  function closeModal() {
+    $('#rulesModal').classList.add('hidden');
+  }
+
+  $('#btnRules').addEventListener('click', openModal);
+  $$('#rulesModal [data-close]').forEach((el) => el.addEventListener('click', closeModal));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  /* ------------------------------ 启动 ------------------------------ */
+
+  initOptions();
+  syncConditionalFields();
+  renderSamples();
+  renderRules();
+
+  // 支持通过 URL 指定初始示例： index.html?sample=overdue
+  const requestedKey = new URLSearchParams(window.location.search).get('sample');
+  const initial = VIR_SAMPLES.find((s) => s.key === requestedKey) || VIR_SAMPLES[0];
+  if (initial) loadSample(initial);
+})();
+
+ document.getElementById("previewRun").addEventListener("click",()=>document.getElementById("form").dispatchEvent(new Event("submit",{cancelable:true})));</script></body></html>
