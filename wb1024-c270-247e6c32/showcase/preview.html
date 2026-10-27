@@ -1,0 +1,1148 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  :root{
+    --bg:#0d1117; --panel:#131922; --panel2:#0f151d; --line:#242b35;
+    --tx:#e6edf3; --tx2:#9aa4b2; --tx3:#6b7480;
+    --prov:#4C9AFF; --city:#3FB950; --dist:#2EA043; --other:#A371F7; --unk:#6E7681;
+    --peek:66px;          /* 移动端底部抽屉收起时露出的高度 */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--tx);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+  .app{display:flex; height:100vh; overflow:hidden}
+
+  /* ---------- 侧栏 ---------- */
+  .side{width:322px; flex:0 0 322px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0}
+  .side-head{padding:16px 18px 12px; border-bottom:1px solid var(--line)}
+  .hd-row{display:flex; align-items:center; gap:8px}
+  .hd-row h1{font-size:15px; font-weight:600; letter-spacing:.3px; flex:1}
+  .side-head .sub{font-size:12px; color:var(--tx3); margin-top:4px}
+  .fold{display:none}
+  .only-m{display:none}
+  .mb{display:none}
+  .filters{padding:12px 14px; border-bottom:1px solid var(--line)}
+  #q{
+    width:100%; height:32px; padding:0 10px; border-radius:6px;
+    background:var(--panel2); border:1px solid var(--line); color:var(--tx);
+    font-size:13px; outline:none; font-family:inherit;
+  }
+  #q:focus{border-color:#3d4653}
+  #q::placeholder{color:var(--tx3)}
+  .row{display:flex; flex-wrap:wrap; gap:6px; margin-top:9px}
+  #layerRow{padding-bottom:11px; border-bottom:1px solid var(--line); margin-bottom:11px}
+  #layerRow .chip::before{content:'●'; font-size:8px; margin-right:4px; color:#4a535f; vertical-align:1px}
+  #layerRow .chip.on::before{color:#6fd08c}
+  .chip{
+    font-size:12px; padding:3px 9px; border-radius:11px; cursor:pointer;
+    background:var(--panel2); border:1px solid var(--line); color:var(--tx2);
+    user-select:none; transition:.13s; white-space:nowrap;
+  }
+  .chip:hover{border-color:#3d4653; color:var(--tx)}
+  .chip.on{background:#1d2735; border-color:#3d5a80; color:#9dc7ff}
+  .chip .n{opacity:.5; margin-left:3px; font-size:11px}
+  .list{flex:1; overflow-y:auto; padding:6px 8px 20px}
+  .list::-webkit-scrollbar{width:8px}
+  .list::-webkit-scrollbar-thumb{background:#232a34; border-radius:4px}
+  .item{
+    display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:7px;
+    cursor:pointer; transition:.12s; border:1px solid transparent;
+  }
+  .item:hover{background:var(--panel2)}
+  .item.act{background:#1a2332; border-color:#31405a}
+  .item .dot{width:8px; height:8px; border-radius:50%; flex:0 0 8px}
+  .item .nm{flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .item .meta{font-size:11px; color:var(--tx3); flex:0 0 auto}
+  .item.act .nm{color:#fff}
+  .empty{padding:26px 12px; text-align:center; color:var(--tx3); font-size:13px}
+
+  /* ---------- 地图 ---------- */
+  .stage{flex:1; position:relative; min-width:0; display:flex; align-items:center; justify-content:center; padding:14px}
+  #map{width:100%; height:100%; max-width:100%; display:block; touch-action:none; cursor:grab}
+  #map.grabbing{cursor:grabbing}
+  #map.grabbing .mark{cursor:grab}
+  #map text{font-family:inherit}
+  .mark{cursor:pointer}
+  .mark .halo{opacity:0; transition:opacity .15s}
+  .mark:hover .halo, .mark.act .halo{opacity:.9}
+  .mark.dim{opacity:.13}
+  .mst{cursor:pointer}
+  .mst:hover circle{stroke:#ffffff; stroke-width:1.6}
+  #metroLineLayer,#metroStLayer{transition:opacity .2s}
+  .hide{display:none}
+  .homeLbl{font-size:11.5px; font-weight:700; fill:#ff96a6}
+
+  .legend{
+    position:absolute; left:22px; bottom:20px; display:flex; gap:14px; flex-wrap:wrap;
+    background:rgba(15,21,29,.86); border:1px solid var(--line); border-radius:8px;
+    padding:8px 12px; font-size:12px; color:var(--tx2); backdrop-filter:blur(6px);
+  }
+  .legend i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:1px}
+  .legend i.ln{width:15px; height:2px; border-radius:1px; vertical-align:4px}
+
+  .zoombar{
+    position:absolute; right:22px; top:20px; display:flex; flex-direction:column; gap:6px;
+    align-items:center; background:rgba(15,21,29,.88); border:1px solid var(--line);
+    border-radius:9px; padding:7px 6px; backdrop-filter:blur(6px); user-select:none;
+  }
+  .zoombar button{
+    width:30px; height:28px; border-radius:6px; cursor:pointer; font-family:inherit;
+    background:var(--panel2); border:1px solid var(--line); color:var(--tx2);
+    font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .zoombar button:hover{border-color:#3d4653; color:var(--tx)}
+  .zoombar button:active{background:#1d2735; color:#9dc7ff}
+  .zoombar .lvl{font-size:10.5px; color:var(--tx3); font-variant-numeric:tabular-nums; padding-top:1px}
+
+  .note{
+    position:absolute; left:22px; top:20px; max-width:272px;
+    background:rgba(15,21,29,.88); border:1px solid var(--line); border-radius:8px;
+    padding:10px 13px; font-size:11.5px; line-height:1.65; color:var(--tx3);
+    backdrop-filter:blur(6px);
+  }
+  .note b{color:var(--tx2); font-weight:600}
+
+  .card{
+    position:absolute; right:22px; bottom:20px; width:296px;
+    background:rgba(19,25,34,.96); border:1px solid #2b3441; border-radius:10px;
+    padding:14px 15px; backdrop-filter:blur(8px);
+    box-shadow:0 10px 30px rgba(0,0,0,.5); display:none;
+  }
+  .card.show{display:block; animation:pop .16s ease}
+  @keyframes pop{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+  .card .ch{display:flex; align-items:flex-start; gap:8px; margin-bottom:9px}
+  .card .ch h3{font-size:14.5px; font-weight:600; flex:1; line-height:1.4}
+  .card .cl{background:none; border:none; color:var(--tx3); cursor:pointer; font-size:16px; line-height:1; padding:0 2px}
+  .card .cl:hover{color:var(--tx)}
+  .card .kvs{font-size:12.5px; color:var(--tx2); line-height:1.9}
+  .card .kvs b{color:var(--tx3); font-weight:400; display:inline-block; width:44px}
+  .card .dish{font-size:12.5px; color:#c9d1d9; line-height:1.7; margin-top:7px; padding-top:7px; border-top:1px solid var(--line)}
+  .card .actions{display:flex; gap:6px; margin-top:11px}
+  .card .actions a{
+    flex:1; text-align:center; font-size:12.5px; padding:6px 0; border-radius:6px;
+    text-decoration:none; transition:.13s;
+  }
+  .card .actions a.pri{background:#1f6feb; color:#fff}
+  .card .actions a.pri:hover{background:#2f7ffb}
+  .card .actions a.sec{background:var(--panel2); border:1px solid var(--line); color:var(--tx2)}
+  .card .actions a.sec:hover{border-color:#3d4653; color:var(--tx)}
+  /* 第二行「复制地址」：挨近一点、压小一号，把它和上面三个地图入口区分开 */
+  .card .actions.alt{margin-top:6px}
+  .card .actions.alt a{font-size:12px; padding:5px 0}
+  .tag{font-size:11px; padding:1px 7px; border-radius:9px; white-space:nowrap}
+  .t-prov{background:rgba(76,154,255,.15); color:#7fb8ff}
+  .t-city{background:rgba(63,185,80,.14); color:#69cf7d}
+  .t-other{background:rgba(163,113,247,.15); color:#b795ff}
+  .t-unk{background:rgba(110,118,129,.18); color:#9aa4b2}
+
+  /* ============ 移动端 / 窄屏：地图铺满 + 底部抽屉 ============ */
+  @media (max-width:900px){
+    html, body{overflow:hidden; overscroll-behavior:none}
+    .app{display:block; position:relative; height:100vh; height:100dvh; overflow:hidden}
+    /* 注意：.stage 不能设 z-index，否则会自成层叠上下文，
+       抽屉和详情卡就没法跨层压到地图上了。地图 SVG 是静态元素，天然在最底层。 */
+    .stage{position:absolute; inset:0; padding:0; display:block}
+    #map{width:100%; height:100%}
+
+    /* ---- 底部抽屉 ---- */
+    .side{
+      position:absolute; left:0; right:0; bottom:0; z-index:4;
+      width:auto; flex:none; height:78vh; max-height:none;
+      border-right:none; border-top:1px solid var(--line);
+      border-radius:14px 14px 0 0;
+      box-shadow:0 -14px 40px rgba(0,0,0,.6);
+      transform:translateY(calc(100% - var(--peek)));
+      transition:transform .28s cubic-bezier(.32,.72,.3,1);
+      padding-bottom:env(safe-area-inset-bottom);
+      will-change:transform;
+    }
+    @supports (height:100dvh){ .side{height:78dvh} }
+    .side.open{transform:translateY(0)}
+
+    .grabber{
+      display:flex; align-items:flex-end; justify-content:center;
+      height:18px; flex:0 0 18px; cursor:grab; touch-action:none;
+    }
+    .grabber::before{content:''; width:42px; height:4px; border-radius:2px; background:#3b444f; margin-bottom:4px}
+
+    .side-head{padding:0 16px 10px; cursor:pointer}
+    .hd-row h1{font-size:14.5px}
+    .side-head .sub{font-size:11.5px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .fold{
+      display:block; width:0; height:0; flex:0 0 auto;
+      border-left:5px solid transparent; border-right:5px solid transparent;
+      border-bottom:6px solid #6b7480; transition:transform .28s;
+    }
+    .side.open .fold{transform:rotate(180deg)}
+
+    .filters{padding:10px 12px}
+    #q{height:38px; font-size:16px}          /* 16px：避免 iOS 聚焦时放大整页 */
+    .row{flex-wrap:nowrap; overflow-x:auto; gap:7px; margin-top:8px; padding-bottom:3px;
+      overscroll-behavior-x:contain; scrollbar-width:none}
+    .row::-webkit-scrollbar{display:none}
+    .chip{flex:0 0 auto; min-height:30px; display:inline-flex; align-items:center; padding:4px 11px; font-size:12.5px}
+    #layerRow{padding-bottom:9px; margin-bottom:9px}
+
+    .list{padding:4px 6px 16px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+    .item{padding:11px 10px; min-height:44px}
+    .item .nm{font-size:13.5px}
+
+    /* ---- 地图上的浮动控件 ---- */
+    .zoombar{right:10px; top:10px; bottom:auto; gap:5px; padding:6px 5px; border-radius:10px; z-index:7}
+    .zoombar button{width:34px; height:32px; font-size:17px}
+    .zoombar .lvl{font-size:10px}
+    .only-m{display:flex}
+
+    .legend{
+      left:10px; bottom:calc(var(--peek) + 10px); right:auto; z-index:5;
+      gap:10px; padding:6px 10px; font-size:11px;
+      max-width:calc(100vw - 20px); transition:opacity .18s;
+    }
+    /* 抽屉展开时图例让位（地图可视区只剩上半屏） */
+    body.sheet-open .legend{opacity:0; pointer-events:none}
+
+    .note{
+      left:10px; right:10px; top:auto; bottom:calc(var(--peek) + 10px);
+      max-width:none; font-size:12px; line-height:1.7; padding:12px 14px;
+      opacity:0; pointer-events:none; transform:translateY(8px); z-index:6;
+      transition:opacity .18s, transform .18s;
+      max-height:60vh; overflow-y:auto;   /* 横屏高度只有 375px，内容多了要能滚 */
+      -webkit-overflow-scrolling:touch;
+    }
+    .note.show{opacity:1; pointer-events:auto; transform:none}
+    .note.show ~ .legend{opacity:0}
+
+    /* ---- 详情卡：底部弹出，覆盖抽屉 ---- */
+    .card{
+      left:0; right:0; bottom:0; width:auto; z-index:6;
+      border-radius:16px 16px 0 0; border-left:none; border-right:none; border-bottom:none;
+      max-height:70vh; overflow-y:auto;
+      padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+      box-shadow:0 -12px 34px rgba(0,0,0,.62);
+    }
+    .card::before{
+      content:''; position:absolute; left:50%; top:7px; transform:translateX(-50%);
+      width:38px; height:4px; border-radius:2px; background:#3b444f;
+    }
+    .card .ch{margin-top:8px}
+    .card .actions a{padding:10px 0; font-size:13.5px}
+    .card .actions.alt a{padding:8px 0; font-size:12.5px}
+    .card .cl{font-size:22px; padding:0 4px}
+
+    .mb{display:inline}
+    .pc{display:none}
+    .side, .stage{user-select:none; -webkit-user-select:none}
+    #q{user-select:auto; -webkit-user-select:auto}
+  }
+
+  /* 横屏手机：屏幕矮，抽屉顶到满高、各区块压紧，否则列表只剩一两行 */
+  @media (max-width:900px) and (orientation:landscape){
+    .side{height:100vh}
+    @supports (height:100dvh){ .side{height:100dvh} }
+    .grabber{height:14px; flex:0 0 14px}
+    .grabber::before{margin-bottom:3px}
+    .side-head{padding:0 14px 8px}
+    .filters{padding:8px 12px}
+    #q{height:32px}
+    .row{margin-top:6px; padding-bottom:2px}
+    .chip{min-height:26px; padding:2px 9px; font-size:12px}
+    #layerRow{padding-bottom:7px; margin-bottom:7px}
+    .item{padding:9px 10px; min-height:38px}
+    .legend{font-size:10.5px; gap:9px; padding:5px 9px}
+    .zoombar button{width:32px; height:30px}
+
+    /* 横屏只有 375px 高，「底部抽屉」式卡片装不下内容（按钮会被裁掉半截）。
+       改成右侧滑出的侧栏，和 PC 形态一致，地图仍留出 500px 以上幅面。 */
+    .card{
+      left:auto; right:0; top:0; bottom:0; width:300px; max-height:none;
+      border-radius:12px 0 0 12px;
+      border:1px solid #2b3441; border-right:none;
+      padding:14px 15px;
+      padding-right:calc(15px + env(safe-area-inset-right));
+      box-shadow:-12px 0 34px rgba(0,0,0,.62);
+    }
+    .card::before{display:none}     /* 右侧栏不需要底部把手 */
+    .card .ch{margin-top:0}
+    /* 详情卡改到右侧后，原先右上角的缩放条会被它整条压住 —— 挪到左上角 */
+    .zoombar{right:auto; left:10px; top:10px}
+  }
+</style></head><body>
+<div data-page-node-id="p2SFbp0n9Cc1fAmQjArb01" class="app">
+  <aside data-page-node-id="9YYyat87Z0bE54Vc6az6YU" class="side" id="side">
+    <div data-page-node-id="aQmTUHAACGJ9T8tjEN1nw1" aria-hidden="true" class="grabber" id="grabber"></div>
+    <div data-page-node-id="Wvyx2bMOweXDK6jLBDeKX5" class="side-head" id="sideHead">
+      <div data-page-node-id="4tDEJEfa3glsPDwwm3TzWe" class="hd-row">
+        <h1 data-page-node-id="V1duIkFDmIIV99x5XSgtkC"><!--pnid:FG5TSFZCud5ZgJYYlyrJG6-->北京驻京办餐厅</h1>
+        <span data-page-node-id="jHUOYXWiM4XUHcEzdhfVcz" aria-hidden="true" class="fold"></span>
+      </div>
+      <p data-page-node-id="UkoLeVvErFjvouWGFQMdUa" class="sub">
+        <span data-page-node-id="ffVfrz72XM2nONwxppa0CP" class="pc"><!--pnid:n3LDeIjaJocs3aaYV2K2WK-->84 家 · 按地址人工定位的示意分布</span>
+        <span data-page-node-id="OCIOwjnOxgwets3TrozM1S" class="mb"><!--pnid:dSlcQB83t0lWfSVBTfAA8E-->84 家 · 点此展开筛选与列表</span>
+      </p>
+    </div>
+    <div data-page-node-id="pSvwjZcqM89jTjcIrKx3BE" class="filters">
+      <div data-page-node-id="J7LnUBiVHlsobiiCn647d1" class="row" id="layerRow" style="margin-top:0">
+        <span data-page-node-id="Y2lH2FfffWSuCdVuDBVJux" class="chip on" data-layer="ring"><!--pnid:o1b7TecTvQSwF1IrxzuvcW-->环线</span>
+        <span data-page-node-id="bdLnA5jajjWjX47RuZqxjM" class="chip on" data-layer="metro"><!--pnid:juVoTGePjejWMAAtM0XFIM-->地铁线路</span>
+        <span data-page-node-id="N2uCF3tVd9ZJaGArDkm2Rn" class="chip on" data-layer="station"><!--pnid:cDfwBA8HS8b5NjNVdP0yCW-->站点点位</span>
+        <span data-page-node-id="95TT4HPLEeLaBNzEsnLLxP" class="chip on" data-layer="food"><!--pnid:pab6IwMdc8fUbjMzcaWRvS-->餐厅点位</span>
+      </div>
+      <input data-page-node-id="pDtEGCYCAd1aQNpAeJ82RC" id="q" placeholder="搜店名 / 地址 / 菜系 / 招牌菜">
+      <div data-page-node-id="yvu3YlCEQT4bG8BOmBjvMN" class="row" id="levelRow"></div>
+      <div data-page-node-id="4Z6gECoR3jNvWxX04xhvmo" class="row" id="cuisineRow"></div>
+    </div>
+    <div data-page-node-id="kWaMpXpRmyuqxlTJ8cHfiJ" class="list" id="list"></div>
+  </aside>
+
+  <main data-page-node-id="1Icc4CzewPkWk2DOJ4712o" class="stage">
+    <svg data-page-node-id="BWtRxafMNVxJJprjsIZXtG" id="map" preserveAspectRatio="xMidYMid meet" viewBox="0 0 1000 845">
+      <g data-page-node-id="TbpL82H07xVLRQVVYazDNg" id="base"></g>
+      <g data-page-node-id="eekkcl1Ltjsv6xGkvEzb3P" id="metroLineLayer"></g>
+      <g data-page-node-id="nBrCJYQrXMr0B4mZbuMfC6" id="metroStLayer"></g>
+      <g data-page-node-id="zGhpZCn1j8tGCQdITeDWQL" id="marks"></g>
+    </svg>
+    <div data-page-node-id="WH1kgy8BWP7WXXzUgLEz8d" class="zoombar">
+      <button data-page-node-id="CYKBYbGJoyNqHBK0aIE5uS" id="zin" title="放大（滚轮上滚 / 双击）" type="button"><!--pnid:4jYgMjGmoP23CBN3tmpS2j-->＋</button>
+      <button data-page-node-id="6jfFHPOt3LrmqHZTS1fcKz" id="zout" title="缩小（滚轮下滚）" type="button"><!--pnid:Fp5sxTaHsVoanAgqhA633i-->－</button>
+      <button data-page-node-id="e4zE8ufr9O6BpJIoQEPSrW" id="zreset" title="复位到全图" type="button"><!--pnid:kibGJsvEGYuCSty1QiUwao-->⟲</button>
+      <button data-page-node-id="7aC1Y4XxgRDUyWL3jSCdrp" class="only-m" id="zinfo" title="数据与操作说明" type="button"><!--pnid:QEuJGKCyPlIfXjf8Nima55-->i</button>
+      <span data-page-node-id="RXJSd0nPUA0uc7QE8ZQViC" class="lvl" id="zlvl"><!--pnid:iHjaEm6qR0QxYqTDpet310-->100%</span>
+    </div>
+    <div data-page-node-id="yS2k8mpTPXzQ6n6VL8ilVt" class="note" id="note">
+      <b data-page-node-id="GDPA7ZBx7ACcK5WLHdXXk6"><!--pnid:MsTcGs4TJMVbxeMQftLm3I-->数据说明</b><br data-page-node-id="6Btwyp9L6I7Xo2Wv12Spp5"><!--pnid:NDlCK96JdE4ta1JrTGKlYe-->
+      地铁线路与二至五环走向取自 <b data-page-node-id="vOPDM4NjxKF2C7APu9xm6h"><!--pnid:dRcE8lNf7oyQsIf9PP8457-->OpenStreetMap 实测几何</b><!--pnid:pLBxsIrtq4sLmcCIv0OzcI-->（按真实线位描点，抽稀容差 5 米）；<br data-page-node-id="pPFLruQPauJ4ENA3ez1Nb5"><!--pnid:IZ4vSOePB9uMFmXVTkZmM9-->
+      其余底图元素（区名、地标、长安街、中轴线）为自绘方位参照，非实测地图。<br data-page-node-id="BTUPNrqi7x6Ikuzw49VFhh"><!--pnid:eR8mxjiJ40ZBrPLZevc005-->
+      餐厅坐标按地址人工估算，误差约 <b data-page-node-id="Kdm6AbLEOqAO3IWToqBKKx"><!--pnid:immJ7t86TOJlatmNnLApj5-->±300–800 米</b><!--pnid:RJ5sItbxr3XTn9VqqxW1gm-->，同院多店已做展开。<br data-page-node-id="0qtcTCY6WaKb2tiusih7j8"><!--pnid:OW2WQrTDUvhe2hQHyIs3tO-->
+      站点沿用高德地铁图数据，线路走向取自 OpenStreetMap，两套数据统一转换到 GCJ-02 后裁剪到本图范围。<br data-page-node-id="iE9DfBGXfEOQMYIKXXKHOq">
+      <b data-page-node-id="PVFgwK0GAQao0GbrYnyPTh"><!--pnid:ErYtSP1yb7JxVxIwqsRQO6-->操作</b><span data-page-node-id="vvVyYdlxeDdZfbuVX1uTJg" class="pc"><!--pnid:ovZdHRvTf0nE0wdZhLSq1L-->滚轮缩放（触屏双指，30%–600%），按住拖动平移，双击放大，右上角可复位。</span><span data-page-node-id="6ZlBEU2faOtGLBpVZtmtWf" class="mb"><!--pnid:XQOokvC8eSPEAAc8BY4QSE-->单指拖动平移，双指捏合缩放（30%–600%），双击放大，右上角 ＋ － ⟲ 可缩放与复位。</span><br data-page-node-id="ZsSXBGzSZZZgiOnYTsbMC3"><!--pnid:JNVdYBjv9ENExd6p8LWP6c-->
+      点开餐厅可用<b data-page-node-id="N8QFl1kb7dwi6a32OYNBfi"><!--pnid:foGrkuT324bOtKCJXHD1gh-->高德 / 百度 / 腾讯</b><!--pnid:IZOBlxucEC2GAQYItWp8nZ-->三家地图打开同一坐标，已按各家坐标系声明，落点一致。
+    </div>
+    <div data-page-node-id="0PjyF1tPkDBzkog7QZBwMp" class="legend">
+      <span data-page-node-id="FXqNNJrqLKQ0iO9sGEsVgE"><i data-page-node-id="zLugUeuWpsMIunHt9Oi8pi" class="ln" style="background:#a9b9c9; opacity:.55"></i><!--pnid:oYwTM10RxVXM9hwdbfuqw8-->二至五环</span>
+      <span data-page-node-id="pO70GCD5ZFFw7dLylZUHTh"><i data-page-node-id="zytlagorx4MRcNdFwfEFgt" style="background:var(--prov)"></i><!--pnid:preLwOT2NqEB4fZV3fbxjU-->省级</span>
+      <span data-page-node-id="pmH11LKqQPp0H8AHAgRaGh"><i data-page-node-id="OI0fi1yd9rh4ooS36sL43j" style="background:var(--city)"></i><!--pnid:o3rtQTMYrAKTa6SgkyRlvx-->地市级 / 区县级</span>
+      <span data-page-node-id="z6anh1unSEODF1zn0bOZ7G"><i data-page-node-id="trg7wfDxBcFDEzIlwKsZ7A" style="background:var(--other)"></i><!--pnid:1jXgthJFyUw9DvGkmqIN7C-->其它</span>
+      <span data-page-node-id="myj7RFf4ZPJIbWFRYGXPtx"><i data-page-node-id="68jFQlKuGRT0scnSLLBdxY" style="background:var(--unk)"></i><!--pnid:9xDD1KZ9j42JnhD4n6hQEe-->未确认</span>
+      <span data-page-node-id="smCHrzPCr5sS14a5Q1LskT"><i data-page-node-id="w4yrctOVQngJuf2u32m7rR" style="background:#7b8697"></i><!--pnid:h2LbjkGbCCMJlQKAQ6CeC6-->地铁站</span>
+      <span data-page-node-id="RZqBUYrOg0LChCZcpICB3H"><i data-page-node-id="oXRTXuoRe8X5J14mfUSEYM" style="background:#0b0f15; box-shadow:0 0 0 1px #e3eaf2"></i><!--pnid:NSzwnIFrMEvGDfMG0ogX3L-->换乘站</span>
+    </div>
+    <div data-page-node-id="MXuxy2CfPeunCA973cpKVC" class="card" id="card"></div>
+  </main>
+</div>
+
+<script>
+const METRO=[{"n":"S1线","c":"#B35A1F","s":[[[116.12052,39.89023],[116.12151,39.89037],[116.12228,39.89072],[116.12291,39.89127],[116.12316,39.89167],[116.12335,39.89218],[116.12332,39.89561],[116.123,39.89901],[116.12252,39.90332],[116.1215,39.91026],[116.12152,39.91062],[116.12171,39.91111],[116.12192,39.9114],[116.12246,39.91182],[116.12341,39.91214],[116.12734,39.91249],[116.1286,39.9128],[116.12957,39.9133],[116.13911,39.91907],[116.14041,39.91942],[116.14641,39.92031],[116.14735,39.92061],[116.14837,39.92134],[116.15013,39.92316],[116.15052,39.92343],[116.15122,39.92369],[116.15165,39.92377],[116.15319,39.92379],[116.16322,39.92356],[116.16916,39.92354],[116.17243,39.92382],[116.17403,39.92408],[116.17914,39.92532]]]},{"n":"1号线(八通线)","c":"#CC0000","s":[[[116.17814,39.92616],[116.18605,39.91809],[116.18649,39.9172],[116.18677,39.91615],[116.18686,39.90843],[116.18712,39.90798],[116.18753,39.90766],[116.18806,39.90749],[116.18866,39.90744],[116.25405,39.90742],[116.29564,39.90751],[116.32393,39.90748],[116.33105,39.9074],[116.33677,39.90748],[116.34466,39.9073],[116.35159,39.90724],[116.38286,39.90716],[116.3927,39.90744],[116.39963,39.9077],[116.40115,39.90781],[116.40253,39.9078],[116.41922,39.90834],[116.43495,39.9086],[116.48097,39.90824],[116.4896,39.90913],[116.49248,39.90908],[116.49777,39.90883],[116.51187,39.90865],[116.51415,39.90845],[116.5212,39.90833],[116.52268,39.90844],[116.52611,39.90911],[116.52769,39.90933],[116.52943,39.90943],[116.53239,39.9094]]]},{"n":"2号线","c":"#0065B3","s":[[[116.35558,39.94049],[116.35557,39.94181],[116.35578,39.94292],[116.35619,39.94341],[116.35697,39.94399],[116.3653,39.94636],[116.36978,39.94815],[116.37075,39.94844],[116.37166,39.94859],[116.37473,39.94876],[116.39416,39.94888],[116.39529,39.94894],[116.40722,39.94906],[116.40911,39.94902],[116.40945,39.94908],[116.41779,39.94928],[116.43066,39.94974],[116.43121,39.94969],[116.43213,39.94943],[116.43286,39.94902],[116.43339,39.9485],[116.43369,39.94794],[116.43386,39.94739],[116.43384,39.94051],[116.43459,39.92533],[116.43454,39.92383],[116.43462,39.92349],[116.43509,39.91388],[116.43566,39.90998],[116.4357,39.9092],[116.43574,39.90755],[116.4356,39.90685],[116.43543,39.90655],[116.43476,39.90598],[116.43365,39.90539],[116.43306,39.90523],[116.43159,39.90511],[116.42547,39.90503],[116.42495,39.90493],[116.42411,39.90447],[116.42091,39.90197],[116.42038,39.90163],[116.41953,39.90132],[116.41853,39.90121],[116.41179,39.90091],[116.40309,39.90065],[116.39943,39.90024],[116.39645,39.90015],[116.39299,39.90037],[116.37346,39.89981],[116.36486,39.89947],[116.36114,39.89947],[116.36048,39.89954],[116.35922,39.89997],[116.35832,39.90055],[116.35754,39.90139],[116.35705,39.90218],[116.35674,39.90335],[116.35667,39.91201],[116.35629,39.92278],[116.3563,39.92429],[116.35589,39.93141],[116.35591,39.93297],[116.35583,39.93342],[116.35558,39.94049]]]},{"n":"3号线","c":"#E3002A","s":[[[116.43424,39.9337],[116.43822,39.93377],[116.49094,39.93375],[116.49346,39.93389],[116.49532,39.93428],[116.50296,39.93646],[116.50458,39.93723],[116.50489,39.9375],[116.50576,39.93932],[116.50585,39.93993],[116.50585,39.94462],[116.50594,39.94587],[116.50634,39.94674],[116.50663,39.94697],[116.51027,39.94761],[116.51143,39.94767],[116.51979,39.94728],[116.52549,39.94761],[116.52883,39.94803],[116.53107,39.948],[116.53271,39.94771],[116.53455,39.94715],[116.53897,39.94509],[116.54079,39.94481],[116.54264,39.94489],[116.54394,39.94526],[116.54519,39.94598],[116.54588,39.94681],[116.54645,39.94789],[116.54674,39.94909],[116.54691,39.9508],[116.54728,39.97186],[116.54793,39.97325],[116.54931,39.97438]]]},{"n":"4号线大兴线","c":"#008187","s":[[[116.27002,40.01225],[116.27015,40.00958],[116.27086,40.00736],[116.27162,40.00586],[116.27261,40.00454],[116.27357,40.00365],[116.27449,40.00305],[116.27549,40.00267],[116.27952,40.00202],[116.28949,39.99865],[116.29403,39.99704],[116.29479,39.99689],[116.29554,39.99682],[116.30525,39.99745],[116.30594,39.99757],[116.30652,39.99778],[116.30858,39.99916],[116.31062,39.9997],[116.31182,39.99983],[116.31295,39.99977],[116.31378,39.99956],[116.31473,39.99908],[116.31555,39.99819],[116.31595,39.99678],[116.31558,39.99416],[116.31557,39.99345],[116.31681,39.97843],[116.3173,39.97659],[116.31779,39.97534],[116.32125,39.96829],[116.32195,39.96641],[116.32226,39.9653],[116.32261,39.96325],[116.3239,39.95154],[116.3253,39.94076],[116.32554,39.94009],[116.32586,39.9396],[116.32642,39.93916],[116.32701,39.93886],[116.32796,39.93863],[116.32937,39.93844],[116.33307,39.93818],[116.33623,39.93809],[116.34489,39.93856],[116.34592,39.93881],[116.34899,39.93974],[116.35352,39.94037],[116.36839,39.94076],[116.3691,39.94071],[116.36988,39.94052],[116.37063,39.94022],[116.37132,39.93979],[116.37197,39.93912],[116.37241,39.93818],[116.37257,39.93755],[116.37264,39.93704],[116.37257,39.93521],[116.37295,39.92333],[116.37336,39.91695],[116.37365,39.90981],[116.37385,39.9081],[116.37418,39.89901],[116.37433,39.89017],[116.37429,39.87466],[116.37452,39.87378],[116.37476,39.8733],[116.37514,39.87292],[116.37672,39.87213],[116.37718,39.87158],[116.37735,39.87097],[116.3776,39.86836],[116.37779,39.86775],[116.37861,39.86618],[116.37899,39.86418],[116.37899,39.86324],[116.37879,39.8627],[116.37844,39.86215],[116.37797,39.86166],[116.37184,39.85697],[116.37157,39.85663],[116.3714,39.85615],[116.37071,39.83378],[116.37036,39.83258],[116.36504,39.8186],[116.36488,39.81776],[116.36491,39.81685],[116.3654,39.81361],[116.36537,39.813],[116.36597,39.80911],[116.36599,39.80803],[116.36564,39.80715],[116.36491,39.80626],[116.36369,39.80551],[116.36226,39.80512],[116.36056,39.80485],[116.35545,39.80448],[116.34953,39.80476],[116.34498,39.8046],[116.34176,39.80487],[116.34082,39.80485],[116.33952,39.8046],[116.3383,39.8041],[116.32978,39.7988],[116.32903,39.7982],[116.32837,39.79726],[116.32809,39.79625],[116.32813,39.79537],[116.32946,39.7831],[116.32997,39.78021],[116.33063,39.77277],[116.33162,39.76444],[116.33175,39.76273]]]},{"n":"5号线","c":"#A61D7F","s":[[[116.41327,40.05971],[116.41361,40.05575],[116.41358,40.05527],[116.41332,40.05441],[116.41151,40.0518],[116.41117,40.05109],[116.41101,40.05],[116.41116,40.0473],[116.41151,40.04633],[116.41298,40.0446],[116.41493,40.04118],[116.41531,40.04012],[116.41588,40.03763],[116.41623,40.03693],[116.41702,40.03584],[116.41739,40.03502],[116.41802,40.03232],[116.41813,40.03134],[116.41804,40.02704],[116.41769,40.02502],[116.41764,40.01977],[116.41749,40.0183],[116.41642,40.01333],[116.41625,40.0111],[116.41637,40.00959],[116.41701,40.00532],[116.41762,40.00188],[116.41754,40.00037],[116.41701,39.99644],[116.41694,39.99089],[116.4184,39.95879],[116.41881,39.95271],[116.4187,39.95232],[116.41853,39.95215],[116.41644,39.95069],[116.41623,39.95008],[116.41646,39.94546],[116.41698,39.94216],[116.41709,39.9396],[116.4173,39.93823],[116.41787,39.92309],[116.41783,39.92136],[116.41795,39.91756],[116.41846,39.90916],[116.41851,39.90614],[116.41842,39.90251],[116.41897,39.8885],[116.41918,39.88766],[116.42053,39.88503],[116.42069,39.88431],[116.42157,39.86618],[116.42171,39.85822],[116.42205,39.84875],[116.42222,39.84804],[116.42272,39.84717],[116.4232,39.84666],[116.42372,39.84631],[116.42452,39.84604],[116.42557,39.84588],[116.42824,39.84575]]]},{"n":"6号线","c":"#D0970A","s":[[[116.15895,39.92332],[116.16853,39.92333],[116.16953,39.92342],[116.17029,39.9236],[116.17338,39.92468],[116.19709,39.93065],[116.19985,39.93205],[116.20018,39.93233],[116.20072,39.93329],[116.20135,39.93384],[116.20231,39.93413],[116.20277,39.93416],[116.20672,39.93383],[116.2127,39.9339],[116.21388,39.9338],[116.21755,39.93322],[116.22535,39.93288],[116.22602,39.93273],[116.2282,39.93276],[116.22949,39.93287],[116.23173,39.93273],[116.23256,39.93252],[116.23638,39.93052],[116.23723,39.93019],[116.23806,39.92994],[116.23985,39.92974],[116.24654,39.92963],[116.25335,39.92967],[116.26536,39.92922],[116.26623,39.92933],[116.26697,39.92952],[116.26828,39.93011],[116.26987,39.93107],[116.27069,39.93144],[116.2743,39.93243],[116.27551,39.93261],[116.28103,39.93279],[116.28195,39.9329],[116.29164,39.93287],[116.29613,39.93296],[116.29812,39.93279],[116.30818,39.93244],[116.32529,39.9326],[116.33242,39.93243],[116.36199,39.93246],[116.36882,39.93262],[116.37264,39.93279],[116.37677,39.93281],[116.37994,39.93299],[116.39278,39.93347],[116.39995,39.93345],[116.40144,39.93338],[116.40388,39.93292],[116.40515,39.93258],[116.40556,39.93231],[116.40578,39.9318],[116.40587,39.92589],[116.40602,39.92509],[116.40631,39.92471],[116.40655,39.92445],[116.40707,39.92434],[116.43292,39.92457],[116.43891,39.92433],[116.45175,39.92289],[116.46169,39.92331],[116.47859,39.92301],[116.51566,39.92288],[116.52005,39.9232],[116.52248,39.92367],[116.54322,39.92332]]]},{"n":"7号线","c":"#F9BE58","s":[[[116.32124,39.89483],[116.32124,39.89291],[116.32168,39.89202],[116.32228,39.89136],[116.32296,39.89078],[116.32335,39.89057],[116.32437,39.89034],[116.32931,39.89021],[116.33273,39.89002],[116.33628,39.8896],[116.33863,39.88959],[116.35688,39.89006],[116.35941,39.89002],[116.37156,39.8894],[116.37519,39.88942],[116.37985,39.88957],[116.3841,39.88987],[116.38867,39.89003],[116.39648,39.89094],[116.40263,39.89239],[116.4043,39.89261],[116.43151,39.89371],[116.43665,39.89377],[116.44764,39.89376],[116.47754,39.89325],[116.48654,39.89352],[116.48827,39.8935],[116.49085,39.89331],[116.49425,39.89279],[116.49561,39.89269],[116.49977,39.89268],[116.50081,39.89262],[116.50143,39.89238],[116.50222,39.89186],[116.50291,39.89099],[116.50346,39.89002],[116.50367,39.88924],[116.50361,39.88292],[116.50377,39.87915],[116.50356,39.87784],[116.5009,39.87348],[116.50014,39.87071],[116.49947,39.86779],[116.49869,39.86511],[116.49865,39.86437],[116.49875,39.86358],[116.49902,39.86275],[116.49942,39.86213],[116.50012,39.86147],[116.50079,39.86126],[116.50722,39.8609],[116.51915,39.86075],[116.5263,39.85978],[116.53023,39.85901],[116.53167,39.85844],[116.54328,39.85253],[116.54804,39.84986]]]},{"n":"8号线","c":"#018237","s":[[[116.44895,39.76125],[116.44704,39.76696],[116.44646,39.76822],[116.44574,39.76948],[116.44516,39.77016],[116.44257,39.77217],[116.43545,39.77717],[116.4291,39.78177],[116.42286,39.78574],[116.42218,39.78621],[116.42164,39.78673],[116.42098,39.78773],[116.4207,39.78882],[116.41928,39.79707],[116.41823,39.80164],[116.41769,39.80267],[116.41673,39.804],[116.41641,39.80431],[116.41555,39.80483],[116.41451,39.80521],[116.41381,39.80533],[116.41272,39.80536],[116.40617,39.8052],[116.40522,39.80537],[116.40446,39.80565],[116.40366,39.80615],[116.4029,39.80701],[116.40265,39.80755],[116.40251,39.80852],[116.40191,39.82149],[116.40164,39.8253],[116.40084,39.83204],[116.40123,39.83508],[116.40122,39.83592],[116.4003,39.85328],[116.4002,39.85423],[116.39948,39.85653],[116.3994,39.85734],[116.39981,39.86301],[116.39942,39.86567],[116.39934,39.86916],[116.39906,39.87006],[116.39792,39.87182],[116.39775,39.87265],[116.39782,39.87347],[116.39891,39.87943],[116.39851,39.89155],[116.39818,39.89646],[116.39834,39.89723],[116.39891,39.89801],[116.39921,39.89827],[116.4025,39.9003],[116.40358,39.90067],[116.40432,39.90081],[116.40893,39.90098],[116.40956,39.90111],[116.41058,39.90157],[116.41089,39.9018],[116.4115,39.90245],[116.41177,39.90302],[116.41187,39.90347],[116.41186,39.90411],[116.4114,39.91222],[116.41116,39.9186],[116.41092,39.92058],[116.41081,39.92695],[116.41061,39.92762],[116.41006,39.9287],[116.4092,39.93075],[116.40907,39.93138],[116.40901,39.93265],[116.40865,39.9332],[116.40831,39.93339],[116.40706,39.93366],[116.40608,39.93374],[116.40173,39.93375],[116.40054,39.93394],[116.39901,39.93425],[116.39786,39.93458],[116.3971,39.93499],[116.39666,39.93568],[116.39636,39.93693],[116.39625,39.93907],[116.3961,39.93973],[116.39524,39.941],[116.39473,39.94205],[116.39453,39.94282],[116.39398,39.94664],[116.39394,39.94813],[116.39416,39.95038],[116.39452,39.95276],[116.39481,39.95595],[116.39504,39.96325],[116.39272,40.01171],[116.39238,40.01666],[116.39222,40.01727],[116.39198,40.01751],[116.39098,40.01819],[116.38418,40.02123],[116.38201,40.02177],[116.37196,40.02206],[116.37013,40.02228],[116.36915,40.02264],[116.35956,40.02765],[116.35896,40.02809],[116.35827,40.02923],[116.35783,40.03054],[116.35492,40.03665],[116.35379,40.04168],[116.35306,40.04375],[116.35084,40.04865],[116.34751,40.05818],[116.34736,40.05969]]]},{"n":"9号线","c":"#86B81C","s":[[[116.30212,39.81463],[116.30205,39.8175],[116.30188,39.81819],[116.30175,39.81835],[116.299,39.8202],[116.29798,39.82099],[116.29733,39.82501],[116.29755,39.83309],[116.2967,39.83957],[116.29639,39.84273],[116.29386,39.85364],[116.29428,39.86727],[116.29488,39.87513],[116.29502,39.87609],[116.29515,39.87661],[116.2954,39.877],[116.2967,39.8778],[116.30178,39.87946],[116.31049,39.88358],[116.3109,39.88385],[116.31336,39.88621],[116.31987,39.88924],[116.32045,39.88963],[116.32079,39.89008],[116.3211,39.891],[116.32124,39.89191],[116.32139,39.89403],[116.32129,39.89752],[116.32126,39.90711],[116.32174,39.90799],[116.32176,39.91057],[116.32226,39.91163],[116.32251,39.91194],[116.32315,39.91252],[116.32453,39.91343],[116.32486,39.91376],[116.32567,39.91498],[116.32594,39.91592],[116.32585,39.92476],[116.32548,39.93553],[116.32552,39.93847],[116.32518,39.94313]]]},{"n":"10号线","c":"#019AC3","s":[[[116.31512,39.84439],[116.33487,39.84444],[116.35012,39.84591],[116.3695,39.84579],[116.37757,39.84586],[116.38604,39.84511],[116.38688,39.84509],[116.39971,39.84535],[116.4149,39.84589],[116.41956,39.84624],[116.4251,39.84618],[116.42662,39.84604],[116.43255,39.84603],[116.43786,39.84577],[116.44965,39.8459],[116.45271,39.84618],[116.45402,39.84657],[116.45444,39.84694],[116.45469,39.84722],[116.4548,39.8477],[116.45477,39.8484],[116.45226,39.85789],[116.45206,39.85891],[116.45215,39.85941],[116.45263,39.86031],[116.45387,39.86151],[116.45967,39.86629],[116.46039,39.8673],[116.46054,39.86766],[116.46094,39.86898],[116.46101,39.86961],[116.46142,39.88446],[116.46151,39.89417],[116.46217,39.9099],[116.46189,39.92405],[116.46202,39.93433],[116.46249,39.93989],[116.46254,39.95056],[116.46247,39.9512],[116.46224,39.95192],[116.46189,39.95258],[116.46148,39.95309],[116.46054,39.95391],[116.45673,39.9564],[116.45642,39.95677],[116.456,39.95757],[116.45583,39.95864],[116.45609,39.95959],[116.4565,39.96014],[116.45852,39.96199],[116.45904,39.96286],[116.45918,39.96373],[116.45906,39.96415],[116.45877,39.96468],[116.45784,39.96547],[116.44998,39.97085],[116.44247,39.9763],[116.4414,39.97665],[116.4387,39.9771],[116.43665,39.97723],[116.43031,39.97728],[116.41675,39.97709],[116.40718,39.97722],[116.39315,39.97714],[116.38676,39.97696],[116.38266,39.97654],[116.3693,39.97634],[116.35291,39.97629],[116.35014,39.97642],[116.34968,39.97652],[116.34881,39.97656],[116.33967,39.97654],[116.31848,39.97605],[116.30542,39.97562],[116.30389,39.97548],[116.30131,39.97494],[116.30004,39.97481],[116.29451,39.97462],[116.29053,39.97439],[116.28942,39.97423],[116.2883,39.97389],[116.28742,39.97329],[116.28686,39.97247],[116.28663,39.97144],[116.28686,39.97005],[116.28767,39.96798],[116.28859,39.96658],[116.29161,39.96281],[116.29461,39.95769],[116.29473,39.95736],[116.29463,39.95387],[116.29383,39.94937],[116.29388,39.94485],[116.29543,39.93786],[116.29551,39.93714],[116.29536,39.93546],[116.2954,39.93138],[116.2972,39.92842],[116.29754,39.92748],[116.29774,39.92658],[116.29772,39.92302],[116.29754,39.92032],[116.29763,39.91968],[116.29788,39.91891],[116.29844,39.91815],[116.29937,39.91777],[116.30064,39.91761],[116.30338,39.91743],[116.30501,39.91716],[116.30747,39.91631],[116.30842,39.91589],[116.30916,39.91538],[116.30961,39.91491],[116.31008,39.91373],[116.31023,39.91246],[116.31024,39.91077],[116.31012,39.91001],[116.30958,39.90803],[116.30956,39.90701],[116.31017,39.90265],[116.31029,39.89745],[116.31015,39.89611],[116.30977,39.89565],[116.30918,39.89538],[116.30841,39.89507],[116.3062,39.89442],[116.30417,39.89356],[116.30352,39.89302],[116.30285,39.89227],[116.30268,39.89165],[116.30268,39.88162],[116.30301,39.87785],[116.30338,39.87515],[116.30349,39.86961],[116.30382,39.86641],[116.30439,39.85573],[116.3043,39.85469],[116.30392,39.85255],[116.30403,39.85107],[116.30436,39.85028],[116.30656,39.84588],[116.30691,39.84544],[116.30796,39.84479],[116.30858,39.84456],[116.30925,39.84444],[116.31512,39.84439]]]},{"n":"11号线","c":"#EE3F42","s":[[[116.15602,39.93366],[116.15969,39.92948],[116.16088,39.9269],[116.16099,39.92376],[116.1619,39.92065],[116.16241,39.91967],[116.1639,39.91839],[116.16456,39.9176],[116.16478,39.91628],[116.16477,39.909]]]},{"n":"12号线","c":"#B35A1F","s":[[[116.54932,39.97432],[116.54794,39.9736],[116.54658,39.97301],[116.54457,39.97256],[116.54307,39.97237],[116.54154,39.97237],[116.53974,39.97265],[116.53826,39.97307],[116.53333,39.97486],[116.53067,39.97593],[116.52807,39.97662],[116.52347,39.978],[116.52109,39.97902],[116.51895,39.98016],[116.51575,39.98168],[116.51417,39.98222],[116.51295,39.98222],[116.51227,39.98209],[116.51159,39.98181],[116.51022,39.98108],[116.50873,39.9806],[116.50678,39.98053],[116.49012,39.98045],[116.48875,39.98034],[116.48821,39.9801],[116.4876,39.97958],[116.47796,39.97082],[116.47744,39.97048],[116.47606,39.96984],[116.47514,39.96955],[116.47146,39.96874],[116.4694,39.96844],[116.4681,39.96818],[116.46663,39.96757],[116.46537,39.96678],[116.46393,39.96565],[116.45759,39.95987],[116.45671,39.95942],[116.45618,39.95927],[116.45432,39.95898],[116.45282,39.95904],[116.45222,39.95929],[116.43796,39.96868],[116.4372,39.96908],[116.43631,39.96939],[116.43517,39.96958],[116.43425,39.96962],[116.42855,39.96949],[116.39128,39.96851],[116.35876,39.96776],[116.34905,39.96765],[116.34504,39.96752],[116.33071,39.96744],[116.32221,39.96712],[116.32108,39.96694],[116.32009,39.96667],[116.30906,39.96271],[116.30413,39.96047],[116.30241,39.9599],[116.29961,39.95937],[116.2958,39.95907],[116.29365,39.95863],[116.29106,39.95785],[116.28975,39.95761],[116.28789,39.9574],[116.27923,39.95696],[116.27727,39.95678],[116.27667,39.9566],[116.2762,39.95637],[116.27595,39.95602],[116.27583,39.95546],[116.27569,39.95372],[116.27547,39.95268],[116.27448,39.94565],[116.27422,39.94315]]]},{"n":"13号线","c":"#FCD600","s":[[[116.43483,39.94302],[116.43448,39.94361],[116.43439,39.94396],[116.43438,39.94761],[116.43446,39.94837],[116.43481,39.94945],[116.43482,39.94985],[116.43464,39.95067],[116.43395,39.95265],[116.43377,39.95482],[116.43314,39.95659],[116.4321,39.96216],[116.43183,39.96983],[116.43202,39.97125],[116.43243,39.97215],[116.43364,39.97421],[116.44872,39.99693],[116.44994,39.99898],[116.45106,40.0018],[116.45322,40.00828],[116.45375,40.01018],[116.45901,40.026],[116.45922,40.02705],[116.45943,40.03017],[116.45925,40.03126],[116.45885,40.03201],[116.45798,40.03312],[116.45726,40.03377],[116.45647,40.03422],[116.45549,40.03456],[116.45338,40.03504],[116.45222,40.03543],[116.43965,40.04077],[116.43832,40.04143],[116.43519,40.04278],[116.43036,40.04473],[116.41834,40.04989],[116.39935,40.05787]],[[116.30261,40.05971],[116.30805,40.04979],[116.30853,40.04906],[116.30987,40.0473],[116.31132,40.04568],[116.31356,40.04253],[116.31585,40.03966],[116.3164,40.03913],[116.3175,40.03778],[116.3188,40.036],[116.31952,40.03467],[116.32129,40.03036],[116.32525,40.02017],[116.32588,40.01893],[116.32702,40.0177],[116.33538,40.01033],[116.33622,40.00935],[116.33686,40.00816],[116.33712,40.00725],[116.33732,40.00529],[116.33801,39.98795],[116.33928,39.98005],[116.34019,39.97551],[116.34039,39.97493],[116.3408,39.9743],[116.3439,39.97034],[116.34457,39.96918],[116.34497,39.96799],[116.34574,39.96294],[116.34623,39.96127],[116.34811,39.95754],[116.35154,39.95117],[116.35166,39.95064],[116.35167,39.95004],[116.35126,39.94758],[116.3513,39.94661],[116.35315,39.94163]]]},{"n":"14号线","c":"#E4A8A3","s":[[[116.47867,40.02783],[116.47803,40.02727],[116.47604,40.02612],[116.47377,40.02536],[116.47003,40.02451],[116.4686,40.02393],[116.46784,40.02338],[116.4672,40.0226],[116.4668,40.02175],[116.46731,40.00884],[116.46811,39.9999],[116.46824,39.99455],[116.46864,39.99377],[116.46934,39.99314],[116.47442,39.98979],[116.48097,39.98496],[116.48439,39.98272],[116.48827,39.98033],[116.48915,39.97972],[116.48964,39.97919],[116.4899,39.97848],[116.48996,39.97768],[116.49012,39.96784],[116.48987,39.9667],[116.48808,39.9651],[116.48573,39.96353],[116.4845,39.96232],[116.4843,39.96172],[116.4843,39.96111],[116.48457,39.96028],[116.48717,39.95634],[116.48727,39.95534],[116.48718,39.95414],[116.48688,39.95342],[116.48628,39.9527],[116.48515,39.95196],[116.47809,39.94842],[116.47617,39.94737],[116.47542,39.94648],[116.47515,39.94599],[116.47497,39.94533],[116.47513,39.94326],[116.47547,39.94103],[116.47621,39.94001],[116.47789,39.93819],[116.47823,39.93752],[116.47838,39.93677],[116.47849,39.93325],[116.4784,39.92319],[116.47817,39.91587],[116.47778,39.8943],[116.47742,39.88548],[116.47743,39.86976],[116.47715,39.86922],[116.47663,39.86881],[116.476,39.86845],[116.47512,39.86814],[116.47413,39.86801],[116.46204,39.86805],[116.46103,39.86778],[116.45757,39.86633],[116.45558,39.86523],[116.45463,39.86493],[116.45377,39.86476],[116.45244,39.86467],[116.45138,39.86486],[116.44929,39.86567],[116.44847,39.86587],[116.44742,39.86602],[116.44529,39.86606],[116.43394,39.86611],[116.42246,39.86581],[116.41811,39.86555],[116.41371,39.86519],[116.4077,39.86502],[116.40614,39.86512],[116.40188,39.86563],[116.40098,39.86604],[116.40026,39.86652],[116.39816,39.86878],[116.3972,39.86931],[116.39639,39.86948],[116.3958,39.86952],[116.38937,39.86938],[116.38873,39.86931],[116.38803,39.86911],[116.38215,39.86724],[116.37687,39.86369],[116.37556,39.86333],[116.37412,39.86316],[116.362,39.86262],[116.3607,39.86244],[116.35982,39.86219],[116.35888,39.86169],[116.35706,39.86145],[116.35483,39.86138],[116.35363,39.8614],[116.3528,39.86165],[116.352,39.86207],[116.35077,39.86302],[116.34807,39.86618],[116.34587,39.86737],[116.3449,39.86764],[116.32338,39.86762],[116.30369,39.86654],[116.29828,39.86664],[116.29607,39.86661],[116.29194,39.86636],[116.27966,39.86529],[116.27719,39.86524],[116.27497,39.86529],[116.26927,39.86572],[116.26719,39.86602],[116.26521,39.86644],[116.26213,39.86724],[116.26104,39.86721],[116.2582,39.86673],[116.25665,39.86623],[116.25335,39.86487],[116.24264,39.86017],[116.24166,39.85985],[116.23927,39.85931],[116.23718,39.85889],[116.23516,39.85859],[116.23431,39.85868],[116.23361,39.85889],[116.23162,39.86013],[116.23109,39.86055],[116.22873,39.8634],[116.22729,39.86591],[116.22627,39.86687],[116.22487,39.86756],[116.22408,39.86779],[116.22292,39.86794],[116.22225,39.86793],[116.22102,39.86779],[116.21972,39.86736],[116.21161,39.86372],[116.2077,39.86201],[116.20669,39.86169],[116.20515,39.86146],[116.19337,39.86101],[116.19236,39.86078],[116.19092,39.86023],[116.18707,39.85808]]]},{"n":"15号线","c":"#793E8C","s":[[[116.33715,40.00054],[116.35193,40.00092],[116.39072,40.00216],[116.4008,40.00244],[116.40787,40.00253],[116.42204,40.00298],[116.4228,40.00293],[116.42488,40.00249],[116.42685,40.00198],[116.42848,40.00141],[116.434,40.00079],[116.43506,40.0003],[116.43556,39.99978],[116.4363,39.99867],[116.4367,39.9969],[116.43754,39.99571],[116.43838,39.99499],[116.43905,39.99482],[116.44028,39.99472],[116.44669,39.99521],[116.45336,39.9969],[116.45514,39.99709],[116.46295,39.99726],[116.4685,39.99728],[116.46897,39.99745],[116.47416,40.00166],[116.47568,40.00213],[116.48277,40.0022],[116.48495,40.00236],[116.49025,40.00474],[116.49155,40.0061],[116.49244,40.0078],[116.49316,40.0103],[116.49343,40.01353],[116.49305,40.01842],[116.4927,40.02952],[116.49279,40.03047],[116.49297,40.03115],[116.49347,40.03194],[116.49395,40.0323],[116.49523,40.03293],[116.49674,40.03326],[116.51698,40.03437],[116.5235,40.03467],[116.52469,40.03477],[116.52588,40.03502],[116.52672,40.03526],[116.52825,40.03587],[116.52919,40.03644],[116.53016,40.03716],[116.53088,40.0379],[116.5315,40.03869],[116.53455,40.04448],[116.53641,40.04832],[116.53945,40.05325],[116.54026,40.05437],[116.54129,40.0554],[116.54242,40.05628],[116.54758,40.05918],[116.54868,40.0599]]]},{"n":"16号线","c":"#6CB46B","s":[[[116.25125,40.05958],[116.25246,40.0563],[116.25283,40.05581],[116.25433,40.05423],[116.25597,40.05262],[116.25731,40.05102],[116.25806,40.04911],[116.25871,40.04466],[116.2595,40.04331],[116.26506,40.0391],[116.26813,40.0365],[116.2702,40.03447],[116.27702,40.0264],[116.28458,40.01768],[116.28589,40.01571],[116.28615,40.01508],[116.28674,40.01247],[116.28769,40.00672],[116.28866,40.00185],[116.28887,40.00147],[116.28958,40.00081],[116.29336,39.99793],[116.29461,39.99709],[116.29479,39.99665],[116.29545,39.9927],[116.29533,39.99138],[116.29477,39.98962],[116.29429,39.98744],[116.2944,39.98688],[116.29478,39.98615],[116.29563,39.98558],[116.29709,39.9852],[116.29944,39.98507],[116.30241,39.98519],[116.30322,39.98508],[116.30463,39.9844],[116.30528,39.9839],[116.30547,39.98253],[116.30553,39.98074],[116.30604,39.97515],[116.30623,39.97392],[116.30669,39.96808],[116.30717,39.96436],[116.30864,39.95696],[116.30913,39.95181],[116.30944,39.94724],[116.30966,39.9462],[116.31019,39.94444],[116.31075,39.94309],[116.31134,39.94234],[116.31202,39.94181],[116.31399,39.94111],[116.31468,39.94092],[116.31613,39.94066],[116.31735,39.94065],[116.31855,39.94095],[116.32188,39.9416],[116.32347,39.94173],[116.32775,39.94188],[116.32875,39.94166],[116.32945,39.94141],[116.33083,39.94051],[116.33258,39.93846],[116.33288,39.93772],[116.33311,39.9357],[116.33359,39.9329],[116.33455,39.92376],[116.33484,39.9189],[116.33483,39.91357],[116.33464,39.91283],[116.33393,39.91105],[116.33377,39.91023],[116.33378,39.90697],[116.33455,39.90148],[116.33452,39.89763],[116.3347,39.89463],[116.33476,39.89069],[116.33484,39.89001],[116.3352,39.88872],[116.33626,39.88208],[116.33685,39.87751],[116.33687,39.87643],[116.33672,39.87557],[116.33622,39.87417],[116.33552,39.87323],[116.33422,39.87217],[116.3329,39.87158],[116.33215,39.87084],[116.33167,39.87007],[116.33165,39.86642],[116.33107,39.8649],[116.33087,39.86129],[116.33028,39.86005],[116.32846,39.85832],[116.32816,39.85746],[116.32804,39.85666],[116.32741,39.85535],[116.32674,39.85493],[116.32605,39.8548],[116.32308,39.85463],[116.31551,39.8537],[116.31074,39.85331],[116.30866,39.85302],[116.30689,39.85263],[116.29744,39.8491],[116.29665,39.84867],[116.29611,39.84817],[116.29566,39.84752],[116.2955,39.84688],[116.29541,39.84538],[116.29577,39.84383],[116.29614,39.84286],[116.29659,39.84202],[116.29684,39.83987],[116.29686,39.83873],[116.29667,39.83837],[116.29604,39.83783],[116.2945,39.83724],[116.29295,39.83692],[116.29053,39.83669],[116.28713,39.83624],[116.28325,39.83602],[116.2761,39.83548],[116.27378,39.83526],[116.26957,39.8347],[116.26652,39.83457],[116.26224,39.8351],[116.26085,39.83554],[116.26034,39.83591],[116.25993,39.83631],[116.25943,39.83715],[116.25929,39.83757],[116.25876,39.84114],[116.25919,39.84319],[116.25915,39.84425],[116.25899,39.84484],[116.25841,39.84591],[116.25753,39.84671],[116.25661,39.8472],[116.25524,39.84761],[116.24901,39.84871],[116.24385,39.84974],[116.23944,39.85024],[116.23778,39.85021],[116.23329,39.84983],[116.23185,39.8496],[116.22943,39.84902]]]},{"n":"17号线","c":"#00AD8E","s":[[[116.44196,40.05934],[116.44216,40.05106],[116.44166,40.03599],[116.44164,40.03275],[116.44183,40.02355],[116.44199,40.02251],[116.44243,40.02172],[116.44298,40.02108],[116.44388,40.02012],[116.44471,40.01956],[116.44736,40.01859],[116.45098,40.01745],[116.45224,40.01681],[116.45281,40.01632],[116.45375,40.01513],[116.45406,40.01447],[116.45457,40.0131],[116.45471,40.01139],[116.4545,40.01044],[116.45094,39.99955],[116.45018,39.99768],[116.44636,39.99189],[116.44548,39.98987],[116.44493,39.98801],[116.44485,39.98621],[116.44646,39.98288],[116.448,39.98143],[116.44935,39.9799],[116.44962,39.97936],[116.4498,39.9784],[116.4498,39.97661],[116.44972,39.97614],[116.44937,39.97557],[116.44876,39.97484],[116.44272,39.96804],[116.43662,39.96251],[116.43568,39.9613],[116.43531,39.96067],[116.4351,39.96007],[116.43416,39.95658],[116.43401,39.95522],[116.434,39.95343],[116.43427,39.95192],[116.43481,39.95034],[116.43499,39.95003],[116.43551,39.94963],[116.43638,39.94947],[116.43779,39.94949],[116.44075,39.94968],[116.44457,39.95006],[116.44613,39.94998],[116.4467,39.94986],[116.4473,39.94958],[116.44966,39.948],[116.45015,39.94758],[116.45036,39.9471],[116.45042,39.94144],[116.45033,39.90971],[116.45054,39.90804],[116.4512,39.90529],[116.4513,39.90388],[116.45103,39.90215],[116.45046,39.89981],[116.45031,39.89863],[116.45044,39.89203],[116.45072,39.88962],[116.45086,39.87641],[116.4508,39.86969],[116.45101,39.8686],[116.45161,39.86765],[116.45209,39.86727],[116.45265,39.86706],[116.45644,39.8667],[116.45763,39.86645],[116.45823,39.8662],[116.46312,39.86333],[116.46372,39.86289],[116.4658,39.86097],[116.4662,39.86074],[116.46692,39.8606],[116.47397,39.85864],[116.47585,39.85729],[116.47784,39.85539],[116.48072,39.85241],[116.48307,39.85023],[116.48444,39.84947],[116.48554,39.84908],[116.48664,39.84873],[116.48962,39.84809],[116.49115,39.84757],[116.49265,39.84685],[116.49952,39.84122],[116.50139,39.83998],[116.50216,39.83972],[116.50352,39.83946],[116.50789,39.83903],[116.5091,39.8388],[116.5178,39.83658],[116.51966,39.83605],[116.52127,39.8354],[116.52403,39.83384],[116.52511,39.83316],[116.52669,39.83242],[116.52855,39.83168],[116.5301,39.83123],[116.532,39.8309],[116.5328,39.83068],[116.53556,39.82969],[116.53913,39.82808],[116.54146,39.8269],[116.54298,39.82558],[116.54626,39.82112],[116.54747,39.81989],[116.54801,39.81954],[116.54966,39.81904]]]},{"n":"18号线","c":"#786DAF","s":[[[116.2745,40.03253],[116.27901,40.0334],[116.28032,40.03356],[116.28391,40.03383],[116.28505,40.03406],[116.28589,40.03444],[116.28673,40.03505],[116.28701,40.03577],[116.28706,40.03651],[116.28688,40.03782],[116.28695,40.03884],[116.28715,40.03995],[116.2872,40.04209],[116.28699,40.04366],[116.28569,40.04907],[116.28568,40.04992],[116.28596,40.05049],[116.28658,40.05098],[116.28783,40.05147],[116.29609,40.05328],[116.29804,40.05393],[116.29896,40.05445],[116.29944,40.05511],[116.29963,40.05591],[116.29949,40.0567],[116.29812,40.05898]]]},{"n":"19号线","c":"#B97CAF","s":[[[116.36757,39.8124],[116.36527,39.81235],[116.36297,39.81184],[116.36167,39.81167],[116.36073,39.81163],[116.35952,39.81169],[116.35805,39.81193],[116.35406,39.81295],[116.35229,39.81347],[116.35077,39.814],[116.34929,39.81466],[116.3483,39.81523],[116.34746,39.81587],[116.34702,39.8164],[116.34652,39.81734],[116.34619,39.81842],[116.34602,39.8196],[116.34597,39.82084],[116.34607,39.82251],[116.34638,39.82491],[116.34697,39.83422],[116.34693,39.83558],[116.34844,39.84505],[116.34929,39.84895],[116.35015,39.8502],[116.35061,39.85059],[116.36272,39.85389],[116.36323,39.8541],[116.36412,39.85557],[116.36429,39.85638],[116.3644,39.85765],[116.36324,39.89962],[116.36325,39.91216],[116.36342,39.91319],[116.36435,39.91704],[116.36443,39.92303],[116.36723,39.9292],[116.36754,39.93039],[116.36827,39.9366],[116.36836,39.93975],[116.36894,39.94147],[116.36934,39.94198],[116.37154,39.94356],[116.37171,39.94379],[116.37188,39.94441],[116.37198,39.94754],[116.37147,39.95369],[116.37001,39.9683],[116.36981,39.97646]]]},{"n":"昌平线","c":"#EB81B9","s":[[[116.30224,40.0599],[116.30586,40.05346],[116.30774,40.0499],[116.30837,40.04897],[116.31008,40.04679],[116.31183,40.04515],[116.31251,40.04437],[116.31559,40.04037],[116.31731,40.03862],[116.31826,40.03788],[116.31936,40.03733],[116.32372,40.03571],[116.32476,40.03548],[116.33521,40.03624],[116.33823,40.03704],[116.33906,40.0371],[116.33989,40.03706],[116.34069,40.03693],[116.34129,40.03674],[116.34175,40.03647],[116.34219,40.03607],[116.34417,40.03352],[116.3448,40.03285],[116.34678,40.03133],[116.34733,40.03074],[116.35021,40.02695],[116.35112,40.02515],[116.3514,40.02412],[116.35162,40.02139],[116.35156,40.01932],[116.35234,40.00939],[116.35351,39.98605],[116.354,39.97863],[116.35428,39.97653],[116.35435,39.97521],[116.3543,39.97354],[116.35484,39.96305]]]},{"n":"房山线","c":"#EE782E","s":[[[116.32382,39.86142],[116.32264,39.85463],[116.32143,39.85069],[116.32059,39.84753],[116.31994,39.84473],[116.3198,39.84335],[116.31995,39.83663],[116.31989,39.83444],[116.32007,39.8314],[116.32,39.83004],[116.31969,39.8274],[116.32012,39.82464],[116.32035,39.82378],[116.32143,39.82166],[116.3215,39.82081],[116.32123,39.82005],[116.32087,39.81971],[116.32026,39.81936],[116.31862,39.81923],[116.3153,39.81937],[116.31156,39.81976],[116.30823,39.81979],[116.30493,39.81923],[116.30325,39.81873],[116.30288,39.81852],[116.3024,39.81807],[116.30196,39.81707],[116.30186,39.81636],[116.30187,39.81134],[116.30161,39.81039],[116.30125,39.80995],[116.30093,39.80977],[116.30025,39.80955],[116.29414,39.80856],[116.2931,39.80832],[116.28804,39.80633],[116.28396,39.80501],[116.27841,39.80259],[116.27649,39.80195],[116.27421,39.80149],[116.2622,39.8002],[116.24607,39.79753],[116.24427,39.79737],[116.22859,39.79654],[116.22453,39.79591],[116.21948,39.79501],[116.21753,39.79463],[116.2164,39.79427],[116.21569,39.79391],[116.21514,39.79353],[116.21433,39.79271],[116.21376,39.79172],[116.21359,39.791],[116.21357,39.7903],[116.21373,39.7895],[116.215,39.78609],[116.21571,39.78379],[116.2161,39.7823],[116.21658,39.77981],[116.21763,39.77266],[116.218,39.77086],[116.21828,39.76716],[116.21805,39.76625],[116.21772,39.76571],[116.217,39.76493],[116.21603,39.76437],[116.21512,39.76403],[116.214,39.76386],[116.20326,39.76363],[116.1942,39.76377],[116.19299,39.76366],[116.19158,39.76316],[116.19064,39.76254],[116.18987,39.76156],[116.18918,39.76016]]]},{"n":"首都机场线","c":"#A49ABD","s":[[[116.54531,40.02447],[116.52869,40.01851],[116.51697,40.01456],[116.51648,40.01426],[116.50353,40.00268],[116.49913,39.99844],[116.49325,39.99346],[116.48295,39.98425],[116.47273,39.97495],[116.46888,39.9712],[116.46311,39.96629],[116.46023,39.9636],[116.45985,39.96329],[116.45741,39.96175],[116.45661,39.96105],[116.45563,39.95996],[116.4524,39.95587],[116.43877,39.94376],[116.4386,39.94328],[116.43865,39.9421],[116.43852,39.94177],[116.4382,39.94153],[116.43758,39.94142],[116.43296,39.94139],[116.41818,39.94108]]]},{"n":"西郊线","c":"#FC0601","s":[[[116.20388,39.99404],[116.20749,39.99413],[116.21237,39.99367],[116.2156,39.99353],[116.21793,39.99358],[116.21972,39.99329],[116.22245,39.99194],[116.22417,39.98993],[116.22504,39.98911],[116.226,39.98836],[116.23372,39.98279],[116.23622,39.98089],[116.23744,39.98054],[116.23876,39.98044],[116.24008,39.98059],[116.24311,39.98161],[116.24409,39.98184],[116.24704,39.98195],[116.24946,39.98237],[116.2516,39.98303],[116.25255,39.9829],[116.25435,39.98237],[116.25566,39.98221],[116.25659,39.98228],[116.25727,39.98241],[116.2584,39.98276],[116.25922,39.98323],[116.26114,39.98517],[116.26193,39.98582],[116.26243,39.98595],[116.2628,39.98587],[116.26435,39.98526],[116.26556,39.98454],[116.26803,39.98269],[116.27082,39.98044],[116.27125,39.98021],[116.27207,39.98001],[116.27471,39.98009],[116.27579,39.97997],[116.27846,39.97931],[116.27956,39.97896],[116.28004,39.97876],[116.28625,39.97544],[116.28754,39.97402],[116.28795,39.97382],[116.28838,39.9738],[116.29221,39.97463]]]},{"n":"亦庄线","c":"#F0087D","s":[[[116.42833,39.84445],[116.42837,39.83736],[116.42852,39.83674],[116.42888,39.83632],[116.42954,39.83589],[116.43038,39.83561],[116.43782,39.83417],[116.43867,39.83412],[116.45029,39.83409],[116.45192,39.8339],[116.45327,39.83362],[116.45549,39.83292],[116.45628,39.83242],[116.45736,39.83145],[116.45787,39.83083],[116.4585,39.82974],[116.46023,39.82613],[116.46044,39.82544],[116.46069,39.82392],[116.4606,39.82152],[116.46099,39.81734],[116.46119,39.81256],[116.46107,39.81153],[116.46044,39.80924],[116.46048,39.80814],[116.46123,39.80595],[116.46167,39.80516],[116.46265,39.80405],[116.46366,39.80332],[116.46519,39.80265],[116.46752,39.80197],[116.46902,39.80163],[116.47124,39.80136],[116.47254,39.80136],[116.47366,39.80145],[116.47528,39.80177],[116.48171,39.80334],[116.48356,39.80388],[116.49196,39.80742],[116.49347,39.80788],[116.49518,39.80815],[116.49637,39.80819],[116.49798,39.80804],[116.49968,39.80764],[116.50093,39.80716],[116.50195,39.8066],[116.50301,39.80583],[116.50389,39.80498],[116.53025,39.77237],[116.53103,39.77163],[116.5319,39.77113],[116.53258,39.77088],[116.53319,39.77075],[116.53465,39.77071],[116.53568,39.77091],[116.53737,39.77164],[116.54581,39.77576]]]}];
+const METRO_ST=[[116.17867,39.92585,1,"S1线/1号线(八通线)/6号线"],[116.16259,39.9233,1,"S1线/6号线/11号线"],[116.13401,39.91603,0,"S1线"],[116.12581,39.91238,0,"S1线"],[116.12223,39.90514,0,"S1线"],[116.12325,39.89578,0,"S1线"],[116.19034,39.90745,0,"1号线(八通线)"],[116.21268,39.90744,0,"1号线(八通线)"],[116.23595,39.90744,0,"1号线(八通线)"],[116.25289,39.90743,0,"1号线(八通线)"],[116.27399,39.90746,0,"1号线(八通线)"],[116.29476,39.90747,0,"1号线(八通线)"],[116.30992,39.90747,1,"1号线(八通线)/10号线"],[116.32146,39.90742,1,"1号线(八通线)/9号线"],[116.33758,39.90738,1,"1号线(八通线)/16号线"],[116.35258,39.90723,0,"1号线(八通线)"],[116.35687,39.90724,1,"1号线(八通线)/2号线"],[116.37407,39.90738,1,"1号线(八通线)/4号线大兴线"],[116.39128,39.90747,0,"1号线(八通线)"],[116.40122,39.90778,0,"1号线(八通线)"],[116.41157,39.90807,1,"1号线(八通线)/8号线"],[116.41848,39.90832,1,"1号线(八通线)/5号线"],[116.43581,39.9085,1,"1号线(八通线)/2号线"],[116.45031,39.90982,1,"1号线(八通线)/17号线"],[116.46184,39.9091,1,"1号线(八通线)/10号线"],[116.47578,39.90829,1,"1号线(八通线)/14号线"],[116.49546,39.90875,0,"1号线(八通线)"],[116.51566,39.9085,0,"1号线(八通线)"],[116.53142,39.90945,0,"1号线(八通线)"],[116.37313,39.94865,1,"2号线/19号线"],[116.39378,39.94897,1,"2号线/8号线"],[116.40824,39.94918,0,"2号线"],[116.41707,39.94934,1,"2号线/5号线"],[116.43584,39.94163,1,"2号线/13号线/首都机场线"],[116.43414,39.9337,1,"2号线/3号线"],[116.43458,39.9245,1,"2号线/6号线"],[116.42729,39.90498,0,"2号线"],[116.41709,39.90106,1,"2号线/5号线"],[116.39794,39.90019,1,"2号线/8号线"],[116.38421,39.9001,0,"2号线"],[116.37431,39.89977,1,"2号线/4号线大兴线"],[116.36335,39.89943,0,"2号线"],[116.35601,39.92369,0,"2号线"],[116.35436,39.9324,1,"2号线/6号线"],[116.35543,39.94047,1,"2号线/4号线大兴线/13号线"],[116.45045,39.93406,1,"3号线/17号线"],[116.46019,39.93373,1,"3号线/10号线"],[116.47829,39.93349,1,"3号线/14号线"],[116.49887,39.93522,0,"3号线"],[116.50576,39.94377,0,"3号线"],[116.52728,39.94775,0,"3号线"],[116.54713,39.95214,0,"3号线"],[116.54713,39.96573,0,"3号线"],[116.3316,39.76349,0,"4号线大兴线"],[116.33079,39.77355,0,"4号线大兴线"],[116.32869,39.7898,0,"4号线大兴线"],[116.36555,39.81259,1,"4号线大兴线/19号线"],[116.3708,39.83613,0,"4号线大兴线"],[116.37115,39.84585,1,"4号线大兴线/10号线"],[116.37136,39.85311,0,"4号线大兴线"],[116.37896,39.86503,1,"4号线大兴线/14号线"],[116.37438,39.87847,0,"4号线大兴线"],[116.37443,39.8893,1,"4号线大兴线/7号线"],[116.37375,39.91591,0,"4号线大兴线"],[116.37333,39.92421,0,"4号线大兴线"],[116.37288,39.93395,1,"4号线大兴线/6号线/19号线"],[116.36774,39.94067,0,"4号线大兴线"],[116.33903,39.93825,0,"4号线大兴线"],[116.32519,39.94311,1,"4号线大兴线/9号线/16号线"],[116.32322,39.9579,0,"4号线大兴线"],[116.32137,39.96696,1,"4号线大兴线/12号线"],[116.31756,39.976,1,"4号线大兴线/10号线"],[116.31647,39.98399,0,"4号线大兴线"],[116.31584,39.99221,0,"4号线大兴线"],[116.31019,39.99966,0,"4号线大兴线"],[116.29091,39.99826,1,"4号线大兴线/16号线"],[116.27765,40.00237,0,"4号线大兴线"],[116.26996,40.01219,0,"4号线大兴线"],[116.42837,39.84585,1,"5号线/10号线/亦庄线"],[116.42212,39.85752,0,"5号线"],[116.42309,39.86558,1,"5号线/14号线"],[116.42083,39.88256,0,"5号线"],[116.41994,39.89317,1,"5号线/7号线"],[116.41778,39.91711,0,"5号线"],[116.41749,39.92437,1,"5号线/6号线"],[116.41716,39.93359,0,"5号线"],[116.41688,39.94078,1,"5号线/首都机场线"],[116.4185,39.95873,0,"5号线"],[116.41797,39.96826,1,"5号线/12号线"],[116.41754,39.97712,1,"5号线/10号线"],[116.41703,39.98784,0,"5号线"],[116.41738,40.00384,1,"5号线/15号线"],[116.41809,40.03044,0,"5号线"],[116.4145,40.04196,0,"5号线"],[116.41235,40.05303,1,"5号线/13号线"],[116.51743,39.92317,0,"6号线"],[116.50204,39.92308,0,"6号线"],[116.47812,39.92356,1,"6号线/14号线"],[116.46162,39.92334,1,"6号线/10号线"],[116.45038,39.92285,1,"6号线/17号线"],[116.40419,39.93385,1,"6号线/8号线"],[116.38683,39.93325,0,"6号线"],[116.34408,39.93247,0,"6号线"],[116.3337,39.93241,1,"6号线/16号线"],[116.32568,39.93302,1,"6号线/9号线"],[116.31068,39.93234,0,"6号线"],[116.29547,39.93327,1,"6号线/10号线"],[116.27653,39.93258,0,"6号线"],[116.25291,39.9295,0,"6号线"],[116.22729,39.93242,0,"6号线"],[116.20693,39.93361,0,"6号线"],[116.187,39.92785,0,"6号线"],[116.53725,39.85549,0,"7号线"],[116.52684,39.85969,0,"7号线"],[116.51182,39.86073,0,"7号线"],[116.50007,39.8665,0,"7号线"],[116.50108,39.87458,0,"7号线"],[116.50344,39.88737,0,"7号线"],[116.49777,39.89253,0,"7号线"],[116.48793,39.89318,0,"7号线"],[116.47888,39.89321,1,"7号线/14号线"],[116.46183,39.89351,1,"7号线/10号线"],[116.449,39.89365,0,"7号线"],[116.43388,39.89367,0,"7号线"],[116.40846,39.89272,0,"7号线"],[116.39837,39.89133,1,"7号线/8号线"],[116.3846,39.88949,0,"7号线"],[116.35824,39.88942,0,"7号线"],[116.33561,39.8899,1,"7号线/16号线"],[116.32775,39.88995,0,"7号线"],[116.32122,39.89471,1,"7号线/9号线"],[116.44898,39.76071,0,"8号线"],[116.44147,39.77265,0,"8号线"],[116.4239,39.78505,0,"8号线"],[116.41863,39.79929,0,"8号线"],[116.40943,39.80507,0,"8号线"],[116.40207,39.81484,0,"8号线"],[116.40104,39.83671,0,"8号线"],[116.39915,39.84538,1,"8号线/10号线"],[116.4003,39.8518,0,"8号线"],[116.39984,39.85926,0,"8号线"],[116.39937,39.86744,1,"8号线/14号线"],[116.39871,39.88192,0,"8号线"],[116.41118,39.91539,0,"8号线"],[116.4108,39.9237,0,"8号线"],[116.39622,39.93758,0,"8号线"],[116.39514,39.95723,0,"8号线"],[116.39416,39.96865,1,"8号线/12号线"],[116.39419,39.97695,1,"8号线/10号线"],[116.39376,39.98584,0,"8号线"],[116.39176,40.00221,1,"8号线/15号线"],[116.3926,40.01012,0,"8号线"],[116.373,40.02191,0,"8号线"],[116.35458,40.03773,0,"8号线"],[116.35164,40.04687,0,"8号线"],[116.30189,39.81432,1,"9号线/房山线"],[116.29718,39.82523,0,"9号线"],[116.29743,39.83248,0,"9号线"],[116.29655,39.84111,1,"9号线/16号线"],[116.29386,39.85511,0,"9号线"],[116.29429,39.86698,1,"9号线/14号线"],[116.30281,39.88024,1,"9号线/10号线"],[116.31514,39.88689,0,"9号线"],[116.32576,39.92382,0,"9号线"],[116.29336,39.97441,1,"10号线/西郊线"],[116.30633,39.97564,1,"10号线/16号线"],[116.32871,39.97633,0,"10号线"],[116.33996,39.97648,1,"10号线/13号线"],[116.35431,39.97637,1,"10号线/昌平线"],[116.36984,39.9766,1,"10号线/19号线"],[116.38135,39.97672,0,"10号线"],[116.40595,39.977,0,"10号线"],[116.43591,39.97764,1,"10号线/13号线"],[116.44821,39.97382,1,"10号线/17号线"],[116.457,39.96151,1,"10号线/12号线/首都机场线"],[116.46179,39.94942,0,"10号线"],[116.46172,39.94134,0,"10号线"],[116.46174,39.91684,0,"10号线"],[116.46133,39.88439,0,"10号线"],[116.46093,39.87539,0,"10号线"],[116.4581,39.86613,1,"10号线/14号线/17号线"],[116.45398,39.85223,0,"10号线"],[116.44753,39.84587,0,"10号线"],[116.4141,39.84591,0,"10号线"],[116.38565,39.84513,0,"10号线"],[116.35139,39.84587,1,"10号线/19号线"],[116.33338,39.84443,0,"10号线"],[116.3202,39.84446,1,"10号线/房山线"],[116.3045,39.85025,1,"10号线/16号线"],[116.30417,39.85861,0,"10号线"],[116.30411,39.86668,1,"10号线/14号线"],[116.31035,39.89787,0,"10号线"],[116.29806,39.92348,0,"10号线"],[116.29382,39.94792,0,"10号线"],[116.29426,39.95853,1,"10号线/12号线"],[116.28906,39.96594,0,"10号线"],[116.15615,39.93337,0,"11号线"],[116.16475,39.91546,0,"11号线"],[116.16481,39.90961,0,"11号线"],[116.53467,39.97427,0,"12号线"],[116.50563,39.98044,0,"12号线"],[116.49155,39.98037,0,"12号线"],[116.48005,39.97266,0,"12号线"],[116.44225,39.96571,1,"12号线/17号线"],[116.43176,39.96834,1,"12号线/13号线"],[116.40722,39.96891,0,"12号线"],[116.38221,39.96826,0,"12号线"],[116.37004,39.96788,1,"12号线/19号线"],[116.35597,39.96775,1,"12号线/昌平线"],[116.34514,39.96661,1,"12号线/13号线"],[116.30783,39.96231,1,"12号线/16号线"],[116.28259,39.95712,0,"12号线"],[116.27419,39.94241,0,"12号线"],[116.33774,39.99289,0,"13号线"],[116.32019,40.03301,0,"13号线"],[116.31496,40.04116,1,"13号线/昌平线"],[116.3063,40.05303,1,"13号线/昌平线"],[116.43452,40.043,0,"13号线"],[116.44799,39.99416,1,"13号线/15号线/17号线"],[116.43273,39.95816,0,"13号线"],[116.47819,40.02716,0,"14号线"],[116.467,40.02043,0,"14号线"],[116.46742,40.01057,0,"14号线"],[116.46941,39.99852,1,"14号线/15号线"],[116.47154,39.99184,0,"14号线"],[116.48188,39.98467,0,"14号线"],[116.49021,39.97103,0,"14号线"],[116.48592,39.95837,0,"14号线"],[116.47495,39.94413,0,"14号线"],[116.47731,39.88528,0,"14号线"],[116.47728,39.87529,0,"14号线"],[116.44024,39.86586,0,"14号线"],[116.41103,39.86525,0,"14号线"],[116.36603,39.86263,1,"14号线/19号线"],[116.35595,39.86136,0,"14号线"],[116.34244,39.86763,0,"14号线"],[116.33127,39.86772,1,"14号线/16号线"],[116.3212,39.86757,0,"14号线"],[116.27606,39.86523,0,"14号线"],[116.25307,39.86484,0,"14号线"],[116.24048,39.85947,0,"14号线"],[116.20164,39.86133,0,"14号线"],[116.18719,39.8581,0,"14号线"],[116.5347,40.04511,0,"15号线"],[116.50348,40.03372,0,"15号线"],[116.49297,40.0222,0,"15号线"],[116.4871,40.0032,0,"15号线"],[116.43095,40.00113,0,"15号线"],[116.40784,40.00262,0,"15号线"],[116.36814,40.00149,0,"15号线"],[116.35275,40.00004,1,"15号线/昌平线"],[116.33953,40.00067,0,"15号线"],[116.25792,40.0487,0,"16号线"],[116.27428,40.03271,1,"16号线/18号线"],[116.28227,40.0214,0,"16号线"],[116.30016,39.98507,0,"16号线"],[116.3099,39.94777,0,"16号线"],[116.33453,39.92339,0,"16号线"],[116.33455,39.91404,0,"16号线"],[116.33667,39.87753,0,"16号线"],[116.32313,39.85564,1,"16号线/房山线"],[116.28702,39.83623,0,"16号线"],[116.27252,39.83491,0,"16号线"],[116.25896,39.83874,0,"16号线"],[116.24932,39.84854,0,"16号线"],[116.22957,39.84906,0,"16号线"],[116.49585,39.8443,0,"17号线"],[116.47636,39.85671,0,"17号线"],[116.45087,39.87527,0,"17号线"],[116.44272,39.94997,0,"17号线"],[116.4418,40.03372,0,"17号线"],[116.4421,40.05078,0,"17号线"],[116.28683,40.04395,0,"18号线"],[116.29504,40.05307,0,"18号线"],[116.34633,39.82346,0,"19号线"],[116.36348,39.88961,0,"19号线"],[116.36325,39.90975,0,"19号线"],[116.33171,40.03595,0,"昌平线"],[116.34374,40.03472,0,"昌平线"],[116.35219,40.01501,0,"昌平线"],[116.35344,39.98821,0,"昌平线"],[116.18949,39.76064,0,"房山线"],[116.21269,39.76387,0,"房山线"],[116.21884,39.79489,0,"房山线"],[116.29168,39.80781,0,"房山线"],[116.31339,39.81959,0,"房山线"],[116.32006,39.82921,0,"房山线"],[116.26325,39.9857,0,"西郊线"],[116.2481,39.98211,0,"西郊线"],[116.23198,39.984,0,"西郊线"],[116.21572,39.99354,0,"西郊线"],[116.20449,39.99406,0,"西郊线"],[116.44836,39.83422,0,"亦庄线"],[116.45923,39.82795,0,"亦庄线"],[116.46079,39.80691,0,"亦庄线"],[116.48031,39.80301,0,"亦庄线"],[116.49063,39.80689,0,"亦庄线"],[116.5054,39.80297,0,"亦庄线"],[116.51332,39.79319,0,"亦庄线"],[116.52169,39.78283,0,"亦庄线"],[116.5399,39.77296,0,"亦庄线"]];
+
+/* ============================================================
+   数据：店名|经度|纬度|人均|菜系|层级|招牌菜|地址
+   坐标 = GCJ-02，按地址人工估算
+   ============================================================ */
+const RAW = `海南食府|116.4065|39.9620|150|琼菜|省级|椰子鸡火锅、干腌海南粉、椰子饭、清凉补|东城区安定门外大街188号海南大厦1楼
+那兰酒楼|116.4620|39.9330|120|广西菜|省级|鸭脚煲、螺蛳粉、酸笋炒牛肉、老友粉|朝阳区东三环中路桂京商务宾馆旁
+云山茶餐厅|116.3210|39.9435|160|粤菜|省级|虾饺皇、五虎酱蒸凤爪、玻璃脆皮乳鸽、干炒牛河|海淀区岭南路36号广东大厦
+一品芗情|116.2965|39.9290|150|闽菜|地市级|海蛎煎、面线糊、姜母鸭、土笋冻、漳浦肉丸子汤|海淀区恩济庄46号G区1幢
+厦门大厦颐园餐厅|116.3310|39.9765|150|闽菜|地市级|海鲜沙茶面、闽南炸醋肉、黄金手工虾饼|海淀区知春路46号厦门大厦
+兰水心桥·经典莆田菜|116.4700|39.9290|400|闽菜|地市级|红菇海鲜卤面、仙游炒套肠、兴化炒米粉|朝阳区金台路金台里乙21号
+福州宾馆|116.3595|39.9410|140|闽菜|地市级|芋泥、鱼丸肉燕汤、荔枝肉、五香卷|西城区西直门内前半壁街甲30号
+八闽食府|116.4065|39.9720|180|闽菜|省级|佛跳墙、土笋冻、姜母鸭、宁德大黄鱼|朝阳区安贞西里三区11号福建大厦3楼
+潇湘·永州会馆|116.4830|39.8830|90|湘菜|地市级|血鸭、东安鸡、小炒肉、剁椒鱼头|朝阳区南磨房窑洼1号磨坊小院
+静海轩湘菜王|116.4125|39.9960|140|湘菜|地市级|长沙臭豆腐、小炒黄牛肉、长沙生米粉|朝阳区慧忠北里112号楼
+湘都湘味|116.3800|39.9690|100|湘菜|—|臭鳜鱼、永州血鸭、常德牛肉米粉|海淀区马甸南路2号院
+湘中缘·湖南菜|116.2930|39.8300|120|湘菜|地市级|武冈血鸭、三合汤、擂辣椒皮蛋、娄底叫鸡公|丰台区恒福北街科技孵化广场8号楼
+洞庭君乡|116.4045|39.8635|120|湘菜|地市级|小炒肉、臭鳜鱼、擂辣椒皮蛋、鸡汁芦苇笋|丰台区东木樨园2号岳阳大厦
+湖南益阳驻京联络处餐厅|116.3055|39.8840|100|湘菜|地市级|小炒肉、酸萝卜炒肚丝、白椒炒鸡杂|丰台区莲宝路莲香园小区北门
+南昌饭店|116.3800|39.9200|140|江西菜|地市级|啤酒鸭、炒粉、藜蒿炒腊肉、白糖糕|西城区西皇城根南街35号
+赣人之家|116.3810|39.9685|120|江西菜|省级|瓦罐汤、啤酒鸭、南昌炒粉、井冈山烟笋|海淀区马甸桥南路2号七省大院
+云腾食府|116.4290|39.8960|200|云南菜|省级|汽锅鸡、黑三剁、小锅米线、黑松露锅贴乳饼|东城区东花市北里东区云腾宾馆
+蝴蝶泉宾馆中餐厅|116.3720|39.9215|140|云南菜|地市级|黑三剁、牛干巴、玫瑰普洱乳扇卷|西城区西斜街55号
+一品滇|116.3800|39.8990|120|云南菜|—|举人米线、鲜花饼、香茅草烤鲈鱼、瓦片煎豆腐|西城区香炉营头条33号院1号楼
+云天滇味餐厅|116.3580|39.8835|100|云南菜|—|包浆豆腐、牛干巴、过桥米线、美味牛肝菌|西城区白广路二条甲3号云天酒店
+大黔门食府|116.4070|39.8935|200|黔菜|地市级|酸汤鱼、黑山羊、羊肉粉|东城区珠市口东大街毕节禾禾酒店
+南长城食府|116.3025|39.8880|140|黔菜|地市级|酸汤鱼火锅、铜仁牛肉粉、酸豆角炒肉末|海淀区吴家场路51-2号
+布依人家酸汤鱼|116.3705|39.8835|140|黔菜|—|酸汤鱼、布依豆腐、怪噜饭、牛肝菌炒腊肉|西城区菜市口南大街姚家井2巷2号楼
+贵州大厦贵州厅|116.4245|39.9695|200|黔菜|省级|酸汤鱼、花溪牛肉粉、肠旺面、糍粑辣子鸡|朝阳区樱花西街18号贵州大厦
+甲秀楼缘|116.3565|39.9350|130|黔菜|地市级|花溪牛肉粉、酸汤草鱼、肠旺面、雷家豆腐圆子|西城区西直门南小街国英园5号楼
+醉美遵义|116.4185|39.9735|130|黔菜|地市级|红油米豆腐、酸汤鱼、豆豉回锅肉、豆腐圆子|朝阳区小黄庄路和平街西苑14号
+攀西土菜馆|116.3630|39.8795|90|川菜|地市级|盐边豆笙、回锅肉、江油肥肠、麻婆豆腐|西城区南线阁37号院攀钢宾馆
+成都驻京办餐厅|116.4030|39.9270|110|川菜|地市级|毛血旺、担担面、红油抄手、酸辣粉|东城区沙滩后街30号
+贡院蜀楼·川办餐厅|116.4230|39.9135|110|川菜|省级|口水鸡、水煮鱼、蒜泥白肉、毛血旺|东城区东总布胡同贡院头条5号
+宜宾招待所|116.3730|39.9060|120|川菜|地市级|宜宾燃面、蒜泥白肉、红糖冰粉、粉蒸肉|西城区西中胡同28号
+新川办餐厅|116.4880|39.8400|140|川菜|省级|山城辣子鸡、水煮鱼、毛血旺、夫妻肺片|朝阳区小红门路312号天府蜀风酒店
+天府龙爪|116.4255|39.9135|140|川菜|—|宜宾燃面、水煮牛肉、夫妻肺片、山城辣子鸡|东城区北极阁路7号
+天府食舫|116.3650|39.9340|130|川菜|省级|毛血旺、水煮江团鱼、担担面、口水鸡|西城区阜成门外大街1号四川大厦
+富乐山酒店|116.3870|39.9320|130|川菜|地市级|绵阳米粉、江油肥肠、蒜泥白肉、辣子鸡|西城区皇城根北街21号
+北京重庆饭店|116.4330|39.9665|150|川菜|省级|毛血旺、水煮鱼、重庆凉面、辣子鸡|朝阳区光熙门北里15号
+五粮炙造|116.1915|39.9105|69|川菜|地市级|烧烤配酒（宜宾招待所新店，晚上小聚向）|石景山区首钢园
+珠穆朗玛餐厅|116.3885|39.9420|130|西藏菜|省级|手撕牦牛肉、烤藏羊排、红烧牦牛尾、油酥茶|西城区鼓楼西大街149号珠穆朗玛宾馆
+飞天食府|116.4445|39.8950|140|甘肃菜|省级|兰州牛肉面、酿皮、手把肉、灰豆子|东城区广渠门外南街5号飞天大厦3楼
+银峰庄酒楼|116.3830|39.9515|110|甘肃菜|—|灰豆子、手抓羊肉、靖远羊羔肉、酿皮|西城区德胜门外大街1号
+兰州宾馆餐厅|116.3505|39.9480|100|甘肃菜|地市级|兰州拉面、金城酿皮、甜坯子、手抓羊肉|海淀区西直门北大街58号院5号楼
+敦煌食府|116.3565|39.9320|100|甘肃菜|地市级|牛肉拉面、手抓羊肉、馕包肉、灰豆子|西城区阜外大街27号1号楼二层
+银都餐厅|116.3830|39.8990|100|宁夏菜|—|手抓羊肉、炒烩牛肉、羊肉泡馍|西城区南新华街安平里3号
+宁夏大厦全日制餐厅|116.4010|39.9475|150|宁夏菜|省级|手抓羊肋条、烫面油香、虫草花拌沙葱|东城区分钟寺胡同13号
+兰香苑青海大厦餐厅|116.3760|39.9280|110|青海菜|省级|酿皮、狗浇尿、炒炮仗、干煸羊肠、羊肉盖被|西城区背阴胡同6号
+内蒙古宾馆·金绿原火锅|116.4075|39.9265|120|内蒙菜|省级|草原羔羊肉、科尔沁一号肥牛、鲜羊肉烧麦|东城区美术馆后街71号
+内蒙古宾馆·元大都奶茶餐吧|116.4082|39.9272|130|内蒙菜|省级|沙葱烧麦、铜锅奶茶、手把肉、羊肉串|东城区美术馆后街71号内蒙古宾馆一楼
+内蒙古驻京办餐厅|116.4185|39.9125|170|内蒙菜|省级|手把肉、烧卖、金丝奶皮子、烤羊排、咸奶茶|东城区崇文门内大街2号内蒙古大厦
+鄂尔多斯艾力蒙餐|116.4230|39.9210|180|内蒙菜|地市级|鄂尔多斯烩酸菜、沾汁手扒肉、羊肉烧麦|东城区金宝街18号鄂尔多斯艾力2楼
+新疆巴州金丝特餐厅|116.3360|39.9670|120|新疆菜|地市级|烤包子、大盘鸡、缸子肉、滚刀肉辣皮子拌面|海淀区四道口路皂君庙2号
+新疆饭庄|116.3490|39.9405|100|新疆菜|—|烤包子、过油肉拌面、大盘鸡、素抓饭|西城区车公庄大街北里1号
+新疆兵团食府|116.3280|39.8785|110|新疆菜|省级|大盘鸡、烤包子、抓饭、凉皮|西城区茶源路马连道南街6号院2号楼
+汗腾格里·风味餐厅|116.3266|39.9235|120|新疆菜|省级|大盘鸡、手抓饭、烤包子、椒麻鸡|海淀区三里河路7号新疆大厦
+准噶尔·新疆菜|116.4295|39.8810|100|新疆菜|—|大盘鸡、石河子凉皮、面包羊腿、囊炒肉|东城区龙潭路甲8号
+犇羴鱻餐厅|116.3830|40.0055|100|新疆菜|—|大盘鸡、馕丁炒肉、过油肉拌面、烤包子|朝阳区北沙滩5号塔里木石油宾馆1层
+宁波宾馆·中餐厅|116.3790|39.9060|130|浙江菜|地市级|腐皮包黄鱼、宁式鳝糊、宁波汤圆、青菜炒年糕|西城区新壁街8号宁波宾馆
+浙江食府|116.4055|39.9725|190|浙江菜|省级|干菜焖肉、西湖醋鱼、笋干老鸭煲、宁式鳝丝|朝阳区安贞西里三区26号
+苏畅园|116.4055|39.9545|130|淮扬菜|省级|蟹黄狮子头、响油鳝糊、淮扬烫干丝、小笼汤包|朝阳区安定门外大街甲一号江苏饭店1层
+常州宾馆餐厅|116.4330|39.9285|150|淮扬菜|地市级|砂锅鱼头汤、红烧划水、老常州熏鱼、话梅排骨|朝阳区吉市口路吉祥里113号
+南京精菜馆|116.4085|39.9130|150|淮扬菜|地市级|盐水鸭、鸭血粉丝汤、招牌千斤鼎、鸡汁小馄饨|东城区王府井西街5号南京大饭店
+百纳烟台山商务酒店餐厅|116.3695|39.9310|300|鲁菜|地市级|酱肉包、鲅鱼水饺、金银蒜海肠、香辣梭子蟹|西城区赵登禹路281号
+孔府酒店|116.3765|39.9745|160|鲁菜|地市级|武大郎烧饼、微山湖鱼头泡饼、醋溜牛肉丝|海淀区马甸西路月季小区18号楼
+海泰食府|116.3285|39.8880|150|鲁菜|区县级|沂蒙山炒鸡、胶东第一锅、吊炉烧饼、炝锅面|丰台区南蜂窝水口子33号
+齐鲁苑|116.3815|39.9680|130|鲁菜|省级|九转大肠、爆炒腰花、鲅鱼饺子、武大郎烧饼|海淀区马甸桥南路2号七省大院山东宾馆1楼
+安徽大厦中餐厅|116.4190|39.9760|160|徽菜|省级|臭鳜鱼、胡适一品锅、毛豆腐、蒙城烧饼|朝阳区惠新西街1号安徽大厦
+同庆楼|116.3335|39.9640|140|徽菜|—|红烧肉、臭鳜鱼、毛豆腐、石鸡汤|海淀区大钟寺13号1号楼
+寿州大饭店|116.3240|39.8935|170|徽菜|地市级|臭鳜鱼、淮南牛肉粉丝汤、腊味合蒸、寿州烧饼|海淀区羊坊店东双贝子坟路
+九头鸟食府|116.4665|39.8785|140|鄂菜|地市级|莲藕排骨汤、热干面、三鲜豆皮、公安牛三鲜|朝阳区劲松南路16号武汉大厦
+荆楚味道|116.3210|39.9600|140|鄂菜|省级|排骨莲藕汤、公安牛三鲜、沔阳三蒸、三鲜豆皮|海淀区中关村南大街36号湖北大厦
+襄阳驻京办·隆中宾馆餐厅|116.4345|39.9280|140|鄂菜|地市级|襄阳牛肉面、襄阳鱼杂、洪湖莲藕排骨汤|朝阳区朝阳门外大街吉祥里小区204号楼
+豫菜·信阳宴|116.4040|39.9125|150|豫菜|地市级|固始旱鹅块、罗山大肠汤、地锅馍、闷罐肉|东城区南河沿大街紫金宫饭店
+豫香苑餐厅|116.4560|39.8650|120|豫菜|省级|胡辣汤、烩面、鲤鱼焙面、豫东小酥肉|朝阳区华威里28号河南大厦2楼
+黄河面道·山西菜|116.4355|39.8875|100|晋菜|地市级|过油肉、泡泡油糕、运城火锅、晋商四小碗|东城区夕照寺中街29号黄河京都大酒店2层
+晋府大酒店|116.3930|39.9285|80|晋菜|省级|过油肉、茄丁刀削面、黄米面炸糕、酥带鱼|西城区景山西街5号
+长安白云大酒店|116.3400|39.9080|90|陕菜|省级|肉夹馍、油泼面、羊肉泡馍、葫芦鸡、凉皮|西城区白云观街7号
+玉华宫宾馆餐厅|116.3720|39.8720|90|陕菜|地市级|肉夹馍、油泼扯面、石锅凉粉、西安葫芦鸡|西城区右安门内大街72号
+汉唐春秋西安小吃食府|116.3735|39.9385|110|陕菜|地市级|油泼面、肉夹馍、葫芦鸡、长安一品肘|西城区正觉胡同13号
+辽食府·渡口煲酷|116.3835|39.9520|120|东北菜|省级|锅包肉、酸菜饺|西城区德外大街1号辽宁饭店2楼
+雪松宾馆·吉人缘餐厅|116.3805|39.9698|100|东北菜|省级|雪衣豆沙、杀猪菜、排骨炖豆角、地三鲜|海淀区马甸桥南路2号院3号楼
+长白山国际酒店中餐厅|116.4230|39.9930|120|东北菜|地市级|锅包肉、酸菜血肠、雪衣豆沙、粘豆包|朝阳区安苑北里24号楼
+北国江城餐厅|116.3280|39.9145|150|东北菜|地市级|汆白肉血肠、雪衣豆沙、萝卜丝饼、酸菜饺子|海淀区晾果厂6号都邦大厦1层（吉林市驻京办）
+北大荒餐厅|116.4205|39.9875|90|东北菜|省级|酸菜白肉血肠、锅包肉、大拉皮、肉焖油豆角|朝阳区安慧东里21号
+京滨饭店|116.3610|39.9320|90|东北菜|地市级|锅包肉、得莫利炖活鱼、东北饭包、明炉酸菜血肠|西城区阜成门外大街24号京滨饭店2楼
+龙港酒楼|116.3455|39.9060|110|东北菜|省级|锅包肉、大拉皮、地三鲜、得莫利鱼|西城区复兴门外大街5号
+玉流馆餐厅|116.4680|39.9880|160|朝鲜菜|其它|冷面、石锅拌饭、烤调味牛排、大酱汤|朝阳区湖光中街8号`;
+
+const ITEMS = RAW.trim().split('\n').map((line, i) => {
+  const p = line.split('|');
+  return { id:'r'+i, name:p[0], lng:+p[1], lat:+p[2], price:+p[3],
+           cuisine:p[4], level:p[5], dishes:p[6], addr:p[7] };
+});
+
+const M_LNG = 111320 * Math.cos(39.9 * Math.PI / 180);
+const M_LAT = 111100;
+const distM = (a, b) => Math.hypot((a.lng - b.lng) * M_LNG, (a.lat - b.lat) * M_LAT);
+
+/* 预计算：每家餐厅最近的地铁站 */
+ITEMS.forEach(it => {
+  let bd = Infinity, bs = null;
+  for (const s of METRO_ST) {
+    const d = distM(it, { lng: s[0], lat: s[1] });
+    if (d < bd) { bd = d; bs = s; }
+  }
+  it.nearSt = bs; it.nearD = bd;
+});
+
+/* ============================================================
+   投影：等距圆柱，画布 1000×1000
+   ============================================================ */
+const LNG0=116.150, LNG1=116.520, LAT0=39.790, LAT1=40.030;
+const W=1000, H=845;
+const PX = lng => (lng-LNG0)/(LNG1-LNG0)*W;
+const PY = lat => (LAT1-lat)/(LAT1-LAT0)*H;
+
+/* ============================================================
+   底图
+   ============================================================ */
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){
+  const n=document.createElementNS(NS, tag);
+  for(const k in attrs) n.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(n);
+  return n;
+}
+/* 缩放时做反向补偿的元素登记表：{节点, 定点x, 定点y, 原有 transform}
+   补偿后这些元素（点、站点、文字、地标符号）在屏幕上的尺寸不随缩放变化 */
+const ZS=[];
+const zsAdd=(n,x,y,b,m)=>ZS.push({n, x, y, b:b||'', m:m||1});   // m = 该元素的额外尺寸倍率
+
+function txt(x,y,s,o={}){
+  const t=el('text',{x, y, fill:o.fill||'#6b7480', 'font-size':o.size||11,
+    'text-anchor':o.anchor||'middle', 'font-weight':o.weight||400,
+    'letter-spacing':o.ls||0, opacity:o.op||1}, o.parent);
+  t.textContent=s;
+  if(o.zs!==false) zsAdd(t, x, y, '', o.zm);   // 默认随缩放保持字号；比例尺文字传 zs:false
+  return t;
+}
+const base=document.getElementById('base');
+
+/* 背板 */
+/* 背板：画得比画布大得多。视图为了容纳所有点偶尔会横向超出画布，
+   背板铺满就不会在两侧露出与 body 不同的底色。 */
+el('rect',{x:-W*0.6, y:-H*0.6, width:W*2.2, height:H*2.2, fill:'#0b0f15'}, base);
+
+/* ============================================================
+   环路（二至五环）
+   走向取自 OpenStreetMap 的 route=road relation 实测几何，
+   经 WGS84→GCJ-02 转换后按 5 米容差抽稀，环名锚点自动吸附到环线上。
+   刻意压得很淡：越外圈越淡越细，永远压在地铁线网与餐厅点之下，
+   只负责回答「这家店在几环内／哪一环边上」。
+   ============================================================ */
+/* 环路走向取自 OpenStreetMap 实测几何（relation 295094/295097/18649348/295957），
+   抽稀容差 5 米；closed 表示展开后是否仍是闭合环。 */
+const RINGS = [{"n":"二环","k":0.46,"lw":1.6,"l":[116.39403,39.87157],"closed":true,"s":[[[116.35683,39.90164],[116.35651,39.90843],[116.35679,39.91279],[116.35556,39.94162],[116.35562,39.94226],[116.35578,39.94263],[116.35635,39.94344],[116.35678,39.9438],[116.35758,39.94414],[116.36519,39.94625],[116.36884,39.94778],[116.37017,39.94823],[116.37143,39.94851],[116.37268,39.94863],[116.37755,39.94878],[116.41164,39.94906],[116.43016,39.94971],[116.43121,39.94962],[116.43188,39.94943],[116.43254,39.9491],[116.43304,39.94869],[116.43342,39.94817],[116.43369,39.94716],[116.43369,39.94171],[116.43489,39.91459],[116.43504,39.91345],[116.43561,39.91074],[116.43575,39.90666],[116.43631,39.90306],[116.43608,39.90153],[116.43613,39.90123],[116.43649,39.90053],[116.43727,39.89996],[116.43801,39.89973],[116.44239,39.89878],[116.44306,39.89851],[116.44369,39.89795],[116.44396,39.89726],[116.44403,39.89362],[116.44541,39.88351],[116.44622,39.87881],[116.44603,39.87803],[116.44519,39.87638],[116.44465,39.87504],[116.44398,39.8722],[116.44367,39.87167],[116.44312,39.87116],[116.44261,39.8709],[116.44202,39.8707],[116.44129,39.87061],[116.42463,39.87147],[116.41825,39.87115],[116.41741,39.8713],[116.41571,39.87206],[116.41497,39.87225],[116.40862,39.87218],[116.38965,39.87139],[116.38317,39.87099],[116.36808,39.86983],[116.36073,39.86872],[116.35838,39.86849],[116.35688,39.86844],[116.35503,39.86849],[116.35129,39.86864],[116.35075,39.86874],[116.35001,39.86907],[116.34961,39.86939],[116.34926,39.86979],[116.34908,39.87015],[116.34896,39.87078],[116.34939,39.87402],[116.34946,39.87539],[116.34892,39.88302],[116.3488,39.89645],[116.34896,39.89689],[116.34921,39.89722],[116.34977,39.89767],[116.35031,39.89793],[116.35154,39.89815],[116.35431,39.89828],[116.35487,39.89839],[116.35568,39.89869],[116.35653,39.8994],[116.35681,39.90005],[116.35687,39.9008]]]},{"n":"三环","k":0.42,"lw":1.55,"l":[116.39003,39.85715],"closed":true,"s":[[[116.3244,39.96708],[116.3353,39.9675],[116.36734,39.96772],[116.37361,39.96794],[116.38954,39.96829],[116.40467,39.96881],[116.4322,39.96947],[116.43515,39.96949],[116.43624,39.96927],[116.43715,39.96898],[116.43787,39.96862],[116.44963,39.96093],[116.45287,39.95869],[116.4603,39.95379],[116.46093,39.95314],[116.46141,39.95239],[116.46172,39.95115],[116.46173,39.95048],[116.46158,39.91824],[116.46178,39.91312],[116.46089,39.86933],[116.46075,39.86858],[116.4605,39.86799],[116.46002,39.86728],[116.45941,39.86671],[116.45267,39.86129],[116.45158,39.86055],[116.45024,39.8599],[116.44882,39.85942],[116.44709,39.85905],[116.44555,39.85893],[116.43757,39.85902],[116.42631,39.85829],[116.42099,39.85737],[116.41991,39.85725],[116.41709,39.85716],[116.40484,39.85712],[116.3769,39.85718],[116.37405,39.8571],[116.37298,39.857],[116.37119,39.85671],[116.36988,39.85641],[116.3453,39.84957],[116.34277,39.84914],[116.34129,39.84905],[116.33758,39.84898],[116.33086,39.84902],[116.32911,39.84914],[116.32707,39.8496],[116.32545,39.8502],[116.32416,39.85084],[116.32323,39.85145],[116.32227,39.85223],[116.31462,39.86062],[116.31351,39.8625],[116.31319,39.86332],[116.31288,39.86459],[116.31044,39.8868],[116.31028,39.92621],[116.31036,39.93759],[116.31031,39.94396],[116.3093,39.95647],[116.30897,39.95836],[116.3085,39.96024],[116.30841,39.96103],[116.30867,39.96183],[116.30893,39.96218],[116.30926,39.9625],[116.31006,39.96291],[116.31358,39.96411],[116.32037,39.96661],[116.32152,39.96689],[116.32261,39.96702]]]},{"n":"四环","k":0.37,"lw":1.5,"l":[116.38928,39.83176],"closed":true,"s":[[[116.48988,39.90602],[116.48978,39.90784],[116.4899,39.91028],[116.48993,39.91639],[116.48997,39.95009],[116.48975,39.95292],[116.48936,39.9545],[116.48876,39.95602],[116.48812,39.95722],[116.48712,39.95867],[116.48552,39.9604],[116.48291,39.96251],[116.46991,39.97118],[116.44842,39.98528],[116.44668,39.98613],[116.4412,39.98829],[116.43968,39.98881],[116.43884,39.98903],[116.43735,39.98928],[116.43446,39.98931],[116.4123,39.98864],[116.40293,39.98845],[116.39337,39.9881],[116.38668,39.98803],[116.38411,39.98792],[116.38291,39.9878],[116.36857,39.98742],[116.34484,39.98666],[116.32702,39.98587],[116.30176,39.98511],[116.29915,39.98493],[116.29815,39.98477],[116.29667,39.98436],[116.29485,39.98365],[116.29397,39.98316],[116.29225,39.98187],[116.28798,39.97763],[116.28549,39.97553],[116.28356,39.97434],[116.27804,39.97171],[116.27705,39.97112],[116.2762,39.97047],[116.27559,39.9698],[116.27483,39.96855],[116.27454,39.96748],[116.27453,39.96639],[116.27581,39.95529],[116.27571,39.95391],[116.2752,39.95106],[116.27438,39.94542],[116.27413,39.94249],[116.2741,39.94048],[116.27422,39.93718],[116.27491,39.93078],[116.27516,39.9275],[116.27501,39.91924],[116.27485,39.91761],[116.2743,39.91476],[116.27413,39.91332],[116.27393,39.90984],[116.27395,39.8892],[116.27389,39.8887],[116.27407,39.88726],[116.27431,39.88573],[116.2749,39.88356],[116.27866,39.87372],[116.27962,39.87186],[116.28252,39.86757],[116.28323,39.86584],[116.28329,39.86432],[116.28285,39.85817],[116.28348,39.8506],[116.28357,39.84699],[116.28373,39.84516],[116.28389,39.84445],[116.28401,39.84412],[116.28449,39.84339],[116.28545,39.84212],[116.28587,39.84119],[116.28713,39.83551],[116.28739,39.83456],[116.28772,39.8338],[116.28822,39.83307],[116.28949,39.83191],[116.29032,39.83141],[116.2917,39.83087],[116.29308,39.83058],[116.29434,39.8305],[116.33018,39.83051],[116.33674,39.8306],[116.34477,39.83096],[116.36458,39.831],[116.3987,39.83205],[116.40656,39.83222],[116.4492,39.83216],[116.45315,39.8325],[116.46149,39.83348],[116.46396,39.8339],[116.46561,39.83434],[116.46765,39.8352],[116.46972,39.83642],[116.4801,39.84318],[116.48142,39.84415],[116.48219,39.84481],[116.48352,39.84618],[116.48433,39.84731],[116.48511,39.84891],[116.48544,39.84998],[116.48592,39.85226],[116.48982,39.87691],[116.48991,39.87896],[116.48985,39.89143],[116.48992,39.90403]]]},{"n":"五环","k":0.3,"lw":1.4,"l":[116.43011,40.02215],"closed":false,"s":[[[116.39265,39.76001],[116.412,39.76455],[116.41408,39.7652],[116.41554,39.76576],[116.41691,39.76637],[116.41827,39.76718],[116.41941,39.76802],[116.42114,39.76961],[116.42236,39.77116],[116.42333,39.77284],[116.42673,39.78089],[116.42761,39.78247],[116.42835,39.78347],[116.43027,39.78574],[116.43107,39.78639],[116.43252,39.78749],[116.43559,39.78913],[116.43766,39.78985],[116.43931,39.7903],[116.44243,39.79073],[116.4451,39.7909],[116.44649,39.79091],[116.45268,39.79071],[116.45556,39.79072],[116.45783,39.79091],[116.45997,39.79145],[116.46075,39.79172],[116.46247,39.79254],[116.46328,39.79302],[116.46455,39.79394],[116.46578,39.79511],[116.47767,39.80764],[116.47929,39.80925],[116.48057,39.81021],[116.48191,39.81102],[116.48343,39.81172],[116.50759,39.82057],[116.5117,39.82215],[116.51293,39.82274],[116.51425,39.82355],[116.51635,39.82507],[116.52303,39.83015],[116.53251,39.83713],[116.54537,39.84679],[116.54744,39.84858],[116.54859,39.85007],[116.54928,39.85155],[116.54953,39.85244],[116.5497,39.85416],[116.54957,39.85566],[116.54841,39.86204],[116.54821,39.86346],[116.54815,39.86476],[116.54828,39.86693],[116.54881,39.87192],[116.54895,39.87488],[116.54885,39.8825],[116.54758,39.89299],[116.54475,39.90768],[116.54419,39.91111],[116.54395,39.91325],[116.54351,39.91979],[116.54247,39.93732],[116.54225,39.93933],[116.54205,39.94019],[116.54146,39.94199],[116.54073,39.94345],[116.54019,39.94424],[116.53896,39.94571],[116.53345,39.95146],[116.53139,39.95418],[116.53034,39.95611],[116.52957,39.95781],[116.52756,39.96269],[116.52533,39.96771],[116.5242,39.9697],[116.52281,39.97192],[116.52136,39.974],[116.52007,39.97569],[116.51036,39.98808],[116.50768,39.99123],[116.50434,39.99484],[116.50262,39.99649],[116.49574,40.00349],[116.48828,40.01124],[116.48636,40.01275],[116.48524,40.01333],[116.48343,40.01414],[116.48258,40.01444],[116.48045,40.01495],[116.47925,40.01513],[116.47752,40.0152],[116.46674,40.01521],[116.46137,40.01528],[116.45866,40.01555],[116.45669,40.01606],[116.44042,40.02092],[116.43688,40.02179],[116.43483,40.02203],[116.43218,40.02212],[116.41056,40.02247],[116.38655,40.02277],[116.35305,40.02317],[116.33864,40.0233],[116.33712,40.02325],[116.33544,40.02306],[116.33354,40.02262],[116.32665,40.02038],[116.32481,40.01987],[116.32207,40.01925],[116.31973,40.01881],[116.309,40.01721],[116.30745,40.01692],[116.29953,40.01493],[116.29746,40.01462],[116.2777,40.01231],[116.27582,40.01192],[116.27432,40.01136],[116.27299,40.01046],[116.27241,40.00991],[116.27192,40.00928],[116.27029,40.00657],[116.26942,40.00558],[116.26877,40.00501],[116.2681,40.00457],[116.2674,40.00421],[116.26621,40.00376],[116.26454,40.00337],[116.26311,40.00319],[116.2515,40.00272],[116.24904,40.00238],[116.24684,40.00179],[116.24129,39.99941],[116.23866,39.99848],[116.2368,39.99805],[116.22958,39.99679],[116.22803,39.99644],[116.22638,39.99585],[116.22562,39.99552],[116.22431,39.99475],[116.22326,39.99385],[116.22254,39.99303],[116.22201,39.99224],[116.22139,39.99074],[116.22113,39.98935],[116.22106,39.98809],[116.22104,39.98283],[116.22085,39.97975],[116.22056,39.97749],[116.21985,39.97351]],[[116.21971,39.97271],[116.21616,39.95359],[116.21539,39.95005],[116.21462,39.94831],[116.21278,39.94529],[116.21216,39.94372],[116.21191,39.94247],[116.21182,39.93999],[116.21213,39.92855],[116.21211,39.92388],[116.21176,39.9198],[116.21113,39.91459],[116.21099,39.91149],[116.21105,39.89802],[116.21132,39.89092],[116.21113,39.88938],[116.21067,39.88794],[116.20881,39.88371],[116.2081,39.88142],[116.20783,39.87943],[116.20781,39.87807],[116.20806,39.87589],[116.20849,39.87427],[116.20964,39.87161],[116.21118,39.86925],[116.21874,39.85926],[116.21947,39.85814],[116.21994,39.85715],[116.22031,39.85596],[116.22103,39.85153],[116.22131,39.85044],[116.22163,39.84961],[116.22248,39.84807],[116.22335,39.84702],[116.22784,39.8423],[116.23167,39.83875],[116.23496,39.83499],[116.23561,39.83433],[116.23621,39.83387],[116.2376,39.8331],[116.23842,39.83279],[116.24351,39.83137],[116.24531,39.83075],[116.24676,39.83002],[116.248,39.82909],[116.24865,39.82846],[116.26105,39.81415],[116.26246,39.81231],[116.26407,39.8095],[116.2651,39.80665],[116.26542,39.80453],[116.26561,39.80089],[116.26599,39.79793],[116.26984,39.7868],[116.27117,39.78321],[116.27239,39.78051],[116.27381,39.77819],[116.27483,39.77708],[116.27551,39.77652],[116.27699,39.77543],[116.27757,39.77513],[116.27913,39.77443],[116.28077,39.77393],[116.28285,39.77356],[116.28395,39.77348],[116.28506,39.77349],[116.28722,39.77371],[116.28864,39.77404],[116.29015,39.7745],[116.29246,39.77547],[116.29566,39.77711],[116.29983,39.77956],[116.3026,39.78082],[116.30454,39.7814],[116.3066,39.78172],[116.30877,39.78172],[116.31101,39.78153],[116.32747,39.77961],[116.33071,39.7793],[116.34231,39.77861],[116.34826,39.77836],[116.36512,39.77741],[116.36732,39.77707],[116.36837,39.77683],[116.37026,39.77608],[116.37107,39.77554],[116.3718,39.77493],[116.37234,39.77433],[116.37295,39.77346],[116.37337,39.77257],[116.37385,39.771],[116.37572,39.76263],[116.37609,39.76165],[116.37657,39.76074]]]}];
+
+/* 折线拐角圆角化：顶点前后各退 r，用二次贝塞尔把尖角磨圆（环路不可能是硬直角） */
+
+const ringLayer = el('g',{id:'ringLayer'}, base);
+RINGS.forEach(R => {
+  /* 实测几何本身已足够密，直接折线连接；被画布裁断的环按段拆开画 */
+  R.s.forEach(seg => {
+    const d = seg.map(([lng,lat], i) =>
+        (i ? 'L' : 'M') + PX(lng).toFixed(1) + ' ' + PY(lat).toFixed(1)).join('')
+      + (R.closed ? 'Z' : '');
+    el('path', { d, fill:'none', stroke:'#b3c3d3',
+      'stroke-width':R.lw, opacity:R.k, 'stroke-linejoin':'round',
+      'stroke-linecap':'round', 'vector-effect':'non-scaling-stroke' }, ringLayer);
+  });
+
+  /* 环名压在环线上：用背景色描边（paint-order），线在字下自然断开，
+     不额外留白也不产生偏移 —— 标签随缩放保持屏幕字号，锚点由脚本吸附到环上 */
+  const g=el('g',{},ringLayer);
+  const t=el('text',{x:PX(R.l[0]), y:PY(R.l[1])+3.4, fill:'#8fa0b3', 'font-size':10.5,
+    'text-anchor':'middle', 'letter-spacing':1, 'paint-order':'stroke',
+    stroke:'#0b0f15', 'stroke-width':3.2, 'stroke-linejoin':'round'}, g);
+  t.textContent = R.n;
+  zsAdd(g, PX(R.l[0]), PY(R.l[1]));
+});
+
+/* 区名大字 */
+[['海淀',116.286,39.968],['朝阳',116.478,39.960],['东城',116.420,39.931],
+ ['西城',116.358,39.916],['丰台',116.316,39.824],['石景山',116.190,39.944]]
+ .forEach(([n,lng,lat])=>{
+   txt(PX(lng), PY(lat), n, {size:26, fill:'#2b333e', weight:700, op:.75, ls:3, parent:base, zm:.72});
+ });
+
+/* 长安街 */
+el('line',{x1:PX(116.28), y1:PY(39.9087), x2:PX(116.52), y2:PY(39.9087),
+  stroke:'#33404f', 'stroke-width':2.4, 'stroke-linecap':'round',
+  'vector-effect':'non-scaling-stroke'}, base);
+txt(PX(116.285)+4, PY(39.9087)-6, '长安街', {size:10, anchor:'start', fill:'#4c5766', parent:base});
+
+/* 中轴线 */
+el('line',{x1:PX(116.3975), y1:PY(40.002), x2:PX(116.3975), y2:PY(39.862),
+  stroke:'#2c3743', 'stroke-width':1.4, 'stroke-dasharray':'4 4',
+  'vector-effect':'non-scaling-stroke'}, base);
+
+/* 地标 */
+const LAND=[
+  ['天安门',116.3975,39.9087,'l'], ['故宫',116.3970,39.9163,'l'],
+  ['天坛',116.4108,39.8822,'r'],   ['鸟巢',116.3975,39.9930,'r'],
+  ['颐和园',116.2755,39.9990,'r'], ['首钢园',116.1840,39.9180,'r'],
+  ['北京西站',116.3220,39.8948,'l'],['北京站',116.4270,39.9028,'r'],
+  ['国贸',116.4610,39.9087,'r'],   ['中关村',116.3160,39.9830,'r'],
+  ['望京',116.4700,40.0000,'r'],
+  ['鼓楼',116.3900,39.9410,'l'],   ['北京南站',116.3786,39.8654,'l']
+];
+LAND.forEach(([n,lng,lat,side])=>{
+  const x=PX(lng), y=PY(lat);
+  /* 图标与标签打成一个组再整体补偿，否则放大后标签会飘离图标 */
+  const g=el('g',{},base);
+  el('rect',{x:x-2.7,y:y-2.7,width:5.4,height:5.4, fill:'none',
+    stroke:'#55616f', 'stroke-width':1.2, transform:`rotate(45 ${x.toFixed(1)} ${y.toFixed(1)})`}, g);
+  txt(side==='l'?x-7:x+7, y+3.5, n, {size:10.5, anchor:side==='l'?'end':'start', fill:'#7c8796', parent:g, zs:false});
+  zsAdd(g, x, y);
+});
+
+/* 聚集标注：马甸七省大院（同院多家驻京办） */
+(function(){
+  const cx=PX(116.3808), cy=PY(39.9688);
+  const g=el('g',{},base);
+  el('circle',{cx,cy,r:25,fill:'none',stroke:'#3f5f8a','stroke-width':1,
+    'stroke-dasharray':'3 3',opacity:.9,'vector-effect':'non-scaling-stroke'}, g);
+  txt(cx, cy+38, '马甸 · 七省大院', {size:10.5, fill:'#82a9dc', weight:600, parent:g, zs:false});
+  zsAdd(g, cx, cy);
+})();
+
+/* 比例尺（右下，避开左下角图例） */
+(function(){
+  const y=H-22, x1=W-44;
+  const km5=(5/(111.32*Math.cos(39.92*Math.PI/180)))/(LNG1-LNG0)*W;
+  const x0=x1-km5;
+  el('line',{x1:x0,y1:y,x2:x1,y2:y,stroke:'#4c5766','stroke-width':1.6},base);
+  [x0,x1].forEach(x=>el('line',{x1:x,y1:y-5,x2:x,y2:y,stroke:'#4c5766','stroke-width':1.6},base));
+  txt(x0+km5/2, y-10, '5 公里（示意）', {size:10, fill:'#4c5766', parent:base, zs:false});
+})();
+
+/* 方位 */
+txt(W-44, 30, 'N ↑', {size:11, fill:'#4c5766', parent:base});
+
+/* ============================================================
+   地铁线路与站点
+   数据源：高德地铁图接口（已是 GCJ-02），已裁剪到画布范围
+   ============================================================ */
+const lineLayer = document.getElementById('metroLineLayer');
+const stLayer   = document.getElementById('metroStLayer');
+
+METRO.forEach(L => {
+  L.s.forEach(seg => {
+    const d = seg.map((p, i) => (i ? 'L' : 'M') + PX(p[0]).toFixed(1) + ' ' + PY(p[1]).toFixed(1)).join('');
+    el('path', { d, fill:'none', stroke:L.c, 'stroke-width':1.7,
+      'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:.6,
+      'vector-effect':'non-scaling-stroke' }, lineLayer);
+  });
+});
+
+METRO_ST.forEach(([lng, lat, tr, lines]) => {
+  const x = PX(lng), y = PY(lat);
+  const g = el('g', {class:'mst'}, stLayer);
+  if (tr) {
+    // 换乘站：空心白圈，最醒目
+    el('circle', { cx:x, cy:y, r:3, fill:'#0b0f15',
+      stroke:'#e3eaf2', 'stroke-width':1.5 }, g);
+  } else {
+    // 普通站：实心小灰点，和餐厅点（大彩圈＋暗底）明显区分
+    el('circle', { cx:x, cy:y, r:1.8, fill:'#7b8697', opacity:.9 }, g);
+  }
+  const tip = el('title', {}, g);
+  tip.textContent = (tr ? '换乘站 · ' : '') + lines;
+  zsAdd(g, x, y);   // 站点在缩放中保持恒定大小
+});
+
+/* ============================================================
+   点位（带去重叠）
+   ============================================================ */
+const LV_COLOR = {'省级':'#4C9AFF','地市级':'#3FB950','区县级':'#3FB950','其它':'#A371F7','—':'#6E7681'};
+const LV_CLASS = {'省级':'t-prov','地市级':'t-city','区县级':'t-city','其它':'t-other','—':'t-unk'};
+const colorOf = lv => LV_COLOR[lv] || '#6E7681';
+const clsOf   = lv => LV_CLASS[lv] || 't-unk';
+
+ITEMS.forEach(it => { it.ax = PX(it.lng); it.ay = PY(it.lat); it.x = it.ax; it.y = it.ay; });
+
+/* 短距离点互相推开，同时用弹簧拉回真实位置，避免整体漂移 */
+const MIN_D = 17, MAX_PULL = 44;
+(function decluster(){
+  for(let iter=0; iter<320; iter++){
+    let moved=false;
+    for(let i=0;i<ITEMS.length;i++){
+      for(let j=i+1;j<ITEMS.length;j++){
+        const a=ITEMS[i], b=ITEMS[j];
+        let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy);
+        if(d<MIN_D){
+          if(d<0.01){ dx=Math.random()-0.5; dy=Math.random()-0.5; d=Math.hypot(dx,dy)||1; }
+          const push=(MIN_D-d)*0.5*1.12, ux=dx/d, uy=dy/d;
+          a.x-=ux*push; a.y-=uy*push; b.x+=ux*push; b.y+=uy*push;
+          moved=true;
+        }
+      }
+    }
+    for(const it of ITEMS){
+      it.x += (it.ax-it.x)*0.06; it.y += (it.ay-it.y)*0.06;
+      const ox=it.x-it.ax, oy=it.y-it.ay, od=Math.hypot(ox,oy);
+      if(od>MAX_PULL){ it.x=it.ax+ox/od*MAX_PULL; it.y=it.ay+oy/od*MAX_PULL; }
+    }
+    if(!moved && iter>40) break;
+  }
+})();
+
+/* 渲染 */
+const marks=document.getElementById('marks');
+/* 引线单独一层：它连的是真实坐标，不能跟着点位做反向补偿 */
+const leaderLayer=el('g',{class:'leaders'}, marks);
+const nodeOf={};
+ITEMS.forEach(it=>{
+  const g=el('g',{class:'mark','data-id':it.id}, marks);
+  const c=colorOf(it.level);
+  const col = Math.hypot(it.x-it.ax, it.y-it.ay) > 3.5;
+
+  if(col){ // 有偏移 -> 拉到真实位置的细引线
+    el('line',{x1:it.ax,y1:it.ay,x2:it.x,y2:it.y,stroke:'#3a4550','stroke-width':1,
+      opacity:.75,'vector-effect':'non-scaling-stroke'}, leaderLayer);
+  }
+  el('circle',{class:'halo',cx:it.x,cy:it.y,r:13,fill:c,opacity:0}, g);
+  el('circle',{cx:it.x,cy:it.y,r:8.6,fill:'#0b0f15',opacity:.82}, g);  // 底衬，压住地铁线
+  el('circle',{cx:it.x,cy:it.y,r:6.1,fill:'#0d1219',stroke:c,'stroke-width':2.2}, g);
+  el('circle',{cx:it.x,cy:it.y,r:2,fill:c}, g);
+
+  const tip=el('title',{},g);
+  tip.textContent = `${it.name} · 人均 ¥${it.price} · ${it.level}${it.cuisine&&it.cuisine!=='—'?' · '+it.cuisine:''}`;
+
+  g.addEventListener('click', ()=> openCard(it.id));
+  g.addEventListener('mouseenter', ()=> hint(it.id));
+  g.addEventListener('mouseleave', ()=> hint(null));
+
+  zsAdd(g, it.x, it.y);   // 点位在缩放中保持恒定大小
+  nodeOf[it.id]=g;
+});
+
+/* ============================================================
+   筛选 / 列表 / 卡片
+   ============================================================ */
+const LEVELS=['全部','省级','地市级','区县级','其它','—'];
+const CUISINES=['全部', ...[...new Set(ITEMS.map(i=>i.cuisine))]];
+let curLevel='全部', curCuisine='全部', kw='', active=null;
+
+const sortedList = () => ITEMS.filter(match).sort((a,b) => a.price - b.price);
+
+const list=document.getElementById('list');
+const card=document.getElementById('card');
+
+function match(it){
+  if(curLevel!=='全部' && it.level!==curLevel) return false;
+  if(curCuisine!=='全部' && it.cuisine!==curCuisine) return false;
+  if(kw){
+    const s=(it.name+it.addr+it.cuisine+it.dishes).toLowerCase();
+    if(!s.includes(kw)) return false;
+  }
+  return true;
+}
+
+function buildChips(){
+  const lr=document.getElementById('levelRow');
+  const cr=document.getElementById('cuisineRow');
+  lr.textContent=''; cr.textContent='';
+  LEVELS.forEach(lv=>{
+    const n = lv==='全部' ? ITEMS.length : ITEMS.filter(i=>i.level===lv).length;
+    if(!n) return;
+    const c=document.createElement('span');
+    c.className='chip'+(curLevel===lv?' on':'');
+    c.innerHTML = `${lv==='—'?'未确认':lv}<span class="n">${n}</span>`;
+    c.onclick=()=>{ curLevel=lv; buildChips(); render(); };
+    lr.appendChild(c);
+  });
+  CUISINES.forEach(cu=>{
+    const n = cu==='全部' ? ITEMS.length : ITEMS.filter(i=>i.cuisine===cu).length;
+    const c=document.createElement('span');
+    c.className='chip'+(curCuisine===cu?' on':'');
+    c.innerHTML = `${cu}<span class="n">${n}</span>`;
+    c.onclick=()=>{ curCuisine=cu; buildChips(); render(); };
+    cr.appendChild(c);
+  });
+}
+
+function render(){
+  // 地图
+  ITEMS.forEach(it=>{
+    const g=nodeOf[it.id];
+    g.classList.toggle('dim', !match(it));
+    g.classList.toggle('act', active===it.id);
+  });
+  // 列表
+  const rows=sortedList();
+  list.textContent='';
+  if(!rows.length){
+    const d=document.createElement('div');
+    d.className='empty'; d.textContent='没有匹配的店';
+    list.appendChild(d); return;
+  }
+  rows.forEach(it=>{
+    const d=document.createElement('div');
+    d.className='item'+(active===it.id?' act':'');
+    d.innerHTML =
+      `<span class="dot" style="background:${colorOf(it.level)}"></span>`+
+      `<span class="nm">${it.name}</span>`+
+      `<span class="meta">¥${it.price}</span>`;
+    d.onclick=()=>openCard(it.id, true);   // 从列表点：顺手把地图视线挪过去
+    d.onmouseenter=()=>hint(it.id);
+    d.onmouseleave=()=>hint(null);
+    list.appendChild(d);
+  });
+}
+
+function hint(id){
+  ITEMS.forEach(it=>nodeOf[it.id].classList.toggle('act', it.id===id || it.id===active));
+}
+
+function openCard(id, focus){
+  const it=ITEMS.find(x=>x.id===id);
+  if(!it) return;
+  active = (active===id) ? null : id;
+  if(active===null){ card.classList.remove('show'); render(); return; }
+
+  /* ---- 三家地图的跳转链接 ----
+     坐标系：本页所有坐标都是 GCJ-02。高德、腾讯原生就用 GCJ-02，直接传；
+     百度用的是 BD-09，但它的 marker 接口认 coord_type=gcj02 并自行换算，
+     所以不必自己写转换 —— 实测同一坐标分别按 gcj02 / bd09ll 传入，
+     百度返回的点相差 0.00637°E / 0.00632°N，正是官方 GCJ-02→BD-09 的增量，
+     说明它确实转了（漏传这个参数会偏约 900 米）。
+     坐标顺序也不一样：高德 position 是「经度,纬度」，百度和腾讯是「纬度,经度」。 */
+  const p = (lng, lat) => `${lng.toFixed(6)},${lat.toFixed(6)}`;
+  /* 腾讯的 marker 串把 ; 和 | 当分隔符，且没有转义机制 —— encodeURIComponent 编码后
+     服务端一解码，分隔符又冒出来了，会静默串位（链接照常打开，只是名称/地址错乱）。
+     所以把这两个字符换成全角，中文语境下本来也该用全角。 */
+  const clean = s => String(s).replace(/;/g, '；').replace(/\|/g, '｜');
+  const nm = encodeURIComponent(clean(it.name));
+  const ad = encodeURIComponent(clean(it.addr));
+  const gd = `https://uri.amap.com/marker?position=${p(it.lng, it.lat)}&name=${nm}&coordinate=gaode&callnative=0&src=restaurant-map`;
+  const bd = `https://api.map.baidu.com/marker?location=${p(it.lat, it.lng)}&title=${nm}&content=${ad}&output=html&coord_type=gcj02&src=webapp.restaurant-map.poi`;
+  /* 腾讯的 marker 串以 ; 和 : 作分隔符，名称与地址必须转义，否则店名里带标点会串位
+     （坐标本身的分隔符保持明文，腾讯会自行处理） */
+  const qq = `https://apis.map.qq.com/uri/v1/marker?marker=coord:${p(it.lat, it.lng)};title:${nm};addr:${ad}&referer=restaurant-map`;
+
+  card.innerHTML = `
+    <div class="ch">
+      <h3>${it.name}</h3>
+      <button class="cl" title="关闭">×</button>
+    </div>
+    <div class="kvs">
+      <span class="tag ${clsOf(it.level)}">${it.level==='—'?'层级未确认':it.level}</span>
+      ${it.cuisine&&it.cuisine!=='—'?`<span class="tag t-unk">${it.cuisine}</span>`:''}
+      <span class="tag t-unk">人均 ¥${it.price}</span>
+      <div style="margin-top:8px"><b>地址</b>${it.addr}</div>
+      <div><b>地铁</b>最近 ${it.nearSt[3].split('/')[0]} 站 · ${Math.round(it.nearD)} m</div>
+    </div>
+    <div class="dish">${it.dishes}</div>
+    <div class="actions">
+      <a class="sec" href="${gd}" target="_blank" rel="noopener">高德地图</a>
+      <a class="sec" href="${bd}" target="_blank" rel="noopener">百度地图</a>
+      <a class="sec" href="${qq}" target="_blank" rel="noopener">腾讯地图</a>
+    </div>
+    <div class="actions alt">
+      <a class="sec" href="#" data-copy="${it.addr.replace(/"/g,'&quot;')}">复制地址</a>
+    </div>`;
+
+  card.querySelector('.cl').onclick = ()=>{ active=null; card.classList.remove('show'); render(); };
+  card.querySelector('[data-copy]').onclick = e=>{
+    e.preventDefault();
+    const t=e.currentTarget.dataset.copy;
+    navigator.clipboard?.writeText(t).then(()=>{ e.currentTarget.textContent='已复制'; setTimeout(()=>e.currentTarget.textContent='复制地址',1200); })
+      .catch(()=>{ e.currentTarget.textContent='复制失败'; });
+  };
+  card.classList.add('show');
+
+  // 卡片显示后再对焦：窄屏要把卡片占掉的那一侧算进去，否则刚定位的那家店正好被压住。
+  // 竖屏卡片在底部 -> 避让高度；横屏卡片在右侧 -> 避让宽度。
+  if(focus){
+    const land = narrow() && window.innerWidth > window.innerHeight;
+    centerOn(it.x, it.y, land ? 0 : (narrow() ? card.offsetHeight : 0), land ? card.offsetWidth : 0);
+  }
+
+  // 列表滚动到可见。只滚列表容器本身 —— 用 scrollIntoView 会连带滚动整个文档，
+  // 移动端布局下会把地图和浮层整体推走。
+  const rows=[...list.children];
+  const idx=sortedList().findIndex(x=>x.id===id);
+  if(idx>=0 && rows[idx]){
+    const lr=list.getBoundingClientRect(), er=rows[idx].getBoundingClientRect();
+    if(er.top < lr.top) list.scrollTop -= (lr.top - er.top);
+    else if(er.bottom > lr.bottom) list.scrollTop += (er.bottom - lr.bottom);
+  }
+  render();
+  nodeOf[id].classList.add('act');
+}
+
+document.getElementById('q').addEventListener('input', e=>{
+  kw = e.target.value.trim().toLowerCase();
+  active=null; card.classList.remove('show');
+  render();
+});
+
+/* 图层开关 */
+const LAYER = { ring:true, metro:true, station:true, food:true };
+document.querySelectorAll('#layerRow .chip').forEach(c => {
+  c.onclick = () => {
+    const k = c.dataset.layer;
+    LAYER[k] = !LAYER[k];
+    c.classList.toggle('on', LAYER[k]);
+    ringLayer.classList.toggle('hide', !LAYER.ring);
+    lineLayer.classList.toggle('hide', !LAYER.metro);
+    stLayer.classList.toggle('hide', !LAYER.station);
+    marks.classList.toggle('hide', !LAYER.food);
+  };
+});
+
+/* ============================================================
+   视图：缩放 / 平移
+   做法：直接改 viewBox（几何跟着放大），符号元素反向补偿保持屏幕尺寸
+   ============================================================ */
+const svg = document.getElementById('map');
+/* 缩放范围 30% ~ 600%。100% = 铺满容器，往下一路缩到 30% 看全局，往上放到 600% 看单点。
+   ＋/－ 按钮走整数台阶，不按固定倍数累乘 —— 那样读数会跑成 150→225→337 这种不整的数。
+   滚轮与双指捏合是连续的，只受 Z_MIN / Z_MAX 约束。 */
+const Z_STEPS = [0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6];
+const Z_MIN = Z_STEPS[0];
+const Z_MAX = Z_STEPS[Z_STEPS.length - 1];
+/* 把任意倍率换算成合规的 view.w：100% 对应的 view.w = fillW() */
+const wOf = k => fillW() / k;
+const clampW = w => Math.min(wOf(Z_MIN), Math.max(wOf(Z_MAX), w));
+const lvlEl = document.getElementById('zlvl');
+let view = { x:0, y:0, w:W, h:H };
+let lastK = -1;
+
+/* 容器实际宽高比。viewBox 跟它保持一致，preserveAspectRatio 才不会留黑边。 */
+function contAspect(){
+  const r = svg.getBoundingClientRect();
+  return (r.width > 1 && r.height > 1) ? r.height / r.width : H / W;
+}
+/* 所有餐厅的包围盒（用真实坐标，不含去重叠位移） */
+const BB = (()=>{
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  for(const it of ITEMS){
+    x0=Math.min(x0,it.ax); x1=Math.max(x1,it.ax);
+    y0=Math.min(y0,it.ay); y1=Math.max(y1,it.ay);
+  }
+  if(x0>x1){ x0=W*0.3; x1=W*0.7; y0=H*0.3; y1=H*0.7; }
+  return { x0, y0, x1, y1, w:x1-x0, h:y1-y0, cx:(x0+x1)/2, cy:(y0+y1)/2 };
+})();
+
+/* 铺满容器的基准 view.w。
+   先取「铺满」值（宽屏=横向全图，竖屏=纵向全图）；若那样会把餐厅挤出画面，
+   就适当缩小地图把点收进来 —— 但最多退到 1.12 倍，再退横向留白就太扎眼了。 */
+function fillW(){
+  const a = contAspect();
+  const fit  = Math.min(W, H / a);
+  const need = (BB.h + 60) / a;
+  return Math.min(W * 1.12, Math.max(fit, need));
+}
+
+/* 符号（点/站点/文字）在屏幕上的目标像素系数。
+   原绘制尺寸按「屏幕 1 用户单位 = 1px」画的，这里把它换算成绝对屏幕尺寸，
+   于是同一张图在 4.7 吋手机和 27 吋显示器上，点和字的物理大小一致。
+   触摸端略放大便于手指点选；横屏手机可视高度太小、点会挤成一团，反而要收小。 */
+const symBase = () => {
+  if(window.innerWidth > 900) return 1.10;
+  return (window.innerHeight < 500) ? 1.00 : 1.20;
+};
+
+/* 初始视图与复位都对准餐厅包围盒中心，比画布几何中心实用 */
+const HOME_C = { x: BB.cx, y: BB.cy };
+
+/* 把登记过的元素按系数 k 反向缩放，定点不动 => 屏幕尺寸恒定 */
+function applyScale(k){
+  for(const z of ZS){
+    const kk = k * (z.m || 1);
+    const s = kk.toFixed(5);
+    const tx = (z.x * (1 - kk)).toFixed(2);
+    const ty = (z.y * (1 - kk)).toFixed(2);
+    z.n.setAttribute('transform',
+      (z.b ? z.b + ' ' : '') + 'translate(' + tx + ' ' + ty + ') scale(' + s + ')');
+  }
+}
+
+/* 缩到 100% 以下时，点与文字按平方根曲线一起收小。
+   否则 30% 的全局图里 84 个点仍是原尺寸，会糊成一片、什么也看不出。 */
+const outShrink = () => {
+  const r = fillW() / view.w;                 // < 1 表示已缩到铺满以下
+  return r < 1 ? Math.max(0.5, Math.sqrt(r)) : 1;
+};
+
+function applyView(){
+  view.h = view.w * contAspect();      // 与容器同比例 => 铺满，无留白
+  svg.setAttribute('viewBox',
+    view.x.toFixed(2)+' '+view.y.toFixed(2)+' '+view.w.toFixed(2)+' '+view.h.toFixed(2));
+  const cw = svg.getBoundingClientRect().width || W;
+  const k = symBase() * outShrink() * view.w / cw;
+  if(Math.abs(k - lastK) > 6e-5){ lastK = k; applyScale(k); }
+  lvlEl.textContent = Math.round(100 * fillW() / view.w) + '%';
+}
+
+/* 不跑出图外，但留一点越界余量。
+   移动端竖屏时某一维正好铺满（view.h 等于画布高），没有余量就完全拖不动，
+   点列表项时也没法把目标点挪开浮层 —— 所以触摸端额外给一块回旋空间。
+   缩到 100% 以下时 view.w/view.h 会大于画布，此时「视图装进画布」的取法会反过来
+   （下界跑到上界之上，clamp 塌成一点），改成以画布中心为基准的双向夹取，
+   保证画布至少有 W/view.w 那一块留在视窗里。 */
+function clampView(){
+  const touch = window.innerWidth <= 900;
+  const padX = Math.max(0, (W - view.w) * 0.12) + (touch ? W * 0.10 : 0);
+  const padY = Math.max(0, (H - view.h) * 0.12) + (touch ? H * 0.16 : 0);
+  const xa = Math.min(0, W - view.w) - padX, xb = Math.max(0, W - view.w) + padX;
+  const ya = Math.min(0, H - view.h) - padY, yb = Math.max(0, H - view.h) + padY;
+  view.x = Math.min(xb, Math.max(xa, view.x));
+  view.y = Math.min(yb, Math.max(ya, view.y));
+}
+
+/* 以 (cx,cy)（SVG 用户坐标）为锚点缩放 f 倍 */
+function zoomAt(cx, cy, f){
+  const wn = clampW(view.w / f);
+  const ratio = wn / view.w;          // 缩放后尺寸之比，锚点按此比例贴着不动
+  view.x = cx - (cx - view.x) * ratio;
+  view.y = cy - (cy - view.y) * ratio;
+  view.w = wn;
+  view.h = wn * contAspect();
+  clampView(); applyView();
+}
+
+/* 铺满容器并把视线对准某点（不改变当前缩放）；avoid = 底部被浮层遮住的像素高度 */
+/* 把视线对准某点（不改变缩放）。
+   avoidY = 底部被浮层遮住的像素高，avoidX = 右侧被遮住的像素宽。
+   目标点落在「未被遮挡区域」的中心，而不是贴着浮层边缘 —— 后者在竖屏下会把点
+   顶到屏幕最下沿，看着像快被卡片吞掉。sc 是 1 屏幕像素等于多少用户单位。 */
+function centerOn(ux, uy, avoidY, avoidX){
+  const cw = svg.getBoundingClientRect().width || W;
+  const sc = view.w / cw;
+  view.x = ux - view.w/2 + (avoidX || 0) / 2 * sc;
+  view.y = uy - view.h/2 + (avoidY || 0) / 2 * sc;
+  clampView(); applyView();
+}
+
+/* 复位：铺满容器 + 对准点云重心 */
+function resetView(){
+  view.w = fillW();
+  view.h = view.w * contAspect();
+  view.x = HOME_C.x - view.w/2;
+  view.y = HOME_C.y - view.h/2;
+  clampView(); applyView();
+}
+
+const scaleOf = () => { const m = svg.getScreenCTM(); return m ? m.a : 1; };
+function toUser(cx, cy){
+  const m = svg.getScreenCTM();
+  if(!m) return {x:0, y:0};
+  const p = svg.createSVGPoint(); p.x = cx; p.y = cy;
+  return p.matrixTransform(m.inverse());
+}
+
+/* ---- 滚轮缩放（以指针为锚点） ---- */
+svg.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const step = e.deltaMode === 1 ? 0.05 : 0.0016;
+  const f = Math.min(2, Math.max(.5, Math.exp(-e.deltaY * step)));
+  const p = toUser(e.clientX, e.clientY);
+  zoomAt(p.x, p.y, f);
+}, {passive:false});
+
+/* ---- 拖动平移 / 双指捏合 ---- */
+const ptrs = new Map();
+let dragging = false, dragMoved = 0, suppressClick = false, pinch = null;
+const twoPt = ()=>{
+  const a = [...ptrs.values()];
+  return { d: Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y),
+           mx: (a[0].x+a[1].x)/2, my: (a[0].y+a[1].y)/2 };
+};
+
+svg.addEventListener('pointerdown', e=>{
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(ptrs.size === 1){ dragging = true; dragMoved = 0; suppressClick = false; }
+  if(ptrs.size === 2){ pinch = twoPt(); suppressClick = true; }
+  svg.classList.add('grabbing');
+});
+
+window.addEventListener('pointermove', e=>{
+  const prev = ptrs.get(e.pointerId);
+  if(!prev) return;
+  const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  prev.x = e.clientX; prev.y = e.clientY;
+
+  if(ptrs.size >= 2){
+    const now = twoPt();
+    if(pinch){
+      const p = toUser(now.mx, now.my);
+      if(pinch.d > 0) zoomAt(p.x, p.y, now.d / pinch.d);
+      const s = scaleOf();
+      view.x -= (now.mx - pinch.mx) / s;
+      view.y -= (now.my - pinch.my) / s;
+      clampView(); applyView();
+    }
+    pinch = now;
+  } else if(dragging){
+    const s = scaleOf();
+    view.x -= dx / s; view.y -= dy / s;
+    dragMoved += Math.abs(dx) + Math.abs(dy);
+    if(dragMoved > 5) suppressClick = true;
+    clampView(); applyView();
+  }
+});
+
+const endPtr = e=>{
+  ptrs.delete(e.pointerId);
+  if(ptrs.size < 2) pinch = null;
+  if(ptrs.size === 0){ dragging = false; svg.classList.remove('grabbing'); }
+};
+window.addEventListener('pointerup', endPtr);
+window.addEventListener('pointercancel', endPtr);
+
+/* 拖动结束的那一下不算点击（否则松手就弹卡片） */
+svg.addEventListener('click', e=>{
+  if(suppressClick){ suppressClick = false; e.stopPropagation(); e.preventDefault(); }
+}, true);
+
+svg.addEventListener('dblclick', e=>{
+  const p = toUser(e.clientX, e.clientY);
+  zoomAt(p.x, p.y, zoomStepF(+1));
+});
+
+/* ---- 按钮 ---- */
+const center = ()=>({ x:view.x + view.w/2, y:view.y + view.h/2 });
+/* ＋/－ 的目标是「台阶上的下一档」。当前倍率可能停在台阶之间（捏合/滚轮造成的），
+   所以先算当前倍率 k，再找下一个/上一个台阶 t，返回 zoomAt 需要的倍数 f = t/k。 */
+function zoomStepF(dir){
+  const k = fillW() / view.w;
+  const t = dir > 0
+    ? (Z_STEPS.find(s => s > k + 0.02) ?? Z_MAX)
+    : ([...Z_STEPS].reverse().find(s => s < k - 0.02) ?? Z_MIN);
+  return t / k;
+}
+document.getElementById('zin').onclick  = ()=>{ const c=center(); zoomAt(c.x, c.y, zoomStepF(+1)); };
+document.getElementById('zout').onclick = ()=>{ const c=center(); zoomAt(c.x, c.y, zoomStepF(-1)); };
+document.getElementById('zreset').onclick = resetView;
+
+/* ============================================================
+   移动端底部抽屉（窄屏才生效）
+   ============================================================ */
+const side     = document.getElementById('side');
+const grabber  = document.getElementById('grabber');
+const sideHead = document.getElementById('sideHead');
+const noteEl   = document.getElementById('note');
+const narrow   = () => window.innerWidth <= 900;
+let sheetOpen = false;
+
+function setSheet(open){
+  sheetOpen = open;
+  side.classList.toggle('open', open);
+  document.body.classList.toggle('sheet-open', open);
+}
+sideHead.addEventListener('click', ()=>{ if(narrow()) setSheet(!sheetOpen); });
+
+/* 把手：点按切换；下拖 ≥24px 收起，上拖 ≥24px 展开 */
+let gFrom = null;
+grabber.addEventListener('pointerdown', e=>{
+  gFrom = e.clientY;
+  grabber.setPointerCapture?.(e.pointerId);
+});
+grabber.addEventListener('pointerup', e=>{
+  if(gFrom === null) return;
+  const dy = e.clientY - gFrom;
+  gFrom = null;
+  if(dy <= -24) setSheet(true);
+  else if(dy >= 24) setSheet(false);
+  else setSheet(!sheetOpen);
+});
+grabber.addEventListener('pointercancel', ()=>{ gFrom = null; });
+
+/* i 按钮：数据与操作说明（点别处关闭） */
+document.getElementById('zinfo').onclick = e=>{
+  e.stopPropagation();
+  noteEl.classList.toggle('show');
+};
+document.addEventListener('click', e=>{
+  if(!noteEl.classList.contains('show')) return;
+  if(noteEl.contains(e.target) || e.target.id === 'zinfo') return;
+  noteEl.classList.remove('show');
+}, true);
+
+/* 视口变化（横竖屏切换、移动端地址栏伸缩）：重算比例、收拢视图 */
+let rzT = null;
+function onResize(){
+  clearTimeout(rzT);
+  rzT = setTimeout(()=>{
+    const cx = view.x + view.w/2, cy = view.y + view.h/2;
+    view.w = clampW(view.w);
+    view.h = view.w * contAspect();
+    view.x = cx - view.w/2;
+    view.y = cy - view.h/2;
+    clampView(); applyView();
+    if(!narrow()) setSheet(false);
+  }, 140);
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', onResize);
+
+buildChips();
+render();
+resetView();
+</script></body></html>
