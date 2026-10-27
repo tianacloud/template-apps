@@ -1,0 +1,312 @@
+
+  /* ================= 基本 ================= */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body {
+    font-family: "PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    color:#f0e4c6;
+    overflow:hidden;
+  }
+
+  /* ===== 背景：完整顯示海報 =====
+     bg.jpg 係 1110×1640 直幅海報（比例 0.6768）。
+     上層 .bg-frame 用 contain 完整顯示（Logo 同底部字都唔會被裁），
+     下層 body::before 用同一張圖拉滿 + 大範圍模糊做「延伸光暈」，唔壓暗。 */
+  body::before {
+    content:""; position:fixed; inset:0; z-index:-2;
+    background: url("bg.jpg") no-repeat center center;
+    background-size: 100% 100%;
+    transform: scale(1.16);
+    filter: blur(64px) saturate(1.06);
+  }
+  .bg-frame {
+    position:fixed; inset:0; z-index:-1;
+    background: url("bg.jpg") no-repeat center center;
+    background-size: contain;
+  }
+
+  /* ===== 共用 ===== */
+  .btn {
+    border:none; cursor:pointer; border-radius:50px;
+    font-weight:700; letter-spacing:2px;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  }
+  .btn:active { transform:scale(.96); }
+  .btn:disabled { opacity:.55; cursor:not-allowed; }
+  .btn-primary { background:linear-gradient(135deg,#e85d5d,#d43f3f); color:#fff; }
+  .btn-gold { background:linear-gradient(135deg,#f5c542,#e0a010); color:#5a3d00; }
+  .btn-green { background:linear-gradient(135deg,#5cae7f,#3d8f60); color:#fff; }
+  .btn-gray { background:rgba(30,20,58,.85); color:#ecd9ab;
+              border:1px solid rgba(214,175,110,.45); }
+
+  /* 頂欄 */
+  .topbar {
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 16px; transition:opacity .35s;
+  }
+  .topbar .tag {
+    background:rgba(16,10,40,.72); padding:6px 14px; border-radius:20px;
+    font-size:13px; font-weight:700; color:#f0d49a;
+    border:1px solid rgba(214,175,110,.35);
+    box-shadow:0 2px 12px rgba(0,0,0,.45);
+  }
+  .topbar .actions { display:flex; gap:8px; }
+  .topbar .actions .btn { padding:8px 16px; font-size:13px; letter-spacing:1px; }
+
+  /* 投屏優化：全螢幕時收起頂欄；鼠標閒置 3 秒自動隱藏 */
+  body.full:not(.awake) .topbar { opacity:0; pointer-events:none; }
+  body.idle, body.idle * { cursor:none !important; }
+
+  /* 頁面容器 */
+  .paper {
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:70px 8% 40px;
+  }
+  h1.title {
+    font-size:clamp(26px,5vw,44px); color:#f5d68f;
+    text-shadow:0 2px 14px rgba(255,180,60,.4), 0 1px 0 rgba(40,15,0,.5);
+    margin-bottom:6px; text-align:center;
+  }
+  .subtitle { font-size:14px; color:#c5ae86; margin-bottom:16px; text-align:center; }
+
+  /* ===== 抽獎頁 =====
+     中間舞台放「攪珠大字」或者「中獎格」；底部只有進度、按鈕、提示。 */
+  #pageDraw { justify-content:space-between; padding:62px 8% 22px; }
+  #pageDraw > * { width:min(540px, 70vw); }
+  #pageDraw .bottom { display:flex; flex-direction:column; align-items:center; }
+
+  .stage {
+    flex:1 1 auto; width:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+  }
+
+  /* ===== 中間框：攪珠 ↔ 本輪抽中，同一個位置，唔會跳位 =====
+     抽中嘅人停留喺畫面（金框 + 發光 + 彈出），直到下一次攪珠先收起；
+     同時會記入下面嘅中獎名單。字級唔會好大，唔會霸佔成個畫面。 */
+  .round-box {
+    width:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1.4vh;
+    /* 舞台本身唔係正中（下面有按鈕、名單），所以整體再向下移到畫面正中 */
+    transform:translateY(var(--shiftY, 0px));
+  }
+  .round-label {
+    font-size:1.9vh; letter-spacing:.35vh; color:#ffe8b8;
+    background:rgba(10,6,26,.6); border-radius:99vh; padding:.5vh 1.8vh;
+  }
+  /* 卡框：用格線排，欄數由 fitRound 決定，幾多人都排得整齊（唔會 2+1 咁散） */
+  .round-cards {
+    display:grid; justify-items:center;
+    gap:1.2vh; width:100%;
+  }
+  .r-card {
+    flex:0 0 auto; min-width:0; width:max-content; max-width:100%;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg, rgba(255,226,150,.22), rgba(110,64,8,.34));
+    border:.26vh solid #ffd571; border-radius:1.4vh;
+    padding:1vh 2.2vh; font-size:var(--rfs, 3.4vh); font-weight:900;
+    line-height:1.15; color:#fff4d2; white-space:nowrap;
+    text-shadow:0 0 2vh rgba(255,190,80,.8), 0 .2vh .5vh rgba(50,15,0,.75);
+    animation:win-pop .6s cubic-bezier(.2,1.5,.4,1) backwards,
+              win-glow 1.7s ease-in-out .55s 3;
+  }
+  @keyframes win-pop {
+    from { transform:scale(.5); opacity:0; }
+    to   { transform:scale(1); opacity:1; }
+  }
+  @keyframes win-glow {
+    0%,100% { box-shadow:0 0 2.6vh rgba(255,190,80,.45), inset 0 0 2vh rgba(255,210,130,.18); }
+    50%     { box-shadow:0 0 6vh rgba(255,205,110,.95), inset 0 0 3.4vh rgba(255,226,160,.42); }
+  }
+
+  /* 攪珠中：同一個框，換成滾動名字。框填滿整欄，字會放到同框一樣闊 */
+  .roll-name {
+    display:none; width:100%; text-align:center;
+    font-size:var(--namefs, 7vh); font-weight:900;
+    line-height:1.2; color:#fff6dc; word-break:break-all;
+    padding:1vh 1vh; border-radius:1.4vh;
+    border:.3vh dashed rgba(255,213,113,.6);
+    text-shadow:0 0 2.6vh rgba(255,190,80,.75), 0 .3vh .6vh rgba(40,10,0,.8);
+  }
+  .round-box.rolling .roll-name { display:block; }
+  .round-box.rolling .round-cards { display:none; }
+
+  /* 未輸入名單時：抽獎區留白 */
+  #pageDraw.is-empty .round-box,
+  #pageDraw.is-empty .all-box,
+  #pageDraw.is-empty .win-list,
+  #pageDraw.is-empty .list-label,
+  #pageDraw.is-empty .pool-info { display:none; }
+
+  /* 全部中獎者：抽完之後由按鈕叫出嚟，一次過顯示喺中間。
+     加一層深色面板 —— 海報中央好光，唔加面板啲字會撞色睇唔清。 */
+  .all-box {
+    width:100%; display:flex; flex-direction:column; align-items:center; gap:1.6vh;
+    transform:translateY(var(--shiftY, 0px));
+    background:rgba(8,5,22,.72);
+    border:.18vh solid rgba(255,214,138,.42); border-radius:2vh;
+    padding:2.2vh 2vh 2.4vh;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    box-shadow:0 1vh 4vh rgba(0,0,0,.45);
+  }
+  .all-title {
+    font-size:2.2vh; letter-spacing:.45vh; color:#ffe6b4; font-weight:800;
+    text-shadow:0 0 2vh rgba(255,180,60,.75), 0 .2vh .5vh rgba(0,0,0,.6);
+  }
+
+  /* 中獎格：格仔唔會太大，12 位一次過見晒 */
+  .win-grid {
+    display:grid; width:100%; gap:1.2vh; margin:0;
+  }
+  .win-grid .cell {
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(18,11,42,.55);
+    border:.28vh solid rgba(255,214,138,.7);
+    border-radius:1.4vh;
+    padding:1.8vh .5vh;
+    font-size:var(--gfs, 3vh); font-weight:800; line-height:1.15;
+    color:#ffe9a8; text-shadow:0 0 30px rgba(255,190,80,.45);
+    white-space:nowrap; overflow:hidden;
+  }
+  .win-grid .cell.new { animation:pop .5s ease backwards; }
+  @keyframes pop {
+    0%{ transform:scale(.3); opacity:0; }
+    60%{ transform:scale(1.22); }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  /* ===== 下方中獎名單：每抽中一個就記入，號碼 + 名字 =====
+     標題同號碼牌排埋同一行（會自動換行），慳返一行位畀中間嘅大字。 */
+  .list-row {
+    width:100%; display:flex; flex-wrap:wrap; align-items:center;
+    justify-content:center; gap:.8vh; margin-bottom:.6vh;
+  }
+  .list-label { font-size:1.3vh; letter-spacing:.3vh; color:#e5c98f; white-space:nowrap; }
+  .win-list {
+    display:flex; flex-wrap:wrap; justify-content:center; gap:.8vh;
+  }
+  .win-list .chip {
+    display:inline-flex; align-items:center; gap:.55vh;
+    background:rgba(16,10,36,.6); border:.18vh solid rgba(255,214,138,.45);
+    border-radius:99vh; padding:.45vh 1.1vh;
+    font-size:var(--cfs, 1.2vh); line-height:1.25; color:#ffe9b8;
+  }
+  .win-list .chip b { color:#ffd571; font-weight:800; }
+  .win-list .chip.new {
+    animation:chip-in .5s ease backwards, chip-glow 1.5s ease-in-out .4s 2;
+  }
+  @keyframes chip-in { from { transform:translateY(1.2vh) scale(.85); opacity:0; } }
+  @keyframes chip-glow { 50% { background:rgba(255,205,110,.45); border-color:#ffd571; } }
+
+  /* 主按鈕 */
+  .btn-main {
+    padding:18px 76px; font-size:clamp(22px,4.6vw,30px);
+    margin-top:4px; letter-spacing:6px;
+    border:3px solid rgba(255,255,255,.75);
+  }
+  /* 抽完 12 位：暗金框表示已完成（唔用 opacity，深色底會似壞咗） */
+  .btn-main.done { opacity:1; background:rgba(14,9,38,.72); color:#e6d3a4;
+                   border-color:rgba(214,175,110,.55); box-shadow:none; cursor:default; }
+
+  /* 進度（下面幾塊都收窄少少，等中間嘅名字可以再放大） */
+  .pool-info {
+    margin-top:3px; font-size:12px;
+    color:#dcc79a; display:inline-block; padding:0;
+    max-width:100%; text-align:center; line-height:1.3;
+  }
+
+  .hidden { display:none !important; }
+  .kbd-hint { font-size:11px; color:#ffe89a; margin-top:6px; }
+
+  /* ===== 管理頁 ===== */
+  .admin-panel {
+    width:100%; max-width:560px;
+    background:rgba(14,9,38,.88); border:1px solid rgba(214,175,110,.28);
+    border-radius:18px; padding:22px;
+    box-shadow:0 8px 34px rgba(0,0,0,.5);
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  }
+  .admin-panel label { display:block; font-size:13px; font-weight:700; color:#f0d49a; margin:14px 0 6px; }
+  .admin-panel textarea {
+    width:100%; height:180px; border:2px solid rgba(214,175,110,.5); border-radius:12px;
+    padding:10px; font-size:14px; font-family:inherit; resize:vertical;
+    background:#fffdf7; color:#2a2216;
+  }
+  .admin-panel textarea:focus { outline:none; border-color:#c0392b; }
+  .settings-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .settings-row .field { flex:1; min-width:130px; }
+  .settings-row input {
+    width:100%; border:2px solid rgba(214,175,110,.5); border-radius:10px; padding:9px 10px;
+    font-size:15px; background:#fffdf7; color:#2a2216; text-align:center;
+  }
+  .admin-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .admin-actions + .admin-actions { margin-top:10px; }
+  .admin-actions .btn { flex:1; padding:13px 10px; font-size:15px; letter-spacing:1px; }
+  .stat-line { font-size:13px; color:#c8b48e; margin-top:12px; text-align:center; }
+
+  /* ==================== 版面 START：全屏版（16:9 / 16:10）====================
+     bg.jpg 係 1110×1640 直幅海報。要「完整顯示」就一定要用 contain 按高度
+     填滿，左右必然留白 —— 呢兩條邊由模糊光暈補住，內容就全部收喺海報寬度
+     之內，唔會踩到延伸區，睇落仍然係一幅完整嘅畫。
+     --poster = 海報完整顯示後嘅實際寬度（67.68vh = 1110/1640），唔可以闊過 100vw
+     --col    = 內容欄寬度
+     --gfs    = 中獎格字級（由 fitGrid() 按最長名字覆寫） */
+  :root {
+    --poster: min(100vw, 67.68vh);
+    --col: calc(var(--poster) * 0.94);
+    --side: calc((100vw - var(--poster)) / 2);
+    --namefs: 7.5vh;   /* 攪珠名（fitRollName 會按最長名字覆寫） */
+    --rfs: 3.4vh;      /* 本輪中獎卡（fitRound 覆寫） */
+    --gfs: 3.2vh;      /* 全部中獎者格（fitGrid 覆寫） */
+    --cfs: 1.45vh;     /* 下方中獎名單 */
+  }
+
+  /* 海報左右最外 2vh 淡出，同後面嘅模糊光暈接埋 —— 睇唔到「一張圖嘅邊」 */
+  .bg-frame {
+    -webkit-mask-image: linear-gradient(to right,
+      transparent calc(var(--side) - 2vh), #000 calc(var(--side) + 2vh),
+      #000 calc(100% - var(--side) - 2vh), transparent calc(100% - var(--side) + 2vh));
+    mask-image: linear-gradient(to right,
+      transparent calc(var(--side) - 2vh), #000 calc(var(--side) + 2vh),
+      #000 calc(100% - var(--side) - 2vh), transparent calc(100% - var(--side) + 2vh));
+  }
+
+  #pageDraw { padding:max(54px, 4.6vh) 3vw max(22px, 2.8vh); }
+  #pageDraw > * { width:var(--col); }
+
+  .roll-name { font-size:var(--namefs); }
+
+  /* 本輪中獎卡：每欄食滿，字放到最大 */
+  .round-box { gap:1.4vh; }
+  .r-card { padding:1.4vh 1vh; border-radius:1.6vh; }
+
+  /* 全部中獎者：3 欄 × 4 行，名字可以放到大 */
+  .win-grid { grid-template-columns:repeat(3,1fr); gap:1.2vh; }
+  .win-grid .cell { padding:1.9vh .5vh; border-radius:1.4vh; }
+
+  /* 下方中獎名單（收窄少少，慳位畀中間嘅大字） */
+  .list-label { font-size:1.35vh; }
+  .win-list { gap:.9vh; }
+  .win-list .chip { padding:.5vh 1.1vh; }
+  .list-row { margin-bottom:.4vh; }
+
+  .pool-info { margin-top:0; font-size:1.35vh; padding:0;
+               background:none; border:none; text-shadow:0 .2vh .5vh rgba(0,0,0,.7); }
+  .btn-main { width:100%; padding:1.6vh 0; font-size:clamp(20px,3.2vh,34px);
+              margin-top:.8vh; letter-spacing:.6vh; }
+  .kbd-hint { display:none; }             /* 投屏畫面唔需要提示文字 */
+
+  .admin-panel { width:min(720px, 78vh); }
+  /* ==================== 版面 END ==================== */
+
+  /* 簡易彩帶 */
+  .confetti {
+    position:fixed; top:-20px; z-index:99; font-size:22px;
+    animation:fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform:translateY(105vh) rotate(720deg); opacity:.6; }
+  }
