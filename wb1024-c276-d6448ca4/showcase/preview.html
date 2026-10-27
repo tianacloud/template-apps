@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>1024 像素画板 · 32×32 = 1024</title>
+  <meta content="1024 程序员节造物作品：32×32 = 1024 个像素的二进制画板，可绘制、保存 PNG、生成可分享链接。" name="description">
+  <style>:root {
+  --bg: #0a0e14;
+  --bg-soft: #0f141d;
+  --panel: rgba(17, 22, 31, 0.78);
+  --border: rgba(45, 212, 191, 0.18);
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #2dd4bf;      /* 青绿 */
+  --accent-2: #39ff14;    /* 荧光绿 */
+  --accent-3: #f472b6;    /* 粉 */
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  --radius: 16px;
+  --font: "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, "PingFang SC", "Microsoft YaHei", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: radial-gradient(1200px 800px at 70% -10%, #11212a 0%, var(--bg) 55%) fixed;
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+#rain {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; opacity: 0.30; pointer-events: none;
+}
+
+/* ---------- 导航 ---------- */
+.nav {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  backdrop-filter: blur(10px);
+  background: rgba(10, 14, 20, 0.6);
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.logo { font-size: 20px; letter-spacing: 1px; }
+.logo.accent { color: var(--accent-2); text-shadow: 0 0 12px rgba(57, 255, 20, 0.5); }
+.nav-title { color: var(--muted); font-size: 14px; font-weight: 500; }
+.nav-links { display: flex; gap: 22px; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+.nav-links a:hover { color: var(--accent); }
+
+/* ---------- 通用 ---------- */
+section, .hero { position: relative; z-index: 1; }
+
+.hero {
+  min-height: 84vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 60px 20px 40px;
+}
+.hero-kicker { color: var(--accent); font-size: 14px; letter-spacing: 2px; margin-bottom: 18px; }
+.hero-title { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.big-num {
+  font-size: clamp(80px, 18vw, 200px); font-weight: 800; line-height: 0.9;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 60px rgba(45, 212, 191, 0.35);
+}
+.hero-sub { font-size: clamp(22px, 4vw, 38px); font-weight: 700; letter-spacing: 4px; }
+.hero-desc { color: var(--muted); margin: 22px 0 30px; font-size: 15px; }
+.hero-desc b { color: var(--accent); }
+.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+/* 按钮 */
+.btn {
+  display: inline-block; padding: 12px 22px; border-radius: 10px;
+  font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  text-decoration: none; border: 1px solid transparent;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #04140f; box-shadow: 0 8px 24px rgba(45, 212, 191, 0.35);
+}
+.btn-primary:hover { box-shadow: 0 10px 30px rgba(57, 255, 20, 0.45); }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* ---------- 区块 ---------- */
+.section { max-width: 1080px; margin: 0 auto; padding: 70px 20px; }
+.section-head { margin-bottom: 30px; }
+.section-head h2 { font-size: 28px; display: flex; align-items: baseline; gap: 14px; }
+.sec-index { font-size: 16px; color: var(--accent-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px 8px; }
+.section-sub { color: var(--muted); margin-top: 10px; font-size: 14px; }
+
+/* ---------- 创作台 ---------- */
+.studio {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.toolbar { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.tool-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool {
+  background: var(--bg-soft); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 9px 14px; font-family: inherit; font-size: 14px;
+  cursor: pointer; transition: all 0.15s;
+}
+.tool:hover { border-color: var(--accent); color: var(--accent); }
+.tool.active { border-color: var(--accent); color: var(--accent); background: rgba(45, 212, 191, 0.1); }
+
+/* 调色板 */
+.palette { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  border: 2px solid transparent; position: relative; transition: transform 0.1s;
+}
+.swatch:hover { transform: scale(1.12); }
+.swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.swatch.eraser { background-image:
+  linear-gradient(45deg, #444 25%, transparent 25%),
+  linear-gradient(-45deg, #444 25%, transparent 25%),
+  linear-gradient(45deg, transparent 75%, #444 75%),
+  linear-gradient(-45deg, transparent 75%, #444 75%);
+  background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
+.swatch .lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; text-shadow: 0 0 3px #000; }
+
+/* 像素网格 */
+.board-wrap { display: flex; justify-content: center; }
+.pixel-grid {
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  grid-template-rows: repeat(32, 1fr);
+  width: min(92vw, 560px); height: min(92vw, 560px);
+  background: var(--bg-soft);
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  touch-action: none; user-select: none;
+}
+.cell {
+  width: 100%; height: 100%;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+}
+.pixel-grid.binary .cell.on {
+  box-shadow: inset 0 0 6px rgba(57, 255, 20, 0.6);
+}
+
+/* 操作区 */
+.actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+.hint { color: var(--accent); font-size: 13px; }
+
+/* 预设 */
+.preset-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.preset {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 12px; padding: 14px 22px; font-family: inherit; font-size: 15px;
+  cursor: pointer; transition: all 0.15s;
+}
+.preset:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+/* 关于 */
+.about-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.about-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
+.about-card h3 { color: var(--accent); margin-bottom: 10px; font-size: 18px; }
+.about-card p { color: var(--muted); font-size: 14px; }
+
+/* 页脚 */
+.footer { text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--muted); position: relative; z-index: 1; }
+.footer b { color: var(--accent); }
+.footer-sub { font-size: 12px; margin-top: 6px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--panel-solid); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 18px; border-radius: 10px; font-size: 14px; opacity: 0;
+  transition: all 0.3s; z-index: 60; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 响应式 */
+@media (max-width: 680px) {
+  .nav-links { display: none; }
+  .section { padding: 50px 16px; }
+  .studio { padding: 16px; }
+}
+
+/* 进场动画 */
+.fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s, transform 0.6s; }
+.fade-up.in { opacity: 1; transform: none; }
+</style>
+</head>
+<body><div style="position:relative;z-index:999;text-align:center;background:#15251b;color:#b7ffc1;padding:8px">示例体验，数据仅保留在本页 <button id="demo-reset">恢复示例</button></div>
+  <canvas aria-hidden="true" id="rain"></canvas>
+
+  <header class="nav">
+    <div class="nav-brand">
+      <span class="logo"><!--pnid:XemgZYotTOhCHFVlzczwDs-->10</span><span class="logo accent"><!--pnid:DbjcvH2cPzbya9ejV697e4-->24</span>
+      <span class="nav-title"><!--pnid:c4ZnE8PoGRUI1lc9SoGKhO-->像素画板</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#studio"><!--pnid:pY2RveaMhi15C2ngIuZ2vH-->画板</a>
+      <a href="#presets"><!--pnid:1KUFKL25ohWYSw3om2ygeq-->预设</a>
+      <a href="#about"><!--pnid:DWygabDvjms6xu7WURc8FD-->关于 1024</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <p class="hero-kicker"><!--pnid:kcHcDIhiZpXJ8ZVGCCgS6Q-->// 32 × 32 = 1024 个像素，为你而亮</p>
+    <h1 class="hero-title">
+      <span class="big-num"><!--pnid:IPaTXHpw5ydw5KIT96KyXY-->1024</span>
+      <span class="hero-sub"><!--pnid:nIalhWlzUOAbQQIMOATCnc-->像素画板</span>
+    </h1>
+    <p class="hero-desc"><!--pnid:F21KAFhwZs2ZJF4IXncWiY-->
+      2 的 10 次方，是程序员心里最浪漫的一个数。<br><!--pnid:zXRvWIOrIptyukuKeucC0p-->
+      它正好是一块 <b><!--pnid:NaMms3kLyNZMsTvwn4PrEI-->32×32</b><!--pnid:w2sP8KM1Xo40aSMaNriiTE--> 的画布——用 1024 个点，画出你的造物。
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#studio"><!--pnid:rHwyUdEJ5PIAndC3iF8u9z-->🎨 开始作画</a>
+      <a class="btn btn-ghost" href="#presets"><!--pnid:CL5IW59J1beNi04dyTdb4D-->看看预设 →</a>
+    </div>
+  </section>
+
+  <section class="section" id="studio">
+    <div class="section-head">
+      <h2><span class="sec-index"><!--pnid:df78ZJzSidRcBBUEqrxWag-->01</span><!--pnid:JOvNoXRZgEQNvjbfu3VLgt--> 创作台</h2>
+      <p class="section-sub"><!--pnid:nsGAvrRPlviOUOx6BJ7MMO-->点 / 拖 即可作画。支持对称镜像、油漆桶、随机生成；作品可存为 PNG，也能生成一条链接分享给朋友还原。</p>
+    </div>
+
+    <div class="studio">
+      <div class="toolbar">
+        <div class="tool-group" id="tools">
+          <button class="tool active" data-tool="paint" title="画笔"><!--pnid:6bRutsj5hBz1XKXRNJJSho-->🖌 画笔</button>
+          <button class="tool" data-tool="erase" title="橡皮"><!--pnid:UKifFHA7kJDIS6qF0Kubdm-->🧽 橡皮</button>
+          <button class="tool" data-tool="fill" title="油漆桶"><!--pnid:9NxVr5ToGyui3Gz57oTIiq-->🪣 填充</button>
+          <button class="tool" id="btn-mirror" title="左右对称"><!--pnid:vpxgZuxHlqgHdyQpu5H0uP-->🪞 对称</button>
+        </div>
+        <div class="tool-group">
+          <button class="tool" id="btn-binary" title="二进制模式"><!--pnid:krIGd1fy0KpNJ0NExIdstR-->01 二进制</button>
+        <button class="tool" id="btn-random" title="随机图案"><!--pnid:X3R1ydOvP1iTTq3bV487r3-->🎲 随机</button>
+          <button class="tool" id="btn-clear" title="清空"><!--pnid:8W5me80utcZoNC5nvSFUvN-->🗑 清空</button>
+        </div>
+      </div>
+
+      <div class="palette" id="palette"></div>
+
+      <div class="board-wrap">
+        <div aria-label="32x32 像素画板" class="pixel-grid" id="grid"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-png"><!--pnid:YzcdSDo3ZkkErSW2HTq7UF-->💾 保存 PNG</button>
+        <button class="btn btn-ghost" id="btn-share"><!--pnid:nfPUvdGHQPPjvJkjq14l9Q-->🔗 复制分享链接</button>
+        <span class="hint" id="hint"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="presets">
+    <div class="section-head">
+      <h2><span class="sec-index"><!--pnid:dlmFVlLRZXl2ktpnmWXViZ-->02</span><!--pnid:shyXhwcn0TpUHLABa3jSVF--> 预设图案</h2>
+      <p class="section-sub"><!--pnid:pTyVbFuc61M0HAhIAtwmoS-->懒得从零画？一键载入这些 1024 像素小图，再改成你自己的样子。</p>
+    </div>
+    <div class="preset-row">
+      <button class="preset" data-preset="text"><!--pnid:ahP4I2yBBuNzHYRq2oTNPq-->1024 字样</button>
+      <button class="preset" data-preset="heart"><!--pnid:NNBUWS0Ck3nafh3CiHHAzL-->❤ 爱心</button>
+      <button class="preset" data-preset="smile"><!--pnid:ZxojXF6lisIJ6fZ3ih7m1L-->☺ 笑脸</button>
+      <button class="preset" data-preset="random"><!--pnid:ZO8g0dhGT4DjmKNgNNcQsY-->🎲 随机</button>
+    </div>
+  </section>
+
+  <section class="section" id="about">
+    <div class="section-head">
+      <h2><span class="sec-index"><!--pnid:SUjmsMmJgv7Tez6Q0t4Ctd-->03</span><!--pnid:knJ7riUZG0Kl1LsUBj9muL--> 关于 1024</h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-card">
+        <h3><!--pnid:zbESS9MYrrUxK5GbZigwPs-->2¹⁰ = 1024</h3>
+        <p><!--pnid:aXbmzynO5gND1Zwe0UNuAI-->二进制里最整齐的一个台阶，被程序员过成了节。32×32 的画布，恰好 1024 格——这是属于我们的画纸。</p>
+      </div>
+      <div class="about-card">
+        <h3><!--pnid:O4TUcqCmsrJFiR1WHoJ4CM-->像素里也有浪漫</h3>
+        <p><!--pnid:QhHumXHShQ5EW8ZtvAhi9e-->从一行 console.log 到一块会发光的画板，我们用逻辑把想象捏成现实。这面画板本身，也是一件 1024 造物。</p>
+      </div>
+      <div class="about-card">
+        <h3><!--pnid:cZLLNdJrocmxyw37OsqCbC-->分享即造物</h3>
+        <p><!--pnid:54dYkIIt11s2ptkYkRGOHM-->每一幅画都能生成一条链接——别人打开就能还原你的 1024 个像素。开源精神，藏在每一格颜色里。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p><!--pnid:cg6M00FT9AfEdjZBBUHO3s--> Made with <b><!--pnid:y1B2JN2UAVq8HhWvKtapNU-->WorkBuddy</b><!--pnid:6PIius0GoCul6cfMEGJdnI--> · 2026 1024 造物节 · 1024 像素画板 </p>
+    <p class="footer-sub"><!--pnid:4EM0Qs4zYvPQ9WGtaishqh-->纯静态单页 · 零依赖 · 可离线 · 数据存于本地浏览器</p>
+  </footer>
+
+  <!--pnid:q5UmyCbC7zXTerubBRrQ4A--><!-- 导出与分享用的离屏 canvas -->
+  <canvas height="640" id="export-canvas" width="640" style="display:none"></canvas>
+  <div class="toast" id="toast"></div>
+
+  <script>/* =========================================================
+   1024 像素画板  —  32×32 = 1024 像素（零依赖）
+   ========================================================= */
+(function () {
+  "use strict";
+
+  const SIZE = 32;
+  const COUNT = SIZE * SIZE;
+  const STORE_KEY = "wb1024_pixel_v1";
+
+  // 调色板：0 = 背景/橡皮，其余为颜料色
+  const PALETTE = [
+    "#0a0e14", // 0 背景/橡皮
+    "#39ff14", // 1 荧光绿
+    "#2dd4bf", // 2 青
+    "#f472b6", // 3 粉
+    "#f59e0b", // 4 橙
+    "#60a5fa", // 5 蓝
+    "#ffffff", // 6 白
+    "#a78bfa", // 7 紫
+    "#fca5a5", // 8 红粉
+    "#34d399"  // 9 绿2
+  ];
+  const BINARY_PALETTE = [PALETTE[0], PALETTE[1]];
+
+  // 状态
+  let grid = new Array(COUNT).fill(0);
+  let currentColor = 1;
+  let tool = "paint";
+  let mirrorOn = false;
+  let binaryOn = false;
+  let isDrawing = false;
+  const cells = [];
+
+  /* ---------- DOM ---------- */
+  const gridEl = document.getElementById("grid");
+  const paletteEl = document.getElementById("palette");
+  const hintEl = document.getElementById("hint");
+  const toastEl = document.getElementById("toast");
+
+  /* ---------- 工具函数 ---------- */
+  function idx(row, col) { return row * SIZE + col; }
+  function rowOf(i) { return (i / SIZE) | 0; }
+  function colOf(i) { return i % SIZE; }
+  function mirrorIndex(i) { return idx(rowOf(i), SIZE - 1 - colOf(i)); }
+
+  function setCell(i, c, doMirror) {
+    if (i < 0 || i >= COUNT) return;
+    grid[i] = c;
+    paintCell(i);
+    if (doMirror && mirrorOn) {
+      const m = mirrorIndex(i);
+      grid[m] = c;
+      paintCell(m);
+    }
+  }
+
+  function paintCell(i) {
+    const c = cells[i];
+    if (!c) return;
+    c.style.background = PALETTE[grid[i]];
+    if (binaryOn) c.classList.toggle("on", grid[i] !== 0);
+  }
+
+  function refreshAll() { for (let i = 0; i < COUNT; i++) paintCell(i); }
+
+  /* ---------- 持久化 ---------- */
+  function save() {
+    /* 示例仅在页面内保存 */
+  }
+  function serialize() {
+    let s = "";
+    for (let i = 0; i < COUNT; i++) s += grid[i].toString(16); // 0-f，每格 1 字符
+    return s;
+  }
+  function deserialize(str) {
+    if (!str || str.length !== COUNT) return false;
+    for (let i = 0; i < COUNT; i++) {
+      const v = parseInt(str[i], 16);
+      if (isNaN(v) || v < 0 || v >= PALETTE.length) return false;
+      grid[i] = v;
+    }
+    return true;
+  }
+
+  /* ---------- 调色板渲染 ---------- */
+  function renderPalette() {
+    const list = binaryOn ? BINARY_PALETTE : PALETTE;
+    paletteEl.innerHTML = "";
+    list.forEach((color, localIndex) => {
+      // localIndex 在 binary 模式下：0=背景,1=绿；普通模式即全局索引
+      const globalIndex = binaryOn ? (localIndex === 0 ? 0 : 1) : localIndex;
+      const sw = document.createElement("div");
+      sw.className = "swatch" + (globalIndex === 0 ? " eraser" : "") + (globalIndex === currentColor ? " active" : "");
+      sw.style.background = color;
+      sw.title = globalIndex === 0 ? "橡皮 / 背景" : color;
+      if (globalIndex === 0) sw.innerHTML = '<span class="lbl">⌫</span>';
+      sw.addEventListener("click", () => {
+        currentColor = globalIndex;
+        if (tool === "erase") setTool("paint");
+        renderPalette();
+      });
+      paletteEl.appendChild(sw);
+    });
+  }
+
+  /* ---------- 工具切换 ---------- */
+  function setTool(name) {
+    tool = name;
+    document.querySelectorAll("#tools .tool").forEach((b) => {
+      b.classList.toggle("active", b.dataset.tool === name);
+    });
+  }
+
+  /* ---------- 绘制交互 ---------- */
+  function applyTool(i, isDrag) {
+    if (i == null) return;
+    if (tool === "fill" && !isDrag) {
+      floodFill(i, currentColor);
+    } else {
+      const c = tool === "erase" ? 0 : currentColor;
+      setCell(i, c, true);
+    }
+    save();
+  }
+
+  function floodFill(start, c) {
+    const target = grid[start];
+    if (target === c) return;
+    const stack = [start];
+    while (stack.length) {
+      const cur = stack.pop();
+      if (grid[cur] !== target) continue;
+      setCell(cur, c, false);
+      const r = rowOf(cur), col = colOf(cur);
+      if (r > 0) stack.push(idx(r - 1, col));
+      if (r < SIZE - 1) stack.push(idx(r + 1, col));
+      if (col > 0) stack.push(idx(r, col - 1));
+      if (col < SIZE - 1) stack.push(idx(r, col + 1));
+    }
+  }
+
+  function cellIndexFromEvent(e) {
+    const t = e.pointerType === "touch" ? document.elementFromPoint(e.clientX, e.clientY) : e.target;
+    if (!t || !t.classList || !t.classList.contains("cell")) return null;
+    return parseInt(t.dataset.i, 10);
+  }
+
+  function initGrid() {
+    gridEl.innerHTML = "";
+    for (let i = 0; i < COUNT; i++) {
+      const c = document.createElement("div");
+      c.className = "cell";
+      c.dataset.i = i;
+      cells[i] = c;
+      gridEl.appendChild(c);
+    }
+    // 事件委托：指针按下 / 移动
+    gridEl.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      applyTool(cellIndexFromEvent(e), false);
+    });
+    gridEl.addEventListener("pointermove", (e) => {
+      if (!isDrawing) return;
+      applyTool(cellIndexFromEvent(e), true);
+    });
+    window.addEventListener("pointerup", () => { isDrawing = false; });
+    gridEl.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
+  /* ---------- 预设图案 ---------- */
+  const FONT = {
+    "0": ["01110","10001","10011","10101","11001","10001","01110"],
+    "1": ["00100","01100","00100","00100","00100","00100","01110"],
+    "2": ["01110","10001","00001","00010","00100","01000","11111"],
+    "3": ["11111","00010","00100","00010","00001","10001","01110"],
+    "4": ["00010","00110","01010","10010","11111","00010","00010"],
+    "5": ["11111","10000","11110","00001","00001","10001","01110"],
+    "6": ["00110","01000","10000","11110","10001","10001","01110"],
+    "7": ["11111","00001","00010","00100","01000","01000","01000"],
+    "8": ["01110","10001","10001","01110","10001","10001","01110"],
+    "9": ["01110","10001","10001","01111","00001","00010","01100"]
+  };
+
+  function drawText(str, color) {
+    clearGrid(false);
+    const n = str.length;
+    const totalW = n * 5 + (n - 1) * 1;
+    const startX = Math.floor((SIZE - totalW) / 2);
+    const startY = Math.floor((SIZE - 7) / 2);
+    for (let k = 0; k < n; k++) {
+      const glyph = FONT[str[k]];
+      if (!glyph) continue;
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (glyph[r][c] === "1") {
+            const x = startX + k * 6 + c;
+            const y = startY + r;
+            if (x >= 0 && x < SIZE && y >= 0 && y < SIZE) setCell(idx(y, x), color, false);
+          }
+        }
+      }
+    }
+    save();
+  }
+
+  function drawHeart(color) {
+    clearGrid(false);
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const nx = (c - 16) / 9;
+        const ny = (8 - r) / 9;
+        const v = Math.pow(nx * nx + ny * ny - 1, 3) - nx * nx * ny * ny * ny;
+        if (v <= 0) setCell(idx(r, c), color, false);
+      }
+    }
+    save();
+  }
+
+  function drawSmile(face, bg) {
+    clearGrid(false);
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const d = Math.hypot(c - 16, r - 16);
+        let v = 0;
+        if (d <= 13) v = face;                                   // 脸
+        if (Math.hypot(c - 11, r - 11) <= 2 || Math.hypot(c - 21, r - 11) <= 2) v = bg; // 眼
+        if (r >= 19 && Math.hypot(c - 16, r - 20) <= 7 && Math.hypot(c - 16, r - 20) >= 4) v = bg; // 嘴
+        if (v) setCell(idx(r, c), v, false);
+      }
+    }
+    save();
+  }
+
+  function randomize() {
+    for (let i = 0; i < COUNT; i++) {
+      grid[i] = Math.random() < 0.14 ? (1 + Math.floor(Math.random() * 9)) : 0;
+    }
+    refreshAll();
+    save();
+  }
+
+  function clearGrid(doSave) {
+    for (let i = 0; i < COUNT; i++) grid[i] = 0;
+    refreshAll();
+    if (doSave !== false) save();
+  }
+
+  /* ---------- 导出 PNG ---------- */
+  function exportPNG() {
+    const ec = document.getElementById("export-canvas");
+    if (!ec) return;
+    const ctx = ec.getContext("2d");
+    const px = ec.width / SIZE;
+    ctx.clearRect(0, 0, ec.width, ec.height);
+    for (let i = 0; i < COUNT; i++) {
+      ctx.fillStyle = PALETTE[grid[i]];
+      ctx.fillRect(colOf(i) * px, rowOf(i) * px, px, px);
+    }
+    const finish = (url, revoke) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "1024-pixel-art.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      if (revoke) setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    if (ec.toBlob) {
+      ec.toBlob((blob) => finish(URL.createObjectURL(blob), true), "image/png");
+    } else {
+      finish(ec.toDataURL("image/png"), false);
+    }
+    toast("已保存 PNG ✅");
+  }
+
+  /* ---------- 分享链接 ---------- */
+  function shareLink() {
+    const hex = serialize();
+    const url = location.origin + location.pathname + "#d=" + hex;
+    try { history.replaceState(null, "", "#d=" + hex); } catch (e) { /* ignore */ }
+    const copy = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => toast("分享链接已复制 ✅")).catch(fallback);
+      } else fallback();
+    };
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast("分享链接已复制 ✅"); }
+      catch (e) { toast("复制失败，链接已写入地址栏"); }
+      ta.remove();
+    };
+    copy();
+  }
+
+  /* ---------- Toast ---------- */
+  let toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1800);
+  }
+
+  /* ---------- 代码雨背景 ---------- */
+  function initRain() {
+    const canvas = document.getElementById("rain");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let w, h, cols, drops;
+    const fontSize = 16;
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      cols = Math.floor(w / fontSize);
+      drops = new Array(cols).fill(1).map(() => Math.random() * -100);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    function draw() {
+      ctx.fillStyle = "rgba(10, 14, 20, 0.08)";
+      ctx.fillRect(0, 0, w, h);
+      ctx.font = fontSize + "px monospace";
+      for (let i = 0; i < cols; i++) {
+        const ch = Math.random() < 0.5 ? "0" : "1";
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        if (Math.random() < 0.012) { ctx.fillStyle = "#39ff14"; ctx.fillText("1024", x, y); }
+        else { ctx.fillStyle = Math.random() < 0.05 ? "#2dd4bf" : "#1f6f63"; ctx.fillText(ch, x, y); }
+        if (y > h && Math.random() > 0.975) drops[i] = 0;
+        drops[i] += 0.6;
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  /* ---------- 进场动画 ---------- */
+  function initReveal() {
+    const els = document.querySelectorAll(".section, .hero");
+    els.forEach((el) => el.classList.add("fade-up"));
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
+      }, { threshold: 0.08 });
+      els.forEach((el) => io.observe(el));
+    } else {
+      els.forEach((el) => el.classList.add("in"));
+    }
+    const hero = document.querySelector(".hero");
+    if (hero) hero.classList.add("in");
+  }
+
+  /* ---------- 启动 ---------- */
+  function init() {
+    initGrid();
+    renderPalette();
+    setTool("paint");
+
+    // 1) 优先：分享链接还原  2) 其次：本地存储  3) 默认：1024 字样
+    const m = location.hash && location.hash.match(/d=([0-9a-f]+)/i);
+    if (m && deserialize(m[1])) {
+      refreshAll();
+    } else {
+      let loaded = false;
+      try {
+        const raw = null;
+        if (raw && deserialize(raw)) { refreshAll(); loaded = true; }
+      } catch (e) { /* ignore */ }
+      if (!loaded) drawText("1024", 1);
+    }
+
+    // 工具栏
+    document.getElementById("tools").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-tool]");
+      if (b) setTool(b.dataset.tool);
+    });
+    const mirrorBtn = document.getElementById("btn-mirror");
+    mirrorBtn.addEventListener("click", () => {
+      mirrorOn = !mirrorOn;
+      mirrorBtn.classList.toggle("active", mirrorOn);
+    });
+    const binaryBtn = document.getElementById("btn-binary");
+    binaryBtn.addEventListener("click", () => {
+      binaryOn = !binaryOn;
+      binaryBtn.classList.toggle("active", binaryOn);
+      gridEl.classList.toggle("binary", binaryOn);
+      if (binaryOn) { currentColor = 1; setTool("paint"); }
+      renderPalette();
+      refreshAll();
+    });
+    document.getElementById("btn-random").addEventListener("click", randomize);
+    document.getElementById("btn-clear").addEventListener("click", () => { clearGrid(true); toast("已清空"); });
+
+    // 预设
+    document.querySelectorAll(".preset").forEach((b) => {
+      b.addEventListener("click", () => {
+        const p = b.dataset.preset;
+        if (p === "text") drawText("1024", 1);
+        else if (p === "heart") drawHeart(3);
+        else if (p === "smile") drawSmile(4, 0);
+        else if (p === "random") randomize();
+        toast("已载入预设：" + b.textContent.trim());
+      });
+    });
+
+    // 导出 / 分享
+    document.getElementById("btn-png").addEventListener("click", () => toast("安装后可保存 PNG"));
+    document.getElementById("btn-share").addEventListener("click", () => toast("安装后可复制分享链接"));
+
+    document.getElementById("demo-reset").addEventListener("click", () => drawText("1024", 1));
+    initRain();
+    initReveal();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
