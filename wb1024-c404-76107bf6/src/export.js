@@ -22,15 +22,26 @@
     }
     var jsPDF = window.jspdf.jsPDF;
     var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    // Rasterize labels with the browser's Chinese font; PDF built-in fonts lack CJK glyphs.
+    function label(text, x, y) {
+      var size = doc.getFontSize(), scale = 3, px = size * 96 / 72;
+      var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+      ctx.font = px + 'px sans-serif';
+      var width = Math.ceil(ctx.measureText(String(text)).width + 4);
+      canvas.width = width * scale; canvas.height = Math.ceil(px * 1.5) * scale;
+      ctx = canvas.getContext('2d'); ctx.scale(scale, scale); ctx.font = px + 'px sans-serif';
+      ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#000'; ctx.fillText(String(text), 0, px);
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', x, y - size * 0.3528, width * 0.264583, canvas.height / scale * 0.264583);
+    }
     var pageW = 210, pageH = 297, margin = 10;
     var usableW = pageW - margin * 2;
 
     // 标题
     doc.setFontSize(16);
-    doc.text(meta.title || '拼豆图纸', margin, 18);
+    label(meta.title || '拼豆图纸', margin, 18);
     doc.setFontSize(10);
     doc.setTextColor(110);
-    doc.text((meta.info || ''), margin, 25);
+    label((meta.info || ''), margin, 25);
     doc.setTextColor(0);
 
     // 图纸图: 等比放入
@@ -45,16 +56,16 @@
     // 采购清单页
     doc.addPage();
     doc.setFontSize(16);
-    doc.text('采购清单', margin, 18);
+    label('采购清单', margin, 18);
     doc.setFontSize(11);
-    doc.text('总用量: ' + bom.total + ' 颗  |  色号数: ' + bom.items.length, margin, 27);
+    label('总用量: ' + bom.total + ' 颗  |  色号数: ' + bom.items.length, margin, 27);
     doc.setFontSize(10);
     var y = 38;
     var colX = [margin, margin + 60, margin + 110, margin + 150];
-    doc.text('色号', colX[0], y);
-    doc.text('颜色名', colX[1], y);
-    doc.text('数量(颗)', colX[2], y);
-    doc.text('占比', colX[3], y);
+    label('色号', colX[0], y);
+    label('颜色名', colX[1], y);
+    label('数量(颗)', colX[2], y);
+    label('占比', colX[3], y);
     doc.setDrawColor(200);
     doc.line(margin, y + 3, pageW - margin, y + 3);
     y += 9;
@@ -62,10 +73,10 @@
     for (var i = 0; i < bom.items.length; i++) {
       if (y > pageH - 15) { doc.addPage(); y = 20; }
       var it = bom.items[i];
-      doc.text(it.id, colX[0], y);
-      doc.text(it.name, colX[1], y);
-      doc.text(String(it.count), colX[2], y);
-      doc.text((it.count / total * 100).toFixed(1) + '%', colX[3], y);
+      label(it.id, colX[0], y);
+      label(it.name, colX[1], y);
+      label(String(it.count), colX[2], y);
+      label((it.count / total * 100).toFixed(1) + '%', colX[3], y);
       y += 7;
     }
 
