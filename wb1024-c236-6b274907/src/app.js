@@ -1316,3 +1316,16 @@ cameo();
 chatChips();
 
 Object.assign(window,{go,shuffle,pick,audio,tone,noise,toggleSfx,tryPassword,fillPw,hintAgain,signPledge,renderMap,startQuiz,updQuizHud,nextQ,answerQ,quizFail,levelWin,afterLevelUp,useJinnang,useLei,cameo,praise,comboFx,flyPen,renderHelpers,startDuel,updHp,duelCameo,nextDuelQ,duelAnswer,duelResolve,endDuel,passScreen,runSolo,updSoloHp,showCert,penPickNo,penStats,pRr,pWrap,buildPenCard,openPenCard,renderPenCard,penWeixin,penDataURLtoFile,penSaveDataURL,penMomentGuide,sharePenMoments,copyPenText,penFallbackCopy,huNorm,huScore,huAnswer,chatBubble,chatTyping,chatChips,chatReset,askHǔ,addTransfer,copyQuestion,legacyCopy,openAsk});
+// Hosted pages disallow inline event handlers; dispatch the original button actions explicitly.
+document.addEventListener('click', event => {
+  const el = event.target.closest('[onclick]');
+  if (!el) return;
+  const action = el.getAttribute('onclick');
+  const match = /^(?:([\wǔ]+)\((?:'([^']*)'|(this))?\)|(location\.reload)\(\))$/.exec(action);
+  if (!match) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (match[4]) { location.reload(); return; }
+  const fn = window[match[1]];
+  if (typeof fn === 'function') fn(match[3] ? el : match[2]);
+}, true);
