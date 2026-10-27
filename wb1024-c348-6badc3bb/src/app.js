@@ -117,4 +117,5 @@ function erRadar(s,pct){
   document.getElementById('er-radar').innerHTML=sv;
 }
 
-Object.assign(window,{startExp,homeExp});
+document.querySelector('#e-home .btn').addEventListener('click',startExp);
+document.querySelector('#e-report .btn').addEventListener('click',homeExp);
