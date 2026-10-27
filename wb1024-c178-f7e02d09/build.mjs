@@ -5,4 +5,4 @@ const game = await readFile('src/game.js','utf8');
 await mkdir('dist/assets',{recursive:true});
 await writeFile('dist/assets/app.js',`const style = document.createElement("style"); style.textContent = ${JSON.stringify(css)}; document.head.append(style); document.body.innerHTML = ${JSON.stringify(body)};\n${game}`);
 await copyFile('public/icon.png','dist/icon.png');
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',...JSON.parse(await readFile('source.json','utf8'))}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(await readFile('source.json','utf8'))}));
