@@ -18,8 +18,9 @@ document.addEventListener('click', e => {
  const href=a.getAttribute('href')||''; const match=href.match(/^(index|computer|majors|regions|departments|cooccur|exclusive)\.html$/);
  if(match){e.preventDefault();location.hash=match[1];location.reload();}
 },true);
+let inlineIndex=0;
 for (const original of doc.body.querySelectorAll('script')) {
  const script=document.createElement('script');
  if(original.src){ script.src=new URL(original.getAttribute('src'),root).href; await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject;document.body.append(script)}); }
- else { script.textContent=original.textContent; document.body.append(script); }
+ else { script.src=new URL(`${page}-inline-${inlineIndex++}.js`,root).href; await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject;document.body.append(script)}); }
 }
