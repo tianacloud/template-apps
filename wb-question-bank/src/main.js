@@ -8,7 +8,7 @@ const storage = (()=>{ try { const s=window.localStorage; s.getItem("__probe__")
 
 /* ============ 题库数据契约与加载器 ============ */
 const SAMPLE_BANK = {"title": "钳工三级题库（精选示例·12题）", "questions": [{"q": "压力继电器应安装在(    )位置。", "options": [{"k": "A", "v": "压力有明显变化"}, {"k": "B", "v": "压力无明显变化"}, {"k": "C", "v": "回油路"}, {"k": "D", "v": "定量泵出口"}], "a": "A", "src": "题库一"}, {"q": "(    )是靠出口油压控制。", "options": [{"k": "A", "v": "调速阀"}, {"k": "B", "v": "溢流阀"}, {"k": "C", "v": "顺序阀"}, {"k": "D", "v": "减压阀"}], "a": "D", "src": "题库一"}, {"q": "(    )是使工作机构在任意位置上停留以及停工作时，防止在受力的情况下发生移动。", "options": [{"k": "A", "v": "顺序动作回路"}, {"k": "B", "v": "锁紧回路"}, {"k": "C", "v": "卸荷回路"}, {"k": "D", "v": "换向回路"}], "a": "B", "src": "题库一"}, {"q": "减压回路主要由(    )组成。", "options": [{"k": "A", "v": "溢流阀"}, {"k": "B", "v": "顺序阀"}, {"k": "C", "v": "减压阀"}, {"k": "D", "v": "换向阀"}], "a": "C", "src": "题库一"}, {"q": "液压传动是以具有一定压力能力的油液为工作介质，依靠(   )的变化来传递运动。", "options": [{"k": "A", "v": "可控制容积"}, {"k": "B", "v": "密封容积"}, {"k": "C", "v": "液体流量"}, {"k": "D", "v": "活塞面积"}], "a": "B", "src": "题库一"}, {"q": "不属于控制阀的是(    )。", "options": [{"k": "A", "v": "方向控制阀"}, {"k": "B", "v": "压力控制阀"}, {"k": "C", "v": "流量控制阀"}, {"k": "D", "v": "泄油控制阀"}], "a": "D", "src": "题库一"}, {"q": "电流对人体的伤害程度与(    )无关。", "options": [{"k": "A", "v": "通过人体电流的大小"}, {"k": "B", "v": "通过人体电流的时间"}, {"k": "C", "v": "触电电源的电位"}, {"k": "D", "v": "触电者身体健康状况"}], "a": "C", "src": "题库一"}, {"q": "下列选项中，不符合安全用电措施的是(    )。", "options": [{"k": "A", "v": "合理选择导线和熔丝"}, {"k": "B", "v": "使用手电钻不准戴绝缘手套"}, {"k": "C", "v": "电气设备安装要正确"}, {"k": "D", "v": "合理选择照明电压"}], "a": "B", "src": "题库一"}, {"q": "固态继电器的驱动电路可以包括隔离耦合电路、(    )和触发电路三部分。", "options": [{"k": "A", "v": "交流电路"}, {"k": "B", "v": "直流电路"}, {"k": "C", "v": "输入电路"}, {"k": "D", "v": "功能电路"}], "a": "D", "src": "题库一"}, {"q": "设备电气系统中热继电器的常见故障有(    )。", "options": [{"k": "A", "v": "动作延时变长"}, {"k": "B", "v": "机械部分生锈或歪斜"}, {"k": "C", "v": "热继电器动作太快"}, {"k": "D", "v": "动作延时缩短"}], "a": "C", "src": "题库一"}, {"q": "(   )是以工序为单位详细说明整个工艺过程的工艺文件。", "options": [{"k": "A", "v": "工步"}, {"k": "B", "v": "工位"}, {"k": "C", "v": "工艺卡"}, {"k": "D", "v": "走刀"}], "a": "C", "src": "题库一"}, {"q": "工序卡片是用来具体指导工人进行操作的一种(    )。", "options": [{"k": "A", "v": "工艺文件"}, {"k": "B", "v": "要求"}, {"k": "C", "v": "规定"}, {"k": "D", "v": "方法"}], "a": "A", "src": "题库一"}]};
-const KEY='wtk_wrong_v1', QUEUE_KEY='wtk_exam_queue_v1', HIST_KEY='wtk_scores_v1';
+const KEY='wtk_wrong_v1', QUEUE_KEY='wtk_exam_queue_v1', HIST_KEY='wtk_scores_v1', BANK_KEY='wtk_bank_v1';
 
 /* 归一化：兼容「钳工标准格式」与「极简格式」，统一为内部题库对象 */
 function normalizeBank(raw){
@@ -64,7 +64,7 @@ function applyBank(bank, reset=true){
   document.getElementById('hcount').textContent=bank.count;
   document.getElementById('srcName').textContent=bank.title||'自定义题库';
   document.title=bank.title||'万能题库练习器';
-  if(reset){ try{ storage.removeItem(KEY); storage.removeItem(QUEUE_KEY); }catch(e){} }
+  if(reset){ try{ storage.removeItem(KEY); storage.removeItem(QUEUE_KEY); storage.setItem(BANK_KEY, JSON.stringify(bank)); }catch(e){} }
   syncExamSel();
   document.getElementById('s-exam').textContent=examSize;
 }
@@ -73,6 +73,7 @@ function syncExamSel(){
   let opts=[20,50,100].filter(function(v){return v<=TOTAL;});
   if(TOTAL>0 && opts.indexOf(TOTAL)<0) opts.push(TOTAL);
   if(!opts.length) opts.push(Math.max(TOTAL,1));
+  if(!opts.includes(examSize)) examSize=opts[0];
   sel.innerHTML=opts.map(function(v){return '<option value="'+v+'"'+(v===examSize?' selected':'')+'>'+v+' 题</option>';}).join('');
 }
 function openBankPanel(){ document.getElementById('bankCur').textContent=(BANK&&BANK.title)||'自定义题库'; document.getElementById('bankPanel').classList.remove('hidden'); }
@@ -98,7 +99,14 @@ function restoreSample(){ applyBank(normalizeBank(SAMPLE_BANK)); closeBankPanel(
 
 /* ============ 全局状态 ============ */
 let BANK=null, TOTAL=0, examSize=50;
-applyBank(normalizeBank(SAMPLE_BANK), false);
+let restoredBank;
+try { const saved=storage.getItem(BANK_KEY); restoredBank=saved ? normalizeBank(JSON.parse(saved)) : null; } catch(e) { restoredBank=null; }
+if(!restoredBank){
+  restoredBank=normalizeBank(SAMPLE_BANK);
+  // Older versions did not retain imported banks; their queue may refer to another bank.
+  try { storage.removeItem(QUEUE_KEY); } catch(e) {}
+}
+applyBank(restoredBank, false);
 
 let curMode='seq', order=[], idx=0, score=0, answered=0, shuffleOn=false, results=[], curBank=BANK.questions;
 let examTimer=null, examLeft=0;
@@ -113,7 +121,7 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 /* 模拟考试「智能轮转抽题」：本地维护题队列，连续考试不重复
    每次考试从队列头取 examSize 题消费掉；队列不足一轮时，把剩余未用题排在前面、
    其余整体重洗补满，保证题库内每题在一个轮转周期内最多出现一次。 */
-function loadExamQueue(){ try{ const q=JSON.parse(storage.getItem(QUEUE_KEY)||'null'); return Array.isArray(q)?q:null; }catch(e){ return null; } }
+function loadExamQueue(){ try{ const q=JSON.parse(storage.getItem(QUEUE_KEY)||'null'); return Array.isArray(q) && q.every(i=>Number.isInteger(i) && i>=0 && i<TOTAL) && new Set(q).size===q.length?q:null; }catch(e){ return null; } }
 function saveExamQueue(q){ try{ storage.setItem(QUEUE_KEY, JSON.stringify(q)); }catch(e){} }
 function buildExamOrder(){
   let q=loadExamQueue();
