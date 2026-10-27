@@ -218,7 +218,8 @@ const CloudSync = {
   const result=await this.sql('SELECT kind, payload FROM records');
   let rows=result.rows.map(r=>({kind:r[0].value, payload:JSON.parse(r[1].value)}));
   const lines=rows.filter(r=>r.kind==='line').map(r=>r.payload), tasks=rows.filter(r=>r.kind==='task').map(r=>r.payload), settings=rows.find(r=>r.kind==='settings')?.payload;
-  if(lines.length && !localStorage.getItem(STORE_KEY)) state.lines=[];
+  if (lines.length && !initialLocalData && !this.initialPullDone) state.lines=[];
+  this.initialPullDone = true;
   state.lines=mergeRecords(state.lines,lines); state.tasks=normalizeTasks(mergeRecords(state.tasks,tasks)); if(settings) mergeSettings(settings);
   invalidateTaskIndex(); if(!queryLines().some(l=>l.id===currentLineId)) currentLineId=queryLines()[0]?.id;
   Repository.save(state); SyncEngine.broadcast(state); applyTheme(); syncMapLayoutBtn(); render();
@@ -241,7 +242,9 @@ const CloudSync = {
 /* =====================================================================
  * 第三部分：应用状态与增删改查（CRUD）+ 状态更新逻辑
  * ===================================================================== */
+const initialLocalData = !!localStorage.getItem(STORE_KEY);
 let state = Repository.load();
+if (!initialLocalData) state.settings.updatedAt = 0;
 let currentLineId = state.lines[0] ? state.lines[0].id : null;
 let filter = 'all';                     // all | todo | done（列表视图用）
 let view = 'map';                       // map | list 当前视图
@@ -2489,14 +2492,14 @@ $('dlgMask').onclick = (e) => { if (e.target === $('dlgMask')) $('dlgMask').clas
 window.addEventListener('resize', () => { if (view === 'map') applyCam(); });
 
 /* ---------- 启动：加载数据 → 启动同步引擎 → 渲染 ---------- */
-(function boot() {
+(async function boot() {
   if (!queryLines().length) state = Repository.empty();
   if (!queryLines().some(l => l.id === currentLineId)) currentLineId = queryLines()[0].id;
 
   applyTheme();   // 启动即应用已保存的配色方案与深浅模式
   closeSchemePop();   // 配色面板默认收起
   syncMapLayoutBtn();   // 显示方式按钮跟随已保存的设置
-  CloudSync.enable();
+  await CloudSync.enable();
 
   SyncEngine.start((remoteState) => {
     invalidateTaskIndex();
