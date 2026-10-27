@@ -25,7 +25,7 @@
     loadingPromise = Promise.resolve(Tesseract.createWorker({
       workerPath: new URL('worker.js?v=22', document.querySelector('script[data-ocr-entry]').src).href, workerBlobURL: false,
       corePath: '',
-      langPath: 'heji://lang',
+      langPath: new URL('.', document.querySelector('script[data-ocr-entry]').src).href, cacheMethod: 'none',
       logger: function (m) {
         if (onProgress) onProgress(m);
       }
