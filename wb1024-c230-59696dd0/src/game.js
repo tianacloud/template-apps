@@ -449,7 +449,7 @@ function renderDay(){
   let html=`<div class="ev"><span class="cat">${catName}</span><h3>${ev.title}</h3>
     <div class="desc">${ev.desc}</div>`;
   ev.opts.forEach((o,oi)=>{
-    html+=`<button class="opt" onclick="choose(${oi})" style="border-color:var(--line)">
+    html+=`<button class="opt" data-choice="${oi}" style="border-color:var(--line)">
       <div>${o.t}</div></button>`;
   });
   html+='</div>';
@@ -591,7 +591,7 @@ function renderMiniBoard(){
       h+=`<div class="brow"${me}><span>${medal} <b>${r.tp}</b> ${r.name}</span><span class="bv">${r.best}分</span></div>`;
     });
   }
-  h+='<button class="btn sm ghost" style="margin-top:10px" onclick="openBoard()">查看完整 16 队排行榜</button>';
+  h+='<button class="btn sm ghost" style="margin-top:10px" data-action="openBoard">查看完整 16 队排行榜</button>';
   document.getElementById('endBoard').innerHTML=h;
 }
 function openBoard(){
@@ -676,3 +676,11 @@ function goHome(){
 window.addEventListener('DOMContentLoaded',refreshHomeUnlock);
 
 Object.assign(window,{startTest,openSelect,closeModal,beginDays,choose,openLog,openBoard,resetBoard,downloadCard,goHome});
+
+document.addEventListener('click', event => {
+  const el=event.target.closest('[data-action],[data-close],[data-choice]');
+  if(!el)return;
+  if(el.dataset.action && typeof window[el.dataset.action]==='function') window[el.dataset.action]();
+  if(el.dataset.close) closeModal(el.dataset.close);
+  if(el.dataset.choice!==undefined) choose(Number(el.dataset.choice));
+});
