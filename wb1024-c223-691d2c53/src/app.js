@@ -41,7 +41,7 @@ function showBookLoading(msg){
 function hideBookLoading(){var el=bookLoadingEl();if(el)el.style.display="none"}
 function bookLoadFail(id){
   var el=bookLoadingEl();if(!el)return;
-  el.innerHTML='<div class="bl-box"><div class="bl-t">词库加载失败</div><div class="bl-d">首次使用需联网加载一次词库，<br>之后断网也能正常背单词。</div><button class="bl-btn" onclick="retryBookLoad()">重试</button></div>';
+  el.innerHTML='<div class="bl-box"><div class="bl-t">词库加载失败</div><div class="bl-d">请检查网络连接后重试。</div><button class="bl-btn" data-action="retryBookLoad">重试</button></div>';
   el.style.display="flex";
 }
 function retryBookLoad(){
@@ -779,19 +779,19 @@ function renderTopbar(){
   var chips=[];
   // Words chip
   if(remaining.length>0){
-    chips.push('<button class="task-chip due" onclick="switchView(\'today\')">'+ICONS.book+'剩余单词 '+remaining.length+'</button>');
+    chips.push('<button class="task-chip due" data-action="switchView" data-value="today">'+ICONS.book+'剩余单词 '+remaining.length+'</button>');
   }else{
     chips.push('<button class="task-chip done">'+ICONS.check+'单词已完成</button>');
   }
   // Pronunciation mistakes chip
   if(B().pronBook.length>0){
-    chips.push('<button class="task-chip due" onclick="switchView(\'wordbook\')">'+ICONS.mistakes+'发音待练 '+B().pronBook.length+'</button>');
+    chips.push('<button class="task-chip due" data-action="switchView" data-value="wordbook">'+ICONS.mistakes+'发音待练 '+B().pronBook.length+'</button>');
   }else{
     chips.push('<button class="task-chip done">'+ICONS.check+'无发音待练</button>');
   }
   // Dictation mistakes chip
   if(B().dictBook.length>0){
-    chips.push('<button class="task-chip due" onclick="switchView(\'mistakes\')">'+ICONS.mistakes+'默写错词 '+B().dictBook.length+'</button>');
+    chips.push('<button class="task-chip due" data-action="switchView" data-value="mistakes">'+ICONS.mistakes+'默写错词 '+B().dictBook.length+'</button>');
   }else{
     chips.push('<button class="task-chip done">'+ICONS.check+'无默写错词</button>');
   }
@@ -869,9 +869,9 @@ function renderWordbook(){
           '<div class="bk-meaning">'+(w?w.pos+' '+w.meaning:'')+'</div>'+
           '<div class="bk-meta"><span>失败 '+e.fails+' 次</span><span>最近：'+e.lastFail+'</span></div>'+
           '<div class="bk-actions">'+
-            '<button class="bk-btn bk-btn-practice" onclick="speak(\''+jsStr(e.word)+'\')">'+ICONS.speaker+' 试听</button>'+
-            (srSupport?'<button class="bk-btn bk-btn-review" onclick="retryPron(\''+jsStr(e.word)+'\')">重练发音</button>':'')+
-            '<button class="bk-btn bk-btn-delete" onclick="removePronMistake(\''+e.id+'\')">移出</button>'+
+            '<button class="bk-btn bk-btn-practice" data-action="speak" data-value="'+attr(e.word)+'">'+ICONS.speaker+' 试听</button>'+
+            (srSupport?'<button class="bk-btn bk-btn-review" data-action="retryPron" data-value="'+attr(e.word)+'">重练发音</button>':'')+
+            '<button class="bk-btn bk-btn-delete" data-action="removePronMistake" data-value="'+attr(e.id)+'">移出</button>'+
           '</div></div>';
       }).join("");
     }
@@ -892,7 +892,7 @@ function renderWordbook(){
         var lvText=st.level>=INTERVALS.length?"已掌握":("L"+st.level);
         var lvClass=st.level>=INTERVALS.length?"bk-tag bk-tag-hard":"bk-tag";
         return '<div class="word-item"><div class="wi-left"><div class="wi-word">'+w.word+(st.hardMode?' <span class="'+lvClass+'">困难</span>':'')+' <span class="'+lvClass+'">'+lvText+'</span></div><div class="wi-phonetic">'+w.phonetic+'</div><div class="wi-meaning">'+w.pos+' '+w.meaning+'</div></div><div class="wi-actions">'+
-          '<button class="wi-btn wi-speak" onclick="speak(\''+jsStr(w.word)+'\')">'+ICONS.speaker+'</button>'+
+          '<button class="wi-btn wi-speak" data-action="speak" data-value="'+attr(w.word)+'">'+ICONS.speaker+'</button>'+
           '</div></div>';
       }).join("");
     }
@@ -932,8 +932,8 @@ function renderWordList(){
   document.getElementById("wordList").innerHTML=words.map(function(w){
     var st=getWordState(w.word);
     return '<div class="word-item"><div class="wi-left"><div class="wi-word">'+w.word+'</div><div class="wi-phonetic">'+w.phonetic+'</div><div class="wi-meaning">'+w.pos+' '+w.meaning+'</div></div><div class="wi-actions">'+
-      '<button class="wi-btn wi-speak" onclick="speak(\''+jsStr(w.word)+'\')">'+ICONS.speaker+'</button>'+
-      '<button class="wi-btn wi-remove" onclick="removeFromMistakeBook(\''+jsStr(w.word)+'\')">移出</button></div></div>';
+      '<button class="wi-btn wi-speak" data-action="speak" data-value="'+attr(w.word)+'">'+ICONS.speaker+'</button>'+
+      '<button class="wi-btn wi-remove" data-action="removeFromMistakeBook" data-value="'+attr(w.word)+'">移出</button></div></div>';
   }).join("");
 }
 
@@ -962,8 +962,8 @@ function renderDictBookList(){
       '<div class="bk-contrast"><span class="wrong">'+escHtml(e.userSpell)+'</span><span class="right">'+e.word+'</span></div>'+
       '<div class="bk-meta"><span>错误 '+e.times+' 次</span><span>'+e.date+'</span></div>'+
       '<div class="bk-actions">'+
-        '<button class="bk-btn bk-btn-practice" onclick="speak(\''+jsStr(e.word)+'\')">'+ICONS.speaker+' 试听</button>'+
-        '<button class="bk-btn bk-btn-delete" onclick="removeDictMistake(\''+e.id+'\')">移出</button>'+
+        '<button class="bk-btn bk-btn-practice" data-action="speak" data-value="'+attr(e.word)+'">'+ICONS.speaker+' 试听</button>'+
+        '<button class="bk-btn bk-btn-delete" data-action="removeDictMistake" data-value="'+attr(e.id)+'">移出</button>'+
       '</div></div>';
   }).join("");
 }
@@ -991,9 +991,9 @@ function renderPronBookList(){
       '<div class="bk-meaning">'+(w?w.pos+' '+w.meaning:'')+'</div>'+
       '<div class="bk-meta"><span>失败 '+e.fails+' 次</span><span>最近：'+e.lastFail+'</span></div>'+
       '<div class="bk-actions">'+
-        '<button class="bk-btn bk-btn-practice" onclick="speak(\''+jsStr(e.word)+'\')">'+ICONS.speaker+' 试听</button>'+
-        (srSupport?'<button class="bk-btn bk-btn-review" onclick="retryPron(\''+jsStr(e.word)+'\')">重练发音</button>':'')+
-        '<button class="bk-btn bk-btn-delete" onclick="removePronMistake(\''+e.id+'\')">移出</button>'+
+        '<button class="bk-btn bk-btn-practice" data-action="speak" data-value="'+attr(e.word)+'">'+ICONS.speaker+' 试听</button>'+
+        (srSupport?'<button class="bk-btn bk-btn-review" data-action="retryPron" data-value="'+attr(e.word)+'">重练发音</button>':'')+
+        '<button class="bk-btn bk-btn-delete" data-action="removePronMistake" data-value="'+attr(e.id)+'">移出</button>'+
       '</div></div>';
   }).join("");
 }
@@ -1862,4 +1862,5 @@ init();
 // PWA: register service worker for offline use
 
 
-Object.assign(window,{retryBookLoad,switchView,speak,retryPron,removePronMistake,removeFromMistakeBook,removeDictMistake});
+function attr(s){return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+document.addEventListener("click",function(e){var el=e.target.closest("[data-action]");if(!el)return;var handlers={retryBookLoad,switchView,speak,retryPron,removePronMistake,removeFromMistakeBook,removeDictMistake};var fn=handlers[el.dataset.action];if(fn)fn(el.dataset.value);});
