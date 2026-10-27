@@ -1,0 +1,239 @@
+
+    :root {
+      --bg-top: #cfeaf6;
+      --bg-bottom: #a7c7d6;
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.9);
+      --ink: #2b3a42;
+      --accent: #2f9e9b;
+      --accent-2: #e08a5b;
+      --ok: #4caf72;
+      --danger: #d9656b;
+      --tap: 48px; /* 移动端触控目标 >= 44px */
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      user-select: none; -webkit-user-select: none;
+    }
+
+    /* 3D 画布容器：禁用页面滚动/缩放手势 */
+    #app { position: fixed; inset: 0; touch-action: none; }
+    #scene { display: block; width: 100%; height: 100%; touch-action: none; }
+
+    /* ---------- HUD 层 ---------- */
+    #hud { position: fixed; inset: 0; pointer-events: none; }
+    #hud .bar, #hud .toolbar, #hud button, #hud .pill { pointer-events: auto; }
+
+    .topbar {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; gap: 8px;
+      padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0));
+    }
+    .pill {
+      min-height: var(--tap); padding: 0 14px; border: none; border-radius: 14px;
+      background: var(--panel); color: var(--ink); font-size: 15px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .pill small { font-weight: 500; opacity: 0.7; }
+    #dayBtn { cursor: pointer; }
+    .spacer { flex: 1; }
+
+    .progress-wrap {
+      flex: 1; height: 10px; border-radius: 6px; background: rgba(0,0,0,0.10);
+      overflow: hidden; min-width: 60px;
+    }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--ok)); transition: width 0.15s ease; }
+
+    /* 底部工具栏 */
+    .toolbar {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+      display: flex; gap: 10px; align-items: center;
+      padding: 8px; border-radius: 20px; background: var(--panel);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .tool {
+      width: var(--tap); height: var(--tap); border: 2px solid transparent; border-radius: 14px;
+      background: #fff; color: var(--ink); font-size: 22px; line-height: 1;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .tool.active { border-color: var(--accent); background: #eafaf8; }
+    .tool .lbl { position: absolute; transform: translateY(26px); font-size: 10px; font-weight: 600; opacity: 0.7; }
+    .divider { width: 1px; height: 32px; background: rgba(0,0,0,0.12); }
+    #cardBtn { position: relative; }
+
+    /* 旋转 / 擦拭 模式切换组 */
+    .modegroup {
+      display: inline-flex; padding: 3px; gap: 2px; border-radius: 14px;
+      background: var(--panel); box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .mode {
+      border: none; background: transparent; color: var(--ink); cursor: pointer;
+      font-size: 13px; font-weight: 700; padding: 0 12px; height: 38px; border-radius: 11px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .mode.active { background: var(--accent); color: #fff; }
+    /* 旋转模式下淡化清洁工具，提示「此时拖动只旋转」 */
+    body.mode-rotate .toolbar .tool:not(#cardBtn):not(#resetBtn) { opacity: 0.4; }
+    #cardCount {
+      position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+      border-radius: 10px; background: var(--accent-2); color: #fff; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #cardBtn.armed { border-color: var(--accent-2); background: #fff1e8; }
+
+    /* 提示条 */
+    #toast {
+      position: absolute; left: 50%; top: 64px; transform: translateX(-50%);
+      background: rgba(43,58,66,0.92); color: #fff; padding: 8px 16px; border-radius: 12px;
+      font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; max-width: 80%; text-align: center;
+    }
+    #toast.show { opacity: 1; }
+
+    /* 完成横幅 */
+    #complete {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.9);
+      background: var(--panel); border-radius: 18px; padding: 18px 22px; text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18); opacity: 0; pointer-events: none; transition: all 0.3s ease;
+    }
+    #complete.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #complete .big { font-size: 26px; font-weight: 800; color: var(--ok); }
+    #complete .sub { font-size: 14px; opacity: 0.75; margin-top: 6px; }
+
+    /* ---------- 日历 / 关卡选择 弹层 ---------- */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(20,30,36,0.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 20;
+      pointer-events: auto;
+    }
+    .overlay.show { display: flex; }
+    .sheet {
+      width: min(560px, 100%); max-height: 86vh; overflow: auto;
+      background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .sheet h2 { margin: 4px 0 12px; font-size: 18px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; margin-bottom: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 12px; height: 12px; border-radius: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cell {
+      aspect-ratio: 1 / 1; border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink);
+      background: #eef3f5;
+    }
+    .cell.today { outline: 3px solid var(--accent); background: #eafaf8; }
+    .cell.done { background: #d9f2e2; color: #2c7a4b; }
+    .cell.makeup { background: #fff3e6; color: #b9692f; }
+    .cell.locked { background: #eceff1; color: #aab4ba; cursor: not-allowed; }
+    .cell:disabled { cursor: not-allowed; }
+    .sheet .close {
+      float: right; width: var(--tap); height: 40px; border: none; border-radius: 12px;
+      background: #eef3f5; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .sheet .row { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .sheet .reset {
+      margin-left: auto; height: 40px; padding: 0 14px; border: none; border-radius: 12px;
+      background: #fdecec; color: var(--danger); font-weight: 700; cursor: pointer; font-size: 13px;
+    }
+    .hint { font-size: 12px; opacity: 0.7; margin: 8px 0 0; line-height: 1.5; }
+
+    /* 多面清理操作提示 */
+    .face-hint {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
+      font-size: 12px; opacity: 0.72; pointer-events: none; text-align: center; width: 92%;
+    }
+
+    /* ---------- 移动端适配 ---------- */
+    @media (max-width: 560px) {
+      .topbar {
+        flex-wrap: wrap; gap: 6px;
+        padding: calc(env(safe-area-inset-top, 0px) + 6px) 8px 6px;
+      }
+      /* 进度条单独占满第二行，避免顶栏在窄屏挤成一团 */
+      .progress-wrap { order: 5; flex-basis: 100%; height: 8px; }
+      .pill { min-height: 40px; padding: 0 10px; font-size: 13px; }
+      .streakPill { font-size: 13px; }
+      .modegroup { padding: 2px; }
+      .mode { height: 34px; padding: 0 9px; font-size: 12px; }
+      #resetViewBtn { width: 34px; height: 34px; font-size: 16px; }
+      .tool { width: 44px; height: 44px; font-size: 20px; }
+      .tool .lbl { font-size: 9px; transform: translateY(23px); }
+      .toolbar { gap: 7px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+      .face-hint { font-size: 11px; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); }
+    }
+
+    /* 通关横幅内的「分享到朋友圈」按钮（横幅本体 pointer-events:none，仅按钮可点） */
+    #complete .cshare {
+      pointer-events: auto; margin-top: 14px; border: none; border-radius: 12px;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 14px;
+      padding: 10px 20px; cursor: pointer; box-shadow: 0 4px 14px rgba(47,158,155,0.4);
+    }
+    #complete .cshare:active { transform: translateY(1px); }
+
+    /* ---------- 分享弹层 ---------- */
+    .share-overlay {
+      position: fixed; inset: 0; background: rgba(15,28,36,0.62);
+      display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 60;
+      pointer-events: auto;
+    }
+    .share-modal {
+      width: min(420px, 92%); max-height: 90vh; overflow: auto;
+      background: #fff; border-radius: 18px; padding: 14px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 12px;
+    }
+    .share-loading { text-align: center; padding: 40px 0; color: var(--ink); opacity: 0.7; font-size: 14px; }
+    .share-preview { width: 100%; max-height: 60vh; overflow: hidden; display: flex; justify-content: center; }
+    .share-canvas { width: 100%; height: auto; border-radius: 12px; display: block; }
+    .share-actions { display: flex; gap: 8px; }
+    .share-btn {
+      flex: 1; min-height: 46px; border: none; border-radius: 12px; font-size: 14px; font-weight: 700;
+      background: #eef3f5; color: var(--ink); cursor: pointer; transition: transform 0.08s;
+    }
+    .share-btn:active { transform: translateY(1px); }
+    .share-btn.primary { background: var(--accent); color: #fff; }
+    .share-btn.ghost { background: transparent; color: #8aa; }
+
+    /* ---------- 新手引导 ---------- */
+    .tutorial-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(15,28,36,0.55);
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 0 14px calc(env(safe-area-inset-bottom, 0px) + 96px);
+      pointer-events: auto;
+    }
+    .tutorial-card {
+      width: min(440px, 100%); background: #fff; border-radius: 18px;
+      padding: 18px 18px 14px; box-shadow: 0 16px 50px rgba(0,0,0,0.3);
+      animation: tutPop 0.22s ease;
+    }
+    @keyframes tutPop { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .tut-step { font-size: 12px; color: var(--accent); font-weight: 700; }
+    .tut-title { font-size: 18px; font-weight: 800; margin: 4px 0 8px; }
+    .tut-body { font-size: 14px; line-height: 1.6; color: #445; }
+    .tut-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .tut-skip {
+      flex: 0 0 auto; border: none; background: transparent; color: #8aa;
+      font-size: 13px; cursor: pointer; padding: 10px 6px;
+    }
+    .tut-next {
+      flex: 1; min-height: 46px; border: none; border-radius: 12px;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    .tut-next:active { transform: translateY(1px); }
+    .tutorial-spot {
+      position: fixed; border: 3px solid var(--accent); border-radius: 22px;
+      box-shadow: 0 0 0 4px rgba(47,158,155,0.28); pointer-events: none;
+      transition: all 0.2s ease; z-index: 51;
+    }
+    @media (max-width: 560px) {
+      .tutorial-overlay { padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 86px); }
+    }
+  
