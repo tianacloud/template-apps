@@ -1,0 +1,15 @@
+import { readFile, mkdir, cp, writeFile, rm } from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('完整源码提交号必填');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请先绑定 Git 实例');
+const html=await readFile('app.html','utf8');
+const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body>([\s\S]*?)<script>/)[1];
+let js=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+js=js.replaceAll('"assets/', 'assetBase+"');
+const qr=await readFile('assets/qrcode.min.js','utf8');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await cp('assets','dist/assets',{recursive:true}); await cp('icon.png','dist/icon.png');
+await writeFile('dist/assets/app.js',`const assetBase=new URL('./',import.meta.url).href;\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${qr}\n${js}`);
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
