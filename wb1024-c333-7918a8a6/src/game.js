@@ -12087,29 +12087,40 @@
         finish();
         return;
       }
+      let cursor = 0, active = 0;
       todo.forEach((k) => {
         IMG[k] = createImage();
-        IMG[k].onload = () => {
-          done++;
-          tick();
-          if (done + failed === todo.length) finish();
-        };
-        IMG[k].onerror = (err) => {
-          console.error("[assets] load fail:", k, IMG[k].src, err && (err.errMsg || err.message) || err);
-          const src = IMG[k].src;
-          const asPng = src.replace(/\.webp(\?.*)$/, ".png$1");
-          if (pngFallback && asPng !== src && !IMG[k]._retried) {
-            IMG[k]._retried = true;
-            IMG[k].src = asPng;
-            return;
-          }
-          failed++;
-          tick();
-          if (done + failed === todo.length) finish();
-        };
-        const defSrc = ASSET_DEFS[k].src;
-        IMG[k].src = rewriteSrc ? rewriteSrc(defSrc) : cacheBust ? artUrl(defSrc) : defSrc;
       });
+      function pump() {
+        while (active < 4 && cursor < todo.length) {
+          const k = todo[cursor++], img = IMG[k], defSrc = ASSET_DEFS[k].src;
+          const url = rewriteSrc ? rewriteSrc(defSrc) : cacheBust ? artUrl(defSrc) : defSrc;
+          let attempts = 0;
+          active++;
+          img.onload = () => {
+            done++;
+            active--;
+            tick();
+            if (done + failed === todo.length) finish();
+            else pump();
+          };
+          img.onerror = () => {
+            if (++attempts < 3) {
+              setTimeout(() => {
+                img.src = url;
+              }, attempts * 500);
+              return;
+            }
+            failed++;
+            active--;
+            tick();
+            if (done + failed === todo.length) finish();
+            else pump();
+          };
+          img.src = url;
+        }
+      }
+      pump();
     }
     function loadAssetKeys(createImage, givenKeys, callback, opts) {
       const cfg = Object.assign({}, opts || {});
