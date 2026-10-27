@@ -1,0 +1,14 @@
+import { readFile, mkdir, cp, writeFile, rm } from 'node:fs/promises';
+const read = p => readFile(new URL(p, import.meta.url), 'utf8');
+await rm('dist', { recursive: true, force: true });
+await mkdir('dist/assets', { recursive: true });
+await cp('public', 'dist/assets', { recursive: true });
+await cp('public/icon.png', 'dist/icon.png');
+const css = await read('./src/style.css');
+const body = await read('./src/body.html');
+const files = JSON.parse(await read('./src/scripts.json'));
+const scripts = await Promise.all(files.map(f => read('./src/' + f)));
+const setup = `const base=document.createElement('base');base.href=new URL('./',import.meta.url).href;document.head.appendChild(base);const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};`;
+await writeFile('dist/assets/app.js', setup + '\n' + scripts.join('\n;\n'));
+const source = JSON.parse(await read('./source.json'));
+console.log('TIANA_PROJECT_PARAMS ' + JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
