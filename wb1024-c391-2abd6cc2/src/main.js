@@ -22,7 +22,7 @@ let curProject = localStorage.getItem(PKEY) || "";
 let token = localStorage.getItem(TKEY) || "";
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 const projOf = p => p.split("/")[0];
 const catOf = p => p.split("/")[1] || "_根";
 const nameOf = p => p.split("/").pop();
