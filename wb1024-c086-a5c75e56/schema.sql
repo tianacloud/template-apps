@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS learning_state (id TEXT PRIMARY KEY, value TEXT NOT NULL);
