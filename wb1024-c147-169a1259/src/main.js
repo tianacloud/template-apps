@@ -249,3 +249,13 @@ setInterval(() => {
   }
 }, 1000);
 Object.assign(window,{switchTab,toggleCheck,doCheckin,openDetail,startBreath,startGuide,addReminder,delReminder,testNotify,stopBreath});
+// Delegate source markup actions without executing inline scripts under the host CSP.
+document.addEventListener('click', event => {
+  const el = event.target.closest('[onclick]');
+  if (!el) return;
+  const action = el.getAttribute('onclick');
+  const match = /^([A-Za-z]+)\((?:'([^']*)'|(\d+))?\)$/.exec(action || '');
+  if (!match) return;
+  const fn = window[match[1]];
+  if (typeof fn === 'function') fn(match[2] ?? (match[3] === undefined ? undefined : Number(match[3])));
+});
