@@ -7,4 +7,4 @@ await rm("dist",{recursive:true,force:true}); await mkdir("dist/assets",{recursi
 await writeFile("dist/assets/app.js",`document.title="码力日志 · 记录每一段和代码相伴的时光";\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${js}`);
 await copyFile("public/icon.png","dist/icon.png");
 const source=JSON.parse(await readFile("source.json","utf8"));
-console.log("TIANA_PROJECT_PARAMS="+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
