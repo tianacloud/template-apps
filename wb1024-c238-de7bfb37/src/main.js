@@ -1,9 +1,9 @@
 import { createTianaFetch } from '@tianacloud/serverless';
 import body from './body.html?raw';
-const base = document.createElement('base'); base.href = new URL('../', import.meta.url).href; document.head.append(base);
+const assetRoot = new URL('../', import.meta.url);
 document.title = '老李的世界Online｜我的人物面板';
-for (const path of ['assets/css/style.css','assets/css/pets.css']) { const l=document.createElement('link'); l.rel='stylesheet'; l.href=path; document.head.append(l); }
-document.body.innerHTML=body;
+for (const path of ['assets/css/style.css','assets/css/pets.css']) { const l=document.createElement('link'); l.rel='stylesheet'; l.href=new URL(path, assetRoot).href; document.head.append(l); }
+document.getElementById('app').innerHTML=body;
 async function start() {
   const c=await window.tiana.connection();
   if (!window.tiana.auth?.getAccessToken || c.sql_api !== 'hrana-v3') throw Error('数据库连接不可用');
@@ -29,6 +29,6 @@ async function start() {
     async deleteRecord({databaseId,recordId}) { await sql('DELETE FROM game_records WHERE id = ? AND kind = ?',[recordId,databaseId]); }
   };
   window.__SMART_PAGE__={database,__realImpls__:{database}};
-  for (const path of ['assets/js/html2canvas.min.js','assets/js/boot.js','assets/js/app.js','assets/js/pets.js']) await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=path;s.onload=resolve;s.onerror=reject;document.body.append(s);});
+  for (const path of ['assets/js/html2canvas.min.js','assets/js/boot.js','assets/js/app.js','assets/js/pets.js']) await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL(path, assetRoot).href;s.onload=resolve;s.onerror=reject;document.body.append(s);});
 }
 start().catch(e=>{document.body.textContent='无法连接存档，请刷新重试。'; console.error(e)});

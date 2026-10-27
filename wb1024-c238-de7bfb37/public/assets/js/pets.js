@@ -1184,7 +1184,7 @@
     const y = yardTick();
     const sec = yardNextIn();
     h += '<section class="pet-card yard">' +
-      '<div class="pet-card-title">小院子 · 三叶草<img alt class="tiny-ico" src="./assets/img/icons/sun.png"></div>' +
+      '<div class="pet-card-title">小院子 · 三叶草<img alt class="tiny-ico" src="./assets/assets/img/icons/sun.png"></div>' +
       '<div class="yard-row">' +
       '<div class="yard-grass" id="yardGrass">' + yardSvg(y.grown, y.lucky) + '</div>' +
       '<div class="yard-info">' +

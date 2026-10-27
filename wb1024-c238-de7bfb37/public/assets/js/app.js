@@ -669,8 +669,8 @@
         gender = /(编程|开发|工程|建筑|算法)/.test(text) ? 'male' : 'female';
       }
       return gender === 'male'
-        ? './assets/img/char-male-porcelain-blue.png'
-        : './assets/img/char-female-porcelain-lavender.png';
+        ? './assets/assets/img/char-male-porcelain-blue.png'
+        : './assets/assets/img/char-female-porcelain-lavender.png';
     }
 
     function pickCharImage(profile) {
@@ -708,8 +708,8 @@
       const combo = getCharCombo();
       if (combo) {
         return '<div class="' + (cls || '') + ' char-combo">' +
-          '<img class="combo-bg" src="./assets/img/preset/bg/' + escapeHtml(combo.bg) + '.png" alt="">' +
-          '<img class="combo-char" src="./assets/img/preset/char/' + escapeHtml(combo.char) + '.png" alt="' + (alt || '我的角色') + '">' +
+          '<img class="combo-bg" src="./assets/assets/img/preset/bg/' + escapeHtml(combo.bg) + '.png" alt="">' +
+          '<img class="combo-char" src="./assets/assets/img/preset/char/' + escapeHtml(combo.char) + '.png" alt="' + (alt || '我的角色') + '">' +
           '</div>';
       }
       return '<img class="' + (cls || '') + '" src="' + escapeHtml(getCharImage()) + '" alt="' + (alt || '我的角色') + '">';
@@ -767,7 +767,7 @@
       const _imgEl = document.getElementById('charImg');
       if (_imgEl) {
         if (_combo) {
-          _imgEl.src = './assets/img/preset/bg/' + _combo.bg + '.png';
+          _imgEl.src = './assets/assets/img/preset/bg/' + _combo.bg + '.png';
           _imgEl.classList.add('combo-bg-img');
           let layer = document.getElementById('charImgLayer');
           if (!layer) {
@@ -777,7 +777,7 @@
             layer.alt = '我的角色';
             _imgEl.parentNode.appendChild(layer);
           }
-          layer.src = './assets/img/preset/char/' + _combo.char + '.png';
+          layer.src = './assets/assets/img/preset/char/' + _combo.char + '.png';
         } else {
           _imgEl.classList.remove('combo-bg-img');
           const layer = document.getElementById('charImgLayer');
@@ -1071,7 +1071,7 @@
       list.innerHTML = cats.slice(0, 6).map(c => {
         const pct = Math.min(100, Math.round(c.level / Math.max(maxLv, 1) * 100));
         return `<li>
-            <img class="sl-ico" src="./assets/img/decor/skill/icons/${escapeHtml(c.icon)}.png" alt="" />
+            <img class="sl-ico" src="./assets/assets/img/decor/skill/icons/${escapeHtml(c.icon)}.png" alt="" />
             <span class="sl-name">${escapeHtml(c.name)}</span>
             <div class="sl-bar"><div class="sl-bar-fill" style="width:${pct}%;"></div></div>
             <span class="sl-lv">Lv.${c.level}</span>
@@ -2886,7 +2886,7 @@
       ];
 
       let html = '';
-      const skillIcons = './assets/img/decor/skill/icons/';
+      const skillIcons = './assets/assets/img/decor/skill/icons/';
       const charImg = pickCharImage(profile);
 
       // 1. Hero（纯 CSS）
@@ -2906,7 +2906,7 @@
 
       // 2. PLAYER（保留 card-bg 美术）
       html += '<div class="arcx-player">';
-      html += '  <img class="arcx-player-bg" src="./assets/img/decor/arch/card-bg.png" alt="" />';
+      html += '  <img class="arcx-player-bg" src="./assets/assets/img/decor/arch/card-bg.png" alt="" />';
       html += '  <div class="arcx-player-tag">PLAYER · 当前存档</div>';
       html += '  <div class="arcx-player-portrait">' + charPortraitHtml('', '角色') + '</div>';
       html += '  <div class="arcx-player-info">';
@@ -3347,14 +3347,14 @@
       const grid = document.getElementById('bgGrid');
       grid.innerHTML = PRESET_BGS.map(name => `
         <button type="button" class="pick-tile ${_pickBg === name ? 'selected' : ''}" data-name="${name}" onclick="selectBg('${name}')">
-          <img src="./assets/img/preset/bg/${name}.png" alt="${name}" loading="lazy" />
+          <img src="./assets/assets/img/preset/bg/${name}.png" alt="${name}" loading="lazy" />
         </button>`).join('');
     }
     function renderCharGrid() {
       const grid = document.getElementById('charGrid');
       grid.innerHTML = PRESET_CHARS.map(name => `
         <button type="button" class="pick-tile ${_pickChar === name ? 'selected' : ''}" data-name="${name}" onclick="selectChar('${name}')">
-          <img src="./assets/img/preset/char/${name}.png" alt="${name}" loading="lazy" />
+          <img src="./assets/assets/img/preset/char/${name}.png" alt="${name}" loading="lazy" />
         </button>`).join('');
     }
     function selectBg(name) {
@@ -3371,9 +3371,9 @@
       const bg = document.getElementById('bgPreview');
       const ch = document.getElementById('charPreview');
       const empty = document.getElementById('previewEmpty');
-      if (_pickBg) { bg.src = `./assets/img/preset/bg/${_pickBg}.png`; bg.style.display = 'block'; }
+      if (_pickBg) { bg.src = `./assets/assets/img/preset/bg/${_pickBg}.png`; bg.style.display = 'block'; }
       else { bg.removeAttribute('src'); bg.style.display = 'none'; }
-      if (_pickChar) { ch.src = `./assets/img/preset/char/${_pickChar}.png`; ch.style.display = 'block'; }
+      if (_pickChar) { ch.src = `./assets/assets/img/preset/char/${_pickChar}.png`; ch.style.display = 'block'; }
       else { ch.removeAttribute('src'); ch.style.display = 'none'; }
       empty.style.display = (_pickBg && _pickChar) ? 'none' : 'flex';
     }
@@ -3387,7 +3387,7 @@
       // 降级方案：存组合，展示端分层渲染（不依赖 canvas，任何环境可用）
       const finishWithCombo = () => {
         saveCharCombo({ bg: _pickBg, char: _pickChar });
-        try { saveCharImage('./assets/img/preset/char/' + _pickChar + '.png'); } catch(_) {}
+        try { saveCharImage('./assets/assets/img/preset/char/' + _pickChar + '.png'); } catch(_) {}
         try { localStorage.setItem(LS_CHAR_SKIPPED, '0'); } catch(e) {}
         fillHome(getProfile());
         goPage('page-home');
@@ -3438,8 +3438,8 @@
       chImg.onload = tryComposite;
       // 图片加载失败也不再报错：直接走组合方案（展示端 <img> 无需 CORS）
       bgImg.onerror = chImg.onerror = finishWithCombo;
-      bgImg.src = `./assets/img/preset/bg/${_pickBg}.png`;
-      chImg.src = `./assets/img/preset/char/${_pickChar}.png`;
+      bgImg.src = `./assets/assets/img/preset/bg/${_pickBg}.png`;
+      chImg.src = `./assets/assets/img/preset/char/${_pickChar}.png`;
     }
 
     // 修改描述 → 回到表单，预填数据
@@ -3644,15 +3644,15 @@
             saveCharImage(canvas.toDataURL('image/png'));
           } catch(e) {
             // canvas tainted 时退化为直接使用文件路径
-            saveCharImage('./assets/img/ui/demo-char.png');
+            saveCharImage('./assets/assets/img/ui/demo-char.png');
           }
         } catch(e) {
-          try { saveCharImage('./assets/img/ui/demo-char.png'); } catch(_) {}
+          try { saveCharImage('./assets/assets/img/ui/demo-char.png'); } catch(_) {}
         }
         goDemoHome();
       };
       demoImg.onerror = goDemoHome;
-      demoImg.src = './assets/img/ui/demo-char.png';
+      demoImg.src = './assets/assets/img/ui/demo-char.png';
     }
 
     /* ============================================================
@@ -3750,7 +3750,7 @@
       fillHome(p);
       goPage('page-home');
     }
-    const DEFAULT_CHAR_IMG = './assets/img/preset/char/character_01.png';
+    const DEFAULT_CHAR_IMG = './assets/assets/img/preset/char/character_01.png';
 
     // 顶部状态：显示云端连接情况，点击可看详情（排障用）
     function updateCloudBadge() {
