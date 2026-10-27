@@ -1,0 +1,23 @@
+import css from './style.css?inline';
+const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
+const stages=[
+ {name:'🔹 热身 3分钟', seconds:180, desc:['1.原地慢踏步 1分钟','2.肩关节绕环 各方向30秒','3.髋关节画圈 左右各30秒','4.膝关节小幅绕环 30秒']},
+ {name:'🔹 主训练 9分钟', seconds:540, desc:['1.徒手深蹲 10次','2.靠墙静蹲 25秒','3.俯卧撑8次（做不动换墙面俯卧撑）','4.椅子坐立 10次','5.站姿后抬腿 每侧8次','6.站姿收腹 20秒 ×2组','动作之间休息30秒']},
+ {name:'🔹 拉伸 3分钟', seconds:180, desc:['1.大腿前侧拉伸 每侧30秒','2.大腿后侧拉伸 每侧30秒','3.肩背拉伸 每侧30秒','4.腹部放松深呼吸30秒']}
+];
+document.body.innerHTML=`<main class="container"><div class="stage-name" id="stage"></div><div class="timer normal" id="timer" aria-live="polite"></div><div class="task-desc" id="desc"></div><div class="stage-chips" id="chips"></div><div class="btn-group"><button id="start">开始训练</button><button id="pause">暂停</button><button id="reset">重置</button><button id="full">全屏</button></div><div class="progress-bar"><div class="progress-fill" id="fill"></div></div><div class="progress-text" id="progress"></div><div class="hint">空格 开始 / 暂停 · R 重置 · F 全屏</div></main>`;
+const $=id=>document.getElementById(id); let elapsed=0, running=false, started=false, finished=false, deadline=0, interval=null, lock=null, audio=null, lastStage=0,lastBeep=null;
+const fmt=s=>`${String(Math.floor(Math.max(0,s)/60)).padStart(2,'0')}:${String(Math.max(0,s)%60).padStart(2,'0')}`;
+function locate(n){if(n<180)return [0,180-n];if(n<720)return [1,720-n];return [2,900-n]}
+function sound(freq,duration=.12,vol=.16,type='sine'){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audio ||= new AC();if(audio.state==='suspended')audio.resume();let o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g).connect(audio.destination);o.start();o.stop(t+duration+.02)}catch{}}
+function vibrate(p){try{navigator.vibrate?.(p)}catch{}}
+async function wake(){try{if(navigator.wakeLock&&running){const acquired=await navigator.wakeLock.request('screen');if(running)lock=acquired;else acquired.release()}}catch{}}
+function release(){if(lock){lock.release();lock=null}}
+function render(){let [i,left]=locate(elapsed);$('stage').textContent=finished?'🎉 训练完成！':started?stages[i].name:'准备开始训练';$('timer').textContent=fmt(finished?0:left);$('timer').className='timer '+(started&&!finished&&left<=10?'alert':started&&!finished&&left<=30?'warn':'normal');$('desc').innerHTML=finished?'全部训练结束，好好休息':started?stages[i].desc.join('<br>'):'点击「开始训练」，启动 15 分钟训练计划';$('chips').innerHTML=stages.map((s,j)=>`<div class="chip ${finished?'':j===i?'active':j<i?'done':''}">${s.name.replace('🔹','').trim()}</div>`).join('');$('fill').style.width=`${elapsed/9}%`;$('progress').textContent=`已完成 ${fmt(elapsed)} / 15:00`;$('start').disabled=running;$('pause').disabled=!running;$('start').textContent=finished?'再来一次':running?'训练中':started?'继续':'开始训练'}
+function stop(){clearInterval(interval);interval=null;running=false;release()}
+function tick(){let next=Math.min(900,Math.max(0,900-Math.ceil((deadline-Date.now())/1000))); if(next===elapsed)return;elapsed=next;if(elapsed>=900){stop();finished=true;sound(660,.18,.2);setTimeout(()=>sound(880,.18,.2),180);setTimeout(()=>sound(1170,.45,.22),360);vibrate([200,100,200,100,400]);render();return}let [i,left]=locate(elapsed);if(i!==lastStage){sound(1200,.28,.2,'triangle');vibrate([250,80,120]);lastStage=i;lastBeep=null}if(left>0&&left<=3&&lastBeep!==left){lastBeep=left;sound(880);vibrate(80)}render()}
+function reset(){stop();elapsed=0;started=false;finished=false;lastStage=0;lastBeep=null;render()}
+function start(){if(running)return;if(finished)reset();started=true;running=true;deadline=Date.now()+(900-elapsed)*1000;try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){audio ||= new AC();audio.resume()}}catch{}wake();interval=setInterval(tick,200);render()}
+function pause(){if(!running)return;tick();if(running)stop();render()}
+$('start').onclick=start;$('pause').onclick=pause;$('reset').onclick=reset;$('full').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen?.()}catch{}};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running){tick();wake()}});document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();running?pause():start()}else if(e.key.toLowerCase()==='r')reset();else if(e.key.toLowerCase()==='f')$('full').click()});render();
