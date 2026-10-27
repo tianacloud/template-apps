@@ -361,11 +361,8 @@
       <article class="balloon-card group flex cursor-pointer flex-col rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-500/60"
                data-id="${b.id}" tabindex="0" role="button" aria-label="查看 ${esc(b.name)} 的详细资料">
 
-        <!-- 缩略图占位：后续把 img 的 src 替换为真实图片路径即可显示气球图片 -->
+
         <div class="relative mb-3 flex h-28 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-100 via-indigo-100 to-purple-100 dark:from-slate-700 dark:via-slate-700 dark:to-slate-600">
-          <img src="" alt="${esc(b.name)}" loading="lazy"
-               onerror="this.style.display='none'" onload="this.style.display='block'"
-               class="balloon-thumb absolute inset-0 h-full w-full object-cover" />
           <span class="text-4xl opacity-70">🎈</span>
           <span class="absolute right-2 top-2 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-900/70 dark:text-slate-300">#${String(b.id).padStart(2, '0')}</span>
         </div>
@@ -508,9 +505,6 @@
         <!-- 弹窗头部：缩略图 + 名称 + 类型 + 特性 -->
         <div class="flex items-center gap-4 rounded-t-2xl bg-gradient-to-r from-indigo-50 to-sky-50 p-5 dark:from-slate-700/60 dark:to-slate-700/30">
           <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/70 shadow-inner dark:bg-slate-800/70">
-            <img src="" alt="${esc(b.name)}"
-                 onerror="this.style.display='none'" onload="this.style.display='block'"
-                 class="balloon-thumb absolute inset-0 h-full w-full object-cover" />
             <span class="text-4xl">🎈</span>
           </div>
           <div class="min-w-0">
@@ -667,11 +661,5 @@
     renderChips();
     render();
 
-    /* 【替换缩略图小贴士】
-     * 每张卡片和弹窗里的 <img class="balloon-thumb" src=""> 都是占位图；
-     * 准备好图片后，在浏览器控制台执行下面这行即可批量替换（按 alt 名称匹配文件）：
-     *   document.querySelectorAll('.balloon-thumb').forEach(img => { img.src = 'images/' + img.alt + '.png'; });
-     * 或者直接在 cardHTML / modalHTML 里把 src 改成固定路径。
-     */
   })();
   
