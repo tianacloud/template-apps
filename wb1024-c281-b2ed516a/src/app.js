@@ -234,3 +234,7 @@ document.getElementById("app").innerHTML="\n<div class=\"wrap\">\n\n  <header>\n
   }
   window.runCalc=runCalc;
 })();
+
+document.querySelector("[onclick=\"runCheck()\"]").addEventListener("click", window.runCheck);
+document.querySelector("[onclick=\"resetCheck()\"]").addEventListener("click", window.resetCheck);
+document.querySelector("[onclick=\"runCalc()\"]").addEventListener("click", window.runCalc);
