@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS ledger_records (id TEXT PRIMARY KEY, note TEXT NOT NULL, type TEXT NOT NULL, amount REAL NOT NULL, category TEXT NOT NULL, date TEXT NOT NULL, created_at TEXT NOT NULL);
