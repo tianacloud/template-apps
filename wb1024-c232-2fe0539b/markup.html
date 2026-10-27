@@ -1,0 +1,301 @@
+
+      <!-- ======================= 左侧：控制面板 ======================= -->
+      <aside id="panel">
+        <header class="panel-head">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3L12 2.6Z" />
+              <path d="M3 7.3l9 4.8 9-4.8M12 12.1v9.3" />
+            </svg>
+          </div>
+          <div class="brand">
+            <h1>ModelLite</h1>
+            <p>网页 3D 模型轻量化预处理工具</p>
+          </div>
+        </header>
+
+        <div class="panel-body">
+          <!-- ---------- 1. 文件导入 ---------- -->
+          <section class="card">
+            <h2 class="card-title"><span class="idx">1</span>导入模型</h2>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="选择或拖拽模型文件">
+              <svg class="dz-icon" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+                <path d="M4 15v3.2A1.8 1.8 0 0 0 5.8 20h12.4A1.8 1.8 0 0 0 20 18.2V15" />
+              </svg>
+              <p class="dz-main">拖拽 .glb / .gltf 到此处</p>
+              <p class="dz-sub">或 <span class="link">点击选择文件</span></p>
+              <p class="dz-tip">.gltf 若引用外部 .bin / 贴图，可一并多选（也可把整个文件夹拖进来）</p>
+              <!-- multiple：支持 gltf + 关联资源一起选中 -->
+              <input id="file-input" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2,model/gltf-binary,model/gltf+json" multiple hidden />
+            </div>
+            <p id="file-meta" class="file-meta" hidden></p>
+            <p class="privacy">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <span>仅在本机内存解析，<strong>不上传服务器</strong>，可断网验证</span>
+            </p>
+          </section>
+
+          <!-- ---------- 2. 模型体检 ---------- -->
+          <section class="card">
+            <h2 class="card-title">
+              <span class="idx">2</span>模型体检
+              <span id="stats-tag" class="tag">未加载</span>
+            </h2>
+
+            <!-- 体检评分：把统计数字翻译成结论 -->
+            <div class="health" id="health" hidden>
+              <div class="hs-left">
+                <div class="hs-score-wrap">
+                  <span class="hs-num" id="health-score">0</span>
+                  <span class="hs-unit">分</span>
+                </div>
+                <span class="hs-grade" id="health-grade">—</span>
+              </div>
+              <p class="hs-advice" id="health-advice">—</p>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat">
+                <span class="k">三角面</span>
+                <span class="v" id="st-tris">—</span>
+                <em class="d" id="st-tris-d"></em>
+              </div>
+              <div class="stat">
+                <span class="k">顶点数</span>
+                <span class="v" id="st-verts">—</span>
+                <em class="d" id="st-verts-d"></em>
+              </div>
+              <div class="stat">
+                <span class="k">贴图数量</span>
+                <span class="v" id="st-tex">—</span>
+              </div>
+              <div class="stat">
+                <span class="k">贴图分辨率</span>
+                <span class="v" id="st-res">—</span>
+              </div>
+              <div class="stat">
+                <span class="k">原始文件大小</span>
+                <span class="v" id="st-size">—</span>
+              </div>
+              <div class="stat">
+                <span class="k">材质 / Mesh</span>
+                <span class="v" id="st-mat">—</span>
+              </div>
+              <div class="stat wide">
+                <span class="k">包围盒尺寸 X × Y × Z</span>
+                <span class="v" id="st-bbox">—</span>
+              </div>
+            </div>
+
+            <!-- 体积构成：一眼看出是几何胖还是贴图胖 -->
+            <div class="weight" id="weight" hidden>
+              <div class="weight-head">
+                <span class="wh-label">体积构成</span>
+                <span class="wh-total" id="weight-total">—</span>
+              </div>
+              <div class="weight-bar">
+                <i class="wb-tex" id="wb-tex"></i>
+                <i class="wb-geo" id="wb-geo"></i>
+              </div>
+              <div class="weight-legend">
+                <span><i class="dot tex"></i>贴图 <b id="weight-tex">—</b></span>
+                <span><i class="dot geo"></i>几何 <b id="weight-geo">—</b></span>
+              </div>
+            </div>
+
+            <!-- 推荐档位：点一下就把参数填好 -->
+            <button class="recommend" id="btn-recommend" type="button" hidden>
+              <span class="rec-star">✦</span>
+              <span class="rec-text" id="recommend-text">一键采用推荐档位</span>
+              <span class="rec-arrow">→</span>
+            </button>
+          </section>
+
+          <!-- ---------- 3. 轻量化参数 ---------- -->
+          <section class="card">
+            <h2 class="card-title"><span class="idx">3</span>轻量化参数</h2>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="simplify">网格简化减面</label>
+                <output id="simplify-val" class="val">0%</output>
+              </div>
+              <input id="simplify" type="range" min="0" max="90" step="1" value="0" />
+              <div class="range-scale"><span>0%</span><span>90%</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="tex-size">贴图目标分辨率</label>
+              </div>
+              <select id="tex-size">
+                <option value="original">保持原分辨率（不压缩）</option>
+                <option value="2048">2048 px</option>
+                <option value="1024">1024 px</option>
+                <option value="512">512 px</option>
+                <option value="256">256 px</option>
+              </select>
+              <label class="check">
+                <input type="checkbox" id="tex-webp" />
+                <span>贴图转 WebP 格式（同画质体积更小）</span>
+              </label>
+            </div>
+
+            <div class="field">
+              <div class="field-head"><span class="label-like">优化选项</span></div>
+              <label class="check">
+                <input type="checkbox" id="opt-merge-material" />
+                <span>合并重复材质</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" id="opt-dedupe-vertex" />
+                <span>移除冗余未使用顶点</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" id="opt-drop-empty" />
+                <span>剔除空 Mesh</span>
+              </label>
+            </div>
+          </section>
+
+          <!-- ---------- 4. 预设模板 ---------- -->
+          <section class="card">
+            <h2 class="card-title"><span class="idx">4</span>预设模板</h2>
+            <div class="presets" id="presets">
+              <button class="preset" data-preset="hd" type="button">
+                <span class="p-name">网页高清展示</span>
+                <span class="p-desc">减面 20% · 贴图 1024px</span>
+              </button>
+              <button class="preset" data-preset="common" type="button">
+                <span class="p-name">网页通用预览</span>
+                <span class="p-desc">减面 40% · 贴图 512px</span>
+              </button>
+              <button class="preset" data-preset="mobile" type="button">
+                <span class="p-name">移动端极简</span>
+                <span class="p-desc">减面 70% · 贴图 256px</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- ---------- 5. 操作日志 ---------- -->
+          <section class="card">
+            <h2 class="card-title">
+              <span class="idx">5</span>操作日志
+              <button id="clear-log" class="mini" type="button">清空</button>
+            </h2>
+            <div id="log" class="log">
+              <p class="log-empty">调整任一参数后，这里会记录本次优化的面数变化与体积变化。</p>
+            </div>
+          </section>
+
+          <!-- ---------- 6. 功能按钮 ---------- -->
+          <section class="card actions">
+            <div class="btn-row">
+              <button id="btn-reset" class="btn ghost" type="button">重置原始模型</button>
+              <button id="btn-export" class="btn primary" type="button">导出优化后 GLB</button>
+            </div>
+            <label class="check small">
+              <input type="checkbox" id="export-report" checked />
+              <span>同时下载 txt 优化报告</span>
+            </label>
+            <p class="ver">v1.0.0 · 纯前端静态部署 · 无后端</p>
+          </section>
+        </div>
+      </aside>
+
+      <!-- ======================= 右侧：3D 预览 ======================= -->
+      <main id="stage">
+        <div id="viewport"></div>
+
+        <!-- 双视图标签与分割线 -->
+        <div id="view-badge-left" class="view-badge left" hidden>原始模型</div>
+        <div id="view-badge-right" class="view-badge right" hidden>优化后</div>
+        <div id="divider" class="divider" hidden></div>
+
+        <!-- 顶部工具栏 -->
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="视图模式">
+            <button id="btn-view-single" class="seg-btn active" type="button">单视图</button>
+            <button id="btn-view-dual" class="seg-btn" type="button">双视图对比</button>
+          </div>
+
+          <button id="btn-reset-view" class="tbtn" type="button">重置视角</button>
+          <button id="btn-autorotate" class="tbtn toggle" type="button" title="让模型匀速自转，配合双视图录制对比视频">
+            自动旋转
+          </button>
+
+          <!-- 一组显示相关设置：窄屏时整组换行，不会只剩一个按钮孤零零地掉到第二行 -->
+          <div class="toolbar-group">
+            <div class="tgroup">
+              <span class="tlabel">背景</span>
+              <div class="swatches" role="group" aria-label="背景色">
+                <button class="sw active" data-bg="light" type="button" title="白色"></button>
+                <button class="sw" data-bg="gray" type="button" title="深灰"></button>
+                <button class="sw" data-bg="black" type="button" title="黑色"></button>
+              </div>
+            </div>
+
+            <div class="tgroup">
+              <span class="tlabel">环境光</span>
+              <input id="ambient" type="range" min="0" max="2.5" step="0.05" value="0.6" />
+              <output id="ambient-val" class="tval">0.60</output>
+            </div>
+
+            <button id="btn-wireframe" class="tbtn toggle" type="button">线框模式</button>
+          </div>
+        </div>
+
+        <!-- 右上角使用说明（可折叠） -->
+        <div class="help" id="help">
+          <button class="help-head" id="help-toggle" type="button">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 16v-4.5M12 8h.01" />
+            </svg>
+            使用说明
+            <span class="caret">▾</span>
+          </button>
+          <ol class="help-body">
+            <li><b>导入</b>：拖入 .glb 或 .gltf（含外部资源请一并选中）。</li>
+            <li><b>体检</b>：左上角会给 0~100 分和短板诊断，照着建议调通常不会错。</li>
+            <li><b>调参</b>：拖滑块 / 点预设，右侧实时刷新；切「双视图对比」看损耗。</li>
+            <li><b>导出</b>：点「导出优化后 GLB」直接下载，可勾选同时生成 txt 报告。</li>
+            <li><b>转台</b>：开「自动旋转」让模型自转，双视图下可直接录对比视频。</li>
+            <li><b>视角</b>：左键旋转 · 滚轮缩放 · 右键平移 · 「重置视角」复位。</li>
+          </ol>
+        </div>
+
+        <!-- 减面过度警示 -->
+        <div class="canvas-warn" id="canvas-warn" hidden>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9">
+            <path d="M12 4 2.8 20h18.4L12 4Z" />
+            <path d="M12 10v4.2M12 17h.01" />
+          </svg>
+          <span id="canvas-warn-text">减面比例过高，薄壁与边角可能已经塌陷，建议切到「双视图对比」确认</span>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="empty-state">
+          <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3L12 2.6Z" />
+            <path d="M3 7.3l9 4.8 9-4.8M12 12.1v9.3" />
+          </svg>
+          <p>导入一个模型开始预览</p>
+          <span>支持 GLB / GLTF，文件仅在本地解析</span>
+        </div>
+
+        <!-- 加载遮罩 -->
+        <div class="loading" id="loading" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="loading-text">正在处理…</p>
+          <div class="bar"><i id="loading-bar"></i></div>
+        </div>
+
+        <!-- 轻提示 -->
+        <div class="toast-wrap" id="toast"></div>
+      </main>
+    
