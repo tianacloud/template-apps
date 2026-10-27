@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS xinyu_islands (app_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, data TEXT NOT NULL);
