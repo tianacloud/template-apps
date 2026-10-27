@@ -601,9 +601,7 @@
     /* 离线能力：注册 service worker（file:// 下跳过，直接开也能用） */
     if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0 &&
         !window.__QH_STANDALONE__) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function () { /* 忽略：不影响正常使用 */ });
-      });
+      navigator.serviceWorker.register('assets/sw.js', {scope:'./'}).catch(function () { /* 离线不可用时仍可在线使用 */ });
     }
   }
 
