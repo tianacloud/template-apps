@@ -392,7 +392,16 @@ $("btnCopy").onclick = async () => {
 
 /* ================= 从本地底稿导入 ================= */
 $("btnImport").onclick = async () => {
-  if (!window.showDirectoryPicker) { alert("当前浏览器不支持本地目录读取，请用 Chrome / Edge。"); return; }
+  if (!window.showDirectoryPicker) {
+    const input=document.createElement("input"); input.type="file"; input.multiple=true; input.setAttribute("webkitdirectory", "");
+    input.onchange=async()=>{
+      const files=Array.from(input.files).filter(f=>f.name.endsWith(".md") && !f.webkitRelativePath.split("/").some(part=>SKIP.has(part)||part.startsWith(".")));
+      if(!files.length){$("st2").textContent="⚠ 未找到 md 文件";return;}
+      const first=files[0].webkitRelativePath.split("/")[0] || "导入项目";
+      const name=(prompt("导入到哪个项目？（填小说名，如：我的小说）",curProject||first)||"").trim(); if(!name)return;
+      try {const docs=await Promise.all(files.map(async f=>({path:name+"/"+(f.webkitRelativePath.split("/").slice(1).join("/")||f.name),content:await f.text()}))); const r=await api("/api/import",{method:"POST",body:JSON.stringify({docs})});curProject=name;localStorage.setItem(PKEY,curProject);await loadAll();$("st2").textContent="✅ 导入完成：写入 "+r.imported+" 个";}catch(e){$("st2").textContent="❌ 导入失败："+e.message;}
+    }; input.click(); return;
+  }
   let dir;
   try { dir = await showDirectoryPicker({mode:"read", id:"xz2-import"}); }
   catch(e){ return; }
