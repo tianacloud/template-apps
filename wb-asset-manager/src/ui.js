@@ -427,7 +427,7 @@
     var v = value == null ? '' : value, id = 'fld_' + f.key;
     if (f.type === 'select') return '<select id="' + id + '"><option value="">— 请选择 —</option>' + (f.options || []).map(function (o) { return '<option value="' + esc(o) + '"' + (o === v ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
     if (f.type === 'textarea') return '<textarea id="' + id + '" placeholder="请输入' + esc(f.title) + '">' + esc(v) + '</textarea>';
-    if (f.type === 'password') return '<input type="text" id="' + id + '" value="' + esc(v) + '" placeholder="请输入' + esc(f.title) + '"><div class="hint">列表默认掩码显示，可点击眼睛图标查看</div>';
+    if (f.type === 'password') return '<input type="text" id="' + id + '" value="' + esc(v) + '" placeholder="请输入' + esc(f.title) + '"><div class="hint">列表默认掩码显示；数据库与备份以明文保存，请仅填写合成测试密码。</div>';
     return '<input type="' + (f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text') + '" id="' + id + '" value="' + esc(v) + '" placeholder="请输入' + esc(f.title) + '">';
   }
 
