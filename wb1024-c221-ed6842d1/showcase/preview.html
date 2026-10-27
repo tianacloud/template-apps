@@ -1193,7 +1193,7 @@ html.embedded .toast { bottom: 20px; }
 
   
   
-<script>'use strict';
+<div style="position:fixed;right:12px;bottom:10px;z-index:10000;background:#fff;border:1px solid #ddd;padding:6px 10px;border-radius:8px;font:12px sans-serif">示例体验，数据仅保留在本页 <button id="previewReset" type="button">恢复示例</button></div><script>'use strict';
 
 /* =========================================================
    图片仓库
@@ -1658,41 +1658,7 @@ function save() {
    2) quota   —— 真的写满了（Chrome 约 5MB，本应用数据量远达不到）
    被 block 时自动降级为内存存储，功能可用但关闭即丢，并给出一次明确提示。
 */
-const store = (() => {
-  let usable = false;
-  try {
-    const probe = '__todo_probe__';
-    localStorage.setItem(probe, '1');
-    localStorage.removeItem(probe);
-    usable = true;
-  } catch (e) { usable = false; }
-
-  if (!usable) {
-    let mem = null;
-    return {
-      mode: 'memory',
-      read() { return mem; },
-      write() { return { ok: false, reason: 'blocked' }; },
-      wipe() { mem = null; }
-    };
-  }
-  return {
-    mode: 'local',
-    read() {
-      try { return localStorage.getItem(KEY); } catch (e) { return null; }
-    },
-    write(json) {
-      try {
-        localStorage.setItem(KEY, json);
-        return { ok: true };
-      } catch (e) {
-        const quota = !!e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
-        return { ok: false, reason: quota ? 'quota' : 'blocked' };
-      }
-    },
-    wipe() { try { localStorage.removeItem(KEY); } catch (e) { /* noop */ } }
-  };
-})();
+const store = (() => { let mem = null; return {mode:'local', read(){return mem}, write(v){mem=v;return {ok:true}}, wipe(){mem=null}}; })();
 
 const STORE_TEXT = {
   blocked: {
@@ -3606,4 +3572,7 @@ function init() {
 }
 
 init();
+function resetExample(){ store.wipe(); state=bindListScope(defaults()); state.tasks=[normalizeTask({id:'example-1',title:'整理本周计划',listId:DEFAULT_LIST_ID,colId:DEFAULT_COL_ID,subs:[{id:'example-sub',title:'列出优先事项'}]})]; syncSwitch(); syncTheme(); render(); }
+resetExample(); document.getElementById('previewReset').addEventListener('click',resetExample);
+for (const id of ['btnExportFile','btnExportCopy']) { const el=document.getElementById(id); if(el){el.disabled=true;el.title='安装后可导出';} }
 </script></body></html>
