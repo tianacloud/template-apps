@@ -3,6 +3,17 @@ import './style.css';
 import './load-style.js';
 document.getElementById('app').className='wrap';
 document.body.insertAdjacentHTML('beforeend','<div class="toast" id="toast"></div>');
+for (const type of ['click','input','change','keydown']) document.addEventListener(type, function(event){
+ const el=event.target.closest('[data-'+type+']'); if(!el)return;
+ const action=el.getAttribute('data-'+type);
+ if(type==='keydown'){if(event.key==='Enter')el.blur();return;}
+ const match=/^([A-Za-z]+)\((.*)\)$/.exec(action);if(!match)return;
+ const allowed=['calPreview','calCommit','calClear','recDateChange','submitEntry','cancelEdit','editEntry','delEntry','toggleHigh','setNum','slide','wipe','shiftYm','setTab'];
+ if(!allowed.includes(match[1])||typeof window[match[1]]!=='function')return;
+ const args=match[2] ? match[2].split(',').map(v=>{v=v.trim();if(v==='this.id')return el.id;if(v==='this.value')return el.value;if(v==='true')return true;if(v==='false')return false;if(/^[-0-9]+$/.test(v))return Number(v);if(/^'[^']*'$/.test(v))return v.slice(1,-1);return undefined;}) : [];
+ window[match[1]](...args);
+});
+
 (function(){
 'use strict';
 
@@ -514,9 +525,9 @@ function viewToday(e){
     h += '<div class="fld" style="width:220px"><label>到月底实际还能花（含今天）</label>'
        + '<input type="number" id="cal-amt" min="0" step="0.01" placeholder="账面 ' + fmt(e.bookRemain) + '"'
        + (e.calib && e.calib.d === +todayStr().slice(8, 10) ? ' value="' + e.calib.amount + '"' : '')
-       + ' oninput="calPreview()" onchange="calCommit()" onkeydown="if(event.key===\'Enter\')this.blur()"></div>';
-    h += '<button class="btn btn-main" onclick="calCommit()">校 准</button>';
-    if(e.calib) h += '<button class="btn btn-ghost" onclick="calClear()">清除校准</button>';
+       + ' data-input="calPreview()" data-change="calCommit()" data-keydown="if(event.key===\'Enter\')this.blur()"></div>';
+    h += '<button class="btn btn-main" data-click="calCommit()">校 准</button>';
+    if(e.calib) h += '<button class="btn btn-ghost" data-click="calClear()">清除校准</button>';
     h += '</div>';
     h += '<div id="cal-preview" style="margin-top:8px;font-size:12.5px;color:var(--ink-2);line-height:1.7"></div>';
     if(e.calib){
@@ -616,7 +627,7 @@ function viewToday(e){
     h += '<div class="card"><h3>' + (editing ? '修改一笔' : '记一笔')
        + (recDay !== tD ? '<span style="font-weight:400;font-size:12px;color:var(--ink-3)">（补记 ' + recDay + ' 日）</span>' : '') + '</h3>';
     h += '<div class="addrow">';
-    h += '<div class="fld" style="width:150px"><label>日期</label><select id="in-date" onchange="recDateChange()">';
+    h += '<div class="fld" style="width:150px"><label>日期</label><select id="in-date" data-change="recDateChange()">';
     for(var di = tD; di >= 1; di--){
       h += '<option value="' + UI.ym + '-' + pad(di) + '"' + (di === recDay ? ' selected' : '') + '>'
          + pad(di) + ' 日' + (di === tD ? '（今天）' : '') + '</option>';
@@ -625,10 +636,10 @@ function viewToday(e){
     h += '<div class="fld f-amt"><label>金额</label><input type="number" id="in-amt" min="0" step="0.01" placeholder="0.00"></div>';
     h += '<div class="fld f-note"><label>备注（可不填）</label><input type="text" id="in-note" maxlength="30" placeholder="午饭 / 打车 / 采购…"></div>';
     if(editing){
-      h += '<button class="btn btn-main" onclick="submitEntry(true)">更 新</button>';
-      h += '<button class="btn btn-ghost" onclick="cancelEdit()">取 消</button>';
+      h += '<button class="btn btn-main" data-click="submitEntry(true)">更 新</button>';
+      h += '<button class="btn btn-ghost" data-click="cancelEdit()">取 消</button>';
     } else {
-      h += '<button class="btn btn-main" onclick="submitEntry(false)">记 入</button>';
+      h += '<button class="btn btn-main" data-click="submitEntry(false)">记 入</button>';
     }
     h += '</div>';
     var dl = (S.months[UI.ym] && S.months[UI.ym].days[recD] && S.months[UI.ym].days[recD].entries) || [];
@@ -642,8 +653,8 @@ function viewToday(e){
       dl.forEach(function(it){
         h += '<li><span class="t">' + esc(it.time) + '</span><span class="note">' + (esc(it.note) || '—') + '</span>'
            + '<span class="amt">' + fmt1(it.amount) + '</span>'
-           + '<button class="del" title="修改" style="font-size:13px" onclick="editEntry(' + it.id + ')">✎</button>'
-           + '<button class="del" title="删除" onclick="delEntry(' + it.id + ')">✕</button></li>';
+           + '<button class="del" title="修改" style="font-size:13px" data-click="editEntry(' + it.id + ')">✎</button>'
+           + '<button class="del" title="删除" data-click="delEntry(' + it.id + ')">✕</button></li>';
       });
       h += '</ul>';
     }
@@ -684,7 +695,7 @@ function viewCal(e){
     if(i === todayD) cls += ' today';
     else if(i > todayD && e.isCurMonth) cls += ' future';
     if(e.isPastMonth) cls += '';
-    h += '<div class="' + cls + '" onclick="toggleHigh(' + i + ')">';
+    h += '<div class="' + cls + '" data-click="toggleHigh(' + i + ')">';
     h += '<div class="dnum"><span>' + i + '</span>' + (day.isHigh ? '<span class="hi-dot" title="高消费日"></span>' : '') + '</div>';
     var bl = (day.inDyn && e.dyn && i === e.dyn.d)
            ? ('动 ' + (day.isHigh ? '高 ' : '低 ') + fmt1(day.base))
@@ -807,7 +818,7 @@ function viewRepay(){
 /* ============ 视图：设置 ============ */
 function num(id, label, hint, val, step){
   return '<div class="set-fld"><label>' + label + '</label>'
-    + '<input type="number" id="' + id + '" value="' + val + '" step="' + (step || 1) + '" oninput="setNum(this.id, this.value)">'
+    + '<input type="number" id="' + id + '" value="' + val + '" step="' + (step || 1) + '" data-input="setNum(this.id, this.value)">'
     + (hint ? '<span class="set-hint">' + hint + '</span>' : '') + '</div>';
 }
 function viewSet(e){
@@ -828,9 +839,9 @@ function viewSet(e){
   h += '<div class="set-grid">';
   h += '<div class="set-fld" style="grid-column:1/-1">'
      + '<label>日常 <b id="rl-pd">' + st.pd + '%</b> · 旅游 <b id="rl-pt">' + st.pt + '%</b> · 储蓄 <b id="rl-ps">' + st.ps + '%</b></label>'
-     + '<div class="sl-wrap"><input type="range" class="sl" id="sl-pd" min="0" max="100" step="1" value="' + st.pd + '" oninput="slide(\'pd\', this.value)"></div>'
-     + '<div class="sl-wrap"><input type="range" class="sl gold" id="sl-pt" min="0" max="100" step="1" value="' + st.pt + '" oninput="slide(\'pt\', this.value)"></div>'
-     + '<div class="sl-wrap"><input type="range" class="sl save" id="sl-ps" min="0" max="100" step="1" value="' + st.ps + '" oninput="slide(\'ps\', this.value)"></div>'
+     + '<div class="sl-wrap"><input type="range" class="sl" id="sl-pd" min="0" max="100" step="1" value="' + st.pd + '" data-input="slide(\'pd\', this.value)"></div>'
+     + '<div class="sl-wrap"><input type="range" class="sl gold" id="sl-pt" min="0" max="100" step="1" value="' + st.pt + '" data-input="slide(\'pt\', this.value)"></div>'
+     + '<div class="sl-wrap"><input type="range" class="sl save" id="sl-ps" min="0" max="100" step="1" value="' + st.ps + '" data-input="slide(\'ps\', this.value)"></div>'
      + '<span class="set-hint" id="ratio-hint">当前：日常 ' + fmt(e.daily) + ' / 旅游 ' + fmt(e.travel) + ' / 储蓄 ' + fmt(e.savePlan) + '（可分配 ' + fmt(e.A) + '）</span>'
      + '</div>';
   h += '</div></div>';
@@ -868,7 +879,7 @@ function viewSet(e){
   h += '<div style="font-size:13px;color:var(--ink-2);line-height:1.9">'
      + '数据保存在云端账本中，获授权的成员可共享。<br>'
      + '存储只记事实：收入、高消费日、每笔花费。所有额度与结转均为实时计算，改任何参数全表自动重算，历史不会漂移。</div>';
-  h += '<div style="margin-top:14px"><button class="btn btn-ghost" onclick="wipe()">清空全部数据</button></div>';
+  h += '<div style="margin-top:14px"><button class="btn btn-ghost" data-click="wipe()">清空全部数据</button></div>';
   h += '</div>';
 
   h += '<div class="card"><h3>账号与同步</h3><div style="font-size:13px;color:var(--ink-2);line-height:1.9">通过应用分享与获授权的成员共用账本。每 6 秒检查更新；同时修改发生冲突时需刷新核对。</div></div>';
@@ -1062,12 +1073,12 @@ function render(){
   h += '<div class="topbar"><div class="brand"><h1>日 用</h1><span class="sub">记 账 工 作 台</span></div>'
      + '<span class="sync' + (CLOUD.dirty ? ' saving' : '') + '" id="sync-dot"><span class="dot"></span><span id="sync-txt">'
      + (CLOUD.dirty ? '同步中' : (CLOUD.lastSyncTxt ? '已同步 ' + CLOUD.lastSyncTxt : '已同步')) + '</span></span>'
-     + '<div class="ym-nav"><button class="ym-btn" onclick="shiftYm(-1)">‹</button>'
+     + '<div class="ym-nav"><button class="ym-btn" data-click="shiftYm(-1)">‹</button>'
      + '<span class="cur">' + e.ym.slice(0,4) + ' 年 ' + (+e.ym.slice(5,7)) + ' 月</span>'
-     + '<button class="ym-btn" onclick="shiftYm(1)">›</button></div></div>';
+     + '<button class="ym-btn" data-click="shiftYm(1)">›</button></div></div>';
   h += '<div class="tabs">';
   TABS.forEach(function(t){
-    h += '<button class="tab' + (UI.tab === t[0] ? ' on' : '') + '" onclick="setTab(\'' + t[0] + '\')">' + t[1] + '</button>';
+    h += '<button class="tab' + (UI.tab === t[0] ? ' on' : '') + '" data-click="setTab(\'' + t[0] + '\')">' + t[1] + '</button>';
   });
   h += '</div>';
 
