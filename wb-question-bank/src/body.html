@@ -1,0 +1,117 @@
+
+  <div class="wrap">
+  <header class="fade">
+    <span class="badge">◆ 可替换任意题库</span>
+    <h1>万能题库练习器</h1>
+    <p>当前题库：<b id="srcName">示例题库</b> ｜ 共 <span id="hcount"></span> 题 · 可一键替换为任意题库</p>
+    <p class="author">制作人 · <b>周剑豪</b></p>
+  </header>
+
+  <div class="stat fade" style="animation-delay:.05s">
+    <div class="card glass"><div class="num" id="s-total"></div><div class="lbl">题目总数</div></div>
+    <div class="card glass"><div class="num" id="s-choice"></div><div class="lbl">选择题</div></div>
+    <div class="card glass"><div class="num" id="s-exam">50</div><div class="lbl">模拟抽题</div></div>
+  </div>
+
+  <div id="home">
+    <div class="tip glass fade" style="animation-delay:.1s">本系统为<b>通用刷题平台</b>：内置示例题库开箱即用；点「📚 题库管理」粘贴你自己的 JSON，即可秒变任意科目的专属练习场（顺序 / 随机 / 模拟考试 / 错题重练）。</div>
+    <label class="toggle glass fade" style="animation-delay:.12s"><input id="shuffleChk" onchange="shuffleOn=this.checked" type="checkbox"><span class="sw"></span> 🔀 随机打乱选项顺序（默认关：与原题库 A/B/C/D 顺序完全一致）</label>
+    <div class="glass fade" style="animation-delay:.13s; padding:14px 16px; margin-bottom:22px; font-size:14px; color:var(--sub); display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+      ⏱️ 模拟考试题量：
+      <select id="examSizeSel" onchange="setExamSize(this.value)" style="background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--txt); padding:8px 12px; border-radius:10px; font-size:14px; outline:none">
+        <option value="20">20 题</option>
+        <option selected value="50">50 题</option>
+        <option value="100">100 题</option>
+      </select>
+      <span style="opacity:.7; font-size:12.5px">轮转抽题，同机多次不重复</span>
+    </div>
+    <div class="modes fade" style="animation-delay:.14s">
+      <div class="mode glass" onclick="start('seq')"><div class="ic">📖</div><div class="t">顺序练习</div><div class="d">按题号逐题作答<br>即时判分 · 自动收录错题</div></div>
+      <div class="mode glass" onclick="start('rand')"><div class="ic">🔀</div><div class="t">随机练习</div><div class="d">打乱顺序作答<br>即时判分 · 查漏补缺</div></div>
+      <div class="mode glass" onclick="start('exam')"><div class="ic">⏱️</div><div class="t">模拟考试</div><div class="d">智能轮转抽题<br>同机多次不重复 · 限时 60 分钟</div></div>
+      <div class="mode glass" onclick="start('wrong')"><div class="ic">📕</div><div class="t">错题重练</div><div class="d">只练答错的题<br>答对自动移出错题本</div></div>
+    </div>
+    <div class="btnrow fade" style="animation-delay:.16s">
+      <button class="act" onclick="openBankPanel()">📚 题库管理</button>
+      <button class="act ghost" onclick="openWrong()">📕 错题本</button>
+      <button class="act ghost" onclick="openHistory()">📊 成绩历史</button>
+      <button class="act ghost" onclick="resetExamQueue()">🔄 重置抽题轮转</button>
+    </div>
+  </div>
+
+  <div class="hidden" id="quiz">
+    <div class="qbar"><span id="qpos"></span><span id="qtimer"></span></div>
+    <div class="prog"><i id="progbar"></i></div>
+    <div class="qcard glass">
+      <div class="qhead"><span class="qtag" id="qtag">选择题</span><span class="qno" id="qsrc"></span></div>
+      <div class="qtext" id="qtext"></div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="nav">
+        <button class="act ghost" onclick="quit()">退出</button>
+        <button class="act" disabled id="nextbtn" onclick="next()">下一题</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hidden" id="result">
+    <div class="result glass">
+      <div class="score" id="rscore"></div>
+      <div class="meta" id="rmeta"></div>
+      <div class="btnrow">
+        <button class="act" onclick="backHome()">返回首页</button>
+        <button class="act ghost" onclick="start(curMode)">再来一次</button>
+      </div>
+    </div>
+    <div class="review" id="review"></div>
+  </div>
+
+  <div class="hidden" id="wrong">
+    <div class="btnrow" style="justify-content:flex-start; margin-bottom:14px">
+      <button class="act ghost" onclick="backHome()">← 返回首页</button>
+      <button class="act ghost" onclick="clearWrong()">清空错题本</button>
+    </div>
+    <div class="wb-list" id="wblist"></div>
+  </div>
+
+  <div class="hidden" id="history">
+    <div class="btnrow" style="justify-content:flex-start; margin-bottom:14px">
+      <button class="act ghost" onclick="backHome()">← 返回首页</button>
+      <button class="act ghost" onclick="clearHistory()">清空成绩历史</button>
+    </div>
+    <div class="hist glass" id="histlist" style="padding:18px 20px"></div>
+  </div>
+
+
+  <div class="hidden" id="bankPanel">
+    <div class="bank-mask" onclick="closeBankPanel()"></div>
+    <div class="bank-box glass">
+      <div class="bank-h">📚 题库管理 <button class="x" onclick="closeBankPanel()">×</button></div>
+      <div class="bank-cur">当前题库：<b id="bankCur">示例题库</b></div>
+      <div class="bank-sec">
+        <div class="bank-label">① 粘贴 JSON 加载</div>
+        <textarea id="bankText" placeholder="在此粘贴题库 JSON，例如：{"questions":[{"q":"题干","options":["选项A","选项B","选项C"],"a":"A"}]}"></textarea>
+        <button class="act" onclick="loadFromText(document.getElementById('bankText').value)">加载此 JSON</button>
+      </div>
+      <div class="bank-sec">
+        <div class="bank-label">② 上传 .json 文件</div>
+        <input accept=".json,application/json" id="bankFile" onchange="if(this.files[0])loadFromFile(this.files[0])" type="file">
+      </div>
+      <div class="bank-sec">
+        <div class="bank-label">③ 从 URL 加载（可能受跨域限制）</div>
+        <div class="bank-url"><input id="bankUrl" placeholder="https://example.com/bank.json" type="text"><button class="act ghost" onclick="loadFromUrl(document.getElementById('bankUrl').value)">加载</button></div>
+      </div>
+      <div class="bank-sec">
+        <button class="act ghost" onclick="restoreSample()">↩ 恢复内置示例题库</button>
+      </div>
+      <div class="bank-fmt">
+        <b>题库格式说明</b><br>
+        • 标准格式（兼容钳工）：<code>{"title":"xx","questions":[{"q":"题干","options":[{"k":"A","v":"..."}],"a":"A","src":"来源"}]}</code><br>
+        • 极简格式：<code>{"questions":[{"q":"题干","options":["选项A","选项B","选项C"],"a":"A"}]}</code><br>
+        • 答案 a 支持字母（A/B/C）或数字索引（0/1/2）；选项可为字符串数组，自动编号 A/B/C。
+      </div>
+    </div>
+  </div>
+  
+</div>
+
