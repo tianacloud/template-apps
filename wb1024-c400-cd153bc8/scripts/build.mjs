@@ -1,0 +1,13 @@
+import { readFile, mkdir, rm, copyFile } from "node:fs/promises";
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||"")) throw Error("完整源码提交号必需");
+const source=JSON.parse(await readFile("source.json","utf8"));
+if(process.env.TIANA_TEMPLATE_BUILD!=="1" && (!source.git_instance_id || source.git_instance_id.startsWith("__TIANA_"))) throw Error("填写 Git 实例 ID");
+await rm("dist",{recursive:true,force:true}); await mkdir("dist/assets",{recursive:true});
+const body=await readFile("src/body.html","utf8");
+const names="data media lore detail rulers people geo relics world idioms fx app extra".split(" ");
+let js=`document.title="华夏五千年 · 中国历史长卷";document.body.innerHTML=${JSON.stringify(body)};const style=document.createElement("link");style.rel="stylesheet";style.href=new URL("style.css",import.meta.url).href;document.head.appendChild(style);\n`;
+for(const n of names) js+=await readFile(`src/assets/js/${n}.js`,"utf8")+"\n;\n";
+await import("node:fs/promises").then(fs=>fs.writeFile("dist/assets/app.js",js));
+await copyFile("src/assets/css/style.css","dist/assets/style.css"); await copyFile("public/icon.png","dist/icon.png");
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",...source,source_commit:commit}));
