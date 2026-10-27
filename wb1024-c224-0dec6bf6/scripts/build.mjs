@@ -1,0 +1,12 @@
+import { readFile, mkdir, writeFile, copyFile, rm } from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const [css,body,js,chart]=await Promise.all(['src/style.css','src/body.html','src/app.js','src/chart.umd.js'].map(p=>readFile(p,'utf8')));
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+const names=[...js.matchAll(/function\s+(\w+)\s*\(/g)].map(m=>m[1]);
+const code=js.replace('// ============ Init ============',`Object.assign(window,{${names.join(',')}});\n// ============ Init ============`);
+await writeFile('dist/assets/app.js',`${chart}\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n${code}`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
