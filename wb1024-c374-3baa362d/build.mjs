@@ -12,7 +12,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.task input[type=che
 document.addEventListener('input',e=>{if(e.target.id==='searchInput') render();},true);
 document.addEventListener('dblclick',e=>{if(e.target.matches('.t-text')){e.stopImmediatePropagation();startEdit(e.target,taskId(e.target));}},true);
 document.addEventListener('dragstart',e=>{if(e.target.matches('.task')){e.stopImmediatePropagation();onDragStart(e,taskId(e.target));}},true);
-for(const [name,fn] of [['dragover',dragOver],['dragleave',dragLeave],['drop',drop]]) document.addEventListener(name,e=>{const el=e.target.closest('[data-q]');if(el){e.stopImmediatePropagation();fn(e,el);}},true);`);
+for(const [name,fn] of [['dragover',dragOver],['dragleave',dragLeave],['drop',drop]]) document.addEventListener(name,e=>{const el=e.target.closest('[data-q]');if(el){e.stopImmediatePropagation();if(name==='dragleave') fn(el); else fn(e,el);}},true);`);
 await copyFile('public/icon.png','dist/icon.png');
 const source=JSON.parse(await readFile('source.json','utf8'));
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
