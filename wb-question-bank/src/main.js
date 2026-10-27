@@ -298,5 +298,28 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-Object.assign(window, {normalizeBank,applyBank,syncExamSel,openBankPanel,closeBankPanel,loadFromText,loadFromFile,loadFromUrl,restoreSample,loadWrong,saveWrong,shuffle,loadExamQueue,saveExamQueue,buildExamOrder,start,startTimer,stopTimer,updateTimer,render,escapeHtml,pick,recordWrong,removeWrong,next,finishPractice,submitExam,buildReview,openWrong,clearWrong,loadHistory,saveScore,modeName,openHistory,clearHistory,setExamSize,quit,backHome,resetExamQueue,show});
-Object.defineProperties(window,{curMode:{get:()=>curMode},shuffleOn:{get:()=>shuffleOn,set:v=>{shuffleOn=v}}});
+
+document.querySelector('[data-action="0"]').addEventListener("change",function(event){shuffleOn=this.checked});
+document.querySelector('[data-action="1"]').addEventListener("change",function(event){setExamSize(this.value)});
+document.querySelector('[data-action="2"]').addEventListener("click",function(event){start('seq')});
+document.querySelector('[data-action="3"]').addEventListener("click",function(event){start('rand')});
+document.querySelector('[data-action="4"]').addEventListener("click",function(event){start('exam')});
+document.querySelector('[data-action="5"]').addEventListener("click",function(event){start('wrong')});
+document.querySelector('[data-action="6"]').addEventListener("click",function(event){openBankPanel()});
+document.querySelector('[data-action="7"]').addEventListener("click",function(event){openWrong()});
+document.querySelector('[data-action="8"]').addEventListener("click",function(event){openHistory()});
+document.querySelector('[data-action="9"]').addEventListener("click",function(event){resetExamQueue()});
+document.querySelector('[data-action="10"]').addEventListener("click",function(event){quit()});
+document.querySelector('[data-action="11"]').addEventListener("click",function(event){next()});
+document.querySelector('[data-action="12"]').addEventListener("click",function(event){backHome()});
+document.querySelector('[data-action="13"]').addEventListener("click",function(event){start(curMode)});
+document.querySelector('[data-action="14"]').addEventListener("click",function(event){backHome()});
+document.querySelector('[data-action="15"]').addEventListener("click",function(event){clearWrong()});
+document.querySelector('[data-action="16"]').addEventListener("click",function(event){backHome()});
+document.querySelector('[data-action="17"]').addEventListener("click",function(event){clearHistory()});
+document.querySelector('[data-action="18"]').addEventListener("click",function(event){closeBankPanel()});
+document.querySelector('[data-action="19"]').addEventListener("click",function(event){closeBankPanel()});
+document.querySelector('[data-action="20"]').addEventListener("click",function(event){loadFromText(document.getElementById('bankText').value)});
+document.querySelector('[data-action="21"]').addEventListener("change",function(event){if(this.files[0])loadFromFile(this.files[0])});
+document.querySelector('[data-action="22"]').addEventListener("click",function(event){loadFromUrl(document.getElementById('bankUrl').value)});
+document.querySelector('[data-action="23"]').addEventListener("click",function(event){restoreSample()});
