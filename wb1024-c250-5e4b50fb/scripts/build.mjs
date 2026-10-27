@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
 const html=readFileSync('src/index.html','utf8');
 const css=html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)[1];
-const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/i)[1];
-const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/i)[1].replace("document.addEventListener('DOMContentLoaded', ()=>{","(()=>{").replace(/\}\);\s*$/, '})();');
+const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/i)[1].replace(/\bon(click|input|change)=/g,'data-handler-$1=');
+const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/i)[1].replace("document.addEventListener('DOMContentLoaded', ()=>{","(()=>{").replace(/\}\);\s*$/, '})();').replace(/\bon(click|input|change)=/g,'data-handler-$1=');
 const names=[...script.matchAll(/function\s+(\w+)\s*\(/g)].map(m=>m[1]);
-const js=`document.title='成绩分析看板 · 通用版';const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n${script}\nObject.assign(window,{${names.join(',')}});\n`;
+const js=`document.title='成绩分析看板 · 通用版';const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n${script}\nObject.assign(window,{${names.join(',')}});\nfor(const type of ['click','input','change']) document.addEventListener(type,event=>{ const el=event.target.closest('[data-handler-'+type+']'); if(!el)return; const call=el.getAttribute('data-handler-'+type); if(call==="document.getElementById('file-in').click()"){document.getElementById('file-in').click();return;} if(call==='window.print()'){window.print();return;} const m=call.match(/^([a-zA-Z]+)\\((.*)\\)$/); if(!m || typeof window[m[1]]!=='function')return; const args=m[2]?m[2].split(',').map(x=>{x=x.trim();if(x==='this')return el;if(x==='this.value')return el.value;if(x==='true')return true;if(x==='false')return false;if(/^'[^']*'$/.test(x))return x.slice(1,-1);return Number(x);}):[];window[m[1]](...args); });\n`;
 rmSync('dist',{recursive:true,force:true});mkdirSync('dist/assets',{recursive:true});writeFileSync('dist/assets/app.js',js);cpSync('public/icon.png','dist/icon.png');
 const source=JSON.parse(readFileSync('source.json'));console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
