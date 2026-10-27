@@ -35901,3 +35901,5 @@ cieCanvasInteraction();
 drawCieDiagram();
 calculate();
 document.querySelectorAll('.legend-item input[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', drawSpectral));
+
+for (const [name,fn] of Object.entries({normalizeAndSmooth,calculate,saveTableAsCsv,copyTable})) document.querySelector(`[data-action="${name}"]`).addEventListener("click",fn);
