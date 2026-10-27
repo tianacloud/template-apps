@@ -1,0 +1,12 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整源码提交');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+execFileSync('node',['node_modules/tailwindcss/lib/cli.js','-i','client/input.css','-o','dist/assets/styles.css','--minify'],{stdio:'inherit'});
+const css=await readFile('dist/assets/styles.css','utf8'); const body=await readFile('client/body.html','utf8'); const app=await readFile('client/app.js','utf8');
+const setup=`document.title='气球塔防 · 气球图鉴';document.body.className='min-h-screen bg-slate-50 text-slate-800 antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100';const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n`;
+await writeFile('dist/assets/app.js',setup+app); await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
