@@ -1,5 +1,5 @@
 const link=document.createElement("link"); link.rel="stylesheet"; link.href=new URL("./app.css", import.meta.url); document.head.appendChild(link);
-document.getElementById("app").innerHTML="\n<header>\n  <h1>🍳 离线家常菜单</h1>\n  <p>搜索菜名 / 食材 · 查看做法 · 一键随机抽菜决定吃什么 · 数据已离线缓存，断网可用</p>\n</header>\n<div class=\"wrap\">\n  <div class=\"toolbar\">\n    <div class=\"search\">\n      <input id=\"q\" type=\"text\" placeholder=\"搜索菜名或食材，如：番茄、鸡翅、排骨、清淡…\" oninput=\"render()\">\n      <button class=\"btn btn-primary\" onclick=\"luckyStart()\">🎲 不知道吃什么？抽一道</button>\n    </div>\n    <div class=\"chips\" id=\"chips\"></div>\n    <div class=\"count\" id=\"count\"></div>\n  </div>\n  <div class=\"grid\" id=\"grid\"></div>\n</div>\n<div class=\"overlay\" id=\"detail\" onclick=\"if(event.target===this)closeDetail()\">\n  <div class=\"sheet\">\n    <div class=\"sheet-head\"><h2 id=\"d-name\"></h2><button class=\"close\" onclick=\"closeDetail()\">×</button></div>\n    <div class=\"sheet-body\" id=\"d-body\"></div>\n  </div>\n</div>\n<div class=\"overlay\" id=\"lucky\" onclick=\"if(event.target===this)closeLucky()\">\n  <div class=\"sheet\" style=\"max-width:420px\">\n    <div class=\"sheet-body lucky-box\">\n      <div class=\"spin\" id=\"lucky-icon\">🍽️</div>\n      <div class=\"tag2\" id=\"lucky-tag\">命运正在搅拌锅中…</div>\n      <h2 id=\"lucky-name\">？？？</h2>\n      <div id=\"lucky-meta\" style=\"color:var(--muted);font-size:13px\"></div>\n      <div class=\"lucky-actions\">\n        <button class=\"btn btn-ghost\" onclick=\"luckyAgain()\">🔁 换一道</button>\n        <button class=\"btn btn-primary\" id=\"lucky-view\" style=\"display:none\" onclick=\"luckyView()\">查看做法</button>\n      </div>\n    </div>\n  </div>\n</div>\n<footer>共 <span id=\"total\"></span> 道家常菜 · 数据来源于公网家常菜谱，已离线保存到本地，可放心断网使用。</footer>\n";
+document.getElementById("app").innerHTML="\n<header>\n  <h1>🍳 离线家常菜单</h1>\n  <p>搜索菜名 / 食材 · 查看做法 · 一键随机抽菜决定吃什么 · 数据已离线缓存，断网可用</p>\n</header>\n<div class=\"wrap\">\n  <div class=\"toolbar\">\n    <div class=\"search\">\n      <input id=\"q\" type=\"text\" placeholder=\"搜索菜名或食材，如：番茄、鸡翅、排骨、清淡…\">\n      <button class=\"btn btn-primary\">🎲 不知道吃什么？抽一道</button>\n    </div>\n    <div class=\"chips\" id=\"chips\"></div>\n    <div class=\"count\" id=\"count\"></div>\n  </div>\n  <div class=\"grid\" id=\"grid\"></div>\n</div>\n<div class=\"overlay\" id=\"detail\">\n  <div class=\"sheet\">\n    <div class=\"sheet-head\"><h2 id=\"d-name\"></h2><button class=\"close\">×</button></div>\n    <div class=\"sheet-body\" id=\"d-body\"></div>\n  </div>\n</div>\n<div class=\"overlay\" id=\"lucky\">\n  <div class=\"sheet\" style=\"max-width:420px\">\n    <div class=\"sheet-body lucky-box\">\n      <div class=\"spin\" id=\"lucky-icon\">🍽️</div>\n      <div class=\"tag2\" id=\"lucky-tag\">命运正在搅拌锅中…</div>\n      <h2 id=\"lucky-name\">？？？</h2>\n      <div id=\"lucky-meta\" style=\"color:var(--muted);font-size:13px\"></div>\n      <div class=\"lucky-actions\">\n        <button class=\"btn btn-ghost\">🔁 换一道</button>\n        <button class=\"btn btn-primary\" id=\"lucky-view\" style=\"display:none\">查看做法</button>\n      </div>\n    </div>\n  </div>\n</div>\n<footer>共 <span id=\"total\"></span> 道家常菜 · 数据来源于公网家常菜谱，已离线保存到本地，可放心断网使用。</footer>\n";
 
 /* ===== 离线菜谱数据（来自公网家常菜谱，已本地缓存） ===== */
 const DISHES = [
@@ -193,7 +193,7 @@ function render(){
     return;
   }
   grid.innerHTML = list.map(d=>`
-    <div class="dish" onclick="openDetail('${d.name.replace(/'/g,"\\'")}')">
+    <div class="dish">
       <span class="tag">${d.cat}</span>
       <span class="name">${d.name}</span>
       <span class="meta">⏱ ${d.time} · ${d.level}</span>
@@ -201,7 +201,7 @@ function render(){
 }
 function buildChips(){
   document.getElementById('chips').innerHTML = CATS.map(c=>
-    `<span class="chip ${c===curCat?'active':''}" onclick="setCat('${c}')">${c}</span>`).join("");
+    `<span class="chip ${c===curCat?'active':''}">${c}</span>`).join("");
 }
 function setCat(c){curCat=c;buildChips();render();}
 function openDetail(name){
@@ -258,3 +258,13 @@ buildChips();
 render();
 
 Object.assign(window,{render,setCat,openDetail,closeDetail,luckyStart,luckyAgain,luckyView,closeLucky});
+
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('chips').addEventListener('click',e=>{const chip=e.target.closest('.chip');if(chip)setCat(chip.textContent)});
+document.getElementById('grid').addEventListener('click',e=>{const dish=e.target.closest('.dish');if(dish)openDetail(dish.querySelector('.name').textContent)});
+document.querySelector('.btn-primary').addEventListener('click',luckyStart);
+document.querySelector('#detail .close').addEventListener('click',closeDetail);
+document.getElementById('detail').addEventListener('click',e=>{if(e.target.id==='detail')closeDetail()});
+document.getElementById('lucky').addEventListener('click',e=>{if(e.target.id==='lucky')closeLucky()});
+document.querySelector('#lucky .btn-ghost').addEventListener('click',luckyAgain);
+document.getElementById('lucky-view').addEventListener('click',luckyView);
