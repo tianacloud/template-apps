@@ -444,7 +444,7 @@ input{ font:inherit; color:inherit; }
         <h1 class="topbar__title" id="pageTitle">2026 年 10 月</h1>
         <button class="iconbtn" aria-label="下一个月">›</button>
       </div>
-      <button class="iconbtn" aria-label="搜索账单">🔍</button>
+      <input class="input" id="searchInput" type="search" aria-label="搜索账单内容" placeholder="搜索分类或备注" hidden style="max-width:200px"><button class="iconbtn" aria-label="搜索账单">🔍</button>
     </header>
 
     <main class="container" id="main">
@@ -569,7 +569,7 @@ input{ font:inherit; color:inherit; }
             <li class="record"><span class="record__ico" aria-hidden="true">🎨</span><span class="record__body"><span class="record__cat">外观</span><span class="record__note">浅色 / 深色 / 跟随系统</span></span><span class="muted">›</span></li>
           </ul>
         </article>
-        <p class="muted" style="text-align:center;margin-top:24px">轻账本 v1.0 · WorkBuddy 1024 挑战</p>
+        <p class="muted" style="text-align:center;margin-top:24px">轻账本 v1.0</p>
       </section>
 
     </main>
@@ -749,9 +749,12 @@ function renderList(){
       + '<p class="card__title">还没有账单</p><p class="muted">记下第一笔，攒钱从今天开始</p></div>';
     return;
   }
-  /* 按日期倒序分组 */
+  /* 按日期倒序分组，搜索仅影响列表 */
+  var term = document.getElementById('searchInput').value.trim().toLowerCase();
+  var visibleRecords = records.filter(function(r){ return (catOf(r.cat).name + ' ' + r.note).toLowerCase().includes(term); });
+  if (!visibleRecords.length) { box.textContent = '没有找到匹配的账单'; return; }
   var groups = {};
-  records.forEach(function(r){ (groups[r.date] = groups[r.date] || []).push(r); });
+  visibleRecords.forEach(function(r){ (groups[r.date] = groups[r.date] || []).push(r); });
   var dates = Object.keys(groups).sort().reverse();
   var html = '';
   dates.forEach(function(d){
@@ -961,6 +964,17 @@ document.getElementById('budgetInput').addEventListener('input', function(){
 
 document.querySelector('[aria-label="上一个月"]').addEventListener('click', function(){viewDate.setMonth(viewDate.getMonth()-1);renderAll();go(currentPanel);});
 document.querySelector('[aria-label="下一个月"]').addEventListener('click', function(){viewDate.setMonth(viewDate.getMonth()+1);renderAll();go(currentPanel);});
+var search = document.getElementById('searchInput');
+document.querySelector('[aria-label="搜索账单"]').addEventListener('click',function(){search.hidden=!search.hidden;if(!search.hidden)search.focus();else {search.value='';renderList();}});
+search.addEventListener('input',renderList);
+var exportRow=document.querySelector('#panel-mine li.record'); exportRow.setAttribute('role','button'); exportRow.setAttribute('tabindex','0');
+function exportCSV(){
+  var rows=[['日期','类型','分类','金额','备注']];
+  records.forEach(function(r){var node=document.createElement('textarea');node.innerHTML=r.note;rows.push([r.date,r.type==='income'?'收入':'支出',catOf(r.cat).name,(r.amount/100).toFixed(2),node.value]);});
+  function csv(v){var t=String(v);if (/^[=+@\-]/.test(t)) t="'"+t;return '"'+t.replace(/"/g,'""')+'"';}
+  var blob=new Blob(['\ufeff'+rows.map(function(row){return row.map(csv).join(',')}).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='账单.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+}
+exportRow.addEventListener('click',exportCSV); exportRow.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();exportCSV();}});
 /* ---------- 启动 ---------- */
 document.getElementById('budgetInput').value = budgetTotal / 100;
 renderCats();
