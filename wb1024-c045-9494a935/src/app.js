@@ -116,8 +116,8 @@ function renderToday(){
     else if(it.kind==='soon'){tag='临近';cls='soon';}
     else{tag='待补';cls='today';}
     var btn;
-    if(it.todoId){btn='<button class="btn small" onclick="markTodoDone(\''+it.todoId+'\')">标记完成</button>';}
-    else{btn='<button class="btn small" onclick="jumpTab(\'materials\')">去处理</button>';}
+    if(it.todoId){btn='<button class="btn small" data-click="markTodoDone(\''+it.todoId+'\')">标记完成</button>';}
+    else{btn='<button class="btn small" data-click="jumpTab(\'materials\')">去处理</button>';}
     return '<div class="today-item"><span class="today-tag '+cls+'">'+tag+'</span>'+
       '<div class="today-body"><div class="t">'+esc(it.title)+'</div><div class="m">'+esc(it.meta)+'</div></div>'+btn+'</div>';
   }).join('');
@@ -156,8 +156,8 @@ function renderMaterials(){
       '<div class="meta"><span class="badge cat">'+esc(x.cat)+'</span>'+(x.date?'<span>'+esc(x.date)+'</span>':'')+(x.clause?'<span>'+esc(x.clause)+'</span>':'')+'<span class="badge '+p+'">'+(x.proof||'未标')+'</span></div>'+
       (x.note?'<div class="desc">'+esc(x.note)+'</div>':'')+
       '</div><div class="ops">'+
-      '<button class="btn ghost" title="编辑" onclick="editMaterial(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
-      '<button class="btn ghost" title="删除" onclick="deleteMaterial(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
+      '<button class="btn ghost" title="编辑" data-click="editMaterial(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
+      '<button class="btn ghost" title="删除" data-click="deleteMaterial(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
       '</div></div></div>';
   }).join('');
 }
@@ -181,13 +181,13 @@ function renderCriteria(){
         '<div class="ev" id="critEdit'+x.id+'" style="display:none">'+
           '<label style="margin-top:4px">我的证据</label><textarea id="critEv'+x.id+'" style="min-height:60px">'+esc(x.evidence)+'</textarea>'+
           '<label style="margin-top:6px">证明材料</label><input id="critPf'+x.id+'" value="'+esc(x.proof)+'">'+
-          '<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button class="btn small" onclick="toggleCritEdit(\''+x.id+'\')">收起</button><button class="btn small primary" onclick="saveCrit(\''+x.id+'\')">保存</button></div>'+
+          '<div class="form-actions" style="justify-content:flex-start;margin-top:8px"><button class="btn small" data-click="toggleCritEdit(\''+x.id+'\')">收起</button><button class="btn small primary" data-click="saveCrit(\''+x.id+'\')">保存</button></div>'+
         '</div>'+
         '</div><div class="status">'+
-        '<select style="font-size:12px;padding:6px 8px;min-height:34px" onchange="setCritStatus(\''+x.id+'\',this.value)">'+
+        '<select style="font-size:12px;padding:6px 8px;min-height:34px" data-change="setCritStatus(\''+x.id+'\',this.value)">'+
         stOpts.map(function(o){return '<option value="'+o[0]+'"'+(x.status===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+
         '</select>'+
-        '<div style="margin-top:6px"><button class="btn small" onclick="toggleCritEdit(\''+x.id+'\')">填证据</button></div>'+
+        '<div style="margin-top:6px"><button class="btn small" data-click="toggleCritEdit(\''+x.id+'\')">填证据</button></div>'+
         '</div></div>';
     }).join('');
     return '<div class="crit-group"><div class="gh"><span>'+esc(s)+'</span><span>'+items.length+' 项</span></div>'+items+'</div>';
@@ -208,8 +208,8 @@ function renderAchievements(){
       '<div class="meta">'+(x.clause?'<span class="badge primary">'+esc(x.clause)+'</span>':'')+(x.proof?'<span class="badge green">有证明</span>':'<span class="badge amber">未附证明</span>')+'</div>'+
       body+
       '</div><div class="ops">'+
-      '<button class="btn ghost" onclick="editAchievement(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
-      '<button class="btn ghost" onclick="deleteAchievement(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
+      '<button class="btn ghost" data-click="editAchievement(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
+      '<button class="btn ghost" data-click="deleteAchievement(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
       '</div></div></div>';
   }).join('');
 }
@@ -233,9 +233,9 @@ function renderTodos(){
       '<div class="meta"><span class="badge cat">'+esc(x.type)+'</span><span class="badge '+(x.prio==='high'?'red':x.prio==='mid'?'amber':'gray')+'">'+prioTxt[x.prio]+'优先级</span>'+dueBadge+(x.clause?'<span>'+esc(x.clause)+'</span>':'')+'</div>'+
       (x.note?'<div class="desc">'+esc(x.note)+'</div>':'')+
       '</div><div class="ops">'+
-      (x.done?'':'<button class="btn small" onclick="markTodoDone(\''+x.id+'\')">完成</button>')+
-      '<button class="btn ghost" onclick="editTodo(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
-      '<button class="btn ghost" onclick="deleteTodo(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
+      (x.done?'':'<button class="btn small" data-click="markTodoDone(\''+x.id+'\')">完成</button>')+
+      '<button class="btn ghost" data-click="editTodo(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'+
+      '<button class="btn ghost" data-click="deleteTodo(\''+x.id+'\')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>'+
       '</div></div></div>';
   }).join('');
 }
@@ -444,6 +444,22 @@ window.setCritStatus=setCritStatus;window.toggleCritEdit=toggleCritEdit;window.s
 window.saveAchievement=saveAchievement;window.editAchievement=editAchievement;window.deleteAchievement=deleteAchievement;
 window.saveTodo=saveTodo;window.editTodo=editTodo;window.deleteTodo=deleteTodo;window.markTodoDone=markTodoDone;window.setTodoFilter=setTodoFilter;
 window.exportJSON=exportJSON;window.importJSON=importJSON;window.confirmClearSample=confirmClearSample;window.closeModal=closeModal;
+
+
+// Delegate declared actions so controls work under the hosted Content Security Policy.
+document.addEventListener('click',function(event){
+  var el=event.target.closest('[data-click]'); if(!el)return;
+  var action=el.getAttribute('data-click');
+  if(action==="document.getElementById('importFile').click()"){document.getElementById('importFile').click();return;}
+  var m=action.match(/^([A-Za-z]+)\((?:'([^']*)')?\)$/);
+  if(m && typeof window[m[1]]==='function') window[m[1]](m[2]);
+});
+document.addEventListener('change',function(event){
+  var el=event.target; var action=el.getAttribute('data-change'); if(!action)return;
+  if(action==='importJSON(this)'){window.importJSON(el);return;}
+  var m=action.match(/^setCritStatus\('([^']*)',this\.value\)$/);
+  if(m)window.setCritStatus(m[1],el.value);
+});
 
 /* ===== 初始化 ===== */
 loadAll();
