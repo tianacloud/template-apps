@@ -252,7 +252,7 @@ Object.assign(window,{switchTab,toggleCheck,doCheckin,openDetail,startBreath,sta
 // Delegate source markup actions without executing inline scripts under the host CSP.
 document.addEventListener('click', event => {
   const el = event.target.closest('[onclick]');
-  if (!el) return;
+  if (!el || typeof el.onclick === 'function') return;
   const action = el.getAttribute('onclick');
   const match = /^([A-Za-z]+)\((?:'([^']*)'|(\d+))?\)$/.exec(action || '');
   if (!match) return;
