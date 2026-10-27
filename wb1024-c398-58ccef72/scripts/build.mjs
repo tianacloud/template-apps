@@ -8,7 +8,7 @@ const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
 const body=html.match(/<body>([\s\S]*?)<script>/)[1];
 let js=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
 js=js.replaceAll('"assets/', 'assetBase+"');
-const qr=await readFile('assets/qrcode.min.js','utf8');
+const qr=(await readFile('assets/qrcode.min.js','utf8')).replace('if(this._android&&this._android<=2.1)', 'if(window._android&&window._android<=2.1)');
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
 await cp('assets','dist/assets',{recursive:true}); await cp('icon.png','dist/icon.png');
 await writeFile('dist/assets/app.js',`const assetBase=new URL('./',import.meta.url).href;\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${qr}\n${js}`);
