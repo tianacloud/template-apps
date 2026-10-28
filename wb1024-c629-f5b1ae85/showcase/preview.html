@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期限守护 · 诉讼法定期限计算器</title>
+<style>
+  :root{
+    --ink:#1c2430; --muted:#5b6773; --faint:#8b95a1;
+    --line:#e3e7ec; --line-soft:#eef1f4;
+    --bg:#f5f7f9; --card:#ffffff;
+    --accent:#1f5f8b; --accent-soft:#eaf1f7;
+    --ok:#1f6b45; --ok-soft:#e8f3ed;
+    --warn:#a86500; --warn-soft:#fdf2e0;
+    --urgent:#b3261e; --urgent-soft:#fbeae9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6;
+    padding:28px 20px 64px; font-size:14px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .mark{
+    width:38px;height:38px;border-radius:9px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .mark svg{display:block}
+  h1{font-size:21px;font-weight:600;letter-spacing:-.2px}
+  .tagline{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .today-chip{
+    font-size:12.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px;
+  }
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:20px;align-items:start}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .col-left{position:sticky;top:20px}
+  @media (max-width:900px){ .col-left{position:static} }
+  td.t-right{text-align:right;padding-left:16px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .card + .card{margin-top:16px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+  .card-title{font-size:14px;font-weight:600}
+  .card-hint{font-size:12px;color:var(--faint)}
+
+  .types{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media (max-width:520px){ .types{grid-template-columns:1fr} }
+  .type{
+    text-align:left;border:1px solid var(--line);background:#fff;border-radius:9px;
+    padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s;
+    font-family:inherit;font-size:13px;color:var(--ink);display:block;width:100%;
+  }
+  .type:hover{border-color:#c3cdd6}
+  .type .t-name{font-weight:500;display:block}
+  .type .t-meta{font-size:11.5px;color:var(--faint);display:block;margin-top:1px}
+  .type[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .type[aria-pressed="true"] .t-meta{color:var(--accent)}
+
+  .field{margin-top:14px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  input[type=date],input[type=text],input[type=number],textarea,select{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+    font-family:inherit;font-size:13.5px;color:var(--ink);background:#fff;
+  }
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  textarea{resize:vertical;min-height:64px;line-height:1.55}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:1px solid transparent;border-radius:8px;padding:9px 16px;font-family:inherit;
+    font-size:13.5px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#1a506f}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--muted)}
+  .btn-ghost:hover{border-color:#c3cdd6;color:var(--ink)}
+  .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+
+  .result{display:none}
+  .result.on{display:block}
+  .verdict{border-radius:10px;padding:16px 18px;border:1px solid;margin-bottom:16px}
+  .verdict.v-ok{background:var(--ok-soft);border-color:#bfddcd}
+  .verdict.v-warn{background:var(--warn-soft);border-color:#ecd6ac}
+  .verdict.v-urgent{background:var(--urgent-soft);border-color:#f0c6c2}
+  .verdict.v-done{background:#f2f3f5;border-color:#dcdfe4}
+  .v-label{font-size:12px;font-weight:500;letter-spacing:.3px;opacity:.85}
+  .v-date{font-size:30px;font-weight:600;letter-spacing:-.5px;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+  .v-sub{font-size:13px;opacity:.9}
+
+  .steps{list-style:none;counter-reset:s}
+  .steps li{
+    counter-increment:s;position:relative;padding-left:26px;margin-bottom:9px;
+    font-size:12.8px;color:var(--muted);line-height:1.62;
+  }
+  .steps li::before{
+    content:counter(s);position:absolute;left:0;top:2px;width:17px;height:17px;
+    border-radius:50%;background:var(--accent-soft);color:var(--accent);
+    font-size:10.5px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  }
+  .steps li b{color:var(--ink);font-weight:500}
+
+  .cite{margin-top:6px;border-top:1px solid var(--line-soft);padding-top:14px}
+  .cite-head{font-size:12px;color:var(--faint);margin-bottom:8px}
+  .cite-item{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .cite-item .law{color:var(--accent);font-weight:500;display:block;margin-bottom:2px}
+  .cite-item .txt{
+    font-family:"Songti SC","SimSun",serif;line-height:1.78;
+    background:#fafbfc;border-left:2px solid var(--line);padding:8px 11px;border-radius:0 6px 6px 0;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  th{
+    text-align:left;font-weight:500;font-size:11.5px;color:var(--faint);
+    padding:0 8px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:11px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .cell-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cell-name small{
+    display:block;font-weight:400;color:var(--faint);font-size:11.5px;margin-top:1px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .mono{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .badge{
+    display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;
+    font-weight:500;white-space:nowrap;
+  }
+  .b-ok{background:var(--ok-soft);color:var(--ok)}
+  .b-warn{background:var(--warn-soft);color:var(--warn)}
+  .b-urgent{background:var(--urgent-soft);color:var(--urgent)}
+  .b-done{background:#eceef1;color:var(--muted)}
+  .del{
+    background:none;border:none;color:var(--faint);cursor:pointer;font-size:12px;
+    font-family:inherit;padding:2px 4px;white-space:nowrap;
+  }
+  .del:hover{color:var(--urgent)}
+  .empty{text-align:center;color:var(--faint);font-size:13px;padding:26px 10px}
+
+  details.holiday{margin-top:14px;border-top:1px solid var(--line-soft);padding-top:12px}
+  details.holiday summary{
+    font-size:12.5px;color:var(--muted);cursor:pointer;outline:none;
+    display:flex;align-items:center;justify-content:space-between;list-style:none;
+  }
+  details.holiday summary::-webkit-details-marker{display:none}
+  details.holiday summary::after{content:"展开";color:var(--accent);font-size:12px}
+  details.holiday[open] summary::after{content:"收起"}
+  details.holiday .body{margin-top:10px}
+  .note{font-size:11.5px;color:var(--faint);line-height:1.6;margin-top:6px}
+
+  .foot{
+    margin-top:26px;padding:14px 18px;background:#fbfcfd;border:1px solid var(--line);
+    border-radius:10px;font-size:11.8px;color:var(--faint);line-height:1.75;
+  }
+  .foot b{color:var(--muted);font-weight:500}
+
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(10px);
+    background:var(--ink);color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .btn,.del,.actions,details.holiday{display:none!important}
+    .grid{grid-template-columns:1fr}
+    .card{border-color:#ccc;break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/>
+        </svg>
+      </div>
+      <div>
+        <h1>期限守护</h1>
+        <div class="tagline">诉讼法定期限计算器 · 每个结论都附法条原文</div>
+      </div>
+    </div>
+    <div class="today-chip" id="todayChip">—</div>
+  </header>
+
+  <div class="grid">
+
+    <div class="col-left">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">选择期限类型</div>
+          <div class="card-hint">共 9 类</div>
+        </div>
+        <div class="types" id="types"></div>
+
+        <div class="field">
+          <label for="startDate" id="startLabel">起算日</label>
+          <input type="date" id="startDate">
+        </div>
+
+        <div class="field" id="customWrap" style="display:none">
+          <div class="row2">
+            <div>
+              <label for="customValue">自定义时长</label>
+              <input type="number" id="customValue" value="30" min="1">
+            </div>
+            <div>
+              <label for="customUnit">单位</label>
+              <select id="customUnit">
+                <option value="day">日</option>
+                <option value="month">个月</option>
+                <option value="year">年</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="caseName">事项名称（可选）</label>
+          <input type="text" id="caseName" placeholder="例如：张某诉甲公司货款纠纷 · 上诉期">
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="calcBtn">计算并加入清单</button>
+          <button class="btn btn-ghost" id="resetBtn">重置</button>
+        </div>
+
+        <details class="holiday">
+          <summary>法定节假日设置（影响顺延判断）</summary>
+          <div class="body">
+            <textarea id="holidayInput" placeholder="每行一个日期，格式 2026-10-01。用于末日顺延判断。"></textarea>
+            <div class="note">
+              本工具默认只自动识别周六、周日。元旦、春节、国庆等法定节假日的具体日期每年由国务院办公厅公布，
+              为避免内置过期数据导致算错，请按当年公告自行填入。
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">计算结果</div>
+          <div class="card-hint" id="resultHint">待计算</div>
+        </div>
+
+        <div id="emptyResult" class="empty">
+          选择期限类型并填入起算日，右侧将给出届满日、剩余天数与计算过程。
+        </div>
+
+        <div class="result" id="result">
+          <div class="verdict" id="verdict">
+            <div class="v-label" id="vLabel"></div>
+            <div class="v-date" id="vDate"></div>
+            <div class="v-sub" id="vSub"></div>
+          </div>
+
+          <div class="cite" style="border-top:none;padding-top:0">
+            <div class="cite-head">计算过程（可逐条复核）</div>
+            <ol class="steps" id="steps"></ol>
+          </div>
+
+          <div class="cite">
+            <div class="cite-head">法律依据</div>
+            <div id="cites"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-ghost" id="copyBtn">复制结论文本</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">期限清单</div>
+          <div class="card-hint" id="listHint">0 项</div>
+        </div>
+        <div id="listWrap"></div>
+        <div class="actions" id="listActions" style="display:none">
+          <button class="btn btn-ghost" id="copyAllBtn">复制全部</button>
+          <button class="btn btn-ghost" id="printBtn">打印 / 存 PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>使用说明</b>　本工具按《民法典》第二百零一条至第二百零三条的期间计算规则处理：起算日不计入、自次日起算；按年月计算的取到期月对应日，无对应日取月末；末日为法定休假日的顺延至休假结束次日。所有期限与法条原文均取自现行有效文本，可逐条核对条号。<br>
+    <b>局限</b>　法定节假日的具体日期未内置，需按当年国务院办公厅公告填入，否则仅按周末判断顺延。诉讼时效的中止、中断及最长保护期是否已发生，属事实认定问题，本工具不作推断。本工具输出为计算辅助，不构成法律意见。
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LAWS = {
+    mfd188: {
+      law: "《中华人民共和国民法典》第一百八十八条",
+      text: "向人民法院请求保护民事权利的诉讼时效期间为三年。法律另有规定的，依照其规定。诉讼时效期间自权利人知道或者应当知道权利受到损害以及义务人之日起计算。法律另有规定的，依照其规定。但是，自权利受到损害之日起超过二十年的，人民法院不予保护，有特殊情况的，人民法院可以根据权利人的申请决定延长。"
+    },
+    mfd201: {
+      law: "《中华人民共和国民法典》第二百零一条",
+      text: "按照年、月、日计算期间的，开始的当日不计入，自下一日开始计算。按照小时计算期间的，自法律规定或者当事人约定的时间开始计算。"
+    },
+    mfd202: {
+      law: "《中华人民共和国民法典》第二百零二条",
+      text: "按照年、月计算期间的，到期月的对应日为期间的最后一日；没有对应日的，月末日为期间的最后一日。"
+    },
+    mfd203: {
+      law: "《中华人民共和国民法典》第二百零三条",
+      text: "期间的最后一日是法定休假日的，以法定休假日结束的次日为期间的最后一日。期间的最后一日的截止时间为二十四时；有业务时间的，停止业务活动的时间为截止时间。"
+    },
+    msf171: {
+      law: "《中华人民共和国民事诉讼法》（2023修正）第一百七十一条",
+      text: "当事人不服地方人民法院第一审判决的，有权在判决书送达之日起十五日内向上一级人民法院提起上诉。当事人不服地方人民法院第一审裁定的，有权在裁定书送达之日起十日内向上一级人民法院提起上诉。"
+    },
+    msf250: {
+      law: "《中华人民共和国民事诉讼法》（2023修正）第二百五十条",
+      text: "申请执行的期间为二年。申请执行时效的中止、中断，适用法律有关诉讼时效中止、中断的规定。前款规定的期间，从法律文书规定履行期间的最后一日起计算；法律文书规定分期履行的，从最后一期履行期限届满之日起计算；法律文书未规定履行期间的，从法律文书生效之日起计算。"
+    },
+    ldzc27: {
+      law: "《中华人民共和国劳动争议调解仲裁法》第二十七条",
+      text: "劳动争议申请仲裁的时效期间为一年。仲裁时效期间从当事人知道或者应当知道其权利被侵害之日起计算。前款规定的仲裁时效，因当事人一方向对方当事人主张权利，或者向有关部门请求权利救济，或者对方当事人同意履行义务而中断。从中断时起，仲裁时效期间重新计算。因不可抗力或者有其他正当理由，当事人不能在本条第一款规定的仲裁时效期间申请仲裁的，仲裁时效中止。从中止时效的原因消除之日起，仲裁时效期间继续计算。劳动关系存续期间因拖欠劳动报酬发生争议的，劳动者申请仲裁不受本条第一款规定的仲裁时效期间的限制；但是，劳动关系终止的，应当自劳动关系终止之日起一年内提出。"
+    },
+    xzss46: {
+      law: "《中华人民共和国行政诉讼法》（2017修正）第四十六条",
+      text: "公民、法人或者其他组织直接向人民法院提起诉讼的，应当自知道或者应当知道作出行政行为之日起六个月内提出。法律另有规定的除外。因不动产提起诉讼的案件自行政行为作出之日起超过二十年，其他案件自行政行为作出之日起超过五年提起诉讼的，人民法院不予受理。"
+    },
+    xzfy20: {
+      law: "《中华人民共和国行政复议法》（2023修订）第二十条",
+      text: "公民、法人或者其他组织认为行政行为侵犯其合法权益的，可以自知道或者应当知道该行政行为之日起六十日内提出行政复议申请；但是法律规定的申请期限超过六十日的除外。因不可抗力或者其他正当理由耽误法定申请期限的，申请期限自障碍消除之日起继续计算。"
+    },
+    msfjs99: {
+      law: "《最高人民法院关于适用〈中华人民共和国民事诉讼法〉的解释》（2022修正）第九十九条",
+      text: "人民法院应当在审理前的准备阶段确定当事人的举证期限。举证期限可以由当事人协商，并经人民法院准许。人民法院确定举证期限，第一审普通程序案件不得少于十五日，当事人提供新的证据的第二审案件不得少于十日。"
+    }
+  };
+
+  var TYPES = [
+    {
+      id:"civil", name:"民事诉讼时效", meta:"3 年 · 民法典 188",
+      unit:"year", amount:3, basis:"知道或应当知道权利受损害及义务人",
+      startLabel:"起算日（知道或应当知道权利受损害及义务人之日）",
+      cite:["mfd188","mfd201","mfd202","mfd203"],
+      extra:"最长保护期为自权利受到损害之日起二十年，不因中断而重新计算；是否已发生中止、中断属事实认定，需另行判断。",
+      cap:{amount:20, from:"受损"}
+    },
+    {
+      id:"appeal-judgment", name:"上诉期 · 判决", meta:"15 日 · 民诉法 171",
+      unit:"day", amount:15, basis:"判决书送达之日",
+      startLabel:"起算日（判决书送达之日）",
+      cite:["msf171","mfd201","mfd203"]
+    },
+    {
+      id:"appeal-order", name:"上诉期 · 裁定", meta:"10 日 · 民诉法 171",
+      unit:"day", amount:10, basis:"裁定书送达之日",
+      startLabel:"起算日（裁定书送达之日）",
+      cite:["msf171","mfd201","mfd203"]
+    },
+    {
+      id:"enforce", name:"申请执行期间", meta:"2 年 · 民诉法 250",
+      unit:"year", amount:2, basis:"履行期间最后一日",
+      startLabel:"起算日（履行期间最后一日／分期最后一期届满日／文书生效日）",
+      cite:["msf250","mfd201","mfd202","mfd203"]
+    },
+    {
+      id:"labor", name:"劳动仲裁时效", meta:"1 年 · 调解仲裁法 27",
+      unit:"year", amount:1, basis:"知道或应当知道权利被侵害",
+      startLabel:"起算日（知道或应当知道权利被侵害之日）",
+      cite:["ldzc27","mfd201","mfd202","mfd203"],
+      extra:"劳动关系存续期间因拖欠劳动报酬发生争议的，不受一年限制；劳动关系终止的，应自终止之日起一年内提出。"
+    },
+    {
+      id:"admin-suit", name:"行政诉讼起诉期限", meta:"6 个月 · 行诉法 46",
+      unit:"month", amount:6, basis:"知道或应当知道作出行政行为",
+      startLabel:"起算日（知道或应当知道作出行政行为之日）",
+      cite:["xzss46","mfd201","mfd202","mfd203"],
+      extra:"另有最长保护期：不动产案件自行政行为作出之日起二十年，其他案件五年，超过即不予受理。"
+    },
+    {
+      id:"admin-review", name:"行政复议申请期限", meta:"60 日 · 复议法 20",
+      unit:"day", amount:60, basis:"知道或应当知道行政行为",
+      startLabel:"起算日（知道或应当知道该行政行为之日）",
+      cite:["xzfy20","mfd201","mfd203"]
+    },
+    {
+      id:"evidence", name:"举证期限（一审普通）", meta:"≥15 日 · 民诉解释 99",
+      unit:"day", amount:15, basis:"法院指定的举证期起算日",
+      startLabel:"起算日（举证期限起算之日）",
+      cite:["msfjs99","mfd201","mfd203"],
+      extra:"本条为法定下限，实践中以法院举证通知书指定的期限为准；第二审提供新证据的不得少于十日。"
+    },
+    {
+      id:"custom", name:"自定义期限", meta:"自行设定日/月/年",
+      unit:"day", amount:30, basis:"约定的起算日",
+      startLabel:"起算日",
+      cite:["mfd201","mfd202","mfd203"]
+    }
+  ];
+
+  var state = {
+    type:"civil",
+    result:null,
+    items:[],
+    holidays:[]
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var KEY = "deadline-keeper-v1";
+
+  function pad(n){ return n<10 ? "0"+n : ""+n; }
+  function fmt(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function parseDate(s){
+    if(!s) return null;
+    var p = s.split("-");
+    if(p.length!==3) return null;
+    var d = new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function today(){ return startOfDay(new Date()); }
+  function dayDiff(a,b){ return Math.round((startOfDay(a)-startOfDay(b))/86400000); }
+
+  function isHoliday(d){
+    var s = fmt(d);
+    if(state.holidays.indexOf(s) > -1) return true;
+    var w = d.getDay();
+    return w === 0 || w === 6;
+  }
+
+  function addDays(d, n){
+    var r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    r.setDate(r.getDate() + n);
+    return r;
+  }
+
+  function addMonths(d, n){
+    var y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    var tm = m + n;
+    var ty = y + Math.floor(tm/12);
+    tm = ((tm % 12) + 12) % 12;
+    var lastDay = new Date(ty, tm+1, 0).getDate();
+    return { date:new Date(ty, tm, Math.min(day, lastDay)), clipped: day > lastDay, targetDay: day };
+  }
+
+  function addYears(d, n){ return addMonths(d, n*12); }
+
+  function getAmount(t){
+    if(t.id === "custom"){
+      var v = parseInt($("customValue").value, 10);
+      return { unit:$("customUnit").value, amount:(isNaN(v)||v<1)?1:v };
+    }
+    return { unit:t.unit, amount:t.amount };
+  }
+
+  function compute(){
+    var t = TYPES.filter(function(x){ return x.id === state.type; })[0];
+    var startS = $("startDate").value;
+    var start = parseDate(startS);
+    if(!start){ toast("请先填入有效的起算日"); return null; }
+
+    var amt = getAmount(t);
+    var steps = [];
+    var rawEnd, clipped = false;
+
+    steps.push("起算日为 <b>" + fmt(start) + "</b>，依《民法典》第二百零一条，开始的当日不计入，自次日起算。");
+
+    if(amt.unit === "day"){
+      rawEnd = addDays(start, amt.amount);
+      steps.push("按日计算：" + amt.amount + " 日期间，自次日起数至第 " + amt.amount + " 日，对应 <b>" + fmt(rawEnd) + "</b>。");
+    } else {
+      var r = (amt.unit === "year") ? addYears(start, amt.amount) : addMonths(start, amt.amount);
+      rawEnd = r.date; clipped = r.clipped;
+      var unitTxt = (amt.unit === "year") ? (amt.amount + " 年") : (amt.amount + " 个月");
+      if(clipped){
+        steps.push("按月计算：到期月为 " + rawEnd.getFullYear() + " 年 " + (rawEnd.getMonth()+1) + " 月，该月无 " + r.targetDay + " 日，依《民法典》第二百零二条以 <b>月末日</b> 为最后一日，即 <b>" + fmt(rawEnd) + "</b>。");
+      } else {
+        steps.push("按月计算：" + unitTxt + "，依《民法典》第二百零二条取到期月的对应日，即 <b>" + fmt(rawEnd) + "</b>。");
+      }
+    }
+
+    var end = rawEnd;
+    var shifted = 0;
+    while(isHoliday(end) && shifted < 30){
+      end = addDays(end, 1);
+      shifted++;
+    }
+    if(shifted > 0){
+      steps.push("原末日 " + fmt(rawEnd) + " 为法定休假日（周六、周日或已填节假日），依《民法典》第二百零三条顺延，<b>实际末日为 " + fmt(end) + "</b>，共顺延 " + shifted + " 日。");
+    } else {
+      steps.push("末日 " + fmt(rawEnd) + " 非法定休假日，无需顺延，<b>届满日即 " + fmt(end) + "</b>。");
+    }
+
+    var t0 = today();
+    var left = dayDiff(end, t0);
+    steps.push("以今日 " + fmt(t0) + " 计算，距届满日剩余 <b>" + (left >= 0 ? left + " 日" : Math.abs(left) + " 日（已逾期）") + "</b>。");
+
+    var workdays = 0;
+    if(left > 0){
+      for(var i=1;i<=left;i++){ if(!isHoliday(addDays(t0, i))) workdays++; }
+      steps.push("其中工作日 <b>" + workdays + " 天</b>（按周末与已填节假日扣除）。");
+    }
+
+    return {
+      typeId:t.id, typeName:t.name, start:fmt(start), end:fmt(end),
+      rawEnd:fmt(rawEnd), shifted:shifted, left:left, workdays:workdays,
+      steps:steps, cite:t.cite, extra:t.extra || "", basis:t.basis,
+      custom:(t.id === "custom")
+    };
+  }
+
+  function statusOf(left){
+    if(left < 0) return {key:"done", label:"已届满", badge:"b-done", cls:"v-done"};
+    if(left === 0) return {key:"urgent", label:"今日届满", badge:"b-urgent", cls:"v-urgent"};
+    if(left <= 7) return {key:"urgent", label:"7 日内届满", badge:"b-urgent", cls:"v-urgent"};
+    if(left <= 30) return {key:"warn", label:"30 日内届满", badge:"b-warn", cls:"v-warn"};
+    return {key:"ok", label:"期限内", badge:"b-ok", cls:"v-ok"};
+  }
+
+  function renderResult(){
+    var r = state.result;
+    if(!r){ $("result").classList.remove("on"); $("emptyResult").style.display="block"; $("resultHint").textContent="待计算"; return; }
+    var st = statusOf(r.left);
+
+    $("emptyResult").style.display = "none";
+    $("result").classList.add("on");
+    $("resultHint").textContent = r.typeName;
+
+    var v = $("verdict");
+    v.className = "verdict " + st.cls;
+
+    $("vLabel").textContent = r.typeName + " · " + st.label;
+    $("vDate").textContent = r.end;
+
+    var sub;
+    if(r.left > 0) sub = "距届满还有 " + r.left + " 日（其中工作日 " + r.workdays + " 天）";
+    else if(r.left === 0) sub = "今日为最后一日，截止时间为二十四时";
+    else sub = "已届满 " + Math.abs(r.left) + " 日";
+    if(r.shifted > 0) sub += " · 已顺延 " + r.shifted + " 日";
+    $("vSub").textContent = sub;
+
+    $("steps").innerHTML = r.steps.map(function(s){ return "<li>"+s+"</li>"; }).join("");
+
+    var html = r.cite.map(function(k){
+      var c = LAWS[k];
+      return '<div class="cite-item"><span class="law">'+c.law+'</span><div class="txt">'+c.text+'</div></div>';
+    }).join("");
+    if(r.extra){
+      html += '<div class="note" style="margin-top:4px">提示：'+r.extra+'</div>';
+    }
+    $("cites").innerHTML = html;
+  }
+
+  function plainText(r){
+    var st = statusOf(r.left);
+    var s = "【期限结论】" + r.typeName + "\n";
+    s += "起算日：" + r.start + "\n";
+    s += "届满日：" + r.end + (r.shifted>0 ? "（已顺延" + r.shifted + "日）" : "") + "\n";
+    s += "状态：" + st.label + (r.left>=0 ? "，剩余 " + r.left + " 日" : "，逾期 " + Math.abs(r.left) + " 日") + "\n";
+    s += "计算依据：《民法典》第二百零一条至第二百零三条期间计算规则，期限本身见" + r.cite.map(function(k){return LAWS[k].law;})[0] + "。";
+    return s;
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({items:state.items, holidays:state.holidays}));
+    }catch(e){}
+  }
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      var o = JSON.parse(raw);
+      if(o && Array.isArray(o.items)) state.items = o.items;
+      if(o && Array.isArray(o.holidays)) state.holidays = o.holidays;
+    }catch(e){}
+  }
+
+  function renderList(){
+    var wrap = $("listWrap");
+    var items = state.items.slice().sort(function(a,b){ return a.left - b.left; });
+    $("listHint").textContent = items.length + " 项";
+    $("listActions").style.display = items.length ? "flex" : "none";
+
+    if(!items.length){
+      wrap.innerHTML = '<div class="empty">暂无事项。计算后点击「计算并加入清单」即可沉淀为待办清单。</div>';
+      return;
+    }
+
+    var rows = items.map(function(it, i){
+      var st = statusOf(it.left);
+      var leftTxt = it.left >= 0 ? it.left + " 日" : "逾期 " + Math.abs(it.left) + " 日";
+      return '<tr>'
+        + '<td class="cell-name">' + (it.label || it.typeName) + '<small>' + it.typeName + ' · 起算 ' + it.start + '</small></td>'
+        + '<td class="mono">' + it.end + '</td>'
+        + '<td class="mono">' + leftTxt + '</td>'
+        + '<td><span class="badge ' + st.badge + '">' + st.label + '</span></td>'
+        + '<td style="text-align:right" class="t-right"><button class="del" data-id="' + it.id + '">删除</button></td>'
+        + '</tr>';
+    }).join("");
+
+    wrap.innerHTML = '<table><colgroup><col style="width:42%"><col style="width:18%"><col style="width:11%"><col style="width:17%"><col style="width:12%"></colgroup>'
+      + '<thead><tr><th>事项</th><th>届满日</th><th>剩余</th><th>状态</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+    Array.prototype.forEach.call(wrap.querySelectorAll(".del"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-id");
+        state.items = state.items.filter(function(x){ return x.id !== id; });
+        save(); renderList(); toast("已删除");
+      });
+    });
+  }
+
+  function refreshLeft(){
+    var t0 = today();
+    var changed = false;
+    state.items.forEach(function(it){
+      var n = dayDiff(parseDate(it.end), t0);
+      if(n !== it.left){ it.left = n; changed = true; }
+    });
+    if(changed) save();
+  }
+
+  function initTypes(){
+    $("types").innerHTML = TYPES.map(function(t){
+      return '<button class="type" data-id="'+t.id+'" aria-pressed="'+(t.id===state.type)+'">'
+        + '<span class="t-name">'+t.name+'</span>'
+        + '<span class="t-meta">'+t.meta+'</span></button>';
+    }).join("");
+
+    Array.prototype.forEach.call($("types").querySelectorAll(".type"), function(b){
+      b.addEventListener("click", function(){
+        state.type = b.getAttribute("data-id");
+        Array.prototype.forEach.call($("types").querySelectorAll(".type"), function(x){
+          x.setAttribute("aria-pressed", x === b ? "true" : "false");
+        });
+        var t = TYPES.filter(function(x){ return x.id === state.type; })[0];
+        $("startLabel").textContent = t.startLabel;
+        $("customWrap").style.display = (t.id === "custom") ? "block" : "none";
+        $("resultHint").textContent = "待计算";
+        state.result = null;
+        renderResult();
+      });
+    });
+  }
+
+  function toast(msg){
+    var el = $("toast");
+    el.textContent = msg;
+    el.classList.add("on");
+    clearTimeout(el._t);
+    el._t = setTimeout(function(){ el.classList.remove("on"); }, 1800);
+  }
+
+  function copy(text, msg){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast(msg || "已复制"); }, function(){ fallbackCopy(text, msg); });
+    } else {
+      fallbackCopy(text, msg);
+    }
+  }
+  function fallbackCopy(text, msg){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast(msg || "已复制"); }catch(e){ toast("复制失败，请手动选择"); }
+    document.body.removeChild(ta);
+  }
+
+  function boot(){
+    load();
+    refreshLeft();
+    initTypes();
+
+    var t0 = today();
+    var wd = ["日","一","二","三","四","五","六"][t0.getDay()];
+    $("todayChip").textContent = "今天 " + fmt(t0) + " 星期" + wd;
+
+    $("startDate").value = fmt(t0);
+    $("holidayInput").value = state.holidays.join("\n");
+    $("startLabel").textContent = TYPES[0].startLabel;
+
+    $("holidayInput").addEventListener("change", function(){
+      state.holidays = $("holidayInput").value.split(/\n|,|，/)
+        .map(function(s){ return s.trim(); })
+        .filter(function(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s); });
+      save();
+      toast("节假日已更新，请重新计算");
+    });
+
+    $("calcBtn").addEventListener("click", function(){
+      var r = compute();
+      if(!r) return;
+      state.result = r;
+      renderResult();
+
+      var label = $("caseName").value.trim();
+      var item = {
+        id: "i" + Date.now(),
+        label: label,
+        typeId: r.typeId, typeName: r.typeName,
+        start: r.start, end: r.end, left: r.left, shifted: r.shifted
+      };
+      state.items.push(item);
+      refreshLeft(); save(); renderList();
+      toast("已计算并加入清单");
+    });
+
+    $("resetBtn").addEventListener("click", function(){
+      $("caseName").value = "";
+      $("startDate").value = fmt(today());
+      state.result = null;
+      renderResult();
+    });
+
+    $("copyBtn").addEventListener("click", function(){
+      if(!state.result) return;
+      copy(plainText(state.result), "结论文本已复制");
+    });
+
+    $("copyAllBtn").addEventListener("click", function(){
+      if(!state.items.length) return;
+      var txt = state.items.slice().sort(function(a,b){return a.left-b.left;}).map(function(it){
+        var st = statusOf(it.left);
+        return (it.label || it.typeName) + "　届满 " + it.end + "　" + st.label;
+      }).join("\n");
+      copy("【期限清单】\n" + txt, "清单已复制");
+    });
+
+    $("printBtn").addEventListener("click", function(){ window.print(); });
+
+    renderResult();
+    renderList();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
