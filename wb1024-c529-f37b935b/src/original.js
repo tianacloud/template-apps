@@ -1841,7 +1841,7 @@ let draft={name:"",desc:"",spot:"",district:"rencheng",photo:"",lat:null,lng:nul
 async function reloadPoints(){
   const rows=await window.loadPoints();
   activity=await window.loadActivity();
-  DATA.points=rows.map(r=>({id:Number(r.id),type:r.type,name:r.name,district:r.district,spot:r.spot,lat:Number(r.lat),lng:Number(r.lng),desc:r.description,sterilized:r.sterilized,cats:Number(r.cats),time:r.created_at.slice(0,10),photo:r.photo||''}));
+  DATA.points=rows.map(r=>({id:Number(r.id),type:TYPE[r.type]?r.type:'feed',name:r.name,district:r.district,spot:r.spot,lat:Number(r.lat),lng:Number(r.lng),desc:r.description,sterilized:r.sterilized,cats:Number(r.cats),time:r.created_at.slice(0,10),photo:r.photo||''}));
   DATA.posts=DATA.points.map(p=>({type:p.type,author:'猫友',time:p.time,location:p.spot,content:p.desc,sterilized:p.sterilized,cats:p.cats}));
 }
 /* ============ 地图页 ============ */
@@ -1909,7 +1909,7 @@ function viewMap(){
             <div class="pn">${esc(p.name)}</div>
             <div class="pm">📍${esc(p.spot||'')} · ${esc(p.time||'')}</div>
           </div>
-          ${p.sterilized?`<span class="badge ${p.sterilized==='done'?'b-done':'b-warn'}">${p.sterilized==='done'?'✂️ 已绝育':(p.sterilized==='group'?`✂️ ${p.sterDone||0}/${p.cats||0}`:'✂️ 未绝育')}</span>`:''}
+          ${p.sterilized?`<span class="badge ${p.sterilized==='done'?'b-done':'b-warn'}">${p.sterilized==='done'?'✂️ 已绝育':(p.sterilized==='group'?`✂️ ${p.sterDone||0}/${p.cats||0}`:(p.sterilized==='no'?'✂️ 未绝育':'✂️ 情况未知'))}</span>`:''}
         </div>
         <div class="pc">${esc(p.desc||'')}</div>
       </div>`;
@@ -2070,7 +2070,7 @@ function openPoint(id){
   const d = DATA.districts.find(x=>x.key===p.district);
   const sterTxt = p.sterilized
     ? (p.sterilized==='done' ? '✂️ 已绝育'
-      : (p.sterilized==='group' ? `✂️ 群体 ${p.sterDone||0}/${p.cats||0} 已绝育` : '✖️ 未绝育'))
+      : (p.sterilized==='group' ? `✂️ 群体 ${p.sterDone||0}/${p.cats||0} 已绝育` : (p.sterilized==='no'?'✖️ 未绝育':'❔ 情况未知')))
     : '';
   $('sheet').innerHTML = `
     <div class="bar"></div>
@@ -2081,7 +2081,7 @@ function openPoint(id){
     ${p.cats?`<div class="kv"><span class="k">猫咪</span><span class="v">${p.cats} 只${p.fedToday?` · 今天已被喂 ${p.fedToday} 次`:''}</span></div>`:''}
     ${sterTxt?`<div class="kv"><span class="k">绝育</span><span class="v">${sterTxt}</span></div>`:''}
     ${p.desc?`<div class="kv"><span class="k">说明</span><span class="v">${esc(p.desc)}</span></div>`:''}
-    ${p.photo && /^data:image\/(png|jpeg|webp);base64,/.test(p.photo)?`<img src="${p.photo}" alt="点位照片" style="max-width:100%;max-height:180px">`:''}
+    ${p.photo && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(p.photo)?`<img src="${p.photo}" alt="点位照片" style="max-width:100%;max-height:180px">`:''}
     ${p.type==='warning'?'':`<div class="acts">
       <button class="btn m" id="chkBtn">✅ 我喂过了</button>
       <button class="btn gh" id="favBtn">⭐ 收藏</button>
