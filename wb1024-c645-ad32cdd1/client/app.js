@@ -350,7 +350,7 @@ const App = {
       const names = items.map(i => i.n).join('、');
       const gr = items.length ? gradeMeal({ foods: items }, plan) : null;
       return `<div class="meal">
-        <div class="meal-head" onclick="Add.open('${mt.id}')">
+        <div class="meal-head" data-onclick="Add.open('${mt.id}')">
           <div class="meal-ico" style="background:${mt.bg}">${mt.ico}</div>
           <div class="meal-t">
             <h4>${mt.name}</h4>
@@ -366,7 +366,7 @@ const App = {
           ${items.map(i => `<div class="food-item">
             <div class="food-nm">${i.n}<span>${i.g}g</span></div>
             <div class="food-kc">${R(i.k)} kcal</div>
-            <button class="food-del" onclick="event.stopPropagation();App.delDish('${mt.id}','${i.n.replace(/'/g, "")}')">×</button>
+            <button class="food-del" data-onclick="event.stopPropagation();App.delDish('${mt.id}','${i.n.replace(/'/g, "")}')">×</button>
           </div>`).join('')}
         </div>` : ''}
       </div>`;
@@ -452,7 +452,7 @@ const App = {
     $('#calStrip').innerHTML = days.map(o => {
       const n = dayNut(o.key);
       const dot = n.count ? `<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background:${o.key === viewDate ? '#fff' : '#12A87A'};margin-top:3px"></span>` : `<span style="display:inline-block;width:4px;height:4px;margin-top:3px"></span>`;
-      return `<div class="cal-day ${o.key === viewDate ? 'on' : ''}" onclick="App.pickDate('${o.key}')">
+      return `<div class="cal-day ${o.key === viewDate ? 'on' : ''}" data-onclick="App.pickDate('${o.key}')">
         <div class="w">${['日', '一', '二', '三', '四', '五', '六'][o.d.getDay()]}</div>
         <div class="d">${o.d.getDate()}</div>${dot}
       </div>`;
@@ -478,7 +478,7 @@ const App = {
 
     if (!list.length) {
       $('#logDetail').innerHTML = head + `<div class="empty"><div class="eico">🍽️</div><p>这天还没有记录</p>
-        <button class="btn sm" style="width:auto;padding:0 22px;margin-top:14px" onclick="Add.open()">去记一餐</button></div>`;
+        <button class="btn sm" style="width:auto;padding:0 22px;margin-top:14px" data-onclick="Add.open()">去记一餐</button></div>`;
       return;
     }
 
@@ -605,7 +605,7 @@ const App = {
   weightSpark() {
     if (weights.length < 2) {
       return `<div class="empty" style="padding:22px"><p class="tiny">记录两次以上体重，就能看到趋势了</p>
-        <button class="btn sm ghost" style="width:auto;padding:0 18px;margin-top:10px" onclick="App.tab('me')">去记录体重</button></div>`;
+        <button class="btn sm ghost" style="width:auto;padding:0 18px;margin-top:10px" data-onclick="App.tab('me')">去记录体重</button></div>`;
     }
     const ws = weights.slice(-14);
     const vals = ws.map(w => w.kg);
@@ -651,7 +651,7 @@ const App = {
           <div style="font-weight:800;font-size:17px">${profile.nickname || '我的档案'}</div>
           <div class="tiny muted" style="margin-top:2px">${profile.sex === 'm' ? '男' : '女'} · ${profile.age} 岁 · ${profile.height} cm · ${profile.goal === 'lose' ? '减脂' : profile.goal === 'gain' ? '增肌' : '维持'}</div>
         </div>
-        <button class="btn sm ghost" style="width:auto;padding:0 14px" onclick="Me.edit()">编辑</button>
+        <button class="btn sm ghost" style="width:auto;padding:0 14px" data-onclick="Me.edit()">编辑</button>
       </div>
 
       <div class="sec-title"><h3>目标进度</h3><span class="more">目标 ${target} kg</span></div>
@@ -664,7 +664,7 @@ const App = {
         <div style="display:flex;justify-content:space-between;margin-top:6px">
           <span class="tiny muted">起点 ${start} kg</span><span class="tiny muted">完成 ${R(done)}%</span>
         </div>
-        <button class="btn sm" style="margin-top:14px" onclick="Me.weigh()">今天体重打卡</button>
+        <button class="btn sm" style="margin-top:14px" data-onclick="Me.weigh()">今天体重打卡</button>
       </div>
 
       <div class="sec-title"><h3>身体指标</h3></div>
@@ -687,8 +687,8 @@ const App = {
 
       <div class="sec-title"><h3>数据</h3></div>
       <div class="card" style="padding:6px 16px">
-        <div class="li" onclick="Me.exportData()"><div class="ic" style="background:#E9F8F2">⬇️</div><div class="nm">导出我的数据</div><div class="vv">CSV</div></div>
-        <div class="li" onclick="Me.clear()"><div class="ic" style="background:#FDECEA">🗑️</div><div class="nm" style="color:#F0564A">清空全部记录</div><div class="vv">›</div></div>
+        <div class="li" data-onclick="Me.exportData()"><div class="ic" style="background:#E9F8F2">⬇️</div><div class="nm">导出我的数据</div><div class="vv">CSV</div></div>
+        <div class="li" data-onclick="Me.clear()"><div class="ic" style="background:#FDECEA">🗑️</div><div class="nm" style="color:#F0564A">清空全部记录</div><div class="vv">›</div></div>
       </div>
 
       <p class="tiny muted" style="text-align:center;margin:22px 0 10px;line-height:1.7">
@@ -866,7 +866,7 @@ const Add = {
       <div class="sec-title" style="margin:14px 0 4px"><h3 style="font-size:14px">已选</h3><span class="more tiny">点数字可直接改重量</span></div>
       <div class="basket" id="basket"></div>
     `;
-    Sheet.open('记录一餐', body, `<button class="btn" id="saveMeal" onclick="Add.save()">保存这一餐</button>`);
+    Sheet.open('记录一餐', body, `<button class="btn" id="saveMeal" data-onclick="Add.save()">保存这一餐</button>`);
     this.renderList();
     this.renderBasket();
 
@@ -943,7 +943,7 @@ const Add = {
     const shown = list.slice(0, 60);
     box.innerHTML = shown.map(f => {
       const idx = FOOD_DB.indexOf(f);
-      return `<div class="food-pick" onclick="Add.add(${idx})">
+      return `<div class="food-pick" data-onclick="Add.add(${idx})">
         <div class="nm"><b>${f.n}</b><p>每100g ${f.k}kcal · 蛋白${f.p}g · ${f.cat}</p></div>
         <div class="kk">${R(f.k * f.s / 100)}<span class="tiny muted">/${f.s}g</span></div>
         <div class="pick-plus">+</div>
@@ -998,11 +998,11 @@ const Add = {
     box.innerHTML = items.map(i => `<div class="bk-item">
       <div class="bk-nm"><b>${i.n}</b><p>${R(i.k)} kcal · 蛋白 ${R(i.p)}g · 脂肪 ${R(i.f)}g</p></div>
       <div class="qty">
-        <button onclick="Add.stepG('${i.n}',-25)">−</button>
-        <input type="number" inputmode="numeric" value="${i.g}" onchange="Add.setG('${i.n}',this.value)" onfocus="this.select()">
-        <button onclick="Add.stepG('${i.n}',25)">+</button>
+        <button data-onclick="Add.stepG('${i.n}',-25)">−</button>
+        <input type="number" inputmode="numeric" value="${i.g}" data-onchange="Add.setG('${i.n}',this.value)" data-onfocus="this.select()">
+        <button data-onclick="Add.stepG('${i.n}',25)">+</button>
       </div>
-      <button class="food-del" onclick="Add.remove('${i.n}')">×</button>
+      <button class="food-del" data-onclick="Add.remove('${i.n}')">×</button>
     </div>`).join('') + `<div class="bk-total"><span>这一餐合计</span><b>${R(total.k)} kcal</b></div>`;
     const btn = $('#saveMeal');
     btn.disabled = false;
@@ -1076,7 +1076,7 @@ const Me = {
         <div class="chips" id="eAct">
           ${ACT_OPTS.map(a => `<button class="chip ${p.act === a.v ? 'on' : ''}" data-v="${a.v}">${a.t}</button>`).join('')}
         </div></div>`;
-    Sheet.open('编辑资料', body, `<button class="btn" onclick="Me.saveEdit()">保存</button>`);
+    Sheet.open('编辑资料', body, `<button class="btn" data-onclick="Me.saveEdit()">保存</button>`);
   },
 
   saveEdit() {
@@ -1109,7 +1109,7 @@ const Me = {
     const body = `<div class="field"><label>今天早上空腹的体重 <span class="hint">kg</span></label>
         <input class="inp" id="wKg" type="number" step="0.1" value="${cur}" style="font-size:22px;height:56px;font-weight:800;text-align:center">
         <p class="tiny muted" style="margin-top:8px">建议固定在同一时间、同样状态下称，趋势才有意义。</p></div>`;
-    Sheet.open('体重打卡', body, `<button class="btn" onclick="Me.saveWeigh()">记录</button>`);
+    Sheet.open('体重打卡', body, `<button class="btn" data-onclick="Me.saveWeigh()">记录</button>`);
     setTimeout(() => { const el = $('#wKg'); if (el) { el.focus(); el.select(); } }, 260);
   },
 
