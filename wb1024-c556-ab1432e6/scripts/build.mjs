@@ -1,0 +1,1 @@
+import {build} from "vite"; import {readFile,cp} from "node:fs/promises"; const source=JSON.parse(await readFile("source.json")); await build(); await cp("public/icon.png","dist/icon.png"); console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",...source}));
