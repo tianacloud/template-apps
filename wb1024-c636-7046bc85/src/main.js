@@ -930,9 +930,6 @@ function openInstall(){
   actions.push('<button class="b-sub" data-click="closeInstall()">知道了</button>');
   document.getElementById('instActions').innerHTML = actions.join('');
   document.getElementById('instNote').innerHTML = INSTALL_NOTE[p] || '';
-  const hero = document.getElementById('instHeroImg');
-  const fav = document.querySelector('link[rel="icon"]');
-  if(hero && fav && fav.href) hero.src = fav.href;
   document.getElementById('installModal').classList.add('show');
 }
 function copyLink(btn){
