@@ -77,7 +77,10 @@ export function pickJsonFile() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
     input.onchange = () => {
+      input.remove();
       const file = input.files?.[0];
       if (!file) return resolve(null);
       const reader = new FileReader();
