@@ -7,7 +7,7 @@ const css=await readFile(src+'style.css','utf8');
 const files=['course-data.js','extras-data.js','lab.js','app.js'];
 const scripts=await Promise.all(files.map(f=>readFile(src+'js/'+f,'utf8')));
 scripts[2]=scripts[2].replaceAll('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/', 'PYODIDE_BASE/');
-const entry=`const base = new URL('./pyodide/', import.meta.url).href;\nconst style=document.createElement('style'); style.textContent=${JSON.stringify(css)}; document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst scripts=${JSON.stringify(scripts)}; for(const code of scripts){const s=document.createElement('script');s.textContent=code.replaceAll('PYODIDE_BASE/',base);document.body.appendChild(s)}\n`;
+const entry=`const base = new URL('./pyodide/', import.meta.url).href;\nconst style=document.createElement('style'); style.textContent=${JSON.stringify(css)}; document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\n` + scripts.map(code=>code.replaceAll('PYODIDE_BASE/', "' + base + '")).join('\n');
 await writeFile('dist/assets/app.js',entry);
 for(const f of ['pyodide.js','pyodide.asm.js','pyodide.asm.wasm','python_stdlib.zip','pyodide-lock.json']) await copyFile('node_modules/pyodide/'+f,'dist/assets/pyodide/'+f);
 await copyFile('public/icon.png','dist/icon.png');
