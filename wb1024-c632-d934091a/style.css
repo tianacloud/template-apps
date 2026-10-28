@@ -1,0 +1,266 @@
+
+/* ═══════ 主题（默认暗黑，对齐桌面版 Board.html 变量；body.light = 明亮） ═══════ */
+:root{
+  --bg-app:#1e2429;            /* 页面底 / 开始页背景（= 桌面版 --bg-app） */
+  --bg-toolbar:rgba(30,35,41,.96);
+  --bg-elevated:#2a2f36;
+  --bg-input:#2d333b;
+  --border-soft:#2d333b;
+  --border-strong:#4a5562;
+  --text-primary:#e2e8f0;
+  --text-secondary:#c9d1d9;
+  --text-muted:#a0a6b0;
+  --accent:#5fad62;
+  --accent-strong:#2c6e2f;
+  --accent-soft:rgba(100,200,100,.4);
+  --tool-btn-bg:#3a4048;       /* = 桌面版 --tool-btn-bg */
+  --tool-btn-bg-hover:#4a525c;
+  --tool-fg:#e8ecf1;
+  /* 语义别名（旧名沿用，两套主题各自定义） */
+  --ink:#e2e8f0; --ink2:#c9d1d9; --ink3:#a0a6b0;
+  --line:#363d46; --line2:#2d333b;
+  --bg:#1e2429; --card:#2a2f36;
+  --green:#5fad62; --green-s:#5fad62; --green-w:rgba(95,173,98,.18);
+  --red:#f87171;
+  --sw-ring:rgba(0,0,0,.38);
+  --shadow:0 8px 28px rgba(0,0,0,.45);
+  --tedit-bg:rgba(45,51,59,.92);
+}
+:root.light{
+  --bg-app:#eef1f4;
+  --bg-toolbar:rgba(255,255,255,.93);
+  --bg-elevated:#ffffff;
+  --bg-input:#ffffff;
+  --border-soft:#e4e8ec;
+  --border-strong:#c3ccd4;
+  --text-primary:#1c2126;
+  --text-secondary:#4a545e;
+  --text-muted:#7b8792;
+  --accent:#2c6e2f;
+  --accent-strong:#2c6e2f;
+  --accent-soft:rgba(44,110,47,.28);
+  --tool-btn-bg:#e6eaee;
+  --tool-btn-bg-hover:#d7dde3;
+  --tool-fg:#1c2126;
+  --ink:#1c2126; --ink2:#4a545e; --ink3:#7b8792;
+  --line:#e4e8ec; --line2:#eef1f4;
+  --bg:#f5f7f5; --card:#ffffff;
+  --green:#2c6e2f; --green-s:#5fad62; --green-w:#eaf4ea;
+  --red:#b03a3a;
+  --sw-ring:rgba(28,33,38,.18);
+  --shadow:0 8px 28px rgba(28,33,38,.12);
+  --tedit-bg:rgba(255,255,255,.72);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font:15px/1.6 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+  transition:background .25s ease,color .25s ease;
+}
+button{font:inherit;color:inherit}
+
+/* ── 开始页面（1 秒后自动进入；背景跟随主题） ── */
+#splash{
+  position:fixed;inset:0;z-index:100;background:var(--bg-app);
+  display:grid;place-items:center;transition:opacity .35s ease;
+}
+#splash.hide{opacity:0;pointer-events:none}
+.sp-in{text-align:center;animation:sp-in .45s cubic-bezier(.2,.7,.3,1) both}
+.sp-in img{width:88px;height:88px;border-radius:20px;display:block;margin:0 auto;
+  box-shadow:0 10px 34px rgba(0,0,0,.35)}
+.light .sp-in img{box-shadow:0 10px 30px rgba(28,33,38,.16)}
+.sp-name{margin-top:16px;font-size:21px;font-weight:650;color:var(--ink);letter-spacing:.5px}
+.sp-sub{margin-top:5px;font-size:12.5px;color:var(--ink3)}
+@keyframes sp-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+
+/* ── 画布舞台（背景图案随缩放/平移） ── */
+#stage{position:fixed;inset:0;background:#fff;touch-action:none;--z:1;--bx:0px;--by:0px;z-index:1}
+#stage.bg-dots{background-image:radial-gradient(circle at 1px 1px,#c3ccd6 1.4px,transparent 1.4px);background-size:calc(26px * var(--z)) calc(26px * var(--z));background-position:var(--bx) var(--by)}
+#stage.bg-grid{background-image:linear-gradient(to right,#e2e8f0 1px,transparent 1px),linear-gradient(to bottom,#e2e8f0 1px,transparent 1px);background-size:calc(26px * var(--z)) calc(26px * var(--z));background-position:var(--bx) var(--by)}
+#stage.bg-lines{background-image:linear-gradient(to bottom,#e2e8f0 1px,transparent 1px);background-size:auto calc(34px * var(--z));background-position:var(--bx) var(--by)}
+#stage.bg-black{background:#16191e}
+#stage.dropping::after{
+  content:"松开鼠标 / 手指，插入图片";position:absolute;inset:0;z-index:4;pointer-events:none;
+  display:grid;place-items:center;background:rgba(44,110,47,.07);
+  border:2px dashed var(--green-s);font-size:17px;font-weight:600;color:var(--green);
+}
+#cv{position:absolute;inset:0;display:block;touch-action:none}
+
+/* ── 工具栏：底部一行（默认布局；左侧竖排见下方 tb-left 规则）
+   形态逐项对齐桌面版 Board.html body.tb-bottom .toolbar：
+   不透明浮条（桌面版⛔不用毛玻璃：投屏抓屏每帧重模糊，实测卡）+ 白10%边 + 16px圆角
+   + 0 8px 26px 阴影 + padding 10/12/8 + gap 10 + 单行窄屏横滚（6px 细条） ── */
+#bar{
+  position:fixed;bottom:10px;top:auto;left:50%;transform:translateX(-50%);z-index:30;
+  display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:center;
+  max-width:calc(100vw - 24px);padding:10px 12px 8px;
+  background:var(--bg-toolbar);
+  border:1px solid rgba(255,255,255,.10);border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.45);
+  overflow-x:auto;overflow-y:hidden;
+}
+#bar::-webkit-scrollbar{height:6px}
+#bar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
+#bar::-webkit-scrollbar-track{background:transparent}
+#bar::-webkit-scrollbar-button{display:none;width:0;height:0}
+.brand{display:flex;align-items:center;gap:7px;padding:0 8px 0 4px;font-size:12px;line-height:1.25;color:var(--ink3);white-space:nowrap;flex:none}
+.brand img{width:26px;height:26px;border-radius:7px;display:block}
+.brand b{color:var(--green);font-size:12.5px}
+/* 分组：组内间距 5px（= 桌面版 toolbar-main gap）；组间 1px 分隔线（::after 伪元素，竖排/底排两种形态） */
+.grp{display:flex;align-items:center;gap:5px;padding:0 8px;position:relative;flex:none}
+.grp:not(:last-child)::after{content:"";position:absolute;top:50%;right:0;transform:translateY(-50%);
+  width:1px;height:24px;background:rgba(255,255,255,.22)}
+.tb{
+  width:32px;height:32px;border:1px solid transparent;background:var(--tool-btn-bg);border-radius:7px;
+  display:grid;place-items:center;color:var(--tool-fg);cursor:pointer;padding:0;flex-shrink:0;
+  transition:background .15s ease,color .15s ease,transform .12s cubic-bezier(.34,1.4,.64,1);
+}
+/* 微交互与桌面版同款：底排 hover 上浮 scale(1.06)、active 陷 scale(.94)；竖排见 tb-left 段 */
+.tb:hover{background:var(--tool-btn-bg-hover);color:var(--tool-fg);transform:translateY(-3px) scale(1.06)}
+.tb:active{transform:translateY(-1px) scale(.94)}
+.tb.on{background:var(--accent-strong);border-color:var(--accent);color:#fff;box-shadow:0 0 0 2px var(--accent-soft)}
+.tb:disabled{opacity:.32;cursor:default;background:var(--tool-btn-bg)}
+.ic{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+/* 颜色 */
+.sw{width:22px;height:22px;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;
+  box-shadow:0 0 0 1px var(--sw-ring), inset 0 0 0 2px #fff;transition:transform .1s}
+.sw:hover{transform:scale(1.12)}
+.sw.on{box-shadow:0 0 0 2px var(--green), inset 0 0 0 2px #fff}
+.sw-custom{overflow:hidden;background:conic-gradient(#f43f5e,#f59e0b,#22c55e,#3b82f6,#8b5cf6,#f43f5e)}
+.sw-custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:0;padding:0}
+/* 粗细 */
+.wb{width:30px;height:30px}
+.wb i{display:block;width:22px;border-radius:99px;background:currentColor}
+/* 主题按钮：暗色显太阳（点了变亮），亮色显月亮 */
+#themeBtn .i-moon{display:none}
+.light #themeBtn .i-sun{display:none}
+.light #themeBtn .i-moon{display:block}
+/* ── 顶部 Dock：页码 / 缩放（底排工具栏占底部 ⇒ Dock 让位到顶部两侧）
+   浮条形态同工具栏：不透明底 + 白10%边 + 16px 圆角 + 同款阴影（桌面版无 Dock，这是网页版便利控件） ── */
+.dock{
+  position:fixed;top:12px;bottom:auto;z-index:30;display:flex;align-items:center;gap:4px;
+  background:var(--bg-toolbar);
+  border:1px solid rgba(255,255,255,.10);border-radius:16px;box-shadow:0 8px 26px rgba(0,0,0,.45);
+  padding:8px 10px;
+}
+#pagebar{left:12px}
+#zoombar{right:12px}
+.pg{font-size:13px;color:var(--ink2);padding:0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pg b{color:var(--ink);font-weight:600}
+.sep{width:1px;height:20px;background:var(--line2);margin:0 3px}
+.save{font-size:11.5px;color:var(--ink3);padding:0 6px 0 2px;white-space:nowrap}
+#zVal{font-size:12.5px;color:var(--ink2);min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
+/* ── 弹出层：逐项对齐桌面版 .style-panel / .ai-settings（毛玻璃浮层） ──
+   rgba(42,48,58,.78) + blur(14px) saturate(1.3) + 白12%边 + 12px 圆角 + 0 10px 28px 阴影
+   + padding 10px + flex column gap 8px（桌面版 .style-panel 同款，亮暗同一形态） */
+.pop{
+  position:fixed;z-index:40;display:none;min-width:150px;padding:10px;
+  background:rgba(42,48,58,.78);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.35);
+  flex-direction:column;gap:8px;
+}
+.pop.show{display:flex}
+.pop-t{font-size:12px;color:var(--ink3);padding:2px 6px 7px}
+.bg-list{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.bgopt{display:flex;align-items:center;gap:7px;border:0;background:transparent;border-radius:8px;
+  padding:6px 8px;font-size:13px;cursor:pointer;color:var(--ink2);text-align:left}
+.bgopt:hover{background:var(--line2);color:var(--ink)}
+.bgopt.on{background:var(--green-w);color:var(--green)}
+.pv{width:26px;height:19px;border-radius:5px;border:1px solid var(--line);flex:none}
+.pv-white{background:#fff}
+.pv-black{background:#16191e;border-color:#2c3038}
+.pv-dots{background:#fff radial-gradient(circle at 1.5px 1.5px,#aab6c4 1.2px,transparent 1.2px);background-size:7px 7px}
+.pv-grid{background:#fff linear-gradient(to right,#d5dde6 1px,transparent 1px),linear-gradient(to bottom,#d5de6 1px,transparent 1px);background:linear-gradient(to right,#d5dde6 1px,transparent 1px),linear-gradient(to bottom,#d5dde6 1px,transparent 1px);background-size:6.5px 6.5px}
+.pv-lines{background:#fff linear-gradient(to bottom,#d5dde6 1px,transparent 1px);background-size:auto 6.3px}
+#helpPop{width:290px;line-height:1.5}
+#helpPop h4{margin:2px 6px 6px;font-size:13px}
+#helpPop table{width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink2)}
+#helpPop td{padding:2.5px 6px}
+#helpPop td:first-child{white-space:nowrap;color:var(--ink);font-weight:500;width:1%;padding-right:10px}
+#helpPop .note{margin:7px 6px 3px;font-size:12px;color:var(--ink3);line-height:1.55;border-top:1px solid var(--line2);padding-top:7px}
+kbd{font:11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--line2);border:1px solid var(--line);
+  border-radius:5px;padding:2px 5px;color:var(--ink2)}
+/* ── 文字编辑浮层 ── */
+#tedit{
+  position:fixed;z-index:35;display:none;min-width:140px;min-height:1.4em;
+  border:1.5px dashed var(--green-s);background:var(--tedit-bg);
+  border-radius:7px;outline:0;resize:none;overflow:hidden;padding:2px 5px;
+  font-family:inherit;line-height:1.28;white-space:pre;box-shadow:0 4px 18px rgba(0,0,0,.28);
+}
+.light #tedit{box-shadow:0 4px 18px rgba(28,33,38,.10)}
+/* ── Toast ── */
+#toast{
+  position:fixed;left:50%;bottom:74px;transform:translate(-50%,10px);z-index:50;
+  background:rgba(28,33,38,.92);color:#fff;font-size:13.5px;padding:8px 16px;border-radius:99px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;white-space:nowrap;
+  max-width:calc(100vw - 40px);overflow:hidden;text-overflow:ellipsis;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ── 工具栏布局：底部一行（默认）/ 左侧竖排（对齐桌面版竖排形态） ──
+   桌面版竖排 = 贴左通高 72px、透明底（按钮浮在板面上）、整体左移 5px、padding 6px 0、gap 5px */
+body.tb-left #bar{
+  left:0;top:0;bottom:0;width:72px;max-width:72px;transform:translateX(-5px);border-radius:0;
+  flex-direction:column;justify-content:flex-start;gap:5px;
+  background:transparent;border:0;box-shadow:none;
+  padding:6px 0;overflow:hidden;
+}
+body.tb-left #bar .grp{border-right:0;padding:5px 0 6px;width:100%;justify-content:center}
+/* 竖排分隔线 = 桌面版 .tool-sep：26×1 居中、变量色、透明度 .45 */
+body.tb-left #bar .grp:not(:last-child)::after{
+  width:26px;height:1px;right:auto;left:50%;top:auto;bottom:0;transform:translateX(-50%);
+  background:var(--tool-sep,var(--border-soft));opacity:.45}
+body.tb-left .brand{padding:2px 0 8px}
+body.tb-left .dock#pagebar{left:84px;top:12px;bottom:auto}
+/* 竖排微交互与桌面版同款：hover 右顶 translateX(2px) scale(1.06)、active 陷 translateX(1px) scale(.94) */
+body.tb-left .tb:hover{transform:translateX(2px) scale(1.06)}
+body.tb-left .tb:active{transform:translateX(1px) scale(.94)}
+/* ── 翻页组（对齐桌面版 .page-nav-group / .tool-page-info） ──
+   横排：并入工具栏末尾，页码 min-width 46 + 工具前景色 82% 透明度（桌面版 tb-bottom 规范；
+         桌面版写死白色是因它没有亮主题，网页版用 --tool-fg 自适应两极）
+   竖排：margin-top:auto 沉到工具栏最底 + column + gap 5 + padding-bottom 4 + translateY(-10px)，
+         页码 56px 居中 10px 字（桌面版 .tool-page-info 竖排值）；
+         箭头 rotate(90deg)：左箭头顺时针 90° = ↑，右箭头 = ↓（桌面版同一图标横排 rotate(-90deg) 的同思路反用） */
+#pgGrp .pg{font-size:11px;color:var(--tool-fg);opacity:.82;padding:0 6px;line-height:1.2;min-width:46px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;text-align:center}
+body.tb-left #pgGrp{
+  margin-top:auto;flex-direction:column;gap:5px;
+  padding-bottom:4px;transform:translateY(-10px);
+}
+body.tb-left #pgGrp .pg{width:56px;text-align:center;padding:0;font-size:10px;opacity:1}
+body.tb-left #pgGrp .ic{transform:rotate(90deg)}
+/* 颜色 / 粗细触发按钮（小面板由 JS 定位） */
+#cBtn .cDot{width:18px;height:18px;border-radius:50%;display:block;background:#1c2126;
+  box-shadow:inset 0 0 0 2px #fff,0 0 0 1px var(--sw-ring)}
+#wBtn i{display:block;width:20px;border-radius:99px;background:currentColor;height:6px}
+/* 弹出面板内容 */
+.c-grid{display:grid;grid-template-columns:repeat(5,20px);gap:7px;justify-content:center;padding:2px 4px 4px}
+.w-list{display:flex;flex-direction:column;gap:3px;padding:2px 4px 4px}
+.wopt{display:flex;align-items:center;gap:9px;border:0;background:transparent;border-radius:8px;
+  padding:6px 9px;font-size:12.5px;cursor:pointer;color:var(--ink2);text-align:left;width:100%}
+.wopt:hover{background:var(--line2);color:var(--ink)}
+.wopt.on{background:var(--green-w);color:var(--green)}
+.wopt i{display:block;border-radius:99px;background:currentColor;flex:none}
+.set-row{display:flex;gap:10px;padding:2px 4px 4px}
+/* 设置选项逐项对齐桌面版 .ai-model-opt：bg-input 底 + border-strong 边 + 8px 圆角
+   + 12px 字 + 8px 10px 内边距；激活态只描 accent 边 + 白字（桌面版无底色变化） */
+.setopt{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border-strong);
+  background:var(--bg-input);color:var(--text-secondary);font-size:12px;cursor:pointer;white-space:nowrap}
+.setopt:hover{background:var(--tool-btn-bg-hover);color:var(--tool-fg)}
+.setopt.on{border-color:var(--accent);color:#fff;font-weight:600}
+
+@media (max-width:760px){
+  .brand span{display:none}
+  .brand{padding:0 2px}
+  .tb{width:31px;height:31px}
+  .ic{width:17px;height:17px}
+  .wb{width:27px;height:27px}
+  .save{display:none}
+  #bar{bottom:6px;top:auto;gap:6px;padding:8px 8px 6px}
+  .grp{padding:0 6px}
+  .dock{top:8px;bottom:auto;padding:6px 8px}
+  #zoombar{top:52px}   /* 窄屏两行：页码在上、缩放错到第二行，避免相撞 */
+}
