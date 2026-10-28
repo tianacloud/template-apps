@@ -1,0 +1,2 @@
+import {mkdir,cp,copyFile,readFile,rm} from "node:fs/promises";
+await rm("dist",{recursive:true,force:true}); await mkdir("dist/assets",{recursive:true}); await cp("game","dist/assets/game",{recursive:true}); await copyFile("app.js","dist/assets/app.js"); await copyFile("public/icon.png","dist/icon.png"); console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",...JSON.parse(await readFile("source.json","utf8"))}));
