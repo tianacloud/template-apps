@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS wenmai_notes (id TEXT PRIMARY KEY, client_id TEXT NOT NULL, title TEXT NOT NULL, summary TEXT, topics INTEGER NOT NULL, words INTEGER NOT NULL, tree TEXT NOT NULL, created_at TEXT NOT NULL);
