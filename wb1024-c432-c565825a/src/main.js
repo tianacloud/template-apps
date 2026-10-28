@@ -146,6 +146,7 @@ function panic(custom){
   lastRealTitle = document.title;
   const kind = custom || S.disguise;
   disRoot.innerHTML = (RENDERERS[kind]||renderWord)();
+  const back = document.createElement('button'); back.className='touch-return'; back.textContent='返回工作台'; back.addEventListener('click', unpanic); disRoot.appendChild(back);
   disRoot.classList.add('on');
   // 标签同时伪装
   const tmap = { word:'项目文档.docx - Word', excel:'季度经营数据.xlsx - Excel', code:'daily_user_metrics_etl.py - Visual Studio Code', dash:'经营看板 | 数据平台' };
