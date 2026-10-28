@@ -873,7 +873,7 @@ function botReply(q){
     const f=forecast(S.profile,t);
     return `按每天 ${f.deficit} 千卡缺口算，每周约减 ${fmt(f.perWeek,2)} kg。\n4 周后约 ${fmt(f.wk4,1)} kg，8 周后约 ${fmt(f.wk8,1)} kg。`;
   }
-  return '这个问题超出我的本地知识范围了。我能回答：今天还能吃多少、晚饭吃什么、蛋白还差多少、冰箱里有什么、某个动作练哪、多久减多少。\n更复杂的问题，去 WorkBuddy 里问。';
+  return '这个问题超出我的本地知识范围了。我能回答：今天还能吃多少、晚饭吃什么、蛋白还差多少、冰箱里有什么、某个动作练哪、多久减多少。';
 }
 function sendChat(q){
   const text=(q||'').trim(); if(!text) return;
