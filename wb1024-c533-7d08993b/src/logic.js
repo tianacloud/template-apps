@@ -42,7 +42,6 @@
       localStorage.setItem('pc_build_list_v1', JSON.stringify(appData));
       const now = new Date();
       document.getElementById('last-save').textContent = '自动保存：' + now.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
-      if (hasCloud()) cloudAutoSave();
       showToast('已自动保存');
     }
 
@@ -56,81 +55,7 @@
 
     const autoSave = debounce(saveData, 600);
 
-    // ===== 云端数据表同步层（在线存储 + 双向同步）=====
-    // 干净模板种子：下载副本时固定使用，保证他人拿到的是无个人数据的示例
     const TEMPLATE_SEED = JSON.parse(JSON.stringify(defaultData.components));
-
-    function hasCloud() { return false; }
-
-    function setSync(txt) {
-      const el = document.getElementById('sync-status');
-      if (el) el.textContent = txt;
-    }
-
-    function compToProps(c) {
-      const p = {
-        '类别': { text: c.category || '其他' },
-        '名称': { text: c.name || '' },
-        '型号': { text: c.model || '' },
-        '价格': { number: Number(c.price) || 0 },
-        '已拥有': { checkbox: !!c.owned },
-        '平台': { text: c.platform || '' },
-        '备注': { text: c.note || '' }
-      };
-      if (c.alternative && c.alternative.name) {
-        p['替代名称'] = { text: c.alternative.name };
-        p['替代价格'] = { number: Number(c.alternative.price) || 0 };
-        p['替代理由'] = { text: c.alternative.reason || '' };
-      }
-      return p;
-    }
-
-    function recordToComp(r) {
-      const a = (r['替代名称'] && r['替代价格'] != null) ? {
-        name: r['替代名称'], price: Number(r['替代价格']) || 0,
-        saving: (Number(r['价格']) || 0) - (Number(r['替代价格']) || 0),
-        reason: r['替代理由'] || '', rating: '4.5'
-      } : null;
-      return {
-        id: 'c_' + (r._id || Date.now().toString(36) + Math.random().toString(36).slice(2,6)),
-        category: r['类别'] || '其他',
-        name: r['名称'] || '',
-        model: r['型号'] || '',
-        price: Number(r['价格']) || 0,
-        owned: !!r['已拥有'],
-        platform: r['平台'] || '待定',
-        note: r['备注'] || '',
-        alternative: a
-      };
-    }
-
-    async function cloudLoad() {
-      const db = window.__SMART_PAGE__.database;
-      const res = await db.query({ databaseId: CLOUD_DB_ID, pageSize: 100 });
-      const rows = (res && res.results) || [];
-      if (!rows.length) return null;
-      return rows.map(recordToComp);
-    }
-
-    async function cloudSaveAll(comps) {
-      if (!hasCloud()) return;
-      const db = window.__SMART_PAGE__.database;
-      try {
-        const res = await db.query({ databaseId: CLOUD_DB_ID, pageSize: 100 });
-        const ids = ((res && res.results) || []).map(r => r._id);
-        for (const id of ids) {
-          try { await db.deleteRecord({ databaseId: CLOUD_DB_ID, recordId: id }); } catch (e) {}
-        }
-        for (const c of comps) {
-          try { await db.addRecord({ databaseId: CLOUD_DB_ID, properties: compToProps(c) }); } catch (e) {}
-        }
-        setSync('已同步云端 ✓');
-      } catch (e) {
-        setSync('云端同步失败（本地已保存）');
-      }
-    }
-
-    const cloudAutoSave = debounce(() => { cloudSaveAll(appData.components); }, 800);
 
     async function standaloneHTML() {
       const base = window.__standaloneAssetBase;
@@ -834,17 +759,6 @@
       const dt = document.getElementById('dark-toggle');
       if (dt) dt.checked = !!(appData.theme && appData.theme.dark);
       setGreeting();
-      if (hasCloud()) { bootCloud(); } else { afterData(); }
-    }
-
-    async function bootCloud() {
-      try {
-        const comps = await cloudLoad();
-        if (comps && comps.length) { appData.components = comps; setSync('已从云端加载 ✓'); }
-        else { await cloudSaveAll(appData.components); setSync('已初始化云端 ✓'); }
-      } catch (e) {
-        setSync('云端不可用，使用本地');
-      }
       afterData();
     }
 
