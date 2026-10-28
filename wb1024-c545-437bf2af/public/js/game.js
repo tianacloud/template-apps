@@ -617,13 +617,13 @@ class BootScene extends Phaser.Scene {
 
         // ===== 场景背景图 =====
         ['bg_entrance', 'bg_corridor', 'bg_hall', 'bg_room', 'bg_swarm', 'bg_lair', 'bg_vault', 'bg_front', 'bg_main', 'bg_secret']
-            .forEach(k => this.load.image(k, 'assets/images/' + k + '.jpg'));
+            .forEach(k => this.load.image(k, 'assets/assets/images/' + k + '.jpg'));
         // ===== 道具图标 =====
         ['item_map', 'item_torch', 'item_bamboo1', 'item_bamboo2', 'item_bronze', 'item_key', 'item_herb', 'item_charm']
-            .forEach(k => this.load.image(k, 'assets/images/' + k + '.png'));
+            .forEach(k => this.load.image(k, 'assets/assets/images/' + k + '.png'));
         // ===== UI 素材 =====
-        this.load.image('ui_btn', 'assets/images/ui_btn.png');
-        this.load.image('ui_puzzle_bg', 'assets/images/ui_puzzle_bg.png');
+        this.load.image('ui_btn', 'assets/assets/images/ui_btn.png');
+        this.load.image('ui_puzzle_bg', 'assets/assets/images/ui_puzzle_bg.png');
     }
     create() {
         FX.buildTextures(this);
