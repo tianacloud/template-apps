@@ -369,7 +369,7 @@ sections:[
   tip:'读文件的标准姿势 with open(...) as f: for line in f 本身就是逐行生成器。大文件统计行数、过滤日志都是它 + 生成器的组合拳。'},
  {h:'10.3 装饰器：函数的函数',
   p:'装饰器接收一个函数、返回增强后的函数，用 @语法糖套在定义上。核心用途是<strong>横切关注点</strong>：计时、日志、缓存、权限检查——这些与业务无关的逻辑全部抽离。理解它需要先懂「函数是一等公民」：可以赋值、传参、返回。',
-  code:`import time, functools\n\ndef timer(func):\n    @functools.wraps(func)           # 保留原函数名和docstring\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f"{func.__name__} 耗时 {time.time()-start:.4f}s")\n        return result\n    return wrapper\n\n@timer\ndef slow_sum(n):\n    return sum(range(n))\n\nslow_sum(1000000)\n\n# 内置装饰器也不少：@cache 缓存\[redacted email]\ndef fib(n):\n    return n if n < 2 else fib(n-1) + fib(n-2)\n\nprint(fib(80))   # 带缓存的递归，瞬间出结果`},
+  code:`import time, functools\n\ndef timer(func):\n    @functools.wraps(func)           # 保留原函数名和docstring\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f"{func.__name__} 耗时 {time.time()-start:.4f}s")\n        return result\n    return wrapper\n\n@timer\ndef slow_sum(n):\n    return sum(range(n))\n\nslow_sum(1000000)\n\n# 内置装饰器也不少：@cache 缓存\n@functools.cache\ndef fib(n):\n    return n if n < 2 else fib(n-1) + fib(n-2)\n\nprint(fib(80))   # 带缓存的递归，瞬间出结果`},
  {h:'10.4 类型注解：给动态类型上保险',
   p:'注解不改变运行行为，但 IDE 提示、静态检查（mypy/pyright）全靠它。现代写法用 list[int]、str | None（3.10+）。大型项目几乎必写注解，找工作时也是加分项。',
   code:`def average(scores: list[float]) -> float:\n    return sum(scores) / len(scores)\n\ndef find_user(uid: int, cache: dict[int, str] | None = None) -> str | None:\n    if cache is None:\n        cache = {}\n    return cache.get(uid)\n\nprint(average([88.5, 92, 79]))\nprint(find_user(1, {1: "小明"}), find_user(2))`}],
@@ -394,11 +394,11 @@ intro:'Web 后端的核心任务：接收 HTTP 请求 → 处理业务 → 返�
 sections:[
  {h:'11.1 第一个接口',
   p:'装饰器声明方法和路径，函数参数自动完成类型校验——传错类型 FastAPI 直接返回 422 错误，不用你写一行校验代码。启动后访问 /docs 自动获得可交互的 API 文档（Swagger UI），可以直接在浏览器里调接口。',
-  code:`# pip install fastapi uvicorn\n# uvicorn main:app --reload   启动后访问 http://127.0.0.1:8000/docs\nfrom fastapi import FastAPI\n\napp = FastAPI(title="我的第一个API")\n\nfake_db = {1: "Python", 2: "SQL", 3: "Git"}\n\[redacted email]("/")\ndef root():\n    return {"msg": "hello", "version": "1.0"}\n\[redacted email]("/items/{item_id}")          # 路径参数，自动转int\ndef get_item(item_id: int, q: str | None = None):\n    if item_id not in fake_db:\n        return {"error": "找不到该条目"}\n    return {"id": item_id, "name": fake_db[item_id], "q": q}`,
+  code:`# pip install fastapi uvicorn\n# uvicorn main:app --reload   启动后访问 http://127.0.0.1:8000/docs\nfrom fastapi import FastAPI\n\napp = FastAPI(title="我的第一个API")\n\nfake_db = {1: "Python", 2: "SQL", 3: "Git"}\n\n\n@app.get("/")\ndef root():\n    return {"msg": "hello", "version": "1.0"}\n\n\n@app.get("/items/{item_id}")          # 路径参数，自动转int\ndef get_item(item_id: int, q: str | None = None):\n    if item_id not in fake_db:\n        return {"error": "找不到该条目"}\n    return {"id": item_id, "name": fake_db[item_id], "q": q}`,
   warn:'路径参数声明为 int 后，访问 /items/abc 会自动返回 422 校验错误——这就是类型注解的威力，别的地方你可能要手写 if not id.isdigit()。'},
  {h:'11.2 请求体与 Pydantic 模型',
   p:'POST 请求的数据用 Pydantic 模型接收：定义一个继承 BaseModel 的类，字段类型、默认值、甚至范围校验全部声明式完成。FastAPI 会自动把 JSON 转成模型实例、自动生成文档示例、自动校验报错。',
-  code:`from fastapi import FastAPI\nfrom pydantic import BaseModel, Field\n\napp = FastAPI()\n\nclass TodoIn(BaseModel):\n    title: str = Field(min_length=1, max_length=50)\n    done: bool = False\n    priority: int = Field(default=1, ge=1, le=5)   # 1-5级\n\[redacted email]("/todos")\ndef create_todo(todo: TodoIn):\n    return {"created": True, "data": todo.model_dump()}`},
+  code:`from fastapi import FastAPI\nfrom pydantic import BaseModel, Field\n\napp = FastAPI()\n\nclass TodoIn(BaseModel):\n    title: str = Field(min_length=1, max_length=50)\n    done: bool = False\n    priority: int = Field(default=1, ge=1, le=5)   # 1-5级\n\n\n@app.post("/todos")\ndef create_todo(todo: TodoIn):\n    return {"created": True, "data": todo.model_dump()}`},
  {h:'11.3 数据持久化与分层',
   p:'真实项目不会把数据放字典里。常规分层：路由层（接收校验）→ 服务层（业务逻辑）→ 数据层（SQLAlchemy ORM 操作数据库）。SQLite 单文件零配置，是学习的最佳搭档；SQLAlchemy 2.0 的写法接近原生 Python 对象操作。',
   code:`# pip install fastapi uvicorn sqlalchemy\nfrom sqlalchemy import create_engine, String, select\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session\n\nclass Base(DeclarativeBase): pass\n\nclass Todo(Base):\n    __tablename__ = "todos"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(50))\n    done: Mapped[bool] = mapped_column(default=False)\n\nengine = create_engine("sqlite:///todo.db")\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    session.add(Todo(title="学习FastAPI"))\n    session.commit()\n    todos = session.scalars(select(Todo)).all()\n    print([t.title for t in todos])`},
@@ -412,7 +412,7 @@ pitfalls:[
 ],
 exercises:[
  {q:'设计一个「图书管理 API」：字段 书名/作者/ISBN/库存，实现 POST 创建和 GET /books?keyword= 关键字搜索', lv:'挑战', hint:'用 BaseModel 定义 BookIn；搜索用列表推导式过滤内存数据即可',
-  sol:`from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\nbooks: list[dict] = []\n\nclass BookIn(BaseModel):\n    title: str\n    author: str\n    isbn: str\n    stock: int = 0\n\[redacted email]("/books")\ndef create(b: BookIn):\n    books.append(b.model_dump())\n    return {"ok": True, "total": len(books)}\n\[redacted email]("/books")\ndef search(keyword: str = ""):\n    hits = [b for b in books if keyword in b["title"] or keyword in b["author"]]\n    return {"count": len(hits), "items": hits}`}
+  sol:`from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\nbooks: list[dict] = []\n\nclass BookIn(BaseModel):\n    title: str\n    author: str\n    isbn: str\n    stock: int = 0\n\n\n@app.post("/books")\ndef create(b: BookIn):\n    books.append(b.model_dump())\n    return {"ok": True, "total": len(books)}\n\n\n@app.get("/books")\ndef search(keyword: str = ""):\n    hits = [b for b in books if keyword in b["title"] or keyword in b["author"]]\n    return {"count": len(hits), "items": hits}`}
 ]
 },
 
