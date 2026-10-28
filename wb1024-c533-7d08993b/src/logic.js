@@ -265,21 +265,21 @@
         ` : '';
         return `
           <tr class="${c.owned ? 'owned' : ''}" data-id="${c.id}">
-            <td><input type="checkbox" ${c.owned ? 'checked' : ''} onchange="toggleOwned('${c.id}')"></td>
+            <td><input type="checkbox" ${c.owned ? 'checked' : ''} data-change="toggleOwned('${c.id}')"></td>
             <td>
               <div class="component-name">${c.name} ${c.owned ? '<span class="owned-tag">✓ 已买</span>' : ''}</div>
               <div class="component-model">${c.model}</div>
             </td>
-            <td class="price"><input type="number" class="num-input" value="${c.price}" onchange="updatePrice('${c.id}', this.value)"></td>
+            <td class="price"><input type="number" class="num-input" value="${c.price}" data-change="updatePrice('${c.id}', this.value)"></td>
             <td><span class="platform-tag">${c.platform}</span></td>
             <td>
-              <textarea class="note-input" rows="2" onchange="updateNote('${c.id}', this.value)">${c.note || ''}</textarea>
+              <textarea class="note-input" rows="2" data-change="updateNote('${c.id}', this.value)">${c.note || ''}</textarea>
               ${altHtml}
             </td>
             <td>
               <div class="row-actions">
-                <button class="sm ghost" onclick="openEditor('${c.id}')">编辑</button>
-                <button class="sm danger" onclick="deleteComponent('${c.id}')">删除</button>
+                <button class="sm ghost" data-click="openEditor('${c.id}')">编辑</button>
+                <button class="sm danger" data-click="deleteComponent('${c.id}')">删除</button>
               </div>
             </td>
           </tr>
@@ -774,3 +774,22 @@
 
     init();
   
+    function dispatchAction(event) {
+      const el = event.target.closest('[data-' + event.type + ']');
+      if (!el) return;
+      const action = el.getAttribute('data-' + event.type);
+      const m = action.match(/^([A-Za-z]+)\((.*)\)$/);
+      if (action === 'if(event.target===this)closeEditor()') { if (event.target === el) closeEditor(); return; }
+      if (!m) return;
+      const name = m[1], arg = m[2].match(/^'([^']*)'/)?.[1];
+      const noArgs = {closeEditor, downloadTemplateCopy, exportCSV, exportExcel, exportJSON, renderTable, resetData, saveEditor, saveToSourceFile, toggleDark, updateTheme};
+      if (name === 'showSection') showSection(arg, el);
+      else if (name === 'importJSON') importJSON(event);
+      else if (name === 'openEditor') openEditor(arg || null);
+      else if (name === 'deleteComponent') deleteComponent(arg);
+      else if (name === 'toggleOwned') toggleOwned(arg);
+      else if (name === 'updatePrice') updatePrice(arg, el.value);
+      else if (name === 'updateNote') updateNote(arg, el.value);
+      else if (noArgs[name]) noArgs[name]();
+    }
+    ['click','change','input'].forEach(type => document.addEventListener(type, dispatchAction));
