@@ -1,0 +1,12 @@
+import {readFile, mkdir, cp, writeFile, rm} from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[0-9a-f]{40}$/.test(commit||'')) throw new Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && source.git_instance_id.startsWith('__TIANA_')) throw new Error('请绑定 Git 实例');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await cp('public/assets','dist/assets',{recursive:true}); await cp('public/icon.png','dist/icon.png');
+await cp('src/style.css','dist/assets/app.css');
+const body=await readFile('src/body.html','utf8');
+let js=`const base=document.createElement('base');base.href=new URL('../',import.meta.url).href;document.head.append(base); document.title='一刀穷，一刀富 · 玉石馆'; document.body.innerHTML=${JSON.stringify(body)}; const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href=new URL('./app.css',import.meta.url).href;document.head.append(sheet);\n`;
+for(const f of ['data.js','render.js','ui.js','toyapi.js','audio.js','game.js']) js+=await readFile('src/'+f,'utf8')+'\n';
+await writeFile('dist/assets/app.js',js); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
