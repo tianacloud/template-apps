@@ -1,0 +1,3 @@
+const style=document.createElement('style'); style.textContent='html,body{margin:0;padding:0;background:#080808;height:100%}body{display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;-webkit-tap-highlight-color:transparent}#game-container{width:100vw;height:100vh}canvas{display:block;touch-action:none}'; document.head.appendChild(style);
+const container=document.createElement('div'); container.id='game-container'; document.body.appendChild(container);
+const script=document.createElement('script'); script.src='./js/phaser.min.js'; script.onload=()=>{const game=document.createElement('script');game.src='./js/game.js';document.body.appendChild(game)}; document.body.appendChild(script);
