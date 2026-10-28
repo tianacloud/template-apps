@@ -1,0 +1,12 @@
+import {readFile,writeFile,mkdir,copyFile,rm} from 'node:fs/promises';
+const html=await readFile('index.html','utf8');
+const styles=[...html.matchAll(/<style(?:\s+id="([^"]+)")?>([\s\S]*?)<\/style>/g)];
+const body=html.match(/<body>([\s\S]*?)<script id="playerRuntime">/)[1];
+const runtime=html.match(/<script id="playerRuntime">([\s\S]*?)<\/script>/)[1];
+const app=html.match(/<script>\s*(\/\* =+[\s\S]*?)<\/script>/)[1];
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+let js=`document.body.innerHTML=${JSON.stringify(body)};\n`;
+for(const s of styles) js+=`{const s=document.createElement('style');s.id=${JSON.stringify(s[1]||'')};s.textContent=${JSON.stringify(s[2])};document.head.appendChild(s)}\n`;
+js+=`{const s=document.createElement('script');s.type='text/plain';s.id='playerRuntime';s.textContent=${JSON.stringify(runtime)};document.body.appendChild(s)}\n`+runtime+'\n'+app;
+await writeFile('dist/assets/app.js',js); await copyFile('icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(await readFile('source.json','utf8'))}));
