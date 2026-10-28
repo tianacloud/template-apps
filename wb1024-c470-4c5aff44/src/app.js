@@ -1,0 +1,1685 @@
+document.title="轻匣子 LiteBox";
+const style=document.createElement("style");style.textContent="\n:root {\n  --bg: #f6f8f7;\n  --panel: #ffffff;\n  --panel-2: #f2f5f4;\n  --line: #e3e8e6;\n  --text: #16211e;\n  --text-2: #5d6b66;\n  --text-3: #8f9b96;\n  --brand: #14957f;\n  --brand-2: #0f7b6c;\n  --brand-soft: #e6f4f0;\n  --warn: #c2701a;\n  --danger: #c0392b;\n  --radius: 12px;\n  --shadow: 0 1px 2px rgba(16,40,34,.04), 0 6px 18px rgba(16,40,34,.05);\n  --mono: ui-monospace, \"SFMono-Regular\", \"JetBrains Mono\", Consolas, monospace;\n}\nhtml[data-theme=\"dark\"] {\n  --bg: #101614;\n  --panel: #17201d;\n  --panel-2: #1d2825;\n  --line: #2a3733;\n  --text: #e8efec;\n  --text-2: #a3b1ac;\n  --text-3: #7b8a85;\n  --brand: #35c3a7;\n  --brand-2: #2aa78f;\n  --brand-soft: #1b332d;\n  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);\n}\n* { margin:0; padding:0; box-sizing:border-box; }\nbody {\n  font-family: -apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Microsoft YaHei\", sans-serif;\n  background: var(--bg); color: var(--text); line-height: 1.6;\n  -webkit-font-smoothing: antialiased;\n}\nbutton, input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }\na { color: var(--brand); text-decoration: none; }\n.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }\n.w14 { width:14px; height:14px; } .w15 { width:15px; height:15px; } .w16 { width:16px; height:16px; } .w17 { width:17px; height:17px; }\n\n/* ---------- 顶栏 ---------- */\n.topbar {\n  position: sticky; top: 0; z-index: 40;\n  display: flex; align-items: center; gap: 16px;\n  height: 58px; padding: 0 20px;\n  background: color-mix(in srgb, var(--panel) 88%, transparent);\n  backdrop-filter: blur(12px);\n  border-bottom: 1px solid var(--line);\n}\n.brand { display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }\n.brand-mark {\n  width: 30px; height: 30px; border-radius: 9px;\n  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-2) 100%);\n  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px;\n  box-shadow: 0 4px 10px rgba(20,149,127,.28);\n}\n.brand-name { font-size: 15px; font-weight: 700; letter-spacing: .2px; }\n.brand-name i { font-style: normal; color: var(--text-3); font-weight: 500; font-size: 12px; margin-left: 6px; }\n.search-wrap { position: relative; flex: 1; max-width: 460px; margin-left: 8px; }\n.search-box {\n  display: flex; align-items: center; gap: 8px;\n  height: 36px; padding: 0 12px;\n  background: var(--panel-2); border: 1px solid transparent; border-radius: 9px;\n  color: var(--text-3); transition: .16s;\n}\n.search-box:focus-within { border-color: var(--brand); background: var(--panel); box-shadow: 0 0 0 3px var(--brand-soft); }\n.search-box input { flex: 1; border: 0; outline: 0; background: transparent; font-size: 13.5px; color: var(--text); }\n.search-box input::placeholder { color: var(--text-3); }\n.kbd {\n  font-family: var(--mono); font-size: 10.5px; padding: 1px 5px; border-radius: 4px;\n  border: 1px solid var(--line); color: var(--text-3); background: var(--panel);\n}\n.search-panel {\n  position: absolute; top: 44px; left: 0; right: 0; max-height: 340px; overflow: auto;\n  background: var(--panel); border: 1px solid var(--line); border-radius: 11px;\n  box-shadow: var(--shadow); padding: 6px; display: none; z-index: 50;\n}\n.search-panel.on { display: block; }\n.sp-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 13.5px; }\n.sp-item .sp-cat { margin-left: auto; font-size: 11.5px; color: var(--text-3); }\n.sp-item.on, .sp-item:hover { background: var(--brand-soft); }\n.sp-empty { padding: 14px 10px; font-size: 13px; color: var(--text-3); text-align: center; }\n.top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }\n.icon-btn {\n  width: 34px; height: 34px; display: grid; place-items: center;\n  border: 1px solid var(--line); background: var(--panel); border-radius: 9px;\n  cursor: pointer; color: var(--text-2); transition: .15s;\n}\n.icon-btn:hover { color: var(--brand); border-color: var(--brand); }\n\n/* ---------- 布局 ---------- */\n.layout { display: flex; align-items: flex-start; gap: 0; min-height: calc(100vh - 58px); }\n.sidebar {\n  width: 212px; flex: none; position: sticky; top: 58px;\n  height: calc(100vh - 58px); overflow-y: auto;\n  padding: 18px 12px 30px 16px; border-right: 1px solid var(--line);\n  background: color-mix(in srgb, var(--panel) 45%, transparent);\n}\n.side-group { margin-bottom: 20px; }\n.side-title {\n  font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase;\n  color: var(--text-3); padding: 0 8px 7px;\n}\n.side-item {\n  display: flex; align-items: center; gap: 9px;\n  padding: 7px 9px; border-radius: 8px; font-size: 13.5px; color: var(--text-2);\n  cursor: pointer; transition: .13s; position: relative;\n}\n.side-item:hover { background: var(--panel-2); color: var(--text); }\n.side-item.on { background: var(--brand-soft); color: var(--brand-2); font-weight: 600; }\nhtml[data-theme=\"dark\"] .side-item.on { color: var(--brand); }\n.side-item .ico { width: 17px; height: 17px; }\n.side-item .cnt { margin-left: auto; font-size: 11px; color: var(--text-3); }\n.side-empty { font-size: 12.5px; color: var(--text-3); padding: 4px 9px 6px; }\n.side-toggle { display: none; }\n\n.main { flex: 1; min-width: 0; padding: 26px 30px 70px; }\n\n/* ---------- 首页 ---------- */\n.hero { margin-bottom: 26px; }\n.hero h1 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }\n.hero p { margin-top: 7px; font-size: 14px; color: var(--text-2); max-width: 640px; }\n.hero-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }\n.chip {\n  font-size: 12px; padding: 3px 10px; border-radius: 99px;\n  background: var(--brand-soft); color: var(--brand-2); border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);\n}\nhtml[data-theme=\"dark\"] .chip { color: var(--brand); }\n.cat-block { margin-bottom: 30px; scroll-margin-top: 74px; }\n.cat-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }\n.cat-head h2 { font-size: 15.5px; font-weight: 700; }\n.cat-head span { font-size: 12.5px; color: var(--text-3); }\n.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 12px; }\n.tool-card {\n  display: flex; align-items: flex-start; gap: 11px;\n  padding: 14px 14px 15px; background: var(--panel); border: 1px solid var(--line);\n  border-radius: var(--radius); cursor: pointer; transition: .16s; position: relative;\n}\n.tool-card:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); box-shadow: var(--shadow); transform: translateY(-1px); }\n.tc-ico {\n  width: 34px; height: 34px; flex: none; border-radius: 9px; display: grid; place-items: center;\n  background: var(--brand-soft); color: var(--brand-2);\n}\nhtml[data-theme=\"dark\"] .tc-ico { color: var(--brand); }\n.tc-body { min-width: 0; }\n.tc-name { font-size: 13.8px; font-weight: 650; display: flex; align-items: center; gap: 6px; }\n.tc-desc { font-size: 12.2px; color: var(--text-3); margin-top: 3px; line-height: 1.45; }\n.tc-star {\n  position: absolute; top: 10px; right: 9px; width: 22px; height: 22px;\n  display: grid; place-items: center; border-radius: 6px; color: var(--text-3);\n  opacity: 0; transition: .14s; background: transparent; border: 0; cursor: pointer;\n}\n.tool-card:hover .tc-star, .tc-star.on { opacity: 1; }\n.tc-star.on { color: #e6a817; }\n.tc-star .ico { width: 15px; height: 15px; fill: currentColor; stroke: none; }\n\n/* ---------- 工具视图 ---------- */\n.tool-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }\n.back-btn {\n  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px 0 8px;\n  border: 1px solid var(--line); background: var(--panel); border-radius: 8px;\n  font-size: 12.5px; color: var(--text-2); cursor: pointer; margin-top: 2px;\n}\n.back-btn:hover { color: var(--brand); border-color: var(--brand); }\n.th-title { display: flex; align-items: center; gap: 11px; }\n.th-ico { width: 40px; height: 40px; border-radius: 11px; background: var(--brand-soft); color: var(--brand-2); display: grid; place-items: center; }\nhtml[data-theme=\"dark\"] .th-ico { color: var(--brand); }\n.th-title h1 { font-size: 19px; font-weight: 750; }\n.th-title p { font-size: 12.8px; color: var(--text-3); margin-top: 1px; }\n.th-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }\n.star-btn {\n  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;\n  border: 1px solid var(--line); background: var(--panel); border-radius: 8px;\n  font-size: 12.8px; color: var(--text-2); cursor: pointer;\n}\n.star-btn:hover { border-color: #e6a817; color: #b8860b; }\n.star-btn.on { border-color: #e6a817; color: #b8860b; background: #fdf6e3; }\n.star-btn.on .ico { fill: currentColor; }\n\n.tool-body { display: grid; gap: 14px; }\n.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }\n.pane {\n  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);\n  padding: 16px 16px 15px; min-width: 0;\n}\n.pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }\n.pane-head.tight { margin-bottom: 6px; }\n.pane-title { font-size: 12.5px; font-weight: 650; color: var(--text-2); letter-spacing: .2px; }\n.pane-head .right { margin-left: auto; display: flex; gap: 6px; align-items: center; }\n.mini-btn {\n  height: 25px; padding: 0 9px; border-radius: 6px; font-size: 11.8px;\n  border: 1px solid var(--line); background: var(--panel-2); color: var(--text-2); cursor: pointer; transition: .13s;\n}\n.mini-btn:hover { border-color: var(--brand); color: var(--brand); }\n.mini-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }\n.mini-btn.primary:hover { background: var(--brand-2); color: #fff; }\n\ntextarea.ta, input.in, select.sel {\n  width: 100%; border: 1px solid var(--line); border-radius: 9px;\n  background: var(--panel-2); padding: 10px 12px; font-size: 13.4px; outline: none; transition: .15s;\n}\ntextarea.ta { min-height: 190px; resize: vertical; line-height: 1.65; }\ntextarea.ta.mono, .mono { font-family: var(--mono); font-size: 12.8px; }\ntextarea.ta:focus, input.in:focus, select.sel:focus {\n  border-color: var(--brand); background: var(--panel);\n  box-shadow: 0 0 0 3px var(--brand-soft);\n}\ntextarea.out {\n  width: 100%; min-height: 190px; resize: vertical; line-height: 1.65;\n  font-family: var(--mono); font-size: 12.8px;\n  border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2);\n  padding: 10px 12px; outline: none; color: var(--text);\n}\n.out.plain { font-family: inherit; font-size: 13.4px; }\nselect.sel { cursor: pointer; height: 36px; padding: 0 9px; }\n\n.field { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; flex-wrap: wrap; }\n.field > label { font-size: 12.8px; color: var(--text-2); min-width: 62px; }\n.field .grow { flex: 1; min-width: 100px; }\n.field .unit { font-size: 12.5px; color: var(--text-3); }\n\n/* 结果数据块 */\n.res-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 9px; }\n.res-cell {\n  background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 10px 11px;\n}\n.res-cell .k { font-size: 11.4px; color: var(--text-3); }\n.res-cell .v { font-size: 19px; font-weight: 750; font-variant-numeric: tabular-nums; margin-top: 1px; letter-spacing: -.3px; }\n.res-cell .v small { font-size: 11.5px; font-weight: 500; color: var(--text-3); margin-left: 2px; }\n.res-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }\n.res-row:last-child { border-bottom: 0; }\n.res-row .k { color: var(--text-3); font-size: 12.3px; }\n.res-row .v { font-family: var(--mono); font-size: 12.8px; }\n\n.bar-wrap { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }\n.bar-wrap > i { display: block; height: 100%; background: var(--brand); transition: width .3s, background .3s; }\n\n.hint { font-size: 12.2px; color: var(--text-3); line-height: 1.55; }\n.hint.warn { color: var(--warn); }\n.hint.err { color: var(--danger); }\n.hint.ok { color: var(--brand-2); }\nhtml[data-theme=\"dark\"] .hint.ok { color: var(--brand); }\n.divider { height: 1px; background: var(--line); margin: 13px 0; }\n\n.seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; flex-wrap: wrap; }\n.seg button {\n  height: 28px; padding: 0 11px; border: 0; background: transparent; border-radius: 6px;\n  font-size: 12.5px; color: var(--text-2); cursor: pointer; transition: .13s;\n}\n.seg button:hover { color: var(--brand); }\n.seg button.on { background: var(--panel); color: var(--brand-2); font-weight: 650; box-shadow: 0 1px 3px rgba(16,40,34,.1); }\nhtml[data-theme=\"dark\"] .seg button.on { color: var(--brand); }\n\n.check { display: inline-flex; align-items: center; gap: 6px; font-size: 12.8px; color: var(--text-2); cursor: pointer; user-select: none; }\n.check input { width: 14px; height: 14px; accent-color: var(--brand); cursor: pointer; }\n.multi-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }\n\n/* JSON 高亮 */\n.j-key { color: #9a4fd6; } .j-str { color: #1f7a52; } .j-num { color: #b26a00; }\n.j-bool { color: #1d5fbf; } .j-null { color: #8f9b96; }\nhtml[data-theme=\"dark\"] .j-key { color: #c99af0; } html[data-theme=\"dark\"] .j-str { color: #6cd39d; }\nhtml[data-theme=\"dark\"] .j-num { color: #e0a458; } html[data-theme=\"dark\"] .j-bool { color: #7aa7f0; }\n\npre.code {\n  margin: 0; padding: 10px 12px; min-height: 190px; max-height: 460px; overflow: auto;\n  background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px;\n  font-family: var(--mono); font-size: 12.6px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;\n}\n\n/* toast */\n.toast {\n  position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 14px);\n  background: #16211e; color: #fff; font-size: 13px; padding: 9px 16px; border-radius: 9px;\n  opacity: 0; pointer-events: none; transition: .22s; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,.22);\n}\nhtml[data-theme=\"dark\"] .toast { background: #e8efec; color: #16211e; }\n.toast.on { opacity: 1; transform: translate(-50%, 0); }\n\n/* ---------- 响应式 ---------- */\n@media (max-width: 880px) {\n  .topbar { padding: 0 14px; gap: 10px; }\n  .brand-name i { display: none; }\n  .search-wrap { margin-left: 0; }\n  .kbd { display: none; }\n  .sidebar {\n    position: static; width: 100%; height: auto; overflow: visible;\n    border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 14px;\n    display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;\n    background: transparent;\n  }\n  .layout { flex-direction: column; }\n  .side-group { margin: 0; }\n  .side-title, .side-empty { display: none; }\n  .side-group.recent-group, .side-group.fav-group { display: none; }\n  .side-group.cat-group { display: flex; gap: 6px; }\n  .side-item { padding: 5px 11px; border: 1px solid var(--line); border-radius: 99px; font-size: 12.5px; background: var(--panel); }\n  .side-item .ico { display: none; }\n  .main { padding: 20px 14px 60px; }\n  .cols { grid-template-columns: 1fr; }\n  .hero h1 { font-size: 20px; }\n}\n";document.head.append(style);
+document.getElementById("app").innerHTML="\n\n<svg data-page-node-id=\"JRKgxtteEqPIPlHOCjSZsd\" xmlns=\"http://www.w3.org/2000/svg\" style=\"display:none\">\n  <symbol data-page-node-id=\"ya0wiPwKUVuHV8WJ0SjfuT\" id=\"i-stats\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"Cir09JtEQEKjnUoV4wdigZ\" d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/></symbol>\n  <symbol data-page-node-id=\"mlqlTCljVJ3a28zSuecmep\" id=\"i-case\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"ynexs30XrKGrNLILC7e5Wv\" d=\"M4 18l4.2-12L12.4 18M5.6 14.2h5.2\"/><path data-page-node-id=\"dgNv0D281X6Cnp7tm0zA0Y\" d=\"M15 18h4.6M17.3 18V9.5h2.6a2.2 2.2 0 010 4.3H17.3\"/></symbol>\n  <symbol data-page-node-id=\"ySBQs9kMJt8cWuB9sOkqpM\" id=\"i-dedupe\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"tLHNu03IZy7HMfpuDVfWfD\" d=\"M4 7h10M4 12h7M4 17h5\"/><path data-page-node-id=\"gQ2xoOobGnxWKJMwIWmHdm\" d=\"M14.5 15.5l2.2 2.2 4.3-4.7\"/></symbol>\n  <symbol data-page-node-id=\"KBfm7IiGKvGozts8ply4LW\" id=\"i-encode\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"tjAS30uGIUVfCGHT09CRog\" d=\"M8.5 6.5L3.5 12l5 5.5M15.5 6.5l5 5.5-5 5.5\"/></symbol>\n  <symbol data-page-node-id=\"sEn6rf5jQuA6B4viOcgj92\" id=\"i-json\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"4Mgb8Fp4OPsK7cnKSbpr6I\" d=\"M9 4c-2 0-2.5 1-2.5 2.5v2C6.5 10 6 11 4.5 12c1.5 1 2 2 2 3.5v2C6.5 19 7 20 9 20\"/><path data-page-node-id=\"PPe3FAa0VhUpLDaLfXhZMJ\" d=\"M15 4c2 0 2.5 1 2.5 2.5v2c0 1.5.5 2.5 2 3.5-1.5 1-2 2-2 3.5v2c0 1.5-.5 2.5-2.5 2.5\"/></symbol>\n  <symbol data-page-node-id=\"gtGWQNgN2EA9bGqdhkfXhR\" id=\"i-swap\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"diHfrjVxln76lM13qZo6FR\" d=\"M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4\"/></symbol>\n  <symbol data-page-node-id=\"PypNNKFCi9gZNva58tm62s\" id=\"i-clock\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"mTD7zIfzEJn7JfwGUIHopj\" cx=\"12\" cy=\"12\" r=\"8.5\"/><path data-page-node-id=\"gCkSeBAMk2b1GHxZPWtvwc\" d=\"M12 7.5V12l3.2 2\"/></symbol>\n  <symbol data-page-node-id=\"FtMCwRKtGHX691g0xpyvqS\" id=\"i-base\" viewBox=\"0 0 24 24\"><rect data-page-node-id=\"5SB78MTs3ria5OB1KuT5in\" height=\"14\" rx=\"2\" width=\"7\" x=\"3.5\" y=\"5\"/><rect data-page-node-id=\"omQwIDJ73vwlv4NjhJQdz8\" height=\"14\" rx=\"2\" width=\"7\" x=\"13.5\" y=\"5\"/><path data-page-node-id=\"2Z9WVoOAnxIUt6rC2Elk3E\" d=\"M7 9v.01M17 15v.01\"/></symbol>\n  <symbol data-page-node-id=\"fPz8DNadFjBAfRwXONwUoW\" id=\"i-rmb\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"eupmOkZdRhLhpnlcRSoIi7\" d=\"M7 5l5 7 5-7M12 12v7M8 13.5h8M8 17h8\"/></symbol>\n  <symbol data-page-node-id=\"ORDrjyVwZ24Ziv0JNXwn2D\" id=\"i-image\" viewBox=\"0 0 24 24\"><rect data-page-node-id=\"E6QAUIylslJkF7rlf9GoeE\" height=\"15\" rx=\"2.5\" width=\"17\" x=\"3.5\" y=\"4.5\"/><circle data-page-node-id=\"nqpkrxP5si4rSMb64sYcnd\" cx=\"9\" cy=\"10\" r=\"1.8\"/><path data-page-node-id=\"tmwNw8pONthxr2prLu3LZ9\" d=\"M4.5 17.5l4.6-4.3 3.4 3 2.6-2.4 4.4 4\"/></symbol>\n  <symbol data-page-node-id=\"hXH1K7753AewV3PIj9GUPu\" id=\"i-b64\" viewBox=\"0 0 24 24\"><rect data-page-node-id=\"cG2MRXVuQguJSsOu5FhMcg\" height=\"11\" rx=\"2\" width=\"11\" x=\"3.5\" y=\"4.5\"/><path data-page-node-id=\"3Z8zVH9E4YDjqW4yuxAbbK\" d=\"M6.5 19.5h4M17.5 8.5v11M14 12.5l3.5-4 3.5 4\"/></symbol>\n  <symbol data-page-node-id=\"r0DccDU7Su8CEWBu8t1Dzp\" id=\"i-color\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"H2nzmEO9vIrTujka4qKgFS\" d=\"M12 3a9 9 0 100 18c1.4 0 2-.9 2-2 0-1.5-1-1.8-1-3 0-1.1.9-2 2-2h2.5A4.5 4.5 0 0022 9.5C22 5.9 17.5 3 12 3z\"/><circle data-page-node-id=\"aNWLPehoPPw8imgzyPrrqm\" cx=\"8\" cy=\"9.5\" r=\"1.2\"/><circle data-page-node-id=\"MyTyFZ70vPZd95TaDyUwSh\" cx=\"12\" cy=\"7.5\" r=\"1.2\"/><circle data-page-node-id=\"t4PzaVSphyB2M5gflD7elV\" cx=\"16\" cy=\"9.5\" r=\"1.2\"/></symbol>\n  <symbol data-page-node-id=\"E5Cg3viC4q9vR3E4LN7SdH\" id=\"i-key\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"bBoHjsNg7XDVsbxMCR6iga\" cx=\"8\" cy=\"14\" r=\"4\"/><path data-page-node-id=\"WJI6F35767hMqRQkdARFid\" d=\"M11 11l8-8M16.5 5.5l2.5 2.5M14.5 7.5L17 10\"/></symbol>\n  <symbol data-page-node-id=\"dKZxNdlAySouid7qcxGQi0\" id=\"i-uuid\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"jxh94ultBulPHks9ssuq4A\" cx=\"6\" cy=\"6\" r=\"1.6\"/><circle data-page-node-id=\"QWpbAJl0z3Jts0V6yWZewx\" cx=\"12\" cy=\"6\" r=\"1.6\"/><circle data-page-node-id=\"MQABPFYiXBFdO3RX42SQSu\" cx=\"18\" cy=\"6\" r=\"1.6\"/><circle data-page-node-id=\"QuXqGdZbbpa1rAbGPXl57P\" cx=\"6\" cy=\"12\" r=\"1.6\"/><circle data-page-node-id=\"hd3SvQVS7k2nWu8NiikqeW\" cx=\"12\" cy=\"12\" r=\"1.6\"/><circle data-page-node-id=\"uCUKOJlBe9dwpBZz5PLOPI\" cx=\"18\" cy=\"12\" r=\"1.6\"/><circle data-page-node-id=\"bB2seQv4wrmmXe76GYIeGM\" cx=\"6\" cy=\"18\" r=\"1.6\"/><circle data-page-node-id=\"BJCYIEEeL9JLrHb0yQ5MpE\" cx=\"12\" cy=\"18\" r=\"1.6\"/><circle data-page-node-id=\"98qG7VvCjBEFAZHfBgoohP\" cx=\"18\" cy=\"18\" r=\"1.6\"/></symbol>\n  <symbol data-page-node-id=\"ENO2sMzcVkaWuNfXSvq4CT\" id=\"i-timer\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"ajKL6IL14kTLNipddXG4E6\" cx=\"12\" cy=\"13.5\" r=\"7.5\"/><path data-page-node-id=\"yterVU8FEDZPkvpqcne1e1\" d=\"M12 10v3.5l2.4 1.4M9.5 3h5M12 3v3\"/></symbol>\n  <symbol data-page-node-id=\"O6daLQRLhjAuMFurPSYe7V\" id=\"i-calendar\" viewBox=\"0 0 24 24\"><rect data-page-node-id=\"rmpelK0UM2U3oVcpIIeC5m\" height=\"15.5\" rx=\"2.5\" width=\"17\" x=\"3.5\" y=\"5\"/><path data-page-node-id=\"N4pZqvPFgUX9fqnmkBy0bM\" d=\"M3.5 10h17M8 3v4M16 3v4\"/><path data-page-node-id=\"A0LyIFdF7re370ToYPwhHm\" d=\"M8 14h2M14 14h2M8 17.5h2\"/></symbol>\n  <symbol data-page-node-id=\"qiPQ13GAEHiYdCknMFUNzX\" id=\"i-bmi\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"WEGjqtOnTV5VseJ5S8iHBB\" cx=\"12\" cy=\"5.5\" r=\"2.2\"/><path data-page-node-id=\"Wyc2juAewho8xsb8oRCmNh\" d=\"M12 8.2v6M12 14.2l-3.5 5.3M12 14.2l3.5 5.3M7 11h10\"/></symbol>\n  <symbol data-page-node-id=\"QVr5ddqbi4NYJutOBx4zoE\" id=\"i-search\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"2crEigbZJemVlSNN8Q3XPP\" cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path data-page-node-id=\"hICLLx8prFf1XyAd69AmEx\" d=\"M15.5 15.5L21 21\"/></symbol>\n  <symbol data-page-node-id=\"Cuby9Z2qhuZHZpcEfqQowW\" id=\"i-moon\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"ecsjvT4cKCXgMQwec4axMt\" d=\"M20 14.5A8.2 8.2 0 019.5 4a8.5 8.5 0 1010.5 10.5z\"/></symbol>\n  <symbol data-page-node-id=\"mnlaidN7fJHFv1iZ178kcf\" id=\"i-sun\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"WoZPaoU79aD3N3GZWwp5Mc\" cx=\"12\" cy=\"12\" r=\"4.2\"/><path data-page-node-id=\"FBDYIbXfTWwDQiTNLd6Vwt\" d=\"M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4\"/></symbol>\n  <symbol data-page-node-id=\"O6fNe2j0NZUk7vrYkLR7MN\" id=\"i-star\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"Xh5PC2bvH3nspUB9VQuK8B\" d=\"M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.9l6.1-.8z\"/></symbol>\n  <symbol data-page-node-id=\"xQhwwDGUy0J0NCQ7OjJTO1\" id=\"i-back\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"ZkGnZnFUxLbvAiGsAvKlVe\" d=\"M14.5 5.5L8 12l6.5 6.5\"/></symbol>\n  <symbol data-page-node-id=\"Tj0eyLm8gxD0PWNXt6iepW\" id=\"i-clock-mini\" viewBox=\"0 0 24 24\"><circle data-page-node-id=\"4LUyUqzsSzZPEh6H6O9ljS\" cx=\"12\" cy=\"12\" r=\"8\"/><path data-page-node-id=\"kEgxxF1QXF1RG7PLMZpHk6\" d=\"M12 8v4.2l2.8 1.7\"/></symbol>\n  <symbol data-page-node-id=\"07SH7LHYzMNejZ9fhqy0L4\" id=\"i-cat-text\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"rjgP9gQcCh9TzizNrUZNwQ\" d=\"M4 6h16M4 12h10M4 18h13\"/></symbol>\n  <symbol data-page-node-id=\"byFU9zm39dgJznfR7Pj2v4\" id=\"i-cat-convert\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"AIorJgtnil7WzMwiZkM7qu\" d=\"M5 8h13M14 5l3.5 3L14 11M19 16H6M10 13l-3.5 3L10 19\"/></symbol>\n  <symbol data-page-node-id=\"K1VLM0mdTwhcjfXIIdUXGa\" id=\"i-cat-media\" viewBox=\"0 0 24 24\"><rect data-page-node-id=\"kf7JB8O7M5RxslopeUIaYC\" height=\"14\" rx=\"2.5\" width=\"17\" x=\"3.5\" y=\"5\"/><path data-page-node-id=\"ojnZI9RibINbrHIV3IFgzg\" d=\"M4 16l4.5-4 3.5 3 2.5-2 5 4.5\"/></symbol>\n  <symbol data-page-node-id=\"nOHDoI3wjxDBmCZOse2Pfw\" id=\"i-cat-utility\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"T1S41bP83gts4SLO5y2N3N\" d=\"M13 3l-1.5 7h5L9 21l1.5-8h-4z\"/></symbol>\n  <symbol data-page-node-id=\"cirU8b2GltMMztoqB5JP8E\" id=\"i-cat-life\" viewBox=\"0 0 24 24\"><path data-page-node-id=\"jd4yS6YmC6ifia1teUWweJ\" d=\"M12 20s-7.2-4.4-7.2-9.3A4.2 4.2 0 0112 8.2a4.2 4.2 0 017.2 2.5C19.2 15.6 12 20 12 20z\"/></symbol>\n</svg>\n\n<header data-page-node-id=\"uDlSkCKa5gbf23bFoDLx32\" class=\"topbar\">\n  <div data-page-node-id=\"eOOlbYNoVUeayu8Xotl3Ce\" class=\"brand\" onclick=\"location.hash='#/'\">\n    <div data-page-node-id=\"n78BX7K72lt9J3kN15eHZ7\" class=\"brand-mark\"><!--pnid:UWOESuXKu9Z7TsbauOzuyA-->匣</div>\n    <div data-page-node-id=\"CfaUk7wR6EdCtvV0FwEwjn\" class=\"brand-name\"><!--pnid:RBd5GhQcDTegritcrec7kk-->轻匣子<i data-page-node-id=\"Ypje7e8aynnzITNIQalDBA\"><!--pnid:b8uOkbO1NE4KeyZI53CzQW-->LiteBox</i></div>\n  </div>\n  <div data-page-node-id=\"9fnctkNGTWBonHcGBbS3cb\" class=\"search-wrap\">\n    <div data-page-node-id=\"T5hR9pqEwdAUgvuBHhmjPP\" class=\"search-box\">\n      <svg data-page-node-id=\"y6tfrxPeXpdxmCilboKMf0\" class=\"ico\" style=\"width:16px; height:16px\"><use data-page-node-id=\"SFBFo9v8Ntk5x4pMBMcqZP\" href=\"#i-search\"/></svg>\n      <input data-page-node-id=\"ER1qkDWfGUcxAfhStBjjob\" autocomplete=\"off\" id=\"searchInput\" placeholder=\"搜索 17 个小工具…\">\n      <span data-page-node-id=\"VomKmNeTEFV1G5wxvivWBx\" class=\"kbd\"><!--pnid:Lf70h2iIKzuIP1FHYo5twY-->Ctrl K</span>\n    </div>\n    <div data-page-node-id=\"5sScnhNrQDFMg8w29WB4L3\" class=\"search-panel\" id=\"searchPanel\"></div>\n  </div>\n  <div data-page-node-id=\"urJhiDAVQbrUoGR5gutBvq\" class=\"top-actions\">\n    <button data-page-node-id=\"p594hjB3nWxJvM3N7eLqHR\" class=\"icon-btn\" id=\"themeBtn\" title=\"切换主题\"><svg data-page-node-id=\"LiGkHgVexVFhxA5CVshsUN\" class=\"ico\" style=\"width:17px; height:17px\"><use data-page-node-id=\"5HsVh5yMBXYFqlTNbbGuDH\" href=\"#i-moon\"/></svg></button>\n  </div>\n</header>\n\n<div data-page-node-id=\"Lva9qRmJiqEMAErUQEdpiw\" class=\"layout\">\n  <aside data-page-node-id=\"QxqNYsmJy9qVYMpo352znc\" class=\"sidebar\" id=\"sidebar\"></aside>\n  <main data-page-node-id=\"Zq5uG9CYQUabBOlMEWcHeV\" class=\"main\" id=\"main\"></main>\n</div>\n\n<div data-page-node-id=\"RfmrMTfWa5NSXrijrFaSxQ\" class=\"toast\" id=\"toast\"></div>\n\n";
+
+/* ==========================================================
+   轻匣子 LiteBox — 纯前端 / 零依赖 / 数据不出本机
+   ========================================================== */
+
+const CATS = [
+  { id:'text',    name:'文本处理', icon:'i-cat-text',    desc:'统计、转换、清洗、编码、格式化' },
+  { id:'convert', name:'转换计算', icon:'i-cat-convert', desc:'单位、时间戳、进制、金额' },
+  { id:'media',   name:'图片与颜色', icon:'i-cat-media', desc:'压缩、转码、配色' },
+  { id:'utility', name:'效率小件', icon:'i-cat-utility', desc:'密码、UUID、计时' },
+  { id:'life',    name:'生活日常', icon:'i-cat-life',    desc:'日期、身体指标' }
+];
+
+const TOOLS = [
+  { id:'text-stats',  cat:'text', name:'文本统计',   desc:'字数、行数、中英占比、阅读时长', icon:'i-stats',   render:renderTextStats },
+  { id:'case-convert',cat:'text', name:'大小写转换', desc:'大写、小写、首字母、标题格式',   icon:'i-case',    render:renderCaseConvert },
+  { id:'dedupe-clean',cat:'text', name:'去重清洗',   desc:'按行去重、去空行、去空格、排序', icon:'i-dedupe',  render:renderDedupeClean },
+  { id:'encode-convert',cat:'text',name:'编码转换',  desc:'URL 与 Base64 编解码',           icon:'i-encode',  render:renderEncodeConvert },
+  { id:'json-format', cat:'text', name:'JSON 工具',  desc:'格式化、压缩、校验与高亮',       icon:'i-json',    render:renderJsonFormat },
+
+  { id:'unit-convert',cat:'convert',name:'单位换算', desc:'长度、重量、面积、温度、存储',   icon:'i-swap',    render:renderUnitConvert },
+  { id:'timestamp',   cat:'convert',name:'时间戳转换',desc:'Unix 时间戳与日期时间互转',      icon:'i-clock',   render:renderTimestamp },
+  { id:'base-convert',cat:'convert',name:'进制转换', desc:'二、八、十、十六进制互转',       icon:'i-base',    render:renderBaseConvert },
+  { id:'rmb-upper',   cat:'convert',name:'金额大写', desc:'数字金额转人民币中文大写',       icon:'i-rmb',     render:renderRmbUpper },
+
+  { id:'image-compress',cat:'media',name:'图片压缩', desc:'本地压缩，质量与尺寸可调',       icon:'i-image',   render:renderImageCompress },
+  { id:'image-base64',  cat:'media',name:'图片转 Base64',desc:'图片转 DataURL，便于嵌入',  icon:'i-b64',     render:renderImageBase64 },
+  { id:'color-tool',    cat:'media',name:'颜色工具', desc:'HEX/RGB/HSL 互转、明暗梯度',     icon:'i-color',   render:renderColorTool },
+
+  { id:'password-gen',cat:'utility',name:'密码生成', desc:'按字符集生成强密码与批量',       icon:'i-key',     render:renderPasswordGen },
+  { id:'uuid-gen',    cat:'utility',name:'UUID 生成',desc:'批量生成 v4 UUID',               icon:'i-uuid',    render:renderUuidGen },
+  { id:'pomodoro',    cat:'utility',name:'番茄计时', desc:'25 分钟专注 + 5 分钟休息',       icon:'i-timer',   render:renderPomodoro },
+
+  { id:'date-calc',   cat:'life', name:'日期计算',   desc:'日期间隔、N 天后、年龄',         icon:'i-calendar',render:renderDateCalc },
+  { id:'bmi',         cat:'life', name:'BMI 计算',   desc:'身高体重算 BMI 与健康区间',      icon:'i-bmi',     render:renderBmi }
+];
+
+const state = {
+  theme: localStorage.getItem('lb-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+  recent: readLS('lb-recent', []),
+  favs: readLS('lb-favs', []),
+  current: null,
+  cleanups: []
+};
+
+function readLS(k, def) {
+  try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch (e) { return def; }
+}
+function writeLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function toolById(id) { return TOOLS.find(t => t.id === id); }
+function catById(id) { return CATS.find(c => c.id === id); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ico(name, cls) { return '<svg class="ico ' + (cls || '') + '"><use href="#' + name + '"/></svg>'; }
+
+/* ---------- 提示 ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 1600);
+}
+
+/* ---------- 复制 ---------- */
+async function copyText(text, okMsg) {
+  if (!text) { toast('没有可复制的内容'); return; }
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    toast(okMsg || '已复制到剪贴板');
+  } catch (e) { toast('复制失败，请手动选择'); }
+}
+
+/* ---------- 主题 ---------- */
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.innerHTML = ico(state.theme === 'dark' ? 'i-sun' : 'i-moon', 'w17');
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  writeLS('lb-theme', state.theme);
+  applyTheme();
+});
+
+/* ---------- 侧栏 ---------- */
+function renderSidebar() {
+  const sb = document.getElementById('sidebar');
+  const curCat = state.current ? (toolById(state.current) || {}).cat : null;
+  let html = '';
+
+  const recents = state.recent.map(id => toolById(id)).filter(Boolean).slice(0, 6);
+  html += '<div class="side-group recent-group"><div class="side-title">最近使用</div>';
+  if (recents.length) {
+    recents.forEach(t => {
+      html += '<div class="side-item' + (state.current === t.id ? ' on' : '') + '" data-tool="' + t.id + '">'
+        + ico('i-clock-mini') + esc(t.name) + '</div>';
+    });
+  } else {
+    html += '<div class="side-empty">用过的工具会出现在这里</div>';
+  }
+  html += '</div>';
+
+  const favs = state.favs.map(id => toolById(id)).filter(Boolean);
+  html += '<div class="side-group fav-group"><div class="side-title">我的收藏</div>';
+  if (favs.length) {
+    favs.forEach(t => {
+      html += '<div class="side-item' + (state.current === t.id ? ' on' : '') + '" data-tool="' + t.id + '">'
+        + ico(t.icon) + esc(t.name) + '</div>';
+    });
+  } else {
+    html += '<div class="side-empty">点卡片右上角星标收藏</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="side-group cat-group"><div class="side-title">工具分类</div>';
+  CATS.forEach(c => {
+    const n = TOOLS.filter(t => t.cat === c.id).length;
+    html += '<div class="side-item' + (curCat === c.id ? ' on' : '') + '" data-cat="' + c.id + '">'
+      + ico(c.icon) + esc(c.name) + '<span class="cnt">' + n + '</span></div>';
+  });
+  html += '</div>';
+
+  sb.innerHTML = html;
+  sb.querySelectorAll('.side-item[data-tool]').forEach(el => {
+    el.addEventListener('click', () => { location.hash = '#/tool/' + el.dataset.tool; });
+  });
+  sb.querySelectorAll('.side-item[data-cat]').forEach(el => {
+    el.addEventListener('click', () => {
+      if (state.current) { location.hash = '#/'; setTimeout(() => scrollToCat(el.dataset.cat), 60); }
+      else scrollToCat(el.dataset.cat);
+    });
+  });
+}
+
+function scrollToCat(catId) {
+  const el = document.getElementById('cat-' + catId);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ---------- 首页 ---------- */
+function showHome() {
+  state.current = null;
+  runCleanups();
+  renderSidebar();
+  const main = document.getElementById('main');
+  let html = '<section class="hero">'
+    + '<h1>17 个顺手小工具，打开即用</h1>'
+    + '<p>不用登录、不用联网、不上传任何数据。所有计算都在你的浏览器里完成，关掉页面什么都不留下。</p>'
+    + '<div class="hero-chips">'
+    + '<span class="chip">免登录</span><span class="chip">纯本地运行</span>'
+    + '<span class="chip">支持离线</span><span class="chip">Ctrl K 快速唤起</span>'
+    + '</div></section>';
+
+  CATS.forEach(c => {
+    const list = TOOLS.filter(t => t.cat === c.id);
+    html += '<section class="cat-block" id="cat-' + c.id + '">'
+      + '<div class="cat-head"><h2>' + esc(c.name) + '</h2><span>' + esc(c.desc) + ' · ' + list.length + ' 个</span></div>'
+      + '<div class="grid">';
+    list.forEach(t => {
+      const fav = state.favs.includes(t.id);
+      html += '<div class="tool-card" data-tool="' + t.id + '">'
+        + '<div class="tc-ico">' + ico(t.icon) + '</div>'
+        + '<div class="tc-body"><div class="tc-name">' + esc(t.name) + '</div>'
+        + '<div class="tc-desc">' + esc(t.desc) + '</div></div>'
+        + '<button class="tc-star' + (fav ? ' on' : '') + '" data-star="' + t.id + '" title="收藏">' + ico('i-star') + '</button>'
+        + '</div>';
+    });
+    html += '</div></section>';
+  });
+
+  main.innerHTML = html;
+
+  main.querySelectorAll('.tool-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('[data-star]')) return;
+      location.hash = '#/tool/' + card.dataset.tool;
+    });
+  });
+  main.querySelectorAll('[data-star]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleFav(btn.dataset.star);
+    });
+  });
+}
+
+function toggleFav(id) {
+  const i = state.favs.indexOf(id);
+  if (i >= 0) { state.favs.splice(i, 1); toast('已取消收藏'); }
+  else { state.favs.unshift(id); toast('已加入收藏'); }
+  writeLS('lb-favs', state.favs);
+  if (state.current) openTool(state.current, true);
+  else { showHome(); }
+}
+
+function pushRecent(id) {
+  state.recent = [id].concat(state.recent.filter(x => x !== id)).slice(0, 8);
+  writeLS('lb-recent', state.recent);
+}
+
+/* ---------- 工具视图 ---------- */
+function runCleanups() {
+  state.cleanups.forEach(fn => { try { fn(); } catch (e) {} });
+  state.cleanups = [];
+}
+
+function openTool(id, keepScroll) {
+  const t = toolById(id);
+  if (!t) { showHome(); return; }
+  runCleanups();
+  const isNew = state.current !== id;
+  state.current = id;
+  if (isNew) pushRecent(id);
+  renderSidebar();
+
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="tool-head">'
+    + '<button class="back-btn" id="backBtn">' + ico('i-back', 'w14') + '返回</button>'
+    + '<div class="th-title"><div class="th-ico">' + ico(t.icon) + '</div>'
+    + '<div><h1>' + esc(t.name) + '</h1><p>' + esc(t.desc) + '</p></div></div>'
+    + '<div class="th-actions"><button class="star-btn' + (state.favs.includes(id) ? ' on' : '') + '" id="starBtn">'
+    + ico('i-star', 'w15') + (state.favs.includes(id) ? '已收藏' : '收藏') + '</button></div>'
+    + '</div><div class="tool-body" id="toolBody"></div>';
+
+  document.getElementById('backBtn').addEventListener('click', () => { location.hash = '#/'; });
+  document.getElementById('starBtn').addEventListener('click', () => toggleFav(id));
+
+  const body = document.getElementById('toolBody');
+  t.render(body);
+  if (!keepScroll) main.scrollIntoView({ block: 'start' });
+}
+
+/* ---------- 路由 ---------- */
+function route() {
+  const h = location.hash.replace(/^#\/?/, '');
+  if (h.indexOf('tool/') === 0) openTool(h.slice(5));
+  else showHome();
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- 搜索 ---------- */
+const searchInput = document.getElementById('searchInput');
+const searchPanel = document.getElementById('searchPanel');
+let spIndex = -1, spResults = [];
+
+function doSearch(q) {
+  q = q.trim().toLowerCase();
+  if (!q) { searchPanel.classList.remove('on'); spResults = []; spIndex = -1; return; }
+  spResults = TOOLS.filter(t =>
+    t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) ||
+    (catById(t.cat) || {name:''}).name.toLowerCase().includes(q)
+  ).slice(0, 8);
+  spIndex = spResults.length ? 0 : -1;
+  if (!spResults.length) {
+    searchPanel.innerHTML = '<div class="sp-empty">没有匹配的工具，试试「图片」「时间」</div>';
+  } else {
+    searchPanel.innerHTML = spResults.map((t, i) =>
+      '<div class="sp-item' + (i === spIndex ? ' on' : '') + '" data-tool="' + t.id + '">'
+      + ico(t.icon, 'w16') + esc(t.name) + '<span class="sp-cat">' + esc((catById(t.cat) || {}).name || '') + '</span></div>'
+    ).join('');
+    searchPanel.querySelectorAll('.sp-item').forEach(el => {
+      el.addEventListener('click', () => { goSearch(el.dataset.tool); });
+    });
+  }
+  searchPanel.classList.add('on');
+}
+
+function goSearch(id) {
+  searchInput.value = '';
+  searchPanel.classList.remove('on');
+  location.hash = '#/tool/' + id;
+}
+
+searchInput.addEventListener('input', e => doSearch(e.target.value));
+searchInput.addEventListener('focus', e => { if (e.target.value) doSearch(e.target.value); });
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!spResults.length) return;
+    spIndex = (spIndex + (e.key === 'ArrowDown' ? 1 : -1) + spResults.length) % spResults.length;
+    searchPanel.querySelectorAll('.sp-item').forEach((el, i) => el.classList.toggle('on', i === spIndex));
+  } else if (e.key === 'Enter') {
+    if (spIndex >= 0 && spResults[spIndex]) goSearch(spResults[spIndex].id);
+  } else if (e.key === 'Escape') {
+    searchInput.value = ''; searchPanel.classList.remove('on'); searchInput.blur();
+  }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) searchPanel.classList.remove('on');
+});
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); searchInput.focus(); searchInput.select();
+  }
+});
+
+/* ==========================================================
+   工具 1 · 文本统计
+   ========================================================== */
+function renderTextStats(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">输入文本</span>'
+    + '<div class="right"><button class="mini-btn" id="tSample">示例</button><button class="mini-btn" id="tClear">清空</button></div></div>'
+    + '<textarea class="ta" id="taIn" placeholder="粘贴或输入任意文本，右侧实时统计…"></textarea>'
+    + '<div class="hint" style="margin-top:8px">统计口径：中文字符按单个字计，英文按单词计，阅读时长按 300 字/分钟估算。</div></div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">统计结果</span></div>'
+    + '<div class="res-grid" id="resGrid"></div>'
+    + '<div class="divider"></div><div id="detailBox"></div></div>'
+    + '</div>';
+
+  const ta = el.querySelector('#taIn');
+  const grid = el.querySelector('#resGrid');
+  const detail = el.querySelector('#detailBox');
+
+  function calc(s) {
+    const chars = s.length;
+    const noSpace = s.replace(/\s/g, '').length;
+    const cn = (s.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const en = (s.match(/[a-zA-Z]+/g) || []).length;
+    const num = (s.match(/\d+/g) || []).length;
+    const lines = s === '' ? 0 : s.split('\n').length;
+    const paras = s.trim() === '' ? 0 : s.trim().split(/\n\s*\n/).filter(x => x.trim()).length;
+    const readMin = Math.max(1, Math.round((cn + en * 1.5) / 300));
+    return { chars, noSpace, cn, en, num, lines, paras, readMin };
+  }
+
+  function render() {
+    const r = calc(ta.value);
+    grid.innerHTML = [
+      ['总字符', r.chars], ['不含空格', r.noSpace], ['中文字符', r.cn],
+      ['英文单词', r.en], ['数字串', r.num], ['行数', r.lines]
+    ].map(([k, v]) => '<div class="res-cell"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>').join('');
+
+    const density = r.chars ? Math.round((r.noSpace / r.chars) * 100) : 0;
+    const cnPct = r.noSpace ? Math.round((r.cn / r.noSpace) * 100) : 0;
+    detail.innerHTML = '<div class="res-row"><span class="k">段落数</span><span class="v">' + r.paras + '</span></div>'
+      + '<div class="res-row"><span class="k">非空白字符占比</span><span class="v">' + density + '%</span></div>'
+      + '<div class="res-row"><span class="k">中文占比</span><span class="v">' + cnPct + '%</span></div>'
+      + '<div class="res-row"><span class="k">预计阅读</span><span class="v">约 ' + r.readMin + ' 分钟</span></div>';
+  }
+
+  ta.addEventListener('input', render);
+  el.querySelector('#tClear').addEventListener('click', () => { ta.value = ''; render(); ta.focus(); });
+  el.querySelector('#tSample').addEventListener('click', () => {
+    ta.value = '轻匣子 LiteBox 是一个纯本地运行的轻量工具集。\n\n它把 17 个高频小工具收进一个页面：文本统计、编码转换、单位换算、图片压缩……打开即用，不登录、不上传。\n\nAll computation happens in your browser. Nothing leaves your device.';
+    render();
+  });
+  render();
+  setTimeout(() => ta.focus(), 80);
+}
+
+/* ==========================================================
+   工具 2 · 大小写转换
+   ========================================================== */
+function renderCaseConvert(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">转换模式</span>'
+    + '<div class="right"><button class="mini-btn" id="cSample">示例</button><button class="mini-btn primary" id="cCopy">复制结果</button></div></div>'
+    + '<div class="seg" id="modeSeg">'
+    + '<button data-m="upper" class="on">全部大写</button><button data-m="lower">全部小写</button>'
+    + '<button data-m="cap">首字母大写</button><button data-m="title">标题格式</button>'
+    + '<button data-m="swap">反转大小写</button><button data-m="sentence">句首大写</button>'
+    + '</div>'
+    + '<div class="cols" style="margin-top:13px">'
+    + '<div><div class="pane-head tight"><span class="pane-title">原文</span></div>'
+    + '<textarea class="ta" id="cIn" placeholder="输入要转换的文本…"></textarea></div>'
+    + '<div><div class="pane-head tight"><span class="pane-title">结果</span></div>'
+    + '<textarea class="out" id="cOut" readonly placeholder="结果自动生成"></textarea></div>'
+    + '</div></div>';
+
+  const ta = el.querySelector('#cIn');
+  const out = el.querySelector('#cOut');
+  let mode = 'upper';
+
+  const M = {
+    upper: s => s.toUpperCase(),
+    lower: s => s.toLowerCase(),
+    cap: s => s.replace(/(^|\s)(\S)/g, (m, p, c) => p + c.toUpperCase()),
+    title: s => s.replace(/\b([a-zA-Z])([a-zA-Z']*)/g, (m, a, b) => a.toUpperCase() + b.toLowerCase()),
+    swap: s => s.replace(/[a-zA-Z]/g, c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()),
+    sentence: s => s.toLowerCase().replace(/(^\s*\w|[.!?。！？]\s*\w)/g, c => c.toUpperCase())
+  };
+
+  function run() { out.value = M[mode](ta.value); }
+  ta.addEventListener('input', run);
+  el.querySelectorAll('#modeSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      el.querySelectorAll('#modeSeg button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); mode = b.dataset.m; run();
+    });
+  });
+  el.querySelector('#cCopy').addEventListener('click', () => copyText(out.value));
+  el.querySelector('#cSample').addEventListener('click', () => {
+    ta.value = 'the quick brown fox jumps over the lazy dog. hello world!';
+    run();
+  });
+  setTimeout(() => ta.focus(), 80);
+}
+
+/* ==========================================================
+   工具 3 · 去重清洗
+   ========================================================== */
+function renderDedupeClean(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">原始文本（每行一条）</span>'
+    + '<div class="right"><button class="mini-btn" id="dSample">示例</button></div></div>'
+    + '<textarea class="ta" id="dIn" placeholder="每行一条，例如一列粘贴来的编号、邮箱、名单…"></textarea>'
+    + '<div class="pane-head tight" style="margin-top:13px"><span class="pane-title">清洗规则</span></div>'
+    + '<div class="multi-checks">'
+    + '<label class="check"><input type="checkbox" id="kEmpty" checked>去除空行</label>'
+    + '<label class="check"><input type="checkbox" id="kTrim" checked>去除首尾空格</label>'
+    + '<label class="check"><input type="checkbox" id="kDedupe" checked>按行去重</label>'
+    + '<label class="check"><input type="checkbox" id="kCase">去重时忽略大小写</label>'
+    + '<label class="check"><input type="checkbox" id="kSort">结果排序</label>'
+    + '</div></div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">清洗结果</span>'
+    + '<div class="right"><button class="mini-btn primary" id="dCopy">复制</button></div></div>'
+    + '<textarea class="out plain" id="dOut" readonly style="min-height:190px"></textarea>'
+    + '<div class="divider"></div><div class="hint" id="dStat">等待输入…</div></div>'
+    + '</div>';
+
+  const ta = el.querySelector('#dIn'), out = el.querySelector('#dOut'), stat = el.querySelector('#dStat');
+  const kEmpty = el.querySelector('#kEmpty'), kTrim = el.querySelector('#kTrim'),
+        kDedupe = el.querySelector('#kDedupe'), kCase = el.querySelector('#kCase'), kSort = el.querySelector('#kSort');
+
+  function run() {
+    const raw = ta.value;
+    if (!raw.trim()) { out.value = ''; stat.textContent = '等待输入…'; return; }
+    let lines = raw.split(/\r?\n/);
+    const total = lines.length;
+    if (kTrim.checked) lines = lines.map(l => l.trim());
+    if (kEmpty.checked) lines = lines.filter(l => l !== '');
+    let removed = 0;
+    if (kDedupe.checked) {
+      const seen = new Set();
+      const kept = [];
+      lines.forEach(l => {
+        const key = kCase.checked ? l.toLowerCase() : l;
+        if (seen.has(key)) { removed++; } else { seen.add(key); kept.push(l); }
+      });
+      lines = kept;
+    }
+    if (kSort.checked) lines.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    out.value = lines.join('\n');
+    stat.className = 'hint ok';
+    stat.textContent = '原始 ' + total + ' 行 → 结果 ' + lines.length + ' 行，' +
+      (removed ? '去重移除 ' + removed + ' 行，' : '') + (total - lines.length - removed > 0 ? '空行移除 ' + (total - lines.length - removed) + ' 行' : '无空行移除');
+  }
+
+  [kEmpty, kTrim, kDedupe, kCase, kSort].forEach(c => c.addEventListener('change', run));
+  ta.addEventListener('input', run);
+  el.querySelector('#dCopy').addEventListener('click', () => copyText(out.value));
+  el.querySelector('#dSample').addEventListener('click', () => {
+    ta.value = 'alice@example.com\n  bob@example.com  \ncarl@example.com\n\nAlice@example.com\ndave@example.com\n\nbob@example.com\n';
+    run();
+  });
+  setTimeout(() => ta.focus(), 80);
+}
+
+/* ==========================================================
+   工具 4 · 编码转换
+   ========================================================== */
+function renderEncodeConvert(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">转换模式</span>'
+    + '<div class="right"><button class="mini-btn" id="eSwap">结果换到左侧</button><button class="mini-btn primary" id="eCopy">复制结果</button></div></div>'
+    + '<div class="seg" id="eSeg">'
+    + '<button data-m="url-enc" class="on">URL 编码</button><button data-m="url-dec">URL 解码</button>'
+    + '<button data-m="b64-enc">Base64 编码</button><button data-m="b64-dec">Base64 解码</button>'
+    + '</div>'
+    + '<div class="cols" style="margin-top:13px">'
+    + '<div><div class="pane-head tight"><span class="pane-title">输入</span></div>'
+    + '<textarea class="ta mono" id="eIn" placeholder="输入待处理的文本…"></textarea></div>'
+    + '<div><div class="pane-head tight"><span class="pane-title">输出</span></div>'
+    + '<textarea class="out" id="eOut" readonly placeholder="实时输出"></textarea></div>'
+    + '</div><div class="hint" id="eHint" style="margin-top:9px">全部在本地计算，URL 编码按 UTF-8 处理。</div></div>';
+
+  const ta = el.querySelector('#eIn'), out = el.querySelector('#eOut'), hint = el.querySelector('#eHint');
+  let mode = 'url-enc';
+
+  function b64enc(s) {
+    const bytes = new TextEncoder().encode(s);
+    let bin = '';
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return btoa(bin);
+  }
+  function b64dec(s) {
+    const bin = atob(s.replace(/\s/g, ''));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function run() {
+    const v = ta.value;
+    if (!v) { out.value = ''; hint.className = 'hint'; hint.textContent = '全部在本地计算，URL 编码按 UTF-8 处理。'; return; }
+    try {
+      if (mode === 'url-enc') out.value = encodeURIComponent(v);
+      else if (mode === 'url-dec') out.value = decodeURIComponent(v.replace(/\+/g, ' '));
+      else if (mode === 'b64-enc') out.value = b64enc(v);
+      else out.value = b64dec(v);
+      hint.className = 'hint ok'; hint.textContent = '完成，输出长度 ' + out.value.length + ' 字符。';
+    } catch (e) {
+      out.value = '';
+      hint.className = 'hint err'; hint.textContent = '解析失败：输入格式不合法（' + e.message + '）';
+    }
+  }
+
+  ta.addEventListener('input', run);
+  el.querySelectorAll('#eSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      el.querySelectorAll('#eSeg button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); mode = b.dataset.m; run();
+    });
+  });
+  el.querySelector('#eCopy').addEventListener('click', () => copyText(out.value));
+  el.querySelector('#eSwap').addEventListener('click', () => { ta.value = out.value; run(); });
+  setTimeout(() => ta.focus(), 80);
+}
+
+/* ==========================================================
+   工具 5 · JSON 工具
+   ========================================================== */
+function renderJsonFormat(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">JSON 输入</span>'
+    + '<div class="right">'
+    + '<button class="mini-btn" id="jSample">示例</button>'
+    + '<button class="mini-btn primary" id="jFmt">格式化</button>'
+    + '<button class="mini-btn" id="jMin">压缩</button>'
+    + '<button class="mini-btn" id="jCopy">复制</button>'
+    + '</div></div>'
+    + '<textarea class="ta mono" id="jIn" placeholder=\'粘贴 JSON，例如 {"name":"LiteBox"}\'></textarea>'
+    + '<div class="field" style="margin-top:11px"><label>缩进</label>'
+    + '<select class="sel" id="jIndent" style="width:120px"><option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option></select>'
+    + '<span class="hint" id="jStat"></span></div>'
+    + '<div class="pane-head tight" style="margin-top:8px"><span class="pane-title">结果</span></div>'
+    + '<pre class="code" id="jOut">等待输入…</pre></div>';
+
+  const ta = el.querySelector('#jIn'), out = el.querySelector('#jOut'), stat = el.querySelector('#jStat');
+
+  function highlight(json) {
+    return esc(json)
+      .replace(/(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)(\s*:)/g, '<span class="j-key">$1</span>$2')
+      .replace(/:\s*(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)/g, ': <span class="j-str">$1</span>')
+      .replace(/:\s*(-?\d+\.?\d*(?:[eE][+-]?\d+)?)/g, ': <span class="j-num">$1</span>')
+      .replace(/:\s*(true|false)/g, ': <span class="j-bool">$1</span>')
+      .replace(/:\s*(null)/g, ': <span class="j-null">$1</span>');
+  }
+
+  function act(kind) {
+    const v = ta.value.trim();
+    if (!v) { out.textContent = '等待输入…'; stat.className = 'hint'; stat.textContent = ''; return; }
+    try {
+      const obj = JSON.parse(v);
+      const indent = el.querySelector('#jIndent').value;
+      const ind = indent === 'tab' ? '\t' : Number(indent);
+      const text = kind === 'min' ? JSON.stringify(obj) : JSON.stringify(obj, null, ind);
+      out.innerHTML = highlight(text);
+      const keys = (text.match(/&quot;|"/g) || []).length;
+      stat.className = 'hint ok';
+      stat.textContent = '校验通过 · ' + (kind === 'min' ? '已压缩' : '已格式化') + ' · ' + text.length + ' 字符';
+    } catch (e) {
+      let msg = e.message || '格式错误';
+      const m = msg.match(/position (\d+)/);
+      if (m) {
+        const pos = Number(m[1]);
+        const before = v.slice(0, pos);
+        const line = before.split('\n').length;
+        const col = pos - before.lastIndexOf('\n');
+        msg += '（第 ' + line + ' 行，第 ' + col + ' 列附近）';
+      }
+      out.innerHTML = '<span class="j-null">解析失败</span>\n\n'
+        + '<span class="j-str">' + esc(msg) + '</span>\n\n'
+        + '<span class="j-null">常见原因：多余逗号、单引号、未转义换行、注释。</span>';
+      stat.className = 'hint err';
+      stat.textContent = '校验未通过';
+    }
+  }
+
+  el.querySelector('#jFmt').addEventListener('click', () => act('fmt'));
+  el.querySelector('#jMin').addEventListener('click', () => act('min'));
+  el.querySelector('#jIndent').addEventListener('change', () => { if (ta.value.trim()) act('fmt'); });
+  el.querySelector('#jCopy').addEventListener('click', () => copyText(out.textContent));
+  el.querySelector('#jSample').addEventListener('click', () => {
+    ta.value = '{"app":"LiteBox","version":"1.0","tools":17,"offline":true,"categories":["文本处理","转换计算","图片与颜色"],"privacy":{"upload":false,"login":false,"storage":"localStorage"}}';
+    act('fmt');
+  });
+  setTimeout(() => ta.focus(), 80);
+}
+
+/* ==========================================================
+   工具 6 · 单位换算
+   ========================================================== */
+const UNIT_TABLE = {
+  length: { label:'长度', base:'米', units:{ '毫米':0.001, '厘米':0.01, '米':1, '千米':1000, '英寸':0.0254, '英尺':0.3048, '码':0.9144, '英里':1609.344, '海里':1852 } },
+  weight: { label:'重量', base:'千克', units:{ '毫克':1e-6, '克':0.001, '千克':1, '吨':1000, '盎司':0.02834952, '磅':0.4535924 } },
+  area:   { label:'面积', base:'平方米', units:{ '平方厘米':1e-4, '平方米':1, '平方千米':1e6, '公顷':1e4, '亩':666.66667, '平方英尺':0.09290304, '英亩':4046.8564 } },
+  data:   { label:'数据存储', base:'B', units:{ 'B':1, 'KB':1024, 'MB':1048576, 'GB':1073741824, 'TB':1099511627776 } },
+  time:   { label:'时间', base:'秒', units:{ '毫秒':0.001, '秒':1, '分钟':60, '小时':3600, '天':86400, '周':604800 } }
+};
+
+function renderUnitConvert(el) {
+  const cats = Object.keys(UNIT_TABLE);
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">换算类别</span></div>'
+    + '<div class="seg" id="uSeg">' + cats.map((c, i) =>
+        '<button data-c="' + c + '"' + (i === 0 ? ' class="on"' : '') + '>' + UNIT_TABLE[c].label + '</button>').join('')
+    + '</div>'
+    + '<div class="divider"></div>'
+    + '<div class="cols">'
+    + '<div><div class="pane-head tight"><span class="pane-title">从</span></div>'
+    + '<div class="field"><input class="in mono" id="uVal" type="number" value="1" style="flex:1"><select class="sel" id="uFrom" style="width:120px"></select></div></div>'
+    + '<div><div class="pane-head tight"><span class="pane-title">到</span></div>'
+    + '<div class="field"><input class="in mono" id="uRes" readonly style="flex:1;background:var(--brand-soft);font-weight:600"><select class="sel" id="uTo" style="width:120px"></select></div></div>'
+    + '</div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-head tight"><span class="pane-title">同类别全部单位</span>'
+    + '<div class="right"><button class="mini-btn" id="uSwap">对调</button></div></div>'
+    + '<div id="uList" class="res-grid"></div>'
+    + '</div>';
+
+  let cat = 'length';
+  const valIn = el.querySelector('#uVal'), resIn = el.querySelector('#uRes');
+  const fromSel = el.querySelector('#uFrom'), toSel = el.querySelector('#uTo');
+  const list = el.querySelector('#uList');
+
+  function fillSelects() {
+    const keys = Object.keys(UNIT_TABLE[cat].units);
+    fromSel.innerHTML = keys.map(k => '<option>' + k + '</option>').join('');
+    toSel.innerHTML = keys.map(k => '<option>' + k + '</option>').join('');
+    fromSel.selectedIndex = 0;
+    toSel.selectedIndex = Math.min(1, keys.length - 1);
+  }
+
+  function tempConv(v, from, to) {
+    let c;
+    if (from === '摄氏度') c = v;
+    else if (from === '华氏度') c = (v - 32) * 5 / 9;
+    else c = v - 273.15;
+    if (to === '摄氏度') return c;
+    if (to === '华氏度') return c * 9 / 5 + 32;
+    return c + 273.15;
+  }
+
+  function fmt(n) {
+    if (!isFinite(n)) return '-';
+    if (n === 0) return '0';
+    const abs = Math.abs(n);
+    if (abs >= 1e12 || abs < 1e-6) return n.toExponential(4);
+    return parseFloat(n.toPrecision(10)).toLocaleString('zh-CN', { maximumFractionDigits: 6 });
+  }
+
+  function run() {
+    const v = parseFloat(valIn.value);
+    if (isNaN(v)) { resIn.value = ''; list.innerHTML = ''; return; }
+    const f = fromSel.value, t = toSel.value;
+    let result;
+    if (cat === 'temp') {
+      result = tempConv(v, f, t);
+    } else {
+      const u = UNIT_TABLE[cat].units;
+      result = v * u[f] / u[t];
+    }
+    resIn.value = fmt(result);
+
+    if (cat === 'temp') {
+      list.innerHTML = ['摄氏度', '华氏度', '开尔文'].map(k =>
+        '<div class="res-cell"><div class="k">' + k + '</div><div class="v" style="font-size:15px">' + fmt(tempConv(v, f, k)) + '</div></div>').join('');
+    } else {
+      const u = UNIT_TABLE[cat].units;
+      list.innerHTML = Object.keys(u).map(k =>
+        '<div class="res-cell"><div class="k">' + k + '</div><div class="v" style="font-size:15px">' + fmt(v * u[f] / u[k]) + '</div></div>').join('');
+    }
+  }
+
+  el.querySelectorAll('#uSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      el.querySelectorAll('#uSeg button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      cat = b.dataset.c;
+      if (cat === 'temp') {
+        const tk = ['摄氏度', '华氏度', '开尔文'];
+        fromSel.innerHTML = tk.map(k => '<option>' + k + '</option>').join('');
+        toSel.innerHTML = tk.map(k => '<option>' + k + '</option>').join('');
+        fromSel.selectedIndex = 0; toSel.selectedIndex = 1;
+      } else fillSelects();
+      run();
+    });
+  });
+  valIn.addEventListener('input', run);
+  fromSel.addEventListener('change', run);
+  toSel.addEventListener('change', run);
+  el.querySelector('#uSwap').addEventListener('click', () => {
+    const a = fromSel.value; fromSel.value = toSel.value; toSel.value = a;
+    const cur = resIn.value.replace(/,/g, '');
+    if (cur) valIn.value = cur;
+    run();
+  });
+  fillSelects(); run();
+}
+
+/* ==========================================================
+   工具 7 · 时间戳转换
+   ========================================================== */
+function renderTimestamp(el) {
+  el.innerHTML = '<div class="pane" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
+    + '<div><div class="pane-title">当前 Unix 时间戳</div>'
+    + '<div class="mono" id="tsNow" style="font-size:26px;font-weight:750;letter-spacing:-.5px;color:var(--brand-2)">-</div></div>'
+    + '<div style="margin-left:auto;display:flex;gap:8px;align-items:center">'
+    + '<span class="hint" id="tsNowLocal"></span>'
+    + '<button class="mini-btn" id="tsRefresh">刷新</button></div></div>'
+    + '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">时间戳 → 日期时间</span>'
+    + '<div class="right"><button class="mini-btn" id="tsUseNow">用当前</button></div></div>'
+    + '<input class="in mono" id="tsInput" placeholder="输入 10 位（秒）或 13 位（毫秒）时间戳">'
+    + '<div class="divider"></div><div id="tsResult"><div class="hint">输入后自动转换，自动识别秒 / 毫秒。</div></div></div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">日期时间 → 时间戳</span></div>'
+    + '<input class="in" type="datetime-local" id="dtInput" step="1">'
+    + '<div class="divider"></div><div id="dtResult"><div class="hint">选择日期时间后自动换算。</div></div></div>'
+    + '</div>';
+
+  const nowEl = el.querySelector('#tsNow'), nowLocal = el.querySelector('#tsNowLocal');
+  const tsInput = el.querySelector('#tsInput'), tsResult = el.querySelector('#tsResult');
+  const dtInput = el.querySelector('#dtInput'), dtResult = el.querySelector('#dtResult');
+  let timer = null;
+
+  function tickNow() {
+    const d = new Date();
+    nowEl.textContent = Math.floor(d.getTime() / 1000);
+    nowLocal.textContent = d.toLocaleString('zh-CN', { hour12: false }) + ' · 本地时区 UTC' +
+      (d.getTimezoneOffset() > 0 ? '-' : '+') + Math.abs(d.getTimezoneOffset() / 60);
+  }
+  tickNow();
+  timer = setInterval(tickNow, 1000);
+  state.cleanups.push(() => clearInterval(timer));
+
+  function weekday(d) { return '星期' + '日一二三四五六'[d.getDay()]; }
+
+  function convTs() {
+    const raw = tsInput.value.trim();
+    if (!raw) { tsResult.innerHTML = '<div class="hint">输入后自动转换，自动识别秒 / 毫秒。</div>'; return; }
+    if (!/^\d{9,14}$/.test(raw)) { tsResult.innerHTML = '<div class="hint err">请输入 9—14 位纯数字时间戳。</div>'; return; }
+    let ms = Number(raw);
+    if (raw.length <= 10) ms *= 1000;
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) { tsResult.innerHTML = '<div class="hint err">无效的时间戳。</div>'; return; }
+    const pad = n => String(n).padStart(2, '0');
+    const localStr = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' '
+      + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    const iso = d.toISOString();
+    const relDays = Math.round((Date.now() - ms) / 86400000);
+    tsResult.innerHTML = '<div class="res-row"><span class="k">本地时间</span><span class="v">' + localStr + ' ' + weekday(d) + '</span></div>'
+      + '<div class="res-row"><span class="k">UTC</span><span class="v">' + iso.replace('T', ' ').slice(0, 19) + '</span></div>'
+      + '<div class="res-row"><span class="k">识别为</span><span class="v">' + (raw.length <= 10 ? '秒级（10 位）' : '毫秒级（13 位）') + '</span></div>'
+      + '<div class="res-row"><span class="k">距现在</span><span class="v">' + (relDays === 0 ? '今天' : (relDays > 0 ? relDays + ' 天前' : Math.abs(relDays) + ' 天后')) + '</span></div>'
+      + '<div style="margin-top:10px"><button class="mini-btn" id="tsCopyLocal">复制本地时间</button></div>';
+    const cb = tsResult.querySelector('#tsCopyLocal');
+    if (cb) cb.addEventListener('click', () => copyText(localStr));
+  }
+
+  function convDt() {
+    if (!dtInput.value) { dtResult.innerHTML = '<div class="hint">选择日期时间后自动换算。</div>'; return; }
+    const d = new Date(dtInput.value);
+    if (isNaN(d.getTime())) { dtResult.innerHTML = '<div class="hint err">日期不合法。</div>'; return; }
+    const s = Math.floor(d.getTime() / 1000);
+    dtResult.innerHTML = '<div class="res-row"><span class="k">秒级时间戳</span><span class="v">' + s + '</span></div>'
+      + '<div class="res-row"><span class="k">毫秒级时间戳</span><span class="v">' + d.getTime() + '</span></div>'
+      + '<div style="margin-top:10px;display:flex;gap:6px"><button class="mini-btn" id="dtCopyS">复制秒</button>'
+      + '<button class="mini-btn" id="dtCopyMs">复制毫秒</button></div>';
+    dtResult.querySelector('#dtCopyS').addEventListener('click', () => copyText(String(s)));
+    dtResult.querySelector('#dtCopyMs').addEventListener('click', () => copyText(String(d.getTime())));
+  }
+
+  tsInput.addEventListener('input', convTs);
+  dtInput.addEventListener('input', convDt);
+  el.querySelector('#tsUseNow').addEventListener('click', () => {
+    tsInput.value = String(Math.floor(Date.now() / 1000)); convTs();
+  });
+  el.querySelector('#tsRefresh').addEventListener('click', tickNow);
+
+  const n = new Date();
+  const pad = x => String(x).padStart(2, '0');
+  dtInput.value = n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()) + 'T' + pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+  convDt();
+  setTimeout(() => tsInput.focus(), 80);
+}
+
+/* ==========================================================
+   工具 8 · 进制转换
+   ========================================================== */
+function renderBaseConvert(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">输入</span>'
+    + '<div class="right"><button class="mini-btn primary" id="bCopy">复制全部</button></div></div>'
+    + '<div class="field"><input class="in mono" id="bVal" placeholder="输入数值，例如 255" style="flex:1">'
+    + '<select class="sel" id="bFrom" style="width:130px">'
+    + '<option value="10">十进制</option><option value="2">二进制</option>'
+    + '<option value="8">八进制</option><option value="16">十六进制</option></select></div>'
+    + '<div class="hint" id="bHint">支持 0-9 / A-F，自动忽略空格与前缀 0x。</div>'
+    + '<div class="divider"></div>'
+    + '<div id="bList"></div></div>';
+
+  const valIn = el.querySelector('#bVal'), fromSel = el.querySelector('#bFrom');
+  const list = el.querySelector('#bList'), hint = el.querySelector('#bHint');
+  let lastOut = '';
+
+  function run() {
+    let raw = valIn.value.trim().replace(/^0[xX]/, '').replace(/^0[bB]/, '').replace(/\s/g, '');
+    if (!raw) { list.innerHTML = '<div class="hint">输入数值后自动转换。</div>'; lastOut = ''; return; }
+    const base = Number(fromSel.value);
+    const valid = /^[0-9a-fA-F]+$/.test(raw);
+    if (!valid) { hint.className = 'hint err'; hint.textContent = '含非法字符，请检查输入。'; list.innerHTML = ''; return; }
+    const n = parseInt(raw, base);
+    if (isNaN(n)) { hint.className = 'hint err'; hint.textContent = '无法解析该数值。'; list.innerHTML = ''; return; }
+    hint.className = 'hint ok';
+    hint.textContent = '已按 ' + fromSel.options[fromSel.selectedIndex].text + ' 解析，十进制值 ' + n.toLocaleString('zh-CN');
+
+    const bins = n.toString(2);
+    const grouped = bins.replace(/\B(?=(\d{4})+(?!\d))/g, ' ');
+    const rows = [
+      ['二进制', grouped, '2'],
+      ['八进制', n.toString(8), '8'],
+      ['十进制', n.toLocaleString('zh-CN'), '10'],
+      ['十六进制', n.toString(16).toUpperCase(), '16']
+    ];
+    lastOut = '二进制: ' + bins + '\n八进制: ' + n.toString(8) + '\n十进制: ' + n + '\n十六进制: ' + n.toString(16).toUpperCase();
+    list.innerHTML = rows.map(r =>
+      '<div class="res-row" style="gap:10px"><span class="k" style="min-width:74px">' + r[0] + '</span>'
+      + '<span class="v" style="flex:1;word-break:break-all;text-align:right">' + esc(r[1]) + '</span>'
+      + '<button class="mini-btn" data-cp="' + r[2] + '">复制</button></div>').join('')
+      + '<div class="hint" style="margin-top:9px">二进制共 ' + bins.length + ' 位，按 4 位分组便于对照十六进制。</div>';
+    list.querySelectorAll('[data-cp]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const b = Number(btn.dataset.cp);
+        copyText(n.toString(b));
+      });
+    });
+  }
+
+  valIn.addEventListener('input', run);
+  fromSel.addEventListener('change', run);
+  el.querySelector('#bCopy').addEventListener('click', () => copyText(lastOut));
+  setTimeout(() => valIn.focus(), 80);
+  run();
+}
+
+/* ==========================================================
+   工具 9 · 金额大写
+   ========================================================== */
+function renderRmbUpper(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">输入金额</span>'
+    + '<div class="right"><button class="mini-btn primary" id="rCopy">复制大写</button></div></div>'
+    + '<div class="field"><input class="in mono" id="rIn" type="number" step="0.01" placeholder="例如 123456.78" style="flex:1"><span class="unit">元</span></div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-title" style="margin-bottom:6px">中文大写</div>'
+    + '<div id="rOut" style="font-size:22px;font-weight:750;color:var(--brand-2);line-height:1.5;letter-spacing:.5px;word-break:break-all">—</div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-title" style="margin-bottom:8px">常用对照</div>'
+    + '<div id="rQuick" class="res-grid"></div>'
+    + '<div class="hint" style="margin-top:12px">规则：支持元/角/分，整数补「整」，负数前加「负」，最大到「万亿」级。</div></div>';
+
+  const inp = el.querySelector('#rIn'), out = el.querySelector('#rOut'), quick = el.querySelector('#rQuick');
+  let current = '';
+
+  const digit = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+  const unit0 = ['元', '万', '亿', '万亿'];
+  const unit1 = ['', '拾', '佰', '仟'];
+
+  function toUpper(num) {
+    if (isNaN(num)) return '';
+    if (num === 0) return '零元整';
+    const head = num < 0 ? '负' : '';
+    const cents = Math.round(Math.abs(num) * 100);
+    let n = Math.floor(cents / 100);
+    if (n > 999999999999) return '金额超出支持范围';
+    const jiao = Math.floor(cents / 10) % 10;
+    const fen = cents % 10;
+
+    let s = '';
+    if (jiao) s += digit[jiao] + '角';
+    if (fen) s += digit[fen] + '分';
+    s = s || '整';
+
+    for (let i = 0; i < unit0.length && n > 0; i++) {
+      let p = '';
+      for (let j = 0; j < unit1.length && n > 0; j++) {
+        p = digit[n % 10] + unit1[j] + p;
+        n = Math.floor(n / 10);
+      }
+      s = p.replace(/(零.)*零$/, '').replace(/^$/, '零') + unit0[i] + s;
+    }
+    return head + s.replace(/(零.)*零元/, '元').replace(/(零.)+/g, '零').replace(/^整$/, '零元整');
+  }
+
+  function run() {
+    const v = parseFloat(inp.value);
+    if (inp.value === '' || isNaN(v)) { out.textContent = '—'; current = ''; return; }
+    current = toUpper(v);
+    out.textContent = current;
+  }
+
+  inp.addEventListener('input', run);
+  el.querySelector('#rCopy').addEventListener('click', () => copyText(current));
+  quick.innerHTML = [100, 1234.56, 88000, 1000000].map(v =>
+    '<div class="res-cell" style="cursor:pointer" data-q="' + v + '"><div class="k">' + v.toLocaleString('zh-CN') + ' 元</div>'
+    + '<div class="v" style="font-size:12.5px;font-weight:600;line-height:1.4;margin-top:4px">' + toUpper(v) + '</div></div>').join('');
+  quick.querySelectorAll('[data-q]').forEach(c => {
+    c.addEventListener('click', () => { inp.value = c.dataset.q; run(); });
+  });
+  setTimeout(() => inp.focus(), 80);
+}
+
+/* ==========================================================
+   工具 10 · 图片压缩
+   ========================================================== */
+function renderImageCompress(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">选择图片</span></div>'
+    + '<div id="icDrop" style="border:1.5px dashed var(--line);border-radius:11px;padding:26px 16px;text-align:center;cursor:pointer;transition:.15s">'
+    + '<div style="color:var(--text-3);font-size:13px">点击选择，或把图片拖到这里</div>'
+    + '<div class="hint" style="margin-top:5px">支持 JPG / PNG / WebP，建议单张 10MB 以内</div>'
+    + '<input type="file" id="icFile" accept="image/*" hidden></div>'
+    + '<div class="field" style="margin-top:14px"><label>压缩质量</label>'
+    + '<input type="range" id="icQ" min="10" max="100" value="75" style="flex:1;accent-color:var(--brand)">'
+    + '<span class="mono" id="icQv" style="width:42px;text-align:right">75%</span></div>'
+    + '<div class="field"><label>最大边长</label>'
+    + '<select class="sel" id="icSize" style="flex:1">'
+    + '<option value="0">保持原尺寸</option><option value="1920">1920 px</option>'
+    + '<option value="1280">1280 px</option><option value="800">800 px</option><option value="512">512 px</option>'
+    + '</select></div>'
+    + '<div id="icInfo" class="hint" style="margin-top:8px">压缩完全在本地进行，图片不会上传。</div>'
+    + '</div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">结果预览</span>'
+    + '<div class="right"><button class="mini-btn primary" id="icDl" disabled>下载</button></div></div>'
+    + '<div id="icPreview" style="background:var(--panel-2);border:1px solid var(--line);border-radius:9px;min-height:200px;display:grid;place-items:center;overflow:hidden">'
+    + '<span class="hint">尚未选择图片</span></div>'
+    + '<div class="res-grid" id="icStats" style="margin-top:12px"></div>'
+    + '</div></div>';
+
+  const drop = el.querySelector('#icDrop'), fileIn = el.querySelector('#icFile');
+  const qRange = el.querySelector('#icQ'), qVal = el.querySelector('#icQv');
+  const sizeSel = el.querySelector('#icSize');
+  const preview = el.querySelector('#icPreview'), stats = el.querySelector('#icStats');
+  const dlBtn = el.querySelector('#icDl'), info = el.querySelector('#icInfo');
+  let resultBlob = null, resultName = 'compressed.jpg';
+
+  function kb(n) { return n > 1048576 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1024).toFixed(1) + ' KB'; }
+
+  qRange.addEventListener('input', () => { qVal.textContent = qRange.value + '%'; });
+  qRange.addEventListener('change', () => { if (fileIn.files[0]) process(fileIn.files[0]); });
+  sizeSel.addEventListener('change', () => { if (fileIn.files[0]) process(fileIn.files[0]); });
+
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = 'var(--brand)'; drop.style.background = 'var(--brand-soft)'; });
+  drop.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--line)'; drop.style.background = 'transparent'; });
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.style.borderColor = 'var(--line)'; drop.style.background = 'transparent';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) process(e.dataTransfer.files[0]);
+  });
+  fileIn.addEventListener('change', () => { if (fileIn.files[0]) process(fileIn.files[0]); });
+
+  function process(file) {
+    if (!/^image\//.test(file.type)) { info.className = 'hint err'; info.textContent = '这不是图片文件。'; return; }
+    info.className = 'hint'; info.textContent = '正在本地压缩…';
+    const maxSide = Number(sizeSel.value);
+    const quality = Number(qRange.value) / 100;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const ow = w, oh = h;
+      if (maxSide && Math.max(w, h) > maxSide) {
+        const s = maxSide / Math.max(w, h);
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(url);
+        if (!blob) { info.className = 'hint err'; info.textContent = '压缩失败，请换一张图片。'; return; }
+        resultBlob = blob;
+        resultName = (file.name.replace(/\.[^.]+$/, '') || 'image') + '_compressed.jpg';
+        const saved = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
+        preview.innerHTML = '<img src="' + URL.createObjectURL(blob) + '" style="max-width:100%;max-height:320px;display:block">';
+        stats.innerHTML = [
+          ['原始大小', kb(file.size)], ['压缩后', kb(blob.size)],
+          ['节省', saved + '%'], ['输出尺寸', w + '×' + h]
+        ].map(r => '<div class="res-cell"><div class="k">' + r[0] + '</div><div class="v" style="font-size:15px">' + r[1] + '</div></div>').join('');
+        dlBtn.disabled = false;
+        info.className = 'hint ok';
+        info.textContent = '完成：' + ow + '×' + oh + ' → ' + w + '×' + h + '，体积减少 ' + saved + '%。';
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); info.className = 'hint err'; info.textContent = '图片读取失败。'; };
+    img.src = url;
+  }
+
+  dlBtn.addEventListener('click', () => {
+    if (!resultBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(resultBlob);
+    a.download = resultName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    toast('已开始下载');
+  });
+}
+
+/* ==========================================================
+   工具 11 · 图片转 Base64
+   ========================================================== */
+function renderImageBase64(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">图片 → DataURL</span>'
+    + '<div class="right"><button class="mini-btn primary" id="b64Copy">复制</button></div></div>'
+    + '<div class="field"><input type="file" id="b64File" accept="image/*" style="flex:1;font-size:12.8px">'
+    + '<span class="hint" id="b64Size"></span></div>'
+    + '<textarea class="out" id="b64Out" placeholder="选择图片后生成 base64 DataURL" style="min-height:150px;font-size:11.8px"></textarea>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-head tight"><span class="pane-title">预览</span></div>'
+    + '<div id="b64Preview" style="background:var(--panel-2);border:1px solid var(--line);border-radius:9px;min-height:130px;display:grid;place-items:center">'
+    + '<span class="hint">尚未选择图片</span></div>'
+    + '<div class="hint" style="margin-top:10px">用途：<code class="mono">img</code> 标签内嵌、邮件签名、HTML 单文件打包。注意 DataURL 比原图大约 33%。</div>'
+    + '</div>';
+
+  const fileIn = el.querySelector('#b64File'), out = el.querySelector('#b64Out');
+  const preview = el.querySelector('#b64Preview'), sizeEl = el.querySelector('#b64Size');
+
+  fileIn.addEventListener('change', () => {
+    const f = fileIn.files[0];
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) { toast('图片较大，生成文本会很长'); }
+    const r = new FileReader();
+    r.onload = () => {
+      out.value = r.result;
+      sizeEl.textContent = (f.size / 1024).toFixed(1) + ' KB → ' + (r.result.length / 1024).toFixed(1) + ' K 字符';
+      preview.innerHTML = '<img src="' + r.result + '" style="max-width:100%;max-height:200px;display:block">';
+    };
+    r.onerror = () => toast('读取失败');
+    r.readAsDataURL(f);
+  });
+
+  el.querySelector('#b64Copy').addEventListener('click', () => copyText(out.value));
+}
+
+/* ==========================================================
+   工具 12 · 颜色工具
+   ========================================================== */
+function renderColorTool(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">选择颜色</span></div>'
+    + '<div style="display:flex;align-items:center;gap:12px">'
+    + '<input type="color" id="cPick" value="#14957f" style="width:64px;height:64px;border:1px solid var(--line);border-radius:11px;background:transparent;cursor:pointer;padding:2px">'
+    + '<div style="flex:1"><input class="in mono" id="cHex" value="#14957F" style="text-transform:uppercase">'
+    + '<div class="hint" style="margin-top:5px">支持 HEX 输入，回车应用</div></div></div>'
+    + '<div class="divider"></div>'
+    + '<div id="cVals"></div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-head tight"><span class="pane-title">明度梯度（+10% ~ −40%）</span></div>'
+    + '<div id="cTints" style="display:flex;gap:5px;margin-top:6px"></div>'
+    + '<div class="pane-head tight" style="margin-top:16px"><span class="pane-title">饱和度梯度</span></div>'
+    + '<div id="cSats" style="display:flex;gap:5px;margin-top:6px"></div>'
+    + '</div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">可读性检查（WCAG）</span></div>'
+    + '<div id="cContrast"></div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-head tight"><span class="pane-title">配色建议</span></div>'
+    + '<div id="cPalette" style="margin-top:8px"></div>'
+    + '<div class="hint" style="margin-top:12px">对比度 ≥ 4.5 满足 AA 正文标准，≥ 7 满足 AAA。</div>'
+    + '</div></div>';
+
+  const pick = el.querySelector('#cPick'), hexIn = el.querySelector('#cHex');
+  const vals = el.querySelector('#cVals'), tints = el.querySelector('#cTints'),
+        sats = el.querySelector('#cSats'), contrast = el.querySelector('#cContrast'), palette = el.querySelector('#cPalette');
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) };
+  }
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0));
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+  function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1; if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+  }
+  function luminance(rgb) {
+    const a = [rgb.r, rgb.g, rgb.b].map(v => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  function ratio(c1, c2) {
+    const l1 = luminance(c1), l2 = luminance(c2);
+    return ((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05));
+  }
+
+  function render() {
+    let hex = hexIn.value.trim();
+    if (!/^#?[0-9a-fA-F]{6}$|^#?[0-9a-fA-F]{3}$/.test(hex)) {
+      vals.innerHTML = '<div class="hint err">HEX 格式不正确，示例：#14957F</div>';
+      return;
+    }
+    if (hex[0] !== '#') hex = '#' + hex;
+    const rgb = hexToRgb(hex);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const hexUp = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+    vals.innerHTML = [
+      ['HEX', hexUp], ['RGB', 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')'],
+      ['HSL', 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)']
+    ].map(r => '<div class="res-row"><span class="k">' + r[0] + '</span><span class="v">' + esc(r[1]) + '</span>'
+      + '<button class="mini-btn" data-v="' + esc(r[1]) + '">复制</button></div>').join('');
+    vals.querySelectorAll('[data-v]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.v)));
+
+    tints.innerHTML = [-40, -30, -20, -10, 0, 10, 20, 30].map(d => {
+      const l = Math.max(0, Math.min(100, hsl.l + d));
+      const c = hslToRgb(hsl.h, hsl.s, l);
+      const hx = rgbToHex(c.r, c.g, c.b);
+      return '<div title="' + hx + '" data-h="' + hx + '" style="flex:1;height:46px;border-radius:7px;background:' + hx + ';border:1px solid var(--line);cursor:pointer"></div>';
+    }).join('');
+    tints.querySelectorAll('[data-h]').forEach(b => b.addEventListener('click', () => {
+      hexIn.value = b.dataset.h; pick.value = b.dataset.h; render();
+    }));
+
+    sats.innerHTML = [20, 40, 60, 80, 100].map(s => {
+      const c = hslToRgb(hsl.h, s, hsl.l);
+      const hx = rgbToHex(c.r, c.g, c.b);
+      return '<div title="' + hx + '" data-h="' + hx + '" style="flex:1;height:38px;border-radius:7px;background:' + hx + ';border:1px solid var(--line);cursor:pointer"></div>';
+    }).join('');
+    sats.querySelectorAll('[data-h]').forEach(b => b.addEventListener('click', () => {
+      hexIn.value = b.dataset.h; pick.value = b.dataset.h; render();
+    }));
+
+    const white = { r: 255, g: 255, b: 255 }, black = { r: 0, g: 0, b: 0 };
+    const rw = ratio(rgb, white), rb = ratio(rgb, black);
+    const judge = v => v >= 7 ? '<span class="pill-ok" style="color:var(--brand-2);font-weight:650">AAA</span>'
+      : v >= 4.5 ? '<span style="color:var(--brand-2);font-weight:650">AA</span>'
+      : v >= 3 ? '<span style="color:var(--warn);font-weight:650">AA Large</span>'
+      : '<span style="color:var(--danger);font-weight:650">不达标</span>';
+    contrast.innerHTML =
+      '<div style="display:flex;gap:10px;margin-bottom:11px">'
+      + '<div style="flex:1;background:' + hexUp + ';border-radius:9px;padding:14px;text-align:center;color:#fff;font-weight:650;font-size:13px;border:1px solid rgba(0,0,0,.06)">白字样例</div>'
+      + '<div style="flex:1;background:' + hexUp + ';border-radius:9px;padding:14px;text-align:center;color:#000;font-weight:650;font-size:13px;border:1px solid rgba(0,0,0,.06)">黑字样例</div>'
+      + '</div>'
+      + '<div class="res-row"><span class="k">白字对比度</span><span class="v">' + rw.toFixed(2) + ' : 1</span></div>'
+      + '<div class="res-row"><span class="k">黑字对比度</span><span class="v">' + rb.toFixed(2) + ' : 1</span></div>'
+      + '<div class="res-row"><span class="k">推荐文字色</span><span class="v">' + (rw >= rb ? '白色' : '黑色') + ' ' + judge(Math.max(rw, rb)) + '</span></div>';
+
+    const comp = hslToRgb((hsl.h + 180) % 360, hsl.s, hsl.l);
+    palette.innerHTML = '<div style="display:flex;gap:5px">'
+      + [hslToRgb(hsl.h, hsl.s, hsl.l), hslToRgb((hsl.h + 30) % 360, hsl.s, hsl.l),
+         comp, hslToRgb(hsl.h, Math.max(0, hsl.s - 40), hsl.l)].map(c => {
+        const hx = rgbToHex(c.r, c.g, c.b);
+        return '<div style="flex:1;text-align:center"><div style="height:40px;border-radius:7px;background:' + hx + ';border:1px solid var(--line)"></div>'
+          + '<div class="mono" style="font-size:10px;color:var(--text-3);margin-top:3px">' + hx + '</div></div>';
+      }).join('') + '</div>';
+  }
+
+  pick.addEventListener('input', () => { hexIn.value = pick.value.toUpperCase(); render(); });
+  hexIn.addEventListener('input', () => {
+    const v = hexIn.value.trim();
+    if (/^#?[0-9a-fA-F]{6}$/.test(v)) { pick.value = v[0] === '#' ? v : '#' + v; }
+    render();
+  });
+  render();
+}
+
+/* ==========================================================
+   工具 13 · 密码生成
+   ========================================================== */
+function renderPasswordGen(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">生成选项</span></div>'
+    + '<div class="field"><label>长度</label><input type="range" id="pwLen" min="6" max="64" value="18" style="flex:1;accent-color:var(--brand)">'
+    + '<span class="mono" id="pwLenV" style="width:34px;text-align:right">18</span></div>'
+    + '<div class="multi-checks" style="margin:8px 0 12px">'
+    + '<label class="check"><input type="checkbox" id="pwUpper" checked>大写 A-Z</label>'
+    + '<label class="check"><input type="checkbox" id="pwLower" checked>小写 a-z</label>'
+    + '<label class="check"><input type="checkbox" id="pwDigit" checked>数字 0-9</label>'
+    + '<label class="check"><input type="checkbox" id="pwSymbol">符号 !@#$</label>'
+    + '<label class="check"><input type="checkbox" id="pwNoAmb">排除易混淆 0O1lI</label>'
+    + '</div>'
+    + '<div class="pane-head tight"><span class="pane-title">强度</span></div>'
+    + '<div class="bar-wrap" style="margin:6px 0 8px"><i id="pwBar" style="width:60%"></i></div>'
+    + '<div class="hint" id="pwStrength">—</div>'
+    + '</div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">生成结果</span>'
+    + '<div class="right"><button class="mini-btn" id="pwRegen">换一批</button><button class="mini-btn primary" id="pwCopyAll">复制全部</button></div></div>'
+    + '<div id="pwList"></div></div></div>';
+
+  const lenR = el.querySelector('#pwLen'), lenV = el.querySelector('#pwLenV');
+  const up = el.querySelector('#pwUpper'), low = el.querySelector('#pwLower'),
+        dg = el.querySelector('#pwDigit'), sym = el.querySelector('#pwSymbol'), noAmb = el.querySelector('#pwNoAmb');
+  const list = el.querySelector('#pwList'), bar = el.querySelector('#pwBar'), strength = el.querySelector('#pwStrength');
+  let generated = [];
+
+  lenR.addEventListener('input', () => {
+    lenV.textContent = lenR.value;
+    updateStrength();
+  });
+
+  function charsets() {
+    let U = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', L = 'abcdefghijklmnopqrstuvwxyz',
+        D = '0123456789', S = '!@#$%^&*()-_=+[]{};:,.<>?';
+    if (noAmb.checked) {
+      U = U.replace(/[IO]/g, ''); L = L.replace(/[lo]/g, ''); D = D.replace(/[01]/g, '');
+    }
+    return { U, L, D, S };
+  }
+
+  function pickChar(set) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return set[buf[0] % set.length];
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const buf = new Uint32Array(1);
+      crypto.getRandomValues(buf);
+      const j = buf[0] % (i + 1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function one() {
+    const cs = charsets();
+    const pools = [];
+    if (up.checked) pools.push(cs.U);
+    if (low.checked) pools.push(cs.L);
+    if (dg.checked) pools.push(cs.D);
+    if (sym.checked) pools.push(cs.S);
+    if (!pools.length) return '';
+    const len = Number(lenR.value);
+    const chars = [];
+    // 每类先保证一个
+    pools.forEach(p => { if (chars.length < len) chars.push(pickChar(p)); });
+    const all = pools.join('');
+    while (chars.length < len) chars.push(pickChar(all));
+    return shuffle(chars).join('');
+  }
+
+  function updateStrength() {
+    const pools = [up, low, dg, sym].filter(x => x.checked).length;
+    const len = Number(lenR.value);
+    let score = Math.min(100, pools * 18 + Math.min(60, len * 2.2));
+    let label = '弱', color = '#c0392b';
+    if (score >= 80) { label = '很强'; color = '#14957f'; }
+    else if (score >= 60) { label = '较强'; color = '#4a9d3f'; }
+    else if (score >= 40) { label = '中等'; color = '#c2701a'; }
+    bar.style.width = score + '%';
+    bar.style.background = color;
+    strength.textContent = '强度：' + label + ' · 长度 ' + len + ' · 启用 ' + pools + ' 类字符';
+  }
+
+  function render() {
+    const pools = [up, low, dg, sym].filter(x => x.checked).length;
+    if (!pools) {
+      list.innerHTML = '<div class="hint err">至少选择一类字符。</div>';
+      generated = [];
+      return;
+    }
+    generated = Array.from({ length: 5 }, () => one());
+    list.innerHTML = generated.map((p, i) =>
+      '<div class="res-row" style="gap:8px"><span class="v" style="flex:1;word-break:break-all">' + esc(p) + '</span>'
+      + '<button class="mini-btn" data-i="' + i + '">复制</button></div>').join('');
+    list.querySelectorAll('[data-i]').forEach(b => {
+      b.addEventListener('click', () => copyText(generated[Number(b.dataset.i)], '密码已复制'));
+    });
+    updateStrength();
+  }
+
+  [up, low, dg, sym, noAmb].forEach(c => c.addEventListener('change', render));
+  el.querySelector('#pwRegen').addEventListener('click', render);
+  el.querySelector('#pwCopyAll').addEventListener('click', () => copyText(generated.join('\n')));
+  render();
+}
+
+/* ==========================================================
+   工具 14 · UUID 生成
+   ========================================================== */
+function renderUuidGen(el) {
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">生成设置</span>'
+    + '<div class="right"><button class="mini-btn primary" id="uuGen">重新生成</button><button class="mini-btn" id="uuCopy">复制全部</button></div></div>'
+    + '<div class="field"><label>数量</label><input class="in mono" id="uuCount" type="number" value="5" min="1" max="50" style="width:90px">'
+    + '<label style="min-width:auto;margin-left:8px">格式</label>'
+    + '<select class="sel" id="uuFmt" style="width:150px">'
+    + '<option value="std">标准（带横线）</option><option value="nodash">无横线</option><option value="upper">大写</option></select></div>'
+    + '<div class="divider"></div><div id="uuList"></div></div>';
+
+  const countIn = el.querySelector('#uuCount'), fmtSel = el.querySelector('#uuFmt'), list = el.querySelector('#uuList');
+  let items = [];
+
+  function uuidv4() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+
+  function render() {
+    let n = Math.max(1, Math.min(50, Number(countIn.value) || 5));
+    const fmt = fmtSel.value;
+    items = Array.from({ length: n }, () => {
+      let u = uuidv4();
+      if (fmt === 'nodash') u = u.replace(/-/g, '');
+      if (fmt === 'upper') u = u.toUpperCase();
+      return u;
+    });
+    list.innerHTML = items.map((u, i) =>
+      '<div class="res-row" style="gap:8px"><span class="k" style="min-width:22px">' + (i + 1) + '</span>'
+      + '<span class="v" style="flex:1;word-break:break-all;font-size:12.4px">' + esc(u) + '</span>'
+      + '<button class="mini-btn" data-i="' + i + '">复制</button></div>').join('');
+    list.querySelectorAll('[data-i]').forEach(b => {
+      b.addEventListener('click', () => copyText(items[Number(b.dataset.i)]));
+    });
+  }
+
+  countIn.addEventListener('change', render);
+  fmtSel.addEventListener('change', render);
+  el.querySelector('#uuGen').addEventListener('click', render);
+  el.querySelector('#uuCopy').addEventListener('click', () => copyText(items.join('\n')));
+  render();
+}
+
+/* ==========================================================
+   工具 15 · 番茄计时
+   ========================================================== */
+function renderPomodoro(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane" style="text-align:center">'
+    + '<div class="pane-head"><span class="pane-title">专注计时</span>'
+    + '<div class="right"><button class="mini-btn" id="pmModeFocus">专注 25 分</button>'
+    + '<button class="mini-btn" id="pmModeBreak">休息 5 分</button></div></div>'
+    + '<div style="position:relative;width:250px;height:250px;margin:8px auto 4px">'
+    + '<svg viewBox="0 0 200 200" style="width:100%;height:100%;transform:rotate(-90deg)">'
+    + '<circle cx="100" cy="100" r="88" fill="none" stroke="var(--line)" stroke-width="10"/>'
+    + '<circle id="pmRing" cx="100" cy="100" r="88" fill="none" stroke="var(--brand)" stroke-width="10" '
+    + 'stroke-linecap="round" stroke-dasharray="552.9" stroke-dashoffset="0"/>'
+    + '</svg>'
+    + '<div style="position:absolute;inset:0;display:grid;place-items:center">'
+    + '<div><div id="pmClock" class="mono" style="font-size:44px;font-weight:750;letter-spacing:-1.5px;font-variant-numeric:tabular-nums">25:00</div>'
+    + '<div id="pmState" style="font-size:12.5px;color:var(--text-3);margin-top:2px">准备开始</div></div></div></div>'
+    + '<div style="display:flex;gap:9px;justify-content:center;margin-top:12px">'
+    + '<button class="mini-btn primary" id="pmStart" style="height:34px;padding:0 22px;font-size:13px">开始</button>'
+    + '<button class="mini-btn" id="pmReset" style="height:34px;padding:0 16px;font-size:13px">重置</button></div>'
+    + '<div class="hint" style="margin-top:14px">页面切到后台仍会计时；关闭页面即清零，不做数据留存。</div>'
+    + '</div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">本轮统计</span></div>'
+    + '<div class="res-grid">'
+    + '<div class="res-cell"><div class="k">完成番茄</div><div class="v" id="pmDone">0</div></div>'
+    + '<div class="res-cell"><div class="k">累计专注</div><div class="v" id="pmTotal">0<small>分</small></div></div>'
+    + '</div><div class="divider"></div>'
+    + '<div class="hint">番茄工作法：专注 25 分钟 → 休息 5 分钟，每 4 轮长休息 15 分钟。这里只保留最核心的专注/休息循环，不引入任务清单。</div>'
+    + '<div class="divider"></div>'
+    + '<div class="pane-head tight"><span class="pane-title">快捷预设</span></div>'
+    + '<div class="seg" style="margin-top:8px">'
+    + '<button data-min="25" class="on">25 分</button><button data-min="45">45 分</button><button data-min="15">15 分</button>'
+    + '</div></div></div>';
+
+  const clock = el.querySelector('#pmClock'), stateEl = el.querySelector('#pmState'), ring = el.querySelector('#pmRing');
+  const startBtn = el.querySelector('#pmStart'), resetBtn = el.querySelector('#pmReset');
+  const doneEl = el.querySelector('#pmDone'), totalEl = el.querySelector('#pmTotal');
+
+  const CIRC = 2 * Math.PI * 88;
+  let mode = 'focus', focusMin = 25, totalSec = 25 * 60, left = totalSec, running = false, tid = null;
+  let done = 0, totalFocus = 0;
+
+  function paint() {
+    const m = Math.floor(left / 60), s = left % 60;
+    clock.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    const pct = left / totalSec;
+    ring.style.strokeDashoffset = String(CIRC * (1 - pct));
+    ring.style.stroke = mode === 'focus' ? 'var(--brand)' : '#4a7df0';
+    document.title = running ? clock.textContent + ' · ' + (mode === 'focus' ? '专注中' : '休息中') + ' · 轻匣子' : '轻匣子 LiteBox · 17 个顺手小工具';
+  }
+
+  function setMode(m) {
+    mode = m;
+    totalSec = m === 'focus' ? focusMin * 60 : 5 * 60;
+    left = totalSec;
+    running = false;
+    clearInterval(tid); tid = null;
+    startBtn.textContent = '开始';
+    stateEl.textContent = m === 'focus' ? '准备开始' : '休息一下';
+    paint();
+  }
+
+  function stop() {
+    running = false;
+    clearInterval(tid); tid = null;
+    startBtn.textContent = '继续';
+    stateEl.textContent = '已暂停';
+    document.title = '轻匣子 LiteBox · 17 个顺手小工具';
+  }
+
+  function start() {
+    if (running) { stop(); return; }
+    running = true;
+    startBtn.textContent = '暂停';
+    stateEl.textContent = mode === 'focus' ? '专注中…' : '休息中…';
+    tid = setInterval(() => {
+      left--;
+      if (left <= 0) {
+        clearInterval(tid); tid = null; running = false;
+        left = 0; paint();
+        if (mode === 'focus') {
+          done++; totalFocus += Math.round(totalSec / 60);
+          doneEl.textContent = done; totalEl.innerHTML = totalFocus + '<small>分</small>';
+          stateEl.textContent = '完成一轮，起来走走';
+          toast('专注完成，休息 5 分钟');
+          setTimeout(() => setMode('break'), 900);
+        } else {
+          stateEl.textContent = '休息结束，准备下一轮';
+          toast('休息结束，开始下一轮');
+          setTimeout(() => setMode('focus'), 900);
+        }
+        startBtn.textContent = '开始';
+        return;
+      }
+      paint();
+    }, 1000);
+    paint();
+  }
+
+  startBtn.addEventListener('click', start);
+  resetBtn.addEventListener('click', () => { left = totalSec; running = false; clearInterval(tid); tid = null; startBtn.textContent = '开始'; stateEl.textContent = '准备开始'; paint(); });
+  el.querySelector('#pmModeFocus').addEventListener('click', () => setMode('focus'));
+  el.querySelector('#pmModeBreak').addEventListener('click', () => setMode('break'));
+  el.querySelectorAll('[data-min]').forEach(b => {
+    b.addEventListener('click', () => {
+      el.querySelectorAll('[data-min]').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      mode = 'focus'; focusMin = Number(b.dataset.min); totalSec = focusMin * 60; left = totalSec;
+      running = false; clearInterval(tid); tid = null;
+      startBtn.textContent = '开始'; stateEl.textContent = '准备开始'; paint();
+    });
+  });
+
+  state.cleanups.push(() => { clearInterval(tid); document.title = '轻匣子 LiteBox · 17 个顺手小工具'; });
+  paint();
+}
+
+/* ==========================================================
+   工具 16 · 日期计算
+   ========================================================== */
+function renderDateCalc(el) {
+  const today = new Date().toISOString().slice(0, 10);
+  el.innerHTML = '<div class="pane"><div class="pane-head"><span class="pane-title">计算模式</span></div>'
+    + '<div class="seg" id="dcSeg">'
+    + '<button data-m="diff" class="on">两日期相差</button><button data-m="add">N 天后</button><button data-m="age">年龄计算</button>'
+    + '</div><div class="divider"></div><div id="dcBody"></div></div>';
+
+  const body = el.querySelector('#dcBody');
+  let mode = 'diff';
+
+  function diffDays(a, b) {
+    const d1 = new Date(a + 'T00:00:00'), d2 = new Date(b + 'T00:00:00');
+    return Math.round((d2 - d1) / 86400000);
+  }
+  function workdays(a, b) {
+    const d1 = new Date(a + 'T00:00:00'), d2 = new Date(b + 'T00:00:00');
+    const start = d1 <= d2 ? d1 : d2, end = d1 <= d2 ? d2 : d1;
+    let n = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const w = cur.getDay();
+      if (w !== 0 && w !== 6) n++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return n;
+  }
+  const wd = d => '星期' + '日一二三四五六'[d.getDay()];
+
+  function paintDiff() {
+    body.innerHTML = '<div class="cols">'
+      + '<div><div class="pane-head tight"><span class="pane-title">起始日期</span></div>'
+      + '<input class="in" type="date" id="dcA" value="' + today + '"></div>'
+      + '<div><div class="pane-head tight"><span class="pane-title">结束日期</span></div>'
+      + '<input class="in" type="date" id="dcB" value="' + today + '"></div></div>'
+      + '<div class="divider"></div><div id="dcRes"></div>';
+    const a = body.querySelector('#dcA'), b = body.querySelector('#dcB');
+    function run() {
+      if (!a.value || !b.value) return;
+      const raw = diffDays(a.value, b.value);
+      const abs = Math.abs(raw);
+      const d1 = new Date(a.value + 'T00:00:00'), d2 = new Date(b.value + 'T00:00:00');
+      const wks = Math.floor(abs / 7);
+      body.querySelector('#dcRes').innerHTML =
+        '<div class="res-grid">'
+        + '<div class="res-cell"><div class="k">相差天数</div><div class="v">' + abs + '<small>天</small></div></div>'
+        + '<div class="res-cell"><div class="k">折合</div><div class="v" style="font-size:15px">' + wks + ' 周 ' + (abs % 7) + ' 天</div></div>'
+        + '<div class="res-cell"><div class="k">工作日</div><div class="v">' + workdays(a.value, b.value) + '<small>天</small></div></div>'
+        + '<div class="res-cell"><div class="k">含首尾</div><div class="v">' + (abs + 1) + '<small>天</small></div></div>'
+        + '</div>'
+        + '<div class="res-row" style="margin-top:10px"><span class="k">起</span><span class="v">' + a.value + ' ' + wd(d1) + '</span></div>'
+        + '<div class="res-row"><span class="k">止</span><span class="v">' + b.value + ' ' + wd(d2) + '</span></div>'
+        + '<div class="res-row"><span class="k">方向</span><span class="v">' + (raw === 0 ? '同一天' : raw > 0 ? '结束日在后' : '结束日在前') + '</span></div>';
+    }
+    a.addEventListener('change', run); b.addEventListener('change', run);
+    run();
+  }
+
+  function paintAdd() {
+    body.innerHTML = '<div class="cols">'
+      + '<div><div class="pane-head tight"><span class="pane-title">基准日期</span></div>'
+      + '<input class="in" type="date" id="daA" value="' + today + '"></div>'
+      + '<div><div class="pane-head tight"><span class="pane-title">相差天数（可为负）</span></div>'
+      + '<input class="in mono" type="number" id="daN" value="30"></div></div>'
+      + '<div class="divider"></div><div id="daRes"></div>';
+    const a = body.querySelector('#daA'), n = body.querySelector('#daN');
+    function run() {
+      if (!a.value || n.value === '') return;
+      const d = new Date(a.value + 'T00:00:00');
+      d.setDate(d.getDate() + Number(n.value));
+      const pad = x => String(x).padStart(2, '0');
+      const str = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      const rel = Math.abs(Number(n.value));
+      body.querySelector('#daRes').innerHTML =
+        '<div style="font-size:26px;font-weight:750;color:var(--brand-2);letter-spacing:-.4px">' + str + '</div>'
+        + '<div class="hint" style="margin-top:4px">' + wd(d) + ' · ' + (Number(n.value) >= 0 ? rel + ' 天后' : rel + ' 天前') + '</div>'
+        + '<div class="divider"></div>'
+        + '<div class="res-row"><span class="k">本年进度</span><span class="v">第 ' + (Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)) + ' 天</span></div>'
+        + '<div class="res-row"><span class="k">ISO 周</span><span class="v">' + (() => {
+          const t = new Date(d); t.setHours(0, 0, 0, 0); t.setDate(t.getDate() + 3 - (t.getDay() + 6) % 7);
+          const week1 = new Date(t.getFullYear(), 0, 4);
+          return 1 + Math.round(((t - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+        })() + '</span></div>'
+        + '<div style="margin-top:10px"><button class="mini-btn" id="daCopy">复制日期</button></div>';
+      body.querySelector('#daCopy').addEventListener('click', () => copyText(str));
+    }
+    a.addEventListener('change', run); n.addEventListener('input', run);
+    run();
+  }
+
+  function paintAge() {
+    body.innerHTML = '<div class="pane-head tight"><span class="pane-title">出生日期</span></div>'
+      + '<input class="in" type="date" id="agDate" value="1995-06-15">'
+      + '<div class="divider"></div><div id="agRes"></div>';
+    const inp = body.querySelector('#agDate');
+    function run() {
+      if (!inp.value) return;
+      const b = new Date(inp.value + 'T00:00:00');
+      const now = new Date();
+      if (b > now) { body.querySelector('#agRes').innerHTML = '<div class="hint warn">出生日期晚于今天。</div>'; return; }
+      let years = now.getFullYear() - b.getFullYear();
+      let months = now.getMonth() - b.getMonth();
+      let days = now.getDate() - b.getDate();
+      if (days < 0) {
+        months--;
+        const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        days += prevMonth.getDate();
+      }
+      if (months < 0) { years--; months += 12; }
+      const totalDays = Math.floor((now - b) / 86400000);
+      const next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+      if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) next.setFullYear(now.getFullYear() + 1);
+      const until = Math.ceil((next - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+      body.querySelector('#agRes').innerHTML =
+        '<div class="res-grid">'
+        + '<div class="res-cell"><div class="k">周岁</div><div class="v">' + years + '<small>岁</small></div></div>'
+        + '<div class="res-cell"><div class="k">虚岁</div><div class="v">' + (now.getFullYear() - b.getFullYear() + 1) + '<small>岁</small></div></div>'
+        + '<div class="res-cell"><div class="k">已活天数</div><div class="v" style="font-size:16px">' + totalDays.toLocaleString('zh-CN') + '</div></div>'
+        + '<div class="res-cell"><div class="k">距下次生日</div><div class="v">' + until + '<small>天</small></div></div>'
+        + '</div>'
+        + '<div class="res-row" style="margin-top:10px"><span class="k">精确年龄</span><span class="v">' + years + ' 年 ' + months + ' 个月 ' + days + ' 天</span></div>'
+        + '<div class="res-row"><span class="k">出生星期</span><span class="v">' + wd(b) + '</span></div>';
+    }
+    inp.addEventListener('change', run);
+    run();
+  }
+
+  el.querySelectorAll('#dcSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      el.querySelectorAll('#dcSeg button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      mode = b.dataset.m;
+      if (mode === 'diff') paintDiff();
+      else if (mode === 'add') paintAdd();
+      else paintAge();
+    });
+  });
+  paintDiff();
+}
+
+/* ==========================================================
+   工具 17 · BMI 计算
+   ========================================================== */
+function renderBmi(el) {
+  el.innerHTML = '<div class="cols">'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">输入</span></div>'
+    + '<div class="field"><label>身高</label><input class="in mono" id="bmH" type="number" value="175" style="flex:1"><span class="unit">cm</span></div>'
+    + '<div class="field"><label>体重</label><input class="in mono" id="bmW" type="number" value="70" style="flex:1"><span class="unit">kg</span></div>'
+    + '<div class="hint" style="margin-top:6px">按中国成人标准：&lt;18.5 偏瘦，18.5—23.9 正常，24—27.9 超重，≥28 肥胖。</div>'
+    + '</div>'
+    + '<div class="pane"><div class="pane-head"><span class="pane-title">结果</span></div>'
+    + '<div style="display:flex;align-items:baseline;gap:10px"><div id="bmVal" style="font-size:40px;font-weight:800;letter-spacing:-1.5px">22.9</div>'
+    + '<div id="bmTag" style="font-size:14px;font-weight:650">正常</div></div>'
+    + '<div class="bar-wrap" style="margin:12px 0 6px;height:12px;position:relative">'
+    + '<i id="bmBar" style="width:50%"></i></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-3)">'
+    + '<span>18.5</span><span>24</span><span>28</span><span>35</span></div>'
+    + '<div class="divider"></div>'
+    + '<div id="bmInfo"></div></div></div>';
+
+  const hIn = el.querySelector('#bmH'), wIn = el.querySelector('#bmW');
+  const val = el.querySelector('#bmVal'), tag = el.querySelector('#bmTag'),
+        bar = el.querySelector('#bmBar'), info = el.querySelector('#bmInfo');
+
+  function run() {
+    const h = parseFloat(hIn.value) / 100, w = parseFloat(wIn.value);
+    if (!h || !w || h <= 0 || w <= 0) { val.textContent = '—'; tag.textContent = ''; info.innerHTML = ''; return; }
+    const bmi = w / (h * h);
+    let label = '偏瘦', color = '#4a7df0';
+    if (bmi >= 28) { label = '肥胖'; color = '#c0392b'; }
+    else if (bmi >= 24) { label = '超重'; color = '#c2701a'; }
+    else if (bmi >= 18.5) { label = '正常'; color = '#14957f'; }
+    val.textContent = bmi.toFixed(1);
+    tag.textContent = label;
+    tag.style.color = color;
+    bar.style.background = color;
+    const pos = Math.max(2, Math.min(98, ((bmi - 14) / (36 - 14)) * 100));
+    bar.style.width = pos + '%';
+
+    const low = 18.5 * h * h, high = 23.9 * h * h;
+    const diff = bmi > 23.9 ? w - high : bmi < 18.5 ? low - w : 0;
+    info.innerHTML = '<div class="res-row"><span class="k">健康体重区间</span><span class="v">' + low.toFixed(1) + ' — ' + high.toFixed(1) + ' kg</span></div>'
+      + '<div class="res-row"><span class="k">距健康区间</span><span class="v">' + (diff === 0 ? '已在区间内' : (bmi > 23.9 ? '超出 ' + diff.toFixed(1) + ' kg' : '还差 ' + diff.toFixed(1) + ' kg')) + '</span></div>'
+      + '<div class="res-row"><span class="k">理想体重（BMI 22）</span><span class="v">' + (22 * h * h).toFixed(1) + ' kg</span></div>';
+  }
+
+  hIn.addEventListener('input', run); wIn.addEventListener('input', run);
+  run();
+}
+
+/* ==========================================================
+   启动
+   ========================================================== */
+applyTheme();
+route();
