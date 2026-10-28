@@ -364,7 +364,7 @@ function startTyping() {
   $('#quizToForge').onclick = () => {
     $('#forgeName').focus();
     const chip = $$('.chip').find((c) => c.dataset.sp === (window.__species || '全栈独角兽'));
-    if (chip) { $$('.chip').forEach((c) => c.classList.remove('active')); chip.classList.add('active'); }
+    if (chip) chip.click();
     $('#forge').scrollIntoView({ behavior: 'smooth' });
   };
   render();
