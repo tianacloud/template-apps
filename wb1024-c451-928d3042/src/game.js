@@ -1355,6 +1355,7 @@ function dropStone(){
   AudioSys?.SFX?.fail();
   say("粉碎 —— 换得 "+gain+" 石筹","","bad");
   render();
+  maybeForceClose();
 }
 
 function bindInput(){
