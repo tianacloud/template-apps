@@ -1,0 +1,2774 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>/* 番茄专注 · 网页版 —— 白色暖调界面
+   配色参考 pomodoro-desktop：米白画布 / 番茄红 / 淡红轨道 / 软阴影卡片 */
+
+:root {
+  --ink: #202124;
+  --muted: #7d7b7c;
+  --canvas: #fcfaf9;
+  --panel: rgba(255, 254, 253, .94);
+  --line: #eee8e7;
+  --soft-line: #f7efed;
+  --tomato: #ff6058;
+  --tomato-dark: #ed4e46;
+  --tomato-pale: #fff0ed;
+  --track: #f9deda;
+  --accent: #ff6058;
+  --accent-dark: #ed4e46;
+  --accent-track: #f9deda;
+  --shadow: 0 16px 36px rgba(62, 45, 41, .08), 0 3px 10px rgba(62, 45, 41, .04);
+  --shadow-sm: 0 5px 12px rgba(67, 46, 41, .07);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans SC", -apple-system, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(760px 420px at 8% -6%, rgba(255, 150, 140, .13), transparent 62%),
+    radial-gradient(680px 420px at 94% 2%, rgba(255, 206, 150, .12), transparent 60%);
+  background-attachment: fixed;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(255, 96, 88, .3); outline-offset: 2px; }
+a { color: var(--tomato-dark); }
+
+/* 休息配色 */
+body.is-break {
+  --accent: #2e9e6b;
+  --accent-dark: #237c54;
+  --accent-track: #d9efe2;
+  background-image:
+    radial-gradient(760px 420px at 8% -6%, rgba(120, 214, 170, .16), transparent 62%),
+    radial-gradient(680px 420px at 94% 2%, rgba(180, 226, 190, .14), transparent 60%);
+}
+
+.page {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  padding: 22px 20px 40px;
+}
+
+/* ---------- 顶栏 ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 18px;
+}
+
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-mark { width: 40px; height: 40px; filter: drop-shadow(0 7px 8px rgba(224, 71, 60, .16)); }
+.brand-name { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: .01em; }
+.date-label { margin: 1px 0 0; color: var(--muted); font-size: 11.5px; }
+
+.top-actions { display: flex; gap: 8px; }
+
+.icon-button {
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(224, 217, 215, .85);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  transition: color .16s, border-color .16s, transform .16s;
+}
+.icon-button:hover { color: var(--accent-dark); border-color: #f0d8d4; transform: translateY(-1px); }
+.icon-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- 计时卡 ---------- */
+
+.focus-card {
+  padding: 24px 22px 20px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 31px;
+  background: linear-gradient(142deg, rgba(255, 255, 255, .97), rgba(255, 250, 249, .92));
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.focus-heading .eyebrow {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+.focus-heading h1 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: .01em;
+}
+
+.timer-ring {
+  --progress: 0deg;
+  position: relative;
+  width: 232px;
+  aspect-ratio: 1;
+  margin: 24px auto 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg 8deg,
+    var(--accent) 8deg var(--progress),
+    var(--accent-track) var(--progress) 352deg,
+    transparent 352deg 360deg);
+  filter: drop-shadow(0 12px 16px rgba(248, 100, 89, .12));
+  transition: background .25s linear;
+}
+.timer-ring::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 45% 34%, #fff 0%, #fffbfa 66%, #fff8f6 100%);
+}
+.ring-tomato {
+  position: absolute;
+  z-index: 2;
+  top: -10px;
+  left: 50%;
+  width: 34px; height: 34px;
+  padding: 2px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #fffdfa;
+}
+.timer-center { position: relative; z-index: 1; width: 196px; }
+.timer-mode { display: block; color: var(--accent-dark); font-size: 13px; font-weight: 800; letter-spacing: .06em; }
+.timer-value {
+  display: block;
+  margin: 10px 0 8px;
+  font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 58px;
+  font-weight: 500;
+  line-height: .92;
+  letter-spacing: -.01em;
+}
+.timer-task {
+  display: block;
+  min-height: 34px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.timer-task.none { color: #b3aeae; }
+
+.timer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.round-control {
+  width: 48px; height: 48px;
+  display: grid; place-items: center;
+  border: 1px solid #f0e9e7;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 6px 14px rgba(66, 43, 39, .08);
+  transition: transform .16s, color .16s, box-shadow .16s;
+}
+.round-control:hover { color: var(--accent-dark); transform: translateY(-2px); box-shadow: 0 10px 16px rgba(66, 43, 39, .13); }
+.round-control svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+.primary-control {
+  min-width: 176px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 27px;
+  background: linear-gradient(118deg, var(--accent), var(--accent-dark));
+  background: linear-gradient(118deg, var(--accent) 0%, var(--accent-dark) 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 9px 17px rgba(255, 96, 88, .26);
+  transition: transform .16s, box-shadow .16s;
+}
+body.is-break .primary-control { box-shadow: 0 9px 17px rgba(46, 158, 107, .24); }
+.primary-control:hover { transform: translateY(-2px); box-shadow: 0 12px 21px rgba(255, 96, 88, .32); }
+.primary-control:active { transform: translateY(0); }
+.primary-control svg { width: 18px; height: 18px; }
+
+.mode-switcher {
+  width: min(100%, 330px);
+  height: 38px;
+  margin: 18px auto 0;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #eee7e5;
+  border-radius: 19px;
+  background: #f8f6f5;
+}
+.mode-button {
+  flex: 1;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #777478;
+  font-size: 12.5px;
+  transition: color .16s, background .16s, box-shadow .16s;
+}
+.mode-button.active {
+  color: var(--accent-dark);
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(70, 50, 45, .09);
+  font-weight: 800;
+}
+
+.rounds { display: flex; justify-content: center; gap: 7px; margin-top: 15px; }
+.round-dot { width: 7px; height: 7px; border-radius: 50%; background: #efe4e2; transition: background .2s, transform .2s; }
+.round-dot.done { background: var(--accent); }
+.round-dot.current { background: #fff; border: 2px solid var(--accent); transform: scale(1.25); }
+
+/* ---------- 今日进度 ---------- */
+
+.progress-card {
+  margin-top: 16px;
+  padding: 17px 22px 16px;
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-radius: 25px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.progress-labels { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 700; }
+.progress-title { display: inline-flex; align-items: center; gap: 8px; }
+.progress-title::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tomato); box-shadow: 0 0 0 4px rgba(255, 96, 88, .13); }
+.progress-labels strong { font-size: 13px; }
+.progress-labels strong span:first-child { color: var(--tomato-dark); }
+.progress-track {
+  height: 7px;
+  margin: 11px 0 9px;
+  border-radius: 99px;
+  background: var(--tomato-pale);
+  overflow: hidden;
+}
+.progress-track span { display: block; width: 0; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ff8a7f, var(--tomato-dark)); transition: width .3s ease; }
+.progress-footnote { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 11.5px; }
+.progress-footnote span:last-child { white-space: nowrap; }
+
+/* ---------- 任务 ---------- */
+
+.tasks-card {
+  margin-top: 16px;
+  padding: 20px 22px 18px;
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-radius: 25px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.section-heading .eyebrow { margin: 0 0 3px; color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: .08em; }
+.section-heading h2 { margin: 0; font-size: 17px; font-weight: 800; }
+.section-heading h2 span { margin-left: 4px; color: var(--muted); font-size: 12px; font-weight: 600; }
+
+.add-task-button {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.add-task-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.add-task-button:hover { color: var(--tomato-dark); border-color: #f2ddd9; }
+
+.add-task-form { display: flex; gap: 8px; margin-top: 14px; }
+.add-task-form input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fffefd;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color .16s, box-shadow .16s;
+}
+.add-task-form input:focus { border-color: #f6c6bf; box-shadow: 0 0 0 3px rgba(255, 96, 88, .1); }
+.add-task-form button {
+  flex: 0 0 auto;
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  border: 0;
+  border-radius: 13px;
+  background: var(--tomato-pale);
+  color: var(--tomato-dark);
+}
+.add-task-form button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.add-task-form button:hover { background: #ffe3de; }
+
+.task-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 8px;
+  border-radius: 13px;
+  transition: background .16s;
+}
+.task-item + .task-item { margin-top: 2px; }
+.task-item:hover { background: #fdf7f5; }
+.task-item.active { background: var(--tomato-pale); }
+
+.task-check {
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  margin: 0;
+  accent-color: var(--tomato);
+  cursor: pointer;
+}
+.task-title { flex: 1; min-width: 0; font-size: 13.5px; cursor: pointer; overflow-wrap: anywhere; }
+.task-item.done .task-title { color: #b3aeae; text-decoration: line-through; }
+.task-now {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #fff;
+  color: var(--tomato-dark);
+  font-size: 10.5px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(224, 71, 60, .14);
+}
+.task-time { flex: 0 0 auto; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.task-del {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #c9c2c1;
+  font-size: 12px;
+  line-height: 1;
+}
+.task-del:hover { background: #ffe9e5; color: var(--tomato-dark); }
+
+.empty-state { padding: 22px 0 8px; text-align: center; color: var(--muted); font-size: 12.5px; }
+.empty-state p { margin: 8px 0 0; }
+.empty-clipboard { display: inline-flex; flex-direction: column; gap: 3px; width: 26px; height: 30px; padding: 6px 5px; border: 1.5px solid #e8dedb; border-radius: 5px; }
+.empty-clipboard i { display: block; height: 2px; border-radius: 2px; background: #efe5e2; }
+.empty-clipboard i:nth-child(2) { width: 70%; }
+
+.data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 13px; border-top: 1px dashed var(--line); }
+.data-action {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+}
+.data-action:hover { color: var(--tomato-dark); border-color: #f3dcd8; background: #fffbfa; }
+
+.tips { margin: 18px 4px 0; color: #9d9896; font-size: 11px; line-height: 1.7; text-align: center; }
+
+/* ---------- 弹窗 ---------- */
+
+dialog.sheet {
+  width: min(94vw, 480px);
+  max-height: 88vh;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: #fffefd;
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(57, 43, 39, .22);
+  overflow: hidden;
+}
+dialog.sheet::backdrop { background: rgba(38, 30, 28, .34); backdrop-filter: blur(3px); }
+dialog.sheet[open] { display: flex; flex-direction: column; animation: sheetIn .18s ease; }
+@keyframes sheetIn { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: none; } }
+
+.sheet-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 12px;
+  border-bottom: 1px solid var(--soft-line);
+}
+.sheet-head .eyebrow { margin: 0 0 3px; color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; }
+.sheet-head h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.sheet-head .icon-button { width: 34px; height: 34px; }
+
+.sheet-body { flex: 1 1 auto; padding: 16px 22px 22px; overflow-y: auto; }
+
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f8f6f5;
+  border: 1px solid #eee7e5;
+}
+.seg-btn {
+  flex: 1;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #777478;
+  font-size: 12.5px;
+}
+.seg-btn.active { background: #fff; color: var(--tomato-dark); font-weight: 700; box-shadow: 0 2px 5px rgba(70, 50, 45, .09); }
+
+.field { display: block; margin-top: 16px; }
+.field > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.field > span b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.field select,
+.field input[type="text"],
+.field input[type="number"] {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  font-size: 13.5px;
+  outline: none;
+}
+.field select:focus,
+.field input:focus { border-color: #f6c6bf; box-shadow: 0 0 0 3px rgba(255, 96, 88, .1); }
+.field input[type="file"] { font-size: 12px; color: var(--muted); }
+
+.hint { margin: 6px 0 0; color: #a09b99; font-size: 11px; line-height: 1.6; }
+
+.file-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: #faf7f6;
+  font-size: 12px;
+}
+.file-list li + li { margin-top: 4px; }
+.file-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-list .rm { border: 0; background: transparent; color: #b9b2b1; font-size: 12px; }
+.file-list .rm:hover { color: var(--tomato-dark); }
+
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.tip { color: var(--muted); font-size: 11.5px; }
+.tip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.btn-ghost {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: #fff;
+  font-size: 12.5px;
+}
+.btn-ghost:hover { border-color: #f3dcd8; color: var(--tomato-dark); background: #fffbfa; }
+.btn-ghost.danger { color: #b3261e; border-color: #f3d6d2; }
+.btn-ghost.danger:hover { background: #fdf2f1; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  margin: 2px 0 0;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 5px; border-radius: 99px; background: var(--tomato-pale); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  background: var(--tomato);
+  box-shadow: 0 2px 6px rgba(224, 71, 60, .3);
+}
+
+.duration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.duration-grid label { display: block; color: var(--muted); font-size: 12px; }
+.duration-grid label span { display: flex; align-items: center; gap: 6px; margin-top: 5px; color: var(--ink); font-size: 12.5px; white-space: nowrap; }
+.duration-grid input { width: 100%; min-width: 0; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 13.5px; outline: none; }
+.duration-grid input:focus { border-color: #f6c6bf; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+.chip { padding: 5px 12px; border: 1px solid var(--line); border-radius: 99px; background: #fff; color: var(--muted); font-size: 12px; }
+.chip.active { border-color: #f6c6bf; background: var(--tomato-pale); color: var(--tomato-dark); font-weight: 700; }
+
+.group { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--soft-line); }
+.group-title { margin: 0 0 9px; font-size: 12px; font-weight: 800; color: var(--ink); letter-spacing: .02em; }
+.check-line { display: flex; align-items: center; gap: 9px; padding: 5px 0; color: #4c4846; font-size: 13px; cursor: pointer; }
+.check-line input { width: 16px; height: 16px; margin: 0; accent-color: var(--tomato); }
+
+/* ---------- 全屏专注页 ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.overlay.hidden { display: none; }
+
+.focus-overlay {
+  background:
+    radial-gradient(1200px 700px at 50% 30%, rgba(255, 96, 88, .07) 0%, rgba(251, 248, 246, 0) 70%),
+    #fbf8f6;
+  color: #2d2a28;
+  text-align: center;
+  padding: 40px 24px;
+}
+.fo-phase { color: rgba(45, 42, 40, .55); font-size: 15px; font-weight: 700; letter-spacing: .38em; text-indent: .38em; }
+.fo-time {
+  margin: 14px 0 6px;
+  font-family: "Bahnschrift", "DIN Alternate", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(76px, 17vw, 148px);
+  font-weight: 300;
+  line-height: .95;
+  letter-spacing: -.02em;
+}
+.fo-task { min-height: 22px; color: rgba(45, 42, 40, .55); font-size: 14px; }
+.fo-bar { width: min(72vw, 420px); height: 3px; margin: 24px 0 14px; border-radius: 99px; background: rgba(45, 42, 40, .12); overflow: hidden; }
+.fo-bar span { display: block; width: 0; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ff8a7f, #ff6058); transition: width .3s linear; }
+.fo-round { color: rgba(45, 42, 40, .45); font-size: 12px; letter-spacing: .06em; }
+.fo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 30px; }
+.fo-btn {
+  min-width: 106px; height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 99px;
+  background: #ff6058;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.fo-btn.ghost { background: #ffffff; color: #6f6a66; border: 1px solid #eee3de; }
+.fo-hint { margin: 26px 0 0; color: rgba(45, 42, 40, .35); font-size: 11.5px; }
+
+/* ---------- 强提醒 / 询问 ---------- */
+
+.alert-overlay, .ask-overlay { background: rgba(250, 246, 244, .8); backdrop-filter: blur(6px); }
+.alert-card {
+  width: min(88vw, 360px);
+  padding: 30px 26px 26px;
+  border-radius: 26px;
+  background: #fffefd;
+  box-shadow: 0 26px 60px rgba(120, 70, 60, .18);
+  text-align: center;
+}
+.alert-icon { font-size: 34px; line-height: 1; }
+.alert-card h2 { margin: 12px 0 6px; font-size: 22px; font-weight: 800; }
+.alert-card p { margin: 0 0 22px; color: var(--muted); font-size: 13.5px; }
+.alert-card .primary-control { min-width: 150px; }
+.ask-actions { display: flex; justify-content: center; gap: 10px; }
+.ask-actions .primary-control { min-width: 0; padding: 0 20px; }
+.ask-actions .btn-ghost { height: 52px; border-radius: 27px; }
+
+/* ---------- 轻提示 ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  z-index: 90;
+  max-width: 84vw;
+  padding: 10px 18px;
+  border-radius: 99px;
+  background: rgba(32, 33, 36, .92);
+  color: #fff;
+  font-size: 12.5px;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity .24s, transform .24s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 460px) {
+  .page { padding: 16px 14px 34px; }
+  .focus-card { padding: 20px 16px 18px; border-radius: 26px; }
+  .timer-ring { width: 206px; }
+  .timer-value { font-size: 50px; }
+  .timer-center { width: 176px; }
+  .progress-card, .tasks-card { padding-left: 16px; padding-right: 16px; border-radius: 22px; }
+  .focus-heading h1 { font-size: 22px; }
+  .duration-grid { grid-template-columns: 1fr; }
+  dialog.sheet { width: 100vw; max-height: 92vh; border-radius: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style></head><body><div style="text-align:center;font-size:12px;color:#776;padding:8px">示例体验，数据仅保留在本页；文件导入和导出请安装后使用。 <button id="restoreExample" type="button">恢复示例</button></div>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="37" r="23" fill="#ff6058"/>
+        <circle cx="24" cy="29" r="7" fill="#ff8b84" opacity=".55"/>
+        <path d="M32 15c-6-8-16-8-16-8 2 8 8 12 8 12s-2 2-6 9c8 0 12-4 12-4s2 6 2 10c3-8 6-10 6-10s5 5 12 4c-4-7-11-8-11-8s6-3 8-11c0 0-9 0-15 6z" fill="#3b8e5a"/>
+      </svg>
+      <div class="brand-copy">
+        <p class="brand-name">番茄专注</p>
+        <p class="date-label" id="todayDate"></p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-button" id="btnSound" type="button" title="声音设置" aria-label="声音设置">
+        <svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+      <button class="icon-button" id="btnSettings" type="button" title="设置" aria-label="设置">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.34 2.34-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.5h-3.3v-.06a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.34-2.34.06-.06A1.7 1.7 0 0 0 6.28 15a1.7 1.7 0 0 0-1.56-1.03H4.6v-3.3h.12A1.7 1.7 0 0 0 6.28 9.64a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.34-2.34.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V4.1h3.3v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.34 2.34-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.12v3.3h-.12A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="focus-card">
+      <div class="focus-heading">
+        <p class="eyebrow" id="phaseState">准备好专注</p>
+        <h1>现在，只做这一件事</h1>
+      </div>
+
+      <div class="timer-ring" id="timerRing">
+        <svg class="ring-tomato" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="37" r="23" fill="#ff6058"/>
+          <path d="M32 15c-6-8-16-8-16-8 2 8 8 12 8 12s-2 2-6 9c8 0 12-4 12-4s2 6 2 10c3-8 6-10 6-10s5 5 12 4c-4-7-11-8-11-8s6-3 8-11c0 0-9 0-15 6z" fill="#3b8e5a"/>
+        </svg>
+        <div class="timer-center">
+          <span class="timer-mode" id="phaseLabel">专注</span>
+          <output class="timer-value" id="timeText">25:00</output>
+          <span class="timer-task" id="curTaskName">还没有任务</span>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button class="round-control" id="btnReset" type="button" title="重置（R）" aria-label="重置">
+          <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.8-6.3M3.5 4.2v5h5"/></svg>
+        </button>
+        <button class="primary-control" id="btnStart" type="button">
+          <svg viewBox="0 0 24 24" id="startIcon"><path d="m8 5 11 7-11 7V5Z" fill="currentColor" stroke="none"/></svg>
+          <span id="startLabel">开始专注</span>
+        </button>
+        <button class="round-control" id="btnSkip" type="button" title="跳过（S）" aria-label="跳过">
+          <svg viewBox="0 0 24 24"><path d="m7 5 8 7-8 7V5Z" fill="currentColor" stroke="none"/><path d="M17 5v14"/></svg>
+        </button>
+      </div>
+
+      <div class="mode-switcher" role="tablist" aria-label="计时模式">
+        <button class="mode-button active" data-mode="focus" type="button">专注</button>
+        <button class="mode-button" data-mode="shortBreak" type="button">短休息</button>
+        <button class="mode-button" data-mode="longBreak" type="button">长休息</button>
+      </div>
+
+      <div class="rounds" id="rounds" aria-label="本轮进度"></div>
+    </section>
+
+    <section class="progress-card">
+      <div class="progress-labels">
+        <span class="progress-title">今日专注</span>
+        <strong><span id="statPomo">0</span> 个番茄 · <span id="statTotal">0 分钟</span></strong>
+      </div>
+      <div class="progress-track"><span id="todayBar"></span></div>
+      <div class="progress-footnote">
+        <span id="statTip">今天还没有记录。专注满 1 分钟自动记账。</span>
+        <span id="statDone">0 / 0</span>
+      </div>
+    </section>
+
+    <section class="tasks-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TODAY'S LIST</p>
+          <h2>今天的任务 <span id="taskCount"></span></h2>
+        </div>
+        <button class="add-task-button" id="btnToggleAdd" type="button" title="新增任务" aria-label="新增任务">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <form class="add-task-form" id="addTaskForm">
+        <input id="taskInput" maxlength="70" autocomplete="off" placeholder="写下下一件要完成的事" aria-label="新任务名称">
+        <button type="submit" aria-label="添加任务">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </form>
+
+      <ul class="task-list" id="taskList"></ul>
+
+      <div class="empty-state" id="taskEmpty">
+        <span class="empty-clipboard" aria-hidden="true"><i></i><i></i><i></i></span>
+        <p>今天还没有任务。把下一步写下来。</p>
+      </div>
+
+      <div class="data-actions">
+        <button class="data-action" id="btnExportCsv" type="button">导出 CSV</button>
+        <button class="data-action" id="btnExportJson" type="button">备份 JSON</button>
+        <button class="data-action" id="btnImportJson" type="button">导入备份</button>
+      </div>
+    </section>
+
+    <footer class="tips">
+      快捷键：空格 开始/暂停 · S 跳过 · R 重置 · Esc 退出全屏专注页<br>
+      数据仅保存在本机浏览器，不上传任何服务器。
+    </footer>
+  </main>
+</div>
+
+<!-- 声音设置 -->
+<dialog class="sheet" id="soundDialog">
+  <div class="sheet-head">
+    <div>
+      <p class="eyebrow">SOUNDSCAPE</p>
+      <h2>专注时的声音</h2>
+    </div>
+    <button class="icon-button" type="button" data-close="soundDialog" aria-label="关闭">
+      <svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-body">
+    <div class="seg" id="audioTarget">
+      <button class="seg-btn active" data-target="focus" type="button">专注时</button>
+      <button class="seg-btn" data-target="break" type="button">休息时</button>
+    </div>
+
+    <label class="field">
+      <span>声音来源</span>
+      <select id="audioType">
+        <option value="none">关闭</option>
+        <option value="builtin">内置白噪音 / 氛围声</option>
+        <option value="local">本机音乐文件</option>
+        <option value="url">在线音频直链</option>
+      </select>
+    </label>
+
+    <label class="field" id="rowBuiltin">
+      <span>内置音源</span>
+      <select id="audioBuiltin"></select>
+    </label>
+
+    <div class="field" id="rowLocal">
+      <span>本机文件</span>
+      <input type="file" id="audioFiles" accept="audio/*" multiple>
+      <p class="hint">提示：本机文件仅当前页面有效，刷新后需重新选择。</p>
+      <ul class="file-list" id="fileList"></ul>
+    </div>
+
+    <label class="field" id="rowUrl">
+      <span>音频直链</span>
+      <input type="text" id="audioUrl" placeholder="https://example.com/music.mp3">
+    </label>
+
+    <div class="row-between">
+      <button class="btn-ghost" id="btnPreview" type="button">试听</button>
+      <span class="tip" id="previewTip"></span>
+    </div>
+
+    <label class="field">
+      <span>音量 <b id="volumeText">60%</b></span>
+      <input type="range" id="volume" min="0" max="100" step="1" value="60">
+    </label>
+  </div>
+</dialog>
+
+<!-- 设置 -->
+<dialog class="sheet" id="settingsDialog">
+  <div class="sheet-head">
+    <div>
+      <p class="eyebrow">PERSONAL RHYTHM</p>
+      <h2>专注节奏</h2>
+    </div>
+    <button class="icon-button" type="button" data-close="settingsDialog" aria-label="关闭">
+      <svg viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></svg>
+    </button>
+  </div>
+
+  <div class="sheet-body">
+    <div class="duration-grid">
+      <label>专注
+        <span><input type="number" id="focusMin" min="1" max="180" inputmode="numeric"> 分钟</span>
+      </label>
+      <label>短休息
+        <span><input type="number" id="shortBreakMin" min="1" max="60" inputmode="numeric"> 分钟</span>
+      </label>
+      <label>长休息
+        <span><input type="number" id="longBreakMin" min="1" max="90" inputmode="numeric"> 分钟</span>
+      </label>
+      <label>长休息间隔
+        <span><input type="number" id="roundsBeforeLongBreak" min="2" max="12" inputmode="numeric"> 轮</span>
+      </label>
+    </div>
+
+    <div class="chips" id="focusChips">
+      <button class="chip" data-set="focusMin" data-val="15" type="button">15 分</button>
+      <button class="chip" data-set="focusMin" data-val="25" type="button">25 分</button>
+      <button class="chip" data-set="focusMin" data-val="45" type="button">45 分</button>
+      <button class="chip" data-set="focusMin" data-val="60" type="button">60 分</button>
+    </div>
+
+    <div class="group">
+      <p class="group-title">自动化</p>
+      <label class="check-line"><input type="checkbox" id="setFocusMode"> 开始专注时进入全屏专注页</label>
+      <label class="check-line"><input type="checkbox" id="setAutoBreak"> 专注结束后自动开始休息</label>
+      <label class="check-line"><input type="checkbox" id="setAutoNext"> 休息结束后自动开始下一个专注</label>
+    </div>
+
+    <div class="group">
+      <p class="group-title">提醒方式 · 专注结束</p>
+      <label class="check-line"><input type="checkbox" data-remind="focus.sound"> 提示音</label>
+      <label class="check-line"><input type="checkbox" data-remind="focus.notify"> 系统通知</label>
+      <label class="check-line"><input type="checkbox" data-remind="focus.fullscreen"> 全屏强提醒</label>
+      <label class="check-line"><input type="checkbox" data-remind="focus.flash"> 标题闪烁</label>
+    </div>
+
+    <div class="group">
+      <p class="group-title">提醒方式 · 休息结束</p>
+      <label class="check-line"><input type="checkbox" data-remind="break.sound"> 提示音</label>
+      <label class="check-line"><input type="checkbox" data-remind="break.notify"> 系统通知</label>
+      <label class="check-line"><input type="checkbox" data-remind="break.fullscreen"> 全屏强提醒</label>
+      <label class="check-line"><input type="checkbox" data-remind="break.flash"> 标题闪烁</label>
+    </div>
+
+    <div class="group">
+      <p class="group-title">提示音</p>
+      <label class="field">
+        <span>音色</span>
+        <select id="alertTone">
+          <option value="chime">叮咚</option>
+          <option value="bell">钟声</option>
+          <option value="triad">三音阶</option>
+          <option value="marimba">木琴</option>
+        </select>
+      </label>
+      <div class="row-between">
+        <button class="btn-ghost" id="btnTonePreview" type="button">试听提示音</button>
+        <span class="tip">音量 <b id="alertVolumeText">80%</b></span>
+      </div>
+      <input type="range" id="alertVolume" min="0" max="100" step="1" value="80">
+    </div>
+
+    <div class="group">
+      <p class="group-title">数据</p>
+      <p class="hint">专注记录保存在本机浏览器。换设备或清缓存前，建议先备份 JSON。</p>
+      <button class="btn-ghost danger" id="btnClearData" type="button">清空本机数据</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 全屏专注页 -->
+<div class="overlay focus-overlay hidden" id="focusOverlay">
+  <div class="fo-phase" id="foPhase">专 注 中</div>
+  <div class="fo-time" id="foTime">25:00</div>
+  <div class="fo-task" id="foTask"></div>
+  <div class="fo-bar"><span id="foBar"></span></div>
+  <div class="fo-round" id="foRound">第 1 / 4 轮</div>
+  <div class="fo-actions">
+    <button class="fo-btn ghost" id="foSkip" type="button">跳过</button>
+    <button class="fo-btn" id="foToggle" type="button">暂停</button>
+    <button class="fo-btn ghost" id="foExit" type="button">退出全屏</button>
+  </div>
+  <p class="fo-hint">Esc 退出 · 空格 开始/暂停</p>
+</div>
+
+<!-- 全屏强提醒 -->
+<div class="overlay alert-overlay hidden" id="alertOverlay">
+  <div class="alert-card">
+    <div class="alert-icon" id="alertIcon">🔔</div>
+    <h2 id="alertTitle">专注结束</h2>
+    <p id="alertBody">起身活动一下，放松眼睛</p>
+    <button class="primary-control" id="alertOk" type="button">知道了</button>
+  </div>
+</div>
+
+<!-- 休息结束询问 -->
+<div class="overlay ask-overlay hidden" id="askOverlay">
+  <div class="alert-card">
+    <div class="alert-icon">🍅</div>
+    <h2>休息结束</h2>
+    <p>准备好进入下一个专注了吗？</p>
+    <div class="ask-actions">
+      <button class="btn-ghost" id="askNo" type="button">稍后再说</button>
+      <button class="primary-control" id="askYes" type="button">开始专注</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastBox" role="status" aria-live="polite"></div>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>const memory={}; Object.defineProperty(window,"localStorage",{value:{getItem:k=>memory[k]||null,setItem:(k,v)=>memory[k]=String(v),removeItem:k=>delete memory[k]}});</script><script>'use strict';
+
+/**
+ * 番茄专注 · 网页版 —— 音频引擎
+ * 1) 内置音源：Web Audio API 实时合成，零音频文件、无版权风险、离线可用
+ * 2) 本机音乐：用户选择的文件（Object URL），按序循环
+ * 3) 在线链接：直链音频流
+ * 4) 提示音：叮咚 / 钟声 / 三音阶 / 木琴
+ */
+
+window.AudioEngine = (function () {
+
+  let ctx = null;
+  let master = null;
+  let volume = 0.6;
+
+  let nodes = [];
+  let sparkleTimer = null;
+  let playing = false;
+
+  let audioEl = null;
+  let playlist = [];
+  let playlistIndex = 0;
+  let playlistErrors = 0;
+  const localFiles = new Map();
+  let playlistGeneration = 0;
+
+  /* ---------------- 基础设施 ---------------- */
+
+  function ensureCtx() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = volume;
+      master.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function push(node) { nodes.push(node); return node; }
+
+  function makeNoiseBuffer(type) {
+    const c = ensureCtx();
+    const seconds = 4;
+    const len = Math.floor(c.sampleRate * seconds);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+
+    if (type === 'white') {
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+
+    } else if (type === 'pink') {
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + w * 0.0555179;
+        b1 = 0.99332 * b1 + w * 0.0750759;
+        b2 = 0.96900 * b2 + w * 0.1538520;
+        b3 = 0.86650 * b3 + w * 0.3104856;
+        b4 = 0.55000 * b4 + w * 0.5329522;
+        b5 = -0.7616 * b5 - w * 0.0168980;
+        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+        b6 = w * 0.115926;
+      }
+
+    } else {
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02;
+        d[i] = last * 3.5;
+      }
+    }
+    return buf;
+  }
+
+  function noise(c, dest, type, level, filter) {
+    const src = c.createBufferSource();
+    src.buffer = makeNoiseBuffer(type);
+    src.loop = true;
+
+    const g = c.createGain();
+    g.gain.value = level;
+    src.connect(g);
+
+    let tail = g;
+    if (filter) {
+      const f = c.createBiquadFilter();
+      f.type = filter.type || 'lowpass';
+      f.frequency.value = filter.freq || 1000;
+      if (filter.q) f.Q.value = filter.q;
+      tail.connect(f);
+      tail = f;
+      push(f);
+    }
+    tail.connect(dest);
+
+    src.start();
+    push(src);
+    push(g);
+    return g;
+  }
+
+  function modulate(c, param, rate, depth, base) {
+    param.value = base;
+    const osc = c.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = rate;
+    const g = c.createGain();
+    g.gain.value = depth;
+    osc.connect(g);
+    g.connect(param);
+    osc.start();
+    push(osc);
+    push(g);
+    return osc;
+  }
+
+  function tone(c, dest, freq, level, type) {
+    const o = c.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    const g = c.createGain();
+    g.gain.value = level;
+    o.connect(g);
+    g.connect(dest);
+    o.start();
+    push(o);
+    push(g);
+    return o;
+  }
+
+  function scheduleSparkle(fn, minD, maxD) {
+    const run = () => {
+      if (!playing) return;
+      try { fn(); } catch (e) { /* ignore */ }
+      sparkleTimer = setTimeout(run, minD + Math.random() * (maxD - minD));
+    };
+    sparkleTimer = setTimeout(run, minD + Math.random() * (maxD - minD));
+  }
+
+  function blip(c, dest, opt) {
+    const t = c.currentTime + 0.01;
+    const o = c.createOscillator();
+    o.type = opt.type || 'sine';
+    const g = c.createGain();
+
+    o.frequency.setValueAtTime(opt.from, t);
+    if (opt.to) o.frequency.exponentialRampToValueAtTime(opt.to, t + opt.rise);
+
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(opt.level, t + (opt.rise || 0.01));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + opt.dur);
+
+    o.connect(g);
+    g.connect(dest);
+    o.start(t);
+    o.stop(t + opt.dur + 0.05);
+  }
+
+  /* ---------------- 内置音源 ---------------- */
+
+  const SOURCES = {
+
+    rain(c, out) {
+      noise(c, out, 'white', 0.3, { type: 'lowpass', freq: 6500 });
+      noise(c, out, 'white', 0.07, { type: 'highpass', freq: 2200 });
+      const g = c.createGain();
+      modulate(c, g.gain, 0.09, 0.05, 0.08);
+      g.connect(out);
+    },
+
+    waves(c, out) {
+      const bed = c.createGain();
+      bed.connect(out);
+      modulate(c, bed.gain, 0.055, 0.42, 0.5);
+      noise(c, bed, 'brown', 1, { type: 'lowpass', freq: 1400 });
+    },
+
+    stream(c, out) {
+      noise(c, out, 'white', 0.16, { type: 'highpass', freq: 1300 });
+      noise(c, out, 'white', 0.1, { type: 'bandpass', freq: 3600, q: 0.9 });
+      const g = c.createGain();
+      modulate(c, g.gain, 0.13, 0.03, 0.05);
+      g.connect(out);
+    },
+
+    wind(c, out) {
+      const bed = c.createGain();
+      bed.connect(out);
+      modulate(c, bed.gain, 0.04, 0.34, 0.46);
+      noise(c, bed, 'brown', 1, { type: 'lowpass', freq: 460 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        const g = c2.createGain();
+        g.connect(out);
+        modulate(c2, g.gain, 0.9, 0.12, 0.14);
+        noise(c2, g, 'brown', 1, { type: 'lowpass', freq: 700 });
+        setTimeout(() => { try { g.disconnect(); } catch (e) { /* ignore */ } }, 3600);
+      }, 9000, 20000);
+    },
+
+    forest(c, out) {
+      noise(c, out, 'pink', 0.13, { type: 'lowpass', freq: 3200 });
+      noise(c, out, 'brown', 0.12, { type: 'lowpass', freq: 300 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        const n = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          setTimeout(() => {
+            blip(c2, out, {
+              type: 'sine',
+              from: 1900 + Math.random() * 1400,
+              to: 2900 + Math.random() * 1800,
+              rise: 0.07,
+              level: 0.05,
+              dur: 0.13
+            });
+          }, i * (90 + Math.random() * 110));
+        }
+      }, 2600, 8000);
+    },
+
+    night(c, out) {
+      noise(c, out, 'pink', 0.1, { type: 'lowpass', freq: 1500 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        const base = 3900 + Math.random() * 700;
+        for (let i = 0; i < 4; i++) {
+          setTimeout(() => {
+            blip(c2, out, { type: 'square', from: base, level: 0.014, rise: 0.004, dur: 0.035 });
+          }, i * 62);
+        }
+      }, 700, 2100);
+    },
+
+    cafe(c, out) {
+      noise(c, out, 'brown', 0.34, { type: 'bandpass', freq: 700, q: 0.55 });
+      noise(c, out, 'pink', 0.09, { type: 'bandpass', freq: 2200, q: 0.7 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        blip(c2, out, {
+          type: 'triangle',
+          from: 2600 + Math.random() * 900,
+          to: 3400 + Math.random() * 1200,
+          rise: 0.006,
+          level: 0.035,
+          dur: 0.45
+        });
+      }, 4500, 14000);
+    },
+
+    fire(c, out) {
+      noise(c, out, 'brown', 0.36, { type: 'lowpass', freq: 1000 });
+      const g = c.createGain();
+      g.connect(out);
+      modulate(c, g.gain, 0.16, 0.03, 0.05);
+      noise(c, g, 'white', 1, { type: 'bandpass', freq: 1700, q: 0.8 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        blip(c2, out, {
+          type: 'triangle',
+          from: 1400 + Math.random() * 2600,
+          level: 0.05,
+          rise: 0.003,
+          dur: 0.06
+        });
+      }, 500, 2600);
+    },
+
+    fan(c, out) {
+      noise(c, out, 'brown', 0.38, { type: 'lowpass', freq: 720 });
+      tone(c, out, 58, 0.05, 'sine');
+      tone(c, out, 116, 0.02, 'sine');
+      tone(c, out, 233, 0.008, 'triangle');
+    },
+
+    train(c, out) {
+      noise(c, out, 'brown', 0.42, { type: 'lowpass', freq: 880 });
+      noise(c, out, 'white', 0.05, { type: 'bandpass', freq: 2400, q: 0.6 });
+      scheduleSparkle(() => {
+        const c2 = ensureCtx();
+        blip(c2, out, { type: 'sine', from: 150, to: 70, rise: 0.02, level: 0.16, dur: 0.13 });
+      }, 700, 760);
+    },
+
+    white(c, out) { noise(c, out, 'white', 0.2); },
+    pink(c, out) { noise(c, out, 'pink', 0.3); },
+    brown(c, out) { noise(c, out, 'brown', 0.5); },
+
+    pad(c, out) {
+      const notes = [110, 164.81, 220, 277.18, 329.63];
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.Q.value = 0.6;
+      lp.connect(out);
+      modulate(c, lp.frequency, 0.028, 520, 900);
+
+      notes.forEach((f, i) => {
+        [0, 1.6].forEach((detune) => {
+          const o = c.createOscillator();
+          o.type = i % 2 ? 'triangle' : 'sine';
+          o.frequency.value = f;
+          o.detune.value = detune;
+          const g = c.createGain();
+          g.gain.value = 0.028;
+          o.connect(g);
+          g.connect(lp);
+          o.start();
+          push(o);
+          push(g);
+        });
+      });
+
+      const trem = c.createGain();
+      trem.connect(out);
+      modulate(c, trem.gain, 0.05, 0.03, 0.04);
+      noise(c, trem, 'pink', 1, { type: 'lowpass', freq: 1200 });
+    },
+
+    om(c, out) {
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400;
+      lp.connect(out);
+      [55, 82.5, 110, 165].forEach((f, i) => {
+        const o = c.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = f;
+        const g = c.createGain();
+        g.gain.value = 0.07 / (i + 1);
+        o.connect(g);
+        g.connect(lp);
+        o.start();
+        push(o);
+        push(g);
+        const lfo = c.createOscillator();
+        lfo.frequency.value = 0.11 + i * 0.03;
+        const lg = c.createGain();
+        lg.gain.value = 0.6 + i * 0.4;
+        lfo.connect(lg);
+        lg.connect(o.detune);
+        lfo.start();
+        push(lfo);
+        push(lg);
+      });
+    }
+  };
+
+  const BUILTIN_SOURCES = [
+    { id: 'rain', name: '雨声' },
+    { id: 'waves', name: '海浪' },
+    { id: 'stream', name: '溪流' },
+    { id: 'wind', name: '风声' },
+    { id: 'forest', name: '森林鸟鸣' },
+    { id: 'night', name: '夏夜虫鸣' },
+    { id: 'cafe', name: '咖啡厅' },
+    { id: 'fire', name: '壁炉柴火' },
+    { id: 'fan', name: '风扇嗡鸣' },
+    { id: 'train', name: '车厢行进' },
+    { id: 'white', name: '白噪音' },
+    { id: 'pink', name: '粉噪音' },
+    { id: 'brown', name: '棕噪音' },
+    { id: 'pad', name: '氛围音垫' },
+    { id: 'om', name: '冥想低鸣' }
+  ];
+
+  /* ---------------- 播放列表（本机文件 / 在线链接） ---------------- */
+
+  function stopPlaylist() {
+    playlistGeneration++;
+    if (audioEl) {
+      try {
+        audioEl.pause();
+        audioEl.src = '';
+      } catch (e) { /* ignore */ }
+      audioEl = null;
+    }
+    playlist = [];
+    playlistIndex = 0;
+    playlistErrors = 0;
+  }
+
+  function playNextInPlaylist() {
+    if (!playlist.length) { playing = false; return; }
+
+    const localFile = localFiles.get(playlist[playlistIndex]);
+    if (localFile) {
+      const generation = playlistGeneration;
+      localFile.arrayBuffer().then(bytes => ctx.decodeAudioData(bytes)).then(buffer => {
+        if (!playing || generation !== playlistGeneration) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(master);
+        nodes.push(source);
+        source.onended = () => {
+          if (!playing || generation !== playlistGeneration) return;
+          playlistIndex = (playlistIndex + 1) % playlist.length;
+          playlistErrors = 0;
+          playNextInPlaylist();
+        };
+        source.start();
+      }).catch(() => {
+        if (!playing || generation !== playlistGeneration) return;
+        playlistErrors++;
+        if (playlistErrors >= playlist.length) { playing = false; stopPlaylist(); return; }
+        playlistIndex = (playlistIndex + 1) % playlist.length;
+        playNextInPlaylist();
+      });
+      return;
+    }
+    audioEl = new Audio();
+    audioEl.src = playlist[playlistIndex];
+    audioEl.volume = volume;
+    audioEl.loop = false;
+    audioEl.crossOrigin = 'anonymous';
+
+    audioEl.onended = () => {
+      if (!playing) return;
+      playlistIndex = (playlistIndex + 1) % playlist.length;
+      playlistErrors = 0;
+      playNextInPlaylist();
+    };
+
+    audioEl.onerror = () => {
+      playlistErrors++;
+      if (playlistErrors >= playlist.length) {
+        playing = false;
+        stopPlaylist();
+        return;
+      }
+      playlistIndex = (playlistIndex + 1) % playlist.length;
+      playNextInPlaylist();
+    };
+
+    audioEl.play().catch(() => {
+      playlistErrors++;
+      if (playlistErrors >= playlist.length) {
+        playing = false;
+        stopPlaylist();
+      }
+    });
+  }
+
+  /* ---------------- 对外接口 ---------------- */
+
+  function stop() {
+    playing = false;
+
+    if (sparkleTimer) {
+      clearTimeout(sparkleTimer);
+      sparkleTimer = null;
+    }
+
+    nodes.forEach((n) => {
+      try { if (typeof n.stop === 'function') n.stop(); } catch (e) { /* ignore */ }
+      try { n.disconnect(); } catch (e) { /* ignore */ }
+    });
+    nodes = [];
+
+    stopPlaylist();
+  }
+
+  /**
+   * @param {{type:string, builtin?:string, files?:string[], url?:string}} config
+   * files 为可直接播放的 URL（本机文件用 Object URL）
+   */
+  function play(config) {
+    stop();
+    if (!config || config.type === 'none') return false;
+
+    const c = ensureCtx();
+    if (!c) return false;
+
+    if (config.type === 'builtin') {
+      const id = config.builtin || 'rain';
+      if (!SOURCES[id]) return false;
+      playing = true;
+      SOURCES[id](ctx, master);
+      return true;
+    }
+
+    if (config.type === 'local') {
+      const urls = (config.files || []).filter(Boolean);
+      if (!urls.length) return false;
+      playing = true;
+      playlist = urls;
+      playlistIndex = 0;
+      playlistErrors = 0;
+      playNextInPlaylist();
+      return true;
+    }
+
+    if (config.type === 'url') {
+      const u = (config.url || '').trim();
+      if (!u) return false;
+      playing = true;
+      playlist = [u];
+      playlistIndex = 0;
+      playlistErrors = 0;
+      playNextInPlaylist();
+      return true;
+    }
+
+    return false;
+  }
+
+  function setVolume(v) {
+    volume = Math.max(0, Math.min(1, Number(v) || 0));
+    if (master) master.gain.value = volume;
+    if (audioEl) audioEl.volume = volume;
+  }
+
+  /* ---------------- 提示音 ---------------- */
+
+  function synthNote(dest, freq, startAt, dur, level, type, partials) {
+    const c = ensureCtx();
+    if (!c) return;
+    const freqs = [freq].concat(partials || []);
+    freqs.forEach((f, i) => {
+      const o = c.createOscillator();
+      o.type = type || 'sine';
+      o.frequency.value = f;
+      const g = c.createGain();
+      const lv = level * (i === 0 ? 1 : 1 / (i * 2.6));
+      g.gain.setValueAtTime(0.0001, startAt);
+      g.gain.linearRampToValueAtTime(lv, startAt + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, startAt + dur * (i === 0 ? 1 : 0.6));
+      o.connect(g);
+      g.connect(dest);
+      o.start(startAt);
+      o.stop(startAt + dur + 0.1);
+    });
+  }
+
+  function playAlert(kind, vol) {
+    const c = ensureCtx();
+    if (!c) return;
+    const v = Math.max(0, Math.min(1, vol === undefined ? 0.8 : vol));
+    const out = c.createGain();
+    out.gain.value = v;
+    out.connect(c.destination);
+
+    const t = c.currentTime + 0.03;
+
+    if (kind === 'bell') {
+      synthNote(out, 523.25, t, 2.6, 0.34, 'sine', [1318.5, 2093.0, 2637.0]);
+      synthNote(out, 783.99, t + 0.02, 2.2, 0.12, 'sine', [1975.5]);
+
+    } else if (kind === 'triad') {
+      [659.25, 830.61, 987.77].forEach((f, i) => {
+        synthNote(out, f, t + i * 0.14, 1.1, 0.3, 'sine', [f * 2]);
+      });
+
+    } else if (kind === 'marimba') {
+      [880, 1174.66].forEach((f, i) => {
+        synthNote(out, f, t + i * 0.1, 0.5, 0.3, 'triangle', [f * 3.1]);
+      });
+
+    } else {
+      synthNote(out, 1046.5, t, 0.85, 0.32, 'sine', [2093]);
+      synthNote(out, 1567.98, t + 0.13, 1.2, 0.26, 'sine', [3136]);
+    }
+
+    setTimeout(() => {
+      try { out.disconnect(); } catch (e) { /* ignore */ }
+    }, 3200);
+  }
+
+  function unlock() {
+    try { ensureCtx(); } catch (e) { /* ignore */ }
+  }
+
+  return {
+    BUILTIN_SOURCES,
+    registerLocalFile: (url, file) => localFiles.set(url, file),
+    forgetLocalFile: (url) => localFiles.delete(url),
+    play,
+    stop,
+    setVolume,
+    playAlert,
+    unlock,
+    isPlaying: () => playing
+  };
+
+})();
+</script><script>'use strict';
+
+/**
+ * 番茄专注 · 网页版 —— 主逻辑
+ * 计时引擎（Worker 抗后台节流）/ 番茄循环 / 提醒调度 / 任务与记账 / 本地存储
+ */
+
+(function () {
+
+  const Audio = window.AudioEngine;
+
+  /* ---------------- 常量 ---------------- */
+
+  const K_SETTINGS = 'tfw.settings.v1';
+  const K_DATA = 'tfw.data.v1';
+  const RING_SPAN = 344;      // 圆环可用弧长（360 - 两端留白）
+  const RING_START = 8;       // 起始偏移角度
+
+  const DEFAULT_SETTINGS = {
+    focusMin: 25,
+    shortBreakMin: 5,
+    longBreakMin: 15,
+    roundsBeforeLongBreak: 4,
+    autoStartBreak: true,
+    autoStartNextFocus: false,
+    focusModeOnFocusStart: false,
+    volume: 0.6,
+    focusAudio: { type: 'builtin', builtin: 'rain', files: [], fileNames: [], url: '' },
+    breakAudio: { type: 'none', builtin: 'waves', files: [], fileNames: [], url: '' },
+    remindFocus: { sound: true, notify: true, fullscreen: false, flash: false },
+    remindBreak: { sound: true, notify: false, fullscreen: false, flash: false },
+    alertTone: 'chime',
+    alertVolume: 0.8
+  };
+
+  /* ---------------- 状态 ---------------- */
+
+  let S = clone(DEFAULT_SETTINGS);
+  let D = { dayKey: '', tasks: [], activeTaskId: null, records: [] };
+
+  let phase = 'focus';
+  let running = false;
+  let total = 0;
+  let remaining = 0;
+  let endTime = 0;
+  let completedRounds = 0;
+
+  let audioTarget = 'focus';
+  let previewing = false;
+
+  let alertCb = null;
+  let blinkHandle = null;
+  let blinkStopTimer = null;
+
+  let focusElapsed = 0;
+  let segmentStart = 0;
+
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  /* ---------------- 本地存储 ---------------- */
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(K_SETTINGS);
+      if (raw) {
+        const s = JSON.parse(raw);
+        S = deepMerge(clone(DEFAULT_SETTINGS), s);
+      }
+    } catch (e) { /* 损坏则用默认值 */ }
+  }
+
+  function deepMerge(base, patch) {
+    if (!patch || typeof patch !== 'object') return base;
+    Object.keys(patch).forEach((k) => {
+      const v = patch[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        base[k] = deepMerge((base && typeof base[k] === 'object') ? base[k] : {}, v);
+      } else {
+        base[k] = v;
+      }
+    });
+    return base;
+  }
+
+  let saveTimer = null;
+  function saveSettings() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try { localStorage.setItem(K_SETTINGS, JSON.stringify(S)); } catch (e) { /* 配额满时忽略 */ }
+    }, 150);
+  }
+
+  function todayKey(d) {
+    const t = d || new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(K_DATA);
+      if (raw) {
+        const d = JSON.parse(raw);
+        D = {
+          dayKey: d.dayKey || todayKey(),
+          tasks: Array.isArray(d.tasks) ? d.tasks : [],
+          activeTaskId: d.activeTaskId || null,
+          records: Array.isArray(d.records) ? d.records : []
+        };
+      } else {
+        D.dayKey = todayKey();
+      }
+    } catch (e) {
+      D = { dayKey: todayKey(), tasks: [], activeTaskId: null, records: [] };
+    }
+    if (!D.dayKey) D.dayKey = todayKey();
+  }
+
+  let dataTimer = null;
+  function saveData() {
+    if (dataTimer) clearTimeout(dataTimer);
+    dataTimer = setTimeout(() => {
+      try {
+        // 记录上限 5000 条，避免 localStorage 无限膨胀
+        if (D.records.length > 5000) D.records = D.records.slice(-5000);
+        localStorage.setItem(K_DATA, JSON.stringify(D));
+      } catch (e) {
+        toast('本机存储空间不足，建议导出备份后清理');
+      }
+    }, 160);
+  }
+
+  /* ---------------- 工具 ---------------- */
+
+  function fmt(sec) {
+    const s = Math.max(0, Math.ceil(sec));
+    const m = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    return `${m}:${ss}`;
+  }
+
+  function fmtShort(sec) {
+    const m = Math.round(Math.max(0, sec) / 60);
+    if (m < 1) return '';
+    if (m < 60) return `${m} 分钟`;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r ? `${h} 小时 ${r} 分` : `${h} 小时`;
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('#toastBox');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  /* ---------------- 记账 ---------------- */
+
+  function beginSegment() { segmentStart = Date.now(); }
+
+  function endSegment() {
+    if (segmentStart) {
+      focusElapsed += (Date.now() - segmentStart) / 1000;
+      segmentStart = 0;
+    }
+  }
+
+  function liveFocusSeconds() {
+    return Math.max(0, focusElapsed + (segmentStart ? (Date.now() - segmentStart) / 1000 : 0));
+  }
+
+  /** 落账：不足 1 分钟不记，避免误触产生垃圾数据 */
+  function flushFocusRecord(completed) {
+    endSegment();
+    const seconds = Math.round(focusElapsed);
+    focusElapsed = 0;
+    if (seconds < 60) return null;
+
+    const task = D.tasks.find((t) => t.id === D.activeTaskId) || null;
+    const endedAt = new Date();
+    D.records.push({
+      id: `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
+      taskId: task ? task.id : null,
+      taskTitle: task ? task.title : '',
+      dayKey: todayKey(endedAt),
+      startedAt: new Date(endedAt.getTime() - seconds * 1000).toISOString(),
+      endedAt: endedAt.toISOString(),
+      durationSeconds: seconds,
+      completed: !!completed
+    });
+    saveData();
+    return { durationSeconds: seconds };
+  }
+
+  function todayStats() {
+    const key = todayKey();
+    const st = { totalSeconds: 0, completedPomodoros: 0, recordCount: 0, byTask: {} };
+    D.records.forEach((r) => {
+      if (r.dayKey !== key) return;
+      st.totalSeconds += r.durationSeconds || 0;
+      st.recordCount++;
+      if (r.completed) st.completedPomodoros++;
+      if (r.taskId) st.byTask[r.taskId] = (st.byTask[r.taskId] || 0) + (r.durationSeconds || 0);
+    });
+    return st;
+  }
+
+  function roundsPerCycle() {
+    return Math.max(2, Number(S.roundsBeforeLongBreak) || 4);
+  }
+
+  function phaseDuration(p) {
+    if (p === 'focus') return Math.max(1, Number(S.focusMin) || 25) * 60;
+    if (p === 'shortBreak') return Math.max(1, Number(S.shortBreakMin) || 5) * 60;
+    return Math.max(1, Number(S.longBreakMin) || 15) * 60;
+  }
+
+  function currentAudioCfg() {
+    return phase === 'focus' ? S.focusAudio : S.breakAudio;
+  }
+
+  function isTargetPhase() {
+    return audioTarget === 'focus' ? phase === 'focus' : phase !== 'focus';
+  }
+
+  /* ---------------- 渲染 ---------------- */
+
+  const PHASE_TEXT = {
+    focus: { idle: '待专注', running: '专注中', full: '专 注 中', pill: '专注' },
+    shortBreak: { idle: '待休息', running: '短休息', full: '短 休 息', pill: '短休息' },
+    longBreak: { idle: '待长休', running: '长休息', full: '长 休 息', pill: '长休息' }
+  };
+
+  function updateTitle() {
+    if (blinkHandle) return;
+    document.title = running
+      ? `${fmt(remaining)} · ${PHASE_TEXT[phase].pill} — 番茄专注`
+      : '番茄专注 · 一小时只做一件事';
+  }
+
+  function updateDisplay() {
+    const text = fmt(remaining);
+    $('#timeText').textContent = text;
+    $('#foTime').textContent = text;
+
+    const ratio = total > 0 ? Math.min(1, Math.max(0, 1 - remaining / total)) : 0;
+    const deg = RING_START + ratio * RING_SPAN;
+    $('#timerRing').style.setProperty('--progress', deg.toFixed(2) + 'deg');
+    $('#foBar').style.width = (ratio * 100).toFixed(2) + '%';
+
+    const p = PHASE_TEXT[phase];
+    $('#phaseLabel').textContent = p.pill;
+    $('#phaseState').textContent = running ? p.running : p.idle;
+    $('#foPhase').textContent = p.full;
+
+    const cur = D.tasks.find((t) => t.id === D.activeTaskId);
+    $('#foTask').textContent = cur ? cur.title : '';
+    $('#foRound').textContent = `第 ${Math.min(completedRounds + 1, roundsPerCycle())} / ${roundsPerCycle()} 轮`;
+
+    updateTitle();
+    updateLiveStats();
+  }
+
+  function updateButtons() {
+    const label = $('#startLabel');
+    label.textContent = running ? '暂停' : (phase === 'focus' ? '开始专注' : '开始休息');
+    $('#startIcon').innerHTML = running
+      ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>'
+      : '<path d="m8 5 11 7-11 7V5Z"/>';
+    $('#foToggle').textContent = running ? '暂停' : '开始';
+    $$('.mode-button').forEach((b) => b.classList.toggle('active', b.dataset.mode === phase));
+    document.body.classList.toggle('is-break', phase !== 'focus');
+    document.body.classList.toggle('running', running);
+  }
+
+  function updateRounds() {
+    const n = roundsPerCycle();
+    const el = $('#rounds');
+    el.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('span');
+      d.className = 'round-dot';
+      if (i < completedRounds) d.classList.add('done');
+      else if (i === completedRounds && phase === 'focus') d.classList.add('current');
+      el.appendChild(d);
+    }
+  }
+
+  function renderCurTask() {
+    const t = D.tasks.find((x) => x.id === D.activeTaskId) || null;
+    const el = $('#curTaskName');
+    if (t) {
+      el.textContent = t.title;
+      el.classList.remove('none');
+    } else {
+      el.textContent = D.tasks.length ? '未指定任务，点任务名选择' : '还没有任务';
+      el.classList.add('none');
+    }
+  }
+
+  function renderTasks() {
+    const ul = $('#taskList');
+    ul.innerHTML = '';
+    const st = todayStats();
+
+    D.tasks.forEach((t) => {
+      const li = document.createElement('li');
+      li.className = 'task-item';
+      if (t.id === D.activeTaskId) li.classList.add('active');
+      if (t.done) li.classList.add('done');
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'task-check';
+      cb.checked = !!t.done;
+      cb.title = '标记完成';
+      cb.addEventListener('click', (e) => { e.stopPropagation(); toggleTaskDone(t.id); });
+
+      const title = document.createElement('span');
+      title.className = 'task-title';
+      title.textContent = t.title;
+      title.title = '点击设为当前专注任务';
+      title.addEventListener('click', () => setActiveTask(t.id));
+
+      li.appendChild(cb);
+      li.appendChild(title);
+
+      if (t.id === D.activeTaskId) {
+        const badge = document.createElement('span');
+        badge.className = 'task-now';
+        badge.textContent = '当前';
+        li.appendChild(badge);
+      }
+
+      let secs = st.byTask[t.id] || 0;
+      if (t.id === D.activeTaskId && running && phase === 'focus') secs += liveFocusSeconds();
+      if (secs >= 60) {
+        const tm = document.createElement('span');
+        tm.className = 'task-time';
+        tm.textContent = fmtShort(secs);
+        li.appendChild(tm);
+      }
+
+      const del = document.createElement('button');
+      del.className = 'task-del';
+      del.textContent = '✕';
+      del.title = '删除任务';
+      del.addEventListener('click', (e) => { e.stopPropagation(); removeTask(t.id); });
+
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+
+    $('#taskEmpty').style.display = D.tasks.length ? 'none' : '';
+
+    const doneCount = D.tasks.filter((t) => t.done).length;
+    $('#taskCount').textContent = D.tasks.length ? `${doneCount} / ${D.tasks.length}` : '';
+
+    renderCurTask();
+  }
+
+  function renderStats() {
+    const st = todayStats();
+    $('#statTotal').textContent = fmtShort(st.totalSeconds) || '0 分钟';
+    $('#statPomo').textContent = String(st.completedPomodoros || 0);
+
+    const doneCount = D.tasks.filter((t) => t.done).length;
+    $('#statDone').textContent = `${doneCount} / ${D.tasks.length}`;
+
+    $('#statTip').textContent = st.recordCount
+      ? `今日已记录 ${st.recordCount} 段专注；正在进行的一段结束后计入`
+      : '今天还没有记录。专注满 1 分钟自动记账。';
+
+    // 今日进度条：以 8 个番茄为满格参考
+    const pct = Math.min(100, (st.completedPomodoros / 8) * 100);
+    $('#todayBar').style.width = pct + '%';
+  }
+
+  function updateLiveStats() {
+    if (!(phase === 'focus' && running)) return;
+    const st = todayStats();
+    const txt = fmtShort(st.totalSeconds + liveFocusSeconds()) || '0 分钟';
+    const el = $('#statTotal');
+    if (el.textContent !== txt) el.textContent = txt;
+  }
+
+  /* ---------------- 阶段控制 ---------------- */
+
+  function setPhase(p) {
+    phase = p;
+    total = phaseDuration(p);
+    remaining = total;
+    running = false;
+    endTime = 0;
+    stopTick();
+
+    updateDisplay();
+    updateRounds();
+    updateButtons();
+  }
+
+  function start() {
+    if (running) return;
+    if (remaining <= 0) remaining = total;
+
+    const fresh = Math.abs(remaining - total) < 0.05;
+
+    running = true;
+    endTime = Date.now() + remaining * 1000;
+    if (phase === 'focus') beginSegment();
+
+    updateButtons();
+    updateDisplay();
+    startTick();
+
+    if (previewing) { previewing = false; $('#previewTip').textContent = ''; }
+    Audio.play(currentAudioCfg());
+
+    if (phase === 'focus' && fresh && S.focusModeOnFocusStart) enterFocusMode();
+  }
+
+  function pause() {
+    if (!running) return;
+    running = false;
+    remaining = Math.max(0, (endTime - Date.now()) / 1000);
+    if (phase === 'focus') endSegment();
+    stopTick();
+    updateButtons();
+    updateDisplay();
+    Audio.stop();
+  }
+
+  function toggle() {
+    if (running) pause(); else start();
+  }
+
+  function reset() {
+    running = false;
+    endTime = 0;
+    stopTick();
+    if (phase === 'focus') {
+      const rec = flushFocusRecord(false);
+      if (rec) toast(`已记录 ${Math.max(1, Math.round(rec.durationSeconds / 60))} 分钟专注`);
+    } else {
+      focusElapsed = 0;
+      segmentStart = 0;
+    }
+    remaining = total;
+    Audio.stop();
+    updateButtons();
+    updateDisplay();
+    renderTasks();
+    renderStats();
+  }
+
+  function skip() {
+    if (remaining <= 0) return;
+    completePhase(true, false);
+  }
+
+  function switchMode(m) {
+    if (m === phase && !running) return;
+    if (running) pause();
+    if (phase === 'focus') {
+      const rec = flushFocusRecord(false);
+      if (rec) toast(`已记录 ${Math.max(1, Math.round(rec.durationSeconds / 60))} 分钟专注`);
+    } else {
+      focusElapsed = 0;
+      segmentStart = 0;
+    }
+    Audio.stop();
+    setPhase(m);
+    renderTasks();
+    renderStats();
+  }
+
+  /* ---------------- 阶段完成与提醒 ---------------- */
+
+  function playRemindFx(cfg, title, body) {
+    if (cfg.sound) Audio.playAlert(S.alertTone, S.alertVolume);
+    if (cfg.notify) notify(title, body);
+    if (cfg.flash) startBlinkTitle();
+  }
+
+  function notify(title, body) {
+    try {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body, tag: 'tomato-focus', icon: FAVICON });
+      }
+    } catch (e) { /* 静默失败 */ }
+  }
+
+  const FAVICON = 'data:image/svg+xml,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='37' r='23' fill='#ff6058'/><path d='M32 15c-6-8-16-8-16-8 2 8 8 12 8 12s-2 2-6 9c8 0 12-4 12-4s2 6 2 10c3-8 6-10 6-10s5 5 12 4c-4-7-11-8-11-8s6-3 8-11c0 0-9 0-15 6z' fill='#3b8e5a'/></svg>"
+  );
+
+  function completePhase(silent, natural) {
+    running = false;
+    stopTick();
+    Audio.stop();
+    const finished = phase;
+
+    if (finished === 'focus') {
+      flushFocusRecord(natural !== false);
+      completedRounds++;
+      const n = roundsPerCycle();
+      const isLong = completedRounds >= n;
+      const nextPhase = isLong ? 'longBreak' : 'shortBreak';
+      const title = '专注结束';
+      const body = isLong ? '辛苦了，来一次长休息' : '起身活动一下，放松眼睛';
+
+      setPhase(nextPhase);
+
+      const proceed = () => {
+        if (S.autoStartBreak) start();
+      };
+
+      renderTasks();
+      renderStats();
+
+      if (silent) { proceed(); return; }
+
+      const cfg = S.remindFocus;
+      playRemindFx(cfg, title, body);
+
+      if (cfg.fullscreen) {
+        enterFullscreen();
+        showAlert(title, body, () => {
+          exitFullscreen();
+          proceed();
+        });
+      } else {
+        proceed();
+      }
+      return;
+    }
+
+    // 休息结束
+    const wasLong = finished === 'longBreak';
+    setPhase('focus');
+    if (wasLong) completedRounds = 0;
+    updateRounds();
+    updateDisplay();
+
+    const cfg = S.remindBreak;
+    const title = '休息结束';
+    const body = '准备好进入下一个专注了吗？';
+
+    const askOrStart = () => {
+      if (S.autoStartNextFocus) start();
+      else showAsk(!!cfg.fullscreen);
+    };
+
+    if (silent) { askOrStart(); return; }
+
+    playRemindFx(cfg, title, body);
+
+    if (cfg.fullscreen) {
+      enterFullscreen();
+      setTimeout(askOrStart, 200);
+    } else {
+      askOrStart();
+    }
+  }
+
+  /* ---------------- 计时循环（Worker 抗后台节流） ---------------- */
+
+  let worker = null;
+  let fallbackTimer = null;
+
+  function initTick() {
+    try {
+      const code = 'let id=null;onmessage=function(e){if(e.data==="start"){if(id)clearInterval(id);id=setInterval(function(){postMessage(0)},250);}else{clearInterval(id);id=null;}};';
+      const blob = new Blob([code], { type: 'text/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+      worker.onmessage = tick;
+    } catch (e) {
+      worker = null;
+    }
+  }
+
+  function startTick() {
+    if (worker) worker.postMessage('start');
+    if (!fallbackTimer) fallbackTimer = setInterval(() => { if (running) tick(); }, 250);
+  }
+
+  function stopTick() {
+    if (worker) worker.postMessage('stop');
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+  }
+
+  function tick() {
+    if (!running) return;
+    remaining = Math.max(0, (endTime - Date.now()) / 1000);
+    updateDisplay();
+    if (remaining <= 0) completePhase(false, true);
+  }
+
+  /* ---------------- 覆盖层 ---------------- */
+
+  function showAlert(title, body, cb) {
+    $('#alertTitle').textContent = title;
+    $('#alertBody').textContent = body;
+    alertCb = cb;
+    $('#alertOverlay').classList.remove('hidden');
+  }
+
+  function confirmAlert() {
+    $('#alertOverlay').classList.add('hidden');
+    const cb = alertCb;
+    alertCb = null;
+    if (typeof cb === 'function') cb();
+  }
+
+  function showAsk(goFull) {
+    $('#askOverlay').classList.remove('hidden');
+    if (goFull) $('#askOverlay').classList.add('is-full');
+  }
+
+  function closeAsk(startNext) {
+    $('#askOverlay').classList.add('hidden');
+    exitFullscreen();
+    if (startNext) start();
+  }
+
+  function enterFocusMode() {
+    $('#focusOverlay').classList.remove('hidden');
+    enterFullscreen();
+  }
+
+  function exitFocusMode() {
+    $('#focusOverlay').classList.add('hidden');
+    exitFullscreen();
+  }
+
+  function enterFullscreen() {
+    const el = document.documentElement;
+    if (document.fullscreenElement) return;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) {
+      try {
+        const p = req.call(el);
+        if (p && p.catch) p.catch(() => { /* 用户拒绝或环境不支持 */ });
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  function exitFullscreen() {
+    if (!document.fullscreenElement) return;
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) {
+      try {
+        const p = exit.call(document);
+        if (p && p.catch) p.catch(() => { /* ignore */ });
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  /* ---------------- 标题闪烁 ---------------- */
+
+  function startBlinkTitle() {
+    stopBlinkTitle();
+    let on = false;
+    blinkHandle = setInterval(() => {
+      on = !on;
+      document.title = on ? '⏰ 时间到！' : '番茄专注';
+    }, 900);
+    blinkStopTimer = setTimeout(stopBlinkTitle, 60000);
+  }
+
+  function stopBlinkTitle() {
+    if (blinkHandle) { clearInterval(blinkHandle); blinkHandle = null; }
+    if (blinkStopTimer) { clearTimeout(blinkStopTimer); blinkStopTimer = null; }
+    updateTitle();
+  }
+
+  window.addEventListener('focus', stopBlinkTitle);
+
+  /* ---------------- 任务操作 ---------------- */
+
+  function addTask(title) {
+    const raw = String(title || '').trim();
+    if (!raw) return;
+    D.tasks.push({
+      id: `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      title: raw.slice(0, 200),
+      done: false,
+      createdAt: new Date().toISOString(),
+      completedAt: null
+    });
+    if (!D.activeTaskId) D.activeTaskId = D.tasks[D.tasks.length - 1].id;
+    saveData();
+    renderTasks();
+    renderStats();
+    updateDisplay();
+  }
+
+  function toggleTaskDone(id) {
+    const t = D.tasks.find((x) => x.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.completedAt = t.done ? new Date().toISOString() : null;
+    saveData();
+    renderTasks();
+    renderStats();
+  }
+
+  function removeTask(id) {
+    D.tasks = D.tasks.filter((x) => x.id !== id);
+    if (D.activeTaskId === id) {
+      const next = D.tasks.find((x) => !x.done) || D.tasks[0] || null;
+      D.activeTaskId = next ? next.id : null;
+    }
+    saveData();
+    renderTasks();
+    renderStats();
+    updateDisplay();
+  }
+
+  function setActiveTask(id) {
+    D.activeTaskId = (D.activeTaskId === id) ? null : id;
+    saveData();
+    renderTasks();
+    updateDisplay();
+  }
+
+  /** 跨天：清空今日任务，历史记录保留 */
+  function rolloverIfNeeded() {
+    const today = todayKey();
+    if (!D.dayKey || D.dayKey === today) return;
+    D.dayKey = today;
+    D.tasks = [];
+    D.activeTaskId = null;
+    saveData();
+    renderTasks();
+    renderStats();
+    updateDisplay();
+    toast('已进入新的一天，今日任务已重置');
+  }
+
+  /* ---------------- 声音面板 ---------------- */
+
+  function buildBuiltinOptions() {
+    const sel = $('#audioBuiltin');
+    sel.innerHTML = '';
+    Audio.BUILTIN_SOURCES.forEach((s) => {
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.name;
+      sel.appendChild(o);
+    });
+  }
+
+  function renderFileList(names) {
+    const ul = $('#fileList');
+    ul.innerHTML = '';
+    (names || []).forEach((nm, i) => {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.className = 'nm';
+      span.textContent = nm;
+      const rm = document.createElement('button');
+      rm.className = 'rm';
+      rm.type = 'button';
+      rm.textContent = '✕';
+      rm.title = '移除';
+      rm.addEventListener('click', () => {
+        const key = audioTarget === 'focus' ? 'focusAudio' : 'breakAudio';
+        const removed = S[key].files.splice(i, 1)[0];
+        if (removed) { Audio.forgetLocalFile(removed); URL.revokeObjectURL(removed); }
+        S[key].fileNames.splice(i, 1);
+        saveSettings();
+        renderFileList(S[key].fileNames);
+      });
+      li.appendChild(span);
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+  }
+
+  function toggleAudioRows() {
+    const t = $('#audioType').value;
+    $('#rowBuiltin').style.display = (t === 'builtin') ? '' : 'none';
+    $('#rowLocal').style.display = (t === 'local') ? '' : 'none';
+    $('#rowUrl').style.display = (t === 'url') ? '' : 'none';
+  }
+
+  function fillAudioUI() {
+    const cfg = currentAudioCfg();
+    $('#audioType').value = cfg.type || 'none';
+    $('#audioBuiltin').value = cfg.builtin || 'rain';
+    $('#audioUrl').value = cfg.url || '';
+    renderFileList(cfg.fileNames || []);
+    toggleAudioRows();
+    $$('#audioTarget .seg-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.target === audioTarget);
+    });
+  }
+
+  function applyAudioChange() {
+    const key = audioTarget === 'focus' ? 'focusAudio' : 'breakAudio';
+    S[key].type = $('#audioType').value;
+    S[key].builtin = $('#audioBuiltin').value;
+    S[key].url = $('#audioUrl').value.trim();
+    saveSettings();
+    toggleAudioRows();
+    if (running && isTargetPhase()) Audio.play(S[key]);
+  }
+
+  /* ---------------- 导出 / 导入 ---------------- */
+
+  function download(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  function csvEscape(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function exportCsv() {
+    if (!D.records.length) { toast('还没有专注记录，先专注一段吧'); return; }
+    const rows = [['日期', '开始时间', '结束时间', '任务', '时长（分钟）', '是否完成']];
+    D.records.forEach((r) => {
+      const st = new Date(r.startedAt);
+      const en = new Date(r.endedAt);
+      const hm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      rows.push([
+        r.dayKey,
+        hm(st),
+        hm(en),
+        r.taskTitle || '（未指定任务）',
+        (r.durationSeconds / 60).toFixed(1),
+        r.completed ? '是' : '早退'
+      ]);
+    });
+    const csv = '\uFEFF' + rows.map((r) => r.map(csvEscape).join(',')).join('\r\n');
+    download(`番茄专注-专注记录-${todayKey()}.csv`, csv, 'text/csv;charset=utf-8');
+    toast(`已导出 ${D.records.length} 条记录`);
+  }
+
+  function exportJson() {
+    const payload = {
+      app: 'tomato-focus-web',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      data: D
+    };
+    download(`番茄专注-备份-${todayKey()}.json`, JSON.stringify(payload, null, 2), 'application/json');
+    toast('备份已下载');
+  }
+
+  function importJson(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const src = parsed && parsed.data ? parsed.data : parsed;
+        if (!src || !Array.isArray(src.records)) throw new Error('格式不符');
+
+        const exist = new Set(D.records.map((r) => r.id));
+        let added = 0;
+        src.records.forEach((r) => {
+          if (!r || !r.id || exist.has(r.id)) return;
+          D.records.push(r);
+          exist.add(r.id);
+          added++;
+        });
+
+        if (Array.isArray(src.tasks) && src.dayKey === D.dayKey) {
+          const tExist = new Set(D.tasks.map((t) => t.id));
+          src.tasks.forEach((t) => {
+            if (t && t.id && !tExist.has(t.id)) D.tasks.push(t);
+          });
+        }
+
+        saveData();
+        renderTasks();
+        renderStats();
+        toast(`已合并导入，新增 ${added} 条记录`);
+      } catch (e) {
+        toast('导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function clearAllData() {
+    if (!confirm('确定清空本机的任务与专注记录吗？此操作不可撤销，建议先导出备份。')) return;
+    D = { dayKey: todayKey(), tasks: [], activeTaskId: null, records: [] };
+    saveData();
+    renderTasks();
+    renderStats();
+    updateDisplay();
+    toast('本机数据已清空');
+  }
+
+  /* ---------------- UI 绑定 ---------------- */
+
+  function bindUI() {
+
+    // 主控制
+    $('#btnStart').addEventListener('click', () => { Audio.unlock(); toggle(); });
+    $('#btnSkip').addEventListener('click', skip);
+    $('#btnReset').addEventListener('click', reset);
+
+    // 全屏专注页
+    $('#foToggle').addEventListener('click', () => { Audio.unlock(); toggle(); });
+    $('#foSkip').addEventListener('click', skip);
+    $('#foExit').addEventListener('click', exitFocusMode);
+
+    // 强提醒 / 询问
+    $('#alertOk').addEventListener('click', confirmAlert);
+    $('#askYes').addEventListener('click', () => { Audio.unlock(); closeAsk(true); });
+    $('#askNo').addEventListener('click', () => closeAsk(false));
+
+    // 模式切换
+    $$('.mode-button').forEach((b) => {
+      b.addEventListener('click', () => { Audio.unlock(); switchMode(b.dataset.mode); });
+    });
+
+    // 弹窗开关
+    $('#btnSound').addEventListener('click', () => { fillAudioUI(); $('#soundDialog').showModal(); });
+    $('#btnSettings').addEventListener('click', () => { applySettingsToUI(); $('#settingsDialog').showModal(); });
+    $$('[data-close]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const d = document.getElementById(b.dataset.close);
+        if (d) d.close();
+      });
+    });
+    $$('dialog.sheet').forEach((d) => {
+      d.addEventListener('click', (e) => {
+        if (e.target === d) d.close();   // 点遮罩关闭
+      });
+    });
+
+    // 时长输入
+    ['focusMin', 'shortBreakMin', 'longBreakMin', 'roundsBeforeLongBreak'].forEach((id) => {
+      const el = document.getElementById(id);
+      el.addEventListener('change', () => {
+        const min = Number(el.min), max = Number(el.max);
+        let v = Math.round(Number(el.value));
+        if (!Number.isFinite(v)) v = Number(S[id]);
+        v = Math.max(min, Math.min(max, v));
+        el.value = v;
+        S[id] = v;
+        saveSettings();
+        markChips();
+        updateRounds();
+        if (!running) {
+          if (id === 'focusMin' && phase === 'focus') setPhase('focus');
+          if (id === 'shortBreakMin' && phase === 'shortBreak') setPhase('shortBreak');
+          if (id === 'longBreakMin' && phase === 'longBreak') setPhase('longBreak');
+        }
+      });
+    });
+
+    // 快捷时长
+    $$('.chip[data-set]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.set;
+        const val = Number(btn.dataset.val);
+        S[key] = val;
+        document.getElementById(key).value = val;
+        saveSettings();
+        markChips();
+        if (!running && phase === 'focus') setPhase('focus');
+      });
+    });
+
+    // 自动化
+    const autoMap = {
+      setFocusMode: 'focusModeOnFocusStart',
+      setAutoBreak: 'autoStartBreak',
+      setAutoNext: 'autoStartNextFocus'
+    };
+    Object.keys(autoMap).forEach((id) => {
+      document.getElementById(id).addEventListener('change', (e) => {
+        S[autoMap[id]] = e.target.checked;
+        saveSettings();
+      });
+    });
+
+    // 提醒勾选
+    $$('input[data-remind]').forEach((cb) => {
+      cb.addEventListener('change', async () => {
+        const parts = cb.dataset.remind.split('.');
+        const key = parts[0] === 'focus' ? 'remindFocus' : 'remindBreak';
+        if (parts[1] === 'notify' && cb.checked) {
+          const ok = await ensureNotifyPermission();
+          if (!ok) {
+            cb.checked = false;
+            toast('浏览器未授予通知权限，已关闭该项');
+            return;
+          }
+        }
+        S[key][parts[1]] = cb.checked;
+        saveSettings();
+      });
+    });
+
+    // 提示音
+    $('#alertTone').addEventListener('change', () => {
+      S.alertTone = $('#alertTone').value;
+      saveSettings();
+    });
+    $('#btnTonePreview').addEventListener('click', () => {
+      Audio.unlock();
+      Audio.playAlert(S.alertTone, S.alertVolume);
+    });
+    $('#alertVolume').addEventListener('input', () => {
+      const v = Number($('#alertVolume').value) / 100;
+      S.alertVolume = v;
+      $('#alertVolumeText').textContent = Math.round(v * 100) + '%';
+      saveSettings();
+    });
+
+    // 声音面板
+    $$('#audioTarget .seg-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        audioTarget = b.dataset.target;
+        fillAudioUI();
+      });
+    });
+    ['audioType', 'audioBuiltin', 'audioUrl'].forEach((id) => {
+      const el = document.getElementById(id);
+      el.addEventListener('change', applyAudioChange);
+      if (id === 'audioUrl') el.addEventListener('input', applyAudioChange);
+    });
+
+    $('#audioFiles').addEventListener('change', (e) => {
+      const files = Array.prototype.slice.call(e.target.files || []);
+      if (!files.length) return;
+      const key = audioTarget === 'focus' ? 'focusAudio' : 'breakAudio';
+      (S[key].files || []).forEach((url) => { Audio.forgetLocalFile(url); URL.revokeObjectURL(url); });
+      S[key].files = files.map((f) => { const url = URL.createObjectURL(f); Audio.registerLocalFile(url, f); return url; });
+      S[key].fileNames = files.map((f) => f.name);
+      S[key].type = 'local';
+      $('#audioType').value = 'local';
+      saveSettings();
+      renderFileList(S[key].fileNames);
+      toggleAudioRows();
+      if (running && isTargetPhase()) Audio.play(S[key]);
+    });
+
+    $('#btnPreview').addEventListener('click', () => {
+      Audio.unlock();
+      if (previewing) {
+        Audio.stop();
+        previewing = false;
+        $('#previewTip').textContent = '';
+        return;
+      }
+      const ok = Audio.play(currentAudioCfg());
+      previewing = ok;
+      $('#previewTip').textContent = ok ? '正在试听…' : '没有可播放的内容';
+      if (!ok) setTimeout(() => { $('#previewTip').textContent = ''; }, 1800);
+    });
+
+    $('#volume').addEventListener('input', () => {
+      const v = Number($('#volume').value) / 100;
+      S.volume = v;
+      Audio.setVolume(v);
+      $('#volumeText').textContent = Math.round(v * 100) + '%';
+      saveSettings();
+    });
+
+    // 任务
+    const submitTask = () => {
+      const input = $('#taskInput');
+      addTask(input.value);
+      input.value = '';
+      input.focus();
+    };
+    $('#addTaskForm').addEventListener('submit', (e) => { e.preventDefault(); submitTask(); });
+    $('#btnToggleAdd').addEventListener('click', () => $('#taskInput').focus());
+
+    // 数据
+    $('#btnExportCsv').addEventListener('click', exportCsv);
+    $('#btnExportJson').addEventListener('click', exportJson);
+    $('#btnImportJson').addEventListener('click', () => $('#importFile').click());
+    $('#importFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importJson(f);
+      e.target.value = '';
+    });
+    $('#btnClearData').addEventListener('click', clearAllData);
+
+    // 快捷键
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+      if (document.querySelector('dialog[open]')) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        Audio.unlock();
+        toggle();
+      } else if (e.key === 'Escape') {
+        if (!$('#alertOverlay').classList.contains('hidden')) return;
+        if (!$('#askOverlay').classList.contains('hidden')) return;
+        if (!$('#focusOverlay').classList.contains('hidden')) exitFocusMode();
+      } else if (e.key === 's' || e.key === 'S') {
+        skip();
+      } else if (e.key === 'r' || e.key === 'R') {
+        reset();
+      }
+    });
+  }
+
+  function ensureNotifyPermission() {
+    return new Promise((resolve) => {
+      if (!('Notification' in window)) { resolve(false); return; }
+      if (Notification.permission === 'granted') { resolve(true); return; }
+      if (Notification.permission === 'denied') { resolve(false); return; }
+      try {
+        Notification.requestPermission().then((p) => resolve(p === 'granted'));
+      } catch (e) {
+        // 老版本浏览器回调式
+        try { Notification.requestPermission((p) => resolve(p === 'granted')); } catch (e2) { resolve(false); }
+      }
+    });
+  }
+
+  function markChips() {
+    $$('.chip[data-set]').forEach((btn) => {
+      btn.classList.toggle('active', Number(btn.dataset.val) === Number(S[btn.dataset.set]));
+    });
+  }
+
+  function applySettingsToUI() {
+    ['focusMin', 'shortBreakMin', 'longBreakMin', 'roundsBeforeLongBreak'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = S[id];
+    });
+    markChips();
+
+    $('#volume').value = Math.round(S.volume * 100);
+    $('#volumeText').textContent = Math.round(S.volume * 100) + '%';
+
+    $('#alertVolume').value = Math.round(S.alertVolume * 100);
+    $('#alertVolumeText').textContent = Math.round(S.alertVolume * 100) + '%';
+    $('#alertTone').value = S.alertTone || 'chime';
+
+    $$('input[data-remind]').forEach((cb) => {
+      const parts = cb.dataset.remind.split('.');
+      const key = parts[0] === 'focus' ? 'remindFocus' : 'remindBreak';
+      cb.checked = !!(S[key] && S[key][parts[1]]);
+    });
+
+    $('#setFocusMode').checked = !!S.focusModeOnFocusStart;
+    $('#setAutoBreak').checked = !!S.autoStartBreak;
+    $('#setAutoNext').checked = !!S.autoStartNextFocus;
+
+    fillAudioUI();
+  }
+
+  function renderDate() {
+    const d = new Date();
+    const w = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
+    $('#todayDate').textContent = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 · ${w}`;
+  }
+
+  /* ---------------- 启动 ---------------- */
+
+  function init() {
+    loadSettings();
+    loadData();
+
+    // 本机文件的声音配置刷新后失效，重置为内置音源，避免无声
+    ['focusAudio', 'breakAudio'].forEach((k) => {
+      if (S[k].type === 'local' && (!S[k].files || !S[k].files.length)) {
+        S[k].type = 'builtin';
+        S[k].files = [];
+        S[k].fileNames = [];
+      }
+      if (!Array.isArray(S[k].fileNames)) S[k].fileNames = [];
+      if (!Array.isArray(S[k].files)) S[k].files = [];
+    });
+
+    serializeLocalFiles();
+
+    buildBuiltinOptions();
+    bindUI();
+    applySettingsToUI();
+    Audio.setVolume(S.volume);
+    renderDate();
+
+    setPhase('focus');
+    updateRounds();
+    renderTasks();
+    renderStats();
+
+    initTick();
+
+    function restoreExample() {
+      stopTick(); Audio.stop(); running = false; focusElapsed = 0; segmentStart = 0; completedRounds = 0;
+      S = clone(DEFAULT_SETTINGS); D = { dayKey: todayKey(), tasks: [], activeTaskId: null, records: [] };
+      setPhase('focus'); addTask('阅读 25 分钟'); renderTasks(); renderStats(); applySettingsToUI(); Audio.setVolume(S.volume);
+      document.querySelectorAll('dialog[open]').forEach(d => d.close());
+      document.querySelectorAll('#focusOverlay,#alertOverlay,#askOverlay').forEach(el => el.classList.add('hidden'));
+      toast('已恢复示例');
+    }
+    document.querySelector('#restoreExample').addEventListener('click', restoreExample);
+    restoreExample();
+    // 跨天检查
+    setInterval(rolloverIfNeeded, 30000);
+    // 同步剩余时间到标题（Worker 已负责主循环，这里只兜底）
+    setInterval(() => { if (running) updateTitle(); }, 1000);
+  }
+
+  /** 清理失效的 blob URL（刷新后不可用） */
+  function serializeLocalFiles() {
+    let changed = false;
+    ['focusAudio', 'breakAudio'].forEach((k) => {
+      const cfg = S[k];
+      if (cfg.type === 'local') {
+        const valid = (cfg.files || []).filter((u) => typeof u === 'string' && u.indexOf('blob:') === 0);
+        if (!valid.length) {
+          cfg.type = 'none';
+          changed = true;
+        }
+      }
+    });
+    if (changed) saveSettings();
+    return changed;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script><script>document.querySelectorAll("#btnExportCsv,#btnExportJson,#btnImportJson,#btnClearData").forEach(b=>{b.disabled=true;b.title="安装后使用"});document.querySelector("#addTaskForm button[type=submit]")?.addEventListener("click",e=>{e.preventDefault();document.querySelector("#addTaskForm").dispatchEvent(new Event("submit",{cancelable:true}));});</script></body></html>

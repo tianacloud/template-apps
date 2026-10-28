@@ -1,0 +1,10 @@
+import {readFile,writeFile,mkdir,copyFile,rm} from 'node:fs/promises';
+const body=await readFile('src/body.html','utf8');
+const css=await readFile('src/style.css','utf8');
+const audio=await readFile('src/audio.js','utf8');
+const app=await readFile('src/app.js','utf8');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='番茄专注 · 一小时只做一件事';document.head.insertAdjacentHTML('beforeend',${JSON.stringify('<style>'+css+'</style>')});document.getElementById('app').innerHTML=${JSON.stringify(body)};\n${audio}\n${app}`);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
