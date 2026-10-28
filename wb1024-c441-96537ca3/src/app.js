@@ -1,0 +1,358 @@
+const style = document.createElement("style"); style.textContent = "\n:root{\n  --bg:#f6f7fb; --card:#ffffff; --ink:#1e293b; --muted:#64748b; --line:#e5e9f2;\n  --brand:#2563eb; --brand-weak:#eff6ff; --brand-deep:#1d4ed8;\n  --amber:#f59e0b; --green:#059669; --green-weak:#ecfdf5;\n  --orange:#d97706; --orange-weak:#fffbeb; --slate-weak:#f1f5f9; --red:#dc2626;\n  --shadow:0 1px 3px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);\n}\n*{margin:0;padding:0;box-sizing:border-box}\nhtml{-webkit-text-size-adjust:100%}\nbody{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}\nbutton{font-family:inherit;cursor:pointer;border:none;background:none}\ninput,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}\n::selection{background:#bfdbfe}\n\n/* ---------- header ---------- */\nheader{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}\n.hd-in{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px}\n.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}\n.logo-ic{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff}\n.logo b{font-size:16px;letter-spacing:.5px}\n.logo span{display:block;font-size:11px;color:var(--muted);margin-top:-2px}\n.search-wrap{flex:1;max-width:430px;position:relative}\n.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8}\n#q{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;outline:none;transition:.15s}\n#q:focus{border-color:#93c5fd;background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.08)}\n.hd-btns{display:flex;gap:8px;margin-left:auto}\n.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13px;font-weight:500;transition:.15s;white-space:nowrap}\n.btn:hover{border-color:#cbd5e1;background:#f8fafc}\n.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}\n.btn.primary:hover{background:var(--brand-deep)}\n.btn svg{flex-shrink:0}\nkbd{font-family:inherit;font-size:10px;background:#eef2f7;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}\n\n/* ---------- stats ---------- */\n.wrap{max-width:1200px;margin:0 auto;padding:20px}\n.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}\n.stat{flex:1;min-width:110px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow)}\n.stat b{font-size:22px;font-weight:700;letter-spacing:-.5px}\n.stat span{display:block;font-size:12px;color:var(--muted);margin-top:2px}\n.stat.hl b{color:var(--brand)}\n\n/* ---------- toolbar ---------- */\n.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}\n.tabs{display:flex;background:#eef1f6;border-radius:10px;padding:3px;gap:2px}\n.tab{padding:6px 13px;border-radius:8px;font-size:13px;color:var(--muted);font-weight:500;transition:.15s}\n.tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,23,42,.1);font-weight:600}\n.tab i{font-style:normal;font-size:11px;opacity:.7;margin-left:3px}\nselect.sel{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;outline:none;font-size:13px;color:var(--ink)}\n.tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}\n.tagchip{padding:4px 11px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:12px;color:var(--muted);transition:.15s}\n.tagchip:hover{border-color:#93c5fd;color:var(--brand)}\n.tagchip.on{background:var(--brand-weak);border-color:#93c5fd;color:var(--brand);font-weight:600}\n.tagchip i{font-style:normal;opacity:.6;margin-left:2px}\n\n/* ---------- cards ---------- */\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}\n.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow);transition:.15s;cursor:pointer}\n.card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(15,23,42,.08),0 12px 32px rgba(15,23,42,.1);border-color:#cbd5e1}\n.c-top{display:flex;align-items:center;gap:8px}\n.pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px}\n.st-unread{background:var(--slate-weak);color:var(--muted)}\n.st-reading{background:var(--orange-weak);color:var(--orange)}\n.st-done{background:var(--green-weak);color:var(--green)}\n.star{margin-left:auto;color:#cbd5e1;transition:.15s;padding:2px}\n.star:hover{transform:scale(1.15)}\n.star.on{color:var(--amber)}\n.c-title{font-size:15px;font-weight:600;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}\n.c-meta{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}\n.c-meta em{font-style:normal;color:#334155;font-weight:500}\n.c-tags{display:flex;gap:5px;flex-wrap:wrap}\n.mini-tag{font-size:11px;color:var(--brand);background:var(--brand-weak);border-radius:6px;padding:1px 7px}\n.c-note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}\n.c-foot{display:flex;align-items:center;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}\n.c-time{font-size:11px;color:#94a3b8}\n.c-acts{margin-left:auto;display:flex;gap:2px;opacity:0;transition:.15s}\n.card:hover .c-acts{opacity:1}\n.icobtn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:.12s}\n.icobtn:hover{background:var(--slate-weak);color:var(--ink)}\n.icobtn.del:hover{background:#fef2f2;color:var(--red)}\n\n/* ---------- empty ---------- */\n.empty{border:2px dashed var(--line);border-radius:16px;padding:56px 20px;text-align:center;color:var(--muted)}\n.empty svg{color:#cbd5e1;margin-bottom:12px}\n.empty h3{font-size:16px;color:var(--ink);margin-bottom:6px}\n.empty p{font-size:13px;margin-bottom:18px}\n.empty .btn{margin:0 4px}\n\n/* ---------- modal ---------- */\n.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}\n.overlay.show{display:flex}\n.dialog{background:#fff;border-radius:18px;width:100%;max-width:740px;box-shadow:0 24px 64px rgba(15,23,42,.25);animation:pop .18s ease}\n@keyframes pop{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}\n.dlg-hd{display:flex;align-items:center;padding:18px 22px 0}\n.dlg-hd h3{font-size:16px}\n.dlg-hd .icobtn{margin-left:auto}\n.dlg-bd{padding:16px 22px}\n.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}\n.frow.thirds{grid-template-columns:1fr 1fr 1fr}\n.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}\n.fld.full{grid-column:1/-1}\n.fld label{font-size:12px;font-weight:600;color:#475569}\n.fld label em{font-style:normal;color:var(--red)}\n.fld input,.fld select,.fld textarea{border:1px solid var(--line);border-radius:10px;padding:8px 11px;outline:none;transition:.15s;background:#fff;width:100%}\n.fld textarea{resize:vertical;min-height:64px;line-height:1.6}\n.fld input:focus,.fld textarea:focus,.fld select:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(37,99,235,.08)}\n.rate{display:flex;gap:3px}\n.rate .star{margin-left:0;padding:2px}\n.dlg-ft{display:flex;gap:10px;padding:0 22px 20px}\n.dlg-ft .btn{flex:1;justify-content:center;padding:10px}\n.dlg-ft .btn.primary{flex:1.6}\n.note-sec{font-size:12px;font-weight:700;color:#94a3b8;letter-spacing:1px;margin:6px 0 10px;display:flex;align-items:center;gap:8px}\n.note-sec::after{content:\"\";flex:1;height:1px;background:var(--line)}\n\n/* ---------- review overlay ---------- */\n.rev{max-width:560px;text-align:left}\n.rev-body{padding:26px 26px 8px}\n.rev-tag{font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-weak);padding:2px 10px;border-radius:99px;display:inline-block;margin-bottom:12px}\n.rev h2{font-size:18px;line-height:1.5;margin-bottom:6px}\n.rev .c-meta{margin-bottom:14px}\n.rev-sec{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}\n.rev-sec b{display:block;font-size:11px;color:#94a3b8;letter-spacing:1px;margin-bottom:4px}\n.rev-sec p{font-size:13.5px;color:#334155;white-space:pre-wrap}\n.rev-ft{display:flex;gap:10px;padding:14px 26px 22px}\n.rev-ft .btn{flex:1;justify-content:center}\n\n/* ---------- toast ---------- */\n#toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:0 10px 30px rgba(15,23,42,.3)}\n#toast.show{opacity:1;transform:translateX(-50%)}\n\nfooter{max-width:1200px;margin:0 auto;padding:26px 20px 34px;text-align:center;color:#94a3b8;font-size:12px}\nfooter a{color:var(--muted)}\n\n@media (max-width:640px){\n  .hd-in{flex-wrap:wrap}\n  .search-wrap{order:3;max-width:none;flex-basis:100%}\n  .frow,.frow.thirds{grid-template-columns:1fr}\n  .hd-btns .btn span{display:none}\n}\n"; document.head.append(style);
+document.getElementById("app").innerHTML = "\n\n<header>\n  <div class=\"hd-in\">\n    <div class=\"logo\">\n      <div class=\"logo-ic\">\n        <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z\"/><path d=\"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z\"/></svg>\n      </div>\n      <div><b>文献手札</b><span>PaperNotes · 文献阅读笔记管理器</span></div>\n    </div>\n    <div class=\"search-wrap\">\n      <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg>\n      <input id=\"q\" type=\"text\" placeholder=\"搜索标题、作者、标签、笔记全文…（按 / 聚焦）\" autocomplete=\"off\">\n    </div>\n    <div class=\"hd-btns\">\n      <button class=\"btn\" id=\"btn-review\" title=\"随机抽一条文献回顾笔记\">\n        <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"13 2 3 14 12 14 11 22 21 10 12 10 13 2\"/></svg>\n        <span>随机回顾</span>\n      </button>\n      <button class=\"btn\" id=\"btn-import\" title=\"从JSON备份恢复\">\n        <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg>\n        <span>导入</span>\n      </button>\n      <button class=\"btn\" id=\"btn-export\" title=\"导出JSON备份\">\n        <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"17 8 12 3 7 8\"/><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"15\"/></svg>\n        <span>导出</span>\n      </button>\n      <button class=\"btn primary\" id=\"btn-new\">\n        <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>\n        <span>新建文献</span> <kbd>N</kbd>\n      </button>\n    </div>\n  </div>\n</header>\n\n<div class=\"wrap\">\n  <div class=\"stats\" id=\"stats\"></div>\n  <div class=\"toolbar\">\n    <div class=\"tabs\" id=\"tabs\"></div>\n    <select class=\"sel\" id=\"sort\">\n      <option value=\"updated\">按更新时间</option>\n      <option value=\"created\">按添加时间</option>\n      <option value=\"year\">按年份</option>\n      <option value=\"rating\">按评分</option>\n    </select>\n  </div>\n  <div class=\"tagrow\" id=\"tagrow\"></div>\n  <div class=\"grid\" id=\"grid\"></div>\n  <div class=\"empty\" id=\"empty\" style=\"display:none\">\n    <svg width=\"44\" height=\"44\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z\"/><path d=\"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z\"/></svg>\n    <h3>书架空空如也</h3>\n    <p>添加第一篇文献，开始你的阅读笔记之旅</p>\n    <button class=\"btn primary\" data-call=\"openEditor\">＋ 新建文献</button>\n    <button class=\"btn\" id=\"btn-clear-sample\" style=\"display:none\">清空示例文献</button>\n  </div>\n</div>\n\n<footer>文献手札 · PaperNotes — 数据仅保存在你的浏览器本地，请定期「导出」备份</footer>\n\n<!-- 编辑弹窗 -->\n<div class=\"overlay\" id=\"ed-overlay\">\n  <div class=\"dialog\">\n    <div class=\"dlg-hd\">\n      <h3 id=\"ed-title\">新建文献</h3>\n      <button class=\"icobtn\" data-call=\"closeEditor\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button>\n    </div>\n    <div class=\"dlg-bd\">\n      <div class=\"fld\"><label>标题 <em>*</em></label><input id=\"f-title\" placeholder=\"论文标题\"></div>\n      <div class=\"frow\">\n        <div class=\"fld\"><label>作者</label><input id=\"f-authors\" placeholder=\"如：Zhang Y, Li X, et al.\"></div>\n        <div class=\"frow thirds\" style=\"flex:1\">\n          <div class=\"fld\"><label>年份</label><input id=\"f-year\" type=\"number\" min=\"1900\" max=\"2100\" placeholder=\"2026\"></div>\n          <div class=\"fld\"><label>状态</label>\n            <select id=\"f-status\">\n              <option value=\"unread\">未读</option>\n              <option value=\"reading\">在读</option>\n              <option value=\"done\">已读</option>\n            </select>\n          </div>\n          <div class=\"fld\"><label>评分</label><div class=\"rate\" id=\"f-rate\"></div></div>\n        </div>\n      </div>\n      <div class=\"frow\">\n        <div class=\"fld\"><label>来源（期刊 / 会议）</label><input id=\"f-venue\" placeholder=\"如：Mechanical Systems and Signal Processing\"></div>\n        <div class=\"fld\"><label>标签（逗号分隔）</label><input id=\"f-tags\" placeholder=\"如：阀门, 深度学习, 综述\"></div>\n      </div>\n      <div class=\"fld\"><label>链接 / DOI</label><input id=\"f-url\" placeholder=\"https://doi.org/10.xxxx/xxxxx\"></div>\n      <div class=\"note-sec\">结构化笔记</div>\n      <div class=\"frow\">\n        <div class=\"fld\"><label>研究问题</label><textarea id=\"f-q\" placeholder=\"这篇论文要解决什么问题？\"></textarea></div>\n        <div class=\"fld\"><label>方法</label><textarea id=\"f-m\" placeholder=\"用了什么方法 / 模型 / 数据？\"></textarea></div>\n        <div class=\"fld\"><label>结论与结果</label><textarea id=\"f-find\" placeholder=\"核心结论、关键指标\"></textarea></div>\n        <div class=\"fld\"><label>启发与待办</label><textarea id=\"f-ins\" placeholder=\"对我的课题有什么启发？下一步做什么？\"></textarea></div>\n      </div>\n      <div class=\"fld\"><label>金句摘录</label><textarea id=\"f-quotes\" placeholder=\"值得记录的原文摘录…\"></textarea></div>\n    </div>\n    <div class=\"dlg-ft\">\n      <button class=\"btn\" data-call=\"copyMdFromForm\">复制笔记为 Markdown</button>\n      <button class=\"btn\" data-call=\"closeEditor\">取消</button>\n      <button class=\"btn primary\" data-call=\"saveForm\">保存</button>\n    </div>\n  </div>\n</div>\n\n<!-- 随机回顾弹窗 -->\n<div class=\"overlay\" id=\"rv-overlay\">\n  <div class=\"dialog rev\">\n    <div class=\"dlg-hd\">\n      <h3>随机回顾</h3>\n      <button class=\"icobtn\" data-call=\"closeReview\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button>\n    </div>\n    <div class=\"rev-body\" id=\"rv-body\"></div>\n    <div class=\"rev-ft\">\n      <button class=\"btn\" data-call=\"closeReview\">关闭</button>\n      <button class=\"btn primary\" data-call=\"showReview\">再来一条 ⚡</button>\n    </div>\n  </div>\n</div>\n\n<input type=\"file\" id=\"file-in\" accept=\".json\" style=\"display:none\">\n<div id=\"toast\"></div>\n\n";
+
+"use strict";
+const KEY = "papernotes.v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const STATUS = {
+  unread:  {t:"未读", cls:"st-unread"},
+  reading: {t:"在读", cls:"st-reading"},
+  done:    {t:"已读", cls:"st-done"}
+};
+
+let items = load();
+let view = { q:"", status:"all", tag:null, sort:"updated" };
+let editingId = null;
+let ratingPick = 0;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const arr = JSON.parse(raw); if(Array.isArray(arr)) return arr; }
+  }catch(e){}
+  return seed();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ toast("保存失败：浏览器存储不可用"); } }
+
+function seed(){ return []; }
+
+/* ---------- 渲染 ---------- */
+function fmtTime(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function notePreview(it){
+  const n = it.notes || {};
+  const parts = [n.q && "问题: "+n.q, n.m && "方法: "+n.m, n.find && "结论: "+n.find, n.ins && "启发: "+n.ins].filter(Boolean);
+  return parts.join(" ｜ ");
+}
+function noteFull(n){
+  const parts = [];
+  if(n.q) parts.push("【研究问题】\n"+n.q);
+  if(n.m) parts.push("【方法】\n"+n.m);
+  if(n.find) parts.push("【结论与结果】\n"+n.find);
+  if(n.ins) parts.push("【启发与待办】\n"+n.ins);
+  return parts.join("\n\n");
+}
+
+function filtered(){
+  const q = view.q.trim().toLowerCase();
+  let arr = items.filter(it=>{
+    if(view.status==="starred" ? !it.rating : (view.status!=="all" && it.status!==view.status)) return false;
+    if(view.tag && !(it.tags||[]).includes(view.tag)) return false;
+    if(q){
+      const hay = [it.title,it.authors,it.venue,(it.tags||[]).join(" "),it.url,noteFull(it.notes||{}),(it.quotes||"")].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const cmp = {
+    updated:(a,b)=>b.updatedAt-a.updatedAt,
+    created:(a,b)=>b.createdAt-a.createdAt,
+    year:(a,b)=>(b.year||0)-(a.year||0),
+    rating:(a,b)=>(b.rating||0)-(a.rating||0)
+  }[view.sort];
+  return arr.sort(cmp);
+}
+
+function render(){
+  const arr = filtered();
+  /* stats */
+  const n = items.length;
+  const c = s => items.filter(i=>i.status===s).length;
+  const starred = items.filter(i=>i.rating>0).length;
+  const tagset = new Set(); items.forEach(i=>(i.tags||[]).forEach(t=>tagset.add(t)));
+  $("#stats").innerHTML = [
+    [n,"文献总数",true],[c("done"),"已读"],[c("reading"),"在读"],[c("unread"),"未读"],[starred,"星标"],[tagset.size,"标签数"]
+  ].map(([v,t,hl])=>`<div class="stat${hl?" hl":""}"><b>${v}</b><span>${t}</span></div>`).join("");
+
+  /* tabs */
+  const tabs = [["all","全部",n],["unread","未读",c("unread")],["reading","在读",c("reading")],["done","已读",c("done")],["starred","星标",starred]];
+  $("#tabs").innerHTML = tabs.map(([k,t,v])=>
+    `<button class="tab${view.status===k?" active":""}" data-st="${k}">${t}<i>${v}</i></button>`).join("");
+
+  /* tags */
+  const cnt = {};
+  items.forEach(i=>(i.tags||[]).forEach(t=>cnt[t]=(cnt[t]||0)+1));
+  const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,14);
+  $("#tagrow").innerHTML = top.map(([t,v])=>
+    `<button class="tagchip${view.tag===t?" on":""}" data-tag="${esc(t)}">${esc(t)}<i>${v}</i></button>`).join("");
+
+  /* cards */
+  $("#empty").style.display = n===0 ? "" : "none";
+  $("#btn-clear-sample").style.display = items.some(i=>i.sample) && n<=2 ? "inline-flex" : "none";
+  const grid = $("#grid");
+  grid.innerHTML = arr.map(it=>{
+    const st = STATUS[it.status] || STATUS.unread;
+    const tags = (it.tags||[]).map(t=>`<span class="mini-tag">${esc(t)}</span>`).join("");
+    const prev = notePreview(it);
+    return `<div class="card" data-id="${it.id}">
+      <div class="c-top">
+        <span class="pill ${st.cls}">${st.t}</span>
+        ${it.year?`<span class="c-meta"><em>${esc(it.year)}</em></span>`:""}
+        <button class="star${it.rating>0?" on":""}" data-act="star" title="星标/评分">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${it.rating>0?"currentColor":"none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+      </div>
+      <div class="c-title">${esc(it.title)}</div>
+      <div class="c-meta">${it.authors?`<em>${esc(it.authors)}</em>`:""}${it.venue?` · ${esc(it.venue)}`:""}</div>
+      ${tags?`<div class="c-tags">${tags}</div>`:""}
+      ${prev?`<div class="c-note">${esc(prev)}</div>`:""}
+      <div class="c-foot">
+        <span class="c-time">${it.url?`<a href="${esc(it.url)}" target="_blank" rel="noopener" data-act="link" style="color:var(--brand)">原文链接 ↗</a>　`:""}更新 ${fmtTime(it.updatedAt)}</span>
+        <span class="c-acts">
+          <button class="icobtn" data-act="copy" title="复制引用">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="icobtn" data-act="edit" title="编辑">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+          <button class="icobtn del" data-act="del" title="删除">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- 编辑器 ---------- */
+function renderRate(){
+  $("#f-rate").innerHTML = [1,2,3,4,5].map(v=>
+    `<button type="button" class="star${ratingPick>=v?" on":""}" data-v="${v}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="${ratingPick>=v?"currentColor":"none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </button>`).join("");
+}
+function openEditor(id){
+  editingId = id || null;
+  const it = id ? items.find(x=>x.id===id) : null;
+  $("#ed-title").textContent = it ? "编辑文献" : "新建文献";
+  $("#f-title").value = it?.title || "";
+  $("#f-authors").value = it?.authors || "";
+  $("#f-year").value = it?.year || "";
+  $("#f-venue").value = it?.venue || "";
+  $("#f-tags").value = (it?.tags||[]).join(", ");
+  $("#f-url").value = it?.url || "";
+  $("#f-status").value = it?.status || "unread";
+  ratingPick = it?.rating || 0;
+  const nn = it?.notes || {};
+  $("#f-q").value = nn.q||""; $("#f-m").value = nn.m||"";
+  $("#f-find").value = nn.find||""; $("#f-ins").value = nn.ins||"";
+  $("#f-quotes").value = it?.quotes||"";
+  renderRate();
+  $("#ed-overlay").classList.add("show");
+  setTimeout(()=>$("#f-title").focus(),50);
+}
+function closeEditor(){ $("#ed-overlay").classList.remove("show"); editingId=null; }
+function saveForm(){
+  const title = $("#f-title").value.trim();
+  if(!title){ toast("请填写标题"); $("#f-title").focus(); return; }
+  const tags = $("#f-tags").value.split(/[,，、;；]+/).map(s=>s.trim()).filter(Boolean);
+  const now = Date.now();
+  if(editingId){
+    const it = items.find(x=>x.id===editingId);
+    Object.assign(it,{
+      title, authors:$("#f-authors").value.trim(), year:parseInt($("#f-year").value)||"",
+      venue:$("#f-venue").value.trim(), tags, url:$("#f-url").value.trim(),
+      status:$("#f-status").value, rating:ratingPick,
+      notes:{q:$("#f-q").value.trim(), m:$("#f-m").value.trim(), find:$("#f-find").value.trim(), ins:$("#f-ins").value.trim()},
+      quotes:$("#f-quotes").value.trim(), updatedAt:now
+    });
+  }else{
+    items.unshift({
+      id:"p_"+now.toString(36)+Math.random().toString(36).slice(2,6),
+      title, authors:$("#f-authors").value.trim(), year:parseInt($("#f-year").value)||"",
+      venue:$("#f-venue").value.trim(), tags, url:$("#f-url").value.trim(),
+      status:$("#f-status").value, rating:ratingPick,
+      notes:{q:$("#f-q").value.trim(), m:$("#f-m").value.trim(), find:$("#f-find").value.trim(), ins:$("#f-ins").value.trim()},
+      quotes:$("#f-quotes").value.trim(), createdAt:now, updatedAt:now
+    });
+  }
+  save(); closeEditor(); render(); toast("已保存 ✓");
+}
+
+/* ---------- 操作 ---------- */
+function toggleStar(id){
+  const it = items.find(x=>x.id===id); if(!it) return;
+  it.rating = it.rating>0 ? 0 : 5;
+  it.updatedAt = Date.now();
+  save(); render();
+}
+function delItem(id){
+  const it = items.find(x=>x.id===id); if(!it) return;
+  if(!confirm("确定删除《"+(it.title.slice(0,30))+"…》吗？")) return;
+  items = items.filter(x=>x.id!==id);
+  save(); render(); toast("已删除");
+}
+function buildMd(it){
+  const n = it.notes||{};
+  const L = [];
+  L.push("# "+it.title);
+  L.push("");
+  L.push(`- 作者：${it.authors||"—"}`);
+  L.push(`- 年份：${it.year||"—"}`);
+  L.push(`- 来源：${it.venue||"—"}`);
+  L.push(`- 状态：${(STATUS[it.status]||STATUS.unread).t}`);
+  if((it.tags||[]).length) L.push(`- 标签：${it.tags.join("、")}`);
+  if(it.url) L.push(`- 链接：${it.url}`);
+  if(n.q||n.m||n.find||n.ins){
+    L.push(""); L.push("## 笔记"); L.push("");
+    if(n.q) L.push("**研究问题**\n\n"+n.q+"\n");
+    if(n.m) L.push("**方法**\n\n"+n.m+"\n");
+    if(n.find) L.push("**结论与结果**\n\n"+n.find+"\n");
+    if(n.ins) L.push("**启发与待办**\n\n"+n.ins+"\n");
+  }
+  if(it.quotes){ L.push("## 金句摘录"); L.push(""); L.push("> "+it.quotes.split("\n").join("\n> ")); }
+  L.push(""); L.push("---"); L.push("*由 文献手札 PaperNotes 导出*");
+  return L.join("\n");
+}
+function cite(it, style){
+  const a = it.authors||"佚名";
+  if(style==="gb") return `${a}. ${it.title}${it.venue?"[J]. "+it.venue:""}. ${it.year||""}.`;
+  return `${a} (${it.year||"n.d."}). ${it.title}. ${it.venue||""}.`;
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast("已复制到剪贴板 ✓")).catch(()=>fallbackCopy(t));
+  }else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta = document.createElement("textarea");
+  ta.value = t; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("已复制到剪贴板 ✓"); }catch(e){ toast("复制失败，请手动复制"); }
+  document.body.removeChild(ta);
+}
+function copyMdFromForm(){
+  const title = $("#f-title").value.trim() || "未命名文献";
+  const it = { title, authors:$("#f-authors").value.trim(), year:$("#f-year").value, venue:$("#f-venue").value.trim(),
+    tags:$("#f-tags").value.split(/[,，、;；]+/).map(s=>s.trim()).filter(Boolean), url:$("#f-url").value.trim(),
+    status:$("#f-status").value, rating:ratingPick,
+    notes:{q:$("#f-q").value.trim(), m:$("#f-m").value.trim(), find:$("#f-find").value.trim(), ins:$("#f-ins").value.trim()},
+    quotes:$("#f-quotes").value.trim() };
+  copyText(buildMd(it));
+}
+
+/* ---------- 导入导出 ---------- */
+function doExport(){
+  const blob = new Blob([JSON.stringify(items,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  const d = new Date(); const p = n=>String(n).padStart(2,"0");
+  a.href = URL.createObjectURL(blob);
+  a.download = `papernotes-backup-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("已导出备份 ✓");
+}
+function doImport(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const arr = JSON.parse(r.result);
+      if(!Array.isArray(arr)) throw new Error("格式不对");
+      let add=0, upd=0;
+      arr.forEach(x=>{
+        if(!x || !x.title) return;
+        const i = items.findIndex(v=>v.id===x.id);
+        if(i>=0){ items[i]=x; upd++; } else { items.push(x); add++; }
+      });
+      save(); render(); toast(`导入完成：新增${add}，更新${upd}`);
+    }catch(e){ toast("导入失败：文件不是有效的备份JSON"); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- 随机回顾 ---------- */
+function showReview(){
+  const pool = items.filter(i=>noteFull(i.notes||{}));
+  if(!pool.length){ toast("还没有带笔记的文献"); return; }
+  const it = pool[Math.floor(Math.random()*pool.length)];
+  const n = it.notes||{};
+  const st = STATUS[it.status]||STATUS.unread;
+  $("#rv-body").innerHTML = `
+    <span class="rev-tag">${st.t}${it.rating?" · "+("★".repeat(it.rating)):""}${(it.tags||[]).length?" · "+esc(it.tags.join(" / ")):''}</span>
+    <h2>${esc(it.title)}</h2>
+    <div class="c-meta">${it.authors?`<em>${esc(it.authors)}</em>`:""}${it.venue?` · ${esc(it.venue)}${it.year?" · "+esc(it.year):""}`:""}</div>
+    ${n.q?`<div class="rev-sec"><b>研究问题</b><p>${esc(n.q)}</p></div>`:""}
+    ${n.find?`<div class="rev-sec"><b>结论与结果</b><p>${esc(n.find)}</p></div>`:""}
+    ${n.ins?`<div class="rev-sec"><b>启发与待办</b><p>${esc(n.ins)}</p></div>`:""}`;
+  $("#rv-overlay").classList.add("show");
+}
+function closeReview(){ $("#rv-overlay").classList.remove("show"); }
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const el = $("#toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove("show"), 2200);
+}
+
+/* ---------- 事件 ---------- */
+$("#btn-new").onclick = ()=>openEditor();
+$("#btn-export").onclick = doExport;
+$("#btn-import").onclick = ()=>$("#file-in").click();
+$("#file-in").onchange = e=>{ if(e.target.files[0]) doImport(e.target.files[0]); e.target.value=""; };
+$("#btn-review").onclick = showReview;
+$("#btn-clear-sample").onclick = ()=>{ items = items.filter(i=>!i.sample); save(); render(); };
+$("#q").oninput = e=>{ view.q = e.target.value; render(); };
+$("#sort").onchange = e=>{ view.sort = e.target.value; render(); };
+$("#f-rate").onclick = e=>{ const b = e.target.closest("[data-v]"); if(b){ ratingPick = parseInt(b.dataset.v); renderRate(); } };
+
+$("#tabs").onclick = e=>{
+  const b = e.target.closest("[data-st]"); if(!b) return;
+  view.status = b.dataset.st; render();
+};
+$("#tagrow").onclick = e=>{
+  const b = e.target.closest("[data-tag]"); if(!b) return;
+  view.tag = view.tag===b.dataset.tag ? null : b.dataset.tag; render();
+};
+
+$("#grid").onclick = e=>{
+  const card = e.target.closest(".card"); if(!card) return;
+  const id = card.dataset.id;
+  const act = e.target.closest("[data-act]");
+  if(act){
+    const a = act.dataset.act;
+    if(a==="star"){ toggleStar(id); return; }
+    if(a==="edit"){ openEditor(id); return; }
+    if(a==="del"){ delItem(id); return; }
+    if(a==="copy"){ const it = items.find(x=>x.id===id); if(it) copyText(cite(it,"gb")+"\n"+cite(it,"apa")); return; }
+    if(a==="link"){ e.stopPropagation(); return; }
+  }
+  openEditor(id);
+};
+
+/* 点击遮罩关闭 */
+[["ed-overlay",closeEditor],["rv-overlay",closeReview]].forEach(([id,fn])=>{
+  $("#"+id).addEventListener("mousedown", e=>{ if(e.target.id===id) fn(); });
+});
+
+document.addEventListener("keydown", e=>{
+  const tag = (e.target.tagName||"").toLowerCase();
+  const typing = tag==="input"||tag==="textarea"||tag==="select";
+  if(e.key==="Escape"){ closeEditor(); closeReview(); return; }
+  if(typing) return;
+  if(e.key==="/"){ e.preventDefault(); $("#q").focus(); }
+  if(e.key==="n"||e.key==="N"){ openEditor(); }
+});
+
+render();
+
+Object.assign(window,{openEditor,closeEditor,saveForm,copyMdFromForm,closeReview,showReview});
+
+document.querySelectorAll("[data-call]").forEach(el => el.addEventListener("click", () => window[el.dataset.call]()));
