@@ -15,4 +15,4 @@ for (const el of document.querySelectorAll('[onclick], [onchange]')) {
  }
 }`);
 copyFileSync("icon.png","dist/icon.png");
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',git_instance_id:JSON.parse(readFileSync('source.json')).git_instance_id}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:JSON.parse(readFileSync('source.json')).git_instance_id}));
