@@ -763,6 +763,29 @@ push({id:"G001",typeKey:"simpleDer",funcCategory:"poly",var:"x",statement:"\\fra
     return terms.join("|");
   }
 
+  // 算术表达式递归解析，避免依赖受托管页面 CSP 禁止的动态代码执行。
+  function evaluateExpression(input, scope){
+    const parts=input.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z]+|\*\*|[-+*/%(),]/g)||[];
+    if(parts.join("")!==input.replace(/\s+/g,"")) return null;
+    let i=0;
+    function primary(){
+      const t=parts[i++];
+      if(t==="("){const v=add();if(parts[i++]!==")") throw 0;return v;}
+      if(t==null) throw 0;
+      if(/^\d|^\./.test(t)) return Number(t);
+      if(Object.prototype.hasOwnProperty.call(scope,t)){
+        const v=scope[t]; if(typeof v!=="function") return v;
+        if(parts[i++]!=="(") throw 0; const arg=add();if(parts[i++]!==")") throw 0; return v(arg);
+      }
+      throw 0;
+    }
+    function unary(){if(parts[i]==="+"){i++;return unary()} if(parts[i]==="-"){i++;return -unary()} return power()}
+    function power(){let v=primary();if(parts[i]==="**"){i++;v=Math.pow(v,unary())}return v}
+    function mul(){let v=unary();while(["*","/","%"].includes(parts[i])){let op=parts[i++],n=unary();v=op==="*"?v*n:op==="/"?v/n:v%n}return v}
+    function add(){let v=mul();while(parts[i]==="+"||parts[i]==="-"){let op=parts[i++],n=mul();v=op==="+"?v+n:v-n}return v}
+    try{const v=add();return i===parts.length && Number.isFinite(v)?v:null}catch(e){return null}
+  }
+
   /* ---------- 数值求值（定积分兜底判分） ---------- */
   function evalNum(s){
     let t = normalize(s);
@@ -779,8 +802,7 @@ push({id:"G001",typeKey:"simpleDer",funcCategory:"poly",var:"x",statement:"\\fra
     const ids=t.match(/[A-Za-z]+/g)||[];
     for(const id of ids){ if(!(id in scope)) return null; }
     try{
-      const fn=new Function(...keys,'"use strict";return ('+t.replace(/\s+/g,"")+');');
-      const v=fn(...keys.map(k=>scope[k]));
+      const v=evaluateExpression(t,scope);
       return (typeof v==="number" && isFinite(v)) ? v : null;
     }catch(err){ return null; }
   }
@@ -811,7 +833,7 @@ push({id:"G001",typeKey:"simpleDer",funcCategory:"poly",var:"x",statement:"\\fra
     t = t.replace(/(?<![A-Za-z])x(?![A-Za-z])/g,'('+xv+')');
     const ids=t.match(/[A-Za-z]+/g)||[];
     for(const id of ids){ if(!(id in JS_SCOPE)) return null; }
-    try{ const keys=Object.keys(JS_SCOPE); const fn=new Function(...keys,'"use strict";return ('+t+');'); const v=fn(...keys.map(k=>JS_SCOPE[k])); return (typeof v==='number'&&isFinite(v))?v:null; }catch(err){ return null; }
+    try{ return evaluateExpression(t,JS_SCOPE); }catch(err){ return null; }
   }
   // 判断 user 是否与某个参考式在采样点上数值等价（≥3 点吻合且 0 冲突）
   function numericEquivalent(userRaw, refLatex){
