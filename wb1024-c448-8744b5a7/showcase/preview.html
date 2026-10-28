@@ -1,0 +1,458 @@
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>贷款提前还款 · 通用测算计算器</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#fff; --ink:#1f2d3d; --sub:#5a6b7b;
+    --line:#e3e8ef; --blue:#2f6fed; --green:#1aa15a; --red:#e0533d; --amber:#d98a00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding:22px;line-height:1.55;}
+  h1{font-size:19px;margin-bottom:3px;}
+  .hint{color:var(--sub);font-size:12.5px;margin-bottom:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .card h2{font-size:14px;margin-bottom:10px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:7px;}
+  .num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;align-items:center;justify-content:center;}
+  .inputrow{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap;}
+  label{font-size:13px;color:var(--sub);min-width:92px;}
+  input[type=range]{flex:1;min-width:140px;accent-color:var(--blue);}
+  input[type=number],select,input[type=text]{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px;}
+  input[type=text]{width:180px;} input[type=number]{width:120px;}
+  .verdict{border-radius:12px;padding:16px;color:#fff;text-align:center;margin:6px 0 10px;}
+  .verdict.win{background:linear-gradient(135deg,#1aa15a,#15915a);}
+  .verdict.lose{background:linear-gradient(135deg,#e0533d,#c8452f);}
+  .verdict.flat{background:linear-gradient(135deg,#8a94a6,#6f7a8c);}
+  .verdict .big{font-size:30px;font-weight:800;}
+  .verdict .sub{font-size:12.5px;opacity:.95;margin-top:4px;}
+  .stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .stat:last-child{border-bottom:none;}
+  .stat b{font-variant-numeric:tabular-nums;font-size:15px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  .boxA{border:1px solid var(--blue);border-radius:10px;padding:12px;}
+  .boxB{border:1px solid var(--green);border-radius:10px;padding:12px;}
+  .boxA h3,.boxB h3{font-size:13px;margin-bottom:8px;}
+  .note{font-size:12.5px;color:var(--sub);background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:12px;line-height:1.75;margin-top:6px;}
+  .key{color:var(--red);font-weight:700;}
+  .rec{background:#eafaf0;border:1px solid #b7e3c8;border-radius:10px;padding:14px;font-size:14px;line-height:1.75;}
+  .rec b{color:var(--green);}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;}
+  th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  th{color:var(--sub);font-weight:600;background:#fafbfc;}
+  td:first-child,th:first-child{text-align:left;}
+  .hl{background:#eafaf0;font-weight:700;}
+  .subh{font-size:13px;font-weight:700;margin:2px 0 10px;padding-left:9px;border-left:3px solid currentColor;}
+  /* 基准状态横条 */
+  .baseline{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:#f0f5ff;border:1px solid #d4e2fb;border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:13px;color:var(--sub);}
+  .baseline>span:first-child{font-weight:700;color:var(--ink);}
+  .baseline b{color:var(--ink);font-variant-numeric:tabular-nums;margin-left:3px;}
+  /* 对比表 */
+  table.cmp{margin-top:2px;}
+  .cmp th,.cmp td{padding:9px 8px;font-size:13px;vertical-align:middle;}
+  .cmp th{font-size:12.5px;background:#f3f6fb;}
+  .cmp th.hl,.cmp td.hl{background:#eafaf0;}
+  .cmp tr.emph td{background:#e3f7ec;font-weight:700;}
+  .cmp tr.emph td:first-child{color:var(--green);}
+  .tag{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--green);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+  /* 痛点引导卡 */
+  .pain{background:#fff8ec;border:1px solid #f3e3c0;border-radius:10px;padding:13px 16px;margin-bottom:14px;font-size:13px;line-height:1.85;}
+  .pain-title{font-weight:700;color:#8a5a00;margin-bottom:6px;}
+  .pain ul{margin:0;padding-left:20px;color:var(--ink);}
+  .pain li{margin:4px 0;}
+  .pain-foot{margin-top:9px;color:var(--sub);font-size:12.5px;}
+  /* 关于本作品 */
+  .footer{margin-top:18px;padding:16px;background:#fafbfc;border:1px dashed var(--line);border-radius:10px;font-size:12.5px;color:var(--sub);line-height:1.8;}
+  .footer .ft-title{font-weight:700;color:var(--ink);font-size:13px;margin-bottom:6px;}
+  .footer p{margin:6px 0;}
+  .footer code{background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12px;color:#334;}
+  .footer .ft-meta{margin-top:8px;opacity:.8;font-size:11.5px;}
+</style>
+</head>
+<body>
+<h1>提前还贷决策助手 · 通用测算计算器</h1>
+<div class="hint">一个工具算清「该不该提前还贷、还多少、选哪种方式」。支持<b>等额本息 / 等额本金</b>，覆盖公积金贷 / 商贷 / 组合贷等，并纳入<b>首套个税利息抵扣</b>的真实收益测算。<b>①→③ 设置参数，第 ④ 部分出结论</b>。纯本地运算、无后端、即开即用。</div>
+
+<div class="pain">
+  <div class="pain-title">🤔 提前还贷，你是不是也纠结过这几个问题？</div>
+  <ul>
+    <li>「等额本息前期利息太多，提前还了是不是亏？」——前几期利息是沉没成本，真正该算的是未来。</li>
+    <li>「提前还款，选'减少月供'还是'缩短期限'？」——同样的钱，两种选法累计利息能差一倍。</li>
+    <li>「首套房能抵税，提前还了税盾没了，到底划不划算？」——要把抵税算进净收益才看得清。</li>
+  </ul>
+  <div class="pain-foot">本工具把这套「高频、高金额、高焦虑」的还贷决策，变成「填几个数 → 看一张对照表」。</div>
+</div>
+
+<!-- 1 贷款参数 -->
+<div class="card">
+  <h2><span class="num">1</span>贷款参数设置</h2>
+  <div class="inputrow"><label>贷款类型</label>
+    <select id="loanType">
+      <option value="">请选择 / 自定义</option>
+      <option>公积金贷款</option><option selected="">商业贷款</option>
+      <option>组合贷款</option><option>消费贷款</option><option>其他</option>
+    </select>
+    <input type="text" id="loanName" placeholder="备注名（可选，仅标注用）">
+  </div>
+  <div class="inputrow"><label>还款方式</label>
+    <select id="method">
+      <option value="equal">等额本息（每月还款额相同）</option>
+      <option value="principal">等额本金（每月本金相同）</option>
+    </select>
+  </div>
+  <div class="inputrow"><label>剩余本金</label><input type="number" id="principal" min="0" step="1000" value="500000"> 元<span style="color:var(--sub);font-size:12px">（示例数据，可改为你的实际贷款）</span></div>
+  <div class="inputrow"><label>剩余期数</label><input type="number" id="periods" min="1" step="1" value="360"> 月 <span id="perYears" style="color:var(--sub);font-size:12px">（约 30.0 年）</span></div>
+  <div class="inputrow"><label>年利率</label><input type="number" id="rate" min="0" max="24" step="0.01" value="4.2"> %</div>
+
+  <div class="subh" style="color:var(--amber);margin-top:8px">税务设置（首套房贷可享个税利息抵扣，可选）</div>
+  <div class="inputrow"><label>首套利息抵扣</label>
+    <select id="taxDeduct">
+      <option value="no" selected="">否（不适用 / 二套及以上）</option>
+      <option value="yes">是（首套，可抵扣个税）</option>
+    </select>
+    <span style="color:var(--sub);font-size:12px">每月定额扣 1,000 元应纳税所得额，最长 240 个月</span>
+  </div>
+  <div class="inputrow"><label>年应纳税所得额</label><input type="number" id="taxIncome" min="0" step="1000" value="200000"> 元
+    <span style="color:var(--sub);font-size:12px">个税APP「年度汇算」可见；工具据此自动匹配税率表算边际税率</span>
+  </div>
+  <div class="inputrow"><label>已抵扣月数</label><input type="number" id="deductedM" min="0" max="240" step="1" value="0"> 月
+    <span style="color:var(--sub);font-size:12px">已享受过的抵扣月数（受 240 月总上限约束）</span>
+  </div>
+
+  <div class="stat"><span>当前月供（等额本息为固定值；等额本金为首月，逐月递减）</span><b id="curPay">¥2,445.09 / 月</b></div>
+  <div class="note">说明：以上为可配置输入，替换为你实际贷款数据即可。月利率自动由年利率 ÷ 12 计算，无需手填。</div>
+</div>
+
+<!-- 2 利率比较 -->
+<div class="card">
+  <h2><span class="num">2</span>是否值得提前还？利率比较</h2>
+  <div class="inputrow"><label>存款利率 / 机会成本率</label>
+    <input type="range" id="dep" min="0" max="5" step="0.1" value="1.6">
+    <input type="number" id="depN" min="0" max="10" step="0.1" value="1.6"> %
+  </div>
+  <div class="verdict win" id="verdict">
+    <div class="big" id="vTitle">提前还款 = 赚</div>
+    <div class="sub" id="vSub">贷款利率 4.20% ＞ 存款 1.60%，每留 1 元现金少赚 2.600%/年 → 应提前还款</div>
+  </div>
+  <div class="stat"><span>贷款利率</span><b id="loanRateShow">4.200%</b></div>
+  <div class="stat"><span>存款利率</span><b id="depShow">1.60%</b></div>
+  <div class="stat"><span>净利差（每年）</span><b id="spread">+2.600%</b></div>
+  <div class="stat"><span>临界点（存款利率 = 贷款利率）</span><b id="breakeven">4.200%</b></div>
+  <div id="taxBox" style="display:none">
+    <div class="stat"><span>首套抵税 · 自动匹配边际税率</span><b id="taxMRate">—</b></div>
+    <div class="stat"><span>首套抵税 · 每年税盾</span><b id="taxAnnual">—</b></div>
+    <div class="stat"><span>首套抵税 · 剩余可抵扣</span><b id="taxRemain">—</b></div>
+    <div class="stat"><span>首套抵税 · 总共可省税</span><b id="taxTotal">—</b></div>
+  </div>
+  <div class="note">规则：<b>贷款利率 &gt; 存款利率 → 提前还款"赚"</b>（保留现金的机会成本高于还贷省下的利息）；反之则"亏"，保留现金更划算。<span class="key">只要存款率低于贷款利率，提前还款即稳赚；不存在"还到某个数最划算"的内点，闲钱越早还越值。</span><br>
+  若启用「首套房贷利息抵扣」：抵税相当于降低贷款实际融资成本，<b>提前还款会损失未来的税盾</b>，因此"收益最大化"需把抵税纳入净收益测算（见第 ④ 部分）。<b>边际税率无需手填</b>——填写「年应纳税所得额」后，工具自动按个税 7 级累进税率表匹配所属税档并精确计算税盾（已考虑跨档）。</div>
+</div>
+
+<!-- 3 还款金额与方式设置（输入） -->
+<div class="card">
+  <h2><span class="num">3</span>还款金额与方式设置</h2>
+  <div class="inputrow"><label>提前还款金额</label>
+    <input type="range" id="prepay" min="0" max="500000" step="5000" value="100000">
+    <input type="number" id="prepayN" min="0" step="1000" value="100000"> 元
+    <span style="color:var(--sub);font-size:12px">（一次性提前归还的本金）</span>
+  </div>
+  <div class="inputrow"><label>每月额外还款</label>
+    <input type="number" id="extra" min="0" step="100" value="0"> 元/月
+    <span style="color:var(--sub);font-size:12px">（在原有月供之外，每月固定多还一笔）</span>
+  </div>
+  <div class="inputrow"><label>每年额外还款</label>
+    <input type="number" id="extraY" min="0" step="1000" value="0"> 元/年
+    <span style="color:var(--sub);font-size:12px">（每年末一次性多还一笔，如年终奖冲抵本金）</span>
+  </div>
+  <div class="note">在此选择你要执行的还款方式：<b>一次性提前还款</b>、<b>每月额外还款</b>、<b>每年额外还款</b>，三者可单独或组合使用（都设为 0 即不提前还款）。填写后，测算结果统一在下方第 ④ 部分给出。</div>
+</div>
+
+<!-- 4 测算结论（输出） -->
+<div class="card">
+  <h2><span class="num">4</span>测算结论</h2>
+
+  <div class="baseline">
+    <span>当前状态（不提前还款）</span>
+    <span>月供 <b id="basePay">¥2,445.09</b></span>
+    <span>期限 <b id="baseTerm">30.0 年（360 期）</b></span>
+    <span>剩余应付利息 <b id="baseInt">¥380,231</b></span>
+  </div>
+
+  <div class="subh" style="color:var(--blue)">4.1 一次性提前还款对比（金额见第 ③ 部分）</div>
+  <table class="cmp">
+    <thead>
+      <tr><th>指标</th><th>当前（不提前）</th><th>方案A：减少月供</th><th class="hl">方案B：缩短期限<span class="tag">推荐</span></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>提前还款额（元）</td><td>—</td><td id="cellPA">¥100,000</td><td class="hl" id="cellPB">¥100,000</td></tr>
+      <tr><td>月供（元 / 月）</td><td id="cPay">¥2,445.09</td><td id="aPay">1,956.07</td><td class="hl" id="bPay">2,445.09（不变）</td></tr>
+      <tr><td>还款期限</td><td id="cTerm">30.0 年（360 期）</td><td id="aTerm">30.0 年（360 期）</td><td class="hl" id="bTerm">20.3 年（243 期）</td></tr>
+      <tr><td>累计利息（元）</td><td id="cInt">¥380,231</td><td id="aInt">¥304,185</td><td class="hl" id="bInt">¥194,832</td></tr>
+      <tr><td>省利息（元 / 比例）</td><td>—</td><td id="aSave">76,046（20.0%）</td><td class="hl" id="bSave">185,399（48.8%）</td></tr>
+      <tr><td>可享抵税收益（税后，元）</td><td id="cTax">—</td><td id="aTax">—</td><td class="hl" id="bTax">—</td></tr>
+      <tr><td>抵税后净利息成本（元）</td><td id="cNetCost">—</td><td id="aNetCost">—</td><td class="hl" id="bNetCost">—</td></tr>
+      <tr class="emph"><td>提前还款净收益（省息 − 损失税）</td><td>—</td><td id="aNet">¥76,046</td><td class="hl" id="bNet">¥185,399</td></tr>
+    </tbody>
+  </table>
+  <div class="note">结论：目标是<b>减少总利息</b>一律选 <b style="color:var(--green)">方案B 缩短期限</b>；目标是<b>降低每月现金支出</b>才选 方案A 减少月供。同等金额下，方案B 比方案A 多省约一半利息。两方案"提前还款额"与"剩余本金"相同，差异只在月供与期限如何分配。<br>
+  <b>净收益口径</b>：若启用首套抵税，"提前还款净收益 = 省利息 − 提前还清所损失的未来税盾"。因为方案B 缩短期限会提前结束贷款、从而提前终止抵税，所以净收益比"省利息"略低——这才是纳入抵税后的真实收益。</div>
+
+  <div class="subh" style="color:var(--green);margin-top:18px">4.2 持续额外还款对比（加速还清，金额见第 ③ 部分）</div>
+  <table class="cmp">
+    <thead>
+      <tr><th>指标</th><th>当前（不提前）</th><th class="hl">加速后</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>每月额外还款（元）</td><td>—</td><td class="hl" id="exE">—</td></tr>
+      <tr><td>每年额外还款（元）</td><td>—</td><td class="hl" id="exEY">—</td></tr>
+      <tr><td>还清用时</td><td id="cTerm2">30.0 年（360 期）</td><td class="hl" id="exYears">30.0 年（360 期）</td></tr>
+      <tr><td>累计利息（元）</td><td id="cInt2">¥380,231</td><td class="hl" id="exInt">¥380,231</td></tr>
+      <tr><td>可享抵税收益（税后，元）</td><td id="cTax2">—</td><td class="hl" id="exTax">—</td></tr>
+      <tr><td>抵税后净利息成本（元）</td><td id="cNetCost2">—</td><td class="hl" id="exNetCost">—</td></tr>
+      <tr class="emph"><td>省利息（元）</td><td>—</td><td class="hl" id="exSave">¥-0</td></tr>
+    </tbody>
+  </table>
+  <div class="note">说明：在原有还款基础上，每月 / 每年多还一笔，等价于持续"缩短期限"。两者可单独或叠加使用（都设为 0 即不提前还款）。加速还清同样会提前终止抵税（若启用），其净利息成本已扣除抵税收益。</div>
+  <div class="rec" id="recBox" style="margin-top:18px">【收益最大化】贷款 4.20% ＞ 存款 1.60%，对手中 <b>¥100,000</b> 闲钱：<br>• 提前还款（方案B 缩短期限）：省利息 ¥185,399。<br>• 不提前、存 1.60%（按 20.3 年计）：约 ¥32,437。<br><b>结论：提前还款更划算，多赚 ¥152,962。</b></div>
+</div>
+
+<div class="footer">
+  <div class="ft-title">关于本作品</div>
+  <p>本作品为 <b>WorkBuddy「1024 造物挑战」程序员节应用创作大赛</b> 参赛作品。核心是一个<b>零依赖、纯前端</b>的「提前还贷决策助手」：输入贷款参数与你的闲钱，即可对比「一次性提前还 / 每月额外还 / 每年额外还」三种方式，并在「减少月供」与「缩短期限」之间给出量化结论，纳首套抵税后的真实净收益。</p>
+  <p>技术栈：单文件 HTML + 原生 JavaScript，计算引擎纯函数化（<code>monthlyPayment / totalInterest / scenarioKeepTerm / scenarioShortenTerm / simulateExtra</code>），无后端、无第三方依赖、数据不出本地。新增还款方式只需扩展纯函数，渲染层无需改动。</p>
+  <p class="ft-meta">由 WorkBuddy Agent 辅助开发 · 2026</p>
+</div>
+
+<script>
+/* ================= 计算引擎（可扩展） =================
+   还款方式：
+     'equal'     等额本息 — 每月还款额固定
+     'principal' 等额本金 — 每月本金固定，利息随剩余本金递减
+   新增方式只需扩展以下纯函数，渲染层无需改动。            */
+
+function monthlyRate(annual){ return annual/100/12; }            // 年利率(%) → 月利率(小数)
+
+function monthlyPayment(B, r, n, method){
+  if(method==='equal') return B*r*Math.pow(1+r,n)/((1+r)**n - 1);
+  return B/n + B*r;                                             // 等额本金：首月
+}
+
+function totalInterest(B, r, n, method){
+  if(method==='equal'){ const P=monthlyPayment(B,r,n,'equal'); return P*n - B; }
+  return r*B*(n+1)/2;                                           // 等额本金：利息等差求和
+}
+
+/* 方案A：期限不变，减少月供；返回 {newB, payment(首月/固定), term, intAfter} */
+function scenarioKeepTerm(B,r,n,method,X){
+  const newB=Math.max(B-X,0);
+  if(method==='equal'){
+    const newP=monthlyPayment(newB,r,n,'equal');
+    return {newB, payment:newP, term:n, intAfter:newP*n-newB};
+  }else{
+    const pp=newB/n;
+    return {newB, payment:pp+newB*r, term:n, intAfter:r*newB*(n+1)/2};
+  }
+}
+
+/* 方案B：月供(等额本息)或每期本金(等额本金)不变，缩短期限；返回 {newB, payment, term, intAfter} */
+function scenarioShortenTerm(B,r,n,method,P0,pp0,X){
+  const newB=Math.max(B-X,0);
+  if(method==='equal'){
+    const nB=-Math.log(1-newB*r/P0)/Math.log(1+r);
+    return {newB, payment:P0, term:nB, intAfter:P0*nB-newB};
+  }else{
+    const pp=pp0;
+    const nB=newB/pp;
+    return {newB, payment:pp+newB*r, term:nB, intAfter:r*newB*(nB+1)/2};
+  }
+}
+
+/* 加速还清模拟：每月额外还款 + 每年额外还款（年末一次性冲抵本金） */
+function simulateExtra(B,r,n,method,extraMonthly,extraYearly){
+  let balance=B, totalInt=0, month=0;
+  const P0=monthlyPayment(B,r,n,'equal');
+  const pp0=B/n;
+  while(balance>1e-6 && month<1200){
+    month++;
+    const interest=balance*r; totalInt+=interest;
+    let pay = (method==='equal') ? P0+extraMonthly : pp0+balance*r+extraMonthly;
+    pay=Math.min(pay, balance+interest);
+    balance=balance+interest-pay;
+    // 年末一次性额外还本
+    if(extraYearly>0 && month%12===0 && balance>0){
+      const yp=Math.min(extraYearly, balance);
+      balance-=yp;
+    }
+  }
+  return {month, totalInt};
+}
+
+/* 个税综合所得年度税额（含速算扣除数）。taxable = 年应纳税所得额 */
+function taxByBracket(taxable){
+  const t=Math.max(taxable,0);
+  const tbl=[[36000,0.03,0],[144000,0.10,2520],[300000,0.20,16920],
+             [420000,0.25,31920],[660000,0.30,52920],[960000,0.35,85920],
+             [Infinity,0.45,181920]];
+  for(const [cap,rate,quick] of tbl){ if(t<=cap) return Math.max(t*rate-quick,0); }
+  return 0;
+}
+/* 由年应纳税所得额查边际税率（用于展示，让用户核对所属税档） */
+function marginalRate(taxable){
+  const t=Math.max(taxable,0);
+  const tbl=[[36000,0.03],[144000,0.10],[300000,0.20],[420000,0.25],
+             [660000,0.30],[960000,0.35],[Infinity,0.45]];
+  for(const [cap,rate] of tbl){ if(t<=cap) return rate; }
+  return 0.45;
+}
+
+/* ================= 渲染层 ================= */
+const fmt = x => Math.round(x).toLocaleString('zh-CN');
+const fmt2= x => x.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const $ = id => document.getElementById(id);
+
+function readConfig(){
+  return {
+    method: $('method').value,
+    B: Math.max(parseFloat($('principal').value)||0,0),
+    n: Math.max(parseInt($('periods').value)||1,1),
+    annual: Math.max(parseFloat($('rate').value)||0,0),
+    isFirst: $('taxDeduct').value==='yes',
+    taxableIncome: Math.max(parseFloat($('taxIncome').value)||0,0),
+    deductedM: Math.max(parseFloat($('deductedM').value)||0,0)
+  };
+}
+
+function render(){
+  const {method,B,n,annual,isFirst,taxableIncome,deductedM}=readConfig();
+  const r=monthlyRate(annual);
+  const P0=monthlyPayment(B,r,n,method);
+  const pp0=B/n;
+  const totalInt=totalInterest(B,r,n,method);
+  // 首套抵税相关常量（定额抵扣：每月 1,000 元应纳税所得额，最长 240 月）
+  const MAXD=240;
+  const remainDeductM = isFirst ? Math.max(Math.min(n, MAXD-deductedM),0) : 0;
+  // 首套抵税：每年定额扣 12,000 元应纳税所得额；边际税率由年应纳税所得额自动匹配
+  const annualTax = isFirst ? (taxByBracket(taxableIncome+12000) - taxByBracket(taxableIncome)) : 0;
+  const mRate     = isFirst ? marginalRate(taxableIncome) : 0;
+
+  // ① 当前月供
+  $('curPay').textContent = method==='equal' ? '¥'+fmt2(P0)+' / 月'
+    : '¥'+fmt2(P0)+' / 月（首月，逐月递减）';
+  $('loanRateShow').textContent=annual.toFixed(3)+'%';
+  $('breakeven').textContent=annual.toFixed(3)+'%';
+  $('perYears').textContent='（约 '+(n/12).toFixed(1)+' 年）';
+
+  // ② 利率比较（单位统一：存款率% → 小数）
+  const dPct=parseFloat($('depN').value)||0, d=dPct/100;
+  const v=$('verdict'); const spread=(annual/100-d)*100;
+  $('depShow').textContent=dPct.toFixed(2)+'%';
+  $('spread').textContent=(spread>=0?'+':'')+spread.toFixed(3)+'%';
+  if(annual/100>d){v.className='verdict win';$('vTitle').textContent='提前还款 = 赚';
+    $('vSub').textContent='贷款利率 '+annual.toFixed(2)+'% ＞ 存款 '+dPct.toFixed(2)+'%，每留 1 元现金少赚 '+spread.toFixed(3)+'%/年 → 应提前还款';}
+  else if(annual/100<d){v.className='verdict lose';$('vTitle').textContent='提前还款 = 亏';
+    $('vSub').textContent='存款利率 '+dPct.toFixed(2)+'% ＞ 贷款 '+annual.toFixed(2)+'%，保留现金更划算 → 不建议提前还款';}
+  else{v.className='verdict flat';$('vTitle').textContent='两者持平';
+    $('vSub').textContent='存款利率 = 贷款利率，提前还款无明显差异';}
+
+  // ② 首套抵税 · 税盾展示
+  if(isFirst){
+    $('taxBox').style.display='';
+    $('taxMRate').textContent=(mRate*100).toFixed(0)+'%';
+    $('taxAnnual').textContent='¥'+fmt(annualTax)+' / 年';
+    $('taxRemain').textContent=remainDeductM+' 月（'+(remainDeductM/12).toFixed(1)+' 年）';
+    $('taxTotal').textContent='¥'+fmt(annualTax*remainDeductM/12);
+  }else{
+    $('taxBox').style.display='none';
+  }
+
+  // ③ 还款金额与方式（卡片3的输入）→ 计算结果供 ④ 使用
+  let X=Math.min(Math.max(parseFloat($('prepayN').value)||0,0),B);
+  $('prepay').max=Math.round(B);          // 滑块上限随剩余本金自动适配（通用化）
+  $('prepay').value=X;
+  const a=scenarioKeepTerm(B,r,n,method,X);
+  const b=scenarioShortenTerm(B,r,n,method,P0,pp0,X);
+
+  // 当前基准状态（不提前还款）
+  const basePayTxt = method==='equal' ? '¥'+fmt2(P0) : '¥'+fmt2(P0)+' 起';
+  const baseTermTxt = (n/12).toFixed(1)+' 年（'+n+' 期）';
+  const baseIntTxt = '¥'+fmt(totalInt);
+  $('basePay').textContent=basePayTxt;
+  $('baseTerm').textContent=baseTermTxt;
+  $('baseInt').textContent=baseIntTxt;
+
+  // ④ 测算结论
+  // 4.1 一次性提前还款对比（当前 vs 方案A vs 方案B）
+  const pct = v => (totalInt>0 ? (v/totalInt*100):0).toFixed(1)+'%';
+  $('cellPA').textContent='¥'+fmt(X);  $('cellPB').textContent='¥'+fmt(X);
+  $('cPay').textContent=basePayTxt;     $('aPay').textContent=fmt2(a.payment);  $('bPay').textContent=fmt2(P0)+'（不变）';
+  $('cTerm').textContent=baseTermTxt;   $('aTerm').textContent=(a.term/12).toFixed(1)+' 年（'+Math.round(a.term)+' 期）';  $('bTerm').textContent=(b.term/12).toFixed(1)+' 年（'+Math.round(b.term)+' 期）';
+  $('cInt').textContent=baseIntTxt;     $('aInt').textContent='¥'+fmt(a.intAfter);  $('bInt').textContent='¥'+fmt(b.intAfter);
+  $('aSave').textContent=fmt(totalInt-a.intAfter)+'（'+pct(totalInt-a.intAfter)+'）';
+  $('bSave').textContent=fmt(totalInt-b.intAfter)+'（'+pct(totalInt-b.intAfter)+'）';
+
+  // 4.1 抵税相关行（首套可享个税利息抵扣）
+  const deductM_A = remainDeductM;                                       // 方案A期限不变，抵税月数=剩余可抵扣
+  const deductM_B = isFirst ? Math.max(Math.min(b.term, MAXD-deductedM),0) : 0;
+  const tax0 = annualTax*(remainDeductM/12);
+  const taxA = annualTax*(deductM_A/12);
+  const taxB = annualTax*(deductM_B/12);
+  const lossTaxA = tax0 - taxA;                                         // 方案A不缩短期限 → 损失税盾=0
+  const lossTaxB = tax0 - taxB;                                         // 方案B缩短期限 → 提前终止抵税，损失税盾
+  const taxTxt = v => isFirst ? '¥'+fmt(v) : '—';
+  $('cTax').textContent=taxTxt(tax0);        $('aTax').textContent=taxTxt(taxA);        $('bTax').textContent=taxTxt(taxB);
+  $('cNetCost').textContent=taxTxt(totalInt-tax0);  $('aNetCost').textContent=taxTxt(a.intAfter-taxA);  $('bNetCost').textContent=taxTxt(b.intAfter-taxB);
+  $('aNet').textContent='¥'+fmt((totalInt-a.intAfter)-lossTaxA);
+  $('bNet').textContent='¥'+fmt((totalInt-b.intAfter)-lossTaxB);
+
+  // 4.2 持续额外还款对比（当前 vs 加速后）
+  const E=Math.max(parseFloat($('extra').value)||0,0);
+  const EY=Math.max(parseFloat($('extraY').value)||0,0);
+  const sim=simulateExtra(B,r,n,method,E,EY);
+  $('exE').textContent  = E>0  ? '¥'+fmt(E)  : '—';
+  $('exEY').textContent = EY>0 ? '¥'+fmt(EY) : '—';
+  $('cTerm2').textContent=baseTermTxt; $('exYears').textContent=(sim.month/12).toFixed(1)+' 年（'+sim.month+' 期）';
+  $('cInt2').textContent=baseIntTxt;   $('exInt').textContent='¥'+fmt(sim.totalInt);
+  $('exSave').textContent='¥'+fmt(totalInt-sim.totalInt);
+
+  // 4.2 抵税相关行
+  const deductM_ex = isFirst ? Math.max(Math.min(sim.month, MAXD-deductedM),0) : 0;
+  const taxEx = annualTax*(deductM_ex/12);
+  $('cTax2').textContent=taxTxt(tax0);        $('exTax').textContent=taxTxt(taxEx);
+  $('cNetCost2').textContent=taxTxt(totalInt-tax0);  $('exNetCost').textContent=taxTxt(sim.totalInt-taxEx);
+
+  // 收益最大化结论框（纳入首套抵税）
+  const rec=$('recBox');
+  if(X<=0){
+    rec.innerHTML='请在第 ③ 部分填入「提前还款金额」或「每月 / 每年额外还款」，此处给出收益最大化结论。';
+  }else if(isFirst){
+    const saveB=totalInt-b.intAfter;
+    const netB=saveB-lossTaxB;
+    const holdGain=X*d*(b.term/12);
+    const diff=netB-holdGain;
+    rec.innerHTML='【收益最大化 · 已计入首套抵税】你手上有 <b>¥'+fmt(X)+'</b> 闲钱。<br>'
+      +'• 选<b>提前还款（方案B 缩短期限）</b>：省利息 ¥'+fmt(saveB)+'，但提前还清会损失未来税盾 ¥'+fmt(lossTaxB)+'，<b>净收益 ¥'+fmt(netB)+'</b>。<br>'
+      +'• 选<b>不提前、把这笔钱存 '+dPct.toFixed(2)+'%</b>：约 ¥'+fmt(holdGain)+'（按方案B '+(b.term/12).toFixed(1)+' 年计），且保留全部税盾。<br>'
+      +'<b>结论：'+(diff>0 ? '提前还款更划算，净收益多出 ¥'+fmt(diff) : '持有现金更划算，多出 ¥'+fmt(-diff)+'，且保留抵税')+'。</b>';
+  }else{
+    const netB=totalInt-b.intAfter;
+    const holdGain=X*d*(b.term/12);
+    const diff=netB-holdGain;
+    rec.innerHTML='【收益最大化】贷款 '+annual.toFixed(2)+'% '+(annual/100>d?'＞':'≤')+' 存款 '+dPct.toFixed(2)+'%，对手中 <b>¥'+fmt(X)+'</b> 闲钱：<br>'
+      +'• 提前还款（方案B 缩短期限）：省利息 ¥'+fmt(netB)+'。<br>'
+      +'• 不提前、存 '+dPct.toFixed(2)+'%（按 '+(b.term/12).toFixed(1)+' 年计）：约 ¥'+fmt(holdGain)+'。<br>'
+      +'<b>结论：'+(diff>0 ? '提前还款更划算，多赚 ¥'+fmt(diff) : '持有现金更划算，多赚 ¥'+fmt(-diff))+'。</b>';
+  }
+}
+
+/* ================= 事件绑定 ================= */
+['method','principal','periods','rate','prepayN','extra','extraY','taxDeduct','taxIncome','deductedM'].forEach(id=>$(id).addEventListener('input',render));
+$('loanType').addEventListener('change',e=>{ if(e.target.value) $('loanName').value=e.target.value; });
+$('dep').addEventListener('input',e=>{ $('depN').value=e.target.value; render(); });
+$('depN').addEventListener('input',render);
+$('prepay').addEventListener('input',e=>{ $('prepayN').value=e.target.value; render(); });
+
+render();
+</script>
+
+
+</body></html>
