@@ -26,7 +26,35 @@ function load(){
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){ toast("保存失败：浏览器存储不可用"); } }
 
-function seed(){ return []; }
+function seed(){
+  const now = Date.now();
+  return [
+    {
+      id:"sample1", title:"A review of valve health diagnosis and assessment: Insights for intelligence maintenance of natural gas pipeline valves in China",
+      authors:"et al.", year:2023, venue:"Engineering Failure Analysis",
+      tags:["阀门","综述","健康管理"], url:"https://doi.org/10.1016/j.engfailanal.2023.107561",
+      status:"reading", rating:4,
+      notes:{ q:"管道阀门维护缺乏量化状态评估手段，如何从功能测试走向预测性维护？",
+              m:"系统梳理阀门常见失效模式、性能信号、诊断装备与数据驱动/模型驱动方法。",
+              find:"提出建立阀门健康数据库＋智能维护框架的路线图。",
+              ins:"可借鉴其“失效模式—可用信号—评估指标”的梳理框架，用于自己综述章节。" },
+      quotes:"Traditional preventive measures lack quantifiable evaluation criteria.",
+      createdAt:now-86400000*3, updatedAt:now-86400000, sample:true
+    },
+    {
+      id:"sample2", title:"Deep learning for fault diagnosis: A review",
+      authors:"Zhao R, Yan R, Chen Z, Mao K, Wang P, Gao R X", year:2019, venue:"Neural Computing and Applications",
+      tags:["综述","深度学习","故障诊断"], url:"",
+      status:"done", rating:5,
+      notes:{ q:"深度学习在故障诊断中如何系统化落地？",
+              m:"按数据类型梳理 SAE、CNN、RNN、GAN 等网络在诊断任务中的范式。",
+              find:"给出了模型选型与信号类型匹配的路线。",
+              ins:"写方法章节时按“信号—网络—任务”三要素组织相关工作。" },
+      quotes:"",
+      createdAt:now-86400000*10, updatedAt:now-86400000*2, sample:true
+    }
+  ];
+}
 
 /* ---------- 渲染 ---------- */
 function fmtTime(ts){
