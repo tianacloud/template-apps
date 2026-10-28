@@ -1531,7 +1531,7 @@ export default function start(){
   /* ===================== 初始化 ===================== */
 
   function init(){
-    var d = $('logDate');
+    var d = document.querySelector('#logForm input[name=logDate]');
     if (d) d.value = todayKey();
     var st = $('todayDate');
     if (st) st.textContent = todayKey() + ' 周' + weekday(todayKey());
