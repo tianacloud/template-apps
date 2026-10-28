@@ -1074,3 +1074,18 @@ function initAll(){
   if(S.result&&S.result.entries.length)renderBooklet();
 }
 load();initAll();
+
+// The hosted app disallows inline event handlers. Delegate the original controls
+// through a small, fixed grammar without evaluating strings as JavaScript.
+for (const type of ['click','change','input']) document.addEventListener(type, event => {
+  let el=event.target.closest('[on'+type+']'); if(!el || el['on'+type]) return;
+  let command=el.getAttribute('on'+type).trim();
+  if(command.startsWith('event.stopPropagation();')) { event.stopPropagation(); command=command.slice(24); }
+  if(command==="this.parentNode.classList.toggle('open')") { el.parentNode.classList.toggle('open'); return; }
+  const target=command.match(/^document\.getElementById\('([\w-]+)'\)\.(click\(\)|style\.display='none')$/);
+  if(target){const node=document.getElementById(target[1]); if(target[2]==='click()')node.click();else node.style.display='none';return;}
+  if(command==='window.print()'){window.print();return;}
+  const call=command.match(/^(\w+)\((.*)\)$/); if(!call || typeof window[call[1]]!=='function')return;
+  const args=call[2] ? call[2].split(',').map(x=>{x=x.trim(); if(x==='this')return el;if(x==='this.value')return el.value;if(x==='+this.value')return +el.value;if(x==='this.checked')return el.checked;if(x==="this.value==='1'")return el.value==='1';if(x==='true')return true;if(x==='false')return false;if(/^'.*'$/.test(x))return x.slice(1,-1);if(/^-?\d+$/.test(x))return Number(x);return undefined;}) : [];
+  window[call[1]](...args);
+});
