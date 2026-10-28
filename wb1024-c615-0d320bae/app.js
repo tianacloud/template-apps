@@ -681,5 +681,6 @@ async function boot(){
   const cached = loadLocalCache();
   if(cached) state = cached;
   renderAll();
+  renderDayPanel(selDay);
 }
 window.closeSheet=closeSheet; boot();
