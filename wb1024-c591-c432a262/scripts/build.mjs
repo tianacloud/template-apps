@@ -1,4 +1,4 @@
-import {mkdir,copyFile,rm} from 'node:fs/promises';
-await rm('dist',{recursive:true,force:true}); await mkdir('dist',{recursive:true});
-await copyFile('index.html','dist/index.html'); await copyFile('public/icon.png','dist/icon.png');
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'index.html'}));
+import {mkdir,copyFile,readFile} from 'node:fs/promises';
+const source=JSON.parse(await readFile('source.json','utf8'));
+await mkdir('dist/assets',{recursive:true}); await copyFile('app.js','dist/assets/app.js'); await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
