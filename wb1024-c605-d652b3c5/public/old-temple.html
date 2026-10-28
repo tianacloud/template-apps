@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>仲夏月夜 · 山寺水巷</title>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#05070f;}
+  canvas{display:block;}
+  #tint{position:fixed;inset:0;pointer-events:none;
+        background:radial-gradient(circle at 38% 32%, rgba(150,185,255,.10), rgba(0,0,0,0) 62%);}
+  #vg{position:fixed;inset:0;pointer-events:none;mix-blend-mode:multiply;
+      background:radial-gradient(ellipse at 50% 48%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 42%,
+                  rgba(120,131,166,1) 76%, rgba(36,42,64,1) 100%);}
+  #snd{position:fixed;top:10px;right:12px;z-index:10;display:flex;align-items:center;gap:6px;
+       opacity:.45;transition:opacity .25s;}
+  #snd:hover{opacity:.95;}
+  #sndBtn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(170,200,240,.35);
+          background:rgba(10,16,30,.55);color:#c8dcf5;cursor:pointer;padding:0;
+          display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  #sndBtn:hover{border-color:rgba(170,200,240,.7);}
+  #sndBar{display:none;align-items:center;}
+  #snd:hover #sndBar{display:flex;}
+  #sndVol{-webkit-appearance:none;appearance:none;width:58px;height:3px;border-radius:2px;
+          background:rgba(170,200,240,.35);outline:none;cursor:pointer;}
+  #sndVol::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;
+          background:#c8dcf5;border:none;}
+  #sndVol::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:#c8dcf5;border:none;}
+</style>
+</head>
+<body>
+<div id="tint"></div>
+<div id="vg"></div>
+<div id="snd">
+  <button id="sndBtn" title="虫鸣 开·关">
+    <svg id="icOff" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path d="M16 9l6 6M22 9l-6 6"/></svg>
+    <svg id="icOn" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+  </button>
+  <div id="sndBar"><input id="sndVol" type="range" min="0" max="100" value="52"></div>
+</div>
+<script src="lib/three.min.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   仲夏月夜 · 山间临水寺庙古巷   (three.js r128 / 完全离线)
+   ============================================================ */
+const T = THREE;
+const R  = (a,b)=> a + Math.random()*(b-a);
+const clamp = T.MathUtils.clamp;
+const CN = '"Songti SC","STSong","SimSun","Noto Serif CJK SC","Microsoft YaHei",serif';
+
+/* ---------------- 渲染器 / 场景 / 相机 ---------------- */
+const renderer = new T.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.6));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x060a14, 1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new T.Scene();
+scene.background = new T.Color(0x060a14);
+scene.fog = new T.Fog(0x0a1122, 54, 122);
+
+const camera = new T.PerspectiveCamera(30, window.innerWidth/window.innerHeight, 0.5, 400);
+
+/* ---------------- 自由轨道控制（拖拽 / 旋转 / 缩放） ---------------- */
+const ctrl = { target:new T.Vector3(-0.3,1.9,-0.5), r:35, theta:0.52, phi:1.02,
+               dth:0, dph:0, dr:0, idle:0, dragging:false };
+(function(){
+  const el = renderer.domElement;
+  el.style.touchAction = 'none';
+  const pts = new Map();
+  let lx=0, ly=0, ld=0;
+  el.addEventListener('pointerdown', e=>{
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    lx=e.clientX; ly=e.clientY; ctrl.idle=0; ctrl.dragging=true;
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){
+      ctrl.dth -= (e.clientX-lx)*0.0058;
+      ctrl.dph -= (e.clientY-ly)*0.0045;
+    }else if(pts.size===2){
+      const p=[...pts.values()];
+      const d=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+      if(ld) ctrl.dr += (ld-d)*0.045;
+      ld=d;
+    }
+    lx=e.clientX; ly=e.clientY; ctrl.idle=0;
+  });
+  const up = e=>{ pts.delete(e.pointerId); if(pts.size<2) ld=0; if(pts.size===0) ctrl.dragging=false; };
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',up);
+  el.addEventListener('wheel', e=>{ e.preventDefault(); ctrl.dr += e.deltaY*0.014; ctrl.idle=0; }, {passive:false});
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* ---------------- 卡通渐变（三渲二关键） ---------------- */
+function makeRamp(steps, vals){
+  const d = new Uint8Array(steps);
+  for(let i=0;i<steps;i++) d[i] = Math.round(255*vals[i]);
+  const t = new T.DataTexture(d, steps, 1, T.LuminanceFormat);
+  t.minFilter = t.magFilter = T.NearestFilter;
+  t.generateMipmaps = false;
+  t.needsUpdate = true;
+  return t;
+}
+const RAMP = makeRamp(5, [0.30,0.53,0.73,0.90,1.0]);
+
+/* ---------------- 材质 / 几何工具 ---------------- */
+const OLM      = new T.MeshBasicMaterial({color:0x080d1a, side:T.BackSide});
+const OLM_WARM = new T.MeshBasicMaterial({color:0x2b1c0c, side:T.BackSide});
+
+function MK(color, o){
+  o = o || {};
+  const p = { color:color, gradientMap:RAMP };
+  if(o.emissive!==undefined){ p.emissive=new T.Color(o.emissive); p.emissiveIntensity=(o.ei!==undefined?o.ei:1); }
+  if(o.map) p.map = o.map;
+  if(o.side) p.side = o.side;
+  if(o.transparent){ p.transparent=true; p.opacity=(o.opacity!==undefined?o.opacity:1); p.depthWrite=!!o.depthWrite; }
+  return new T.MeshToonMaterial(p);
+}
+function MB(color, o){
+  o = o||{};
+  const p = { color:color };
+  if(o.map) p.map=o.map;
+  if(o.side) p.side=o.side;
+  if(o.transparent!==undefined){ p.transparent=o.transparent; p.opacity=(o.opacity!==undefined?o.opacity:1); p.depthWrite=!!o.depthWrite; }
+  if(o.alphaTest!==undefined){ p.alphaTest=o.alphaTest; }
+  if(o.blending!==undefined) p.blending=o.blending;
+  return new T.MeshBasicMaterial(p);
+}
+function addOL(mesh, t, warm){
+  const g = mesh.geometry;
+  if(!g.boundingBox) g.computeBoundingBox();
+  const s = g.boundingBox.getSize(new T.Vector3());
+  if(Math.min(s.x,s.y,s.z) < 0.05) return null;
+  const k = (t===undefined?0.017:t);
+  const o = new T.Mesh(g, warm?OLM_WARM:OLM);
+  o.scale.set((s.x+2*k)/s.x, (s.y+2*k)/s.y, (s.z+2*k)/s.z);
+  o.userData.isOL = true;
+  o.castShadow = false;
+  o.receiveShadow = false;
+  mesh.add(o);
+  return o;
+}
+function BX(pa, w,h,d, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.BoxGeometry(w,h,d), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0 && !m.transparent) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+function PL(pa, w,h, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.PlaneGeometry(w,h), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  return mesh;
+}
+function CY(pa, rt,rb,h,seg, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.CylinderGeometry(rt,rb,h,seg||12), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0 && !m.transparent) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+function CO(pa, r,h,seg, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.ConeGeometry(r,h,seg||8), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+function SP(pa, r, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.SphereGeometry(r, o.sg||12, o.sy||9), m);
+  mesh.position.set(x,y,z);
+  if(o.sx!==undefined||o.sy2!==undefined||o.sz!==undefined) mesh.scale.set(o.sx||1,o.sy2||1,o.sz||1);
+  (pa||scene).add(mesh);
+  if(o.ol!==0 && !m.transparent) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+
+/* ---------------- 画布贴图 ---------------- */
+function CV(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function TX(c, rx, ry){
+  const t = new T.CanvasTexture(c);
+  t.anisotropy = 4;
+  if(rx){ t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rx, ry||rx); }
+  return t;
+}
+function speckle(ctx,w,h,n,size,alpha){
+  for(let i=0;i<n;i++){
+    const x=Math.random()*w, y=Math.random()*h, r=Math.random()*size+0.4;
+    ctx.fillStyle = (Math.random()>0.5?'rgba(255,255,255,':'rgba(0,0,0,')+(alpha*Math.random()).toFixed(3)+')';
+    ctx.beginPath(); ctx.arc(x,y,r,0,6.2832); ctx.fill();
+  }
+}
+const RAD_TEX = (function(){
+  const c=CV(128,128), x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.25,'rgba(255,255,255,0.55)');
+  g.addColorStop(0.55,'rgba(255,255,255,0.16)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  return TX(c);
+})();
+
+/* 青石板 */
+const TEX_STONE = (function(){
+  const c=CV(512,512), x=c.getContext('2d');
+  x.fillStyle='#394454'; x.fillRect(0,0,512,512);
+  for(let r=0;r<4;r++) for(let i=0;i<5;i++){
+    const off=(r%2)*64;
+    const px=i*128+off-128;
+    if(px<-128||px>512) continue;
+    const v=R(-12,16);
+    x.fillStyle='rgb('+Math.round(58+v)+','+Math.round(70+v)+','+Math.round(90+v)+')';
+    x.fillRect(px+2, r*128+2, 124, 124);
+    x.fillStyle='rgba(255,255,255,0.05)'; x.fillRect(px+2, r*128+2, 124, 4);
+    x.fillStyle='rgba(0,0,0,0.16)'; x.fillRect(px+2, r*128+120, 124, 6);
+  }
+  speckle(x,512,512,2600,2.0,0.13);
+  return TX(c,3,3);
+})();
+/* 青瓦 */
+const TEX_TILE = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#2f3b53'; x.fillRect(0,0,256,256);
+  for(let i=0;i<16;i++){
+    const px=i*16;
+    const g=x.createLinearGradient(px,0,px+16,0);
+    g.addColorStop(0,'rgba(10,16,30,0.85)'); g.addColorStop(0.42,'rgba(98,118,152,0.55)');
+    g.addColorStop(0.72,'rgba(52,66,92,0.32)'); g.addColorStop(1,'rgba(10,16,30,0.85)');
+    x.fillStyle=g; x.fillRect(px,0,16,256);
+  }
+  for(let r=0;r<8;r++){
+    const py=r*32;
+    x.fillStyle='rgba(8,14,26,0.45)'; x.fillRect(0,py,256,5);
+    x.fillStyle='rgba(122,144,180,0.14)'; x.fillRect(0,py+5,256,3);
+    for(let i=0;i<16;i++){
+      x.fillStyle='rgba(8,14,26,0.30)';
+      x.beginPath(); x.arc(i*16+8, py+22, 3.4, 0, 6.2832); x.fill();
+    }
+  }
+  speckle(x,256,256,900,1.6,0.10);
+  return TX(c,2,2);
+})();
+/* 斑驳白墙 */
+const TEX_WALL = (function(){
+  const c=CV(512,512), x=c.getContext('2d');
+  x.fillStyle='#7d8596'; x.fillRect(0,0,512,512);
+  for(let i=0;i<44;i++){
+    const px=Math.random()*512, py=R(110,512), w=R(40,190), h=R(50,220);
+    const g=x.createLinearGradient(px,py,px,py+h);
+    g.addColorStop(0,'rgba(58,66,80,0.28)'); g.addColorStop(1,'rgba(58,66,80,0)');
+    x.fillStyle=g; x.fillRect(px,py,w,h);
+  }
+  for(let i=0;i<26;i++){
+    x.fillStyle='rgba(150,160,178,'+R(0.06,0.20).toFixed(3)+')';
+    x.beginPath(); x.ellipse(Math.random()*512, Math.random()*512, R(20,80), R(14,50), Math.random()*3,0,6.2832); x.fill();
+  }
+  for(let i=0;i<22;i++){
+    x.fillStyle='rgba(74,104,74,'+R(0.06,0.20).toFixed(3)+')';
+    x.beginPath(); x.ellipse(Math.random()*512, R(300,512), R(16,64), R(10,34), Math.random()*3,0,6.2832); x.fill();
+  }
+  speckle(x,512,512,2200,1.8,0.10);
+  x.fillStyle='#4a5262'; x.fillRect(0,470,512,42);
+  x.fillStyle='rgba(0,0,0,0.25)'; x.fillRect(0,468,512,4);
+  return TX(c,2,2);
+})();
+/* 木纹 */
+const TEX_WOOD = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#6a4a33'; x.fillRect(0,0,256,256);
+  for(let i=0;i<46;i++){
+    x.strokeStyle='rgba('+R(48,96).toFixed(0)+','+R(32,66).toFixed(0)+','+R(20,44).toFixed(0)+','+R(0.14,0.40).toFixed(2)+')';
+    x.lineWidth=R(0.6,2.6);
+    x.beginPath(); x.moveTo(0, Math.random()*256);
+    x.bezierCurveTo(80,Math.random()*256, 170,Math.random()*256, 256, Math.random()*256);
+    x.stroke();
+  }
+  speckle(x,256,256,900,1.4,0.09);
+  return TX(c,2,2);
+})();
+/* 山岩 */
+const TEX_ROCK = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#28323f'; x.fillRect(0,0,256,256);
+  for(let i=0;i<40;i++){
+    x.fillStyle='rgba('+R(34,72).toFixed(0)+','+R(42,82).toFixed(0)+','+R(54,98).toFixed(0)+',0.5)';
+    x.beginPath(); x.ellipse(Math.random()*256, Math.random()*256, R(16,70), R(12,44), Math.random()*3,0,6.2832); x.fill();
+  }
+  x.strokeStyle='rgba(14,20,30,0.55)'; x.lineWidth=2.4;
+  for(let i=0;i<16;i++){ x.beginPath(); x.moveTo(Math.random()*256,Math.random()*256); x.lineTo(Math.random()*256,Math.random()*256); x.stroke(); }
+  speckle(x,256,256,2000,1.8,0.12);
+  return TX(c,2,2);
+})();
+/* 雕花窗棂（镂空） */
+const TEX_LATTICE = (function(){
+  const c=CV(128,128), x=c.getContext('2d');
+  x.fillStyle='#4a3222'; x.fillRect(0,0,128,128);
+  x.globalCompositeOperation='destination-out';
+  const cols=4, rows=4, pad=7, gap=5;
+  const cw=(128-pad*2-gap*(cols-1))/cols, ch=(128-pad*2-gap*(rows-1))/rows;
+  for(let r=0;r<rows;r++) for(let i=0;i<cols;i++)
+    x.fillRect(pad+i*(cw+gap), pad+r*(ch+gap), cw, ch);
+  x.globalCompositeOperation='source-over';
+  x.strokeStyle='#4a3222'; x.lineWidth=3;
+  for(let r=0;r<rows;r++) for(let i=0;i<cols;i++){
+    const px=pad+i*(cw+gap), py=pad+r*(ch+gap);
+    x.beginPath();
+    x.moveTo(px+cw*0.5,py); x.lineTo(px+cw,py+ch*0.5);
+    x.lineTo(px+cw*0.5,py+ch); x.lineTo(px,py+ch*0.5); x.closePath(); x.stroke();
+  }
+  return TX(c);
+})();
+/* 匾额 */
+function plaqueTex(text, bg, fg){
+  const c=CV(512,150), x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,512,150);
+  x.fillStyle='rgba(0,0,0,0.22)'; x.fillRect(0,0,512,10); x.fillRect(0,140,512,10);
+  x.strokeStyle=fg; x.lineWidth=8; x.strokeRect(7,7,498,136);
+  x.lineWidth=2.5; x.strokeRect(20,20,472,110);
+  x.fillStyle=fg; x.font='bold 78px '+CN; x.textAlign='center'; x.textBaseline='middle';
+  const n=text.length, sp=Math.min(92, 400/n);
+  for(let i=0;i<n;i++) x.fillText(text[i], 256+(i-(n-1)/2)*sp, 78);
+  return TX(c);
+}
+function clothTex(ch, bg, fg){
+  const c=CV(64,128), x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,64,128);
+  x.fillStyle='rgba(0,0,0,0.18)'; x.fillRect(0,0,64,10);
+  x.fillStyle=fg; x.font='bold 40px '+CN; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(ch, 32, 66);
+  return TX(c);
+}
+/* 经书卷轴 */
+const TEX_SUTRA = (function(){
+  const c=CV(256,128), x=c.getContext('2d');
+  x.fillStyle='#4a3222'; x.fillRect(0,0,256,128);
+  for(let r=0;r<3;r++){
+    const py=8+r*40;
+    x.fillStyle='#3a2618'; x.fillRect(4,py+34,248,4);
+    for(let i=0;i<11;i++){
+      const px=8+i*22;
+      x.fillStyle=['#c8b184','#bfa877','#d3c199','#b09a72'][i%4];
+      x.fillRect(px, py+6, 18, 28);
+      x.fillStyle='rgba(255,255,255,0.16)'; x.fillRect(px, py+6, 18, 5);
+      x.fillStyle='rgba(0,0,0,0.22)'; x.fillRect(px, py+26, 18, 8);
+    }
+  }
+  return TX(c);
+})();
+/* 竹帘 */
+const TEX_BLIND = (function(){
+  const c=CV(128,128), x=c.getContext('2d');
+  x.clearRect(0,0,128,128);
+  for(let i=0;i<26;i++){
+    const py=i*5;
+    x.fillStyle='rgba(196,176,120,'+(0.72+Math.random()*0.2).toFixed(2)+')';
+    x.fillRect(0,py,128,3.4);
+    x.fillStyle='rgba(90,70,40,0.45)'; x.fillRect(0,py+3.4,128,1.2);
+  }
+  x.fillStyle='rgba(120,92,50,0.85)'; x.fillRect(0,0,128,4); x.fillRect(0,124,128,4);
+  return TX(c);
+})();
+/* 碑刻 */
+const TEX_STELE = (function(){
+  const c=CV(128,256), x=c.getContext('2d');
+  x.fillStyle='#4e5666'; x.fillRect(0,0,128,256);
+  speckle(x,128,256,700,1.6,0.12);
+  x.strokeStyle='rgba(24,30,42,0.5)'; x.lineWidth=3; x.strokeRect(12,12,104,232);
+  x.fillStyle='rgba(26,32,44,0.78)'; x.font='bold 34px '+CN; x.textAlign='center'; x.textBaseline='middle';
+  ['山','寺','禪','林'].forEach((ch,i)=> x.fillText(ch, 64, 52+i*56));
+  return TX(c);
+})();
+
+/* ---------------- 材质 ---------------- */
+const M = {
+  baseTop   : MK(0x2b3346, {map:TEX_ROCK}),
+  baseSide  : MK(0x1a2130, {map:TEX_ROCK}),
+  baseTrim  : MK(0x333c52),
+  ground    : MK(0x33405a, {map:TEX_STONE}),
+  bankStone : MK(0x3a4459, {map:TEX_ROCK}),
+  bed       : MK(0x1d2434, {map:TEX_STONE}),
+  pave      : MK(0x3b475e, {map:TEX_STONE}),
+  mossStone : MK(0x3c5340, {map:TEX_STONE}),
+  rock      : MK(0x2a3546, {map:TEX_ROCK}),
+  rockLite  : MK(0x36425a, {map:TEX_ROCK}),
+  tile      : MK(0x36445e, {map:TEX_TILE, side:T.DoubleSide}),
+  tileRidge : MK(0x2b3750, {side:T.DoubleSide}),
+  eave      : MK(0x27324a),
+  wallWhite : MK(0x828b9c, {map:TEX_WALL}),
+  wood      : MK(0x6b4c36, {map:TEX_WOOD}),
+  woodDark  : MK(0x4a3524, {map:TEX_WOOD}),
+  woodRed   : MK(0x8d3b33, {map:TEX_WOOD}),
+  woodRedIn : MK(0x9c453a, {map:TEX_WOOD, emissive:0x6e2a12, ei:0.45}),
+  stone     : MK(0x5a6478, {map:TEX_STONE}),
+  stoneLite : MK(0x6b7488, {map:TEX_STONE}),
+  stoneDark : MK(0x3d4658, {map:TEX_STONE}),
+  paper     : MK(0xf0e3c4, {emissive:0xffb367, ei:1.0}),
+  paperDim  : MK(0xe6d7b6, {emissive:0xd08a3c, ei:0.72}),
+  inFloor   : MK(0x5c4630, {map:TEX_WOOD, emissive:0x8a5620, ei:0.55}),
+  inFloorSt : MK(0x4a5162, {map:TEX_STONE, emissive:0x7a4c1c, ei:0.45}),
+  inWall    : MK(0x9c7c58, {map:TEX_WOOD, emissive:0x7c4c18, ei:0.5}),
+  inCeil    : MK(0x6d5238, {map:TEX_WOOD, emissive:0x6a4014, ei:0.42}),
+  gold      : MK(0xd8a544, {emissive:0x7a5410, ei:0.85}),
+  goldDeep  : MK(0xc0913a, {emissive:0x6a4710, ei:0.70}),
+  bronze    : MK(0x7d6a3c, {emissive:0x4a3a12, ei:0.50}),
+  celadon   : MK(0x86b3a4, {emissive:0x2c4a42, ei:0.45}),
+  cloth     : MK(0x8d4a3a, {emissive:0x5e2418, ei:0.50}),
+  cushion   : MK(0xa8503c, {emissive:0x5c2416, ei:0.45}),
+  cushion2  : MK(0xa8863c, {emissive:0x5e4a18, ei:0.42}),
+  rug       : MK(0x6f6a52, {emissive:0x3a3218, ei:0.40}),
+  candle    : MK(0xf2e2bc, {emissive:0xffc060, ei:0.90}),
+  leaf      : MK(0x3e6350, {side:T.DoubleSide}),
+  leafLite  : MK(0x4e7a5c, {side:T.DoubleSide}),
+  willow    : MK(0x3c5c4c, {side:T.DoubleSide}),
+  pine      : MK(0x2c4a42, {side:T.DoubleSide}),
+  bamboo    : MK(0x4e7a4a),
+  trunk     : MK(0x4a3526, {map:TEX_WOOD}),
+  white     : MK(0xdfe6f0),
+  red       : MK(0xc0392b),
+  rope      : MK(0x6a5a3c)
+};
+
+/* ---------------- 灯光 ---------------- */
+scene.add(new T.HemisphereLight(0x5878b4, 0x080d18, 0.62));
+scene.add(new T.AmbientLight(0x2b3a5c, 0.44));
+const moon = new T.DirectionalLight(0xb9d2ff, 0.58);
+moon.position.set(-13, 19, 12); scene.add(moon);
+const fill = new T.DirectionalLight(0x4f6ea8, 0.24);
+fill.position.set(14, 9, -12); scene.add(fill);
+
+const L = {};
+function ptLight(name, color, intensity, dist, x,y,z){
+  const l = new T.PointLight(color, intensity, dist, 2);
+  l.position.set(x,y,z); scene.add(l); L[name]=l; return l;
+}
+
+/* 月亮与星空 */
+(function(){
+  const m = new T.Mesh(new T.SphereGeometry(2.0, 22, 16), MB(0xf2f6ff));
+  m.position.set(-27, 25, -36); scene.add(m);
+  const halo = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xa8c8ff,
+    blending:T.AdditiveBlending, opacity:0.55, transparent:true, depthWrite:false}));
+  halo.position.set(-27,25,-36); halo.scale.set(20,20,1); scene.add(halo);
+  const g=new T.BufferGeometry(), arr=[];
+  for(let i=0;i<440;i++){
+    const a=R(0,6.2832), e=R(0.16,1.25), rr2=R(72,132);
+    arr.push(Math.cos(a)*Math.cos(e)*rr2, Math.sin(e)*rr2*0.85+6, Math.sin(a)*Math.cos(e)*rr2);
+  }
+  g.setAttribute('position', new T.Float32BufferAttribute(arr,3));
+  scene.add(new T.Points(g, new T.PointsMaterial({color:0xdce8ff, size:0.42, sizeAttenuation:true,
+    transparent:true, opacity:0.72})));
+})();
+
+/* ============================================================
+   底座
+   ============================================================ */
+const root = new T.Group();
+scene.add(root);
+
+(function buildBase(){
+  BX(root, 16, 1.6, 16, M.baseSide, 0, -0.80, 0, {ol:0});
+  PL(root, 16, 16, M.baseTop, 0, 0.002, 0, {rx:-Math.PI/2});
+  BX(root, 16.5, 0.22, 16.5, M.baseTrim, 0, -1.56, 0, {ol:0});
+  BX(root, 16.9, 0.18, 16.9, MK(0x11161f), 0, -1.75, 0, {ol:0});
+  const fr=0.34;
+  BX(root, 16, 0.06, fr, M.baseTrim, 0, 0.03,  8-fr/2, {olt:0.01});
+  BX(root, 16, 0.06, fr, M.baseTrim, 0, 0.03, -8+fr/2, {olt:0.01});
+  BX(root, fr, 0.06, 16, M.baseTrim,  8-fr/2, 0.03, 0, {olt:0.01});
+  BX(root, fr, 0.06, 16, M.baseTrim, -8+fr/2, 0.03, 0, {olt:0.01});
+})();
+
+/* ============================================================
+   地形：河道 / 两岸
+   ============================================================ */
+const Y_BANK = 0.24, Y_WATER = -0.10, Y_BED = -0.55;
+function zc(x){ return 2.95 + (x+8)*0.14; }
+function zn(x){ return zc(x) - 1.45 + Math.sin(x*1.9)*0.09 + Math.sin(x*0.83+1.4)*0.07; }
+function zs(x){ return zc(x) + 1.45 + Math.sin(x*1.5+2.2)*0.09 + Math.cos(x*0.95)*0.07; }
+
+const XS = [];
+for(let i=0;i<=22;i++) XS.push(-8 + i*(16/22));
+const PT_N = XS.map(x=>[x, zn(x)]);
+const PT_S = XS.map(x=>[x, zs(x)]);
+
+function stripMesh(ptsA, ptsB, yA, yB, mat, uRep){
+  const pos=[], uv=[], n=ptsA.length;
+  for(let i=0;i<n-1;i++){
+    const a0=ptsA[i], a1=ptsA[i+1], b0=ptsB[i], b1=ptsB[i+1];
+    const q=[[a0[0],yA,a0[1]],[b0[0],yB,b0[1]],[b1[0],yB,b1[1]],[a1[0],yA,a1[1]]];
+    const u0=i*(uRep||1)/(n-1), u1=(i+1)*(uRep||1)/(n-1);
+    const uvq=[[u0,0],[u0,1],[u1,1],[u1,0]];
+    [0,1,2,0,2,3].forEach(k=>{ pos.push(q[k][0],q[k][1],q[k][2]); uv.push(uvq[k][0],uvq[k][1]); });
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv', new T.Float32BufferAttribute(uv,2));
+  g.computeVertexNormals();
+  const m=new T.Mesh(g, mat);
+  // 双面补一层，避免绕序问题
+  const g2=new T.BufferGeometry();
+  const pos2=[], uv2=[];
+  for(let i=0;i<n-1;i++){
+    const a0=ptsA[i], a1=ptsA[i+1], b0=ptsB[i], b1=ptsB[i+1];
+    const q=[[b0[0],yB,b0[1]],[a0[0],yA,a0[1]],[a1[0],yA,a1[1]],[b1[0],yB,b1[1]]];
+    const u0=i*(uRep||1)/(n-1), u1=(i+1)*(uRep||1)/(n-1);
+    const uvq=[[u0,0],[u0,1],[u1,1],[u1,0]];
+    [0,1,2,0,2,3].forEach(k=>{ pos2.push(q[k][0],q[k][1],q[k][2]); uv2.push(uvq[k][0],uvq[k][1]); });
+  }
+  g2.setAttribute('position', new T.Float32BufferAttribute(pos2,3));
+  g2.setAttribute('uv', new T.Float32BufferAttribute(uv2,2));
+  g2.computeVertexNormals();
+  m.add(new T.Mesh(g2, mat));
+  return m;
+}
+function wallStrip(pts, yTop, yBot, mat, uRep){
+  const pos=[], uv=[], n=pts.length;
+  for(let i=0;i<n-1;i++){
+    const a=pts[i], b=pts[i+1];
+    const q=[[a[0],yTop,a[1]],[a[0],yBot,a[1]],[b[0],yBot,b[1]],[b[0],yTop,b[1]]];
+    const u0=i*(uRep||1)/(n-1), u1=(i+1)*(uRep||1)/(n-1);
+    const uvq=[[u0,1],[u0,0],[u1,0],[u1,1]];
+    [0,1,2,0,2,3].forEach(k=>{ pos.push(q[k][0],q[k][1],q[k][2]); uv.push(uvq[k][0],uvq[k][1]); });
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv', new T.Float32BufferAttribute(uv,2));
+  g.computeVertexNormals();
+  return new T.Mesh(g, mat);
+}
+
+(function buildTerrain(){
+  root.add(stripMesh(XS.map(x=>[x,-8.05]), PT_N.map(p=>[p[0],p[1]-0.02]), Y_BANK, Y_BANK, M.ground, 6));
+  root.add(stripMesh(PT_S.map(p=>[p[0],p[1]+0.02]), XS.map(x=>[x,8.05]), Y_BANK, Y_BANK, M.ground, 6));
+  root.add(stripMesh(PT_N.map(p=>[p[0],p[1]+0.30]), PT_S.map(p=>[p[0],p[1]-0.30]), Y_BED, Y_BED, M.bed, 5));
+  root.add(wallStrip(PT_N.map(p=>[p[0],p[1]-0.02]), Y_BANK, Y_WATER+0.04, M.bankStone, 7));
+  root.add(wallStrip(PT_S.map(p=>[p[0],p[1]+0.02]), Y_BANK, Y_WATER+0.04, M.bankStone, 7));
+  for(let i=0;i<XS.length-1;i++){
+    const mx=(XS[i]+XS[i+1])/2, w=(XS[i+1]-XS[i])+0.03;
+    BX(root, w, 0.10, 0.16, M.stoneLite, mx, Y_BANK+0.03, zn(mx)-0.06, {ol:0});
+    BX(root, w, 0.10, 0.16, M.stoneLite, mx, Y_BANK+0.03, zs(mx)+0.06, {ol:0});
+  }
+  for(let i=0;i<28;i++){
+    const x=R(-7.6,7.6);
+    const z = Math.random()<0.58 ? R(-6.9, zn(x)-0.25) : R(zs(x)+0.25, 7.8);
+    const s=R(0.16,0.34);
+    SP(root, s, Math.random()<0.4?M.mossStone:M.stoneDark, x, Y_BANK+s*0.28, z,
+      {sg:7, sy:5, sx:1.3, sy2:0.62, sz:1.1, ry:Math.random()*3, ol:0});
+  }
+})();
+
+/* 山崖 */
+const CLIFF_FOOT = -7.05;
+function pine(pa, x,y,z, s){
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  CY(g, 0.09*s,0.15*s,1.5*s, 7, M.trunk, 0, 0.72*s, 0, {ol:0});
+  for(let i=0;i<3;i++) CO(g, (0.72-i*0.17)*s, 0.62*s, 7, i%2?M.pine:M.leaf, 0, (0.85+i*0.42)*s, 0, {ol:0});
+  CO(g, 0.34*s, 0.55*s, 7, M.pine, 0, 2.0*s, 0, {ol:0});
+}
+(function buildCliff(){
+  const back=-8.05, rows=[0,0.34,0.68,1.0];
+  const yAt = t => 0.22 + Math.pow(t,0.86)*4.30;
+  const zAt = t => CLIFF_FOOT + (back-CLIFF_FOOT)*t;
+  let prev=null;
+  rows.forEach((t,r)=>{
+    const pts=[];
+    for(let i=0;i<=18;i++){
+      const x=-8.02+i*(16.04/18);
+      const jz=Math.sin(x*1.3+r*1.7)*0.16 + Math.cos(x*0.61+2.0+r)*0.13;
+      const jy=Math.sin(x*0.94+r*2.1)*0.30 + Math.cos(x*1.9+r)*0.22;
+      pts.push({x:x, z:zAt(t)+jz*(r>0?1:0.4), y:yAt(t)+jy*(r>0?1:0.3)});
+    }
+    if(prev){
+      for(let i=0;i<prev.length-1;i++){
+        const a=[[prev[i].x,prev[i].z],[prev[i+1].x,prev[i+1].z]];
+        const b=[[pts[i].x,pts[i].z],[pts[i+1].x,pts[i+1].z]];
+        root.add(stripMesh(a, b, prev[i].y, prev[i+1].y, r%2?M.rockLite:M.rock, 1));
+        root.add(stripMesh(b, a, pts[i].y, pts[i+1].y, M.rock, 1));
+      }
+    }
+    prev=pts;
+  });
+  for(let i=0;i<30;i++){
+    const x=R(-7.9,7.9), t=R(0.05,0.98);
+    BX(root, R(0.26,1.4), R(0.22,1.2), R(0.26,1.4), Math.random()<0.5?M.rock:M.rockLite,
+       x, yAt(t)+R(-0.2,0.35), zAt(t)+R(-0.22,0.22), {ry:Math.random()*3, rx:R(-0.2,0.2), olt:0.02});
+  }
+  [[-6.6,1.0],[-4.2,0.86],[-1.4,1.12],[2.6,0.92],[5.4,1.05]].forEach(p=>
+    pine(root, p[0], yAt(1.0)-0.10, zAt(1.0)+R(-0.35,0.10), p[1]));
+  for(let i=0;i<18;i++)
+    BX(root, R(0.3,0.8), R(0.2,0.45), R(0.3,0.8), M.mossStone,
+       R(-7.7,7.7), 0.24+R(0,0.1), CLIFF_FOOT+R(0.05,0.5), {ry:Math.random()*3, olt:0.02});
+})();
+
+/* ============================================================
+   水面
+   ============================================================ */
+const waterUniforms = {
+  uTime:{value:0}, uMoon:{value:new T.Color(0xd2e2ff)},
+  uDeep:{value:new T.Color(0x1c3a64)}, uShallow:{value:new T.Color(0x4d7ab2)},
+  uMoonX:{value:0.38},
+  uLamp:{value: Array.from({length:20}, ()=> new T.Vector3(0,0,0))},
+  uLampCol:{value: Array.from({length:20}, ()=> new T.Color(0,0,0))},
+  uLampN:{value:0}
+};
+const waterMat = new T.ShaderMaterial({
+  uniforms: waterUniforms,
+  vertexShader:[
+    'varying vec2 vUv;',
+    'varying vec3 vWorld;',
+    'void main(){',
+    '  vUv = uv;',
+    '  vWorld = position;',
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+    '}'
+  ].join('\n'),
+  fragmentShader:[
+    'varying vec2 vUv; varying vec3 vWorld;',
+    'uniform float uTime; uniform float uMoonX;',
+    'uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uMoon;',
+    'uniform vec3 uLamp[20];',
+    'uniform vec3 uLampCol[20];',
+    'uniform int uLampN;',
+    'float h11(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
+    'float nse(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);',
+    '  return mix(mix(h11(i),h11(i+vec2(1.0,0.0)),f.x), mix(h11(i+vec2(0.0,1.0)),h11(i+vec2(1.0,1.0)),f.x), f.y); }',
+    'void main(){',
+    '  vec2 uv = vUv; float t = uTime;',
+    '  float f1 = nse(vec2(uv.x*9.0, uv.y*26.0 - t*0.40));',
+    '  float f2 = nse(vec2(uv.x*21.0+3.1, uv.y*54.0 - t*0.65));',
+    '  float band = sin((uv.y*34.0 + uv.x*7.0) + t*1.45 + f1*6.2832)*0.5+0.5;',
+    '  float w = band*0.55 + (f2-0.5)*0.62 + (f1-0.5)*0.34;',
+    '  vec3 col = mix(uDeep, uShallow, clamp(w*1.00+0.55, 0.0, 1.0));',
+    '  // Sparkle 波光粼粼 (密集)',
+    '  float sp = pow(max(0.0, nse(vec2(uv.x*170.0, uv.y*240.0 + t*1.10))), 9.0)*5.2;',
+    '  sp += pow(max(0.0, nse(vec2(uv.x*90.0+7.7, uv.y*130.0 - t*0.70))), 11.0)*4.4;',
+    '  sp += pow(max(0.0, nse(vec2(uv.x*45.0+2.3, uv.y*70.0 + t*0.50))), 16.0)*2.4;',
+    '  // Moon path 月光带（宽·亮）',
+    '  float mp = exp(-pow((uv.x - uMoonX)*1.6, 2.0));',
+    '  col += uMoon * mp * (0.22 + w*0.16 + sp*0.55);',
+    '  // Waterline foam 水边泛光（明显）',
+    '  float edge = min(uv.y, 1.0-uv.y);',
+    '  float foam = smoothstep(0.10, 0.0, edge) * (0.55+0.45*sin(t*1.7 + uv.x*32.0));',
+    '  col += vec3(0.86,0.94,1.10) * foam * 0.35;',
+    '  // Stylized flowing streaks 流水纹',
+    '  float streak = sin(uv.y*62.0 - t*1.20 + sin(uv.x*8.0+t*0.55)*2.2);',
+    '  streak = smoothstep(0.50, 1.0, streak);',
+    '  col += vec3(0.62,0.80,1.05) * streak * 0.20;',
+    '  // Sub-bright base',
+    '  col += vec3(0.42,0.62,0.92) * 0.10;',
+    '  // Sparkle highlights',
+    '  col += vec3(0.92,1.00,1.10) * sp * 0.30;',
+    '  // Lamp reflections 灯光倒影',
+    '  vec2 pos = vWorld.xz;',
+    '  vec2 fw = normalize(vec2(0.55, 1.0)); vec2 rt = vec2(-fw.y, fw.x);',
+    '  for(int i=0;i<20;i++){',
+    '    if(i >= uLampN) break;',
+    '    vec2 L = uLamp[i].xy; float I = uLamp[i].z;',
+    '    vec2 d = pos - L; float dlen = length(d);',
+    '    if(dlen > 5.0) continue;',
+    '    float along = dot(d, fw); float across = dot(d, rt);',
+    '    float wob = 0.5+0.5*sin(along*16.0 - t*2.40 + across*4.2);',
+    '    float wob2= 0.5+0.5*sin(along*7.5 + t*1.50 + nse(vec2(L))*3.0);',
+    '    float wfall = exp(-pow(across / (0.095 + 0.060*abs(along)+0.001), 2.0));',
+    '    float dista = exp(-abs(along)*0.50) * exp(-pow(dlen*0.50, 1.5));',
+    '    float st = dista * wfall * (0.40+0.60*wob) * (0.55+0.45*wob2) * I;',
+    '    col += uLampCol[i] * st * 1.80;',
+    '  }',
+    '  gl_FragColor = vec4(col, 1.0); }'
+  ].join('\n'),
+  side:T.DoubleSide
+});
+root.add(stripMesh(PT_N.map(p=>[p[0],p[1]-0.07]), PT_S.map(p=>[p[0],p[1]+0.07]),
+                   Y_WATER, Y_WATER, waterMat, 5));
+
+/* ============================================================
+   构件工具
+   ============================================================ */
+function roofGeo(w,d,h,ridgeFrac,seg){
+  seg=seg||3;
+  const hw=w/2, hd=d/2, hr=w*(ridgeFrac===undefined?0.30:ridgeFrac)/2;
+  const pos=[], uv=[];
+  const yAt=t=>h*Math.pow(1-t,1.55);
+  const xAt=t=>hr+(hw-hr)*t;
+  function quad(a,b,c,e){ [a,b,c,a,c,e].forEach(p=>{ pos.push(p[0],p[1],p[2]); uv.push(p[3],p[4]); }); }
+  for(let i=0;i<seg;i++){
+    const t0=i/seg, t1=(i+1)/seg;
+    const x0=xAt(t0), x1=xAt(t1), y0=yAt(t0), y1=yAt(t1), z0=hd*t0, z1=hd*t1;
+    const uL0=(-x0+hw)/w, uR0=(x0+hw)/w, uL1=(-x1+hw)/w, uR1=(x1+hw)/w;
+    quad([-x0,y0,z0,uL0,t0],[x0,y0,z0,uR0,t0],[x1,y1,z1,uR1,t1],[-x1,y1,z1,uL1,t1]);
+    quad([x0,y0,-z0,uR0,t0],[-x0,y0,-z0,uL0,t0],[-x1,y1,-z1,uL1,t1],[x1,y1,-z1,uR1,t1]);
+    quad([-x0,y0,-z0,0,t0],[-x0,y0,z0,1,t0],[-x1,y1,z1,1,t1],[-x1,y1,-z1,0,t1]);
+    quad([x0,y0,z0,1,t0],[x0,y0,-z0,0,t0],[x1,y1,-z1,0,t1],[x1,y1,z1,1,t1]);
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv', new T.Float32BufferAttribute(uv,2));
+  g.computeVertexNormals();
+  return g;
+}
+function addRoof(pa, w,d,h, x,y,z, o){
+  o=o||{};
+  const rf = (o.ridgeFrac===undefined?0.30:o.ridgeFrac);
+  const mesh = new T.Mesh(roofGeo(w,d,h,rf,o.seg||3), o.mat||M.tile);
+  mesh.position.set(x,y,z);
+  if(o.ry) mesh.rotation.y=o.ry;
+  pa.add(mesh);
+  if(o.ol!==0) addOL(mesh, 0.022);
+  const rl = w*rf;
+  BX(mesh, rl+0.16, 0.13, 0.14, M.tileRidge, 0, h+0.03, 0, {ol:0});
+  BX(mesh, rl+0.16, 0.05, 0.20, M.tileRidge, 0, h+0.11, 0, {ol:0});
+  [-1,1].forEach(s=>{
+    const gx=s*(rl/2+0.06);
+    BX(mesh, 0.15,0.30,0.13, M.tileRidge, gx, h+0.18, 0, {ol:0});
+    BX(mesh, 0.11,0.16,0.11, M.tileRidge, gx+s*0.075, h+0.36, 0, {rz:-s*0.55, ol:0});
+    BX(mesh, 0.07,0.10,0.07, M.tileRidge, gx+s*0.15, h+0.44, 0, {rz:-s*1.0, ol:0});
+  });
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(c=>{
+    const p0=[c[0]*rl/2, h+0.02, 0], p1=[c[0]*w/2, 0.02, c[1]*d/2];
+    const dx=p1[0]-p0[0], dy=p1[1]-p0[1], dz=p1[2]-p0[2];
+    const len=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    const b=BX(mesh, len, 0.10, 0.10, M.tileRidge, (p0[0]+p1[0])/2,(p0[1]+p1[1])/2,(p0[2]+p1[2])/2, {ol:0});
+    b.rotation.set(0, Math.atan2(-dz,dx), Math.asin(clamp(dy/len,-1,1)));
+  });
+  const em = o.eaveMat||M.eave;
+  BX(mesh, w+0.05, 0.15, 0.09, em, 0, -0.03,  d/2+0.02, {ol:0});
+  BX(mesh, w+0.05, 0.15, 0.09, em, 0, -0.03, -d/2-0.02, {ol:0});
+  BX(mesh, 0.09, 0.15, d, em,  w/2+0.02, -0.03, 0, {ol:0});
+  BX(mesh, 0.09, 0.15, d, em, -w/2-0.02, -0.03, 0, {ol:0});
+  const cs = (o.horn===undefined?0.62:o.horn);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(c=>{
+    const tip=new T.Mesh(new T.CylinderGeometry(0.014, 0.062, cs, 5), M.tileRidge);
+    tip.position.set(c[0]*(w/2+0.06), 0.20, c[1]*(d/2+0.06));
+    tip.rotation.set(c[1]*0.62, 0, -c[0]*0.78);
+    mesh.add(tip);
+  });
+  return mesh;
+}
+function dougong(pa, x,y,z, s, mat){
+  s=s||1;
+  BX(pa, 0.15*s, 0.055*s, 0.15*s, mat||M.woodRed, x, y, z, {ol:0});
+  BX(pa, 0.27*s, 0.050*s, 0.27*s, M.wood, x, y+0.055*s, z, {ol:0});
+  BX(pa, 0.13*s, 0.055*s, 0.34*s, mat||M.woodRed, x, y+0.108*s, z, {ol:0});
+}
+function column(pa, h, r, x,y,z, mat){
+  CY(pa, r, r*1.08, h, 10, mat||M.woodRed, x, y+h/2, z, {olt:0.014});
+  CY(pa, r*1.22, r*1.28, 0.10, 10, M.stone, x, y+0.05, z, {ol:0});
+  BX(pa, r*2.5, 0.08, r*2.5, M.woodDark, x, y+h-0.05, z, {ol:0});
+}
+function latticeWin(pa, w,h, x,y,z, ry, o){
+  o=o||{};
+  const g=new T.Group(); g.position.set(x,y,z); if(ry) g.rotation.y=ry; pa.add(g);
+  BX(g, w+0.10, h+0.10, 0.05, M.woodDark, 0,0,-0.03, {olt:0.010, warm:true});
+  PL(g, w, h, o.dim?M.paperDim:M.paper, 0,0,-0.005, {});
+  PL(g, w, h, MB(0xffffff,{map:TEX_LATTICE, transparent:true, alphaTest:0.45}), 0,0, 0.012, {});
+  return g;
+}
+function halfDoor(pa, w,h, x,y,z, ry){
+  const g=new T.Group(); g.position.set(x,y,z); g.rotation.y=ry||0; pa.add(g);
+  BX(g, w+0.12, 0.12, 0.06, M.woodDark, 0, h/2+0.02, -0.02, {ol:0});
+  [-1,1].forEach(s=>{
+    const p=new T.Group(); p.position.set(s*w/4, 0, s*0.02); g.add(p);
+    p.children;
+    const panel=new T.Group(); panel.position.set(-s*w/4, 0, 0); p.add(panel);
+    panel.rotation.y = -s*0.44;
+    BX(panel, w/2, h, 0.05, M.woodRed, s*w/4, 0, 0, {olt:0.012, warm:true});
+    PL(panel, w/2-0.16, h*0.44, MB(0xffffff,{map:TEX_LATTICE,transparent:true,alphaTest:0.45}), s*w/4, h*0.24, 0.03, {});
+    BX(panel, 0.045, h*0.9, 0.07, M.woodDark, s*w/2-0.06, 0, 0.03, {ol:0});
+    CY(panel, 0.035,0.035,0.12, 8, M.gold, s*w/2-0.10, 0, 0.05, {rx:Math.PI/2, ol:0});
+  });
+  return g;
+}
+function plaque(pa, w, text, x,y,z, ry){
+  BX(pa, w+0.12, w*0.29+0.10, 0.07, M.woodDark, x,y,z, {ry:ry, olt:0.010});
+  PL(pa, w, w*0.29, MB(0xffffff,{map:plaqueTex(text,'#3a2416','#d8b25a')}), x,y,z+0.042, {ry:ry});
+}
+const LANTERNS = [];
+function lantern(pa, x,y,z, s, o){
+  o=o||{};
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  const m = MK(0xb8402f, {emissive:0xff5e26, ei:1.25});
+  CY(g, 0.10*s,0.10*s,0.05*s, 10, M.woodDark, 0, 0.30*s, 0, {ol:0});
+  const body = CY(g, 0.145*s,0.145*s, 0.24*s, 12, m, 0, 0, 0, {olt:0.010, warm:true});
+  body.scale.set(1,1,1);
+  SP(g, 0.145*s, m, 0, -0.12*s, 0, {sg:12, sy:6, sx:1, sy2:0.72, sz:1, ol:0});
+  SP(g, 0.145*s, m, 0,  0.12*s, 0, {sg:12, sy:6, sx:1, sy2:0.72, sz:1, ol:0});
+  CY(g, 0.055*s,0.055*s,0.05*s, 8, M.goldDeep, 0, -0.155*s, 0, {ol:0});
+  CY(g, 0.055*s,0.055*s,0.05*s, 8, M.goldDeep, 0,  0.155*s, 0, {ol:0});
+  PL(g, 0.17*s, 0.20*s, MB(0xffcf8a,{map:clothTex(o.ch||'寺','#c0472f','#ffe0a0'),transparent:true}), 0,0,0.148*s, {});
+  for(let i=0;i<4;i++) CY(g, 0.008*s,0.006*s,0.13*s, 5, M.red, R(-0.03,0.03)*s, -0.22*s, R(-0.03,0.03)*s, {ol:0});
+  const halo=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffb267,
+    blending:T.AdditiveBlending, opacity:0.42, transparent:true, depthWrite:false}));
+  halo.position.set(0,0,0); halo.scale.set(1.7*s,1.7*s,1); g.add(halo);
+  LANTERNS.push({halo:halo, base:0.42, ph:Math.random()*6.28, sp:R(1.1,2.0)});
+  return g;
+}
+function stoneLantern(pa, x,y,z, s, lit){
+  s=s||1;
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  CY(g, 0.20*s,0.26*s,0.13*s, 8, M.stone, 0, 0.065*s, 0, {olt:0.012});
+  CY(g, 0.09*s,0.11*s,0.52*s, 8, M.stone, 0, 0.38*s, 0, {olt:0.012});
+  CY(g, 0.20*s,0.17*s,0.09*s, 8, M.stoneLite, 0, 0.68*s, 0, {olt:0.010});
+  BX(g, 0.26*s, 0.26*s, 0.26*s, lit?M.paper:M.stoneLite, 0, 0.86*s, 0, {olt:0.010, warm:!!lit});
+  CO(g, 0.27*s, 0.20*s, 4, M.stone, 0, 1.08*s, 0, {ry:Math.PI/4, olt:0.012});
+  SP(g, 0.055*s, M.stone, 0, 1.21*s, 0, {sg:8, sy:6, ol:0});
+  if(lit){
+    const halo=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffc178,
+      blending:T.AdditiveBlending, opacity:0.34, transparent:true, depthWrite:false}));
+    halo.position.set(0,0.86*s,0); halo.scale.set(1.5*s,1.5*s,1); g.add(halo);
+    LANTERNS.push({halo:halo, base:0.34, ph:Math.random()*6.28, sp:R(0.8,1.5)});
+  }
+  return g;
+}
+const INCENSE = [];
+function censer(pa, x,y,z, s, withSmoke){
+  s=s||1;
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  CY(g, 0.26*s,0.30*s,0.07*s, 10, M.bronze, 0, 0.03*s, 0, {olt:0.010});
+  [-1,1].forEach(sx=> BX(g, 0.07*s, 0.20*s, 0.07*s, M.bronze, sx*0.22*s, 0.16*s, 0, {ol:0}));
+  CY(g, 0.30*s,0.24*s,0.24*s, 12, M.bronze, 0, 0.30*s, 0, {olt:0.012});
+  CY(g, 0.33*s,0.33*s,0.05*s, 12, M.bronze, 0, 0.44*s, 0, {olt:0.008});
+  [-1,1].forEach(sx=>{
+    const h=new T.Mesh(new T.TorusGeometry(0.07*s,0.017*s,5,9), M.bronze);
+    h.position.set(sx*0.33*s, 0.48*s, 0); h.rotation.y=Math.PI/2; g.add(h);
+  });
+  const sp=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xff9a4a,
+    blending:T.AdditiveBlending, opacity:0.55, transparent:true, depthWrite:false}));
+  sp.position.set(0,0.46*s,0); sp.scale.set(0.55*s,0.4*s,1); g.add(sp);
+  LANTERNS.push({halo:sp, base:0.55, ph:Math.random()*6.28, sp:R(1.4,2.4)});
+  if(withSmoke) INCENSE.push({o:g, y:0.52*s, s:s});
+  return g;
+}
+function cushion(pa, x,y,z, s, mat){
+  CY(pa, 0.20*s,0.22*s,0.11*s, 14, mat||M.cushion, x, y+0.055*s, z, {olt:0.008, warm:true});
+  CY(pa, 0.215*s,0.215*s,0.03*s, 14, M.cushion2, x, y+0.115*s, z, {ol:0});
+}
+const FLAMES = [];
+function flame(pa, x,y,z, s, col){
+  const sp=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:col||0xffb45a,
+    blending:T.AdditiveBlending, opacity:0.85, transparent:true, depthWrite:false}));
+  sp.position.set(x,y,z); sp.scale.set(s, s*1.6, 1); pa.add(sp);
+  FLAMES.push({s:sp, base:s, ph:Math.random()*6.28, sp:R(5,8)});
+  return sp;
+}
+const WILLOWS = [];
+function willow(pa, x,y,z, s){
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  CY(g, 0.11*s,0.20*s,1.35*s, 8, M.trunk, 0, 0.66*s, 0, {rz:0.05, olt:0.014});
+  for(let i=0;i<5;i++){
+    const a=i/5*6.2832+R(0,0.5), ll=R(0.5,0.85)*s;
+    const b=BX(g, ll, 0.055*s, 0.055*s, M.trunk, Math.cos(a)*ll*0.4, 1.28*s+R(-0.05,0.12)*s, Math.sin(a)*ll*0.4, {ol:0});
+    b.rotation.set(0, -a, 0.55);
+  }
+  SP(g, 0.46*s, M.willow, 0, 1.42*s, 0, {sg:12, sy:8, sx:1.25, sy2:0.62, sz:1.25, ol:0});
+  SP(g, 0.34*s, M.leafLite, 0.16*s, 1.56*s, -0.10*s, {sg:10, sy:7, sx:1.2, sy2:0.7, sz:1.2, ol:0});
+  const n=13;
+  for(let i=0;i<n;i++){
+    const a=i/n*6.2832+R(-0.14,0.14);
+    const rad=R(0.30,0.52)*s, len=R(1.05,1.85)*s;
+    const sg=new T.Group();
+    sg.position.set(Math.cos(a)*rad, 1.34*s+R(-0.06,0.18)*s, Math.sin(a)*rad);
+    sg.rotation.y=a; g.add(sg);
+    let node=sg; const bend=R(0.20,0.34);
+    for(let j=0;j<3;j++){
+      const L=len/3;
+      const ng=new T.Group();
+      if(j>0) ng.rotation.z = bend*(0.7+j*0.35);
+      node.add(ng);
+      BX(ng, 0.026*s, L, 0.026*s, M.willow, 0, -L/2, 0, {ol:0});
+      if(j>0) BX(ng, 0.10*s, L*0.8, 0.05*s, Math.random()<0.5?M.leaf:M.leafLite, R(-0.03,0.03)*s, -L*0.5, 0, {ry:Math.random()*3, ol:0});
+      const nxt=new T.Group(); nxt.position.y=-L; ng.add(nxt);
+      node=nxt;
+    }
+    WILLOWS.push({g:sg, base:sg.rotation.z, ph:Math.random()*6.28, sp:R(0.5,0.95), amp:R(0.10,0.26)});
+  }
+  return g;
+}
+function bambooClump(pa, x,y,z, s){
+  const g=new T.Group(); g.position.set(x,y,z); pa.add(g);
+  CY(g, 0.14*s,0.17*s,0.16*s, 10, M.woodDark, 0, 0.08*s, 0, {olt:0.010});
+  for(let i=0;i<5;i++){
+    const h=R(0.8,1.35)*s, px=R(-0.09,0.09)*s, pz=R(-0.09,0.09)*s;
+    CY(g, 0.022*s,0.028*s,h, 6, M.bamboo, px, h/2, pz, {rz:R(-0.09,0.09), rx:R(-0.07,0.07), ol:0});
+    for(let k=0;k<3;k++)
+      BX(g, R(0.16,0.28)*s, 0.012*s, 0.03*s, M.leaf, px+R(-0.1,0.1)*s, R(0.45,0.98)*h, pz, {ry:Math.random()*3, rz:R(-0.5,0.5), ol:0});
+  }
+  return g;
+}
+const VINES = [];
+function trellis(pa, x,y,z, w,d, ry){
+  const g=new T.Group(); g.position.set(x,y,z); g.rotation.y=ry||0; pa.add(g);
+  const H=2.0;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(c=> CY(g, 0.055,0.065,H, 7, M.wood, c[0]*w/2, H/2, c[1]*d/2, {olt:0.012}));
+  for(let i=-2;i<=2;i++) BX(g, w+0.24, 0.055, 0.055, M.wood, 0, H+0.04, i*d/5, {ol:0});
+  BX(g, 0.055, 0.055, d+0.24, M.wood, 0, H+0.10, 0, {ol:0});
+  for(let i=0;i<26;i++)
+    SP(g, R(0.11,0.20), Math.random()<0.5?M.leaf:M.leafLite,
+       R(-w/2-0.1,w/2+0.1), H+0.10+R(-0.06,0.06), R(-d/2-0.1,d/2+0.1),
+       {sg:7, sy:5, sx:1.3, sy2:0.5, sz:1.1, ry:Math.random()*3, ol:0});
+  for(let i=0;i<9;i++){
+    const px=R(-w/2,w/2), pz=(Math.random()<0.5?-1:1)*d/2, L=R(0.35,0.85);
+    const vg=new T.Group(); vg.position.set(px, H+0.02, pz); g.add(vg);
+    BX(vg, 0.028, L, 0.028, M.willow, 0, -L/2, 0, {ol:0});
+    for(let k=0;k<2;k++) BX(vg, 0.09, 0.05, 0.03, M.leaf, R(-0.04,0.04), -L*R(0.25,0.9), 0, {ry:Math.random()*3, ol:0});
+    VINES.push({g:vg, base:0, ph:Math.random()*6.28, sp:R(0.6,1.2), amp:R(0.08,0.20)});
+  }
+  return g;
+}
+const FLAGS = [];
+function flagLine(pa, x1,z1,x2,z2, y, sag){
+  const n=9, cols=[0x4a7fc0,0xe6e9f0,0xc0392b,0x3e8f62,0xd8a83c];
+  for(let i=0;i<n;i++){
+    const t0=i/n, t1=(i+1)/n;
+    const x=x1+(x2-x1)*t0, z=z1+(z2-z1)*t0;
+    const y2=y-Math.sin(t0*Math.PI)*(sag||0.22);
+    const g=new T.Group();
+    g.position.set(x+(x2-x1)/n/2, y2-0.14, z+(z2-z1)/n/2);
+    pa.add(g);
+    PL(g, 0.19, 0.24, MK(cols[i%cols.length], {emissive:0x2a3450, ei:0.35, side:T.DoubleSide}),
+       0,0,0, {ry:Math.atan2(x2-x1, z2-z1)+Math.PI/2});
+    FLAGS.push({g:g, base:g.rotation.y, ph:Math.random()*6.28, sp:R(1.3,2.4), amp:R(0.18,0.42)});
+  }
+  for(let i=0;i<n;i++){
+    const t0=i/n, t1=(i+1)/n;
+    const ax=x1+(x2-x1)*t0, az=z1+(z2-z1)*t0, bx2=x1+(x2-x1)*t1, bz=z1+(z2-z1)*t1;
+    const ay=y-Math.sin(t0*Math.PI)*(sag||0.22), by=y-Math.sin(t1*Math.PI)*(sag||0.22);
+    const L=Math.hypot(bx2-ax, by-ay, bz-az);
+    const b=BX(pa, 0.012,0.012,L, M.rope, (ax+bx2)/2,(ay+by)/2,(az+bz)/2, {ol:0});
+    b.rotation.set(0, Math.atan2(-(bz-az), bx2-ax), Math.asin(clamp((by-ay)/L,-1,1)));
+  }
+}
+function banner(pa, w,h, x,y,z, ry, col){
+  const g=new T.Group(); g.position.set(x,y,z); g.rotation.y=ry||0; pa.add(g);
+  CY(g, 0.02,0.02,w+0.1, 6, M.woodDark, 0, h/2+0.06, 0, {rz:Math.PI/2, ol:0});
+  const p = PL(g, w, h, MK(col||0x8d4a3a, {emissive:0x5e2418, ei:0.5, side:T.DoubleSide}), 0,0,0, {});
+  PL(g, w*0.62, h*0.62, MB(0xf0dfae,{map:clothTex('佛','#a8503c','#f6e6bc'),transparent:true,opacity:0.92}), 0, -h*0.08, 0.008, {});
+  BX(g, 0.03,0.09,w, M.woodDark, 0, -h/2-0.05, 0, {ol:0});
+  FLAGS.push({g:p, base:0, ph:Math.random()*6.28, sp:R(0.8,1.6), amp:0.16, axis:'z'});
+  return g;
+}
+/* 台基（含踏道） */
+function platform(pa, w,d,h, x,z, o){
+  o=o||{};
+  BX(pa, w, h, d, M.stone, x, Y_BANK+h/2, z, {olt:0.018});
+  BX(pa, w+0.16, 0.10, d+0.16, M.stoneLite, x, Y_BANK+h+0.03, z, {olt:0.012});
+  BX(pa, w+0.06, 0.06, d+0.06, M.stoneDark, x, Y_BANK+0.05, z, {ol:0});
+  if(o.steps!==0){
+    const n=Math.max(2, Math.round(h/0.16));
+    const sw=o.sw||w*0.46;
+    for(let i=0;i<n;i++)
+      BX(pa, sw, 0.055, 0.13, M.stoneLite, x, Y_BANK+h-0.027-i*(h/n), z+d/2+0.08+i*0.12, {olt:0.010});
+    [-1,1].forEach(s=> BX(pa, 0.13, h+0.10, d*0.42, M.stone, x+s*(sw/2+0.09), Y_BANK+h/2, z+d*0.18, {rx:0.16, olt:0.010}));
+  }
+  return h;
+}
+
+/* ============================================================
+   寺庙建筑群（TG 局部坐标）
+   轴向 z: 山门(+前) → 天王殿 → 大雄宝殿(-后)
+   ============================================================ */
+const TGS_S = 0.86;
+const TG = new T.Group();
+TG.position.set(1.2, Y_BANK*(1-TGS_S), -2.70); TG.rotation.y = -0.10; TG.scale.setScalar(TGS_S);
+root.add(TG);
+const TGC = Math.cos(TG.rotation.y), TGS = Math.sin(TG.rotation.y);
+function wpos(lx, lz){ return [ TG.position.x + TGS_S*( lx*TGC + lz*TGS),
+                                TG.position.z + TGS_S*(-lx*TGS + lz*TGC) ]; }
+
+/* ---------- 大雄宝殿 ---------- */
+const HALL = { z:-3.15, bw:4.4, bd:2.2, pw:5.3, pd:3.8, ph:0.72, pz:0.30 };
+(function buildMainHall(){
+  const g=new T.Group(); g.position.set(0, 0, HALL.z); TG.add(g);
+  const y0 = Y_BANK + platform(g, HALL.pw, HALL.pd, HALL.ph, 0, HALL.pz, {sw:2.30});
+  const CH = 2.00, CR = 0.14, HW = HALL.bw/2, HD = HALL.bd/2;
+  [[-2.0,-1.0],[-0.7,-1.0],[0.7,-1.0],[2.0,-1.0],
+   [-2.0, 1.0],[-0.7, 1.0],[0.7, 1.0],[2.0, 1.0]].forEach(c=> column(g, CH, CR, c[0], y0, c[1]));
+  BX(g, HALL.bw, CH, 0.15, M.wallWhite, 0, y0+CH/2, -HD, {olt:0.020});
+  BX(g, 0.15, CH, HALL.bd, M.wallWhite, -HW, y0+CH/2, 0, {olt:0.020});
+  BX(g, 0.15, CH, HALL.bd, M.wallWhite,  HW, y0+CH/2, 0, {olt:0.020});
+  [-1,1].forEach(s=>{
+    BX(g, 1.30, CH, 0.15, M.wallWhite, s*1.55, y0+CH/2, HD, {olt:0.020});
+    latticeWin(g, 1.00, 1.20, s*1.55, y0+1.16, HD+0.02, 0);
+  });
+  halfDoor(g, 1.85, 1.90, 0, y0+0.95, HD-0.02, 0);
+  BX(g, HALL.bw+0.28, 0.22, 0.22, M.woodRed, 0, y0+CH+0.11, HD+0.02, {olt:0.012});
+  BX(g, HALL.bw+0.28, 0.22, 0.22, M.woodRed, 0, y0+CH+0.11, -HD-0.02, {olt:0.012});
+  BX(g, 0.22, 0.22, HALL.bd+0.28, M.woodRed, -HW-0.02, y0+CH+0.11, 0, {olt:0.012});
+  BX(g, 0.22, 0.22, HALL.bd+0.28, M.woodRed,  HW+0.02, y0+CH+0.11, 0, {olt:0.012});
+  for(let i=-4;i<=4;i++) dougong(g, i*0.52, y0+CH+0.24, HD+0.10, 0.95);
+  for(let i=-2;i<=2;i++){ dougong(g, -HW-0.10, y0+CH+0.24, i*0.55, 0.95);
+                          dougong(g,  HW+0.10, y0+CH+0.24, i*0.55, 0.95); }
+  addRoof(g, HALL.bw+1.9, HALL.bd+1.5, 0.86, 0, y0+CH+0.36, 0, {ridgeFrac:0.30, horn:0.68});
+  // 重檐二层
+  const y1 = y0+CH+0.36+0.62;
+  BX(g, 3.40, 0.70, 2.10, M.wallWhite, 0, y1+0.35, 0, {olt:0.018});
+  [[-1.40,-0.85],[1.40,-0.85],[-1.40,0.85],[1.40,0.85]].forEach(c=> column(g, 0.70, 0.10, c[0], y1, c[1]));
+  latticeWin(g, 2.70, 0.48, 0, y1+0.42, 1.07, 0);
+  BX(g, 3.62, 0.14, 0.18, M.woodRed, 0, y1+0.77, 1.05, {olt:0.010});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.60, y1+0.86, 1.08, 0.80);
+  addRoof(g, 4.20, 2.70, 0.80, 0, y1+0.98, 0, {ridgeFrac:0.26, horn:0.62});
+  plaque(g, 1.90, '大雄寶殿', 0, y0+CH-0.02, HD+0.15, 0);
+
+  /* 内部 */
+  const iy=y0, IW=HALL.bw-0.22, ID=HALL.bd-0.22;
+  PL(g, IW, ID, M.inFloor, 0, iy+0.008, 0, {rx:-Math.PI/2});
+  PL(g, IW, ID, M.inCeil, 0, iy+CH-0.05, 0, {rx:Math.PI/2});
+  PL(g, IW, CH, M.inWall, 0, iy+CH/2, -ID/2, {});
+  PL(g, ID, CH, M.inWall, -IW/2, iy+CH/2, 0, {ry:Math.PI/2});
+  PL(g, ID, CH, M.inWall,  IW/2, iy+CH/2, 0, {ry:-Math.PI/2});
+  for(let i=-1;i<=1;i++) BX(g, IW, 0.14, 0.18, M.woodDark, 0, iy+CH-0.14, i*0.72, {olt:0.010, warm:true});
+  // 佛台
+  BX(g, 2.90, 0.38, 0.78, M.inFloorSt, 0, iy+0.19, -0.52, {olt:0.014, warm:true});
+  BX(g, 3.00, 0.05, 0.86, M.bronze, 0, iy+0.40, -0.52, {ol:0});
+  function buddha(bx, s, main){
+    const b=new T.Group(); b.position.set(bx, iy+0.40, -0.52); b.scale.setScalar(s); g.add(b);
+    CY(b, 0.30,0.38,0.14, 14, M.goldDeep, 0, 0.07, 0, {olt:0.010, warm:true});
+    CY(b, 0.27,0.31,0.09, 14, M.gold, 0, 0.18, 0, {ol:0});
+    CY(b, 0.18,0.30,0.55, 12, M.gold, 0, 0.50, 0, {olt:0.010, warm:true});
+    BX(b, 0.42, 0.26, 0.26, M.goldDeep, 0, 0.40, 0.05, {ol:0});
+    SP(b, 0.15, M.gold, 0, 0.90, 0, {sg:12, sy:9, olt:0.008, warm:true});
+    SP(b, 0.055, M.goldDeep, 0, 1.02, 0, {sg:8, sy:6, ol:0});
+    const halo=new T.Mesh(new T.TorusGeometry(0.27,0.032,6,18), M.gold);
+    halo.position.set(0, 0.83, -0.15); b.add(halo);
+    if(main){
+      CY(b, 0.10,0.09,0.14, 10, M.gold, -0.27, 0.60, 0.15, {rz:0.5, ol:0});
+      CY(b, 0.10,0.09,0.14, 10, M.gold,  0.27, 0.60, 0.15, {rz:-0.5, ol:0});
+    }
+  }
+  buddha(0, 1.0, true); buddha(-0.98, 0.70, false); buddha(0.98, 0.70, false);
+  // 供桌 / 供器
+  BX(g, 2.05, 0.66, 0.50, M.wood, 0, iy+0.33, 0.22, {olt:0.014, warm:true});
+  BX(g, 2.18, 0.06, 0.58, M.woodDark, 0, iy+0.69, 0.22, {olt:0.008, warm:true});
+  BX(g, 2.05, 0.12, 0.05, M.goldDeep, 0, iy+0.50, -0.02, {ol:0});
+  [-0.75,0.75].forEach(cx=>{
+    CY(g, 0.09,0.12,0.05, 10, M.bronze, cx, iy+0.74, 0.22, {ol:0});
+    CY(g, 0.045,0.055,0.30, 8, M.bronze, cx, iy+0.91, 0.22, {ol:0});
+    CY(g, 0.040,0.040,0.22, 8, M.candle, cx, iy+1.17, 0.22, {ol:0});
+    flame(g, cx, iy+1.36, 0.22, 0.26);
+  });
+  [[-0.30,0.04],[0,-0.02],[0.30,0.04]].forEach(p=>{
+    CY(g, 0.11,0.10,0.03, 12, M.celadon, p[0], iy+0.74, 0.22+p[1], {ol:0});
+    SP(g, 0.04, M.goldDeep, p[0], iy+0.77, 0.22+p[1], {sg:7, sy:5, ol:0});
+  });
+  censer(g, 0, iy+0.73, -0.10, 0.55, false);
+  [-0.95,0.95].forEach(cx=>{
+    CY(g, 0.06,0.09,0.20, 12, M.celadon, cx, iy+0.82, -0.30, {olt:0.008});
+    CY(g, 0.04,0.05,0.08, 10, M.celadon, cx, iy+0.96, -0.30, {ol:0});
+  });
+  [-0.72,0,0.72].forEach(cx=> cushion(g, cx, iy+0.01, 0.72, 1.05));
+  BX(g, 1.20, 0.04, 0.62, M.rug, 0, iy+0.02, 0.74, {ol:0});
+  // 木鱼 / 铜铃
+  SP(g, 0.13, M.woodDark, -1.42, iy+0.44, 0.30, {sg:10, sy:8, sx:1.2, sy2:0.85, sz:1.0, olt:0.008, warm:true});
+  BX(g, 0.27, 0.05, 0.20, M.woodDark, -1.42, iy+0.35, 0.30, {ol:0});
+  CY(g, 0.012,0.012,0.36, 6, M.rope, 1.48, iy+CH-0.42, 0.48, {ol:0});
+  CY(g, 0.09,0.12,0.18, 12, M.bronze, 1.48, iy+CH-0.66, 0.48, {olt:0.008, warm:true});
+  SP(g, 0.04, M.bronze, 1.48, iy+CH-0.79, 0.48, {sg:8, sy:6, ol:0});
+  CY(g, 0.012,0.012,0.30, 6, M.rope, -1.48, iy+CH-0.36, -0.48, {ol:0});
+  CY(g, 0.08,0.11,0.16, 12, M.bronze, -1.48, iy+CH-0.58, -0.48, {olt:0.008, warm:true});
+  // 帷幔 / 悬幡
+  BX(g, IW-0.1, 0.24, 0.05, M.cloth, 0, iy+CH-0.24, ID/2-0.10, {ol:0});
+  for(let i=0;i<7;i++) BX(g, 0.15, 0.28, 0.04, M.cloth, -1.75+i*0.58, iy+CH-0.42, ID/2-0.10, {ol:0});
+  banner(g, 0.30, 1.10, -1.55, iy+1.08, -0.72, 0, 0xa8863c);
+  banner(g, 0.30, 1.10,  1.55, iy+1.08, -0.72, 0, 0xa8863c);
+
+  const wp = wpos(0, HALL.z);
+  ptLight('hall',  0xffb267, 2.00, 8.5, wp[0], y0+1.45, wp[1]+0.35);
+  ptLight('hall2', 0xffcf94, 1.10, 5.5, wp[0], y0+0.60, wp[1]+0.75);
+  const glow=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffc07a,
+    blending:T.AdditiveBlending, opacity:0.40, transparent:true, depthWrite:false}));
+  glow.position.set(0, y0+1.10, HD+0.26); glow.scale.set(4.8,2.6,1); g.add(glow);
+  LANTERNS.push({halo:glow, base:0.40, ph:1.1, sp:0.9});
+})();
+
+/* ---------- 天王殿 ---------- */
+const KING = { z:1.85, bw:3.1, bd:1.8, pw:3.9, pd:2.3, ph:0.44 };
+(function buildKingHall(){
+  const g=new T.Group(); g.position.set(0, 0, KING.z); TG.add(g);
+  const y0 = Y_BANK + platform(g, KING.pw, KING.pd, KING.ph, 0, 0, {sw:1.80});
+  const CH = 1.85, CR = 0.12, HW = KING.bw/2, HD = KING.bd/2;
+  [[-1.40,-0.80],[1.40,-0.80],[-1.40,0.80],[1.40,0.80],[-0.48,0.80],[0.48,0.80]]
+    .forEach(c=> column(g, CH, CR, c[0], y0, c[1]));
+  BX(g, KING.bw, CH, 0.15, M.wallWhite, 0, y0+CH/2, -HD, {olt:0.020});
+  BX(g, 0.15, CH, KING.bd, M.wallWhite, -HW, y0+CH/2, 0, {olt:0.020});
+  BX(g, 0.15, CH, KING.bd, M.wallWhite,  HW, y0+CH/2, 0, {olt:0.020});
+  [-1,1].forEach(s=>{
+    BX(g, 0.92, CH, 0.15, M.wallWhite, s*1.09, y0+CH/2, HD, {olt:0.020});
+    latticeWin(g, 0.70, 1.02, s*1.09, y0+1.06, HD+0.02, 0);
+  });
+  halfDoor(g, 1.30, 1.62, 0, y0+0.81, HD-0.02, 0);
+  BX(g, KING.bw+0.26, 0.20, 0.20, M.woodRed, 0, y0+CH+0.10, HD+0.02, {olt:0.012});
+  BX(g, KING.bw+0.26, 0.20, 0.20, M.woodRed, 0, y0+CH+0.10, -HD-0.02, {olt:0.012});
+  BX(g, 0.20, 0.20, KING.bd+0.26, M.woodRed, -HW-0.02, y0+CH+0.10, 0, {olt:0.012});
+  BX(g, 0.20, 0.20, KING.bd+0.26, M.woodRed,  HW+0.02, y0+CH+0.10, 0, {olt:0.012});
+  for(let i=-3;i<=3;i++) dougong(g, i*0.50, y0+CH+0.22, HD+0.09, 0.88);
+  addRoof(g, KING.bw+1.6, KING.bd+1.3, 1.05, 0, y0+CH+0.34, 0, {ridgeFrac:0.28, horn:0.58});
+  plaque(g, 1.50, '天王殿', 0, y0+CH-0.06, HD+0.14, 0);
+
+  const iy=y0, IW=KING.bw-0.22, ID=KING.bd-0.22;
+  PL(g, IW, ID, M.inFloorSt, 0, iy+0.008, 0, {rx:-Math.PI/2});
+  PL(g, IW, ID, M.inCeil, 0, iy+CH-0.05, 0, {rx:Math.PI/2});
+  PL(g, IW, CH, M.inWall, 0, iy+CH/2, -ID/2, {});
+  PL(g, ID, CH, M.inWall, -IW/2, iy+CH/2, 0, {ry:Math.PI/2});
+  PL(g, ID, CH, M.inWall,  IW/2, iy+CH/2, 0, {ry:-Math.PI/2});
+  // 弥勒 + 韦驮
+  BX(g, 1.30, 0.28, 0.62, M.inFloorSt, 0, iy+0.14, -0.42, {olt:0.012, warm:true});
+  CY(g, 0.22,0.26,0.08, 12, M.goldDeep, 0, iy+0.32, -0.42, {ol:0});
+  CY(g, 0.21,0.31,0.36, 12, M.gold, 0, iy+0.54, -0.42, {olt:0.010, warm:true});
+  SP(g, 0.16, M.gold, 0, iy+0.80, -0.42, {sg:12, sy:9, olt:0.008, warm:true});
+  SP(g, 0.085, M.goldDeep, 0, iy+0.92, -0.42, {sg:8, sy:6, ol:0});
+  BX(g, 0.30, 0.14, 0.20, M.goldDeep, -0.21, iy+0.50, -0.26, {rz:0.4, ol:0});
+  BX(g, 0.30, 0.14, 0.20, M.goldDeep,  0.21, iy+0.50, -0.26, {rz:-0.4, ol:0});
+  CY(g, 0.14,0.18,0.44, 10, M.goldDeep, 0, iy+0.50, 0.46, {olt:0.010, warm:true});
+  SP(g, 0.11, M.goldDeep, 0, iy+0.80, 0.46, {sg:10, sy:8, ol:0});
+  BX(g, 0.36, 0.05, 0.10, M.bronze, 0, iy+0.90, 0.46, {rz:0.35, ol:0});
+  // 供桌
+  BX(g, 1.25, 0.56, 0.42, M.wood, 0, iy+0.28, 0.62, {olt:0.012, warm:true});
+  BX(g, 1.34, 0.05, 0.48, M.woodDark, 0, iy+0.59, 0.62, {ol:0});
+  censer(g, 0, iy+0.61, 0.62, 0.50, false);
+  [-0.44,0.44].forEach(cx=>{
+    CY(g, 0.045,0.055,0.24, 8, M.bronze, cx, iy+0.72, 0.62, {ol:0});
+    CY(g, 0.035,0.035,0.17, 8, M.candle, cx, iy+0.93, 0.62, {ol:0});
+    flame(g, cx, iy+1.09, 0.62, 0.19);
+  });
+  [-0.46,0.46].forEach(cx=> cushion(g, cx, iy+0.01, 0.86, 0.85));
+  banner(g, 0.24, 0.86, -1.10, iy+0.95, -0.52, 0, 0x8d4a3a);
+  banner(g, 0.24, 0.86,  1.10, iy+0.95, -0.52, 0, 0x8d4a3a);
+
+  const wp = wpos(0, KING.z);
+  ptLight('king', 0xffb267, 1.40, 6.5, wp[0], y0+1.25, wp[1]+0.3);
+  const glow=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffc07a,
+    blending:T.AdditiveBlending, opacity:0.30, transparent:true, depthWrite:false}));
+  glow.position.set(0, y0+0.95, HD+0.22); glow.scale.set(3.6,2.1,1); g.add(glow);
+  LANTERNS.push({halo:glow, base:0.30, ph:2.4, sp:1.1});
+})();
+
+/* ---------- 山门殿 ---------- */
+const GATE = { z:4.85, bw:2.7, bd:1.2, pw:3.4, pd:1.5, ph:0.28 };
+(function buildGate(){
+  const g=new T.Group(); g.position.set(0, 0, GATE.z); TG.add(g);
+  const y0 = Y_BANK + platform(g, GATE.pw, GATE.pd, GATE.ph, 0, 0, {sw:1.55});
+  const CH = 1.62, CR = 0.11, HW = GATE.bw/2, HD = GATE.bd/2;
+  [[-1.20,-0.52],[1.20,-0.52],[-1.20,0.52],[1.20,0.52]].forEach(c=> column(g, CH, CR, c[0], y0, c[1]));
+  [-1,1].forEach(s=>{
+    BX(g, 0.78, CH, 0.15, M.wallWhite, s*0.96, y0+CH/2, HD, {olt:0.018});
+    latticeWin(g, 0.48, 0.86, s*0.96, y0+0.92, HD+0.02, 0);
+  });
+  BX(g, 0.15, CH, GATE.bd, M.wallWhite, -HW, y0+CH/2, 0, {olt:0.018});
+  BX(g, 0.15, CH, GATE.bd, M.wallWhite,  HW, y0+CH/2, 0, {olt:0.018});
+  BX(g, 0.26, CH, 0.15, M.woodRed, -0.38, y0+CH/2, HD, {olt:0.014});
+  BX(g, 0.26, CH, 0.15, M.woodRed,  0.38, y0+CH/2, HD, {olt:0.014});
+  BX(g, 0.90, 0.26, 0.15, M.woodDark, 0, y0+CH-0.13, HD, {olt:0.010});
+  BX(g, 0.82, 0.09, 0.17, M.stoneLite, 0, y0+0.045, HD, {ol:0});
+  BX(g, GATE.bw+0.22, 0.18, 0.18, M.woodRed, 0, y0+CH+0.09, HD+0.02, {olt:0.010});
+  BX(g, GATE.bw+0.22, 0.18, 0.18, M.woodRed, 0, y0+CH+0.09, -HD-0.02, {olt:0.010});
+  BX(g, 0.18, 0.18, GATE.bd+0.22, M.woodRed, -HW-0.02, y0+CH+0.09, 0, {olt:0.010});
+  BX(g, 0.18, 0.18, GATE.bd+0.22, M.woodRed,  HW+0.02, y0+CH+0.09, 0, {olt:0.010});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.55, y0+CH+0.20, HD+0.08, 0.82);
+  addRoof(g, GATE.bw+1.45, GATE.bd+1.05, 0.86, 0, y0+CH+0.30, 0, {ridgeFrac:0.24, horn:0.54});
+  plaque(g, 1.30, '山門', 0, y0+CH-0.16, HD+0.13, 0);
+  // 石狮
+  [-1,1].forEach(s=>{
+    const l=new T.Group(); l.position.set(s*1.05, y0, 0.70); g.add(l);
+    BX(l, 0.40, 0.26, 0.50, M.stoneLite, 0, 0.13, 0, {olt:0.012});
+    CY(l, 0.12,0.15,0.26, 8, M.stoneLite, 0, 0.39, -0.05, {olt:0.010});
+    SP(l, 0.145, M.stoneLite, 0, 0.60, -0.03, {sg:9, sy:7, olt:0.010});
+    SP(l, 0.06, M.stoneLite, -0.08, 0.71, 0.02, {sg:7, sy:5, ol:0});
+    SP(l, 0.06, M.stoneLite,  0.08, 0.71, 0.02, {sg:7, sy:5, ol:0});
+    BX(l, 0.26, 0.09, 0.30, M.stoneLite, 0, 0.19, 0.18, {rx:0.3, ol:0});
+  });
+  lantern(g, -1.40, y0+CH-0.04, HD+0.26, 0.88, {ch:'寺'});
+  lantern(g,  1.40, y0+CH-0.04, HD+0.26, 0.88, {ch:'禪'});
+  const wp = wpos(0, GATE.z);
+  ptLight('gate', 0xff9a52, 0.95, 5.5, wp[0], y0+CH-0.10, wp[1]+0.55);
+})();
+
+/* ---------- 厢房 ---------- */
+function wingRoom(lx, lz, W, D, mode){
+  const g=new T.Group(); g.position.set(lx, 0, lz); TG.add(g);
+  const PW = W+0.5, PD = D+0.5;
+  const y0 = Y_BANK + platform(g, PW, PD, 0.30, 0, 0, {sw:W*0.5});
+  const CH = 1.45, CR = 0.10, HW=W/2, HD=D/2;
+  [[-HW+0.18,-HD+0.10],[HW-0.18,-HD+0.10],[-HW+0.18,HD-0.10],[HW-0.18,HD-0.10]]
+    .forEach(c=> column(g, CH, CR, c[0], y0, c[1]));
+  BX(g, W, CH, 0.13, M.wallWhite, 0, y0+CH/2, -HD, {olt:0.018});
+  BX(g, 0.13, CH, D, M.wallWhite, -HW, y0+CH/2, 0, {olt:0.018});
+  BX(g, 0.13, CH, D, M.wallWhite,  HW, y0+CH/2, 0, {olt:0.018});
+  [-1,1].forEach(s=>{
+    BX(g, 0.50, CH, 0.13, M.wallWhite, s*(HW-0.26), y0+CH/2, HD, {olt:0.018});
+    latticeWin(g, 0.36, 0.82, s*(HW-0.26), y0+0.90, HD+0.02, 0);
+  });
+  halfDoor(g, 0.80, 1.22, 0, y0+0.61, HD-0.02, 0);
+  BX(g, W+0.22, 0.15, 0.15, M.woodRed, 0, y0+CH+0.075, HD+0.02, {olt:0.010});
+  BX(g, W+0.22, 0.15, 0.15, M.woodRed, 0, y0+CH+0.075, -HD-0.02, {olt:0.010});
+  BX(g, 0.15, 0.15, D+0.22, M.woodRed, -HW-0.02, y0+CH+0.075, 0, {olt:0.010});
+  BX(g, 0.15, 0.15, D+0.22, M.woodRed,  HW+0.02, y0+CH+0.075, 0, {olt:0.010});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.42, y0+CH+0.16, HD+0.07, 0.70);
+  addRoof(g, W+1.20, D+1.00, 0.66, 0, y0+CH+0.25, 0, {ridgeFrac:0.26, horn:0.42});
+
+  const iy=y0, IW=W-0.18, ID=D-0.18;
+  PL(g, IW, ID, M.inFloor, 0, iy+0.008, 0, {rx:-Math.PI/2});
+  PL(g, IW, ID, M.inCeil, 0, iy+CH-0.05, 0, {rx:Math.PI/2});
+  PL(g, IW, CH, M.inWall, 0, iy+CH/2, -ID/2, {});
+  PL(g, ID, CH, M.inWall, -IW/2, iy+CH/2, 0, {ry:Math.PI/2});
+  PL(g, ID, CH, M.inWall,  IW/2, iy+CH/2, 0, {ry:-Math.PI/2});
+
+  if(mode==='tea'){
+    BX(g, 0.88, 0.26, 0.54, M.wood, 0, iy+0.13, 0.02, {olt:0.012, warm:true});
+    BX(g, 0.96, 0.05, 0.60, M.woodDark, 0, iy+0.28, 0.02, {ol:0});
+    CY(g, 0.08,0.065,0.09, 12, M.celadon, -0.20, iy+0.34, 0.02, {ol:0});
+    CY(g, 0.055,0.045,0.06, 10, M.celadon, 0.05, iy+0.33, 0.14, {ol:0});
+    CY(g, 0.055,0.045,0.06, 10, M.celadon, 0.21, iy+0.33, -0.06, {ol:0});
+    CY(g, 0.05,0.045,0.11, 10, M.bronze, 0.30, iy+0.36, 0.15, {ol:0});
+    BX(g, 0.62, 0.05, 0.38, M.wood, -0.55, iy+0.38, -0.42, {olt:0.010, warm:true});
+    [-1,1].forEach(a2=>[-1,1].forEach(b2=>
+      CY(g, 0.026,0.026,0.36, 6, M.woodDark, -0.55+a2*0.26, iy+0.19, -0.42+b2*0.14, {ol:0})));
+    cushion(g, -0.55, iy+0.01, -0.04, 0.66, M.cushion2);
+    cushion(g,  0.55, iy+0.01, -0.04, 0.66, M.cushion2);
+    PL(g, W*0.40, 0.78, MB(0xffffff,{map:TEX_BLIND, transparent:true, opacity:0.9}),
+       -(HW-0.26), iy+0.90, HD-0.14, {});
+    PL(g, W*0.40, 0.78, MB(0xffffff,{map:TEX_BLIND, transparent:true, opacity:0.9}),
+        (HW-0.26), iy+0.90, HD-0.14, {});
+    CY(g, 0.075,0.09,0.11, 12, M.white, 0.72, iy+0.34, -0.44, {olt:0.008});
+    CY(g, 0.055,0.065,0.05, 12, M.celadon, 0.72, iy+0.43, -0.44, {ol:0});
+    flame(g, 0.72, iy+0.53, -0.44, 0.17, 0xffc07a);
+    bambooClump(g, -0.70, iy, 0.46, 0.50);
+    BX(g, 1.30, 0.03, 0.86, M.rug, 0, iy+0.018, -0.06, {ol:0});
+  }else{
+    BX(g, 1.30, 0.98, 0.26, M.wood, 0, iy+0.49, -0.48, {olt:0.012, warm:true});
+    PL(g, 1.22, 0.86, MB(0xffffff,{map:TEX_SUTRA}), 0, iy+0.50, -0.34, {});
+    BX(g, 1.34, 0.05, 0.30, M.woodDark, 0, iy+1.00, -0.48, {ol:0});
+    BX(g, 0.62, 0.36, 0.36, M.wood, 0, iy+0.18, 0.32, {olt:0.010, warm:true});
+    for(let i=0;i<3;i++) CY(g, 0.03,0.03,0.22, 8, M.white, -0.17+i*0.17, iy+0.40, 0.32, {rz:Math.PI/2, ol:0});
+    CY(g, 0.08,0.065,0.09, 12, M.celadon, 0.26, iy+0.42, 0.32, {ol:0});
+    flame(g, 0.26, iy+0.56, 0.32, 0.15, 0xffc07a);
+    censer(g, -0.74, iy+0.38, 0.24, 0.50, true);
+    cushion(g, 0, iy+0.01, 0.60, 0.78, M.cushion2);
+    cushion(g, -0.52, iy+0.01, 0.30, 0.64, M.cushion);
+    BX(g, 1.20, 0.03, 0.76, M.rug, 0, iy+0.018, 0.28, {ol:0});
+    PL(g, W*0.40, 0.78, MB(0xffffff,{map:TEX_BLIND, transparent:true, opacity:0.9}),
+       -(HW-0.26), iy+0.90, HD-0.14, {});
+  }
+  const wp = wpos(lx, lz);
+  ptLight('wing'+Math.round(lx*10), 0xffb267, 1.05, 4.8, wp[0], y0+0.90, wp[1]);
+  const glow=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffb872,
+    blending:T.AdditiveBlending, opacity:0.24, transparent:true, depthWrite:false}));
+  glow.position.set(0, y0+0.82, HD+0.16); glow.scale.set(2.8,1.7,1); g.add(glow);
+  LANTERNS.push({halo:glow, base:0.24, ph:Math.random()*6.28, sp:R(0.9,1.5)});
+}
+wingRoom( 3.5, 1.30, 2.3, 1.70, 'tea');
+wingRoom(-3.5, 1.20, 2.1, 1.60, 'study');
+
+/* ---------- 藏经阁（临水二层） ---------- */
+const SUT = { x:5.0, z:1.75, ry:-0.30 };
+(function buildSutra(){
+  const g=new T.Group(); g.position.set(SUT.x, 0, SUT.z); g.rotation.y=SUT.ry; root.add(g);
+  const W=2.5, D=2.0, HD=D/2;
+  const y0 = Y_BANK + platform(g, W+0.5, D+0.5, 0.44, 0, 0, {sw:1.20});
+  // 临水木平台
+  const ov=new T.Group(); g.add(ov);
+  for(let i=0;i<4;i++) CY(ov, 0.07,0.08,1.45, 7, M.wood, -0.90+i*0.60, y0-0.72, HD+0.70, {olt:0.010});
+  BX(ov, W+0.5, 0.09, 1.45, M.wood, 0, y0, HD+0.70, {olt:0.014});
+  BX(ov, W+0.5, 0.05, 0.08, M.woodDark, 0, y0+0.06, HD+1.40, {ol:0});
+  for(let i=0;i<7;i++) CY(ov, 0.022,0.022,0.32, 5, M.woodRed, -1.20+i*0.40, y0+0.19, HD+1.38, {ol:0});
+  BX(ov, W+0.4, 0.05, 0.05, M.woodRed, 0, y0+0.34, HD+1.38, {ol:0});
+  BX(ov, W+0.4, 0.04, 0.04, M.woodRed, 0, y0+0.15, HD+1.38, {ol:0});
+  [-1,1].forEach(s=> BX(ov, 0.05, 0.05, 1.40, M.woodRed, s*(W/2+0.21), y0+0.34, HD+0.70, {ol:0}));
+
+  const CH=1.70, HW=W/2;
+  [[-1.05,-0.80],[1.05,-0.80],[-1.05,0.80],[1.05,0.80]].forEach(c=> column(g, CH, 0.105, c[0], y0, c[1]));
+  BX(g, W, CH, 0.13, M.wallWhite, 0, y0+CH/2, -HD, {olt:0.018});
+  BX(g, 0.13, CH, D, M.wallWhite, -HW, y0+CH/2, 0, {olt:0.018});
+  BX(g, 0.13, CH, D, M.wallWhite,  HW, y0+CH/2, 0, {olt:0.018});
+  [-1,1].forEach(s=>{
+    BX(g, 0.54, CH, 0.13, M.wallWhite, s*0.93, y0+CH/2, HD, {olt:0.018});
+    latticeWin(g, 0.40, 0.94, s*0.93, y0+1.00, HD+0.02, 0);
+  });
+  halfDoor(g, 0.95, 1.46, 0, y0+0.73, HD-0.02, 0);
+  BX(g, W+0.24, 0.16, 0.16, M.woodRed, 0, y0+CH+0.08, HD+0.02, {olt:0.010});
+  BX(g, W+0.24, 0.16, 0.16, M.woodRed, 0, y0+CH+0.08, -HD-0.02, {olt:0.010});
+  BX(g, 0.16, 0.16, D+0.24, M.woodRed, -HW-0.02, y0+CH+0.08, 0, {olt:0.010});
+  BX(g, 0.16, 0.16, D+0.24, M.woodRed,  HW+0.02, y0+CH+0.08, 0, {olt:0.010});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.46, y0+CH+0.18, HD+0.07, 0.76);
+  addRoof(g, W+1.35, D+1.15, 0.78, 0, y0+CH+0.29, 0, {ridgeFrac:0.26, horn:0.50});
+  // 二层
+  const y1 = y0+CH+0.29+0.58;
+  BX(g, W-0.1, 1.15, D-0.1, M.wallWhite, 0, y1+0.575, 0, {olt:0.018});
+  [[-0.95,-0.72],[0.95,-0.72],[-0.95,0.72],[0.95,0.72]].forEach(c=> column(g, 1.15, 0.09, c[0], y1, c[1]));
+  latticeWin(g, W-0.5, 0.58, 0, y1+0.68, D/2-0.05, 0);
+  BX(g, W+0.08, 0.13, 0.15, M.woodRed, 0, y1+1.21, D/2-0.05, {olt:0.010});
+  for(let i=0;i<6;i++) CY(g, 0.020,0.020,0.28, 5, M.woodRed, -1.05+i*0.42, y1+0.15, D/2+0.11, {ol:0});
+  BX(g, W+0.16, 0.05, 0.05, M.woodRed, 0, y1+0.28, D/2+0.11, {ol:0});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.40, y1+1.27, D/2+0.06, 0.70);
+  addRoof(g, W+0.95, D+0.85, 0.84, 0, y1+1.36, 0, {ridgeFrac:0.22, horn:0.46});
+  plaque(g, 1.10, '藏經閣', 0, y0+CH-0.08, HD+0.12, 0);
+
+  const iy=y0, IW=W-0.18, ID=D-0.18;
+  PL(g, IW, ID, M.inFloor, 0, iy+0.008, 0, {rx:-Math.PI/2});
+  PL(g, IW, ID, M.inCeil, 0, iy+CH-0.05, 0, {rx:Math.PI/2});
+  PL(g, IW, CH, M.inWall, 0, iy+CH/2, -ID/2, {});
+  PL(g, ID, CH, M.inWall, -IW/2, iy+CH/2, 0, {ry:Math.PI/2});
+  PL(g, ID, CH, M.inWall,  IW/2, iy+CH/2, 0, {ry:-Math.PI/2});
+  [[-0.88,-0.30],[0,-0.30],[0.88,-0.30],[-0.88,-0.62],[0.88,-0.62]].forEach(p=>{
+    BX(g, 0.56, 1.10, 0.30, M.wood, p[0], iy+0.55, p[1], {olt:0.012, warm:true});
+    PL(g, 0.50, 0.98, MB(0xffffff,{map:TEX_SUTRA}), p[0], iy+0.56, p[1]+0.16, {});
+  });
+  BX(g, 0.95, 0.56, 0.46, M.wood, 0, iy+0.28, 0.42, {olt:0.012, warm:true});
+  BX(g, 1.04, 0.05, 0.52, M.woodDark, 0, iy+0.58, 0.42, {ol:0});
+  for(let i=0;i<3;i++) CY(g, 0.03,0.03,0.26, 8, M.white, -0.27+i*0.27, iy+0.63, 0.42, {rz:Math.PI/2, ol:0});
+  CY(g, 0.09,0.075,0.09, 12, M.celadon, 0.38, iy+0.64, 0.42, {ol:0});
+  flame(g, 0.38, iy+0.77, 0.42, 0.17);
+  cushion(g, -0.66, iy+0.01, 0.42, 0.78, M.cushion2);
+  cushion(g,  0.66, iy+0.01, 0.42, 0.78, M.cushion2);
+  PL(g, W-0.3, D-0.3, M.inFloor, 0, y1+0.008, 0, {rx:-Math.PI/2});
+  for(let i=0;i<4;i++) BX(g, 0.38, 0.80, 0.24, M.woodDark, -0.78+i*0.52, y1+0.40, -0.55, {olt:0.010, warm:true});
+
+  ptLight('sutra',  0xffbe7a, 1.40, 6.0, SUT.x, y0+1.05, SUT.z+0.25);
+  ptLight('sutra2', 0xffcf94, 0.80, 4.2, SUT.x, y1+0.60, SUT.z);
+  const glow=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffbb72,
+    blending:T.AdditiveBlending, opacity:0.30, transparent:true, depthWrite:false}));
+  glow.position.set(0, y0+0.95, HD+0.20); glow.scale.set(3.3,2.0,1); g.add(glow);
+  LANTERNS.push({halo:glow, base:0.30, ph:3.6, sp:1.05});
+  lantern(g, -1.18, y0+CH-0.06, HD+0.24, 0.80, {ch:'經'});
+  lantern(g,  1.18, y0+CH-0.06, HD+0.24, 0.80, {ch:'卷'});
+})();
+
+/* ---------- 钟鼓楼 ---------- */
+const TOWER = { x:6.20, z:-4.30, ry:-0.12 };
+(function buildTower(){
+  const g=new T.Group(); g.position.set(TOWER.x, 0, TOWER.z); g.rotation.y=TOWER.ry; root.add(g);
+  const S=1.80;
+  const y0 = Y_BANK + platform(g, S+0.55, S+0.55, 0.46, 0, 0, {sw:0.95});
+  const H1=1.70, HS=S/2;
+  BX(g, S, H1, 0.19, M.wallWhite, 0, y0+H1/2, -HS, {olt:0.018});
+  BX(g, 0.19, H1, S, M.wallWhite, -HS, y0+H1/2, 0, {olt:0.018});
+  BX(g, 0.19, H1, S, M.wallWhite,  HS, y0+H1/2, 0, {olt:0.018});
+  [-1,1].forEach(s=> BX(g, 0.55, H1, 0.19, M.wallWhite, s*0.62, y0+H1/2, HS, {olt:0.018}));
+  BX(g, 1.22, H1-0.88, 0.13, M.woodDark, 0, y0+0.56, HS, {ol:0});
+  BX(g, 0.19, 0.19, 0.13, M.stoneLite, 0, y0+0.09, HS+0.02, {ol:0});
+  BX(g, S+0.20, 0.17, 0.17, M.woodRed, 0, y0+H1+0.085, HS+0.02, {olt:0.010});
+  BX(g, S+0.20, 0.17, 0.17, M.woodRed, 0, y0+H1+0.085, -HS-0.02, {olt:0.010});
+  BX(g, 0.17, 0.17, S+0.20, M.woodRed, -HS-0.02, y0+H1+0.085, 0, {olt:0.010});
+  BX(g, 0.17, 0.17, S+0.20, M.woodRed,  HS+0.02, y0+H1+0.085, 0, {olt:0.010});
+  for(let i=-2;i<=2;i++) dougong(g, i*0.40, y0+H1+0.18, HS+0.08, 0.72);
+  addRoof(g, S+1.05, S+1.05, 0.72, 0, y0+H1+0.28, 0, {ridgeFrac:0.22, horn:0.48});
+  const y1 = y0+H1+0.28+0.56;
+  [[-0.66,-0.66],[0.66,-0.66],[-0.66,0.66],[0.66,0.66]].forEach(c=> column(g, 1.05, 0.09, c[0], y1, c[1]));
+  BX(g, 1.55, 0.13, 0.13, M.woodRed, 0, y1+1.12, 0.72, {olt:0.010});
+  BX(g, 1.55, 0.13, 0.13, M.woodRed, 0, y1+1.12, -0.72, {olt:0.010});
+  BX(g, 0.13, 0.13, 1.55, M.woodRed, 0.72, y1+1.12, 0, {olt:0.010});
+  BX(g, 0.13, 0.13, 1.55, M.woodRed, -0.72, y1+1.12, 0, {olt:0.010});
+  for(let i=0;i<5;i++){
+    CY(g, 0.020,0.020,0.26, 5, M.woodRed, -0.60+i*0.30, y1+0.15, 0.72, {ol:0});
+    CY(g, 0.020,0.020,0.26, 5, M.woodRed, -0.60+i*0.30, y1+0.15, -0.72, {ol:0});
+    CY(g, 0.020,0.020,0.26, 5, M.woodRed, 0.72, y1+0.15, -0.60+i*0.30, {ol:0});
+    CY(g, 0.020,0.020,0.26, 5, M.woodRed, -0.72, y1+0.15, -0.60+i*0.30, {ol:0});
+  }
+  BX(g, 1.55, 0.05, 0.05, M.woodRed, 0, y1+0.28, 0.72, {ol:0});
+  BX(g, 1.55, 0.05, 0.05, M.woodRed, 0, y1+0.28, -0.72, {ol:0});
+  BX(g, 0.05, 0.05, 1.55, M.woodRed, 0.72, y1+0.28, 0, {ol:0});
+  BX(g, 0.05, 0.05, 1.55, M.woodRed, -0.72, y1+0.28, 0, {ol:0});
+  for(let i=-1;i<=1;i++) dougong(g, i*0.40, y1+1.18, 0.72, 0.66);
+  addRoof(g, S+0.95, S+0.95, 0.76, 0, y1+1.27, 0, {ridgeFrac:0.20, horn:0.50});
+  // 铜钟
+  CY(g, 0.018,0.018,0.26, 6, M.rope, 0, y1+1.02, 0, {ol:0});
+  CY(g, 0.18,0.31,0.46, 14, M.bronze, 0, y1+0.70, 0, {olt:0.012});
+  CY(g, 0.33,0.33,0.05, 14, M.bronze, 0, y1+0.48, 0, {ol:0});
+  SP(g, 0.08, M.bronze, 0, y1+0.94, 0, {sg:9, sy:6, ol:0});
+  ptLight('tower', 0xffb267, 0.80, 4.6, TOWER.x, y1+0.60, TOWER.z);
+  const glow=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffb872,
+    blending:T.AdditiveBlending, opacity:0.22, transparent:true, depthWrite:false}));
+  glow.position.set(0, y1+0.74, 0); glow.scale.set(2.4,2.4,1); g.add(glow);
+  LANTERNS.push({halo:glow, base:0.22, ph:4.2, sp:0.85});
+})();
+
+/* ============================================================
+   古巷（南岸）
+   ============================================================ */
+const Y_S = Y_BANK;
+const LANE = [[-7.55,6.30],[-6.30,6.60],[-5.00,6.50],[-3.85,6.15],[-2.95,5.80]];
+function pathStrip(pts, w, mat, y){
+  const pos=[], uv=[];
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    let dx=b[0]-a[0], dz=b[1]-a[1];
+    const L=Math.hypot(dx,dz)||1; dx/=L; dz/=L;
+    const nx=-dz*w/2, nz=dx*w/2;
+    const q=[[a[0]-nx,y,a[1]-nz],[a[0]+nx,y,a[1]+nz],[b[0]+nx,y,b[1]+nz],[b[0]-nx,y,b[1]-nz]];
+    const u0=i*1.6, u1=(i+1)*1.6;
+    const uvq=[[u0,0],[u0,1],[u1,1],[u1,0]];
+    [0,1,2,0,2,3].forEach(k=>{ pos.push(q[k][0],q[k][1],q[k][2]); uv.push(uvq[k][0],uvq[k][1]); });
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv', new T.Float32BufferAttribute(uv,2));
+  g.computeVertexNormals();
+  return new T.Mesh(g, mat);
+}
+function wallRun(pts, h, mat, skipIdx){
+  for(let i=0;i<pts.length-1;i++){
+    if(skipIdx && skipIdx.indexOf(i)>=0) continue;
+    const a=pts[i], b=pts[i+1];
+    const L=Math.hypot(b[0]-a[0], b[1]-a[1]);
+    const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2;
+    const ang=Math.atan2(-(b[1]-a[1]), b[0]-a[0]);
+    BX(root, L+0.06, h, 0.16, mat, mx, Y_S+h/2, mz, {ry:ang, olt:0.018});
+    BX(root, L+0.22, 0.11, 0.34, M.tileRidge, mx, Y_S+h+0.05, mz, {ry:ang, olt:0.012});
+    BX(root, L+0.06, 0.16, 0.20, M.stoneDark, mx, Y_S+0.08, mz, {ry:ang, ol:0});
+  }
+}
+(function buildAlley(){
+  root.add(pathStrip(LANE, 1.55, M.pave, Y_S+0.012));
+  LANE.forEach(p=>{
+    BX(root, 0.13, 0.05, 1.70, M.stoneDark, p[0], Y_S+0.03, p[1]-0.85, {ol:0});
+    BX(root, 0.13, 0.05, 1.70, M.stoneDark, p[0], Y_S+0.03, p[1]+0.85, {ol:0});
+  });
+  // 临河院墙（北）
+  const WA=[];
+  for(let x=-7.85;x<=-2.45;x+=0.90) WA.push([x, zs(x)+0.80]);
+  wallRun(WA, 1.42, M.wallWhite, [2,3]);
+  // 岔口 → 镂空院门
+  (function(){
+    const gx=-5.95, gz=zs(gx)+0.80;
+    [-1,1].forEach(s=> CY(root, 0.10,0.11,1.72, 8, M.stoneDark, gx+s*0.50, Y_S+0.86, gz, {olt:0.012}));
+    BX(root, 1.26, 0.22, 0.28, M.tileRidge, gx, Y_S+1.83, gz, {olt:0.012});
+    BX(root, 1.26, 0.28, 0.06, M.wood, gx, Y_S+1.58, gz, {ol:0});
+    for(let i=0;i<6;i++) BX(root, 0.05, 1.26, 0.05, M.woodDark, gx-0.42+i*0.168, Y_S+0.88, gz, {ol:0});
+    BX(root, 1.14, 0.05, 0.05, M.woodDark, gx, Y_S+1.30, gz, {ol:0});
+  })();
+  // 南侧院墙
+  const WS=[[-7.85,7.95],[-6.10,7.95],[-4.35,7.95],[-2.95,7.85]];
+  wallRun(WS, 1.50, M.wallWhite, [1]);
+  // 民居
+  function house(hx, hz, hw, hd, ry){
+    const g=new T.Group(); g.position.set(hx, Y_S, hz); g.rotation.y=ry||0; root.add(g);
+    const CH=1.42, HW=hw/2, HD=hd/2;
+    BX(g, hw+0.28, 0.16, hd+0.28, M.stone, 0, 0.08, 0, {olt:0.014});
+    BX(g, hw, CH, 0.13, M.wallWhite, 0, 0.16+CH/2, -HD, {olt:0.018});
+    BX(g, 0.13, CH, hd, M.wallWhite, -HW, 0.16+CH/2, 0, {olt:0.018});
+    BX(g, 0.13, CH, hd, M.wallWhite,  HW, 0.16+CH/2, 0, {olt:0.018});
+    [-1,1].forEach(s=> BX(g, 0.50, CH, 0.13, M.wallWhite, s*(HW-0.25), 0.16+CH/2, HD, {olt:0.018}));
+    latticeWin(g, hw*0.34, 0.78, -(HW-0.25), 0.16+0.92, HD+0.02, 0);
+    latticeWin(g, hw*0.34, 0.78,  (HW-0.25), 0.16+0.92, HD+0.02, 0);
+    BX(g, hw*0.40, 1.16, 0.06, M.woodDark, 0, 0.16+0.58, HD+0.02, {olt:0.010, warm:true});
+    BX(g, 0.09, 1.16, 0.06, M.woodDark, 0, 0.16+0.58, HD+0.05, {ol:0});
+    BX(g, hw+0.22, 0.15, 0.15, M.woodRed, 0, 0.16+CH+0.075, HD+0.02, {olt:0.010});
+    BX(g, hw+0.22, 0.15, 0.15, M.woodRed, 0, 0.16+CH+0.075, -HD-0.02, {olt:0.010});
+    BX(g, 0.15, 0.15, hd+0.22, M.woodRed, -HW-0.02, 0.16+CH+0.075, 0, {olt:0.010});
+    BX(g, 0.15, 0.15, hd+0.22, M.woodRed,  HW+0.02, 0.16+CH+0.075, 0, {olt:0.010});
+    for(let i=-1;i<=1;i++) dougong(g, i*0.40, 0.16+CH+0.16, HD+0.07, 0.62);
+    addRoof(g, hw+1.15, hd+0.95, 0.62, 0, 0.16+CH+0.24, 0, {ridgeFrac:0.30, horn:0.38});
+    PL(g, hw-0.12, hd-0.12, M.inFloor, 0, 0.17, 0, {rx:-Math.PI/2});
+    PL(g, hw-0.12, CH, M.inWall, 0, 0.16+CH/2, -HD+0.07, {});
+    BX(g, 0.62, 0.26, 0.38, M.wood, -0.16, 0.17+0.13, 0.04, {olt:0.010, warm:true});
+    CY(g, 0.07,0.055,0.09, 12, M.celadon, 0.28, 0.17+0.32, 0.04, {ol:0});
+    CY(g, 0.075,0.09,0.10, 12, M.white, 0.54, 0.17+0.29, -0.18, {olt:0.008});
+    flame(g, 0.54, 0.17+0.43, -0.18, 0.15, 0xffc07a);
+    cushion(g, -0.54, 0.17, 0.26, 0.56, M.cushion2);
+    PL(g, hw*0.38, 0.72, MB(0xffffff,{map:TEX_BLIND, transparent:true, opacity:0.85}),
+       -(HW-0.25), 0.16+0.92, HD-0.12, {});
+    PL(g, hw*0.38, 0.72, MB(0xffffff,{map:TEX_BLIND, transparent:true, opacity:0.85}),
+        (HW-0.25), 0.16+0.92, HD-0.12, {});
+    const gl=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xffb872,
+      blending:T.AdditiveBlending, opacity:0.24, transparent:true, depthWrite:false}));
+    gl.position.set(0, 0.16+0.90, HD+0.18); gl.scale.set(hw*1.6,1.4,1); g.add(gl);
+    LANTERNS.push({halo:gl, base:0.24, ph:Math.random()*6.28, sp:R(0.8,1.4)});
+  }
+  house(-6.55, 7.20, 2.00, 1.15, 0);
+  house(-4.05, 7.15, 1.50, 1.05, 0.06);
+  // 巷口老石墩
+  [[-2.62,5.72,0.5],[-2.48,6.16,-0.3]].forEach(p=>{
+    BX(root, 0.42, 0.36, 0.42, M.stoneLite, p[0], Y_S+0.18, p[1], {ry:p[2], olt:0.014});
+    BX(root, 0.48, 0.06, 0.48, M.stone, p[0], Y_S+0.03, p[1], {ry:p[2], ol:0});
+    BX(root, 0.30, 0.10, 0.30, M.mossStone, p[0], Y_S+0.41, p[1], {ry:p[2], ol:0});
+  });
+  stoneLantern(root, -2.60, Y_S, 4.92, 0.92, true);
+  stoneLantern(root, -6.90, Y_S, 6.26, 0.92, true);
+  stoneLantern(root, -4.30, Y_S, 5.86, 0.85, true);
+  trellis(root, -5.30, Y_S, 6.52, 1.50, 1.70, 0.06);
+  CY(root, 0.28,0.24,0.42, 12, M.stoneDark, -7.20, Y_S+0.21, 7.10, {olt:0.012});
+  CY(root, 0.26,0.26,0.03, 14, MB(0x2c4a5e,{transparent:true, opacity:0.85}), -7.20, Y_S+0.42, 7.10, {ol:0});
+  bambooClump(root, -3.35, Y_S, 7.15, 0.60);
+  bambooClump(root, -7.50, Y_S, 5.80, 0.52);
+  lantern(root, -6.15, Y_S+1.66, 7.12, 0.76, {ch:'茶'});
+  lantern(root, -4.05, Y_S+1.66, 7.02, 0.70, {ch:'巷'});
+  flagLine(root, -7.30, 5.60, -3.30, 5.30, Y_S+2.10, 0.30);
+  ptLight('alley', 0xffb267, 0.85, 6.5, -5.30, Y_S+1.70, 6.60);
+})();
+
+const BOATS = [];
+/* 埠头石阶入水 */
+(function buildDock(){
+  const dx=-5.95, z0=zs(dx)+0.30;
+  for(let i=0;i<6;i++)
+    BX(root, 1.25, 0.10, 0.22, i%2?M.stone:M.stoneLite, dx, Y_S+0.04-i*0.095, z0-i*0.19, {olt:0.010});
+  BX(root, 1.35, 0.10, 0.28, M.mossStone, dx, Y_S+0.05, z0+0.22, {olt:0.010});
+  CY(root, 0.085,0.10,0.40, 7, M.stoneDark, dx+0.58, Y_S+0.19, z0-0.26, {olt:0.010});
+  CY(root, 0.085,0.10,0.40, 7, M.stoneDark, dx-0.58, Y_S+0.19, z0-0.26, {olt:0.010});
+  // 系缆
+  const rope=new T.Mesh(new T.CylinderGeometry(0.012,0.012,1.60,5), M.rope);
+  rope.position.set(dx-0.70, Y_S+0.32, z0-0.68);
+  rope.rotation.set(0, 0.60, 1.28); root.add(rope);
+  // 小乌篷船
+  const bg=new T.Group(); bg.position.set(dx-1.55, Y_WATER, z0-1.55); bg.rotation.y=0.46; root.add(bg);
+  const hull=new T.Mesh(new T.SphereGeometry(0.62, 14, 9, 0, Math.PI*2, 0, Math.PI*0.5), M.wood);
+  hull.rotation.x=Math.PI; hull.scale.set(0.46,0.42,1.55); hull.position.y=0.16; bg.add(hull);
+  addOL(hull, 0.016);
+  BX(bg, 0.52, 0.055, 1.76, M.wood, 0, 0.172, 0, {ol:0});
+  BX(bg, 0.46, 0.045, 1.62, M.woodDark, 0, 0.206, 0, {ol:0});
+  const awm = MK(0x3b2f27, {side:T.DoubleSide});
+  const aw=new T.Mesh(new T.CylinderGeometry(0.30,0.30,0.86,12,1,true), awm);
+  aw.rotation.x=Math.PI/2; aw.position.set(0,0.19,0.10); bg.add(aw);
+  for(let i=0;i<4;i++){
+    const rb=new T.Mesh(new T.TorusGeometry(0.304,0.016,5,12,Math.PI), M.woodDark);
+    rb.position.set(0,0.19,-0.26+i*0.24); rb.rotation.y=Math.PI/2; bg.add(rb);
+  }
+  CY(bg, 0.017,0.019,1.72, 6, M.bamboo, 0.22, 0.34, -0.10, {rx:1.34, ry:0.20, ol:0});
+  lantern(bg, 0, 0.56, -0.74, 0.52, {ch:'舟'});
+  BOATS.push({g:bg, ph:Math.random()*6.28, y:Y_WATER});
+})();
+
+/* ============================================================
+   石砌拱桥
+   ============================================================ */
+const BR = { x:0.41, z:4.23, ry:-0.139, L:3.20, W:1.50 };
+(function buildBridge(){
+  const g=new T.Group(); g.position.set(BR.x, Y_BANK, BR.z); g.rotation.y=BR.ry; root.add(g);
+  const L=BR.L, W=BR.W, N=18;
+  const deck = t => 0.14 + 0.60*Math.sin(Math.PI*clamp(t,0,1));
+  const dk   = z => deck((z+L/2)/L);
+  // 桥面石板
+  for(let i=0;i<N;i++){
+    const t0=i/N, t1=(i+1)/N;
+    const z0=-L/2+t0*L, z1=-L/2+t1*L, y0=deck(t0), y1=deck(t1);
+    const len=Math.hypot(z1-z0, y1-y0);
+    BX(g, W+0.26, 0.11, len*1.04, i%2?M.stone:M.stoneLite,
+       0, (y0+y1)/2-0.055, (z0+z1)/2, {rx:-Math.atan2(y1-y0, z1-z0), olt:0.010});
+  }
+  // 拱券 + 拱腹
+  const a=1.15, rise=0.52, R=(a*a+rise*rise)/(2*rise), crown=0.30, cy=crown-R;
+  const A=Math.asin(a/R), NA=13;
+  for(let i=0;i<NA;i++){
+    const th=-A+(i+0.5)*(2*A/NA);
+    const seg=2*A/NA*R*1.12;
+    const yz=cy+R*Math.cos(th), zz=R*Math.sin(th);
+    BX(g, W+0.28, 0.21, seg, M.stoneLite, 0, yz, zz, {rx:th, olt:0.012});
+    const exY=cy+(R+0.105)*Math.cos(th);
+    const dB=dk(zz)-0.11;
+    if(dB>exY+0.03) BX(g, W+0.20, dB-exY, seg*0.95, M.bankStone, 0, (dB+exY)/2, zz, {ol:0});
+  }
+  // 桥台
+  [-1,1].forEach(s=>{
+    const z2=s*(a+(L/2-a)/2);
+    BX(g, W+0.26, 0.62, (L/2-a)+0.06, M.bankStone, 0, -0.17, z2, {olt:0.014});
+    BX(g, W+0.34, 0.13, (L/2-a)+0.12, M.stone, 0, 0.09, z2, {olt:0.012});
+  });
+  // 栏板 / 望柱
+  [-1,1].forEach(s=>{
+    const wx=s*(W/2+0.03);
+    for(let i=0;i<=N;i++){
+      const z=-L/2+(i/N)*L;
+      CY(g, 0.033,0.038,0.28, 6, M.stoneLite, wx, dk(z)+0.14, z, {olt:0.008});
+    }
+    for(let i=0;i<N;i++){
+      const z0=-L/2+(i/N)*L, z1=-L/2+((i+1)/N)*L;
+      const y0=dk(z0)+0.29, y1=dk(z1)+0.29;
+      const len=Math.hypot(z1-z0, y1-y0);
+      BX(g, 0.05, 0.12, len*1.04, M.stone, wx, (y0+y1)/2, (z0+z1)/2,
+         {rx:-Math.atan2(y1-y0, z1-z0), olt:0.008});
+    }
+    [-1,1].forEach(e=>{
+      const z=-L/2+((e<0?0:1))*L, y=dk(z);
+      CY(g, 0.055,0.068,0.50, 7, M.stoneLite, wx, y+0.25, z, {olt:0.010});
+      SP(g, 0.072, M.stoneLite, wx, y+0.55, z, {sg:9, sy:7, olt:0.010});
+    });
+  });
+  // 桥头石灯
+  [-1,1].forEach(s=> stoneLantern(g, s*(W/2+0.30), dk(-L/2+0.34)+0.02, -L/2+0.34, 0.80, true));
+  stoneLantern(g, -(W/2+0.30), dk(L/2-0.34)+0.02, L/2-0.34, 0.80, true);
+  // 桥心月华
+  const gl=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xa8c8ff,
+    blending:T.AdditiveBlending, opacity:0.14, transparent:true, depthWrite:false}));
+  gl.position.set(0, 0.92, 0); gl.scale.set(2.6,2.6,1); g.add(gl);
+  LANTERNS.push({halo:gl, base:0.14, ph:5.1, sp:0.5});
+})();
+
+/* ============================================================
+   碑刻
+   ============================================================ */
+(function buildStele(){
+  const gx=-0.80, gz=6.30;
+  const g=new T.Group(); g.position.set(gx, Y_S, gz); g.rotation.y=0.26; root.add(g);
+  SP(g, 0.32, M.mossStone, 0, 0.12, 0, {sg:10, sy:7, sx:1.25, sy2:0.60, sz:1.55, olt:0.012});
+  BX(g, 0.66, 0.14, 0.90, M.stoneLite, 0, 0.07, 0, {olt:0.012});
+  BX(g, 0.34, 0.12, 0.34, M.stoneLite, 0, 0.20, 0, {ol:0});
+  BX(g, 0.36, 1.06, 0.16, M.stoneDark, 0, 0.79, 0, {olt:0.012});
+  PL(g, 0.30, 0.94, MB(0xffffff,{map:TEX_STELE}), 0, 0.79, 0.086, {});
+  PL(g, 0.30, 0.94, MB(0xffffff,{map:TEX_STELE}), 0, 0.79, -0.086, {ry:Math.PI});
+  BX(g, 0.48, 0.12, 0.26, M.stoneDark, 0, 1.38, 0, {olt:0.010});
+  BX(g, 0.42, 0.16, 0.22, M.stoneDark, 0, 1.51, 0, {olt:0.010});
+  CY(g, 0.035,0.035,0.18, 8, M.stoneLite, -0.13, 1.63, 0, {rz:0.42, ol:0});
+  CY(g, 0.035,0.035,0.18, 8, M.stoneLite,  0.13, 1.63, 0, {rz:-0.42, ol:0});
+  stoneLantern(root, gx-0.85, Y_S, gz+0.30, 0.78, false);
+})();
+
+/* ============================================================
+   石径
+   ============================================================ */
+(function buildPaths(){
+  const P = (pts, w) => root.add(pathStrip(pts, w, M.pave, Y_BANK+0.014));
+  // 桥北 → 山门前
+  P([[0.63,2.74],[0.66,2.46],[0.68,2.18]], 1.35);
+  // 桥南 → 西行入巷
+  P([[0.19,5.86],[-0.72,6.22],[-1.82,6.34],[-2.82,6.26],[-3.82,6.15]], 1.15);
+  // 北岸临水小径
+  P([[0.60,2.34],[-1.16,2.06],[-2.98,1.86],[-4.98,1.50],[-6.78,1.14]], 0.95);
+  // 北岸 → 配殿 → 大殿西侧
+  P([[-1.16,2.02],[-2.60,1.30],[-3.62,0.20],[-3.92,-1.20],[-3.80,-3.00],[-3.02,-5.00],[-1.62,-6.40]], 0.95);
+  // 东厢 → 藏经阁
+  P([[4.30,-0.16],[4.72,0.34],[5.00,0.58]], 0.85);
+  // 大殿东 → 钟鼓楼
+  P([[3.86,-4.62],[4.64,-4.44],[5.06,-4.32]], 0.80);
+  // 巷中支巷（岔口）
+  P([[-5.00,6.50],[-4.90,7.30],[-4.80,7.86]], 0.72);
+  // 寺前广场铺装
+  root.add(pathStrip([[0.00,4.30],[-1.10,4.20],[-1.90,3.95]], 0.90, M.pave, Y_S+0.014));
+  root.add(pathStrip([[0.00,4.30],[ 1.10,4.18],[ 2.00,3.90]], 0.90, M.pave, Y_S+0.014));
+})();
+
+/* ============================================================
+   纱幔（顶点波动）
+   ============================================================ */
+const CURTAINS = [];
+function curtain(pa, w, h, x,y,z, ry){
+  const mat = new T.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uCol:{value:new T.Color(0xd9c9a6)}, uOp:{value:0.92} },
+    vertexShader:[
+      'uniform float uTime; varying vec2 vUv;',
+      'void main(){ vUv=uv; vec3 p=position;',
+      ' float k=1.0-uv.y;',
+      ' p.z += sin(uv.y*5.2 + uTime*1.55 + uv.x*2.4)*0.055*k;',
+      ' p.x += sin(uv.y*3.3 + uTime*1.15)*0.028*k;',
+      ' gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }'
+    ].join('\n'),
+    fragmentShader:[
+      'uniform vec3 uCol; uniform float uOp; varying vec2 vUv;',
+      'void main(){',
+      '  float b=0.74+0.26*sin(vUv.y*64.0);',
+      '  float e=smoothstep(0.0,0.10,vUv.x)*smoothstep(1.0,0.90,vUv.x);',
+      '  gl_FragColor=vec4(uCol*b, uOp*(0.35+0.65*e)); }'
+    ].join('\n'),
+    transparent:true, side:T.DoubleSide, depthWrite:false
+  });
+  const m=new T.Mesh(new T.PlaneGeometry(w,h,8,10), mat);
+  m.position.set(x,y,z); m.rotation.y=ry||0; pa.add(m);
+  CURTAINS.push(mat);
+  return m;
+}
+
+/* ============================================================
+   庭院陈设（TG 局部坐标）
+   ============================================================ */
+(function buildCourtyard(){
+  BX(TG, 2.10, 0.05, 1.40, M.pave, 0, Y_BANK+0.025, 0.16, {ol:0});
+  censer(TG, 0, Y_BANK, 0.16, 1.10, true);
+  // 经幡杆
+  [-1,1].forEach(s=>{
+    CY(TG, 0.055,0.075,2.32, 7, M.woodDark, s*1.60, Y_BANK+1.16, 0.16, {olt:0.012});
+    CY(TG, 0.046,0.046,0.14, 7, M.goldDeep, s*1.60, Y_BANK+2.38, 0.16, {ol:0});
+  });
+  flagLine(TG, -1.58, 0.16, 1.58, 0.16, Y_BANK+2.14, 0.26);
+  // 中庭石灯
+  [-1,1].forEach(s=> stoneLantern(TG, s*2.02, Y_BANK, 0.16, 0.70, false));
+  // 二进院
+  [-1,1].forEach(s=> stoneLantern(TG, s*1.28, Y_BANK, 3.86, 0.80, true));
+  bambooClump(TG, -2.34, Y_BANK, 3.30, 0.62);
+  bambooClump(TG,  2.38, Y_BANK, 3.22, 0.55);
+  // 檐下灯笼
+  lantern(TG, -0.98, Y_BANK+1.34, 0.66, 0.70, {ch:'靜'});
+  lantern(TG,  0.98, Y_BANK+1.34, 0.66, 0.70, {ch:'夜'});
+  ptLight('court', 0xffa860, 0.85, 5.2, wpos(0,0.16)[0], Y_BANK+1.05, wpos(0,0.16)[1]);
+})();
+
+/* 院内松 · 岸畔垂柳 */
+pine(root, -2.20, Y_BANK, -5.60, 0.72);
+pine(root,  4.40, Y_BANK, -6.20, 0.62);
+pine(root,  6.80, Y_BANK,  7.10, 0.66);
+[[-6.00, 1.54, 0.92],[-3.60, 1.62, 0.78],[3.40, 2.62, 0.86],
+ [-7.20, 4.86, 0.80],[-2.00, 5.60, 0.90],[2.60, 6.26, 0.84]]
+  .forEach(w=> willow(root, w[0], Y_BANK, w[1], w[2]));
+
+/* 巷间纱幔 */
+curtain(root, 1.70, 0.46, -6.55, Y_S+1.74, 8.02, 0);
+curtain(root, 1.24, 0.42, -4.05, Y_S+1.70, 7.92, 0.06);
+curtain(root, 0.30, 0.92, -6.16, Y_S+1.30, 5.52, 0);
+curtain(root, 0.30, 0.92, -5.74, Y_S+1.30, 5.52, 0);
+curtain(root, 0.62, 0.78, -6.05, Y_S+1.94, 6.52, Math.PI/2);
+curtain(root, 0.62, 0.78, -4.55, Y_S+1.94, 6.52, Math.PI/2);
+
+/* ============================================================
+   水中道具
+   ============================================================ */
+const REFL = [];
+(function buildWaterProps(){
+  const padMat  = MK(0x2e5a46, {side:T.DoubleSide});
+  const petalMt = MK(0xd9c4d6, {side:T.DoubleSide, emissive:0x6a4f6e, ei:0.42});
+  // 睡莲
+  for(let i=0;i<16;i++){
+    const x=R(-7.1,6.6), zw=zc(x)+R(-1.05,1.05), s=R(0.70,1.15);
+    const g=new T.Group(); g.position.set(x, Y_WATER+0.022, zw); g.rotation.y=Math.random()*3; root.add(g);
+    CY(g, 0.19*s,0.19*s,0.020, 12, padMat, 0, 0, 0, {ol:0});
+    CY(g, 0.105*s,0.105*s,0.030, 10, petalMt, 0.16*s, 0.024, 0.05*s, {ol:0});
+    for(let k=0;k<5;k++)
+      BX(g, 0.076*s, 0.014, 0.046*s, petalMt,
+         0.16*s+Math.cos(k/5*6.2832)*0.055*s, 0.038, 0.05*s+Math.sin(k/5*6.2832)*0.055*s,
+         {ry:k/5*6.2832, ol:0});
+  }
+  // 浮萍
+  for(let i=0;i<28;i++){
+    const x=R(-7.4,6.8), zw=zc(x)+R(-1.12,1.12);
+    CY(root, R(0.05,0.11),R(0.05,0.11),0.012, 7,
+       MK(0x3a6b4a,{side:T.DoubleSide}), x, Y_WATER+0.014, zw, {ol:0});
+  }
+  // 汀石
+  for(let i=0;i<5;i++){
+    const f=-1+i*0.5, x=-2.30+f*0.62, zw=zc(x)+f*0.16;
+    CY(root, 0.19,0.23,0.22, 8, M.mossStone, x, Y_WATER+0.02, zw, {ry:Math.random()*3, olt:0.010});
+    CY(root, 0.205,0.205,0.05, 8, M.stoneLite, x, Y_WATER+0.14, zw, {ol:0});
+  }
+  // 水中灯影
+  [[1.55, 2.78, 0xffb267, 0.9, 2.4],
+   [4.55, 3.52, 0xffc07a, 1.0, 1.9],
+   [6.10, 3.30, 0xffb872, 0.7, 1.5],
+   [-6.35, 4.62, 0xffa860, 0.9, 2.0],
+   [-2.20, 5.10, 0xffb06a, 0.7, 1.6]].forEach(p=>{
+    const s=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:p[2],
+      blending:T.AdditiveBlending, opacity:p[3]*0.22, transparent:true, depthWrite:false}));
+    s.position.set(p[0], Y_WATER+0.03, p[1]);
+    s.scale.set(p[4], p[4]*1.9, 1); root.add(s);
+    REFL.push({s:s, b:p[3]*0.22, w:p[4], h:p[4]*1.9, ph:Math.random()*6.28, sp:R(0.5,1.1)});
+  });
+})();
+
+/* ============================================================
+   香炉白烟
+   ============================================================ */
+const SMOKE = [];
+(function initSmoke(){
+  const v = new T.Vector3();
+  INCENSE.forEach(e=>{
+    v.set(0, e.y, 0); e.o.localToWorld(v);
+    for(let i=0;i<7;i++){
+      const s=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xc2d2ea,
+        blending:T.AdditiveBlending, opacity:0, transparent:true, depthWrite:false}));
+      s.position.set(v.x, v.y, v.z); scene.add(s);
+      SMOKE.push({s:s, ox:v.x, oz:v.z, y0:v.y, t:Math.random(),
+                  sp:R(0.10,0.19), ph:Math.random()*6.28, sc:e.s});
+    }
+  });
+})();
+
+/* ============================================================
+   水面涟漪
+   ============================================================ */
+const RIPS = [];
+(function initRipples(){
+  const gg=new T.RingGeometry(0.30, 0.40, 26);
+  for(let i=0;i<14;i++){
+    const m=new T.Mesh(gg, MB(0xa8c8ff,{transparent:true, opacity:0, side:T.DoubleSide,
+      blending:T.AdditiveBlending, depthWrite:false}));
+    m.rotation.x=-Math.PI/2; m.visible=false; root.add(m);
+    RIPS.push({m:m, t:1, x:0, z:0, sp:1, mx:1});
+  }
+})();
+function spawnRipple(x,z,maxR){
+  for(let i=0;i<RIPS.length;i++){
+    const p=RIPS[i];
+    if(p.t>=1){ p.t=0; p.x=x; p.z=z; p.mx=maxR||1.1; p.sp=R(0.5,0.9); p.m.visible=true; return; }
+  }
+}
+
+/* ============================================================
+   萤火
+   ============================================================ */
+const FLY_ZONES = [
+  [ 1.40,-4.60],[ 0.90,-1.20],[-2.60,-1.60],[ 3.60, 0.60],
+  [-6.30, 6.60],[-4.20, 6.32],[-2.60, 5.30],
+  [ 5.60,-3.40],[-5.40, 1.90],[ 2.20, 6.60]
+];
+const FLIES = [];
+(function initFlies(){
+  for(let i=0;i<30;i++){
+    const z0=FLY_ZONES[i%FLY_ZONES.length];
+    const s=new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xbdf08a,
+      blending:T.AdditiveBlending, opacity:0, transparent:true, depthWrite:false}));
+    s.scale.set(0.17,0.17,1); root.add(s);
+    FLIES.push({s:s, cx:z0[0]+R(-0.70,0.70), cz:z0[1]+R(-0.70,0.70), r:R(0.35,1.15),
+                ph:Math.random()*6.28, ph2:Math.random()*6.28, sp:R(0.22,0.55), yb:R(0.30,1.45)});
+  }
+})();
+
+/* ============================================================
+   声音：夏夜虫鸣（间歇·三物种）
+   ============================================================ */
+const AUD = { ctx:null, master:null, on:false, vol:0.52, ckT:0, cricket:null };
+function sndBuild(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return false;
+  const ctx = new AC(); AUD.ctx = ctx;
+  const master = ctx.createGain();
+  master.gain.value = 0; master.connect(ctx.destination); AUD.master = master;
+
+  // 共享带通，模拟夏夜空气感
+  const bus = ctx.createBiquadFilter();
+  bus.type = 'bandpass'; bus.frequency.value = 4200; bus.Q.value = 6.5;
+  bus.connect(master);
+
+  // 物种 A：蟋蟀高音颤鸣（4350~4850 Hz）
+  const spA = { fMin:4350, fMax:4850, nMin:3, nMax:6, gapMin:1900, gapMax:5600, dur:0.042, gain:0.062 };
+  // 物种 B：油葫芦 / 蛐蛐中频啾鸣（3000~3600 Hz）
+  const spB = { fMin:3000, fMax:3600, nMin:2, nMax:5, gapMin:2600, gapMax:7200, dur:0.065, gain:0.078 };
+  // 物种 C：低频蝉虫滋滋（2300~2750 Hz）
+  const spC = { fMin:2300, fMax:2750, nMin:4, nMax:8, gapMin:3200, gapMax:7800, dur:0.048, gain:0.058 };
+
+  function trill(sp, t0){
+    const n = sp.nMin + Math.floor(Math.random()*(sp.nMax-sp.nMin+1));
+    for(let i=0;i<n;i++){
+      const tt = t0 + i*(sp.dur*0.95);
+      const o = ctx.createOscillator();
+      o.type = 'square';
+      const f = sp.fMin + Math.random()*(sp.fMax-sp.fMin);
+      o.frequency.setValueAtTime(f, tt);
+      o.frequency.exponentialRampToValueAtTime(f*(0.93+Math.random()*0.14), tt+sp.dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, tt);
+      g.gain.exponentialRampToValueAtTime(sp.gain, tt+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, tt+sp.dur);
+      o.connect(g); g.connect(bus);
+      o.start(tt); o.stop(tt+sp.dur+0.02);
+    }
+  }
+
+  function schedule(){
+    const t = ctx.currentTime;
+    const sp = [spA, spB, spC][Math.floor(Math.random()*3)];
+    trill(sp, t + 0.05);
+    AUD.ckT = setTimeout(schedule, sp.gapMin + Math.random()*(sp.gapMax - sp.gapMin));
+  }
+
+  AUD.cricket = function cricket(){
+    if(!AUD.on) return;
+    schedule();
+  };
+  return true;
+}
+(function bindSound(){
+  const btn=document.getElementById('sndBtn'), vol=document.getElementById('sndVol');
+  const icOn=document.getElementById('icOn'), icOff=document.getElementById('icOff');
+  function applyVol(){
+    if(AUD.master) AUD.master.gain.setTargetAtTime(AUD.on?AUD.vol:0, AUD.ctx.currentTime, 0.09);
+  }
+  btn.addEventListener('click', ()=>{
+    if(!AUD.ctx && !sndBuild()) return;
+    if(AUD.ctx.state==='suspended') AUD.ctx.resume();
+    AUD.on = !AUD.on;
+    icOn.style.display  = AUD.on?'block':'none';
+    icOff.style.display = AUD.on?'none':'block';
+    applyVol();
+    clearTimeout(AUD.ckT);
+    if(AUD.on) AUD.ckT = setTimeout(AUD.cricket, 600);
+  });
+  vol.addEventListener('input', ()=>{ AUD.vol = vol.value/100; applyVol(); });
+})();
+
+/* ============================================================
+   收集临水灯火 → 写入水面着色器（灯光倒影）
+   ============================================================ */
+(function gatherRiverLamps(){
+  const v = new T.Vector3();
+  const list = [];
+  // 灯笼光晕
+  for(let i=0;i<LANTERNS.length;i++){
+    const l = LANTERNS[i];
+    l.halo.getWorldPosition(v);
+    const dz = Math.abs(v.z - zc(v.x));
+    if(dz > 4.8) continue;
+    list.push({ x:v.x, z:v.z, col: l.halo.material.color.clone(), I: 0.95 });
+  }
+  // 主要点光源
+  Object.keys(L).forEach(k => {
+    L[k].getWorldPosition(v);
+    const dz = Math.abs(v.z - zc(v.x));
+    if(dz > 4.8) return;
+    list.push({ x:v.x, z:v.z, col: new T.Color(L[k].color), I: 0.60 });
+  });
+  list.sort((a,b) => Math.hypot(a.x,a.z-zc(a.x)) - Math.hypot(b.x,b.z-zc(b.x)));
+  const N = Math.min(20, list.length);
+  for(let i=0;i<20;i++){
+    if(i < N){
+      waterUniforms.uLamp.value[i].set(list[i].x, list[i].z, list[i].I);
+      waterUniforms.uLampCol.value[i].copy(list[i].col);
+    } else {
+      waterUniforms.uLamp.value[i].set(0,0,0);
+      waterUniforms.uLampCol.value[i].set(0,0,0);
+    }
+  }
+  waterUniforms.uLampN.value = N;
+})();
+
+/* ============================================================
+   阴影：月相平行光 → 正交投影
+   ============================================================ */
+(function setupShadows(){
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  moon.castShadow = true;
+  moon.shadow.mapSize.set(1536, 1536);
+  const sc = moon.shadow.camera;
+  sc.left = -15; sc.right = 15; sc.top = 15; sc.bottom = -15;
+  sc.near = 0.5; sc.far = 110;
+  sc.updateProjectionMatrix();
+  moon.shadow.bias = -0.0009;
+  moon.shadow.normalBias = 0.040;
+  moon.shadow.radius = 2.4;
+
+  scene.traverse(o=>{
+    if(!o.isMesh) return;
+    if(o.userData.isOL){ o.castShadow=false; o.receiveShadow=false; return; }
+    const m = o.material;
+    if(!m) return;
+    if(m.isShaderMaterial){ o.castShadow=false; o.receiveShadow=false; return; }
+    if(m.transparent || m.blending === T.AdditiveBlending){ o.castShadow=false; o.receiveShadow=false; return; }
+    o.castShadow = true;
+    o.receiveShadow = true;
+  });
+})();
+
+/* ============================================================
+   主循环
+   ============================================================ */
+const clock = new T.Clock();
+let ACC = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  ACC += dt;
+  const t = ACC;
+
+  ctrl.theta += ctrl.dth; ctrl.phi += ctrl.dph; ctrl.r += ctrl.dr;
+  ctrl.dth *= 0.86; ctrl.dph *= 0.86; ctrl.dr *= 0.86;
+  ctrl.phi = clamp(ctrl.phi, 0.22, 1.44);
+  ctrl.r   = clamp(ctrl.r, 13, 62);
+  if(!ctrl.dragging){ ctrl.idle += dt; if(ctrl.idle > 4) ctrl.theta += dt*0.034; }
+  const sp=Math.sin(ctrl.phi), cp=Math.cos(ctrl.phi);
+  camera.position.set(
+    ctrl.target.x + ctrl.r*sp*Math.sin(ctrl.theta),
+    ctrl.target.y + ctrl.r*cp,
+    ctrl.target.z + ctrl.r*sp*Math.cos(ctrl.theta));
+  camera.lookAt(ctrl.target);
+
+  waterUniforms.uTime.value = t;
+
+  for(let i=0;i<WILLOWS.length;i++){
+    const w=WILLOWS[i];
+    w.g.rotation.z = w.base + w.amp*Math.sin(t*w.sp + w.ph);
+    w.g.rotation.x = w.amp*0.42*Math.sin(t*w.sp*0.79 + w.ph*1.7);
+  }
+  for(let i=0;i<VINES.length;i++){
+    const v=VINES[i];
+    v.g.rotation.z = v.base + v.amp*Math.sin(t*v.sp + v.ph);
+  }
+  for(let i=0;i<FLAGS.length;i++){
+    const f=FLAGS[i];
+    if(f.axis==='z') f.g.rotation.z = f.base + f.amp*Math.sin(t*f.sp + f.ph);
+    else             f.g.rotation.y = f.base + f.amp*Math.sin(t*f.sp + f.ph);
+  }
+  for(let i=0;i<CURTAINS.length;i++) CURTAINS[i].uniforms.uTime.value = t;
+  for(let i=0;i<LANTERNS.length;i++){
+    const l=LANTERNS[i];
+    l.halo.material.opacity = l.base*(0.80 + 0.20*Math.sin(t*l.sp + l.ph) + 0.07*Math.sin(t*l.sp*2.7 + l.ph*2));
+  }
+  for(let i=0;i<FLAMES.length;i++){
+    const f=FLAMES[i];
+    const k=1 + 0.15*Math.sin(t*f.sp + f.ph) + 0.07*Math.sin(t*f.sp*2.3 + f.ph*3);
+    f.s.scale.set(f.base*k, f.base*1.6*k*(0.93+0.09*Math.sin(t*f.sp*1.7 + f.ph)), 1);
+    f.s.material.opacity = 0.72 + 0.22*Math.sin(t*f.sp*1.3 + f.ph);
+  }
+  for(let i=0;i<SMOKE.length;i++){
+    const p=SMOKE[i];
+    p.t += dt*p.sp; if(p.t>=1) p.t -= 1;
+    const k=p.t;
+    p.s.position.set(p.ox + Math.sin(k*5.2+p.ph)*0.20*k,
+                     p.y0 + k*1.65*p.sc,
+                     p.oz + Math.cos(k*4.4+p.ph)*0.17*k);
+    const sz=(0.10 + k*0.40)*p.sc;
+    p.s.scale.set(sz,sz,1);
+    p.s.material.opacity = 0.20*Math.sin(Math.PI*k);
+  }
+  if(Math.random() < dt*1.6){
+    const rx=R(-7.2,6.8);
+    spawnRipple(rx, zc(rx)+R(-1.15,1.15), R(0.55,1.35));
+  }
+  for(let i=0;i<RIPS.length;i++){
+    const p=RIPS[i];
+    if(p.t>=1){ if(p.m.visible) p.m.visible=false; continue; }
+    p.t += dt*p.sp;
+    const k=Math.min(1, p.t), r=0.10+k*p.mx;
+    p.m.position.set(p.x, Y_WATER+0.015, p.z);
+    p.m.scale.set(r,r,1);
+    p.m.material.opacity = 0.34*(1-k)*(1-k);
+  }
+  for(let i=0;i<FLIES.length;i++){
+    const f=FLIES[i];
+    f.s.position.set(
+      f.cx + Math.sin(t*f.sp + f.ph)*f.r,
+      Y_BANK + f.yb + Math.sin(t*0.75 + f.ph2)*0.34,
+      f.cz + Math.cos(t*f.sp*0.83 + f.ph)*f.r);
+    f.s.material.opacity = 0.90*Math.pow(Math.max(0, Math.sin(t*1.9 + f.ph*2.6)), 6);
+  }
+  for(let i=0;i<BOATS.length;i++){
+    const b=BOATS[i];
+    b.g.position.y = b.y + Math.sin(t*0.75 + b.ph)*0.022;
+    b.g.rotation.z = Math.sin(t*0.62 + b.ph*1.4)*0.034;
+    b.g.rotation.x = Math.sin(t*0.48 + b.ph)*0.020;
+  }
+  for(let i=0;i<REFL.length;i++){
+    const r=REFL[i];
+    r.s.material.opacity = r.b*(0.78 + 0.22*Math.sin(t*r.sp + r.ph));
+    r.s.scale.set(r.w*(1+0.05*Math.sin(t*r.sp*1.3 + r.ph)), r.h, 1);
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
