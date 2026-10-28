@@ -1,10 +1,13 @@
-import { readFile, mkdir, writeFile, copyFile, rm } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, copyFile, cp, rm } from 'node:fs/promises';
 const html=await readFile('app.html','utf8');
 const style=html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1];
 const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/i)?.[1];
 const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/i)?.[1];
 if(!style||!body||!script) throw Error('Invalid application HTML');
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
-await writeFile('dist/assets/app.js',`document.title="随遇而旅";const font=document.createElement("link");font.rel="stylesheet";font.href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap";document.head.appendChild(font);const style=document.createElement("style");style.textContent=${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+script);
+const faces = [['sans',[300,400,500,600,700]],['serif',[400,600,700]]].flatMap(([family,weights])=>weights.map(weight=>({family,weight})));
+const fonts = faces.map(({family,weight})=>`@font-face{font-family:"Noto ${family === 'serif' ? 'Serif' : 'Sans'} SC";font-style:normal;font-weight:${weight};font-display:swap;src:url(FONT_BASE${family}-${weight}.woff2) format("woff2");}`).join('');
+await cp('public/fonts','dist/assets/fonts',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title="随遇而旅";const base=new URL("assets/assets/fonts/",location.href).href;const style=document.createElement("style");style.textContent=${JSON.stringify(fonts)}.replaceAll("FONT_BASE",base)+${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+script);
 await copyFile('public/icon.png','dist/icon.png');
 const source=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
