@@ -1725,7 +1725,7 @@ var autoNextTimer = null;
 
 /* ---------- 渲染 ---------- */
 function render() {
-  var app = $('#app');
+  var app = $('#practice-app');
   if (!app) return;
   var immersive = S.view === 'quiz' || S.view === 'report';
   document.body.classList.toggle('immersive', immersive);
@@ -1742,7 +1742,7 @@ function render() {
 function renderQuiz(keepScroll) {
   var old = document.querySelector('.quiz-body');
   var st = old ? old.scrollTop : 0;
-  setHTML($('#app'), viewQuiz());
+  setHTML($('#practice-app'), viewQuiz());
   var nb = document.querySelector('.quiz-body');
   if (keepScroll && nb) nb.scrollTop = st;
   else if (nb) nb.scrollTop = 0;
