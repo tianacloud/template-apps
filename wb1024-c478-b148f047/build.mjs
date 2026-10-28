@@ -1,7 +1,7 @@
 import {readFileSync, mkdirSync, writeFileSync, copyFileSync} from 'node:fs';
 const html=readFileSync('index.html','utf8');
 const body=html.match(/<body>([\s\S]*?)<script src="game.js"><\/script>/)[1];
-const css=readFileSync('style.css','utf8');
+const css=readFileSync('style.css','utf8')+'\nbody { display: block; } #app { width: 100%; max-width: 460px; margin: 0 auto; }';
 const game=readFileSync('game.js','utf8');
 mkdirSync('dist/assets',{recursive:true});
 writeFileSync('dist/assets/app.js',`document.getElementById('app').innerHTML=${JSON.stringify(body)};\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\n${game}`);
