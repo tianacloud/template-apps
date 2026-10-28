@@ -5,4 +5,4 @@ await build({entryPoints:['src/main.js'],bundle:true,format:'esm',target:'es2022
 await cp('public/legacy.js','dist/assets/legacy.js');
 await cp('public/icon.png','dist/icon.png');
 const params=JSON.parse(await readFile('source.json','utf8'));
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',...params}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...params}));
