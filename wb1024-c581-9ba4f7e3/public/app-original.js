@@ -1,3 +1,20 @@
+// Host CSP blocks inline event attributes; dispatch the supported UI actions safely.
+if (window.tiana) for (const type of ['click','change','input','keydown']) {
+  document.addEventListener(type, event => {
+    const el=event.target.closest?.('[on'+type+']'); if (!el) return;
+    const action=el.getAttribute('on'+type);
+    if (action === 'if(event.target===this)closeModal()') { if(event.target===el) window.closeModal(); return; }
+    if (action === "document.getElementById('import-file').click()") { document.getElementById('import-file').click(); return; }
+    if (action === 'this.parentNode.remove()') { el.parentNode.remove(); return; }
+    if (action === 'this.select()') { el.select(); return; }
+    if (action === "copyText($('#cloud-key-show').value)") { window.copyText(document.querySelector('#cloud-key-show').value); return; }
+    if (action === "bounceGelin('#page-checkin .greenie-avatar'); submitCheckin()") { window.bounceGelin('#page-checkin .greenie-avatar'); window.submitCheckin(); return; }
+    const m=action.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/); if(!m || typeof window[m[1]]!=='function') return;
+    const raw=m[2].trim(); let args=[];
+    if(raw==='event') args=[event]; else if(raw==='true') args=[true]; else if(raw==='false') args=[false]; else if(/^-?\d+$/.test(raw)) args=[Number(raw)]; else if(/^'[^']*'$/.test(raw)) args=[raw.slice(1,-1)]; else if(raw) return;
+    window[m[1]](...args);
+  });
+}
 
 /* ===========================================================
    小课表 · 小朋友的上课打卡 · 单文件离线版
