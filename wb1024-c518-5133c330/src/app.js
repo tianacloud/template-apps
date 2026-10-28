@@ -1,0 +1,547 @@
+const style=document.createElement("style");style.textContent="\n  :root{\n    --bg:#f6f8fb; --card:#fff; --ink:#1f2937; --muted:#64748b;\n    --line:#e5e9f0; --accent:#2563eb; --tc:#f59e0b; --tr:#10b981; --pf:#2563eb;\n    --opt:#7c3aed; --danger:#ef4444; --soft:#eef2ff;\n  }\n  *{box-sizing:border-box;margin:0;padding:0}\n  body{font-family:-apple-system,\"PingFang SC\",\"Microsoft YaHei\",Segoe UI,Roboto,sans-serif;\n    background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}\n  .wrap{max-width:1120px;margin:0 auto;padding:22px 16px 64px}\n  header.hero{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border-radius:18px;\n    padding:24px 28px;box-shadow:0 10px 30px rgba(37,99,235,.18)}\n  header.hero h1{font-size:24px;font-weight:800;letter-spacing:.5px}\n  header.hero p{margin-top:8px;opacity:.92;font-size:13.5px;max-width:860px}\n  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);\n    padding:3px 10px;border-radius:999px;font-size:12px;margin-top:12px}\n  .cases{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}\n  .case{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;\n    padding:9px 13px;cursor:pointer;font-size:12.5px;transition:.15s;text-align:left}\n  .case:hover{border-color:var(--accent);background:var(--soft);box-shadow:0 4px 14px rgba(37,99,235,.1)}\n  .case .ci{font-size:17px}\n  .case .ct{font-weight:700;display:block}\n  .case .cd{color:var(--muted);font-size:10.5px;max-width:190px}\n  .models{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}\n  @media(max-width:760px){.models{grid-template-columns:repeat(2,1fr)}}\n  .models button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 10px;\n    text-align:left;cursor:pointer;transition:.15s}\n  .models button .ic{font-size:20px}\n  .models button .nm{font-weight:700;font-size:13.5px;margin-top:4px}\n  .models button .ds{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4}\n  .models button.active{border-color:var(--accent);background:var(--soft);box-shadow:0 0 0 3px rgba(37,99,235,.1)}\n  .grid{display:grid;grid-template-columns:330px 1fr;gap:16px;margin-top:16px}\n  @media(max-width:880px){.grid{grid-template-columns:1fr}}\n  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;\n    box-shadow:0 2px 12px rgba(15,23,42,.04)}\n  .card h2{font-size:14.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}\n  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}\n  .field{margin-bottom:12px}\n  .field label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:5px}\n  .field label b{color:var(--ink);font-variant-numeric:tabular-nums}\n  .field input[type=number]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;\n    font-size:13.5px;color:var(--ink);outline:none}\n  .field input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}\n  .field input[type=range]{width:100%;accent-color:var(--accent);margin-top:4px}\n  .hint{font-size:11.5px;color:var(--muted);margin-top:3px}\n  .row-btns{display:flex;gap:8px;margin-top:6px}\n  .btn{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px;border-radius:9px;\n    font-size:12.5px;font-weight:600;cursor:pointer}\n  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}\n  .btn.ghost{background:var(--soft);color:var(--accent);border-color:transparent;flex:0 0 auto}\n  .btn:hover{filter:brightness(.98)}\n  svg{width:100%;height:auto;display:block}\n  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:12px;color:var(--muted)}\n  .legend span{display:inline-flex;align-items:center;gap:5px}\n  .legend i{width:13px;height:4px;border-radius:2px;display:inline-block}\n  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}\n  @media(max-width:680px){.kpis{grid-template-columns:repeat(2,1fr)}}\n  .kpi{background:var(--soft);border-radius:11px;padding:12px}\n  .kpi .k{font-size:11.5px;color:var(--muted)}\n  .kpi .v{font-size:19px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}\n  .kpi .v small{font-size:12px;font-weight:600;color:var(--muted)}\n  .read{margin-top:14px;border:1px solid var(--line);border-left:4px solid var(--opt);\n    border-radius:12px;padding:14px 16px;font-size:13.5px;color:#374151}\n  .read b{color:var(--opt)}\n  .warn{border-left-color:#f97316;background:#fff7ed}\n  .warn b{color:#ea580c}\n  .sub{margin-top:16px}\n  .sub h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px}\n  .advice li{font-size:13px;margin:6px 0 6px 18px;color:#374151}\n  .advice li b{color:var(--accent)}\n  .snap-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}\n  .snap{display:flex;align-items:center;gap:6px;background:var(--soft);border-radius:9px;padding:6px 10px;font-size:12px}\n  .snap .sw{width:9px;height:9px;border-radius:50%}\n  .snap button{border:0;background:transparent;color:var(--danger);cursor:pointer;font-size:13px}\n  .spark{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}\n  @media(max-width:520px){.spark{grid-template-columns:1fr}}\n  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}\n  /* 风险模拟 */\n  .risk-ctl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}\n  .risk-ctl label{display:inline-flex;align-items:center;gap:6px}\n  .risk-ctl input[type=range]{width:130px;accent-color:var(--accent)}\n  .risk-ctl select{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px}\n  .histo{display:flex;align-items:flex-end;gap:3px;height:120px;margin-top:10px;padding:0 2px}\n  .histo .bar{flex:1;background:linear-gradient(180deg,#3b82f6,#2563eb);border-radius:3px 3px 0 0;min-height:2px;opacity:.88}\n  .histo .bar.peak{background:linear-gradient(180deg,#a78bfa,#7c3aed);opacity:1}\n  /* 报告 */\n  .report-area{width:100%;min-height:240px;border:1px solid var(--line);border-radius:10px;padding:12px;\n    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#334155;resize:vertical;line-height:1.55}\n  /* 图表交互 */\n  .chart-wrap{position:relative}\n  .tip{position:absolute;pointer-events:none;background:#1f2937;color:#fff;padding:7px 10px;border-radius:8px;\n    font-size:11.5px;line-height:1.55;opacity:0;transition:.08s;z-index:20;white-space:nowrap}\n  footer{margin-top:24px;text-align:center;color:var(--muted);font-size:12px}\n  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2937;color:#fff;\n    padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:99}\n  .toast.show{opacity:1}\n";document.head.append(style);
+document.getElementById("app").innerHTML="\n<div data-page-node-id=\"3av5n0zC8FbijGJCVxWHcl\" class=\"wrap\">\n  <header data-page-node-id=\"IuReRUXxD1SnrUsbVnu9UL\" class=\"hero\">\n    <h1 data-page-node-id=\"KYChcWImKLGGUMT1IX5W06\"><!--pnid:XpbPDMdAE4JBMyB6GbxMjP-->边际效益拐点计算器</h1>\n    <p data-page-node-id=\"uggOV6mSPAInj1EYStnqd3\"><!--pnid:kbZZbVl19Buwp6DePu6SvI-->任何投入——生产、营销、用人、获客——都存在\"再多就亏\"的临界点。选一个场景，载入实战案例或自填成本收益结构，立刻算出最优投入量、利润峰值与盈亏平衡区间；再用敏感性分析、蒙特卡洛风险模拟与一键决策报告，把\"拍脑袋\"变成\"有数据支撑的决策\"。</p>\n    <span data-page-node-id=\"UERUHnYSrf3iB808EN8Uvc\" class=\"badge\"><!--pnid:74sD33daXuBIYAHZGvNzAi-->程序员节 1024 造物挑战 · 纯前端 · 零依赖 · 多场景决策平台</span>\n  </header>\n\n  <div data-page-node-id=\"S7xVHMlDTTYyMuGqfSzl8y\" class=\"cases\" id=\"cases\"></div>\n\n  <div data-page-node-id=\"8y03rDDYFRjmBW58o40em2\" class=\"models\" id=\"models\"></div>\n\n  <div data-page-node-id=\"otO0ulwRovAwq8edNKuPbL\" class=\"grid\">\n    <div data-page-node-id=\"4CzAGSlEpSTG8xWyzZ4QIy\" class=\"card\">\n      <h2 data-page-node-id=\"IlgvRzJHMcPTnkulX8WQ7B\"><span data-page-node-id=\"DAjSXfr70tdWIFb0jcCMM0\" class=\"dot\"></span><!--pnid:AXqbYl7aUEvkCuodVGnK9g-->参数设置</h2>\n      <div data-page-node-id=\"9V3gJCUlaMD6TxLW1FzJSj\" id=\"paramFields\"></div>\n      <div data-page-node-id=\"gIu8lc6tjixrKHHvEYx8pD\" class=\"row-btns\">\n        <button data-page-node-id=\"qksAWiEfOHnBok0vq0LXTk\" class=\"btn ghost\" onclick=\"resetParams()\"><!--pnid:Ky4e43t6NkJkagi3pOxoXe-->↺ 重置</button>\n        <button data-page-node-id=\"ouxXP49ST6uvXkzzbzgt4Q\" class=\"btn primary\" onclick=\"saveSnapshot()\"><!--pnid:FeifPt8TfrM2gaucM7KwWv-->＋ 存为对比方案</button>\n      </div>\n    </div>\n\n    <div data-page-node-id=\"PcWBGYy1Xr2b8Px5npe0Yh\" class=\"card\">\n      <h2 data-page-node-id=\"RpWRZGkhtRXu2t4v7UYnhp\"><span data-page-node-id=\"CrBifpePenAaxfteCfm0YL\" class=\"dot\"></span><!--pnid:I7RZcPLbLyfKfmsnJwLdEL-->成本 / 收益 / 利润曲线</h2>\n      <div data-page-node-id=\"E8Q9gYBRGXjNQpoUygilAF\" class=\"chart-wrap\" id=\"chartWrap\"><div data-page-node-id=\"07GbZBu84VIJI766MGUfZz\" id=\"chartHost\"></div></div>\n      <div data-page-node-id=\"nxuuHua40oehJMblmtGCwp\" class=\"legend\" id=\"legend\"></div>\n      <div data-page-node-id=\"JN5aktDLuwnEqq74ZoYRYp\" class=\"kpis\" id=\"kpis\"></div>\n      <div data-page-node-id=\"3sZZJE1bWxFsvhZsRl6gpK\" class=\"read\" id=\"read\"></div>\n\n      <div data-page-node-id=\"qfDFwHsSVXoxJjhbPWsdbG\" class=\"sub\">\n        <h3 data-page-node-id=\"TRlKGqm3GtCSvR6ZPYUAbr\"><!--pnid:DRYpEi3npth2rmcHKIJnd6-->📐 敏感性分析 <span data-page-node-id=\"7zAA1z6b4lovDMhMCCyKPu\" style=\"color:var(--muted); font-weight:400; font-size:11.5px\"><!--pnid:tXPqlMEiZVvch8aUik8m98-->（横轴为驱动参数，竖线为当前取值）</span></h3>\n        <div data-page-node-id=\"hckyZkec71RyDRQppuFvze\" class=\"spark\">\n          <div data-page-node-id=\"FCpNEFQga1vMX3cCFGPBXq\"><div data-page-node-id=\"GzGC9JpSp8RiJy3tZoAn1q\" style=\"font-size:12px; color:var(--muted); margin-bottom:2px\"><!--pnid:ovzRxl9wvpGLlCVmHlNDH2-->最优投入量 vs 驱动参数</div><div data-page-node-id=\"JhmFlBaimRNmT02lTqMpQs\" id=\"sparkQ\"></div></div>\n          <div data-page-node-id=\"Vo9tnbAwTBx3Zgaw6NKmkt\"><div data-page-node-id=\"KxRQ3vDkgQroV802H0pXdR\" style=\"font-size:12px; color:var(--muted); margin-bottom:2px\"><!--pnid:IqtE7dcn4mFh8NJ36V9rGx-->最大利润 vs 驱动参数</div><div data-page-node-id=\"YPipJXPKMeTKfsV9hX6elu\" id=\"sparkP\"></div></div>\n        </div>\n      </div>\n\n      <div data-page-node-id=\"8ZeqZZgNeYwMbPh3uv5k9n\" class=\"sub\">\n        <h3 data-page-node-id=\"33YpLO9kUck7TcrnhReyMc\"><!--pnid:ii7tNT4z0rrnoZGsOKyJV0-->🤖 智能决策建议 <span data-page-node-id=\"VfljjxGjD0f6ng3K4bnRbY\" style=\"color:var(--muted); font-weight:400; font-size:11.5px\"><!--pnid:ubnfyiLMXG3WVJGo4Lrmwd-->（规则引擎 · 离线生成）</span></h3>\n        <ul data-page-node-id=\"XvmaJV4scemKaObGBEBTON\" class=\"advice\" id=\"advice\"></ul>\n      </div>\n\n      <div data-page-node-id=\"uTbOkWCqRLJ0yTBM8q4JdJ\" class=\"sub\">\n        <h3 data-page-node-id=\"yj85XzU95DraKRIEZuM6mC\"><!--pnid:wJ9gX5Q8TlgraVlfpgEr7e-->🔬 方案快照对比</h3>\n        <div data-page-node-id=\"56QvNrri0egAqXodNYcRSg\" class=\"snap-row\" id=\"snaps\"></div>\n        <div data-page-node-id=\"dWlZO6uTGD6ccZJvVPpdXj\" class=\"toolbar\">\n          <button data-page-node-id=\"2U5XoKIfU8VobUHXenSsiO\" class=\"btn\" onclick=\"clearSnaps()\"><!--pnid:DbLUlCodIb0nitHx6eopou-->清空对比</button>\n          <button data-page-node-id=\"JDeDbOC3ETfej1AggcamHa\" class=\"btn\" onclick=\"exportCSV()\"><!--pnid:Z6QIJA9gyX5C4y3LnqfnSD-->⬇ 导出数据 CSV</button>\n          <button data-page-node-id=\"wB5hxKckbs6DSeFVe4TgUG\" class=\"btn\" onclick=\"exportPNG()\"><!--pnid:CZqLtn4zNqPUbhBumwjMCt-->⬇ 导出曲线 PNG</button>\n          <button data-page-node-id=\"ReDyIFNZnynbSRw3tJGBy7\" class=\"btn ghost\" onclick=\"copyShare()\"><!--pnid:c5N6bwZO3GpxQl1HDMWsbL-->🔗 复制分享链接</button>\n        </div>\n      </div>\n\n      <div data-page-node-id=\"bJOKNDTXITcEn5mw8uLo2P\" class=\"sub\">\n        <h3 data-page-node-id=\"2OwrRMFqEUgtzyWWbzM94X\"><!--pnid:kP8ZMNzKUi1warjnpOknjk-->🎲 风险模拟（蒙特卡洛） <span data-page-node-id=\"XX2pk6AMuM07mnjjDPMrV0\" style=\"color:var(--muted); font-weight:400; font-size:11.5px\"><!--pnid:HUPEWR3hgZNIXlVjb2FjhY-->（参数随机波动，量化决策稳健性）</span></h3>\n        <div data-page-node-id=\"4a8gac42d1HXBHUbcklzDR\" class=\"risk-ctl\">\n          <label data-page-node-id=\"jPkIzPTKfm0zvcN3LjK0Qw\"><!--pnid:r1DsVV8id68qoEWFah0WEG-->参数波动 ±<input data-page-node-id=\"JZVcjXdhKTElzLkX7E5Zdy\" id=\"riskSigma\" max=\"50\" min=\"0\" oninput=\"document.getElementById('riskSigmaV').textContent=this.value+'%';renderRisk()\" step=\"5\" type=\"range\" value=\"10\"> <b data-page-node-id=\"yooEtcpJvXxsigyVQNF1xB\" id=\"riskSigmaV\"><!--pnid:Qn2XzszJXc50d2LpFrrjUn-->10%</b></label>\n          <label data-page-node-id=\"YdyIA0HsFBI3HzBOnBM6yy\"><!--pnid:Lx08jweiqoJg7eHR3mtPDi-->模拟次数 <select data-page-node-id=\"dWDjUa8dcQxbgGFkVzQDQI\" id=\"riskN\" onchange=\"renderRisk()\"><option data-page-node-id=\"QH7VyTJJZ3z6M4ophAZDGb\" value=\"200\"><!--pnid:QXFt3sN3HcLUaeHURhcGug-->200</option><option data-page-node-id=\"5r47B3mtaluGOO5YoXTPfc\" selected value=\"400\"><!--pnid:RfSTd7vhHk5c0SAQca089i-->400</option><option data-page-node-id=\"TY3NsVzSRgd4bzOmtnWirK\" value=\"800\"><!--pnid:C49AobFiacPK67rNu0PmjC-->800</option></select></label>\n          <button data-page-node-id=\"KbD4EyIfEcP9WAWmZqGQ7T\" class=\"btn ghost\" onclick=\"renderRisk()\"><!--pnid:SjQ7KQYv4LogQvGspMW7d9-->🎲 运行模拟</button>\n        </div>\n        <div data-page-node-id=\"xHM2ay5DBwcHQjBxrLSUJp\" id=\"riskBody\"></div>\n      </div>\n\n      <div data-page-node-id=\"ECRyhXUHKCAFHdOv3yFMRa\" class=\"sub\">\n        <h3 data-page-node-id=\"HV6myhwVVgXlgu84ZOXJUc\"><!--pnid:wZfoWqvd8u0CBpndqq0pf6-->📋 决策报告 <span data-page-node-id=\"wXxL2cx5IGWSyaGfBvqRzJ\" style=\"color:var(--muted); font-weight:400; font-size:11.5px\"><!--pnid:PQsNxiEoqMbCBN3WiRh0sc-->（自动汇总，可复制 / 下载 .md）</span></h3>\n        <div data-page-node-id=\"0CwluqGmx2jNkxv16CbjmW\" class=\"row-btns\">\n          <button data-page-node-id=\"vsnuqRU7OHXAuGPRKu5jOY\" class=\"btn primary\" onclick=\"generateReport()\"><!--pnid:1ggQnvbD417F7sKvtR6yl8-->生成报告</button>\n          <button data-page-node-id=\"dJfsAauIYLsk2N0Doj2yzh\" class=\"btn\" onclick=\"copyReport()\"><!--pnid:ChfRxbSXffUi4mZeTkmaQZ-->复制</button>\n          <button data-page-node-id=\"oTi1FZEHBjXHQ0yf13k88F\" class=\"btn\" onclick=\"downloadReport()\"><!--pnid:1sudieGjoPVmpGQMWiH3FB-->下载 .md</button>\n        </div>\n        <textarea data-page-node-id=\"LKv3DwUVaD9RuSZcZR8Nhu\" class=\"report-area\" id=\"reportArea\" placeholder=\"点击「生成报告」自动汇总当前方案的参数、核心结论与决策建议……\"></textarea>\n      </div>\n    </div>\n  </div>\n\n  <footer data-page-node-id=\"9NQDBmXccyyKmERPptVEdA\"><!--pnid:QNfTxiYBGETRACyoWZ05O2-->\n    边际效益拐点 = 边际利润由正转负的临界点，即利润曲线最高点；越过它，每多投入一单位反而减少总利润。<br data-page-node-id=\"4VhZuTI52qCHGFOfC2aUje\"><!--pnid:HJk3fUJ23iCyf9WPaeOvFr-->\n    本工具为决策辅助演示，采用经典微观经济假设（线性/饱和/边际递减），实际经营请结合真实数据；风险模拟为蒙特卡洛近似，仅供稳健性参考。\n  </footer>\n</div>\n<div data-page-node-id=\"OlSNwHmiyrOJ1nLHXHHU2U\" class=\"toast\" id=\"toast\"></div>\n\n";
+
+/* ============ 多场景模型定义 ============ */
+const MODELS = {
+  produce:{ name:"生产/销售决策", icon:"🏭",
+    desc:"每多产一件，市价因饱和而降",
+    xLabel:"产量 Q", xmax:{def:300,min:50,max:2000,step:10,label:"产量上限"},
+    params:[
+      {k:"F",label:"固定成本 F（产线/设备）",def:8000,min:0,max:200000,step:1000},
+      {k:"c",label:"单位变动成本 c",def:80,min:0,max:1000,step:5},
+      {k:"p0",label:"基础单价 p₀（首件售价）",def:300,min:0,max:2000,step:5},
+      {k:"k",label:"价格衰减 k（每多一件单价降幅）",def:0.8,min:0,max:10,step:0.1},
+    ], driver:"k",
+    cost:(X,p)=>p.F+p.c*X,
+    revenue:(X,p)=>X*Math.max(0,p.p0-p.k*X),
+  },
+  market:{ name:"营销投放", icon:"📣",
+    desc:"预算越多转化越接近天花板",
+    xLabel:"投放预算 X", xmax:{def:50000,min:1000,max:500000,step:1000,label:"预算上限"},
+    params:[
+      {k:"F",label:"固定成本 F（素材/搭建）",def:5000,min:0,max:200000,step:1000},
+      {k:"A",label:"回报天花板 A（最大收益）",def:200000,min:0,max:2000000,step:10000},
+      {k:"b",label:"饱和速度 b（转化效率）",def:0.0006,min:0,max:0.01,step:0.0001},
+    ], driver:"b",
+    cost:(X,p)=>p.F+X,
+    revenue:(X,p)=>p.A*(1-Math.exp(-p.b*X)),
+  },
+  team:{ name:"团队扩张", icon:"👥",
+    desc:"人越多分工收益越递减",
+    xLabel:"团队人数 N", xmax:{def:50,min:5,max:300,step:1,label:"人数上限"},
+    params:[
+      {k:"F",label:"固定成本 F（场地/管理）",def:20000,min:0,max:500000,step:5000},
+      {k:"w",label:"人均成本 w（年薪）",def:15000,min:0,max:100000,step:1000},
+      {k:"pr",label:"单人产出单价 pr",def:30000,min:0,max:500000,step:1000},
+      {k:"a",label:"单人基础产能 a",def:1,min:0.1,max:10,step:0.1},
+    ], driver:"w",
+    cost:(X,p)=>p.F+p.w*X,
+    revenue:(X,p)=>p.pr*p.a*Math.pow(Math.max(X,0),0.85),
+  },
+  growth:{ name:"用户增长", icon:"🚀",
+    desc:"获客投入越多用户越接近天花板",
+    xLabel:"获客投入 X", xmax:{def:50000,min:1000,max:500000,step:1000,label:"获客投入上限"},
+    params:[
+      {k:"F",label:"固定成本 F（平台/渠道费）",def:10000,min:0,max:200000,step:1000},
+      {k:"U",label:"用户天花板 U",def:100000,min:0,max:2000000,step:10000},
+      {k:"g",label:"获客效率 g",def:0.0002,min:0,max:0.005,step:0.0001},
+      {k:"ar",label:"单用户贡献 arpu",def:200,min:0,max:2000,step:10},
+    ], driver:"ar",
+    cost:(X,p)=>p.F+X,
+    revenue:(X,p)=>p.ar*p.U*(1-Math.exp(-p.g*X)),
+  },
+};
+
+/* ============ 实战案例剧本 ============ */
+const CASES = [
+  { title:"老林防水·材料批量采购", icon:"💧", model:"produce",
+    note:"高压注浆防水，批量采购聚氨酯注浆料，量大单价降、仓储与资金占用升",
+    params:{F:6000,c:70,p0:320,k:0.9}, xmax:300 },
+  { title:"双十一备货", icon:"🛒", model:"produce",
+    note:"预估销量越大单价越低，但过量库存积压贬值",
+    params:{F:30000,c:120,p0:440,k:0.35}, xmax:800 },
+  { title:"抖音信息流投放", icon:"📱", model:"market",
+    note:"投放越多曝光越接近天花板，边际转化递减",
+    params:{F:8000,A:500000,b:0.0008}, xmax:200000 },
+  { title:"创业团队扩招", icon:"🚀", model:"team",
+    note:"人数越多协作摩擦越大，单人产出边际递减",
+    params:{F:30000,w:18000,pr:40000,a:1}, xmax:100 },
+  { title:"SaaS 获客投放", icon:"☁️", model:"growth",
+    note:"渠道投放越多获客越接近市场天花板",
+    params:{F:15000,U:200000,g:0.0003,ar:260}, xmax:150000 },
+  { title:"门店产能爬坡", icon:"🏪", model:"produce",
+    note:"开新产线固定投入大，单价随产能爬坡下降",
+    params:{F:20000,c:60,p0:280,k:0.35}, xmax:500 },
+];
+
+/* ============ 状态 ============ */
+let curModel="produce";
+let params={};
+let xmax=300;
+let snapshots=[]; // {model,params,xmax,color,name}
+
+function loadDefaults(){
+  const m=MODELS[curModel];
+  params={}; m.params.forEach(p=>params[p.k]=p.def);
+  xmax=m.xmax.def;
+}
+loadDefaults();
+
+/* ============ 计算 ============ */
+function compute(m, P, XM){
+  const N=260; const xs=[],cost=[],rev=[],pf=[];
+  let qOpt=0,maxP=-Infinity;
+  for(let i=0;i<=N;i++){
+    const X=XM*i/N;
+    const c=m.cost(X,P), r=m.revenue(X,P), p=r-c;
+    xs.push(X);cost.push(c);rev.push(r);pf.push(p);
+    if(p>maxP){maxP=p;qOpt=X;}
+  }
+  // 盈亏平衡：扫描 profit>=0 的连续区间
+  let be=null;
+  for(let i=0;i<N;i++){
+    if((pf[i]>=0)!==(pf[i+1]>=0)){
+      const t=pf[i]/(pf[i]-pf[i+1]);
+      const root=xs[i]+t*(xs[i+1]-xs[i]);
+      if(be===null) be=[root,root]; else be[1]=root;
+    }
+  }
+  // 越过拐点后每+1单位的利润变化（数值微分）
+  let marginalLoss=0;
+  if(qOpt>0 && qOpt<XM){
+    const q2=Math.min(XM,qOpt+1);
+    const p1=m.revenue(qOpt,P)-m.cost(qOpt,P);
+    const p2=m.revenue(q2,P)-m.cost(q2,P);
+    marginalLoss=p1-p2;
+  }
+  return {xs,cost,rev,pf,qOpt,maxP,be,marginalLoss,XM};
+}
+
+/* ============ 格式化 ============ */
+const fmt=v=>"¥"+Math.round(v).toLocaleString("zh-CN");
+const fmtX=v=>Math.round(v).toLocaleString("zh-CN");
+function shortNum(v){const a=Math.abs(v);if(a>=10000)return (v/10000).toFixed(a>=100000?0:1)+"万";if(a>=1000)return (v/1000).toFixed(1)+"k";return Math.round(v).toString();}
+
+/* ============ 通用折线图 ============ */
+function lineChart(W,H,series,xLabel,marks){
+  const padL=58,padR=14,padT=14,padB=40;
+  const pw=W-padL-padR, ph=H-padT-padB;
+  let ymax=0,ymin=0;
+  series.forEach(s=>s.pts.forEach(p=>{ymax=Math.max(ymax,p[1]);ymin=Math.min(ymin,p[1]);}));
+  if(marks) marks.forEach(mk=>{if(Number.isFinite(mk.y)){ymax=Math.max(ymax,mk.y);ymin=Math.min(ymin,mk.y);}});
+  ymax=ymax*1.08; if(ymin>0)ymin=0; ymin=ymin*1.05; if(ymax===ymin) ymax=ymin+1;
+  const xmax = series[0].pts[series[0].pts.length-1][0] || 1;
+  const sx=X=>padL+(X-0)/(xmax-0)*pw;
+  const sy=v=>padT+(1-(v-ymin)/(ymax-ymin))*ph;
+  let g="";
+  for(let i=0;i<=5;i++){
+    const v=ymin+(ymax-ymin)*i/5,y=sy(v);
+    g+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#eef1f6"/>`;
+    g+=`<text x="${padL-7}" y="${y+4}" text-anchor="end" font-size="10.5" fill="#94a3b8">${shortNum(v)}</text>`;
+  }
+  const xt=6;
+  for(let i=0;i<=xt;i++){
+    const X=xmax*i/xt,x=sx(X);
+    g+=`<line x1="${x}" y1="${padT}" x2="${x}" y2="${H-padB}" stroke="#f1f4f9"/>`;
+    g+=`<text x="${x}" y="${H-padB+16}" text-anchor="middle" font-size="10.5" fill="#94a3b8">${fmtX(X)}</text>`;
+  }
+  g+=`<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="#cbd5e1"/>`;
+  g+=`<line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="#cbd5e1"/>`;
+  g+=`<text x="${W-padR}" y="${H-padB+32}" text-anchor="end" font-size="10.5" fill="#64748b">${xLabel}</text>`;
+  if(marks) marks.forEach(mk=>{
+    if(mk.type==="vline"){
+      const x=sx(mk.x);
+      g+=`<line x1="${x}" y1="${padT}" x2="${x}" y2="${H-padB}" stroke="${mk.color}" stroke-dasharray="5 4"/>`;
+      g+=`<text x="${x}" y="${padT+10}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${mk.color}">${mk.label||""}</text>`;
+    }else if(mk.type==="pulse"){
+      const cx=sx(mk.x),cy=sy(mk.y);
+      g+=`<circle cx="${cx}" cy="${cy}" r="5" fill="none" stroke="${mk.color}" stroke-width="2"><animate attributeName="r" from="5" to="17" dur="1.6s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.9" to="0" dur="1.6s" repeatCount="indefinite"/></circle>`;
+      g+=`<circle cx="${cx}" cy="${cy}" r="4.5" fill="${mk.color}" stroke="#fff" stroke-width="1.8"/>`;
+    }else{
+      g+=`<circle cx="${sx(mk.x)}" cy="${sy(mk.y)}" r="4.5" fill="${mk.color}" stroke="#fff" stroke-width="1.8"/>`;
+    }
+  });
+  series.forEach(s=>{
+    const d=s.pts.map((p,i)=>(i?"L":"M")+sx(p[0]).toFixed(1)+" "+sy(p[1]).toFixed(1)).join(" ");
+    g+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.3" stroke-linejoin="round"/>`;
+  });
+  return `<svg id="mainSvg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,Microsoft YaHei,sans-serif">${g}</svg>`;
+}
+
+/* ============ 主图渲染 ============ */
+function drawMain(){
+  const m=MODELS[curModel];
+  const host=document.getElementById("chartHost");
+  if(snapshots.length>0){
+    const series=snapshots.map(s=>{const r=compute(MODELS[s.model],s.params,s.xmax);return {color:s.color,pts:r.xs.map((x,i)=>[x,r.pf[i]])};});
+    host.innerHTML=lineChart(660,340,series,m.xLabel,null);
+    document.getElementById("legend").innerHTML=snapshots.map(s=>`<span><i style="background:${s.color}"></i>${s.name}（${MODELS[s.model].name}）</span>`).join("");
+    return;
+  }
+  const r=compute(m,params,xmax);
+  const series=[
+    {color:"#f59e0b",pts:r.xs.map((x,i)=>[x,r.cost[i]])},
+    {color:"#10b981",pts:r.xs.map((x,i)=>[x,r.rev[i]])},
+    {color:"#2563eb",pts:r.xs.map((x,i)=>[x,r.pf[i]])}
+  ];
+  const marks=[];
+  if(r.qOpt>0 && r.qOpt<=xmax && r.maxP>0){
+    marks.push({type:"vline",x:r.qOpt,color:"#7c3aed",label:"拐点"});
+    marks.push({type:"pulse",x:r.qOpt,y:r.maxP,color:"#7c3aed"});
+  }
+  if(r.be){
+    marks.push({type:"dot",x:r.be[0],y:0,color:"#ef4444"});
+    if(r.be[1]!==r.be[0]) marks.push({type:"dot",x:r.be[1],y:0,color:"#ef4444"});
+  }
+  host.innerHTML=lineChart(660,340,series,m.xLabel,marks);
+  document.getElementById("legend").innerHTML=
+    `<span><i style="background:#f59e0b"></i>总成本</span><span><i style="background:#10b981"></i>总收入</span>`+
+    `<span><i style="background:#2563eb"></i>利润</span><span><i style="background:#7c3aed"></i>拐点(最优量)</span><span><i style="background:#ef4444"></i>盈亏平衡</span>`;
+  bindTip(r);
+}
+
+/* ============ 图表悬浮提示 ============ */
+function bindTip(r){
+  const svg=document.getElementById("mainSvg");
+  const wrap=document.getElementById("chartWrap");
+  if(!svg||!wrap) return;
+  let tip=document.getElementById("chartTip");
+  if(!tip){tip=document.createElement("div");tip.id="chartTip";tip.className="tip";wrap.appendChild(tip);}
+  const m=MODELS[curModel];
+  const padL=58,pw=660-58-14;
+  svg.onmousemove=e=>{
+    if(snapshots.length>0){tip.style.opacity=0;return;}
+    const rect=svg.getBoundingClientRect();
+    const vx=(e.clientX-rect.left)/rect.width*660;
+    const X=Math.max(0,Math.min(xmax,(vx-padL)/pw*xmax));
+    const i=Math.max(0,Math.min(260,Math.round(X/xmax*260)));
+    const c=r.cost[i],rev=r.rev[i],pf=r.pf[i];
+    tip.innerHTML=`${m.xLabel} ${fmtX(X)}<br>成本 ${fmt(c)}<br>收入 ${fmt(rev)}<br>利润 ${fmt(pf)}`;
+    tip.style.left=(e.clientX-rect.left+12)+"px";
+    tip.style.top=(e.clientY-rect.top-10)+"px";
+    tip.style.opacity=1;
+  };
+  svg.onmouseleave=()=>tip.style.opacity=0;
+}
+
+/* ============ KPI + 解读 ============ */
+function renderRead(){
+  const m=MODELS[curModel];
+  const r=compute(m,params,xmax);
+  const box=document.getElementById("read");
+  const kpis=document.getElementById("kpis");
+  if(snapshots.length>0){
+    kpis.innerHTML="";
+    box.className="read";
+    box.innerHTML=`当前为 <b>方案快照对比</b> 视图，上方叠加各方案<b>利润曲线</b>。点击「清空对比」回到单方案精算。`;
+    document.getElementById("advice").innerHTML="";
+    return;
+  }
+  const beKpi = r.be ? (r.be[0]!==r.be[1] ? `${fmtX(r.be[0])}～${fmtX(r.be[1])}` : `≥ ${fmtX(r.be[0])}`) : "全程亏损";
+  kpis.innerHTML=
+    kpi("最优投入量", fmtX(r.qOpt))+
+    kpi("最大利润", fmt(r.maxP))+
+    kpi("越过拐点 每+1单位", `<small>利润</small> −${fmt(Math.max(0,r.marginalLoss))}`, true)+
+    kpi("盈亏平衡", beKpi);
+
+  if(r.maxP<=0){
+    box.className="read warn";
+    box.innerHTML=`<b>⚠ 当前参数下全程亏损</b>：在 ${m.xLabel} 上限内利润始终为负。建议先降本（固定/单位成本）或提价/提效，再重新测算。`;
+  }else if(r.qOpt>=xmax*0.98){
+    box.className="read warn";
+    box.innerHTML=`利润在考察上限 <b>${fmtX(xmax)}</b> 处仍在上升，<b>拐点落在范围之外</b>。建议调大「${m.xLabel}上限」观察真实最优点。`;
+  }else{
+    box.className="read";
+    let t=`在 ${m.xLabel} = <b>${fmtX(r.qOpt)}</b> 时利润最高（${fmt(r.maxP)}），这就是<b>边际效益拐点</b>：再多投一单位，边际利润由正转负。`;
+    if(r.be){
+      if(r.be[0]!==r.be[1]) t+=` 盈亏平衡区间为 <b>${fmtX(r.be[0])}～${fmtX(r.be[1])}</b>，落在区间外即亏损。`;
+      else t+=` 投入达到 <b>${fmtX(r.be[0])}</b> 即跨越盈亏平衡，此后在考察范围内持续盈利。`;
+    }
+    t+=` 越过拐点后，每多投入 1 单位约<b>减少利润 ${fmt(Math.max(0,r.marginalLoss))}</b>——这就是"越多越亏"的临界点。`;
+    box.innerHTML=t;
+  }
+  renderAdvice(m,r);
+}
+function kpi(k,v,warn){return `<div class="kpi"><div class="k">${k}</div><div class="v" ${warn?'style="color:#ef4444"':''}>${v}</div></div>`;}
+
+/* ============ 智能建议（规则引擎） ============ */
+function renderAdvice(m,r){
+  const ul=document.getElementById("advice");
+  const tips=[];
+  const F=params.F||0;
+  const fixCostRatio = r.maxP>0 ? F/ (r.maxP+F) : 0;
+  if(r.maxP<=0){
+    tips.push("<b>当前不盈利</b>：任一单位售价都覆盖不了成本，建议先验证最小可行投入再扩大。");
+  }else{
+    if(r.qOpt>=xmax*0.98) tips.push("<b>范围不够</b>：最优量贴近上限，拐点在区间外，请调大上限后再定决策。");
+    if(fixCostRatio>0.5) tips.push(`<b>固定成本偏高</b>：固定成本占投入约 ${(fixCostRatio*100).toFixed(0)}%，规模效应是关键——尽快越过盈亏平衡区间放量。`);
+    else tips.push(`<b>变动成本主导</b>：单位成本占大头，重点在压降单位变动成本或提升单价/转化。`);
+    tips.push(`<b>守住拐点</b>：最优投入约 ${fmtX(r.qOpt)}，超过后每多投 1 单位约亏 ${fmt(Math.max(0,r.marginalLoss))}，切忌为冲规模盲目加量。`);
+    if(r.be){
+      if(r.be[0]!==r.be[1]) tips.push(`<b>安全区间</b>：投入落在 ${fmtX(r.be[0])}～${fmtX(r.be[1])} 才赚钱，以此兜底。`);
+      else tips.push(`<b>过坎即赚</b>：投入达到 ${fmtX(r.be[0])} 后跨越盈亏平衡，在范围内持续盈利。`);
+    }
+  }
+  ul.innerHTML=tips.map(t=>`<li>${t}</li>`).join("");
+}
+
+/* ============ 敏感性分析 ============ */
+function drawSpark(hostId, values, curIdx, color){
+  const W=300,H=120,padL=8,padR=8,padT=8,padB=18;
+  const pw=W-padL-padR,ph=H-padT-padB;
+  const ys=values.map(v=>v);
+  const ymin=Math.min(...ys),ymax=Math.max(...ys);
+  const sx=i=>padL+i/(values.length-1)*pw;
+  const sy=v=>padT+(1-(v-(ymin===ymax?ymin-1:ymin))/(ymax-ymin||1))*ph;
+  let g="";
+  const d=values.map((v,i)=>(i?"L":"M")+sx(i).toFixed(1)+" "+sy(v).toFixed(1)).join(" ");
+  g+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  const cx=sx(curIdx);
+  g+=`<line x1="${cx}" y1="${padT}" x2="${cx}" y2="${H-padB}" stroke="#94a3b8" stroke-dasharray="4 3"/>`;
+  g+=`<circle cx="${cx}" cy="${sy(values[curIdx])}" r="3.5" fill="${color}"/>`;
+  g+=`<text x="${padL}" y="${H-4}" font-size="10" fill="#94a3b8">低</text>`;
+  g+=`<text x="${W-padR}" y="${H-4}" text-anchor="end" font-size="10" fill="#94a3b8">高</text>`;
+  document.getElementById(hostId).innerHTML=`<svg viewBox="0 0 ${W} ${H}" font-family="-apple-system,PingFang SC,sans-serif">${g}</svg>`;
+}
+function renderSensitivity(){
+  const m=MODELS[curModel];
+  const dP=m.params.find(p=>p.k===m.driver);
+  const steps=14;
+  const qVals=[],pVals=[];
+  let curIdx=0,curVal=params[m.driver];
+  let best=Math.abs(dP.min-curVal);
+  for(let i=0;i<steps;i++){
+    const v=dP.min+(dP.max-dP.min)*i/(steps-1);
+    const test={...params,[m.driver]:v};
+    const r=compute(m,test,xmax);
+    qVals.push(r.qOpt); pVals.push(r.maxP);
+    const dd=Math.abs(v-curVal); if(dd<best){best=dd;curIdx=i;}
+  }
+  drawSpark("sparkQ",qVals,curIdx,"#7c3aed");
+  drawSpark("sparkP",pVals,curIdx,"#2563eb");
+}
+
+/* ============ 蒙特卡洛风险模拟 ============ */
+function renderRisk(){
+  const m=MODELS[curModel];
+  const body=document.getElementById("riskBody");
+  if(snapshots.length>0){ body.innerHTML='<div class="hint" style="margin-top:8px">方案对比视图下暂不展示风险模拟，请先「清空对比」回到单方案。</div>'; return; }
+  const sigma=parseFloat(document.getElementById("riskSigma").value)/100;
+  const N=parseInt(document.getElementById("riskN").value);
+  const qArr=[],pArr=[];
+  for(let n=0;n<N;n++){
+    const P={};
+    m.params.forEach(p=>{
+      const base=params[p.k];
+      let v=base*(1+(Math.random()*2-1)*sigma);
+      if(v<0)v=0;
+      P[p.k]=v;
+    });
+    const r=compute(m,P,xmax);
+    qArr.push(r.qOpt); pArr.push(r.maxP);
+  }
+  qArr.sort((a,b)=>a-b); pArr.sort((a,b)=>a-b);
+  const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  const pct=(a,p)=>a[Math.floor((a.length-1)*p)];
+  const qMean=mean(qArr), qP10=pct(qArr,0.1), qP90=pct(qArr,0.9);
+  const pMean=mean(pArr), pP10=pct(pArr,0.1);
+  const loss=pArr.filter(v=>v<0).length/pArr.length;
+  // 直方图
+  const bins=16; const lo=qArr[0], hi=qArr[qArr.length-1];
+  const counts=new Array(bins).fill(0);
+  qArr.forEach(v=>{ let idx=Math.floor((v-lo)/((hi-lo)||1)*bins); if(idx>=bins)idx=bins-1; counts[idx]++; });
+  const maxC=Math.max(...counts);
+  const qMeanBin=Math.floor((qMean-lo)/((hi-lo)||1)*bins);
+  let bars="";
+  counts.forEach((c,i)=>{ const h=maxC? c/maxC*108:0; const peak=(i===qMeanBin)?' peak':''; bars+=`<div class="bar${peak}" style="height:${h}px" title="区间 ${fmtX(lo+(hi-lo)*i/bins)} ~ ${fmtX(lo+(hi-lo)*(i+1)/bins)}：本轮 ${c} 次"></div>`; });
+  const buffer=Math.round((qP90-qP10)/(qMean||1)*50);
+  body.innerHTML=`
+    <div class="hint" style="margin-top:6px">对当前 4 个参数各自叠加 ±${(sigma*100).toFixed(0)}% 均匀分布随机扰动，共模拟 <b>${N}</b> 次，统计最优投入量与最大利润的分布。</div>
+    <div class="histo">${bars}</div>
+    <div class="risk-stat">
+      ${kpi("最优量 期望", fmtX(qMean))}
+      ${kpi("最优量 P10~P90", fmtX(qP10)+"~"+fmtX(qP90))}
+      ${kpi("最大利润 期望", fmt(pMean))}
+      ${kpi("亏损概率", (loss*100).toFixed(0)+"%", loss>0.2)}
+    </div>
+    <div class="read ${loss>0.2?'warn':''}" style="margin-top:12px">
+      在参数随机波动 ±${(sigma*100).toFixed(0)}% 下，最优投入量集中在 <b>${fmtX(qP10)} ~ ${fmtX(qP90)}</b>（中位数 ${fmtX(qMean)}）。
+      建议按 <b>P50=${fmtX(qMean)}</b> 投产，并预留约 <b>${buffer}%</b> 的缓冲区间以应对不确定性。
+      ${loss>0.05?`有 <b>${(loss*100).toFixed(0)}%</b> 的模拟出现亏损，说明当前参数组合有一定风险，建议优先压降固定 / 变动成本后再决策。`:`亏损概率低，方案整体稳健。`}
+      最大利润最差情形（P10）约 ${fmt(pP10)}。
+    </div>`;
+}
+
+/* ============ 决策报告 ============ */
+function generateReport(){
+  const m=MODELS[curModel];
+  const r=compute(m,params,xmax);
+  const beStr=r.be?(r.be[0]!==r.be[1]?`${fmtX(r.be[0])}～${fmtX(r.be[1])}`:`≥ ${fmtX(r.be[0])}`):"全程亏损";
+  const adv=document.getElementById("advice").innerText.replace(/\n+/g,"\n- ").replace(/^-\s*/,"- ");
+  let rep=`# 边际效益决策报告\n\n`;
+  rep+=`**场景**：${m.name}  \n`;
+  rep+=`**生成时间**：${new Date().toLocaleString("zh-CN")}  \n`;
+  rep+=`**体验链接**：${location.href.split("#")[0]}\n\n`;
+  rep+=`## 一、参数配置\n`;
+  m.params.forEach(p=>rep+=`- ${p.label.replace(/\s*（.*?）\s*/,"")}：${params[p.k]}\n`);
+  rep+=`- ${m.xmax.label}：${xmax}\n\n`;
+  rep+=`## 二、核心结论\n`;
+  rep+=`- 最优投入量（边际效益拐点）：**${fmtX(r.qOpt)}**\n`;
+  rep+=`- 最大利润：**${fmt(r.maxP)}**\n`;
+  rep+=`- 越过拐点后每 +1 单位利润变化：**−${fmt(Math.max(0,r.marginalLoss))}**\n`;
+  rep+=`- 盈亏平衡区间：${beStr}\n\n`;
+  rep+=`## 三、决策建议\n`;
+  rep+= adv? (adv+"\n") : "- （无）\n";
+  rep+=`\n---\n*本报告由「边际效益拐点计算器」自动生成，仅供决策参考。*\n`;
+  document.getElementById("reportArea").value=rep;
+  return rep;
+}
+function copyReport(){ const t=generateReport(); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(()=>toast("报告已复制")).catch(()=>toast("复制失败，请手动选择")); else toast("当前环境不支持自动复制"); }
+function downloadReport(){ const t=generateReport(); download(new Blob([t],{type:"text/markdown"}), "边际效益决策报告.md"); toast("已下载 .md"); }
+
+/* ============ 快照 ============ */
+const SNAP_COLORS=["#2563eb","#f59e0b","#10b981","#ef4444","#7c3aed"];
+function saveSnapshot(){
+  if(snapshots.length>=5){toast("最多存 5 个对比方案");return;}
+  snapshots.push({model:curModel,params:{...params},xmax,color:SNAP_COLORS[snapshots.length],name:`方案${snapshots.length+1}`});
+  renderSnaps(); renderAll();
+}
+function clearSnaps(){snapshots=[];renderSnaps();renderAll();}
+function renderSnaps(){
+  const el=document.getElementById("snaps");
+  if(snapshots.length===0){el.innerHTML=`<span style="font-size:12px;color:var(--muted)">暂无快照，调好参数点「存为对比方案」即可叠加对比</span>`;return;}
+  el.innerHTML=snapshots.map((s,i)=>`<span class="snap"><span class="sw" style="background:${s.color}"></span>${s.name}·${MODELS[s.model].name}<button onclick="delSnap(${i})">✕</button></span>`).join("");
+}
+function delSnap(i){snapshots.splice(i,1);renderSnaps();renderAll();}
+
+/* ============ 参数面板 ============ */
+function renderParams(){
+  const m=MODELS[curModel];
+  const host=document.getElementById("paramFields");
+  let html="";
+  const field=(p,val)=>`
+    <div class="field">
+      <label>${p.label}<b id="l_${p.k}">${val}</b></label>
+      <input type="number" id="n_${p.k}" value="${val}" min="${p.min}" max="${p.max}" step="${p.step}">
+      <input type="range" id="r_${p.k}" min="${p.min}" max="${p.max}" step="${p.step}" value="${val}">
+    </div>`;
+  m.params.forEach(p=>html+=field(p,params[p.k]));
+  html+=`<div class="field"><label>${m.xmax.label}<b id="l_xmax">${xmax}</b></label>
+      <input type="number" id="n_xmax" value="${xmax}" min="${m.xmax.min}" max="${m.xmax.max}" step="${m.xmax.step}">
+      <input type="range" id="r_xmax" min="${m.xmax.min}" max="${m.xmax.max}" step="${m.xmax.step}" value="${xmax}"></div>`;
+  host.innerHTML=html;
+  m.params.forEach(p=>bindParam(p.k,p));
+  bindParam("xmax",m.xmax);
+}
+function bindParam(key,spec){
+  const n=document.getElementById("n_"+key), r=document.getElementById("r_"+key), l=document.getElementById("l_"+key);
+  const set=v=>{
+    v=parseFloat(v||0); if(v<spec.min)v=spec.min; if(v>spec.max)v=spec.max;
+    if(key==="xmax")xmax=v; else params[key]=v;
+    n.value=v; r.value=v; l.textContent=v;
+    renderAll();
+  };
+  n.addEventListener("input",e=>set(e.target.value));
+  r.addEventListener("input",e=>set(e.target.value));
+}
+function resetParams(){loadDefaults();renderParams();renderAll();}
+
+/* ============ 场景与案例 ============ */
+function renderModels(){
+  const el=document.getElementById("models");
+  el.innerHTML=Object.entries(MODELS).map(([k,m])=>
+    `<button class="${k===curModel?'active':''}" onclick="switchModel('${k}')">
+      <div class="ic">${m.icon}</div><div class="nm">${m.name}</div><div class="ds">${m.desc}</div></button>`).join("");
+}
+function renderCases(){
+  const el=document.getElementById("cases");
+  el.innerHTML=`<span style="font-size:12.5px;font-weight:700;color:var(--muted);align-self:center;margin-right:2px">🎬 实战案例剧本：</span>`+
+    CASES.map((c,i)=>`<button class="case" onclick="loadCase(${i})"><span class="ci">${c.icon}</span><span><span class="ct">${c.title}</span><span class="cd">${c.note}</span></span></button>`).join("");
+}
+function switchModel(k){
+  curModel=k; loadDefaults(); snapshots=[];
+  renderModels(); renderParams(); renderSnaps(); renderAll();
+}
+function loadCase(idx){
+  const c=CASES[idx];
+  curModel=c.model; loadDefaults();
+  const m=MODELS[curModel];
+  Object.keys(c.params).forEach(k=>{ if(params[k]!=null) params[k]=c.params[k]; });
+  if(c.xmax!=null) xmax=c.xmax;
+  snapshots=[];
+  renderModels(); renderParams(); renderSnaps(); renderAll();
+  toast("已载入案例：" + c.title);
+}
+
+/* ============ 导出 ============ */
+function exportCSV(){
+  const m=MODELS[curModel]; const r=compute(m,params,xmax);
+  let csv="投入量,总成本,总收入,利润\n";
+  for(let i=0;i<r.xs.length;i++) csv+=`${r.xs[i].toFixed(2)},${r.cost[i].toFixed(2)},${r.rev[i].toFixed(2)},${r.pf[i].toFixed(2)}\n`;
+  download(new Blob(["﻿"+csv],{type:"text/csv"}), "边际效益分析.csv");
+  toast("已导出 CSV");
+}
+function exportPNG(){
+  const svg=document.getElementById("mainSvg"); if(!svg){toast("请先回到单方案视图");return;}
+  const clone=svg.cloneNode(true);
+  clone.setAttribute("width","660");clone.setAttribute("height","340");
+  const xml=new XMLSerializer().serializeToString(clone);
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement("canvas");c.width=1320;c.height=680;
+    const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,1320,680);
+    ctx.drawImage(img,0,0,1320,680);
+    c.toBlob(b=>{download(b,"边际效益曲线.png");toast("已导出 PNG");});
+  };
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml);
+}
+function download(blob,name){
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function copyShare(){
+  saveState();
+  const url=location.href.split("#")[0]+"#"+btoa(unescape(encodeURIComponent(JSON.stringify({m:curModel,p:params,x:xmax,s:snapshots}))));
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(()=>toast("分享链接已复制")).catch(()=>toast(url));
+  else toast(url);
+}
+
+/* ============ 持久化 / 分享链接 ============ */
+function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+function b64d(s){return decodeURIComponent(escape(atob(s)));}
+function saveState(){
+  const st={m:curModel,p:params,x:xmax,s:snapshots};
+  try{localStorage.setItem("mby_state",b64e(JSON.stringify(st)));}catch(e){}
+  try{history.replaceState(null,"","#"+b64e(JSON.stringify(st)));}catch(e){}
+}
+function restoreState(){
+  let st=null;
+  if(location.hash&&location.hash.length>1){
+    try{st=JSON.parse(b64d(location.hash.slice(1)));}catch(e){}
+  }
+  if(!st){try{st=JSON.parse(b64d(localStorage.getItem("mby_state")||""));}catch(e){}}
+  if(st&&MODELS[st.m]){
+    curModel=st.m;
+    const m=MODELS[curModel];
+    params={}; m.params.forEach(pp=>params[pp.k]= (st.p&&st.p[pp.k]!=null)?st.p[pp.k]:pp.def);
+    xmax=(st.x!=null)?st.x:m.xmax.def;
+    snapshots=st.s||[];
+  }
+}
+
+/* ============ 渲染总控 ============ */
+function renderAll(){
+  drawMain(); renderRead(); renderSensitivity(); renderRisk(); saveState();
+}
+
+/* ============ toast ============ */
+let toastT=null;
+function toast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ============ 初始化 ============ */
+Object.assign(window, {loadDefaults,compute,shortNum,lineChart,drawMain,bindTip,renderRead,kpi,renderAdvice,drawSpark,renderSensitivity,renderRisk,generateReport,copyReport,downloadReport,saveSnapshot,clearSnaps,renderSnaps,delSnap,renderParams,bindParam,resetParams,renderModels,renderCases,switchModel,loadCase,exportCSV,exportPNG,download,copyShare,b64e,b64d,saveState,restoreState,renderAll,toast});
+restoreState();
+renderModels(); renderCases(); renderParams(); renderSnaps(); renderAll();
