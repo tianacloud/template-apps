@@ -15,7 +15,7 @@ document.body.innerHTML = "\n<div class=\"wrap\">\n  <header class=\"hero\">\n  
     el.textContent = text;
     el.className = 'msg ' + (ok ? 'ok' : 'err');
   }
-  window.copyOut = function(id) {
+  window.copyOut = function(id, event) {
     const btn = event.target;
     const txt = document.getElementById(id).textContent;
     if (!txt || txt.startsWith('结果将显示')) return;
@@ -131,3 +131,9 @@ document.body.innerHTML = "\n<div class=\"wrap\">\n  <header class=\"hero\">\n  
     document.getElementById('baseOut').textContent = res;
     setMsg('baseMsg','✓ 转换成功（十进制中间值：'+dec+'）',true);
   }
+
+document.querySelectorAll('[onclick]').forEach(el => {
+ const call = el.getAttribute('onclick').match(/^(\w+)\((?:'([^']*)')?\)$/);
+ el.removeAttribute('onclick');
+ if (call) el.addEventListener('click', event => window[call[1]](call[2], event));
+});
