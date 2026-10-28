@@ -5,6 +5,6 @@ const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/i)?.[1];
 const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/i)?.[1];
 if(!style||!body||!script) throw Error('Invalid application HTML');
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
-await writeFile('dist/assets/app.js',`document.title="随遇而旅";const style=document.createElement("style");style.textContent=${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+script);
+await writeFile('dist/assets/app.js',`document.title="随遇而旅";const font=document.createElement("link");font.rel="stylesheet";font.href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap";document.head.appendChild(font);const style=document.createElement("style");style.textContent=${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+script);
 await copyFile('public/icon.png','dist/icon.png');
 const source=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
