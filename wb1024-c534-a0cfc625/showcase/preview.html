@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>电控掌中工具箱 · PID 调参实验室</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F7F7F5; --card:#FFFFFF; --line:#E5E3DC; --ink:#1F1F1D; --ink2:#5F5E5A; --ink3:#949289;
+  --blue:#185FA5; --blue-l:#E6F1FB; --green:#3B6D11; --green-l:#EAF3DE;
+  --amber:#854F0B; --amber-l:#FAEEDA; --red:#A32D2D; --red-l:#FCEBEB;
+}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.6;min-height:100vh}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+header{margin-bottom:16px}
+h1{font-size:22px;font-weight:600;letter-spacing:-0.2px}
+.sub{color:var(--ink2);font-size:13px;margin-top:4px}
+.badge{display:inline-block;background:var(--blue-l);color:var(--blue);font-size:12px;
+  padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:2px;cursor:pointer;user-select:none}
+.notice{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:14px;overflow:hidden}
+.notice-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;font-weight:500}
+.notice-b{padding:0 16px 14px;color:var(--ink2);font-size:13px;display:none}
+.notice.open .notice-b{display:block}
+.notice-b ol{padding-left:18px;margin:6px 0}
+.notice-b li{margin-bottom:4px}
+.tabs{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;margin:14px 0}
+.tab{flex:1;text-align:center;padding:8px 4px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink2);border:none;background:none;font-family:inherit}
+.tab.on{background:var(--ink);color:#fff}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:2px}
+.card .hint{font-size:12px;color:var(--ink3);margin-bottom:12px}
+canvas{display:block;width:100%;height:auto;border-radius:8px;background:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.slider{flex:1;min-width:160px}
+.slider label{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:5px}
+.slider label b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--blue);height:22px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.metric{background:var(--bg);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:12px;color:var(--ink2)}
+.metric .v{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.3}
+.metric.ok .v{color:var(--green)}.metric.bad .v{color:var(--red)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+button{font-family:inherit;font-size:13px;padding:7px 13px;border-radius:8px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--ink3)}
+button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.sm{padding:5px 10px;font-size:12px}
+select,input[type=number],input[type=text]{font-family:inherit;font-size:14px;padding:7px 9px;
+  border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--ink2);margin-bottom:4px}
+.out{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;margin-top:4px;line-height:1.7}
+.out .big{font-size:17px;font-weight:600;color:var(--blue);font-variant-numeric:tabular-nums}
+.out .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink2);word-break:break-all}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2);cursor:pointer;margin-top:8px}
+.chk input{width:16px;height:16px;accent-color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--ink2);font-weight:500;font-size:12px}
+td.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.rings{display:flex;gap:5px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.ring{width:26px;height:46px;border-radius:5px;border:1px solid var(--line);cursor:pointer;position:relative}
+.ring.on{outline:2px solid var(--ink);outline-offset:1px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--ink2);margin-top:6px}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+.toast{position:absolute;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:9px 16px;border-radius:99px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}
+#egg{display:none;background:linear-gradient(135deg,#042C53,#185FA5);color:#fff;border:none}
+#egg h2{color:#fff}
+#egg .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;opacity:.9;line-height:1.8}
+.footer{text-align:center;color:var(--ink3);font-size:12px;margin-top:24px;line-height:1.8}
+.challenge{background:var(--amber-l);border:1px solid #EFD5A8;border-radius:10px;padding:12px 14px;margin-top:14px;font-size:13px}
+.challenge b{color:var(--amber)}
+.pass{background:var(--green-l);border-color:#C0DD97}
+.pass b{color:var(--green)}
+@media(max-width:600px){
+  h1{font-size:19px}.metrics{grid-template-columns:1fr}.metric .v{font-size:19px}
+  .wrap{padding:14px 12px 48px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>电控掌中工具箱<span class="badge">PID 调参实验室</span></h1>
+  <div class="sub">不接硬件、不写一行代码，先把 PID 调明白。给机器人 / 电控 / 自动化方向的同学们。</div>
+</header>
+
+<div class="notice" id="notice">
+  <div class="notice-h" onclick="document.getElementById('notice').classList.toggle('open')">
+    <span>怎么用（30 秒看完）</span><span id="ntog">展开</span>
+  </div>
+  <div class="notice-b">
+    <ol>
+      <li><b>选一个被控对象</b>：不同对象的脾气完全不同，温控慢、电机快、位置环带积分。</li>
+      <li><b>拖 Kp / Ki / Kd 三个滑块</b>，曲线和指标会实时更新。</li>
+      <li><b>看三个指标</b>：超调量越小越稳、调节时间越小越快、稳态误差越接近 0 越准。</li>
+      <li><b>卡住了就点「自动整定」</b>，它会搜索上千组参数，找出 ITAE 指标最优的一组填上。</li>
+      <li><b>想检验水平就点「开始挑战」</b>，达标会出现一张可截图的证书。</li>
+      <li><b>旁边两个 Tab</b> 是硬件计算器和元件速查，调完参数直接算 PWM、CAN、限流电阻。</li>
+    </ol>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-p="p1">PID 调参实验室</button>
+  <button class="tab" data-p="p2">硬件计算器</button>
+  <button class="tab" data-p="p3">元件速查</button>
+</div>
+
+<!-- ============ 面板 1 ============ -->
+<div class="panel on" id="p1">
+  <div class="card">
+    <h2>阶跃响应仿真</h2>
+    <div class="hint" id="plantDesc">一阶惯性 + 0.1s 纯滞后，常见于温控、液位、压力系统</div>
+
+    <div class="field">
+      <label>被控对象</label>
+      <select id="plantSel">
+        <option value="0">一阶惯性 + 纯滞后（温控 / 液位）</option>
+        <option value="1">二阶振荡（直流电机转速）</option>
+        <option value="2">积分环节（电机位置环）</option>
+        <option value="3">大滞后（加热炉 / 恒温箱）</option>
+      </select>
+    </div>
+
+    <div style="position:relative">
+      <canvas id="cv" role="img" aria-label="PID 阶跃响应曲线">阶跃响应曲线</canvas>
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <div class="slider"><label>Kp 比例 <b id="vKp">3.5</b></label><input type="range" id="sKp" min="0" max="20" step="0.1" value="3.5"></div>
+      <div class="slider"><label>Ki 积分 <b id="vKi">8.0</b></label><input type="range" id="sKi" min="0" max="60" step="0.2" value="8"></div>
+      <div class="slider"><label>Kd 微分 <b id="vKd">0.12</b></label><input type="range" id="sKd" min="0" max="3" step="0.01" value="0.12"></div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <div class="slider"><label>传感器噪声 <b id="vNz">0.000</b></label><input type="range" id="sNz" min="0" max="0.05" step="0.001" value="0"></div>
+      <div class="slider"><label>设定值 SP <b id="vSp">1.0</b></label><input type="range" id="sSp" min="0.5" max="5" step="0.1" value="1"></div>
+    </div>
+
+    <div>
+      <label class="chk"><input type="checkbox" id="aw" checked> 抗积分饱和（Integral Windup 抑制）</label>
+      <label class="chk"><input type="checkbox" id="showU"> 同时显示控制量 u(t) 曲线</label>
+    </div>
+
+    <div class="metrics">
+      <div class="metric" id="m1"><div class="k">超调量 σ%</div><div class="v">–</div></div>
+      <div class="metric" id="m2"><div class="k">调节时间 ts (±2%)</div><div class="v">–</div></div>
+      <div class="metric" id="m3"><div class="k">稳态误差</div><div class="v">–</div></div>
+    </div>
+
+    <div class="hint" style="margin:16px 0 6px">五个预设以「一阶惯性 + 纯滞后」对象为例，切换对象后效果会变，请先点自动整定</div>
+    <div class="btns">
+      <button class="pri" id="bZn">自动整定</button>
+      <button id="b1">只有 P</button>
+      <button id="b2">PI 消静差</button>
+      <button id="b3">PID 快而准</button>
+      <button id="b4">积分饱和 Windup</button>
+      <button id="b5">噪声下 Kd 过大</button>
+    </div>
+
+    <div class="challenge" id="chal">
+      <b>挑战模式</b>：<span id="chalTxt">点击「开始挑战」领取本对象的指标要求。</span>
+      <div class="btns" style="margin-top:8px">
+        <button class="sm pri" id="bStart">开始挑战</button>
+        <button class="sm" id="bSubmit" style="display:none">提交挑战</button>
+        <button class="sm" id="bGiveUp" style="display:none">放弃</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 面板 2 ============ -->
+<div class="panel" id="p2">
+  <div class="calc">
+
+    <div class="card">
+      <h2>LED 限流电阻</h2>
+      <div class="hint">按 E24 标准阻值自动靠档</div>
+      <div class="field"><label>电源电压 Vcc (V)</label><input type="number" id="ledV" value="5" step="0.1"></div>
+      <div class="field"><label>LED 正向压降 Vf (V)</label><input type="number" id="ledF" value="2.0" step="0.1"></div>
+      <div class="field"><label>目标电流 (mA)</label><input type="number" id="ledI" value="10" step="1"></div>
+      <div class="out" id="ledOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>ADC 分压电阻</h2>
+      <div class="hint">把高压采样到 0–3.3V，自动选 E24 档</div>
+      <div class="field"><label>最大输入电压 (V)</label><input type="number" id="dvMax" value="24" step="0.1"></div>
+      <div class="field"><label>ADC 参考电压 (V)</label><input type="number" id="dvRef" value="3.3" step="0.01"></div>
+      <div class="field"><label>R2 下端电阻 (kΩ)</label><input type="number" id="dvR2" value="10" step="1"></div>
+      <div class="out" id="dvOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>STM32 PWM 参数</h2>
+      <div class="hint">f = Fclk / ((PSC+1) × (ARR+1))</div>
+      <div class="field"><label>定时器时钟 Fclk (MHz)</label><input type="number" id="pwClk" value="72" step="1"></div>
+      <div class="field"><label>目标 PWM 频率 (Hz)</label><input type="number" id="pwF" value="10000" step="100"></div>
+      <div class="out" id="pwOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>舵机角度 → 定时器</h2>
+      <div class="hint">50Hz，脉宽 0.5–2.5ms 对应 0–180°</div>
+      <div class="field"><label>目标角度 (°)</label><input type="number" id="sgA" value="90" step="1"></div>
+      <div class="field"><label>定时器时钟 (MHz)</label><input type="number" id="sgClk" value="72" step="1"></div>
+      <div class="out" id="sgOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>CAN 波特率</h2>
+      <div class="hint">Baud = Fpclk / (BRP × (1+TS1+TS2))</div>
+      <div class="field"><label>APB1 时钟 (MHz)</label><input type="number" id="cnClk" value="36" step="1"></div>
+      <div class="field"><label>目标波特率 (bps)</label><input type="number" id="cnB" value="500000" step="1000"></div>
+      <div class="out" id="cnOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>电机单位换算</h2>
+      <div class="hint">力矩、转速、线速度互算</div>
+      <div class="field"><label>力矩 (kgf·cm)</label><input type="number" id="uT" value="10" step="0.1"></div>
+      <div class="field"><label>转速 (RPM)</label><input type="number" id="uR" value="300" step="1"></div>
+      <div class="field"><label>轮径 (mm)</label><input type="number" id="uD" value="65" step="1"></div>
+      <div class="out" id="uOut"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 面板 3 ============ -->
+<div class="panel" id="p3">
+  <div class="card">
+    <h2>色环电阻识别</h2>
+    <div class="hint">五色环精密电阻（前三位有效数字 + 倍率 + 误差），点色环切换颜色</div>
+    <div class="rings" id="rings"></div>
+    <div class="legend">
+      <span><i style="background:#1F1F1D"></i>0 黑</span><span><i style="background:#6B3A18"></i>1 棕</span>
+      <span><i style="background:#C0392B"></i>2 红</span><span><i style="background:#E67E22"></i>3 橙</span>
+      <span><i style="background:#F1C40F"></i>4 黄</span><span><i style="background:#27AE60"></i>5 绿</span>
+      <span><i style="background:#2980B9"></i>6 蓝</span><span><i style="background:#8E44AD"></i>7 紫</span>
+      <span><i style="background:#7F8C8D"></i>8 灰</span><span><i style="background:#ECF0F1"></i>9 白</span>
+    </div>
+    <div class="out" id="ringOut"></div>
+  </div>
+
+  <div class="card">
+    <h2>贴片电阻丝印查询</h2>
+    <div class="hint">支持三位、四位数字与 R 标记法</div>
+    <div class="field"><label>丝印代码</label><input type="text" id="smdIn" placeholder="例如 103 / 4702 / 4R7 / 01A"></div>
+    <div class="out" id="smdOut"></div>
+  </div>
+
+  <div class="card">
+    <h2>常用速查</h2>
+    <table>
+      <tr><th>场景</th><th>典型取值 / 公式</th></tr>
+      <tr><td>舵机控制</td><td class="mono">50Hz，0.5ms=0°，1.5ms=90°，2.5ms=180°</td></tr>
+      <tr><td>串口波特率误差</td><td class="mono">72M 下 115200 误差 0.006%，可放心用</td></tr>
+      <tr><td>CAN 采样点</td><td class="mono">推荐 75%–87.5%</td></tr>
+      <tr><td>编码器测速</td><td class="mono">RPM = 脉冲数 / (线数×4) / 周期 × 60</td></tr>
+      <tr><td>力矩换算</td><td class="mono">1 N·m = 10.197 kgf·cm</td></tr>
+      <tr><td>角速度换算</td><td class="mono">1 RPM = 0.10472 rad/s</td></tr>
+      <tr><td>I²C 上拉电阻</td><td class="mono">通常 4.7kΩ（400kHz 可用 2.2kΩ）</td></tr>
+      <tr><td>电池分压采样</td><td class="mono">留 ≥20% 余量，别把 ADC 顶满</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card" id="egg">
+  <h2>1024 彩蛋 · 程序员节快乐</h2>
+  <div class="code">
+    <div>你在设定值里输了 1024 —— 这是整个工具箱唯一不做浮点归一化的地方。</div>
+    <div style="margin-top:8px">1111111111 &nbsp;个状态，装得下 1024 种可能。</div>
+    <div style="margin-top:8px;opacity:.75">愿你的曲线永远收敛，愿你的积分永远不 Windup。</div>
+  </div>
+</div>
+
+<div class="footer">
+  电控掌中工具箱 · 为 WorkBuddy 1024 造物挑战而作<br>
+  仿真为教学演示用途，实际调参请结合真实系统与硬件限幅<br>
+  <span style="opacity:.7">P.S. 标题上那个蓝色小徽章，可以点 10 下</span>
+</div>
+
+</div>
+
+<script>
+/* ===================== 工具 ===================== */
+const $=function(id){return document.getElementById(id);};
+const clamp=function(v,a,b){return v<a?a:(v>b?b:v);};
+let seed=1;
+function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show');},1800);}
+document.getElementById('notice').addEventListener('click',function(){
+  $('ntog').textContent=this.classList.contains('open')?'收起':'展开';});
+
+/* ===================== 被控对象 ===================== */
+const Ts=0.02;
+const PLANTS=[
+ {name:'一阶惯性 + 纯滞后（温控 / 液位）',Tsim:5,desc:'一阶惯性 + 0.1s 纯滞后，常见于温控、液位、压力系统',
+  goal:{os:5,ts:0.8},
+  init:function(){return{y:0,buf:new Array(6).fill(0)};},
+  step:function(s,u){s.buf.push(u);const ud=s.buf.shift();s.y=0.96079*s.y+0.03921*ud;return s.y;}},
+ {name:'二阶振荡（直流电机转速）',Tsim:5,desc:'二阶欠阻尼系统，ζ=0.3、ωn=10，模拟带负载的直流电机转速响应',
+  goal:{os:5,ts:0.5},
+  init:function(){return{y:0,yp:0};},
+  step:function(s,u){const yn=1.84*s.y-0.88*s.yp+0.04*u;s.yp=s.y;s.y=yn;return yn;}},
+ {name:'积分环节（电机位置环）',Tsim:5,desc:'速度环 + 位置积分，位置型执行机构（丝杠、云台轴）的典型模型',
+  goal:{os:3,ts:1.2},
+  init:function(){return{p:0,v:0};},
+  step:function(s,u){s.v=0.90484*s.v+0.09516*u;s.p+=Ts*s.v;return s.p;}},
+ {name:'大滞后（加热炉 / 恒温箱）',Tsim:14,desc:'T=2s、纯滞后 0.5s 的大惯性系统，纯 PI 更合适，加 D 反而容易振荡',
+  goal:{os:5,ts:3.0},
+  init:function(){return{y:0,buf:new Array(26).fill(0)};},
+  step:function(s,u){s.buf.push(u);const ud=s.buf.shift();s.y=0.99005*s.y+0.00995*ud;return s.y;}}
+];
+
+/* ===================== 仿真 ===================== */
+function simulate(pi,Kp,Ki,Kd,noise,aw,sp){
+  const P=PLANTS[pi],N=Math.round(P.Tsim/Ts);
+  const y=new Float64Array(N),u=new Float64Array(N);
+  const s=P.init();
+  seed=1;
+  let it=0,ep=0,ym=0,yprev=0;
+  const umax=Math.max(2.5,Math.abs(sp)*2.5);
+  for(let k=0;k<N;k++){
+    const meas=ym+(noise?(rnd()*2-1)*noise:0);
+    const e=sp-meas;
+    const d=-(meas-yprev)/Ts;
+    yprev=meas;
+    const raw=Kp*e+Ki*(it+e*Ts)+Kd*d;
+    if(!aw||Math.abs(raw)<umax||(e>0)!==(raw>0)) it+=e*Ts;
+    ep=e;
+    let uu=clamp(Kp*e+Ki*it+Kd*d,-umax,umax);
+    ym=P.step(s,uu);
+    if(!isFinite(ym))ym=ym>0?1e6:-1e6;
+    if(!isFinite(it))it=0;
+    y[k]=ym;u[k]=uu;
+  }
+  return{y:y,u:u,N:N};
+}
+function metrics(r,sp){
+  const y=r.y,N=r.N;let mx=-1e9;
+  for(let k=0;k<N;k++)if(y[k]>mx)mx=y[k];
+  const band=0.02*Math.abs(sp);
+  let mn=1e9,mx2=-1e9;
+  for(let k=Math.floor(N*0.8);k<N;k++){if(y[k]<mn)mn=y[k];if(y[k]>mx2)mx2=y[k];}
+  const settled=isFinite(y[N-1])&&(mx2-mn)<=band;
+  let os=(mx-sp)/sp*100;
+  os=isFinite(os)?clamp(os,0,9999):9999;
+  let ts=Infinity;
+  if(Math.abs(y[N-1]-sp)<=band){
+    for(let k=N-1;k>=0;k--){if(Math.abs(y[k]-sp)>band){ts=Math.min(N-1,k+1)*Ts;break;}}
+    if(ts===Infinity)ts=0;
+  }
+  let ess=(y[N-1]-sp)/sp*100;
+  ess=isFinite(ess)?clamp(ess,-9999,9999):9999;
+  return{os:os,ts:ts,ess:ess,settled:settled,tmax:N*Ts};
+}
+
+/* ===================== 绘图 ===================== */
+const cv=$('cv'),g=cv.getContext('2d');
+const CW=640,CH=300;
+function fitCanvas(){
+  const dpr=window.devicePixelRatio||1;
+  cv.width=CW*dpr;cv.height=CH*dpr;cv.style.aspectRatio=CW+' / '+CH;g.setTransform(dpr,0,0,dpr,0,0);
+}
+function draw(r,sp,showU){
+  g.clearRect(0,0,CW,CH);
+  const L=44,R=14,T=14,B=28,pw=CW-L-R,ph=CH-T-B;
+  const tmax=r.N*Ts,ymax=Math.max(sp*1.75,0.001);
+  const X=function(t){return L+t/tmax*pw;};
+  const Y=function(v){return T+(1-v/ymax)*ph;};
+  g.strokeStyle='#EDEBE4';g.lineWidth=1;
+  for(let i=0;i<=5;i++){const x=X(tmax*i/5);g.beginPath();g.moveTo(x,T);g.lineTo(x,T+ph);g.stroke();}
+  for(let i=0;i<=4;i++){const y=T+ph*i/4;g.beginPath();g.moveTo(L,y);g.lineTo(L+pw,y);g.stroke();}
+  g.fillStyle='#949289';g.font='11px system-ui,sans-serif';
+  g.textAlign='center';for(let i=0;i<=5;i++)g.fillText((tmax*i/5).toFixed(tmax>8?0:1)+'s',X(tmax*i/5),CH-9);
+  g.textAlign='right';for(let i=0;i<=4;i++)g.fillText((ymax*(1-i/4)).toFixed(ymax>10?0:1),L-7,T+ph*i/4+4);
+  g.fillStyle='rgba(133,183,235,0.26)';
+  g.fillRect(L,Y(sp*1.02),pw,Y(sp*0.98)-Y(sp*1.02));
+  g.strokeStyle='#949289';g.lineWidth=1;g.setLineDash([4,3]);
+  g.beginPath();g.moveTo(L,Y(sp));g.lineTo(L+pw,Y(sp));g.stroke();g.setLineDash([]);
+  if(showU){
+    let mu=1e-6;
+    for(let k=0;k<r.N;k++){const a=Math.abs(r.u[k]);if(a>mu)mu=a;}
+    g.strokeStyle='#EF9F27';g.lineWidth=1;g.beginPath();
+    for(let k=0;k<r.N;k++){
+      const x=X(k*Ts),y=T+ph*(0.5-r.u[k]/(mu*2.2));
+      k?g.lineTo(x,y):g.moveTo(x,y);
+    }
+    g.stroke();
+    g.font='11px system-ui,sans-serif';g.textAlign='right';
+    g.fillStyle='#EF9F27';g.fillText('u(t) 控制量（自动缩放）',L+pw-6,T+13);
+  }
+  g.strokeStyle='#185FA5';g.lineWidth=1.9;g.beginPath();
+  for(let k=0;k<r.N;k++){
+    const x=X(k*Ts),yv=isFinite(r.y[k])?clamp(r.y[k],-ymax,ymax):ymax,y=Y(yv);
+    k?g.lineTo(x,y):g.moveTo(x,y);
+  }
+  g.stroke();
+}
+
+/* ===================== 主逻辑 ===================== */
+let chal=null;
+function update(){
+  const pi=parseInt($('plantSel').value,10);
+  const Kp=parseFloat($('sKp').value),Ki=parseFloat($('sKi').value),Kd=parseFloat($('sKd').value);
+  const nz=parseFloat($('sNz').value),aw=$('aw').checked,sp=parseFloat($('sSp').value);
+  $('vKp').textContent=Kp.toFixed(1);$('vKi').textContent=Ki.toFixed(1);
+  $('vKd').textContent=Kd.toFixed(2);$('vNz').textContent=nz.toFixed(3);$('vSp').textContent=sp.toFixed(1);
+  $('plantDesc').textContent=PLANTS[pi].desc;
+  const r=simulate(pi,Kp,Ki,Kd,nz,aw,sp);
+  const m=metrics(r,sp);
+  draw(r,sp,$('showU').checked);
+  setM('m1',m.os.toFixed(1)+'%',m.os<=0.5);
+  const tsTxt=isFinite(m.ts)?m.ts.toFixed(2)+'s':'>'+m.tmax.toFixed(1)+'s';
+  setM('m2',tsTxt,isFinite(m.ts)&&m.ts<=PLANTS[pi].goal.ts*0.9);
+  setM('m3',m.ess.toFixed(2)+'%',Math.abs(m.ess)<=0.5);
+  if(chal){$('chalTxt').innerHTML='目标：超调量 ≤ <b>'+chal.os+'%</b>，调节时间 ≤ <b>'+chal.ts+'s</b>，稳态误差 ≤ <b>1%</b>　|　当前：'
+    +m.os.toFixed(1)+'% / '+tsTxt+' / '+m.ess.toFixed(2)+'%';}
+}
+function setM(id,txt,good){
+  const el=$(id);el.querySelector('.v').textContent=txt;
+  el.className='metric '+(good?'ok':(txt.indexOf('NaN')>=0?'':'bad'));
+}
+['sKp','sKi','sKd','sNz','sSp','aw','showU','plantSel'].forEach(function(id){
+  $(id).addEventListener('input',update);});
+
+/* 预设 */
+function preset(a,b,c,nz,aw,su){$('sKp').value=a;$('sKi').value=b;$('sKd').value=c;
+  $('sNz').value=nz;$('aw').checked=aw;if(su!==undefined)$('showU').checked=su;update();}
+$('b1').onclick=function(){preset(2,0,0,0,true,false);toast('只有 P：输出停在 0.667，留下 33% 静差');};
+$('b2').onclick=function(){preset(2,5,0,0,true,false);toast('PI：积分项把静差彻底抹平');};
+$('b3').onclick=function(){preset(3.5,8,0.12,0,true,false);toast('PID：几乎无超调且快速到位');};
+$('b4').onclick=function(){preset(3,10,0,0,false,false);toast('关掉抗积分饱和：超调从 3% 暴涨到 46%');};
+$('b5').onclick=function(){preset(2.8,4.5,0.3,0.03,true,true);toast('看橙色 u(t)：微分把噪声放大成剧烈抖动');};
+
+/* 自动整定：网格搜索 + 局部细化，最小化 ITAE（时间乘绝对误差积分） */
+const LIM={Kp:20,Ki:60,Kd:3};
+function autoTune(pi,sp){
+  const cost=function(Kp,Ki,Kd){
+    const r=simulate(pi,Kp,Ki,Kd,0,true,sp),y=r.y,N=r.N;
+    let itae=0,usq=0;
+    for(let k=0;k<N;k++){
+      const e=Math.abs(sp-y[k]);
+      itae+=isFinite(e)?e*k*Ts*Ts:1e6;
+      usq+=r.u[k]*r.u[k]*Ts;
+    }
+    const m=metrics(r,sp);
+    if(!isFinite(m.os))return 1e18;
+    return itae+usq*0.004+Math.max(0,m.os-4)*0.6+Math.abs(m.ess)*3+(m.settled?0:200);
+  };
+  const KP=[],KI=[0],KD=[0];
+  for(let v=0.5;v<=LIM.Kp+0.001;v*=1.3)KP.push(v);
+  for(let v=0.5;v<=LIM.Ki+0.001;v*=1.45)KI.push(v);
+  for(let v=0.05;v<=LIM.Kd+0.001;v*=1.6)KD.push(v);
+  let b={c:1e18,Kp:1,Ki:0,Kd:0};
+  for(let i=0;i<KP.length;i++)for(let j=0;j<KI.length;j++)for(let k=0;k<KD.length;k++){
+    const c=cost(KP[i],KI[j],KD[k]);
+    if(c<b.c)b={c:c,Kp:KP[i],Ki:KI[j],Kd:KD[k]};
+  }
+  for(let pass=0;pass<3;pass++){
+    const sKp=Math.max(b.Kp*0.25,0.05),sKi=Math.max(b.Ki*0.25,0.05),sKd=Math.max(b.Kd*0.25,0.01);
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(let k=-2;k<=2;k++){
+      const Kp=clamp(b.Kp+i*sKp/2,0,LIM.Kp),Ki=clamp(b.Ki+j*sKi/2,0,LIM.Ki),
+            Kd=clamp(b.Kd+k*sKd/2,0,LIM.Kd);
+      const c=cost(Kp,Ki,Kd);
+      if(c<b.c)b={c:c,Kp:Kp,Ki:Ki,Kd:Kd};
+    }
+  }
+  return b;
+}
+$('bZn').onclick=function(){
+  const pi=parseInt($('plantSel').value,10),sp=parseFloat($('sSp').value);
+  toast('正在搜索 ITAE 最优参数…');
+  setTimeout(function(){
+    const b=autoTune(pi,sp);
+    $('sKp').value=clamp(b.Kp,0,20);$('sKi').value=clamp(b.Ki,0,60);$('sKd').value=clamp(b.Kd,0,3);
+    update();
+    toast('已填入最优初值，可在此基础上微调');
+  },30);
+};
+
+/* 挑战模式 */
+$('bStart').onclick=function(){
+  const pi=parseInt($('plantSel').value,10);
+  chal={os:PLANTS[pi].goal.os,ts:PLANTS[pi].goal.ts};
+  $('chal').classList.remove('pass');
+  $('bStart').style.display='none';$('bSubmit').style.display='';$('bGiveUp').style.display='';
+  update();toast('挑战开始，调参吧');
+};
+$('bSubmit').onclick=function(){
+  if(!chal)return;
+  const pi=parseInt($('plantSel').value,10),sp=parseFloat($('sSp').value);
+  const Kp=parseFloat($('sKp').value),Ki=parseFloat($('sKi').value),Kd=parseFloat($('sKd').value);
+  const m=metrics(simulate(pi,Kp,Ki,Kd,parseFloat($('sNz').value),$('aw').checked,sp),sp);
+  if(m.os<=chal.os&&m.ts<=chal.ts&&Math.abs(m.ess)<=1){
+    $('chal').classList.add('pass');
+    $('chalTxt').innerHTML='<b>挑战通过</b>　超调 '+m.os.toFixed(1)+'% / 调节 '+m.ts.toFixed(2)
+      +'s / 静差 '+m.ess.toFixed(2)+'%　—　参数 Kp='+Kp.toFixed(1)+' Ki='+Ki.toFixed(1)+' Kd='+Kd.toFixed(2)
+      +'<br>截图这张卡片，带上 #WorkBuddy #1024程序员节 分享吧';
+    $('bSubmit').style.display='none';$('bGiveUp').textContent='再来一次';
+  }else{
+    const bad=[];
+    if(m.os>chal.os)bad.push('超调偏大');
+    if(!m.settled||m.ts>chal.ts)bad.push('响应偏慢/未稳定');
+    if(Math.abs(m.ess)>1)bad.push('静差未消除');
+    toast('未达标：'+bad.join('、'));
+  }
+};
+$('bGiveUp').onclick=function(){
+  chal=null;$('chal').classList.remove('pass');
+  $('chalTxt').textContent='点击「开始挑战」领取本对象的指标要求。';
+  $('bStart').style.display='';$('bSubmit').style.display='none';
+  $('bGiveUp').style.display='none';$('bGiveUp').textContent='放弃';
+};
+
+/* Tab 切换 */
+document.querySelectorAll('.tab').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});
+    document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');$(b.dataset.p).classList.add('on');
+    if(b.dataset.p==='p1')fitCanvas(),update();
+  };
+});
+
+/* ===================== 计算器 ===================== */
+const E24=[10,11,12,13,15,16,18,20,22,24,27,30,33,36,39,43,47,51,56,62,68,75,82,91];
+function e24up(v){
+  for(let e=-1;e<=6;e++)for(let i=0;i<24;i++){const r=E24[i]*Math.pow(10,e);if(r>=v)return r;}
+  return E24[23]*1e6;
+}
+function e24near(v){
+  let best=E24[0],bd=1e9;
+  for(let e=-1;e<=6;e++)for(let i=0;i<24;i++){
+    const r=E24[i]*Math.pow(10,e),d=Math.abs(r-v);
+    if(d<bd){bd=d;best=r;}
+  }
+  return best;
+}
+function fmtR(r){return r>=1e6?(r/1e6).toFixed(2)+'MΩ':(r>=1e3?(r/1e3).toFixed(r>=1e5?0:2)+'kΩ':r.toFixed(1)+'Ω');}
+function bind(ids,fn){ids.forEach(function(id){$(id).addEventListener('input',fn);});fn();}
+
+bind(['ledV','ledF','ledI'],function(){
+  const v=parseFloat($('ledV').value),f=parseFloat($('ledF').value),i=parseFloat($('ledI').value)/1000;
+  if(!(v>0)||!(i>0)||v<=f){$('ledOut').innerHTML='<span style="color:#A32D2D">Vcc 必须大于 Vf</span>';return;}
+  const need=(v-f)/i,rr=e24near(need),ia=(v-f)/rr,p=(v-f)*ia;
+  $('ledOut').innerHTML='理论值 <span class="big">'+fmtR(need)+'</span><br>E24 靠档 <b>'+fmtR(rr)
+    +'</b><br>实际电流 '+(ia*1000).toFixed(1)+' mA<br>电阻功耗 '+(p*1000).toFixed(0)
+    +' mW（建议选 ≥'+(Math.ceil(p*2000)/1000)+'W 封装）';
+});
+bind(['dvMax','dvRef','dvR2'],function(){
+  const mx=parseFloat($('dvMax').value),ref=parseFloat($('dvRef').value),r2=parseFloat($('dvR2').value)*1000;
+  if(!(mx>0)||!(ref>0)||!(r2>0)){$('dvOut').textContent='请填写有效数值';return;}
+  const need=r2*(mx/ref-1),r1=e24up(need),ratio=r2/(r1+r2);
+  $('dvOut').innerHTML='R1 需要 ≥ <span class="big">'+fmtR(need)+'</span><br>E24 取 <b>'+fmtR(r1)
+    +'</b><br>分压比 '+ratio.toFixed(4)+'<br>可测最大输入 '+(ref/ratio).toFixed(2)
+    +' V　<span style="color:#3B6D11">余量 '+((ref/ratio/mx-1)*100).toFixed(1)+'%</span>';
+});
+bind(['pwClk','pwF'],function(){
+  const clk=parseFloat($('pwClk').value)*1e6,f=parseFloat($('pwF').value);
+  if(!(clk>0)||!(f>0)){$('pwOut').textContent='请填写有效数值';return;}
+  for(let psc=0;psc<65536;psc++){
+    const arr=clk/(f*(psc+1))-1;
+    if(arr>=1&&arr<=65535&&Math.abs(arr-Math.round(arr))<1e-6){
+      const real=clk/((psc+1)*(Math.round(arr)+1));
+      $('pwOut').innerHTML='PSC = <span class="big">'+psc+'</span>　ARR = <span class="big">'+Math.round(arr)
+        +'</span><br>实际频率 '+real.toFixed(2)+' Hz（误差 '+((real/f-1)*100).toFixed(4)
+        +'%）<br><span class="mono">htim.Init.Prescaler = '+psc+';</span><br><span class="mono">htim.Init.Period = '
+        +Math.round(arr)+';</span>';
+      return;
+    }
+  }
+  $('pwOut').innerHTML='<span style="color:#A32D2D">该频率无法整除，请调整 Fclk 或频率</span>';
+});
+bind(['sgA','sgClk'],function(){
+  const a=clamp(parseFloat($('sgA').value)||0,0,180),clk=parseFloat($('sgClk').value)*1e6;
+  const pw=0.5+a/180*2.0;
+  const psc=71,arr=Math.round(clk/(50*(psc+1)))-1;
+  const ccr=Math.round((pw/20)*(arr+1));
+  $('sgOut').innerHTML='脉宽 <span class="big">'+pw.toFixed(3)+' ms</span><br>占空比 '+(pw/20*100).toFixed(2)
+    +'%<br>PSC='+psc+' ARR='+arr+' → CCR = <b>'+ccr+'</b><br><span class="mono">__HAL_TIM_SET_COMPARE(&htim,TIM_CHANNEL_1,'+ccr+');</span>';
+});
+bind(['cnClk','cnB'],function(){
+  const clk=parseFloat($('cnClk').value)*1e6,b=parseFloat($('cnB').value);
+  if(!(clk>0)||!(b>0)){$('cnOut').textContent='请填写有效数值';return;}
+  const out=[];
+  for(let brp=1;brp<=64;brp++){
+    const ntq=clk/(b*brp);
+    if(Math.abs(ntq-Math.round(ntq))<1e-6&&ntq>=8&&ntq<=25){
+      const ts1=Math.round(ntq*0.75)-1,ts2=Math.round(ntq)-1-ts1;
+      const sp=((1+ts1)/Math.round(ntq)*100).toFixed(1);
+      out.push('BRP='+brp+'　TS1='+ts1+'　TS2='+ts2+'　采样点 '+sp+'%');
+      if(out.length>=4)break;
+    }
+  }
+  $('cnOut').innerHTML=out.length?('<span class="big">'+out.length+' 组可用</span><br><span class="mono">'
+    +out.join('<br>')+'</span>'):'<span style="color:#A32D2D">无解，请调整 APB1 时钟</span>';
+});
+bind(['uT','uR','uD'],function(){
+  const t=parseFloat($('uT').value)||0,r=parseFloat($('uR').value)||0,d=parseFloat($('uD').value)||0;
+  const nm=t/10.197,rad=r*0.10472,v=rad*d/2000;
+  $('uOut').innerHTML='力矩 <span class="big">'+nm.toFixed(3)+' N·m</span><br>角速度 '+rad.toFixed(2)
+    +' rad/s<br>线速度 <b>'+v.toFixed(3)+' m/s</b>　('+(v*100).toFixed(1)+' cm/s)<br>'
+    +(v>0?('跑 1 m 需 '+(1/v).toFixed(2)+' s'):'');
+});
+
+/* ===================== 色环 ===================== */
+const RC=['#1F1F1D','#6B3A18','#C0392B','#E67E22','#F1C40F','#27AE60','#2980B9','#8E44AD','#7F8C8D','#ECF0F1'];
+const TOL=['±20%','±1%','±2%','–','–','±0.5%','±0.25%','±0.1%','±0.05%','±5%','±10%'];
+let ring=[2,0,0,0,1];
+function buildRings(){
+  const box=$('rings');box.innerHTML='';
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.className='ring';d.style.background=RC[ring[i]];
+    d.title=i===4?'误差环':('第 '+(i+1)+' 环');
+    d.onclick=function(){ring[i]=(ring[i]+1)%10;buildRings();};
+    box.appendChild(d);
+  }
+  const base=(ring[0]*100+ring[1]*10+ring[2])*Math.pow(10,ring[3]);
+  const tol=TOL[ring[4]]||'–';
+  let txt='阻值 <span class="big">'+fmtR(base)+'</span>　误差 '+tol;
+  if(ring[4]===0)txt+='<br><span style="color:#A32D2D">第四环为无色代表 ±20%，仅用于老式电阻</span>';
+  $('ringOut').innerHTML=txt;
+}
+buildRings();
+
+/* ===================== 贴片丝印 ===================== */
+const EIA96={'01':100,'02':102,'03':105,'04':107,'05':110,'06':113,'07':115,'08':118,'09':121,'10':124,
+'11':127,'12':130,'13':133,'14':137,'15':140,'16':143,'17':147,'18':150,'19':154,'20':158,'21':162,'22':165,
+'23':169,'24':174,'25':178,'26':182,'27':187,'28':191,'29':196,'30':200,'31':205,'32':210,'33':215,'34':221,
+'35':226,'36':232,'37':237,'38':243,'39':249,'40':255,'41':261,'42':267,'43':274,'44':280,'45':287,'46':294,
+'47':301,'48':309,'49':316,'50':324,'51':332,'52':340,'53':348,'54':357,'55':365,'56':374,'57':383,'58':392,
+'59':402,'60':412,'61':422,'62':432,'63':442,'64':453,'65':464,'66':475,'67':487,'68':499,'69':511,'70':523,
+'71':536,'72':549,'73':562,'74':576,'75':590,'76':604,'77':619,'78':634,'79':649,'80':665,'81':681,'82':698,
+'83':715,'84':732,'85':750,'86':768,'87':787,'88':806,'89':825,'90':845,'91':866,'92':887,'93':909,'94':931,
+'95':953,'96':976};
+const EIA96M={A:1,B:10,C:100,D:1000,E:10000,F:100000,S:0.01,R:0.1};
+function parseSmd(s){
+  s=s.trim().toUpperCase();
+  if(!s)return null;
+  let m=s.match(/^(\d{2})([A-Z])$/);
+  if(m&&EIA96[m[1]]!==undefined&&EIA96M[m[2]]!==undefined)
+    return{v:EIA96[m[1]]*EIA96M[m[2]],t:'EIA-96 精密贴片（±1%）'};
+  m=s.match(/^(\d*)R(\d+)$/);
+  if(m&&(m[1]!==''||m[2]!=='')){
+    const v=parseFloat((m[1]===''?'0':m[1])+'.'+m[2]);
+    if(!isNaN(v))return{v:v,t:'R 标记法（小数点用 R 代替）'};
+  }
+  m=s.match(/^(\d)(\d)(\d)(\d)$/);
+  if(m)return{v:(+m[1]*100+ +m[2]*10+ +m[3])*Math.pow(10,+m[4]),t:'四位数字，前三位有效、末位倍率（±1%）'};
+  m=s.match(/^(\d)(\d)(\d)$/);
+  if(m)return{v:(+m[1]*10+ +m[2])*Math.pow(10,+m[3]),t:'三位数字，前两位有效、末位倍率（±5%）'};
+  return null;
+}
+$('smdIn').addEventListener('input',function(){
+  const s=$('smdIn').value;
+  if(!s.trim()){$('smdOut').textContent='输入丝印代码后自动解析';return;}
+  const r=parseSmd(s);
+  $('smdOut').innerHTML=r?('阻值 <span class="big">'+fmtR(r.v)+'</span><br>'+r.t)
+    :'<span style="color:#A32D2D">无法识别，试试 103 / 4702 / 4R7 / 01A</span>';
+});
+$('smdOut').textContent='输入丝印代码后自动解析';
+
+/* 1024 彩蛋：连点标题徽章 10 次 */
+let eggN=0;
+document.querySelector('.badge').onclick=function(){
+  eggN++;
+  if(eggN>=10){$('egg').style.display='block';toast('1024 彩蛋解锁（隐藏一下：点 10 次徽章，1024 = 2^10）');}
+  else if(eggN>=5)toast('还差 '+(10-eggN)+' 下…');
+};
+
+/* 启动 */
+fitCanvas();
+window.addEventListener('resize',function(){fitCanvas();update();});
+update();
+</script>
+</body>
+</html>
