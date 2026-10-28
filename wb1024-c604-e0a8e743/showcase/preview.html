@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>摸鱼交易所 · 把带薪发呆实时定价</title>
+<meta name="description" content="输入月薪，实时计算你每一秒摸鱼赚了多少钱。段位、购买力、摸鱼小票，一个把带薪发呆做成硬通货的交易所。">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#070a0f;
+  --panel:rgba(255,255,255,.038);
+  --line:rgba(255,255,255,.085);
+  --line-2:rgba(255,255,255,.14);
+  --gold:#ffc65c;
+  --gold-2:#ffa726;
+  --mint:#5ce1c0;
+  --red:#ff6b6b;
+  --txt:#e9eef4;
+  --mut:#7d8b9c;
+  --mut-2:#586574;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(255,199,92,.10), transparent 62%),
+    radial-gradient(700px 480px at 92% 4%, rgba(92,225,192,.07), transparent 60%),
+    radial-gradient(1000px 700px at 60% 120%, rgba(255,107,107,.05), transparent 60%),
+    var(--bg);
+  color:var(--txt);font-family:var(--sans);
+  min-height:100vh;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 30%,#000 25%,transparent 78%);
+  -webkit-mask-image:radial-gradient(circle at 50% 30%,#000 25%,transparent 78%);
+}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 22px 64px}
+
+/* ---------- ticker ---------- */
+.ticker{
+  position:sticky;top:0;z-index:40;
+  border-bottom:1px solid var(--line);
+  background:rgba(7,10,15,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  overflow:hidden;height:32px;display:flex;align-items:center;
+}
+.ticker-track{display:flex;gap:34px;white-space:nowrap;animation:slide 42s linear infinite;will-change:transform}
+.ticker-item{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--mut);display:flex;gap:8px;align-items:center}
+.ticker-item b{color:var(--txt);font-weight:600}
+.up{color:var(--red)}
+.down{color:var(--mint)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:26px 0 22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.mark{
+  width:44px;height:44px;border-radius:13px;flex:none;
+  background:linear-gradient(160deg,#ffd98c,#ff8f3c 62%,#ff6b57);
+  display:grid;place-items:center;box-shadow:0 10px 26px -10px rgba(255,150,60,.75), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.mark svg{width:25px;height:25px;display:block}
+.brand h1{font-size:19px;margin:0;letter-spacing:.01em;font-weight:700}
+.brand p{margin:3px 0 0;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--mut-2)}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.pill{
+  display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--mut)
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(92,225,192,.6);animation:pulse 2s infinite}
+.pill.paused .dot{background:var(--gold);animation:none;box-shadow:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(92,225,192,.55)}70%{box-shadow:0 0 0 7px rgba(92,225,192,0)}100%{box-shadow:0 0 0 0 rgba(92,225,192,0)}}
+
+/* ---------- buttons ---------- */
+.btn{
+  border:1px solid var(--line-2);background:rgba(255,255,255,.045);color:var(--txt);
+  height:42px;padding:0 18px;border-radius:11px;font-size:13.5px;font-weight:600;
+  font-family:var(--sans);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .14s ease,background .18s ease,border-color .18s ease;white-space:nowrap;
+}
+.btn:hover{background:rgba(255,255,255,.085);border-color:rgba(255,255,255,.24)}
+.btn:active{transform:scale(.975)}
+.btn.primary{
+  background:linear-gradient(180deg,#ffd785,#ffb02e);color:#1b1206;border-color:rgba(255,215,133,.55);
+  box-shadow:0 12px 30px -14px rgba(255,176,46,.9), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.btn.primary:hover{background:linear-gradient(180deg,#ffdf9d,#ffb845)}
+.btn.sm{height:34px;padding:0 12px;font-size:12px;border-radius:9px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.icon-btn{
+  width:38px;height:38px;padding:0;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel);color:var(--mut);display:grid;place-items:center;cursor:pointer;transition:.18s;
+}
+.icon-btn:hover{color:var(--txt);background:rgba(255,255,255,.08)}
+.icon-btn svg{width:17px;height:17px}
+
+/* ---------- grid ---------- */
+.grid{display:flex;gap:16px;align-items:flex-start}
+.col{display:grid;gap:16px;flex:1;min-width:0}
+.col.l{flex:1.32}
+.card{
+  position:relative;border:1px solid var(--line);border-radius:18px;background:var(--panel);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 24px 50px -32px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.045);
+  overflow:hidden;
+}
+.card-pad{padding:20px}
+.sec-title{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:10.5px;letter-spacing:.19em;color:var(--mut-2);text-transform:uppercase;
+  font-family:var(--mono);margin:0 0 15px
+}
+
+/* ---------- main ticker card ---------- */
+.main{padding:22px 22px 18px}
+.main::before{
+  content:"";position:absolute;left:50%;top:-160px;width:520px;height:300px;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(255,199,92,.16),transparent);pointer-events:none
+}
+.pair-row{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative}
+.pair{display:flex;align-items:center;gap:10px}
+.pair-badge{
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;
+  padding:6px 10px;border-radius:8px;color:#151007;
+  background:linear-gradient(180deg,#ffd98c,#ffbe4a);
+}
+.pair-sub{font-family:var(--mono);font-size:10.5px;color:var(--mut-2);letter-spacing:.12em}
+.clock{font-family:var(--mono);font-size:13px;color:var(--mut);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.clock span{color:var(--txt);font-weight:600}
+
+.price{display:flex;align-items:baseline;gap:6px;margin:16px 0 4px;font-family:var(--mono);font-variant-numeric:tabular-nums;line-height:1;position:relative}
+.price .cur{font-size:26px;color:var(--gold);opacity:.85;font-weight:500}
+.price .int{font-size:clamp(40px,7.4vw,70px);font-weight:700;letter-spacing:-.035em;color:#fff;
+  text-shadow:0 0 34px rgba(255,199,92,.3)}
+.price .dec{font-size:clamp(20px,3.2vw,30px);font-weight:600;color:var(--gold);opacity:.85;letter-spacing:-.02em}
+.price.flash .int{animation:flash .45s ease}
+@keyframes flash{0%{color:#fff}35%{color:#fff3cf}100%{color:#fff}}
+.price-label{font-size:11.5px;color:var(--mut);letter-spacing:.06em;margin-bottom:2px}
+.rate-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{
+  font-family:var(--mono);font-size:11px;color:var(--mut);border:1px solid var(--line);
+  background:rgba(255,255,255,.03);border-radius:7px;padding:5px 9px;letter-spacing:.02em
+}
+.chip b{color:var(--txt);font-weight:600}
+
+.chart{margin:18px -4px 4px;height:118px;position:relative}
+.chart svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-empty{
+  position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);
+  font-size:11px;color:var(--mut-2);letter-spacing:.14em
+}
+.chart-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--mut-2);letter-spacing:.1em;margin-top:2px}
+
+.actions{display:flex;gap:10px;margin-top:18px}
+.actions .btn{flex:1}
+.actions .btn.primary{flex:1.5}
+
+.subgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.022)}
+.stat k{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--mut-2);margin-bottom:6px}
+.stat v{font-family:var(--mono);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat v small{font-size:10px;color:var(--mut);font-weight:400;margin-left:2px}
+
+/* ---------- rank ---------- */
+.rank-top{display:flex;align-items:center;gap:14px}
+.rank-badge{
+  width:52px;height:52px;border-radius:15px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(155deg,rgba(255,199,92,.22),rgba(255,140,60,.08));
+  border:1px solid rgba(255,199,92,.34);color:var(--gold);
+  box-shadow:0 0 26px -10px rgba(255,199,92,.7), inset 0 1px 0 rgba(255,255,255,.14);
+  transition:.4s;
+}
+.rank-badge svg{width:26px;height:26px}
+.rank-name{font-size:17px;font-weight:700;letter-spacing:.01em;margin:0}
+.rank-en{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--mut-2);margin:4px 0 0}
+.rank-lv{font-family:var(--mono);font-size:10px;color:var(--gold);border:1px solid rgba(255,199,92,.3);
+  background:rgba(255,199,92,.09);padding:2px 7px;border-radius:6px;margin-left:auto;letter-spacing:.08em;flex:none}
+.bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:16px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#ff8f3c,#ffd98c);
+  transition:width .6s cubic-bezier(.2,.9,.25,1);box-shadow:0 0 12px rgba(255,199,92,.6)}
+.bar-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--mut-2);margin-top:8px;letter-spacing:.06em}
+
+/* ---------- shop ---------- */
+.shop{display:grid;gap:8px}
+.item{
+  display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:12px;
+  border:1px solid transparent;background:rgba(255,255,255,.022);transition:.18s;cursor:pointer;
+}
+.item:hover{background:rgba(255,255,255,.055);border-color:var(--line)}
+.item.i-ok{background:rgba(255,199,92,.075);border-color:rgba(255,199,92,.22)}
+.item-ico{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.05);color:var(--mut)}
+.item.i-ok .item-ico{color:var(--gold);background:rgba(255,199,92,.12)}
+.item-ico svg{width:16px;height:16px}
+.item-main{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.item-name em{font-family:var(--mono);font-style:normal;font-size:11.5px;color:var(--mut);flex:none}
+.item.i-ok .item-name em{color:var(--gold)}
+.item-sub{font-family:var(--mono);font-size:10px;color:var(--mut);margin-top:5px;display:flex;justify-content:space-between;gap:8px}
+.mini{height:3px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:6px}
+.mini i{display:block;height:100%;background:linear-gradient(90deg,rgba(255,199,92,.55),#ffc65c);border-radius:99px;transition:width .5s ease}
+
+/* ---------- achievements ---------- */
+.achs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ach{
+  position:relative;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.02);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  color:var(--mut-2);transition:.25s;cursor:default;padding:6px;
+}
+.ach .an{font-size:10.5px;line-height:1.2;text-align:center;letter-spacing:.01em;opacity:.8}
+.ach svg{width:22px;height:22px}
+.ach.on{
+  color:var(--gold);border-color:rgba(255,199,92,.3);
+  background:linear-gradient(160deg,rgba(255,199,92,.13),rgba(255,199,92,.03));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+}
+.ach::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);
+  background:#12161d;border:1px solid var(--line-2);color:var(--txt);font-size:11px;
+  padding:6px 9px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:.16s;z-index:5;
+  box-shadow:0 10px 24px -10px #000;
+}
+.ach:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- footer ---------- */
+footer{margin-top:26px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10px;color:var(--mut-2);letter-spacing:.08em;line-height:1.9}
+footer b{color:var(--mut)}
+
+/* ---------- modal ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:100;background:rgba(4,6,10,.78);
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  display:none;align-items:center;justify-content:center;padding:22px;overflow-y:auto;
+}
+.overlay.open{display:flex;animation:fade .22s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{
+  width:100%;max-width:430px;background:#0d1117;border:1px solid var(--line-2);border-radius:20px;
+  padding:24px;box-shadow:0 40px 90px -30px #000;animation:rise .3s cubic-bezier(.2,.9,.25,1);
+  max-height:calc(100vh - 44px);overflow-y:auto;
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.modal h2{margin:0 0 4px;font-size:19px;letter-spacing:.01em}
+.modal .sub{margin:0 0 20px;font-size:12.5px;color:var(--mut);line-height:1.65}
+.field{margin-bottom:14px}
+.field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--mut-2);margin-bottom:7px}
+.field input{
+  width:100%;height:44px;padding:0 13px;border-radius:11px;border:1px solid var(--line-2);
+  background:rgba(255,255,255,.04);color:var(--txt);font-family:var(--mono);font-size:15px;
+  outline:none;transition:.18s;font-variant-numeric:tabular-nums;
+}
+.field input:focus{border-color:rgba(255,199,92,.55);background:rgba(255,199,92,.05);box-shadow:0 0 0 3px rgba(255,199,92,.1)}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.chips button{
+  font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mut);transition:.16s;
+}
+.chips button:hover,.chips button.on{border-color:rgba(255,199,92,.5);color:var(--gold);background:rgba(255,199,92,.1)}
+.modal-foot{display:flex;gap:10px;margin-top:20px}
+.modal-foot .btn{flex:1}
+.hint{font-family:var(--mono);font-size:10px;color:var(--mut-2);margin-top:12px;letter-spacing:.05em;line-height:1.7}
+
+/* receipt modal */
+#modal-receipt .modal{max-width:400px;background:transparent;border:none;box-shadow:none;padding:0}
+#receiptCanvas{width:100%;display:block;filter:drop-shadow(0 30px 60px rgba(0,0,0,.65))}
+.receipt-foot{display:flex;gap:10px;margin-top:16px}
+.receipt-foot .btn{flex:1}
+
+/* toast */
+.toast-wrap{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:420px}
+.toast{
+  background:#12171f;border:1px solid var(--line-2);border-radius:12px;padding:11px 16px;
+  font-size:13px;box-shadow:0 20px 40px -16px #000;animation:tin .3s ease;max-width:100%;
+  display:flex;gap:9px;align-items:center;line-height:1.45;
+}
+.toast.gold{border-color:rgba(255,199,92,.42);background:linear-gradient(180deg,#231b0d,#14100a);color:#ffdf9d}
+.toast .ti{flex:none;display:grid;place-items:center;color:var(--gold)}
+.toast .ti svg{width:15px;height:15px}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+@media(max-width:900px){
+  .grid{flex-direction:column;gap:14px}
+  .col{display:contents}
+  .main{order:1}.rank-card{order:2}.shop-card{order:3}.ach-card{order:4}.rules-card{order:5}
+  .wrap{padding:0 15px 48px}
+  header{padding:20px 0 16px}
+  .main{padding:18px 16px 16px}
+  .card-pad{padding:17px}
+  .price .int{font-size:44px}
+  .chart{height:92px}
+  .achs{grid-template-columns:repeat(4,1fr)}
+  .hdr-right .pill{display:none}
+  footer{font-size:9.5px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body><div style="position:relative;z-index:4;text-align:center;color:#e9eef4;background:#30343b;padding:6px">示例体验，数据仅保留在本页 <button id="demoReset" type="button">恢复示例</button></div>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2a1a06" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12c3.2-3.6 6.6-5.4 10.2-5.4 2.6 0 4.6.8 5.8 1.8L22 6v12l-3-2.4c-1.2 1-3.2 1.8-5.8 1.8C9.6 17.4 6.2 15.6 3 12Z"/>
+          <circle cx="8.4" cy="11.3" r=".9" fill="#2a1a06" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>摸鱼交易所</h1>
+        <p>MOYU EXCHANGE · EST. 1024</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="pill" id="statusPill"><span class="dot"></span><span id="statusText">交易中</span></div>
+      <button class="icon-btn" id="btnSettings" title="设置薪资" aria-label="设置薪资">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9.7 4.4V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5.9Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div class="col">
+      <section class="card main">
+        <div class="pair-row">
+          <div class="pair">
+            <span class="pair-badge">MOYU/CNY</span>
+            <span class="pair-sub">实时结算 · 秒级报价</span>
+          </div>
+          <div class="clock"><span id="clock">00:00:00</span></div>
+        </div>
+
+        <div class="price" id="priceBox">
+          <span class="cur">¥</span><span class="int" id="earnInt">0</span><span class="dec" id="earnDec">.0000</span>
+        </div>
+        <div class="price-label">本次摸鱼已产生收益 · 老板正在为此付费</div>
+
+        <div class="rate-row">
+          <span class="chip">每秒 <b id="rSec">¥0.0000</b></span>
+          <span class="chip">每分钟 <b id="rMin">¥0.00</b></span>
+          <span class="chip">每小时 <b id="rHour">¥0.00</b></span>
+        </div>
+
+        <div class="chart">
+          <svg id="spark" viewBox="0 0 600 118" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffc65c" stop-opacity=".42"/>
+                <stop offset="65%" stop-color="#ffc65c" stop-opacity=".07"/>
+                <stop offset="100%" stop-color="#ffc65c" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="gLine" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#ff9d3c" stop-opacity=".5"/>
+                <stop offset="70%" stop-color="#ffc65c"/>
+                <stop offset="100%" stop-color="#ffe6ae"/>
+              </linearGradient>
+            </defs>
+            <g id="gridLines" stroke="rgba(255,255,255,.055)" stroke-width="1"></g>
+            <path id="areaPath" fill="url(#gArea)" d=""></path>
+            <path id="linePath" fill="none" stroke="url(#gLine)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+            <circle id="headDot" r="3.4" fill="#fff4d8" opacity="0"></circle>
+          </svg>
+          <div class="chart-empty" id="chartEmpty">等待第一笔成交</div>
+        </div>
+        <div class="chart-meta"><span>收益曲线 / 本次持仓</span><span id="chartRange">0s → 0s</span></div>
+
+        <div class="actions">
+          <button class="btn primary" id="btnToggle">暂停交易</button>
+          <button class="btn" id="btnReceipt">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></svg>
+            摸鱼小票
+          </button>
+        </div>
+
+        <div class="subgrid">
+          <div class="stat"><k>今日累计</k><v id="sToday">¥0.00</v></div>
+          <div class="stat"><k>历史累计</k><v id="sAll">¥0.00</v></div>
+          <div class="stat"><k>老板少赚 / 代码行</k><v><span id="sLines">0</span><small>行</small></v></div>
+          <div class="stat"><k>单次最长纪录</k><v><span id="sBest">0</span><small>分钟</small></v></div>
+        </div>
+      </section>
+
+      <section class="card card-pad ach-card">
+        <div class="sec-title"><span>成就 / Achievements</span><span id="achCount">0 / 8</span></div>
+        <div class="achs" id="achs"></div>
+      </section>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col">
+      <section class="card card-pad rank-card">
+        <div class="sec-title"><span>段位 / Rank</span><span>累计摸鱼时长</span></div>
+        <div class="rank-top">
+          <div class="rank-badge" id="rankBadge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3.2 14.6 9l6.2.7-4.6 4.2 1.3 6.1-5.5-3.2-5.5 3.2 1.3-6.1L3.2 9.7 9.4 9 12 3.2Z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="rank-name" id="rankName">摸鱼学徒</p>
+            <p class="rank-en" id="rankEn">APPRENTICE</p>
+          </div>
+          <span class="rank-lv" id="rankLv">L1</span>
+        </div>
+        <div class="bar"><i id="rankBar" style="width:0%"></i></div>
+        <div class="bar-meta"><span id="rankNow">0 分钟</span><span id="rankNext">下一段位 5 分钟</span></div>
+      </section>
+
+      <section class="card card-pad shop-card">
+        <div class="sec-title"><span>购买力 / Purchasing Power</span><span id="shopHint">点一下假装买下</span></div>
+        <div class="shop" id="shop"></div>
+      </section>
+
+      <section class="card card-pad rules-card">
+        <div class="sec-title"><span>交易须知</span><span>RULE 1024</span></div>
+        <div style="font-size:12.5px;line-height:1.85;color:var(--mut)">
+          本所认定：<b style="color:var(--txt)">带薪发呆、假装编译、会议隐身、洗手间套利</b> 均属合法持仓。<br>
+          报价公式为 <span style="font-family:var(--mono);color:var(--gold);font-size:11.5px">月薪 ÷ (工作日 × 工时 × 3600)</span>，随薪资设置实时变动。<br>
+          所有数据只存在你自己的浏览器里，不上传、不联网、不会被老板查到。
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <div><b>摸鱼交易所</b></div>
+    <div>空格键 暂停 / 继续 · 数据仅存本地浏览器</div>
+  </footer>
+</div>
+
+<!-- setup modal -->
+<div class="overlay" id="modal-setup">
+  <div class="modal">
+    <h2>先设定你的时薪</h2>
+    <p class="sub">交易所需要知道你的时间值多少钱，才能给你报价。填一次就会记住。</p>
+    <div class="field">
+      <label>税前月薪（元）</label>
+      <input type="number" id="inSalary" inputmode="decimal" min="0" step="100" value="12000">
+      <div class="chips" id="salaryChips">
+        <button type="button" data-v="6000">6000</button>
+        <button type="button" data-v="10000">10000</button>
+        <button type="button" data-v="12000" class="on">12000</button>
+        <button type="button" data-v="20000">20000</button>
+        <button type="button" data-v="35000">35000</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>每月工作日</label>
+        <input type="number" id="inDays" inputmode="decimal" min="1" max="31" step="0.25" value="21.75">
+      </div>
+      <div class="field">
+        <label>每日工时（小时）</label>
+        <input type="number" id="inHours" inputmode="decimal" min="1" max="24" step="0.5" value="8">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" id="btnStart">开盘</button>
+    </div>
+    <p class="hint">例如月薪 12000、21.75 个工作日、每天 8 小时 → 每秒 ¥0.0192。<br>摸鱼 8 分钟就能赚回一杯冰美式。</p>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div class="overlay" id="modal-settings">
+  <div class="modal">
+    <h2>薪资设置</h2>
+    <p class="sub">改动后即时生效，历史收益按原价格保留。</p>
+    <div class="field">
+      <label>税前月薪（元）</label>
+      <input type="number" id="inSalary2" inputmode="decimal" min="0" step="100">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>每月工作日</label>
+        <input type="number" id="inDays2" inputmode="decimal" min="1" max="31" step="0.25">
+      </div>
+      <div class="field">
+        <label>每日工时（小时）</label>
+        <input type="number" id="inHours2" inputmode="decimal" min="1" max="24" step="0.5">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="btnCancelSettings">取消</button>
+      <button class="btn primary" id="btnSaveSettings">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- receipt modal -->
+<div class="overlay" id="modal-receipt">
+  <div class="modal">
+    <canvas id="receiptCanvas" width="840" height="1500"></canvas>
+    <div class="receipt-foot">
+      <button class="btn" id="btnCloseReceipt">关闭</button>
+      <button class="btn primary" id="btnSaveReceipt">保存图片</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- state ---------------- */
+  const KEY = "moyu-exchange-v1";
+  const localStorage = {getItem(){return null},setItem(){}};
+  const todayKey = () => { const d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+
+  const defaults = () => ({
+    cfg: { salary: 12000, days: 21.75, hours: 8 },
+    total: { sec: 0, earn: 0 },
+    today: { d: todayKey(), sec: 0, earn: 0 },
+    session: { running: true, sec: 0, earn: 0 },
+    best: 0,
+    orders: 0,
+    ach: {},
+    setupDone: false,
+    sessions: 0
+  });
+
+  let S = defaults();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      S = Object.assign(defaults(), p);
+      S.cfg = Object.assign(defaults().cfg, p.cfg || {});
+      S.total = Object.assign(defaults().total, p.total || {});
+      S.today = Object.assign(defaults().today, p.today || {});
+      S.session = Object.assign(defaults().session, p.session || {});
+      S.ach = p.ach || {};
+    }
+  } catch(e) {}
+  if (!S.today || S.today.d !== todayKey()) S.today = { d: todayKey(), sec: 0, earn: 0 };
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
+
+  const rate = () => Math.max(0, S.cfg.salary) / Math.max(1, S.cfg.days * S.cfg.hours * 3600);
+  const money = (v, n) => "¥" + (v||0).toFixed(n === undefined ? 2 : n);
+
+  /* ---------------- icons ---------------- */
+  const IC = {
+    fish:'<path d="M3 12c3.2-3.6 6.6-5.4 10.2-5.4 2.6 0 4.6.8 5.8 1.8L22 6v12l-3-2.4c-1.2 1-3.2 1.8-5.8 1.8C9.6 17.4 6.2 15.6 3 12Z"/><circle cx="8.4" cy="11.3" r=".9" fill="currentColor" stroke="none"/>',
+    crown:'<path d="M3 17h18M3.5 7.5 8 11l4-6 4 6 4.5-3.5L19 17H5L3.5 7.5Z"/>',
+    coffee:'<path d="M4 9h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M7 5.5v1.5M11 4.5v2"/>',
+    clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/>',
+    bug:'<rect x="7" y="8" width="10" height="12" rx="5"/><path d="M12 4v4M8 11H4M20 11h-4M7.5 16H4M20 16h-3.5"/>',
+    code:'<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>',
+    moon:'<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>',
+    water:'<path d="M9 3h6v3l1.5 3.2A4 4 0 0 1 15 15H9a4 4 0 0 1-1.5-5.8L9 6V3Z"/><path d="M8 19h8"/>',
+    rice:'<path d="M12 4 4.5 18.5A1 1 0 0 0 5.4 20h13.2a1 1 0 0 0 .9-1.5L12 4Z"/><path d="M12 12.5 10 17M14.5 14 15.5 17"/>',
+    metro:'<rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 10.5h14M9 20l1.5-3M15 20l-1.5-3"/><circle cx="9" cy="13.2" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="13.2" r=".8" fill="currentColor" stroke="none"/>',
+    bowl:'<path d="M3 11h18a9 9 0 0 1-9 9 9 9 0 0 1-9-9Z"/><path d="M8 6.5c0-1 1-1.5 1-2.5M12 6c0-1 1-1.5 1-2.5"/>',
+    house:'<path d="M4 11 12 4l8 7v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5V11Z"/><path d="M10 21v-5.5h4V21"/>',
+    check:'<path d="M20 6 9 17l-5-5"/>'
+  };
+  const svg = (k, w) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"'+(w?' width="'+w+'" height="'+w+'"':'')+'>'+IC[k]+'</svg>';
+
+  /* ---------------- ranks ---------------- */
+  const RANKS = [
+    { min: 0,    name: "摸鱼学徒",   en: "APPRENTICE",        icon: "fish" },
+    { min: 5,    name: "带薪实习生", en: "PAID INTERN",       icon: "water" },
+    { min: 15,   name: "工位钓鱼人", en: "DESK ANGLER",       icon: "fish" },
+    { min: 30,   name: "会议隐者",   en: "MEETING GHOST",     icon: "moon" },
+    { min: 60,   name: "摸鱼熟练工", en: "SLACK REGULAR",     icon: "clock" },
+    { min: 180,  name: "摸鱼大师",   en: "SLACK MASTER",      icon: "coffee" },
+    { min: 480,  name: "摸鱼宗师",   en: "SLACK GRANDMASTER", icon: "crown" },
+    { min: 1024, name: "摸鱼之神",   en: "SLACK DEITY",       icon: "crown" }
+  ];
+
+  const ACHS = [
+    { id: "open",  icon: "fish",   name: "开盘大吉",     desc: "开始第一次摸鱼" },
+    { id: "s1024", icon: "code",   name: "二进制信徒",   desc: "单次摸鱼满 1024 秒" },
+    { id: "m10",   icon: "water",  name: "洗手间套利",   desc: "累计摸鱼满 10 分钟" },
+    { id: "h1",    icon: "clock",  name: "编译中勿扰",   desc: "累计摸鱼满 1 小时" },
+    { id: "y100",  icon: "crown",  name: "百元户",       desc: "累计摸鱼收益满 ¥100" },
+    { id: "order", icon: "rice",   name: "假装下单",     desc: "在购买力里成交一次" },
+    { id: "rank5", icon: "coffee", name: "摸鱼大师",     desc: "段位达到 L6" },
+    { id: "night", icon: "moon",   name: "深夜摸鱼",     desc: "在 22 点后开盘" }
+  ];
+
+  const SHOP = [
+    { id: "water", name: "冰镇矿泉水", price: 2,    icon: "water", note: "刚需" },
+    { id: "metro", name: "地铁一趟",   price: 5,    icon: "metro", note: "通勤回本" },
+    { id: "rice",  name: "便利店饭团", price: 6.5,  icon: "rice",  note: "碳水快乐" },
+    { id: "coffee",name: "冰美式",     price: 9.9,  icon: "coffee",note: "续命刚需" },
+    { id: "bowl",  name: "楼下盖浇饭", price: 22,   icon: "bowl",  note: "午餐自由" },
+    { id: "house", name: "一平米房子", price: 68000,icon: "house", note: "长期主义" }
+  ];
+
+  /* ---------------- helpers ---------------- */
+  const $ = id => document.getElementById(id);
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+  const pad2 = n => String(n).padStart(2, "0");
+  const hms = s => pad2(Math.floor(s/3600)) + ":" + pad2(Math.floor(s%3600/60)) + ":" + pad2(Math.floor(s%60));
+  const mins = s => Math.floor(s/60);
+
+  function toast(msg, gold){
+    const el = document.createElement("div");
+    el.className = "toast" + (gold ? " gold" : "");
+    el.innerHTML = (gold ? '<span class="ti">'+svg("check")+'</span>' : "") + "<span>"+msg+"</span>";
+    $("toastWrap").appendChild(el);
+    setTimeout(() => { el.style.transition="opacity .3s, transform .3s"; el.style.opacity="0"; el.style.transform="translateY(8px)"; }, 2600);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  function unlock(id){
+    if (S.ach[id]) return;
+    const a = ACHS.find(x => x.id === id);
+    if (!a) return;
+    S.ach[id] = Date.now();
+    toast("成就解锁 · " + a.name, true);
+    renderAch();
+  }
+
+  /* ---------------- ticker ---------------- */
+  (function buildTicker(){
+    const items = [
+      ["MOYU/CNY", "0.019151", "+0.000002", "up"],
+      ["老板耐心指数", "12.4", "-0.8", "down"],
+      ["本周剩余工位时长", "31.5h", "-2.0", "down"],
+      ["团建概率", "68%", "+3%", "up"],
+      ["需求变更指数", "97.2", "+5.1", "up"],
+      ["工资到账倒计时", "9d", "-1", "down"],
+      ["摸鱼合法性", "100%", "持平", ""],
+      ["编译成功率", "99.1%", "+0.3", "up"]
+    ];
+    const one = items.map(([a,b,c,d]) =>
+      '<span class="ticker-item">'+a+' <b>'+b+'</b><span class="'+d+'">'+c+'</span></span>'
+    ).join("");
+    $("tickerTrack").innerHTML = one + one;
+  })();
+
+  /* ---------------- chart ---------------- */
+  const pts = [];
+  function pushPoint(){
+    const v = S.session.earn;
+    const last = pts[pts.length-1];
+    if (!last || Math.abs(last.v - v) > 1e-7) pts.push({ t: S.session.sec, v });
+    if (pts.length > 90) pts.shift();
+  }
+  (function buildGrid(){
+    let g = "";
+    for (let i=0;i<=3;i++){ const y = 6 + i*35; g += '<line x1="0" y1="'+y+'" x2="600" y2="'+y+'" stroke-dasharray="2 6"/>'; }
+    $("gridLines").innerHTML = g;
+  })();
+
+  function renderChart(){
+    const W = 600, H = 118, padB = 6;
+    if (pts.length < 2){
+      $("linePath").setAttribute("d","");
+      $("areaPath").setAttribute("d","");
+      $("headDot").setAttribute("opacity","0");
+      $("chartEmpty").style.display = "grid";
+      return;
+    }
+    $("chartEmpty").style.display = "none";
+    const vals = pts.map(p => p.v);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const rng = Math.max(hi - lo, 1e-9);
+    const maxT = pts[pts.length-1].t || 1;
+    const minT = pts[0].t;
+    const span = Math.max(1, maxT - minT);
+    const X = t => ((t - minT) / span) * W;
+    const top = 12, bot = H - padB;
+    const Y = v => bot - clamp((v - lo) / rng, 0, 1) * (bot - top);
+
+    let d = "";
+    for (let i=0;i<pts.length;i++){
+      const x = X(pts[i].t), y = Y(pts[i].v);
+      if (i === 0){ d = "M"+x.toFixed(1)+","+y.toFixed(1); }
+      else {
+        const px = X(pts[i-1].t), py = Y(pts[i-1].v);
+        const mx = (px+x)/2;
+        d += " C"+mx.toFixed(1)+","+py.toFixed(1)+" "+mx.toFixed(1)+","+y.toFixed(1)+" "+x.toFixed(1)+","+y.toFixed(1);
+      }
+    }
+    $("linePath").setAttribute("d", d);
+    const lastY = Y(pts[pts.length-1].v);
+    $("areaPath").setAttribute("d", d + " L"+W+","+H+" L0,"+H+" Z");
+    const dot = $("headDot");
+    dot.setAttribute("cx", W); dot.setAttribute("cy", lastY); dot.setAttribute("opacity", .95);
+    $("chartRange").textContent = Math.round(minT)+"s → "+Math.round(maxT)+"s";
+  }
+
+  /* ---------------- shop ---------------- */
+  function renderShop(){
+    const earn = S.session.earn + S.total.earn;
+    $("shop").innerHTML = SHOP.map(it => {
+      const ok = earn >= it.price;
+      const p = clamp(earn / it.price * 100, 0, 100);
+      const need = Math.max(0, (it.price - earn) / Math.max(rate(), 1e-9));
+      const needTxt = ok ? "已成交 · 假装买下"
+        : (!isFinite(need) || rate() <= 0) ? "先设置你的薪资"
+        : "还需摸 " + (need >= 3600 ? (need/3600).toFixed(1)+" 小时" : Math.ceil(need/60)+" 分钟");
+      return '<div class="item'+(ok?" i-ok":"")+'" data-id="'+it.id+'">'
+        + '<div class="item-ico">'+svg(it.icon)+'</div>'
+        + '<div class="item-main">'
+        +   '<div class="item-name"><span>'+it.name+'</span><em>¥'+it.price.toLocaleString("en-US")+'</em></div>'
+        +   '<div class="item-sub"><span>'+needTxt+'</span><span>'+it.note+'</span></div>'
+        +   '<div class="mini"><i style="width:'+p.toFixed(1)+'%"></i></div>'
+        + '</div></div>';
+    }).join("");
+  }
+  $("shop").addEventListener("click", e => {
+    const row = e.target.closest(".item");
+    if (!row) return;
+    const it = SHOP.find(x => x.id === row.dataset.id);
+    const earn = S.session.earn + S.total.earn;
+    if (earn < it.price){
+      const need = (it.price - earn) / Math.max(rate(), 1e-9);
+      toast("余额不足，还需摸 " + Math.ceil(need/60) + " 分钟");
+      return;
+    }
+    S.orders++;
+    unlock("order");
+    save();
+    toast("假装成交 · " + it.name + " ¥" + it.price.toFixed(2) + "，已从老板利润中扣除", true);
+  });
+
+  /* ---------------- achievements ---------------- */
+  function renderAch(){
+    $("achs").innerHTML = ACHS.map(a =>
+      '<div class="ach'+(S.ach[a.id]?" on":"")+'" data-tip="'+a.desc+'">'+svg(a.icon)+'<span class="an">'+a.name+'</span></div>'
+    ).join("");
+    $("achCount").textContent = Object.keys(S.ach).filter(k => ACHS.some(a=>a.id===k)).length + " / " + ACHS.length;
+  }
+
+  /* ---------------- rank ---------------- */
+  function renderRank(){
+    const m = mins(S.total.sec);
+    let idx = 0;
+    for (let i=0;i<RANKS.length;i++) if (m >= RANKS[i].min) idx = i;
+    const cur = RANKS[idx], nxt = RANKS[idx+1];
+    $("rankName").textContent = cur.name;
+    $("rankEn").textContent = cur.en;
+    $("rankLv").textContent = "L" + (idx+1);
+    $("rankBadge").innerHTML = svg(cur.icon);
+    if (nxt){
+      const p = clamp((m - cur.min) / (nxt.min - cur.min) * 100, 0, 100);
+      $("rankBar").style.width = p + "%";
+      $("rankNow").textContent = m + " 分钟";
+      $("rankNext").textContent = "下一段位 " + nxt.min + " 分钟";
+      $("rankNext").style.color = "";
+    } else {
+      $("rankBar").style.width = "100%";
+      $("rankNow").textContent = m + " 分钟";
+      $("rankNext").textContent = "已达天花板";
+      $("rankNext").style.color = "var(--gold)";
+    }
+    if (idx >= 5) unlock("rank5");
+  }
+
+  /* ---------------- render ---------------- */
+  let lastInt = -1;
+  function renderAll(){
+    const e = S.session.earn;
+    const s = e.toFixed(4);
+    const [ip, dp] = s.split(".");
+    $("earnInt").textContent = Number(ip).toLocaleString("en-US");
+    $("earnDec").textContent = "." + dp;
+
+    const r = rate();
+    $("rSec").textContent = "¥" + r.toFixed(4);
+    $("rMin").textContent = "¥" + (r*60).toFixed(2);
+    $("rHour").textContent = "¥" + (r*3600).toFixed(2);
+
+    $("clock").textContent = hms(S.session.sec);
+    $("sToday").textContent = money(S.today.earn);
+    $("sAll").textContent = money(S.total.earn);
+    $("sLines").textContent = Math.floor(S.session.sec / 60 * 3).toLocaleString("en-US");
+    $("sBest").textContent = Math.round(S.best / 60);
+
+    $("statusPill").classList.toggle("paused", !S.session.running);
+    $("statusText").textContent = S.session.running ? "交易中" : "已暂停";
+    $("btnToggle").textContent = S.session.running ? "暂停交易" : "继续交易";
+
+    renderRank();
+    renderShop();
+    renderChart();
+  }
+
+  /* ---------------- loop ---------------- */
+  let last = performance.now();
+  let lastSave = 0;
+  let lastPoint = 0;
+  let tick1024 = false;
+
+  function loop(now){
+    const dt = Math.min(1.5, (now - last) / 1000);
+    last = now;
+    if (S.session.running){
+      const r = rate();
+      S.session.sec += dt; S.session.earn += dt * r;
+      S.total.sec += dt;   S.total.earn += dt * r;
+      S.today.sec += dt;   S.today.earn += dt * r;
+      if (S.session.sec > S.best) S.best = S.session.sec;
+
+      const mi = mins(S.total.sec);
+      if (mi >= 10) unlock("m10");
+      if (mi >= 60) unlock("h1");
+      if (S.total.earn >= 100) unlock("y100");
+      if (S.session.sec >= 1024) {
+        unlock("s1024");
+        if (!tick1024){ tick1024 = true; toast("1024 秒达成 · 愿你的构建永不失败", true); }
+      }
+    }
+    if (now - lastPoint > 1000){ pushPoint(); lastPoint = now; }
+    renderAll();
+    if (now - lastSave > 4000){ save(); lastSave = now; }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---------------- controls ---------------- */
+  $("btnToggle").addEventListener("click", () => {
+    S.session.running = !S.session.running;
+    if (S.session.running) unlock("open");
+    save(); renderAll();
+    toast(S.session.running ? "已开盘，开始计息" : "已暂停，老板暂时安全");
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" && !e.target.matches("input,textarea")){
+      e.preventDefault();
+      $("btnToggle").click();
+    }
+  });
+
+  /* ---------------- settings ---------------- */
+  function openSetup(first){
+    const c = S.cfg;
+    $("inSalary").value = c.salary; $("inDays").value = c.days; $("inHours").value = c.hours;
+    document.querySelectorAll("#salaryChips button").forEach(b => b.classList.toggle("on", +b.dataset.v === +c.salary));
+    $("modal-setup").classList.add("open");
+    $("modal-setup").dataset.first = first ? "1" : "";
+  }
+  $("salaryChips").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    $("inSalary").value = b.dataset.v;
+    document.querySelectorAll("#salaryChips button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+  });
+  function readSetup(){
+    const sal = Math.max(0, parseFloat($("inSalary").value) || 0);
+    const d = clamp(parseFloat($("inDays").value) || 21.75, 1, 31);
+    const h = clamp(parseFloat($("inHours").value) || 8, 1, 24);
+    S.cfg = { salary: sal, days: d, hours: h };
+  }
+  $("btnStart").addEventListener("click", () => {
+    readSetup();
+    S.setupDone = true;
+    S.session.running = true;
+    S.sessions++;
+    save();
+    $("modal-setup").classList.remove("open");
+    unlock("open");
+    if (new Date().getHours() >= 22) unlock("night");
+    renderAll();
+    toast("开盘 · 每秒 ¥" + rate().toFixed(4) + " 已到账", true);
+  });
+
+  $("btnSettings").addEventListener("click", () => {
+    $("inSalary2").value = S.cfg.salary;
+    $("inDays2").value = S.cfg.days;
+    $("inHours2").value = S.cfg.hours;
+    $("modal-settings").classList.add("open");
+  });
+  $("btnCancelSettings").addEventListener("click", () => $("modal-settings").classList.remove("open"));
+  $("btnSaveSettings").addEventListener("click", () => {
+    S.cfg = {
+      salary: Math.max(0, parseFloat($("inSalary2").value) || 0),
+      days: clamp(parseFloat($("inDays2").value) || 21.75, 1, 31),
+      hours: clamp(parseFloat($("inHours2").value) || 8, 1, 24)
+    };
+    save();
+    $("modal-settings").classList.remove("open");
+    renderAll();
+    toast("报价已更新 · 每秒 ¥" + rate().toFixed(4));
+  });
+
+  document.querySelectorAll(".overlay").forEach(o => {
+    o.addEventListener("click", e => { if (e.target === o && o.id !== "modal-setup") o.classList.remove("open"); });
+  });
+
+  /* ---------------- receipt ---------------- */
+  const COMMENTS = [
+    "刚上钩。愿你的编译永不失败。",
+    "工位是你的鱼塘，显示器是你的遮阳伞。",
+    "今日摸鱼结构健康，建议继续保持仓位。",
+    "你摸的不是鱼，是公司给你留的呼吸孔。",
+    "建议把椅子再调低三度，摸得更稳。",
+    "老板的利润正在以肉眼可见的速度蒸发。"
+  ];
+
+  function seed(str){
+    let h = 2166136261;
+    for (let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function(){
+      h += 0x6D2B79F5;
+      let t = h;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function drawReceipt(){
+    const cv = $("receiptCanvas");
+    const W = 420, H = 668, SC = 2;
+    cv.width = W * SC; cv.height = H * SC;
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(SC,0,0,SC,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    const PAPER = "#FBF6EA", INK = "#22201C", SUB = "#7A7264", GOLD = "#C8912F";
+    const mono = '"SF Mono",Consolas,"Courier New",monospace';
+    const sans = '"PingFang SC","Microsoft YaHei",-apple-system,sans-serif';
+
+    // paper + torn bottom
+    const bottom = H - 14;
+    ctx.fillStyle = PAPER;
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(W,0); ctx.lineTo(W,bottom); ctx.lineTo(0,bottom); ctx.closePath();
+    ctx.fill();
+    ctx.globalCompositeOperation = "destination-out";
+    for (let x = 6; x < W; x += 22){
+      ctx.beginPath(); ctx.arc(x, bottom, 5, 0, Math.PI); ctx.fill();
+    }
+    ctx.globalCompositeOperation = "source-over";
+
+    // header
+    ctx.textAlign = "center";
+    ctx.fillStyle = INK;
+    ctx.font = "700 21px " + sans;
+    ctx.fillText("摸 鱼 交 易 所", W/2, 50);
+    ctx.fillStyle = SUB;
+    ctx.font = "9px " + mono;
+    ctx.fillText("M O Y U   E X C H A N G E", W/2, 70);
+    ctx.fillStyle = GOLD;
+    ctx.font = "9px " + mono;
+    ctx.fillText("C O N F I R M A T I O N   O F   S L A C K", W/2, 86);
+
+    const dash = (y) => {
+      ctx.save(); ctx.strokeStyle = "rgba(34,32,28,.22)"; ctx.lineWidth = 1;
+      ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(26,y); ctx.lineTo(W-26,y); ctx.stroke(); ctx.restore();
+    };
+    dash(104);
+
+    // rows
+    const now = new Date();
+    const tstr = now.getFullYear() + "-" + pad2(now.getMonth()+1) + "-" + pad2(now.getDate()) + " " + pad2(now.getHours()) + ":" + pad2(now.getMinutes());
+    const idxR = (() => { const m = mins(S.total.sec); let i=0; for (let k=0;k<RANKS.length;k++) if (m>=RANKS[k].min) i=k; return i; })();
+    const rows = [
+      ["交易对", "MOYU / CNY"],
+      ["成交时间", tstr],
+      ["持仓时长", hms(S.session.sec)],
+      ["每秒单价", "¥" + rate().toFixed(6)],
+      ["今日累计", money(S.today.earn, 2)],
+      ["历史累计", money(S.total.earn, 2)],
+      ["当前段位", "L" + (idxR+1) + " " + RANKS[idxR].name]
+    ];
+    ctx.textAlign = "left";
+    let y = 132;
+    rows.forEach(([k,v]) => {
+      ctx.fillStyle = SUB; ctx.font = "11px " + mono;
+      ctx.fillText(k, 26, y);
+      ctx.textAlign = "right";
+      ctx.fillStyle = INK; ctx.font = "600 12px " + mono;
+      ctx.fillText(v, W-26, y);
+      ctx.textAlign = "left";
+      y += 27;
+    });
+
+    dash(y - 8);
+
+    // amount
+    const y2 = y + 22;
+    ctx.textAlign = "center";
+    ctx.fillStyle = SUB; ctx.font = "10px " + mono;
+    ctx.fillText("本 次 摸 鱼 收 益", W/2, y2);
+    ctx.fillStyle = INK; ctx.font = "700 38px " + mono;
+    ctx.fillText("¥" + S.session.earn.toFixed(4), W/2, y2 + 44);
+    ctx.fillStyle = GOLD; ctx.font = "600 10px " + mono;
+    ctx.fillText("≈ " + Math.floor(S.session.sec/60*3) + " 行代码的时间成本", W/2, y2 + 66);
+
+    dash(y2 + 88);
+
+    // comment
+    const comment = COMMENTS[Math.floor(seed(tstr + S.session.sec.toFixed(0))() * COMMENTS.length)];
+    ctx.fillStyle = INK; ctx.font = "12px " + sans;
+    const maxW = W - 56;
+    let line = "", lines = [];
+    for (const ch of comment){
+      if (ctx.measureText(line + ch).width > maxW){ lines.push(line); line = ch; }
+      else line += ch;
+    }
+    lines.push(line);
+    lines.forEach((l,i) => ctx.fillText(l, W/2, y2 + 116 + i*20));
+
+    // barcode
+    const by = y2 + 116 + lines.length*20 + 22;
+    const rnd = seed("MY" + tstr + S.session.earn.toFixed(3));
+    let bx = 40;
+    ctx.fillStyle = INK;
+    while (bx < W - 40){
+      const w = 1 + Math.floor(rnd()*3);
+      const gap = 1 + Math.floor(rnd()*3);
+      if (bx + w > W - 40) break;
+      ctx.fillRect(bx, by, w, 44);
+      bx += w + gap;
+    }
+    ctx.fillStyle = SUB; ctx.font = "9px " + mono;
+    const code = "MY-1024-" + String(Math.floor(S.session.sec)).padStart(4,"0") + "-" + String(Math.floor(S.total.sec/60)).padStart(3,"0");
+    ctx.fillText(code, W/2, by + 60);
+
+    // footer
+    ctx.fillStyle = "#9A9182"; ctx.font = "9.5px " + sans;
+    ctx.fillText("本凭证由摸鱼交易所自动生成，仅供自我安慰", W/2, by + 82);
+    ctx.fillText("不具任何法律效力，亦不能向老板报销", W/2, by + 97);
+  }
+
+  $("btnReceipt").addEventListener("click", () => {
+    if (S.session.sec < 1){ toast("先摸一分钟，再来开票"); return; }
+    drawReceipt();
+    $("modal-receipt").classList.add("open");
+  });
+  $("btnCloseReceipt").addEventListener("click", () => $("modal-receipt").classList.remove("open"));
+  $("btnSaveReceipt").addEventListener("click", () => {
+    toast("示例体验不提供下载；安装后可保存小票"); return;
+    const cv = $("receiptCanvas");
+    cv.toBlob(b => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = "摸鱼小票-" + todayKey() + ".png";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      toast("小票已保存，去发个朋友圈", true);
+    }, "image/png");
+  });
+
+  $("demoReset").onclick = () => { S = defaults(); pts.length = 0; renderAch(); renderAll(); openSetup(true); };
+  /* ---------------- boot ---------------- */
+  renderAch();
+  renderAll();
+  if (!S.setupDone) openSetup(true);
+  else if (S.session.running) unlock("open");
+  if (new Date().getHours() >= 22) unlock("night");
+  requestAnimationFrame(now => { last = now; requestAnimationFrame(loop); });
+  window.addEventListener("beforeunload", save);
+  setInterval(save, 5000);
+})();
+</script>
+</body>
+</html>
