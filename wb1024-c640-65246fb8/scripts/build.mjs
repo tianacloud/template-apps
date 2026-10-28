@@ -1,0 +1,13 @@
+import {readFile, mkdir, rm, cp, writeFile} from 'node:fs/promises';
+const commit=process.argv[2]; if(!/^[a-f0-9]{40}$/.test(commit||'')) throw Error('需要完整源码提交');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && source.git_instance_id.startsWith('__TIANA_')) throw Error('需要 Git 实例 ID');
+const html=await readFile('source.html','utf8');
+const style=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script src="three.min.js"><\/script>/)[1];
+let script=html.match(/<script src="three.min.js"><\/script>\s*<script>([\s\S]*?)<\/script>/)[1];
+script=script.replace('fetch("assets/chime.m4a")', 'fetch(new URL("chime.m4a", import.meta.url))');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await cp('three.min.js','dist/assets/three.min.js'); await cp('assets/chime.m4a','dist/assets/chime.m4a'); await cp('icon.png','dist/icon.png');
+const js=`document.head.insertAdjacentHTML('beforeend',${JSON.stringify('<style>'+style+'</style>')});document.body.insertAdjacentHTML('beforeend',${JSON.stringify(body)});const s=document.createElement('script');s.src=new URL('three.min.js',import.meta.url).href;s.onload=()=>{${script}};document.head.appendChild(s);`;
+await writeFile('dist/assets/app.js',js); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
