@@ -355,19 +355,19 @@
 
 <div data-page-node-id="uimievknzsEPkTejZpNbWQ" class="toast" id="toast"></div>
 
-<script data-page-node-id="X5ciQX2etKQjkDewi0rQGt" data-pnid-children="OMOBxQSsN3715eu8ZmG97D">
+<script>
 /* ---------- 工具函数 ---------- */
-function setOut(id, text, cls) {
+window.setOut = function(id, text, cls) {
   const el = document.getElementById(id);
   el.textContent = text;
   el.className = 'out' + (cls ? ' ' + cls : '');
 }
-function copyOut(id) {
+window.copyOut = function(id) {
   const el = document.getElementById(id);
   const text = (el.tagName === 'DIV') ? el.textContent : el.value;
   navigator.clipboard.writeText(text).then(() => toast('已复制 ✓')).catch(() => toast('复制失败'));
 }
-function toast(msg) {
+window.toast = function(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1600);
@@ -384,7 +384,7 @@ document.getElementById('tabs').addEventListener('click', e => {
 });
 
 /* ---------- 实时时间戳 ---------- */
-function tick() {
+window.tick = function() {
   const now = Date.now();
   document.getElementById('liveTs').textContent =
     '本地 ' + now + ' ms ｜ ' + Math.floor(now/1000) + ' s ｜ ' + new Date().toISOString();
@@ -392,7 +392,7 @@ function tick() {
 setInterval(tick, 1000); tick();
 
 /* ---------- 时间戳 ---------- */
-function tsToDate() {
+window.tsToDate = function() {
   const v = document.getElementById('tsInput').value.trim();
   if (!v || isNaN(v)) { setOut('tsOut', '请输入有效数字', 'err'); return; }
   let n = Number(v);
@@ -405,12 +405,12 @@ function tsToDate() {
     'ISO      : ' + d.toISOString() + '\n' +
     '星期     : ' + '日一二三四五六'.charAt(d.getDay()) + '（周' + '日一二三四五六'.charAt(d.getDay()) + '）', 'ok');
 }
-function nowTs() {
+window.nowTs = function() {
   const now = Date.now();
   document.getElementById('tsInput').value = Math.floor(now/1000);
   tsToDate();
 }
-function dateToTs() {
+window.dateToTs = function() {
   const v = document.getElementById('dateInput').value;
   if (!v) { setOut('tsOut', '请选择日期时间', 'err'); return; }
   const d = new Date(v);
@@ -419,11 +419,13 @@ function dateToTs() {
 }
 
 /* ---------- 进制 ---------- */
-function convertBase() {
+window.convertBase = function() {
   const from = parseInt(document.getElementById('fromBase').value, 10);
   const val = document.getElementById('baseInput').value.trim();
   if (!val) { document.getElementById('baseOut').innerHTML = ''; return; }
   let dec;
+  const valid = {2:/^[+-]?[01]+$/,8:/^[+-]?[0-7]+$/,10:/^[+-]?[0-9]+$/,16:/^[+-]?[0-9a-f]+$/i};
+  if (!valid[from].test(val)) { document.getElementById('baseOut').innerHTML = '<div class="out err">该进制下包含非法字符</div>'; return; }
   try { dec = parseInt(val, from); } catch(e) { dec = NaN; }
   if (isNaN(dec)) { document.getElementById('baseOut').innerHTML = '<div class="out err">该进制下包含非法字符</div>'; return; }
   const map = {2: dec.toString(2), 8: dec.toString(8), 10: String(dec), 16: dec.toString(16).toUpperCase()};
@@ -433,30 +435,30 @@ function convertBase() {
 }
 
 /* ---------- JSON ---------- */
-function jsonFormat() {
+window.jsonFormat = function() {
   const t = document.getElementById('jsonInput').value;
   try {
     const o = JSON.parse(t);
     setOut('jsonOut', JSON.stringify(o, null, 2), 'ok');
   } catch(e) { setOut('jsonOut', '❌ ' + e.message, 'err'); }
 }
-function jsonMinify() {
+window.jsonMinify = function() {
   const t = document.getElementById('jsonInput').value;
   try {
     const o = JSON.parse(t);
     setOut('jsonOut', JSON.stringify(o), 'ok');
   } catch(e) { setOut('jsonOut', '❌ ' + e.message, 'err'); }
 }
-function jsonValidate() {
+window.jsonValidate = function() {
   const t = document.getElementById('jsonInput').value;
   try { JSON.parse(t); setOut('jsonOut', '✅ JSON 合法', 'ok'); }
   catch(e) { setOut('jsonOut', '❌ ' + e.message, 'err'); }
 }
-function jsonCopy() { copyOut('jsonOut'); }
+window.jsonCopy = function() { copyOut('jsonOut'); }
 
 /* ---------- 正则 ---------- */
-function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function reRun() {
+window.escapeHtml = function(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+window.reRun = function() {
   const pat = document.getElementById('reInput').value;
   const flags = document.getElementById('reFlag').value || 'g';
   const text = document.getElementById('reText').value;
@@ -465,16 +467,17 @@ function reRun() {
   try { re = new RegExp(pat, flags.includes('g') ? flags : flags + 'g'); }
   catch(e) { setOut('reOut', '❌ 正则错误: ' + e.message, 'err'); return; }
   if (!text) { setOut('reOut', '请输入测试文本', 'err'); return; }
-  let m, count = 0, html = '', groups = [];
+  let m, count = 0, html = '', groups = [], last = 0;
   while ((m = re.exec(text)) !== null) {
     count++;
-    html += escapeHtml(text.slice(re.lastIndex - m[0].length, m.index));
+    html += escapeHtml(text.slice(last, m.index));
+    last = m.index + m[0].length;
     html += '<span class="match">' + escapeHtml(m[0]) + '</span>';
     if (m.length > 1) groups.push('#' + count + ' → ' + m.slice(1).map((g,i)=>'$'+(i+1)+'='+(g===undefined?'∅':g)).join('  '));
     if (m.index === re.lastIndex) re.lastIndex++; // 防止零宽死循环
     if (count > 5000) break;
   }
-  html += escapeHtml(text.slice(re.lastIndex === 0 ? 0 : re.lastIndex));
+  html += escapeHtml(text.slice(last));
   setOut('reOut', '匹配数: ' + count + (groups.length ? '\n\n' + groups.join('\n') : '') + '\n\n' + html.replace(/\n/g,'\\n'), 'ok');
   document.getElementById('reOut').innerHTML = '匹配数: <b>' + count + '</b>' +
     (groups.length ? '<br><br>' + escapeHtml(groups.join('\n')) : '') +
@@ -485,25 +488,25 @@ document.getElementById('reText').addEventListener('input', reRun);
 document.getElementById('reFlag').addEventListener('input', reRun);
 
 /* ---------- Base64 ---------- */
-function utf8ToB64(str){ return btoa(String.fromCharCode(...new TextEncoder().encode(str))); }
-function b64ToUtf8(b64){ return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
-function b64encode_() {
+window.utf8ToB64 = function(str){ return btoa(String.fromCharCode(...new TextEncoder().encode(str))); }
+window.b64ToUtf8 = function(b64){ return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
+window.b64encode_ = function() {
   const v = document.getElementById('b64Input').value;
   if (!v) { setOut('b64Out','请输入内容','err'); return; }
   try { setOut('b64Out', utf8ToB64(v), 'ok'); } catch(e){ setOut('b64Out','❌ '+e.message,'err'); }
 }
-function b64decode_() {
+window.b64decode_ = function() {
   const v = document.getElementById('b64Input').value.trim();
   if (!v) { setOut('b64Out','请输入内容','err'); return; }
   try { setOut('b64Out', b64ToUtf8(v), 'ok'); } catch(e){ setOut('b64Out','❌ 不是合法的 Base64','err'); }
 }
 
 /* ---------- URL ---------- */
-function urlEncode(){ const v=document.getElementById('urlInput').value; setOut('urlOut', encodeURIComponent(v),'ok'); }
-function urlDecode(){ const v=document.getElementById('urlInput').value.trim(); try{ setOut('urlOut', decodeURIComponent(v),'ok'); }catch(e){ setOut('urlOut','❌ 解码失败','err'); } }
+window.urlEncode = function(){ const v=document.getElementById('urlInput').value; setOut('urlOut', encodeURIComponent(v),'ok'); }
+window.urlDecode = function(){ const v=document.getElementById('urlInput').value.trim(); try{ setOut('urlOut', decodeURIComponent(v),'ok'); }catch(e){ setOut('urlOut','❌ 解码失败','err'); } }
 
 /* ---------- 颜色 ---------- */
-function setColor(r,g,b){
+window.setColor = function(r,g,b){
   const hex = '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();
   const hsl = rgbToHsl(r,g,b);
   document.getElementById('hexIn').value = hex;
@@ -512,7 +515,7 @@ function setColor(r,g,b){
   document.getElementById('swatch').style.background = hex;
   setOut('colorOut', `HEX ${hex}\nRGB ${r},${g},${b}\nHSL ${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%`, 'ok');
 }
-function hexToOthers(){
+window.hexToOthers = function(){
   const h = document.getElementById('hexIn').value.trim().replace('#','');
   if(!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(h)){ setOut('colorOut','❌ HEX 格式错误','err'); return; }
   let r,g,b;
@@ -520,18 +523,18 @@ function hexToOthers(){
   else { r=parseInt(h.slice(0,2),16); g=parseInt(h.slice(2,4),16); b=parseInt(h.slice(4,6),16); }
   setColor(r,g,b);
 }
-function rgbToOthers(){
+window.rgbToOthers = function(){
   const p = document.getElementById('rgbIn').value.split(',').map(s=>parseInt(s.trim(),10));
   if(p.length!==3 || p.some(isNaN) || p.some(x=>x<0||x>255)){ setOut('colorOut','❌ RGB 格式错误 (0-255)','err'); return; }
   setColor(p[0],p[1],p[2]);
 }
-function hslToOthers(){
+window.hslToOthers = function(){
   const p = document.getElementById('hslIn').value.split(',').map(s=>parseFloat(s.replace('%','').trim()));
   if(p.length!==3 || p.some(isNaN)){ setOut('colorOut','❌ HSL 格式错误','err'); return; }
   const [r,g,b] = hslToRgb(p[0],p[1],p[2]);
   setColor(Math.round(r),Math.round(g),Math.round(b));
 }
-function rgbToHsl(r,g,b){
+window.rgbToHsl = function(r,g,b){
   r/=255;g/=255;b/=255;
   const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;
   if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
@@ -539,14 +542,14 @@ function rgbToHsl(r,g,b){
     h/=6;}
   return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
 }
-function hslToRgb(h,s,l){
+window.hslToRgb = function(h,s,l){
   s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min(l,1-l);
   const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
   return [f(0)*255,f(8)*255,f(4)*255];
 }
 
 /* ---------- 哈希 / UUID ---------- */
-async function doHash(){
+window.doHash = async function(){
   const txt = document.getElementById('hashInput').value;
   const algo = document.getElementById('hashAlgo').value;
   if(!txt){ setOut('hashOut','请输入文本','err'); return; }
@@ -560,7 +563,7 @@ async function doHash(){
     setOut('hashOut', hex, 'ok');
   }catch(e){ setOut('hashOut','❌ '+e.message,'err'); }
 }
-async function genUUID(){
+window.genUUID = async function(){
   const list = [];
   for(let i=0;i<5;i++) list.push(crypto.randomUUID());
   document.getElementById('uuidOut').innerHTML = list.map(u=>
@@ -568,8 +571,8 @@ async function genUUID(){
 }
 
 /* ---------- MD5 (RFC1321, 经典验证实现) ---------- */
-function md5blk(s){ var b=[],i; for(i=0;i<64;i+=4){ b[i>>2]=(s.charCodeAt(i))+(s.charCodeAt(i+1)<<8)+(s.charCodeAt(i+2)<<16)+(s.charCodeAt(i+3)<<24); } return b; }
-function md5cycle(x,k){
+window.md5blk = function(s){ var b=[],i; for(i=0;i<64;i+=4){ b[i>>2]=(s.charCodeAt(i))+(s.charCodeAt(i+1)<<8)+(s.charCodeAt(i+2)<<16)+(s.charCodeAt(i+3)<<24); } return b; }
+window.md5cycle = function(x,k){
   var a=x[0],b=x[1],c=x[2],d=x[3];
   a=ff(a,b,c,d,k[0],7,-680876936); d=ff(d,a,b,c,k[1],12,-389564586); c=ff(c,d,a,b,k[2],17,606105819); b=ff(b,c,d,a,k[3],22,-1044525330);
   a=ff(a,b,c,d,k[4],7,-176418897); d=ff(d,a,b,c,k[5],12,1200080426); c=ff(c,d,a,b,k[6],17,-1473231341); b=ff(b,c,d,a,k[7],22,-45705983);
@@ -589,15 +592,15 @@ function md5cycle(x,k){
   a=ii(a,b,c,d,k[4],6,-145523070); d=ii(d,a,b,c,k[11],10,-1120210379); c=ii(c,d,a,b,k[2],15,718787259); b=ii(b,c,d,a,k[9],21,-343485551);
   x[0]=add32(a,x[0]); x[1]=add32(b,x[1]); x[2]=add32(c,x[2]); x[3]=add32(d,x[3]);
 }
-function cmn(q,a,b,x,s,t){ a=add32(add32(a,q),add32(x,t)); return add32((a<<s)|(a>>>(32-s)),b); }
-function ff(a,b,c,d,x,s,t){ return cmn((b&c)|((~b)&d),a,b,x,s,t); }
-function gg(a,b,c,d,x,s,t){ return cmn((b&d)|(c&(~d)),a,b,x,s,t); }
-function hh(a,b,c,d,x,s,t){ return cmn(b^c^d,a,b,x,s,t); }
-function ii(a,b,c,d,x,s,t){ return cmn(c^(b|(~d)),a,b,x,s,t); }
-function add32(a,b){ return (a+b)&0xffffffff; }
-function rhex(n){ var h='0123456789abcdef'.split(''),s='',j; for(j=0;j<4;j++) s+=h[(n>>(j*8+4))&0x0F]+h[(n>>(j*8))&0x0F]; return s; }
-function hex(x){ for(var i=0;i<x.length;i++) x[i]=rhex(x[i]); return x.join(''); }
-function md51(s){
+window.cmn = function(q,a,b,x,s,t){ a=add32(add32(a,q),add32(x,t)); return add32((a<<s)|(a>>>(32-s)),b); }
+window.ff = function(a,b,c,d,x,s,t){ return cmn((b&c)|((~b)&d),a,b,x,s,t); }
+window.gg = function(a,b,c,d,x,s,t){ return cmn((b&d)|(c&(~d)),a,b,x,s,t); }
+window.hh = function(a,b,c,d,x,s,t){ return cmn(b^c^d,a,b,x,s,t); }
+window.ii = function(a,b,c,d,x,s,t){ return cmn(c^(b|(~d)),a,b,x,s,t); }
+window.add32 = function(a,b){ return (a+b)&0xffffffff; }
+window.rhex = function(n){ var h='0123456789abcdef'.split(''),s='',j; for(j=0;j<4;j++) s+=h[(n>>(j*8+4))&0x0F]+h[(n>>(j*8))&0x0F]; return s; }
+window.hex = function(x){ for(var i=0;i<x.length;i++) x[i]=rhex(x[i]); return x.join(''); }
+window.md51 = function(s){
   var n=s.length, state=[1732584193,-271733879,-1732584194,271733878], i;
   for(i=64;i<=s.length;i+=64){ md5cycle(state, md5blk(s.substring(i-64,i))); }
   s=s.substring(i-64);
@@ -607,7 +610,7 @@ function md51(s){
   if(i>55){ md5cycle(state,tail); for(i=0;i<16;i++) tail[i]=0; }
   tail[14]=n*8; md5cycle(state,tail); return state;
 }
-function md5(s){ return hex(md51(unescape(encodeURIComponent(s)))); }
+window.md5 = function(s){ return hex(md51(unescape(encodeURIComponent(s)))); }; 
 
 /* ---------- 代码雨背景 ---------- */
 (function(){

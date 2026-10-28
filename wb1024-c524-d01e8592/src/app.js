@@ -69,6 +69,8 @@ window.convertBase = function() {
   const val = document.getElementById('baseInput').value.trim();
   if (!val) { document.getElementById('baseOut').innerHTML = ''; return; }
   let dec;
+  const valid = {2:/^[+-]?[01]+$/,8:/^[+-]?[0-7]+$/,10:/^[+-]?[0-9]+$/,16:/^[+-]?[0-9a-f]+$/i};
+  if (!valid[from].test(val)) { document.getElementById('baseOut').innerHTML = '<div class="out err">该进制下包含非法字符</div>'; return; }
   try { dec = parseInt(val, from); } catch(e) { dec = NaN; }
   if (isNaN(dec)) { document.getElementById('baseOut').innerHTML = '<div class="out err">该进制下包含非法字符</div>'; return; }
   const map = {2: dec.toString(2), 8: dec.toString(8), 10: String(dec), 16: dec.toString(16).toUpperCase()};
@@ -110,16 +112,17 @@ window.reRun = function() {
   try { re = new RegExp(pat, flags.includes('g') ? flags : flags + 'g'); }
   catch(e) { setOut('reOut', '❌ 正则错误: ' + e.message, 'err'); return; }
   if (!text) { setOut('reOut', '请输入测试文本', 'err'); return; }
-  let m, count = 0, html = '', groups = [];
+  let m, count = 0, html = '', groups = [], last = 0;
   while ((m = re.exec(text)) !== null) {
     count++;
-    html += escapeHtml(text.slice(re.lastIndex - m[0].length, m.index));
+    html += escapeHtml(text.slice(last, m.index));
+    last = m.index + m[0].length;
     html += '<span class="match">' + escapeHtml(m[0]) + '</span>';
     if (m.length > 1) groups.push('#' + count + ' → ' + m.slice(1).map((g,i)=>'$'+(i+1)+'='+(g===undefined?'∅':g)).join('  '));
     if (m.index === re.lastIndex) re.lastIndex++; // 防止零宽死循环
     if (count > 5000) break;
   }
-  html += escapeHtml(text.slice(re.lastIndex === 0 ? 0 : re.lastIndex));
+  html += escapeHtml(text.slice(last));
   setOut('reOut', '匹配数: ' + count + (groups.length ? '\n\n' + groups.join('\n') : '') + '\n\n' + html.replace(/\n/g,'\\n'), 'ok');
   document.getElementById('reOut').innerHTML = '匹配数: <b>' + count + '</b>' +
     (groups.length ? '<br><br>' + escapeHtml(groups.join('\n')) : '') +
@@ -252,7 +255,7 @@ window.md51 = function(s){
   if(i>55){ md5cycle(state,tail); for(i=0;i<16;i++) tail[i]=0; }
   tail[14]=n*8; md5cycle(state,tail); return state;
 }
-window.md5 = function(s){ return hex(md51(unescape(encodeURIComponent(s)))); }
+window.md5 = function(s){ return hex(md51(unescape(encodeURIComponent(s)))); }; 
 
 /* ---------- 代码雨背景 ---------- */
 (function(){
