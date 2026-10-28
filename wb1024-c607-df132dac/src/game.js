@@ -5287,8 +5287,8 @@ function showCricketResult(winner, team, time){
     html += '<div class="cr-sub">没有队伍活到最后</div>';
   }
   html += '<div class="cr-btns">' +
-    '<button class="cr-btn cr-btn-pri" onclick="openValhalla()">🏛️ 英灵殿</button>' +
-    '<button class="cr-btn cr-btn-sec" onclick="backToMenu()">返回菜单</button>' +
+    '<button class="cr-btn cr-btn-pri" data-handler-click="openValhalla()">🏛️ 英灵殿</button>' +
+    '<button class="cr-btn cr-btn-sec" data-handler-click="backToMenu()">返回菜单</button>' +
     '</div>';
   box.innerHTML = html;
   document.getElementById('cricket-result').classList.add('show');
@@ -5456,8 +5456,8 @@ function renderValhalla(container){
     for(const t of v.plants) html += '<div class="vh-plant">' + createPlantHTML(t) + '</div>';
     html += '</div>';
     html += '<div class="vh-btns">';
-    html += '<button class="vh-btn vh-btn-pri" onclick="deployTeam(' + idx + ', true)">⚔️ 摆出挑战</button>';
-    html += '<button class="vh-btn vh-btn-sec" onclick="deleteValhalla(' + idx + ')">🗑 删除</button>';
+    html += '<button class="vh-btn vh-btn-pri" data-handler-click="deployTeam(' + idx + ', true)">⚔️ 摆出挑战</button>';
+    html += '<button class="vh-btn vh-btn-sec" data-handler-click="deleteValhalla(' + idx + ')">🗑 删除</button>';
     html += '</div>';
     html += '</div>';
   });
@@ -6912,14 +6912,14 @@ function renderChallengeSelect(){
       const stateCls = s <= badgeLv ? 'done' : (s === badgeLv + 1 ? 'open' : 'locked');
       const stSub = s <= badgeLv ? '✓ 已通关' : (s === badgeLv + 1 ? '可挑战' : '🔒');
       stagesHtml += `<button class="ch-stage-btn ${stateCls}" ${stateCls === 'locked' ? 'disabled' : ''}
-        onclick="event.stopPropagation();startChallenge(${i},${s})">
+        data-handler-click="event.stopPropagation();startChallenge(${i},${s})">
         <span class="st-label">${st.label} ${st.name}</span>
         <span class="st-sub">${stSub}</span>
       </button>`;
     }
     // 点击整卡 = 进入下一个可挑战阶段 (阶段按钮可指定阶段)
     const nextStage = Math.min(badgeLv + 1, 3);
-    html += `<div class="challenge-card ${badgeLv > 0 ? 'completed' : ''}" onclick="startChallenge(${i},${nextStage})" title="点击进入 ${CHALLENGE_STAGES[nextStage - 1].label}${CHALLENGE_STAGES[nextStage - 1].name}阶段">
+    html += `<div class="challenge-card ${badgeLv > 0 ? 'completed' : ''}" data-handler-click="startChallenge(${i},${nextStage})" title="点击进入 ${CHALLENGE_STAGES[nextStage - 1].label}${CHALLENGE_STAGES[nextStage - 1].name}阶段">
       <div class="ch-header">
         <div class="ch-icon">${ch.icon}</div>
         <div>
@@ -7259,7 +7259,7 @@ function renderLevelSelect(){
       starHtml += `<span class="star ${s < stars ? '' : 'empty'}">★</span>`;
     }
     html += `<div class="level-card ${unlocked ? '' : 'locked'} ${stars > 0 ? 'completed' : ''}" 
-      ${unlocked ? `onclick="startLevel(${i})"` : ''}>
+      ${unlocked ? `data-handler-click="startLevel(${i})"` : ''}>
       ${unlocked ? '' : '<div class="level-lock">🔒</div>'}
       <div class="level-num">${i + 1}</div>
       <div class="level-name">${lv.name}</div>
@@ -7296,7 +7296,7 @@ function renderShop(){
       const cost = cfg.costs[lv];
       const affordable = progress.coins >= cost;
       btnHtml = `<button class="upgrade-buy ${affordable ? 'affordable' : 'unaffordable'}" 
-        ${affordable ? `onclick="buyUpgrade('${key}')"` : 'disabled'}>
+        ${affordable ? `data-handler-click="buyUpgrade('${key}')"` : 'disabled'}>
         🪙 ${cost}
       </button>`;
     }
@@ -7480,7 +7480,7 @@ function renderPlantSelect(){
     if(i < chosenPlants.length){
       const type = chosenPlants[i];
       const cfg = PLANTS[type];
-      slotsHtml += `<div class="ps-slot filled" onclick="removeFromSlot(${i})">
+      slotsHtml += `<div class="ps-slot filled" data-handler-click="removeFromSlot(${i})">
         <div class="ps-slot-icon">${createPlantHTML(type)}</div>
         <div class="ps-slot-cost">☀${cfg.cost}</div>
         <div class="ps-slot-remove">✕</div>
@@ -7499,7 +7499,7 @@ function renderPlantSelect(){
     const cfg = PLANTS[type];
     const isSelected = chosenPlants.includes(type);
     gridHtml += `<div class="ps-plant-card ${isSelected ? 'selected' : ''}"
-      ${isSelected ? '' : `onclick="addToSlot('${type}')"`}>
+      ${isSelected ? '' : `data-handler-click="addToSlot('${type}')"`}>
       <div class="ps-card-icon">${createPlantHTML(type)}</div>
       <div class="ps-card-name">${cfg.name}</div>
       <div class="ps-card-cost">☀${cfg.cost}</div>
@@ -7839,7 +7839,7 @@ function renderEditorSkills(plant){
     const lv = plant.skills[id];
     html += `<div class="editor-skill-row">
       <span class="sk-name">${name} Lv.${lv}</span>
-      <button class="editor-skill-del" onclick="removeEditorSkill('${id}')">删除</button>
+      <button class="editor-skill-del" data-handler-click="removeEditorSkill('${id}')">删除</button>
     </div>`;
   });
   // 跨植物技能
@@ -7853,7 +7853,7 @@ function renderEditorSkills(plant){
     const lv = plant.crossSkills[ck];
     html += `<div class="editor-skill-row" style="border-color:#7B1FA2;">
       <span class="sk-name">🔄 ${srcName} ${name} Lv.${lv}</span>
-      <button class="editor-skill-del" onclick="removeEditorCrossSkill('${ck}')">删除</button>
+      <button class="editor-skill-del" data-handler-click="removeEditorCrossSkill('${ck}')">删除</button>
     </div>`;
   });
   box.innerHTML = html;
@@ -8048,3 +8048,18 @@ document.addEventListener('keydown', (e) => {
 loadProgress();
 updateMenuStats();
 updateSunDisplay();
+
+// Bind declarative controls without inline handlers under the hosted CSP.
+for (const eventName of ['click','change','input']) document.addEventListener(eventName, event => {
+  const el = event.target.closest('[data-handler-'+eventName+']');
+  if (!el) return;
+  let action = el.getAttribute('data-handler-'+eventName);
+  if (action.startsWith('event.stopPropagation();')) { event.stopPropagation(); action=action.slice(24); }
+  const debugMatch=action.match(/^debug\.(infSun|noCd|stack) = this\.checked$/);
+  if (debugMatch) { debug[debugMatch[1]]=el.checked; return; }
+  const match=action.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/);
+  if (!match || typeof window[match[1]] !== 'function') return;
+  const raw=match[2].trim();
+  const args=raw ? raw.split(',').map(x => { x=x.trim(); if(x==='this.value') return el.value; if(x==='true') return true; if(x==='false') return false; if(/^['"].*['"]$/.test(x)) return x.slice(1,-1); return Number(x); }) : [];
+  window[match[1]](...args);
+});
