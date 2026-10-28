@@ -587,11 +587,10 @@
   }
 
   function startTick() {
-    if (worker) {
-      worker.postMessage('start');
-    } else if (!fallbackTimer) {
-      fallbackTimer = setInterval(() => { if (running) tick(); }, 250);
-    }
+    if (worker) worker.postMessage('start');
+    // A blocked blob Worker can fail asynchronously under the host CSP.
+    // Keep a timer as a fallback; tick is based on wall time and is idempotent.
+    if (!fallbackTimer) fallbackTimer = setInterval(() => { if (running) tick(); }, 250);
   }
 
   function stopTick() {
