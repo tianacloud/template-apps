@@ -7,11 +7,14 @@ const html=await readFile('index.html','utf8');
 const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
 const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 let body=html.match(/<body[^>]*>([\s\S]*?)<\/body>/)[1].replace(/<script>[\s\S]*?<\/script>/g,'');
+body=body.replace(/\bon(click|change|input)=/g,'data-handler-$1=');
+scripts[1]=scripts[1].replace(/\bon(click|change|input)=/g,'data-handler-$1=');
 // The module starts after DOMContentLoaded; register the same input listeners directly.
 scripts[1]=scripts[1].replace("document.addEventListener('DOMContentLoaded',function(){\n    var el=$(id); if(el) el.addEventListener('input',saveCfg);\n  });", "var el=$(id); if(el) el.addEventListener('input',saveCfg);");
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
 await writeFile('dist/assets/app.css',css);
 await writeFile('dist/assets/bank.js',scripts[0]); await writeFile('dist/assets/logic.js',scripts[1]);
-const entry=`const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./app.css',import.meta.url);document.head.append(style);document.body.innerHTML=${JSON.stringify(body)};function load(name){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL(name,import.meta.url);s.onload=resolve;s.onerror=reject;document.body.append(s);});}await load('./bank.js');await load('./logic.js');`;
+const entry=`const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./app.css',import.meta.url);document.head.append(style);document.body.innerHTML=${JSON.stringify(body)};function load(name){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL(name,import.meta.url);s.onload=resolve;s.onerror=reject;document.body.append(s);});}await load('./bank.js');await load('./logic.js');
+for(const type of ['click','change','input']) document.addEventListener(type,event=>{const el=event.target.closest('[data-handler-'+type+']');if(!el)return;const action=el.getAttribute('data-handler-'+type);if(action==="document.getElementById('txtInput').click()"){document.getElementById('txtInput').click();return;}const match=action.match(/^([a-zA-Z]+)\\((.*)\\)$/);if(!match)return;const name=match[1],raw=match[2];const allow=['importTxt','applyWeights','closePreview','confirmPaper','dl','doDraw','goStep','preview','printPreview','reloadBank','reroll','resetWeights','onAlloc','onRule'];if(!allow.includes(name)||typeof window[name]!=='function')return;const args=raw?raw.split(',').map(v=>{v=v.trim();if(v==='this.files')return el.files;if(v==='this.value')return el.value;if(/^'[^']*'$/.test(v))return v.slice(1,-1);if(/^\\d+$/.test(v))return Number(v);return undefined;}):[];window[name](...args);});`;
 await writeFile('dist/assets/app.js',entry); await copyFile('public/icon.png','dist/icon.png');
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,source_commit:commit}));
