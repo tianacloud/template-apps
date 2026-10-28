@@ -1,0 +1,344 @@
+const style = document.createElement("style"); style.textContent = "\n  :root{\n    --pink:#ff2e63; --pink2:#ff6b9d; --purple:#a66bff; --bg1:#fff0f5; --bg2:#f3e8ff;\n    --ink:#2b2b3a; --sub:#8a8a9a; --card:#ffffff; --line:#f0e6ef;\n  }\n  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}\n  html,body{margin:0; padding:0;}\n  body{\n    font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Hiragino Sans GB\",\"Microsoft YaHei\",sans-serif;\n    color:var(--ink);\n    background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 100%);\n    min-height:100vh;\n    padding:18px 14px 40px;\n  }\n  .wrap{max-width:520px; margin:0 auto;}\n  header{text-align:center; padding:14px 6px 6px;}\n  .logo{\n    display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700;\n    color:#fff; background:linear-gradient(135deg,var(--pink),var(--purple));\n    padding:6px 14px; border-radius:999px; letter-spacing:.5px;\n  }\n  h1{font-size:25px; margin:14px 0 6px; font-weight:800; letter-spacing:.5px;}\n  h1 .hl{background:linear-gradient(135deg,var(--pink),var(--purple)); -webkit-background-clip:text; background-clip:text; color:transparent;}\n  .sub{color:var(--sub); font-size:13px; line-height:1.6; margin:0 auto; max-width:380px;}\n  .panel{background:var(--card); border-radius:20px; padding:16px 14px; margin-top:16px; box-shadow:0 10px 30px rgba(166,107,255,.10);}\n  .label{font-size:13px; font-weight:700; color:var(--ink); margin:0 0 10px; display:flex; align-items:center; gap:6px;}\n  .label .dot{width:7px; height:7px; border-radius:50%; background:linear-gradient(135deg,var(--pink),var(--purple));}\n  .chips{display:flex; flex-wrap:wrap; gap:8px;}\n  .chip{\n    border:1.5px solid var(--line); background:#fff; color:var(--ink);\n    padding:9px 14px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer;\n    transition:all .15s ease; user-select:none;\n  }\n  .chip:active{transform:scale(.95);}\n  .chip.on{\n    border-color:transparent; color:#fff;\n    background:linear-gradient(135deg,var(--pink),var(--purple));\n    box-shadow:0 6px 16px rgba(255,46,99,.25);\n  }\n  .row{margin-top:14px;}\n  .gen{\n    width:100%; margin-top:18px; border:none; cursor:pointer;\n    background:linear-gradient(135deg,var(--pink),var(--purple));\n    color:#fff; font-size:17px; font-weight:800; letter-spacing:1px;\n    padding:16px; border-radius:16px; box-shadow:0 12px 26px rgba(255,46,99,.30);\n    transition:transform .12s ease, box-shadow .12s ease;\n  }\n  .gen:active{transform:translateY(2px); box-shadow:0 6px 16px rgba(255,46,99,.25);}\n  .results{margin-top:18px; display:flex; flex-direction:column; gap:14px;}\n  .rcard{\n    background:var(--card); border-radius:18px; padding:16px 15px 14px;\n    box-shadow:0 8px 22px rgba(166,107,255,.10); border:1px solid var(--line);\n    position:relative; animation:pop .28s ease both;\n  }\n  @keyframes pop{from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:none;}}\n  .rtag{position:absolute; top:-9px; left:14px; font-size:11px; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--pink2),var(--purple)); padding:3px 10px; border-radius:999px;}\n  .rtext{white-space:pre-wrap; line-height:1.85; font-size:15px; color:var(--ink); margin:8px 0 12px; word-break:break-word;}\n  .rtext .em{margin-right:4px;}\n  .tags{font-size:12.5px; color:var(--purple); line-height:1.7; word-break:break-word;}\n  .rbar{display:flex; gap:8px; margin-top:12px;}\n  .btn{\n    flex:1; border:1.5px solid var(--line); background:#fff; color:var(--ink);\n    font-size:13px; font-weight:700; padding:10px; border-radius:12px; cursor:pointer; transition:all .15s ease;\n  }\n  .btn:active{transform:scale(.96);}\n  .btn.primary{background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff; border-color:transparent;}\n  .empty{text-align:center; color:var(--sub); font-size:14px; padding:30px 10px; line-height:1.8;}\n  .empty .big{font-size:40px; display:block; margin-bottom:8px;}\n  .foot{text-align:center; color:var(--sub); font-size:11.5px; margin-top:22px; line-height:1.7;}\n  .toast{\n    position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(20px);\n    background:rgba(43,43,58,.92); color:#fff; font-size:13px; font-weight:600;\n    padding:11px 20px; border-radius:999px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:50;\n  }\n  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}\n  .counter{text-align:center; font-size:12px; color:var(--sub); margin-top:10px;}\n"; document.head.appendChild(style);
+document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n  <header>\n    <span class=\"logo\">✨ 灵感文案生成器</span>\n    <h1>爆款文案<span class=\"hl\">生成器</span></h1>\n    <p class=\"sub\">选场景 + 选风格，一键生成小红书 / 朋友圈出片文案，自带 emoji 和话题标签，复制即发。</p>\n  </header>\n\n  <div class=\"panel\">\n    <p class=\"label\"><span class=\"dot\"></span>第一步 · 选场景</p>\n    <div class=\"chips\" id=\"sceneChips\"></div>\n\n    <div class=\"row\">\n      <p class=\"label\"><span class=\"dot\"></span>第二步 · 选风格</p>\n      <div class=\"chips\" id=\"styleChips\"></div>\n    </div>\n\n    <button class=\"gen\" id=\"genBtn\">🎯 生成文案</button>\n    <div class=\"counter\" id=\"counter\">已为你生成 0 条文案</div>\n  </div>\n\n  <div class=\"results\" id=\"results\">\n    <div class=\"empty\" id=\"empty\">\n      <span class=\"big\">📝</span>\n      还没生成哦～<br/>选好场景和风格，点上面的按钮试试\n    </div>\n  </div>\n\n  <p class=\"foot\">本工具文案由模板随机组合生成，纯属娱乐，请结合实际情况使用。<br/>让每一次分享都有灵感</p>\n</div>\n\n<div class=\"toast\" id=\"toast\">已复制 ✅</div>\n\n";
+
+const DATA = {
+  scenes: [
+    {key:"selfie", name:"自拍", tags:["#自拍","#今日穿搭","#原相机","#氛围感","#ootd","#变美日记"]},
+    {key:"food",   name:"美食", tags:["#美食","#探店","#今天吃什么","#吃货日常","#宝藏餐厅","#一人食"]},
+    {key:"travel", name:"旅游", tags:["#旅行","#周末去哪","#风景","#小众旅行地","#旅行vlog","#出发吧"]},
+    {key:"life",   name:"日常", tags:["#日常","#生活碎片","#碎碎念","#我的生活","#普通一天","#记录生活"]},
+    {key:"goods",  name:"好物种草", tags:["#好物分享","#种草","#平价好物","#必买清单","#学生党","#提升幸福感"]},
+    {key:"work",   name:"工作吐槽", tags:["#打工人","#职场","#上班日常","#摸鱼","#班味","#早八人"]}
+  ],
+  styles: [
+    {key:"funny",  name:"搞笑"},
+    {key:"lit",    name:"文艺"},
+    {key:"dry",    name:"干货"},
+    {key:"versa",  name:"凡尔赛"},
+    {key:"heal",   name:"治愈"}
+  ],
+  // 每个 scene.key -> style.key -> 文案行数组
+  lines: {
+    selfie: {
+      funny:[
+        "今天也是被自己美醒的一天，建议直接申报非遗。",
+        "原相机直出，没p，p的是命。",
+        "镜子说你很美，我说好的然后全p了一遍。",
+        "这张脸我建议国家好好保护一下。",
+        "颜值已爆仓，颜值税我交定了。",
+        "自拍三百张，选出这一张，值得立碑。",
+        "今天的我，AI 看了都得喊一句绝。",
+        "美貌是天赋，我属于天赋型选手。"
+      ],
+      lit:[
+        "镜头里的我，比生活里的我温柔一点点。",
+        "光落在眉骨上，像一句没说完的话。",
+        "把自己拍好看，是成年人少有的温柔。",
+        "今天的风很轻，我也很好看。",
+        "留住这一刻，胜过解释一万句。",
+        "我和镜子达成了短暂的和解。",
+        "照片替我把今天好好收着了。"
+      ],
+      dry:[
+        "自拍三件套：45度角 + 找光源 + 手机举高，直接封神。",
+        "显脸小秘诀：镜头放鼻尖高度、下巴微收，亲测有效。",
+        "原相机也好看：关美颜、开网格线、对焦点放眼睛。",
+        "朋友圈自拍不踩雷：背景干净永远大于滤镜厚重。",
+        "显白上镜色：米白、浅蓝、奶油色，闭眼冲。",
+        "侧光拍人像，立体感一下就出来了。"
+      ],
+      versa:[
+        "随便拍了一张，朋友说可以出道，我说别闹。",
+        "今天没化妆，结果比化妆还好看，有点烦。",
+        "相机像素太高反而麻烦，把皮肤拍得太真实。",
+        "又被路人问是不是模特，我说只是路过。",
+        "这张没调色，原图直出，你们随意夸。",
+        "素颜状态下竟然还能看，我也很意外。"
+      ],
+      heal:[
+        "今天好好拍了张照片，取悦自己也是一种能力。",
+        "爱自己，从一张满意的自拍开始。",
+        "不必完美，今天的我也值得被记录。",
+        "把笑脸存进相册，阴天的时候翻出来看。",
+        "你比照片更好看，这是真的。",
+        "镜子之外，也有人觉得你闪闪发光。"
+      ]
+    },
+    food: {
+      funny:[
+        "这顿我吃出了人生的意义，也吃出了明天的体重。",
+        "拍照五分钟，吃饭两小时，发圈才是正经事。",
+        "减肥？等这口肉凉了再说吧。",
+        "好吃到想给老板磕一个。",
+        "我的减肥计划，从下一顿开始，第108次。",
+        "这碗饭的颜值，已经超出我的工资水平。"
+      ],
+      lit:[
+        "人间烟火气，最抚凡人心。",
+        "一口热汤下肚，今天的疲惫就和解了。",
+        "食物是有温度的，尤其在你饿的时候。",
+        "把日子过成喜欢的味道。",
+        "慢一点吃饭，是对生活最大的尊重。"
+      ],
+      dry:[
+        "点单不踩雷：看点评最新三条 + 招牌必点。",
+        "探店先问有没有隐藏菜单，往往最惊喜。",
+        "拍照好看的食物：暖光 + 俯拍45度 + 留白。",
+        "一个人吃饭也能精致：小锅、一杯、一盏灯。",
+        "避雷指南：网红店排队长 ≠ 好吃，看翻台率。"
+      ],
+      versa:[
+        "随便找了家店，结果味道竟然还不错，运气好。",
+        "朋友说这家要预约，我说刚好有位置就去了。",
+        "这家人均不高但环境绝了，随手拍都像大片。",
+        "本来只是路过，没想到成了我的私藏食堂。"
+      ],
+      heal:[
+        "好好吃饭，是治愈自己最简单的方式。",
+        "今天也要认真喂饱自己呀。",
+        "胃满了，心也就踏实了。",
+        "再忙，也别亏待三餐。"
+      ]
+    },
+    travel: {
+      funny:[
+        "出门是诗人，回家是废人，中间是拍照机器。",
+        "风景不错，就是我的腿已经不属于我了。",
+        "旅行就是把钱花光，再把朋友圈填满。",
+        "到此一游，钱包已游。",
+        "别人旅游看风景，我旅游看定位和排队。"
+      ],
+      lit:[
+        "山河远阔，人间烟火，都值得走一趟。",
+        "把心事交给风，把脚印留给路。",
+        "世界很大，先去看看再说。",
+        "出发本身，就是最好的答案。",
+        "风景会过期，但记忆不会。"
+      ],
+      dry:[
+        "错峰出行：周三人最少，机票酒店都便宜。",
+        "小众地不踩雷：看交通便利度再下单。",
+        "拍照出片点：找前景 + 利用黄金小时光线。",
+        "行程别排太满，留半天给意外惊喜。",
+        "行李精简：一套百搭 + 一双舒服的鞋。"
+      ],
+      versa:[
+        "随便订了家民宿，结果开窗就是海，运气绝了。",
+        "朋友说这边要提前半年约，我说刚好有空就来了。",
+        "随手拍都像明信片，这地方有点过分。",
+        "本来只是散心，没想到成了我的秘密基地。"
+      ],
+      heal:[
+        "走出去，世界会替你松一口气。",
+        "把烦恼留在城市，把轻松带回家。",
+        "旅行不是为了逃避，是为了更好地回来。",
+        "去看更大的世界，也遇见更小的自己。"
+      ]
+    },
+    life: {
+      funny:[
+        "普通的一天，普通的我，普通的想下班。",
+        "今天的快乐是外卖给的，别的都没给。",
+        "生活把我按在地上摩擦，我还挺光滑的。",
+        "我的日常：间歇性踌躇满志，持续性躺平。",
+        "今天也没干啥，但就是累了，这很合理。"
+      ],
+      lit:[
+        "把平凡的日子，过出一点光。",
+        "生活碎碎的，但总有几片是糖。",
+        "慢下来，才看得见风路过。",
+        "今天的云，长得像一句没说出口的话。",
+        "烟火寻常，也是最稳的幸福。"
+      ],
+      dry:[
+        "记录生活小技巧：每天拍一张，月末剪成 vlog。",
+        "提升幸福感的 5 件小事：晒被子、喝热茶、早睡觉。",
+        "整理房间 = 整理心情，亲测有效。",
+        "记账不用复杂，三分类就够：必要、想要、冲动。"
+      ],
+      versa:[
+        "随便过了天，朋友说我的日常像纪录片，我说还好。",
+        "今天没什么特别，但就是很舒服，有点凡尔赛。",
+        "生活顺到有点无聊，希望保持。",
+        "随手记的碎片，竟然被夸很有质感。"
+      ],
+      heal:[
+        "再普通的一天，也是限量版。",
+        "允许自己偶尔什么都不做。",
+        "你已经做得很好了，真的。",
+        "把今天过好，就是对明天最好的准备。"
+      ]
+    },
+    goods: {
+      funny:[
+        "买它不为用，为的是拆快递那一刻的快感。",
+        "这个东西，智商税但我交得很开心。",
+        "下单前的我：理性。下单后的我：快乐。",
+        "钱包：你礼貌吗？",
+        "说是平替，结果比原版还香，我裂开。"
+      ],
+      lit:[
+        "好物不贵，但把日子照亮了。",
+        "提升幸福感的，往往是小东西。",
+        "喜欢的东西，值得被认真安利。",
+        "生活需要一点刚刚好的仪式感。"
+      ],
+      dry:[
+        "种草先看三点：是否刚需、是否有平替、是否吃灰。",
+        "买前加购三天，还想要的才是真爱。",
+        "学生党好物：百元内、耐用、颜值在线。",
+        "避坑：销量高 ≠ 好用，看差评更真实。",
+        "家电选购：看能耗等级和售后，别只看外观。"
+      ],
+      versa:[
+        "随便买的，结果成了我最近的心头好。",
+        "朋友说这个小众好物要抢，我说刚好买到了。",
+        "本来随便看看，没想到质感超出价格太多。"
+      ],
+      heal:[
+        "对自己好一点，从舍得买喜欢的东西开始。",
+        "让生活变舒服的，是这些小确幸。",
+        "你值得拥有让你开心的小物件。"
+      ]
+    },
+    work: {
+      funny:[
+        "上班一分钟，想下班六十秒。",
+        "我的工作：在摸鱼和被发现之间走钢丝。",
+        "班味太重，洗头都洗不掉。",
+        "今天也是为老板的豪宅添砖加瓦的一天。",
+        "工资不高，但我的心态很贵。"
+      ],
+      lit:[
+        "把日子过成自己喜欢的样子，工作只是其中一段。",
+        "再忙，也别弄丢了自己的节奏。",
+        "认真生活的人，工作也差不到哪去。",
+        "下班之后的时间，才真正属于我。"
+      ],
+      dry:[
+        "周报模板：成果 + 数据 + 下周计划，三句就够。",
+        "摸鱼不踩雷：避开监控高峰，碎片时间做自己的事。",
+        "职场沟通：结论先行，比长篇大论更受欢迎。",
+        "效率工具：清单化任务，完成一项划一项。",
+        "避免内耗：把情绪和事情分开处理。"
+      ],
+      versa:[
+        "随便做做，领导说可以当标杆，我说还好。",
+        "今天提前下班，同事说你效率真高，我说运气好。",
+        "本来随手写的方案，竟然被全组抄作业。"
+      ],
+      heal:[
+        "工作是为了更好地生活，别搞反了。",
+        "你已经很努力了，允许自己喘口气。",
+        "下班了，就把班味留在公司。",
+        "好好休息，是对打工人最大的温柔。"
+      ]
+    }
+  }
+};
+
+const EMOJIS = ["📸","✨","💡","😂","🌿","💅","🍰","🌸","☕️","🔥","💖","🌟","🫶","🍃"];
+
+let state = {scene:null, style:null};
+let genCount = 0;
+
+function buildChips(){
+  const sc = document.getElementById("sceneChips");
+  const st = document.getElementById("styleChips");
+  DATA.scenes.forEach((s,i)=>{
+    const c = document.createElement("div");
+    c.className = "chip" + (i===0?" on":"");
+    c.textContent = s.name;
+    c.onclick = ()=>{ state.scene = s.key; [...sc.children].forEach(x=>x.classList.remove("on")); c.classList.add("on"); };
+    sc.appendChild(c);
+  });
+  DATA.styles.forEach((s,i)=>{
+    const c = document.createElement("div");
+    c.className = "chip" + (i===0?" on":"");
+    c.textContent = s.name;
+    c.onclick = ()=>{ state.style = s.key; [...st.children].forEach(x=>x.classList.remove("on")); c.classList.add("on"); };
+    st.appendChild(c);
+  });
+  state.scene = DATA.scenes[0].key;
+  state.style = DATA.styles[0].key;
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function pickScene(){ return DATA.scenes.find(s=>s.key===state.scene); }
+function pickStyle(){ return DATA.styles.find(s=>s.key===state.style); }
+
+function genOne(){
+  const scene = pickScene();
+  const style = pickStyle();
+  const pool = DATA.lines[scene.key][style.key];
+  const chosen = shuffle(pool).slice(0,3);
+  const body = chosen.map(line=>{
+    const e = EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+    return e + " " + line;
+  }).join("\n");
+  const tags = shuffle(scene.tags).slice(0,4).join(" ");
+  return body + "\n\n" + tags;
+}
+
+function render(){
+  const res = document.getElementById("results");
+  const empty = document.getElementById("empty");
+  if(empty) empty.remove();
+  res.innerHTML = "";
+  const scene = pickScene();
+  const style = pickStyle();
+  for(let i=0;i<4;i++){
+    const text = genOne();
+    const card = document.createElement("div");
+    card.className = "rcard";
+    card.innerHTML =
+      '<span class="rtag">'+scene.name+' · '+style.name+'</span>'+
+      '<div class="rtext">'+ text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\n/g,"<br/>") +'</div>'+
+      '<div class="rbar">'+
+        '<button class="btn" data-copy="one">📋 复制这条</button>'+
+        '<button class="btn primary" data-copy="all">📑 复制全部</button>'+
+      '</div>';
+    card.querySelector(".rtext").dataset.text = text;
+    res.appendChild(card);
+  }
+  genCount += 4;
+  document.getElementById("counter").textContent = "已为你生成 " + genCount + " 条文案";
+}
+
+function copyText(btn){
+  const t = btn.closest(".rcard").querySelector(".rtext").dataset.text;
+  doCopy(t);
+}
+function copyAll(){
+  const all = [...document.querySelectorAll(".rtext")].map(d=>d.dataset.text).join("\n\n————————\n\n");
+  doCopy(all);
+}
+function doCopy(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(showToast).catch(()=>fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); showToast(); }catch(e){}
+  document.body.removeChild(ta);
+}
+let toastTimer;
+function showToast(){
+  const t = document.getElementById("toast");
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 1400);
+}
+
+document.getElementById("genBtn").onclick = render;
+buildChips();
+
+document.getElementById("results").addEventListener("click", e => { const b=e.target.closest("button[data-copy]"); if (!b) return; if(b.dataset.copy === "one") copyText(b); else copyAll(); });
