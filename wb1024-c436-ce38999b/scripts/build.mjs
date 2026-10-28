@@ -1,0 +1,13 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('需要完整提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('需要 Git 实例 ID');
+const html=await readFile('client/index.html','utf8');
+const css=html.match(/<style[^>]*>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/)[1];
+const js=html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='暖心';document.documentElement.setAttribute('data-scale','1');const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n${js}`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
