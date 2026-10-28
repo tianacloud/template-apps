@@ -1,0 +1,162 @@
+const link=document.createElement("link");link.rel="stylesheet";link.href=new URL("./style.css",import.meta.url);document.head.appendChild(link);
+document.getElementById("app").innerHTML="\n<header>\n  <h1>礼尚往来 · 人情往来管家</h1>\n  <p>生日婚礼不再忘 · 随礼回礼心里有数 · 往来账目清清楚楚</p>\n</header>\n\n<div class=\"wrap\">\n  <div class=\"stats\">\n    <div class=\"stat\"><span>亲友</span><b id=\"stPeople\">0</b></div>\n    <div class=\"stat\"><span>待办喜事</span><b id=\"stEvents\">0</b></div>\n    <div class=\"stat in\"><span>累计收礼 ¥</span><b id=\"stIn\">0</b></div>\n    <div class=\"stat out\"><span>累计随礼 ¥</span><b id=\"stOut\">0</b></div>\n  </div>\n\n  <div class=\"tabs\">\n    <button class=\"on\" data-tab=\"home\">🏠 首页提醒</button>\n    <button data-tab=\"ledger\">🧧 礼金账本</button>\n    <button data-tab=\"people\">👥 亲友档案</button>\n    <button data-tab=\"insight\">📊 往来分析</button>\n  </div>\n\n  <!-- 首页 -->\n  <div id=\"tab-home\">\n    <div class=\"card\">\n      <h2>近期喜事提醒 <span class=\"tag\">未来 90 天</span></h2>\n      <div id=\"eventList\"></div>\n      <div style=\"margin-top:12px\"><button class=\"btn ghost small\" onclick=\"toggleForm('eventForm')\">＋ 添加生日 / 婚礼提醒</button></div>\n      <div id=\"eventForm\" class=\"form hide\">\n        <div><label>亲友</label><select id=\"evPerson\"></select></div>\n        <div><label>类型</label><select id=\"evType\"><option value=\"b\">🎂 生日</option><option value=\"w\">💒 婚礼</option><option value=\"e\">💍 订婚</option><option value=\"m\">👶 满月/百日宴</option><option value=\"s\">🎓 升学宴</option><option value=\"l\">🏮 寿宴</option><option value=\"h\">🏡 乔迁</option><option value=\"o\">🎉 其他喜事</option></select></div>\n        <div><label>日期（今年或往年同月同日，每年自动提醒）</label><input type=\"date\" id=\"evDate\"></div>\n        <div><label>办事城市（异地喜事会生成行程规划）</label><input type=\"text\" id=\"evCity\" placeholder=\"留空则用亲友档案里的城市\"></div>\n        <div><label>备注（可选）</label><input type=\"text\" id=\"evNote\" placeholder=\"如：办酒地点 / 是否需要随礼\"></div>\n        <div class=\"full\"><button class=\"btn\" onclick=\"addEvent()\">保存提醒</button></div>\n      </div>\n    </div>\n    <div class=\"card\">\n      <h2>🚄 行程规划 <span class=\"tag\">异地亲友的喜事要提前安排</span></h2>\n      <div class=\"form\" style=\"margin-top:0\">\n        <div><label>📍 我所在城市</label><input type=\"text\" id=\"myCity\" placeholder=\"如：上海\" oninput=\"setMyCity(this.value)\"></div>\n      </div>\n      <div id=\"tripList\" style=\"margin-top:12px\"></div>\n      <div class=\"tip\">出行建议：跨省 1000km 内优先高铁，更远建议飞机；<b>婚礼正日子建议提前 1 天到达</b>。现金红包务必提前取好，不少酒店婚礼现场不支持扫码随礼。</div>\n    </div>\n    <div class=\"card\">\n      <h2>💡 随礼小锦囊</h2>\n      <div class=\"tip\">随礼金额一般参考三件事：① <b>关系亲疏</b>——至亲、好友、同事依次递减；② <b>历史往来</b>——对方当年随你多少，回礼通常持平或略加；③ <b>当地行情</b>——同一城市同一场合金额相近。本应用的「往来分析」会基于你们的历史账目自动给出建议金额。</div>\n    </div>\n  </div>\n\n  <!-- 礼金账本 -->\n  <div id=\"tab-ledger\" class=\"hide\">\n    <div class=\"card\">\n      <h2>🧧 记一笔礼金</h2>\n      <div class=\"form\">\n        <div><label>亲友</label><select id=\"ldPerson\"></select></div>\n        <div><label>方向</label><select id=\"ldDir\"><option value=\"out\">我随出（送出）</option><option value=\"in\">我收进（收到）</option></select></div>\n        <div><label>场合</label><select id=\"ldOcc\"><option>婚礼</option><option>生日</option><option>满月/百日</option><option>乔迁</option><option>升学宴</option><option>探病慰问</option><option>其他</option></select></div>\n        <div><label>金额（元）</label><input type=\"number\" id=\"ldAmount\" placeholder=\"如 600\"></div>\n        <div><label>日期</label><input type=\"date\" id=\"ldDate\"></div>\n        <div><label>备注（可选）</label><input type=\"text\" id=\"ldNote\" placeholder=\"如：表哥婚宴\"></div>\n        <div class=\"full\"><button class=\"btn\" onclick=\"addLedger()\">保存</button></div>\n      </div>\n    </div>\n    <div class=\"card\">\n      <h2>📖 往来流水</h2>\n      <div style=\"overflow-x:auto\"><table>\n        <thead><tr><th>日期</th><th>亲友</th><th>场合</th><th>备注</th><th style=\"text-align:right\">金额</th></tr></thead>\n        <tbody id=\"ledgerBody\"></tbody>\n      </table></div>\n      <div class=\"empty hide\" id=\"ledgerEmpty\">还没有记录，先记一笔吧～</div>\n    </div>\n  </div>\n\n  <!-- 亲友档案 -->\n  <div id=\"tab-people\" class=\"hide\">\n    <div class=\"card\">\n      <h2>👥 我的亲友</h2>\n      <div style=\"margin-bottom:12px\"><button class=\"btn ghost small\" onclick=\"toggleForm('personForm')\">＋ 添加亲友</button></div>\n      <div id=\"personForm\" class=\"form hide\">\n        <div><label>姓名 / 称呼</label><input type=\"text\" id=\"pName\" placeholder=\"如：三姨\"></div>\n        <div><label>关系</label><select id=\"pRel\"><option>至亲</option><option>亲戚</option><option>好友</option><option>同学</option><option>同事</option><option>邻居</option></select></div>\n        <div><label>生日（可选）</label><input type=\"date\" id=\"pBirthday\"></div>\n        <div><label>城市（可选）</label><input type=\"text\" id=\"pCity\" placeholder=\"随礼行情参考\"></div>\n        <div class=\"full\"><button class=\"btn\" onclick=\"addPerson()\">保存</button></div>\n      </div>\n      <div class=\"people\" id=\"peopleGrid\"></div>\n      <div class=\"empty hide\" id=\"peopleEmpty\">还没有亲友档案，添加一个吧～</div>\n    </div>\n  </div>\n\n  <!-- 往来分析 -->\n  <div id=\"tab-insight\" class=\"hide\">\n    <div class=\"card\">\n      <h2>📊 与每位亲友的往来净值与随礼建议</h2>\n      <div class=\"tip\" style=\"margin:0 0 14px\">净值 = 对方随你的总额 − 你随对方的总额。随礼建议参考双方历史金额与关系亲疏自动生成，仅作参考。</div>\n      <div id=\"insightList\"></div>\n      <div class=\"empty hide\" id=\"insightEmpty\">先在「礼金账本」里记几笔，分析就有了～</div>\n    </div>\n  </div>\n</div>\n\n";
+
+const EVENT_NAMES={b:"生日",w:"婚礼",e:"订婚",m:"满月/百日宴",s:"升学宴",l:"寿宴",h:"乔迁",o:"其他喜事"};
+const EVENT_EMOJI={b:"🎂",w:"💒",e:"💍",m:"👶",s:"🎓",l:"🏮",h:"🏡",o:"🎉"};
+const REL_WEIGHT={"至亲":1.2,"亲戚":1.0,"好友":1.0,"同学":0.9,"同事":0.8,"邻居":0.8};
+let db=JSON.parse(localStorage.getItem("lishangwanglai")||"null")||seed();
+function seed(){return{
+ myCity:"上海",
+ people:[
+  {id:1,name:"大伯",rel:"至亲",birthday:"1958-03-15",city:"合肥"},
+  {id:2,name:"表哥 志强",rel:"亲戚",birthday:"1990-07-02",city:"合肥"},
+  {id:3,name:"老周",rel:"好友",birthday:"1992-11-08",city:"上海"},
+  {id:4,name:"小林",rel:"同学",birthday:"1993-02-14",city:"杭州"},
+  {id:5,name:"王姐",rel:"同事",birthday:"1988-05-20",city:"上海"}
+ ],
+ events:[
+  {id:1,pid:2,type:"w",date:"2026-11-08",note:"合肥办酒，需随礼",city:"合肥"},
+  {id:2,pid:3,type:"b",date:"1992-11-08",note:"每年聚一次",city:"上海"},
+  {id:3,pid:1,type:"o",date:"2026-11-28",note:"大伯七十大寿",city:"合肥"}
+ ],
+ ledger:[
+  {id:1,pid:2,dir:"in",occ:"乔迁",amount:800,date:"2025-06-18",note:"志强乔迁我收的"},
+  {id:2,pid:3,dir:"out",occ:"婚礼",amount:1000,date:"2024-10-02",note:"老周婚宴"},
+  {id:3,pid:3,dir:"in",occ:"满月/百日",amount:600,date:"2023-05-01",note:"老周孩子满月收的"},
+  {id:4,pid:4,dir:"out",occ:"婚礼",amount:800,date:"2024-05-20",note:"小林婚礼"},
+  {id:5,pid:5,dir:"out",occ:"生日",amount:300,date:"2025-05-20",note:"王姐生日聚餐"}
+ ],
+ checks:{}
+};}
+function save(){localStorage.setItem("lishangwanglai",JSON.stringify(db))}
+function $id(x){return document.getElementById(x)}
+function toggleForm(id){$id(id).classList.toggle("hide")}
+function nextDate(md){ // md = "MM-DD" from a stored date
+  const now=new Date();const y=now.getFullYear();
+  let d=new Date(y+"-"+md+"T00:00:00");
+  if(d<new Date(now.toDateString()))d=new Date((y+1)+"-"+md+"T00:00:00");
+  return d;
+}
+function daysUntil(d){return Math.ceil((d-new Date(new Date().toDateString()))/86400000)}
+function person(id){return db.people.find(p=>p.id===id)}
+
+function renderStats(){
+  $id("stPeople").textContent=db.people.length;
+  const inSum=db.ledger.filter(l=>l.dir==="in").reduce((s,l)=>s+l.amount,0);
+  const outSum=db.ledger.filter(l=>l.dir==="out").reduce((s,l)=>s+l.amount,0);
+  $id("stIn").textContent=inSum.toLocaleString();
+  $id("stOut").textContent=outSum.toLocaleString();
+  const soon=db.events.map(e=>({e,d:daysUntil(nextDate(e.date.slice(5)))})).filter(x=>x.d<=90).length;
+  $id("stEvents").textContent=soon;
+}
+function renderEvents(){
+  const list=db.events.map(e=>({e,p:person(e.pid),d:daysUntil(nextDate(e.date.slice(5)))}))
+    .filter(x=>x.p&&x.d<=90).sort((a,b)=>a.d-b.d);
+  const el=$id("eventList");
+  if(!list.length){el.innerHTML='<div class="empty">未来 90 天暂无喜事提醒</div>';return}
+  el.innerHTML=list.map(({e,p,d})=>`
+   <div class="event ${e.type==='b'?'':'neutral'}">
+     <div class="avatar">${EVENT_EMOJI[e.type]||'🎉'}</div>
+     <div class="info"><b>${p.name} 的${EVENT_NAMES[e.type]}</b><small>${e.note||''}</small></div>
+     <div class="days"><b>${d===0?'今天':d+' 天'}</b><small>后 · ${nextDate(e.date.slice(5)).getMonth()+1}月${nextDate(e.date.slice(5)).getDate()}日</small></div>
+   </div>`).join("");
+}
+function renderLedger(){
+  const rows=[...db.ledger].sort((a,b)=>b.date.localeCompare(a.date));
+  $id("ledgerBody").innerHTML=rows.map(l=>{
+    const p=person(l.pid);if(!p)return"";
+    return`<tr><td>${l.date}</td><td>${p.name}</td><td><span class="badge ${l.occ==='婚礼'?'w':'b'}">${l.occ}</span></td><td style="color:var(--muted);font-size:12px">${l.note||''}</td><td class="amount-${l.dir}" style="text-align:right">${l.dir==='in'?'+':'−'}¥${l.amount}</td></tr>`}).join("");
+  $id("ledgerEmpty").classList.toggle("hide",rows.length>0);
+}
+function suggestion(p,pid){
+  const mine=db.ledger.filter(l=>l.pid===pid&&l.dir==="out");
+  const theirs=db.ledger.filter(l=>l.pid===pid&&l.dir==="in");
+  const base=theirs.length?Math.max(...theirs.map(l=>l.amount))
+    :mine.length?Math.round(mine.reduce((s,l)=>s+l.amount,0)/mine.length)
+    :({"至亲":1200,"亲戚":800,"好友":600,"同学":500,"同事":400,"邻居":400})[p.rel]||500;
+  const w=REL_WEIGHT[p.rel]||1;
+  return Math.round(base*w/100)*100;
+}
+function renderPeople(){
+  $id("peopleGrid").innerHTML=db.people.map(p=>{
+    const pid=p.id;
+    const net=db.ledger.filter(l=>l.pid===pid).reduce((s,l)=>s+(l.dir==="in"?l.amount:-l.amount),0);
+    return`<div class="person">
+      <div class="top"><b>${p.name}</b><span class="rel">${p.rel}</span></div>
+      <div class="net">往来净值：<b style="color:${net>=0?'var(--red)':'var(--green)'}">${net>=0?'+':''}${net}</b> 元</div>
+      <div class="adv">💡 下次喜事建议随礼约 <b>${suggestion(p,pid)}</b> 元${p.city?'（参考'+p.city+'行情）':''}</div>
+    </div>`}).join("");
+  $id("peopleEmpty").classList.toggle("hide",db.people.length>0);
+}
+function renderInsight(){
+  const rows=db.people.map(p=>{
+    const pid=p.id;
+    const mine=db.ledger.filter(l=>l.pid===pid&&l.dir==="out").reduce((s,l)=>s+l.amount,0);
+    const theirs=db.ledger.filter(l=>l.pid===pid&&l.dir==="in").reduce((s,l)=>s+l.amount,0);
+    return{p,mine,theirs,net:theirs-mine}
+  }).filter(r=>r.mine+r.theirs>0).sort((a,b)=>b.net-a.net);
+  $id("insightList").innerHTML=rows.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1"><b>${r.p.name}</b> <span class="rel" style="font-size:11px;color:var(--gold)">${r.p.rel}</span>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">你随出 ¥${r.mine} · 收到 ¥${r.theirs}</div></div>
+      <div style="text-align:right"><b style="color:${r.net>=0?'var(--red)':'var(--green)'};font-size:17px">${r.net>=0?'+':''}${r.net}</b><div style="font-size:11px;color:var(--muted)">建议随礼 ≈ ¥${suggestion(r.p,r.p.id)}</div></div>
+    </div>`).join("");
+  $id("insightEmpty").classList.toggle("hide",rows.length>0);
+}
+function fillSelects(){
+  const opts=db.people.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+  $id("evPerson").innerHTML=opts;$id("ldPerson").innerHTML=opts;
+}
+function addPerson(){
+  const name=$id("pName").value.trim();if(!name)return alert("请填写姓名/称呼");
+  db.people.push({id:Date.now(),name,rel:$id("pRel").value,birthday:$id("pBirthday").value,city:$id("pCity").value.trim()});
+  if($id("pBirthday").value)db.events.push({id:Date.now()+1,pid:db.people.at(-1).id,type:"b",date:$id("pBirthday").value,note:""});
+  save();$id("pName").value="";$id("pCity").value="";$id("personForm").classList.add("hide");
+  fillSelects();renderAll();
+}
+function renderTrips(){
+  $id("myCity").value=db.myCity||"";
+  const list=db.events.map(e=>({e,p:person(e.pid),d:daysUntil(nextDate(e.date.slice(5)))}))
+    .filter(x=>x.p&&x.d<=90).sort((a,b)=>a.d-b.d);
+  if(!list.length){$id("tripList").innerHTML='<div class="empty">暂无近期喜事，无需安排行程</div>';return}
+  const ITEMS=["🚄 订好车票/机票","🏨 订好酒店","🧧 备好现金红包","🎁 准备伴手礼","📋 向公司请假"];
+  $id("tripList").innerHTML=list.map(({e,p,d})=>{
+    const city=e.city||p.city||"未填写";
+    const away=db.myCity&&city&&city!==db.myCity;
+    const ticket=away?(d<=14?"⚠️ 距离不足 2 周，<b>请立即订票</b>":d<=30?"建议本周内订票，价格更优":"可择机订票，提前 2~4 周出手"):"本地喜事，无需长途出行";
+    const ck=(db.checks[e.id]||(db.checks[e.id]={}));
+    return`<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <b>${p.name} · ${EVENT_NAMES[e.type]}</b>
+        <span class="badge" style="${away?'':'background:var(--green-soft);color:var(--green)'}">${away?'✈️ 异地 · 我在'+db.myCity+' → '+city:'🏠 本地 · '+city}</span>
+      </div>
+      <div style="font-size:13px;margin:8px 0 4px">📅 ${nextDate(e.date.slice(5)).getMonth()+1}月${nextDate(e.date.slice(5)).getDate()}日（还有 ${d} 天）｜ ${ticket}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+        ${ITEMS.map(it=>`<label style="font-size:12px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer;${ck[it]?'background:var(--green-soft);color:var(--green);text-decoration:line-through':''}"><input type="checkbox" style="display:none" ${ck[it]?'checked':''} onchange="toggleCheck(${e.id},'${it}')">${it}</label>`).join("")}
+      </div>
+    </div>`}).join("");
+}
+function setMyCity(v){db.myCity=v.trim();save();renderTrips()}
+function toggleCheck(id,it){const ck=db.checks[id]||(db.checks[id]={});ck[it]=!ck[it];save();renderTrips()}
+function addEvent(){
+  const pid=+$id("evPerson").value,d=$id("evDate").value;
+  if(!pid||!d)return alert("请选择亲友和日期");
+  db.events.push({id:Date.now(),pid,type:$id("evType").value,date:d,note:$id("evNote").value.trim(),city:$id("evCity").value.trim()||person(pid).city||""});
+  save();$id("eventForm").classList.add("hide");renderAll();
+}
+function addLedger(){
+  const amount=+$id("ldAmount").value;
+  if(!amount||amount<=0)return alert("请填写金额");
+  db.ledger.push({id:Date.now(),pid:+$id("ldPerson").value,dir:$id("ldDir").value,occ:$id("ldOcc").value,amount,date:$id("ldDate").value||new Date().toISOString().slice(0,10),note:$id("ldNote").value.trim()});
+  save();$id("ldAmount").value="";$id("ldNote").value="";renderAll();
+}
+function renderAll(){renderStats();renderEvents();renderTrips();renderLedger();renderPeople();renderInsight()}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  ["home","ledger","people","insight"].forEach(t=>$id("tab-"+t).classList.toggle("hide",t!==b.dataset.tab));
+});
+$id("ldDate").value=new Date().toISOString().slice(0,10);
+fillSelects();renderAll();
+
+Object.assign(window,{toggleForm,addPerson,addEvent,addLedger,setMyCity,toggleCheck});
