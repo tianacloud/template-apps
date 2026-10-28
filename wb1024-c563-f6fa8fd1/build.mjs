@@ -1,0 +1,5 @@
+import {readFile, mkdir, rm, cp, writeFile} from 'node:fs/promises';
+const out='dist'; await rm(out,{recursive:true,force:true}); await mkdir(out+'/assets',{recursive:true});
+const body=await readFile('body.html','utf8'); const logic=await readFile('logic.js','utf8');
+const script=`const base=new URL('.',import.meta.url); for(const path of ['vendor/katex/katex.min.css','app.css']){const l=document.createElement('link');l.rel='stylesheet';l.href=new URL(path,base);document.head.appendChild(l)} document.getElementById('app').innerHTML=${JSON.stringify(body)}; const s=document.createElement('script');s.src=new URL('vendor/katex/katex.min.js',base);s.onload=()=>{${logic}};s.onerror=()=>{${logic}};document.head.appendChild(s);`;
+await writeFile(out+'/assets/app.js',script); await cp('vendor',out+'/assets/vendor',{recursive:true}); await cp('app.css',out+'/assets/app.css'); await cp('icon.png',out+'/icon.png'); const cfg=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',git_instance_id:cfg.git_instance_id}));
