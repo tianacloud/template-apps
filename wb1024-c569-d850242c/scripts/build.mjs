@@ -10,7 +10,7 @@ let body=html.match(/<body[^>]*>([\s\S]*?)<\/body>/)[1].replace(/<script>[\s\S]*
 body=body.replace(/\bon(click|change|input)=/g,'data-handler-$1=');
 scripts[1]=scripts[1].replace(/\bon(click|change|input)=/g,'data-handler-$1=');
 // The module starts after DOMContentLoaded; register the same input listeners directly.
-scripts[1]=scripts[1].replace("document.addEventListener('DOMContentLoaded',function(){\n    var el=$(id); if(el) el.addEventListener('input',saveCfg);\n  });", "var el=$(id); if(el) el.addEventListener('input',saveCfg);");
+scripts[1]=scripts[1].replace(/document\.addEventListener\('DOMContentLoaded',function\(\)\{\s*var el=\$\(id\); if\(el\) el\.addEventListener\('input',saveCfg\);\s*\}\);/, "var el=$(id); if(el) el.addEventListener('input',saveCfg);");
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
 await writeFile('dist/assets/app.css',css);
 await writeFile('dist/assets/bank.js',scripts[0]); await writeFile('dist/assets/logic.js',scripts[1]);
