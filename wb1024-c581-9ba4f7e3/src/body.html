@@ -1,0 +1,401 @@
+
+
+<canvas id="particle-canvas"></canvas>
+<div class="grid-bg"></div>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <path d="M12 20.5s-6.9-4.3-8.6-8.4C1.9 8.9 3.9 6 7 6c1.9 0 3.4 1 4.1 2.4C11.8 7 13.3 6 15.2 6c3.1 0 5.1 2.9 3.6 6.1-1.7 4.1-6.8 8.4-6.8 8.4z" fill="#FFFFFF"/>
+        </svg>
+      </div>
+      <div>
+        <span class="brand-name neon-flicker">小课表</span><span class="brand-divider">·</span><span class="brand-name" style="color:#B79CFF">小朋友</span>
+      </div>
+      <span class="brand-sub">🍭 上课打卡 · 记录每一次成长</span>
+    </div>
+    <div class="topbar-right">
+      <div class="live-clock" id="live-clock">--:--:--</div>
+      <span class="sync-pill" id="sync-pill">
+        <span class="sync-dot"></span>
+        <span id="sync-text">本地 · 已保存</span>
+      </span>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">主 菜单</div>
+    <div class="nav-item active" data-page="home" onclick="switchPage('home')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12 L12 3 L21 12 M5 10 V21 H19 V10"/>
+      </svg>
+      <span>主页 / 概览</span>
+    </div>
+    <div class="nav-item" data-page="checkin" onclick="switchPage('checkin')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 7 V12 L15 14"/>
+      </svg>
+      <span>打卡 / 上课</span>
+    </div>
+    <div class="nav-item" data-page="stats" onclick="switchPage('stats')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 21 V3 M3 21 H21 M7 17 V11 M12 17 V7 M17 17 V13"/>
+      </svg>
+      <span>看板 / 科目</span>
+    </div>
+    <div class="nav-item" data-page="history" onclick="switchPage('history')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="5" width="18" height="16" rx="2"/>
+        <path d="M3 9 H21 M8 3 V7 M16 3 V7"/>
+      </svg>
+      <span>记录 / 详情</span>
+    </div>
+
+    <div class="sidebar-section">数 据</div>
+    <div class="nav-item" onclick="exportData()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3 V15 M7 10 L12 15 L17 10 M5 21 H19"/>
+      </svg>
+      <span>导出备份</span>
+    </div>
+    <div class="nav-item" onclick="document.getElementById('import-file').click()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 21 V9 M7 14 L12 9 L17 14 M5 3 H19"/>
+      </svg>
+      <span>导入恢复</span>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+
+    <div class="nav-item" onclick="openCloudModal()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19 A4.5 4.5 0 0 0 17.5 10 A6 6 0 0 0 6 10.5 A4 4 0 0 0 7 19 Z"/>
+      </svg>
+      <span>云同步（自动）</span>
+    </div>
+
+    <div class="nav-item" onclick="openSyncModal()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 8 H17 M7 8 L10 5 M7 8 L10 11 M17 16 H7 M17 16 L14 13 M17 16 L14 19"/>
+      </svg>
+      <span>同步码（手机↔电脑）</span>
+    </div>
+
+    <div class="nav-item" onclick="confirmClearAll()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6 H21 M8 6 V4 H16 V6 M19 6 L18 21 H6 Z"/>
+      </svg>
+      <span style="color: var(--neon-red)">清空数据</span>
+    </div>
+
+    <div class="sidebar-footer">
+      数据本地存储<br>
+      清除浏览器数据将丢失记录<br>
+      <span style="color: var(--neon-cyan); opacity: 0.6">v2.0 · 小课表</span>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 主页 -->
+    <section class="page active" id="page-home">
+      <h1 class="page-title">🌈 上课打卡 · <span class="accent" id="user-greet">STUDIER</span></h1>
+      <p class="page-subtitle">连续打卡 <span id="streak-days" class="accent-2">0</span> 天 · 累计 <span id="total-classes-stat" class="ac">0</span> 节课</p>
+
+      <!-- 主页小格林（陪伴卡） -->
+      <div class="greenie compact" id="greenie-home">
+        <div class="greenie-avatar" data-avatar-home>
+          <span class="bubble-tail" aria-hidden="true">🐶</span>
+        </div>
+        <div class="greenie-body">
+          <div class="greenie-name">格林 <span class="tag">陪伴卡</span></div>
+          <div class="greenie-msg" id="greenie-msg-home">今天也要加油哦，格林在陪着你～</div>
+        </div>
+        <span class="greenie-heart">💗</span>
+        <div class="greenie-bubble" id="greenie-bubble-home" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="card-grid kpi-row">
+        <div class="card" style="animation-delay:0.05s">
+          <div class="card-title">今日上课 <span class="card-title-badge" id="today-badge">TODAY</span></div>
+          <div class="kpi">
+            <span class="kpi-value" id="today-classes">0</span>
+            <span class="kpi-unit">节课</span>
+          </div>
+          <div class="kpi-sub"><span class="ac">时长 <span id="today-minutes">0</span> 分</span> · 科目 <span id="today-subjects" class="ac" style="color:var(--neon-magenta)">0</span> 个</div>
+        </div>
+
+        <div class="card" style="animation-delay:0.1s">
+          <div class="card-title">本周汇总</div>
+          <div class="kpi">
+            <span class="kpi-value alt" id="week-classes">0</span>
+            <span class="kpi-unit">节课</span>
+          </div>
+          <div class="kpi-sub">时长 <span id="week-minutes" class="ac" style="color:var(--neon-magenta)">0</span> 分 · 日均 <span id="week-avg" class="ac">0</span> 分</div>
+        </div>
+
+        <div class="card" style="animation-delay:0.15s">
+          <div class="card-title">累计记录</div>
+          <div class="kpi">
+            <span class="kpi-value good" id="total-classes">0</span>
+            <span class="kpi-unit">节课</span>
+          </div>
+          <div class="kpi-sub">时长 <span id="total-hours" class="ac">0</span> 小时 · 科目 <span id="total-subjects" class="ac" style="color:var(--neon-magenta)">0</span> · 地点 <span id="total-locations" class="ac">0</span></div>
+        </div>
+      </div>
+
+      <!-- 各科目课时：每个科目一个框（总课时 / 已用课时 / 剩余课时） -->
+      <div class="card quota-card" style="animation-delay:0.2s">
+        <div id="quota-card"><!-- 由 renderQuota() 填充 --></div>
+      </div>
+    </section>
+
+    <!-- 打卡页 -->
+    <section class="page" id="page-checkin">
+      <h1 class="page-title">✏️ 打卡 <span class="accent-2">/</span> 上课</h1>
+      <p class="page-subtitle">记下每一次上课 · 地点 / 科目 / 时长</p>
+
+      <!-- 格林 · 学习小伙伴（图片已内联，离线可用） -->
+      <div class="greenie">
+        <div class="greenie-avatar">
+          <img src="data:image/jpeg;base64,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" alt="格林">
+        </div>
+        <div class="greenie-body">
+          <div class="greenie-name">格林 <span class="tag">学习小伙伴</span></div>
+          <div class="greenie-msg" id="greenie-msg">今天还没打卡呢，格林在门口等你一起加油～</div>
+        </div>
+        <span class="greenie-heart">💗</span>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-title">✚ 新建上课记录</div>
+          <span id="form-mode-label" style="font-size:11px;color:var(--text-2);letter-spacing:1px;">新增模式</span>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">学习科目 <span class="req">*</span></label>
+            <input class="input" id="f-subject" placeholder="打字或点下方常用项" list="subject-list" autocomplete="off">
+            <datalist id="subject-list"></datalist>
+            <div class="chip-row" id="chips-subject" data-target="#f-subject"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">学习地点 <span class="req">*</span></label>
+            <input class="input" id="f-location" placeholder="打字或点下方常用项" list="location-list" autocomplete="off">
+            <datalist id="location-list"></datalist>
+            <div class="chip-row" id="chips-location" data-target="#f-location"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">上课日期 <span class="req">*</span></label>
+            <input class="input" type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label class="field-label">上课时间 (24小时制)</label>
+            <input class="input" type="text" id="f-time" inputmode="numeric"
+                   placeholder="如 14:30 · 留空记当前时间"
+                   onfocus="this.select()" oninput="onTimeInput(event)" onblur="normalizeTimeInput(this)">
+          </div>
+          <div class="field full">
+            <label class="field-label">学习时长 (分钟) <span class="req">*</span></label>
+            <input class="input" type="number" id="f-duration" min="1" max="1440" placeholder="默认 90">
+            <div class="chip-row" id="chips-duration" data-target="#f-duration"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="resetForm(true)">清空</button>
+          <button class="btn btn-primary" id="submit-btn" onclick="bounceGelin('#page-checkin .greenie-avatar'); submitCheckin()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5 V19 M5 12 H19"/>
+            </svg>
+            <span id="submit-btn-label">立即打卡</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 看板 -->
+    <section class="page" id="page-stats">
+      <h1 class="page-title">📊 看板 <span class="accent">/</span> 统计</h1>
+      <p class="page-subtitle">把每节课画成趋势</p>
+
+      <!-- 课时包迷你卡 -->
+      <div class="card quota-card" id="quota-card-stats" style="margin-bottom:16px;">
+        <!-- 由 renderQuota() 填充 -->
+      </div>
+
+      <!-- 科目卡 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-title">📚 各科目统计</div>
+          <span class="card-title-badge" id="subj-count-badge">0</span>
+        </div>
+        <div class="subject-grid" id="subject-grid-stats"></div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card" style="animation-delay:0.05s">
+          <div class="card-head">
+            <div class="card-title">📈 最近 7 天上课时长</div>
+            <span class="card-title-badge">分钟 / 天</span>
+          </div>
+          <div class="chart-svg-wrap" id="chart-trend"></div>
+          <div class="legend">
+            <div class="legend-item" style="color:var(--neon-cyan)">
+              <span class="legend-swatch" style="background:var(--neon-cyan)"></span>日总时长
+            </div>
+            <div class="legend-item" style="color:var(--neon-magenta)">
+              <span class="legend-swatch" style="background:var(--neon-magenta)"></span>7 日均线
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="animation-delay:0.1s">
+          <div class="card-head">
+            <div class="card-title">🥧 各科目上课次数</div>
+            <span class="card-title-badge">科目占比</span>
+          </div>
+          <div class="chart-svg-wrap short" id="chart-pie-count"></div>
+          <div class="legend" id="pie-count-legend"></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card" style="animation-delay:0.15s">
+          <div class="card-head">
+            <div class="card-title">📊 各科目累计时长</div>
+            <span class="card-title-badge">分钟 / 科目</span>
+          </div>
+          <div class="chart-svg-wrap short" id="chart-bar"></div>
+        </div>
+
+        <div class="card" style="animation-delay:0.2s">
+          <div class="card-head">
+            <div class="card-title">📍 各地点上课次数</div>
+            <span class="card-title-badge">地点占比</span>
+          </div>
+          <div class="chart-svg-wrap short" id="chart-loc"></div>
+          <div class="legend" id="loc-legend"></div>
+        </div>
+      </div>
+
+      <div class="card" style="animation-delay:0.25s">
+        <div class="card-head">
+          <div class="card-title">🌈 学习全景</div>
+        </div>
+        <div class="chart-svg-wrap" id="chart-progress" style="aspect-ratio: 8 / 1; max-height:120px;"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:14px;margin-top:14px;">
+          <div class="kpi" style="margin:0;"><span class="kpi-value good" id="pano-today">0</span><span class="kpi-unit">今日节次</span></div>
+          <div class="kpi" style="margin:0;"><span class="kpi-value alt" id="pano-week">0</span><span class="kpi-unit">本周节次</span></div>
+          <div class="kpi" style="margin:0;"><span class="kpi-value orange" id="pano-month">0</span><span class="kpi-unit">本月节次</span></div>
+          <div class="kpi" style="margin:0;"><span class="kpi-value" id="pano-avg">0</span><span class="kpi-unit">日均分钟</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 历史记录 -->
+    <section class="page" id="page-history">
+      <h1 class="page-title">📒 记录 <span class="accent-2">/</span> 详情</h1>
+      <p class="page-subtitle">完整回放每一节课</p>
+
+      <div class="toolbar">
+        <input class="input" type="date" id="flt-date" style="width:160px">
+        <select class="select" id="flt-subject" style="width:160px">
+          <option value="">全部科目</option>
+        </select>
+        <select class="select" id="flt-location" style="width:160px">
+          <option value="">全部地点</option>
+        </select>
+        <input class="input" type="search" id="flt-keyword" placeholder="搜索... (留空查全部)" style="flex:1;min-width:160px">
+        <button class="btn btn-ghost btn-sm" onclick="showSubjectManager()">🏷 科目管理</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetFilters()">重置</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <div class="card-title">记录列表</div>
+          <span class="card-title-badge" id="history-count">0 条</span>
+        </div>
+
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>日期</th><th>时间</th><th>科目</th><th>地点</th><th>时长</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+
+        <div class="history-cards" id="history-cards"></div>
+
+        <div class="empty-state" id="history-empty" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="18" height="16" rx="2"/>
+            <path d="M3 9 H21 M8 3 V7 M16 3 V7"/>
+          </svg>
+          <div>暂无符合条件的记录</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">📅 日历热力图</div>
+          <div class="cal-controls" style="margin:0;">
+            <button class="btn btn-ghost btn-sm" onclick="changeMonth(-1)">←</button>
+            <span class="cal-title" id="cal-title">2026-09</span>
+            <button class="btn btn-ghost btn-sm" onclick="changeMonth(1)">→</button>
+          </div>
+        </div>
+        <div class="cal-header">
+          <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div class="calendar" id="cal-grid"></div>
+        <div class="legend" style="margin-top:10px;justify-content:center;font-size:11px;">
+          <span style="color:var(--text-2)">少</span>
+          <div class="cal-day level-0" style="aspect-ratio:auto;width:14px;height:14px;"></div>
+          <div class="cal-day level-1" style="aspect-ratio:auto;width:14px;height:14px;"></div>
+          <div class="cal-day level-2" style="aspect-ratio:auto;width:14px;height:14px;"></div>
+          <div class="cal-day level-3" style="aspect-ratio:auto;width:14px;height:14px;"></div>
+          <span style="color:var(--text-2)">多</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<nav class="bottom-tab" id="bottom-tab">
+  <button class="tab-item active" data-page="home" onclick="switchPage('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 L12 3 L21 12 M5 10 V21 H19 V10"/></svg>
+    <span>主页</span>
+  </button>
+  <button class="tab-item" data-page="checkin" onclick="switchPage('checkin')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7 V12 L15 14"/></svg>
+    <span>打卡</span>
+  </button>
+  <button class="tab-item" data-page="stats" onclick="switchPage('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21 V3 M3 21 H21 M7 17 V11 M12 17 V7 M17 17 V13"/></svg>
+    <span>看板</span>
+  </button>
+  <button class="tab-item" data-page="history" onclick="switchPage('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9 H21 M8 3 V7 M16 3 V7"/></svg>
+    <span>记录</span>
+  </button>
+</nav>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <div class="modal-title" id="modal-title">提示</div>
+    <div class="modal-desc" id="modal-desc">内容</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()" id="modal-cancel">取消</button>
+      <button class="btn btn-danger" onclick="confirmModal()" id="modal-confirm">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
