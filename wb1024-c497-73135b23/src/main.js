@@ -1,6 +1,6 @@
 import css from "./style.css?inline";
 const style=document.createElement("style"); style.textContent=css; document.head.appendChild(style);
-document.body.innerHTML = "\n<div class=\"wrap\">\n<header>\n  <h1>话术<span>风险识别器</span></h1>\n  <div class=\"sub\">收到可疑短信、电话推销或\"好事\"邀约？把对方说的话粘进来，看看它踩了几条套路</div>\n</header>\n\n<div class=\"card\">\n  <h2>粘贴对方说的话</h2>\n  <div class=\"hint\">短信原文、微信消息、电话里说的关键词都可以，字数不限</div>\n  <textarea id=\"txt\" placeholder=\"例：您好，您的社保账户异常将被冻结，请点击链接验证……\"></textarea>\n  <div class=\"btns\">\n    <button class=\"primary\" onclick=\"run()\">识别一下</button>\n    <button onclick=\"loadDemo()\">载入示例</button>\n    <button onclick=\"document.getElementById('txt').value=''\">清空</button>\n  </div>\n</div>\n\n<div id=\"out\"></div>\n\n<div class=\"card\">\n  <h2>拿不准的时候，打这几个电话核实</h2>\n  <div class=\"hot\">\n    <div><div class=\"n\">96110</div><div class=\"p\">全国反诈专线，接到可疑来电、被骗后举报都打它</div></div>\n    <div><div class=\"n\">12333</div><div class=\"p\">人力资源社会保障咨询热线，社保类消息核实</div></div>\n    <div><div class=\"n\">12378</div><div class=\"p\">银行保险消费者投诉维权热线，保险类纠纷反映</div></div>\n    <div><div class=\"n\">110</div><div class=\"p\">已经转了钱，直接报警</div></div>\n  </div>\n  <div class=\"note\">\n    <b>这个工具能做什么、不能做什么</b><br>\n    它只做一件事：把你收到的文字和自己维护的<b>常见诈骗话术特征库</b>逐条比对，告诉你命中了哪些特征。<br>\n    它<b>不能</b>认定某条消息一定是诈骗，也不对任何机构或个人作出评价。命中特征多，说明风险高，应当核实；没有命中，也不代表就一定安全。<br>\n    最终判断请以上述官方热线和线下窗口的答复为准。\n  </div>\n</div>\n</div>\n\n";
+document.body.innerHTML = "\n<div class=\"wrap\">\n<header>\n  <h1>话术<span>风险识别器</span></h1>\n  <div class=\"sub\">收到可疑短信、电话推销或\"好事\"邀约？把对方说的话粘进来，看看它踩了几条套路</div>\n</header>\n\n<div class=\"card\">\n  <h2>粘贴对方说的话</h2>\n  <div class=\"hint\">短信原文、微信消息、电话里说的关键词都可以，字数不限</div>\n  <textarea id=\"txt\" placeholder=\"例：您好，您的社保账户异常将被冻结，请点击链接验证……\"></textarea>\n  <div class=\"btns\">\n    <button class=\"primary\" id=\"run-button\">识别一下</button>\n    <button id=\"demo-button\">载入示例</button>\n    <button id=\"clear-button\">清空</button>\n  </div>\n</div>\n\n<div id=\"out\"></div>\n\n<div class=\"card\">\n  <h2>拿不准的时候，打这几个电话核实</h2>\n  <div class=\"hot\">\n    <div><div class=\"n\">96110</div><div class=\"p\">全国反诈专线，接到可疑来电、被骗后举报都打它</div></div>\n    <div><div class=\"n\">12333</div><div class=\"p\">人力资源社会保障咨询热线，社保类消息核实</div></div>\n    <div><div class=\"n\">12378</div><div class=\"p\">银行保险消费者投诉维权热线，保险类纠纷反映</div></div>\n    <div><div class=\"n\">110</div><div class=\"p\">已经转了钱，直接报警</div></div>\n  </div>\n  <div class=\"note\">\n    <b>这个工具能做什么、不能做什么</b><br>\n    它只做一件事：把你收到的文字和自己维护的<b>常见诈骗话术特征库</b>逐条比对，告诉你命中了哪些特征。<br>\n    它<b>不能</b>认定某条消息一定是诈骗，也不对任何机构或个人作出评价。命中特征多，说明风险高，应当核实；没有命中，也不代表就一定安全。<br>\n    最终判断请以上述官方热线和线下窗口的答复为准。\n  </div>\n</div>\n</div>\n\n";
 
 var PATTERNS = [
   {k:'冒充官方机构',re:/(?:社保(?:局|中心|所)|医保(?:局|中心)|公安局?|检察院|法院|税务局|银保监|市场监管)/,
@@ -119,3 +119,7 @@ function loadDemo(){
 loadDemo();
 
 window.run=run; window.loadDemo=loadDemo;
+
+document.getElementById("run-button").addEventListener("click",run);
+document.getElementById("demo-button").addEventListener("click",loadDemo);
+document.getElementById("clear-button").addEventListener("click",()=>{document.getElementById("txt").value=""});
