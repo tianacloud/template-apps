@@ -1,0 +1,626 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  :root{
+    --bg:#0e1015; --bg2:#151821; --card:#1b1f2a; --card2:#212634;
+    --line:#2a2f3d; --txt:#e8ebf2; --sub:#9aa3b2; --acc:#34d399; --acc2:#22c55e;
+    --warn:#fbbf24; --danger:#f87171; --shadow:0 6px 20px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.5; padding-bottom:78px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:480px; margin:0 auto; min-height:100vh;}
+  .topbar{
+    position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0e1015 70%,rgba(14,16,21,0));
+    padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{font-weight:700; font-size:17px; letter-spacing:.5px;}
+  .brand small{display:block; font-weight:400; font-size:11px; color:var(--sub); letter-spacing:0;}
+  .datepill{font-size:12px; color:var(--sub); background:var(--card); border:1px solid var(--line); padding:5px 10px; border-radius:20px;}
+  .tab{display:none; padding:0 16px 16px; animation:fade .25s ease;}
+  .tab.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* chick mini card */
+  .chickcard{
+    background:radial-gradient(120% 120% at 50% 0%,#1f2a22 0%,var(--card) 60%);
+    border:1px solid var(--line); border-radius:20px; padding:16px; text-align:center; margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  .chickcard svg{width:120px; height:120px;}
+  .chickname{font-weight:700; font-size:16px; margin-top:4px;}
+  .chicklv{font-size:12px; color:var(--acc); margin-top:2px;}
+  .chickdesc{font-size:12px; color:var(--sub); margin-top:6px; min-height:18px;}
+
+  .statrow{display:flex; gap:10px; margin-bottom:14px;}
+  .stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; text-align:center;}
+  .stat b{font-size:22px; display:block;}
+  .stat span{font-size:11px; color:var(--sub);}
+
+  .sectiontitle{font-size:13px; color:var(--sub); margin:6px 2px 10px; font-weight:600; letter-spacing:.5px;}
+
+  .habit{
+    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 14px;
+    margin-bottom:10px; display:flex; align-items:center; gap:12px;
+  }
+  .habit .ic{width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;}
+  .habit .mid{flex:1; min-width:0;}
+  .habit .nm{font-weight:600; font-size:15px;}
+  .habit .sub{font-size:12px; color:var(--sub); margin-top:2px;}
+  .habit .bar{height:6px; background:var(--bg2); border-radius:6px; margin-top:7px; overflow:hidden;}
+  .habit .bar i{display:block; height:100%; border-radius:6px;}
+  .toggle{
+    width:46px; height:46px; border-radius:50%; border:2px solid var(--line); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:20px; color:transparent;
+    background:transparent; transition:.18s; cursor:pointer;
+  }
+  .toggle.done{color:#fff; border-color:transparent;}
+  .toggle:active{transform:scale(.9);}
+
+  .btn{
+    width:100%; border:none; border-radius:14px; padding:13px; font-size:15px; font-weight:600;
+    background:var(--card2); color:var(--txt); cursor:pointer; border:1px solid var(--line); margin-top:4px;
+  }
+  .btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#06281c; border:none;}
+  .btn.ghost{background:transparent;}
+  .btn:active{transform:scale(.98);}
+
+  /* bottom nav */
+  .nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:30; background:#10131a; border-top:1px solid var(--line);
+    max-width:480px; margin:0 auto; display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  .nav button{
+    flex:1; background:none; border:none; color:var(--sub); font-size:11px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0;
+  }
+  .nav button .e{font-size:20px; filter:grayscale(.6);}
+  .nav button.active{color:var(--acc);}
+  .nav button.active .e{filter:none;}
+
+  /* modal */
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; display:none; align-items:flex-end; justify-content:center;}
+  .mask.show{display:flex;}
+  .sheet{
+    width:100%; max-width:480px; background:var(--bg2); border-radius:22px 22px 0 0; padding:20px 18px 28px;
+    border:1px solid var(--line); animation:up .25s ease;
+  }
+  @keyframes up{from{transform:translateY(100%);}to{transform:none;}}
+  .sheet h3{margin:0 0 14px; font-size:17px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block; font-size:12px; color:var(--sub); margin-bottom:6px;}
+  .field input, .field select{
+    width:100%; background:var(--card); border:1px solid var(--line); color:var(--txt);
+    border-radius:12px; padding:11px 12px; font-size:15px; outline:none;
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chips .c{width:40px; height:40px; border-radius:11px; background:var(--card); border:1px solid var(--line); font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .chips .c.on{border-color:var(--acc); box-shadow:0 0 0 2px rgba(52,211,153,.3);}
+  .seg{display:flex; gap:8px;}
+  .seg button{flex:1; background:var(--card); border:1px solid var(--line); color:var(--sub); border-radius:12px; padding:11px; font-size:14px; cursor:pointer;}
+  .seg button.on{background:var(--card2); color:var(--txt); border-color:var(--acc);}
+
+  /* data tab */
+  .chart{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:14px;}
+  .chart .bars{display:flex; align-items:flex-end; gap:8px; height:120px; margin-top:10px;}
+  .chart .col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;}
+  .chart .col .b{width:100%; max-width:26px; background:linear-gradient(180deg,var(--acc),var(--acc2)); border-radius:7px 7px 3px 3px; transition:height .4s;}
+  .chart .col .lab{font-size:10px; color:var(--sub);}
+  .habitscore{margin-top:8px;}
+  .hs{display:flex; align-items:center; gap:10px; margin-bottom:9px;}
+  .hs .nm{width:64px; font-size:13px; flex-shrink:0;}
+  .hs .track{flex:1; height:9px; background:var(--bg2); border-radius:6px; overflow:hidden;}
+  .hs .track i{display:block; height:100%;}
+  .hs .v{font-size:11px; color:var(--sub); width:42px; text-align:right;}
+
+  .empty{text-align:center; color:var(--sub); padding:40px 10px; font-size:13px;}
+  .del{background:none; border:none; color:var(--danger); font-size:12px; cursor:pointer; padding:6px;}
+
+  .xpwrap{margin-top:10px;}
+  .xpbar{height:10px; background:var(--bg2); border-radius:8px; overflow:hidden; border:1px solid var(--line);}
+  .xpbar i{display:block; height:100%; background:linear-gradient(90deg,#fbbf24,#34d399);}
+  .xptxt{font-size:12px; color:var(--sub); margin-top:6px; display:flex; justify-content:space-between;}
+
+  .evosteps{display:flex; justify-content:space-between; margin-top:14px; gap:4px;}
+  .evosteps .s{flex:1; text-align:center; opacity:.4; font-size:10px;}
+  .evosteps .s.on{opacity:1; color:var(--acc);}
+  .evosteps .s .dot{width:10px; height:10px; border-radius:50%; background:var(--line); margin:0 auto 4px;}
+  .evosteps .s.on .dot{background:var(--acc); box-shadow:0 0 0 3px rgba(52,211,153,.25);}
+
+  .toast{position:fixed; left:50%; bottom:96px; transform:translateX(-50%); background:#06281c; color:var(--acc); border:1px solid var(--acc); padding:9px 16px; border-radius:20px; font-size:13px; z-index:60; opacity:0; transition:.3s; pointer-events:none;}
+  .toast.show{opacity:1;}
+</style></head><body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">打卡自律 · 养小鸡<small>坚持，是最温柔的复利</small></div>
+    <div class="datepill" id="datepill">—</div>
+  </div>
+
+  <!-- 今日 -->
+  <section class="tab active" id="tab-today">
+    <div class="chickcard">
+      <div id="chickMini"></div>
+      <div class="chickname" id="chickNameMini">—</div>
+      <div class="chicklv" id="chickLvMini">—</div>
+    </div>
+    <div class="statrow">
+      <div class="stat"><b id="stToday">0/0</b><span>今日完成</span></div>
+      <div class="stat"><b id="stTotal">0</b><span>累计打卡</span></div>
+      <div class="stat"><b id="stBest">0</b><span>最长连续</span></div>
+    </div>
+    <div class="sectiontitle">今日待办</div>
+    <div id="todayList"></div>
+    <button class="btn primary" id="addQuick" style="margin-top:8px">＋ 添加习惯</button>
+  </section>
+
+  <!-- 数据 -->
+  <section class="tab" id="tab-data">
+    <div class="sectiontitle">近 7 天完成率</div>
+    <div class="chart">
+      <div class="bars" id="weekBars"></div>
+    </div>
+    <div class="sectiontitle">各习惯本周表现</div>
+    <div class="chart"><div class="habitscore" id="habitScore"></div></div>
+    <div class="sectiontitle">总体数据</div>
+    <div class="statrow">
+      <div class="stat"><b id="dTotal">0</b><span>总打卡次数</span></div>
+      <div class="stat"><b id="dDays">0</b><span>打卡天数</span></div>
+      <div class="stat"><b id="dFull">0</b><span>全勤天数</span></div>
+    </div>
+  </section>
+
+  <!-- 小鸡 -->
+  <section class="tab" id="tab-chick">
+    <div class="chickcard" style="padding:22px">
+      <div id="chickBig"></div>
+      <div class="chickname" id="chickNameBig" style="margin-top:10px"></div>
+      <div class="chicklv" id="chickLvBig"></div>
+      <div class="chickdesc" id="chickDescBig"></div>
+      <div class="xpwrap">
+        <div class="xpbar"><i id="xpFill"></i></div>
+        <div class="xptxt"><span id="xpNow">0 XP</span><span id="xpNext">下一级 —</span></div>
+      </div>
+      <div class="evosteps" id="evoSteps"></div>
+      <button class="btn ghost" id="renameChick" style="margin-top:16px; border-color:var(--line)">给小鸡取个名</button>
+    </div>
+    <div class="chart">
+      <div class="sectiontitle" style="margin:0 0 8px">怎么养大小鸡？</div>
+      <div style="font-size:13px; color:var(--sub); line-height:1.8">
+        · 每完成一次打卡 <b style="color:var(--txt)">+12 成长值</b><br>
+        · 一天内全部习惯完成 <b style="color:var(--txt)">额外 +20</b><br>
+        · 坚持越久，小鸡越长越大，从蛋到成年鸡<br>
+        · 数据全部保存在本机，卸载即清空，记得备份
+      </div>
+    </div>
+  </section>
+
+  <!-- 习惯 -->
+  <section class="tab" id="tab-habit">
+    <div class="sectiontitle">我的习惯</div>
+    <div id="habitList"></div>
+    <button class="btn primary" id="addHabit">＋ 新建习惯</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" id="exportBtn">导出备份 (JSON)</button>
+    <button class="btn ghost" id="importBtn">导入备份</button>
+    <input accept="application/json" id="importFile" type="file" style="display:none">
+  </section>
+</div>
+
+<div class="nav">
+  <button class="active" data-tab="today"><span class="e">📅</span>今日</button>
+  <button data-tab="data"><span class="e">📊</span>数据</button>
+  <button data-tab="chick"><span class="e">🐤</span>小鸡</button>
+  <button data-tab="habit"><span class="e">⚙️</span>习惯</button>
+</div>
+
+<!-- add/edit modal -->
+<div class="mask" id="modal">
+  <div class="sheet">
+    <h3 id="modalTitle">新建习惯</h3>
+    <div class="field">
+      <label>名称</label>
+      <input id="fName" maxlength="8" placeholder="例如：戒酒 / 跑步 / 阅读">
+    </div>
+    <div class="field">
+      <label>图标</label>
+      <div class="chips" id="iconChips"></div>
+    </div>
+    <div class="field">
+      <label>类型</label>
+      <div class="seg" id="kindSeg">
+        <button class="on" data-k="check">打卡型（完成/未完成）</button>
+        <button data-k="count">计数型（记数值）</button>
+      </div>
+    </div>
+    <div class="field" id="unitField" style="display:none">
+      <label>单位（如 km / 分钟 / 杯）</label>
+      <input id="fUnit" maxlength="6" placeholder="分钟">
+    </div>
+    <div class="field" id="goalField" style="display:none">
+      <label>每日目标值（0 表示不限）</label>
+      <input id="fGoal" min="0" placeholder="60" type="number">
+    </div>
+    <div class="field">
+      <label>主题色</label>
+      <div class="chips" id="colorChips"></div>
+    </div>
+    <button class="btn primary" id="saveHabit">保存</button>
+    <button class="btn ghost" id="cancelModal" style="margin-top:8px">取消</button>
+  </div>
+</div>
+
+<!-- count value modal -->
+<div class="mask" id="cntModal">
+  <div class="sheet">
+    <h3 id="cntTitle">记录数值</h3>
+    <div class="field">
+      <label id="cntLabel">数值</label>
+      <input id="cntVal" min="0" placeholder="0" step="0.1" type="number">
+    </div>
+    <button class="btn primary" id="cntSave">保存</button>
+    <button class="btn ghost" id="cntCancel" style="margin-top:8px">取消</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>const memory={}; const storage={getItem:k=>memory[k]||null,setItem:(k,v)=>memory[k]=v};
+
+const STORE_KEY='self_discipline_app_v1';
+const ICONS=['🚫','🏃','📚','💧','🥗','🛌','🧘','💪','🚭','✍️','🎯','🌅','🦷','📖','🍎','🐱'];
+const COLORS=['#f87171','#34d399','#60a5fa','#38bdf8','#fbbf24','#a78bfa','#fb7185','#4ade80'];
+const STAGES=[
+  {lv:1,name:'蛋蛋',min:0,desc:'一颗安静的蛋，等待你的坚持来孵化'},
+  {lv:2,name:'破壳',min:150,desc:'咔咔——小嘴啄开了壳'},
+  {lv:3,name:'绒毛小鸡',min:400,desc:'毛茸茸的小黄球，摇摇晃晃学走路'},
+  {lv:4,name:'少年鸡',min:800,desc:'长出小冠和小尾巴，开始有脾气'},
+  {lv:5,name:'成年鸡',min:1400,desc:'神气十足的大鸡，陪你一起自律'}
+];
+
+let storageOK=true;
+let state=load();
+let editing=null; // habit being edited
+let curKind='check';
+let curIcon='🚫';
+let curColor='#34d399';
+
+function load(){
+  try{
+    const s=JSON.parse(storage.getItem(STORE_KEY));
+    if(s&&s.habits) return s;
+  }catch(e){ storageOK=false; }
+  return seed();
+}
+function seed(){
+  const t=todayStr();
+  return {
+    habits:[
+      mk('戒酒','🚫','check','',0,'#f87171'),
+      mk('跑步','🏃','count','km',3,'#34d399'),
+      mk('学习','📚','count','分钟',60,'#60a5fa'),
+      mk('喝水','💧','count','杯',8,'#38bdf8')
+    ],
+    chick:{name:'小豆芽',xp:0},
+    version:1
+  };
+}
+function mk(name,icon,kind,unit,goal,color){
+  return {id:'h'+Date.now()+Math.random().toString(36).slice(2,6),name,icon,kind,unit,goal,color,records:{}};
+}
+function save(){ try{ storage.setItem(STORE_KEY,JSON.stringify(state)); }catch(e){ storageOK=false; } }
+
+function todayStr(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dateOffset(n){ const d=new Date(); d.setDate(d.getDate()+n); return d; }
+
+function getHabit(id){ return state.habits.find(h=>h.id===id); }
+function todayVal(h){ return h.records[todayStr()]||0; }
+function isDone(h){ return (h.records[todayStr()]||0)>0; }
+
+function streakOf(h){
+  let s=0; const d=new Date();
+  if(!h.records[fmt(d)]) d.setDate(d.getDate()-1);
+  while(true){
+    if(h.records[fmt(d)]>0) s++; else break;
+    d.setDate(d.getDate()-1);
+    if(s>9000) break;
+  }
+  return s;
+}
+function totalCompletions(h){ return Object.values(h.records).filter(v=>v>0).length; }
+function computeXP(){
+  let xp=0; const days=new Set();
+  state.habits.forEach(h=>Object.keys(h.records).forEach(k=>{ if(h.records[k]>0) days.add(k); }));
+  state.habits.forEach(h=>Object.values(h.records).forEach(v=>{ if(v>0) xp+=12; }));
+  if(state.habits.length>0) days.forEach(k=>{ if(state.habits.every(h=>h.records[k]>0)) xp+=20; });
+  return xp;
+}
+function getStage(xp){
+  let st=STAGES[0];
+  for(const s of STAGES){ if(xp>=s.min) st=s; }
+  return st;
+}
+
+/* ---- chick SVGs ---- */
+function chickSVG(lv){
+  const egg=`<ellipse cx="100" cy="115" rx="52" ry="66" fill="#f3e4c4" stroke="#d8c195" stroke-width="3"/><ellipse cx="84" cy="98" rx="16" ry="20" fill="#fff" opacity=".45"/>`;
+  if(lv<=1){
+    return `<svg viewBox="0 0 200 200">${egg}
+      <path d="M82 112 q9 9 18 0" stroke="#7a6a4a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M100 124 q9 9 18 0" stroke="#7a6a4a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <circle cx="80" cy="128" r="4" fill="#f0a9a9" opacity=".7"/>
+      <circle cx="120" cy="128" r="4" fill="#f0a9a9" opacity=".7"/>
+      <text x="140" y="70" font-size="22" fill="#cbb890">z</text></svg>`;
+  }
+  if(lv===2){
+    return `<svg viewBox="0 0 200 200">
+      <path d="M48 115 a52 66 0 0 1 104 0 v8 l-12 -6 -10 8 -12 -8 -11 9 -12 -8 -10 8 -13 -7 z" fill="#f3e4c4" stroke="#d8c195" stroke-width="3"/>
+      <circle cx="100" cy="78" r="30" fill="#ffd84d" stroke="#e9b83b" stroke-width="3"/>
+      <circle cx="90" cy="74" r="4" fill="#3a2e12"/><circle cx="110" cy="74" r="4" fill="#3a2e12"/>
+      <path d="M96 84 l8 0 l-4 7 z" fill="#f5972b"/>
+      <path d="M70 86 q-14 6 -20 -2" stroke="#e9b83b" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+  }
+  if(lv===3){
+    return `<svg viewBox="0 0 200 200">
+      <ellipse cx="100" cy="112" rx="48" ry="44" fill="#ffd84d" stroke="#e9b83b" stroke-width="3"/>
+      <circle cx="100" cy="78" r="34" fill="#ffdf63" stroke="#e9b83b" stroke-width="3"/>
+      <circle cx="89" cy="74" r="5" fill="#3a2e12"/><circle cx="111" cy="74" r="5" fill="#3a2e12"/>
+      <circle cx="89" cy="73" r="1.6" fill="#fff"/><circle cx="111" cy="73" r="1.6" fill="#fff"/>
+      <path d="M94 86 l12 0 l-6 9 z" fill="#f5972b"/>
+      <path d="M62 104 q-18 4 -22 -8" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M138 104 q18 4 22 -8" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="74" cy="92" r="5" fill="#f0a9a9" opacity=".6"/><circle cx="126" cy="92" r="5" fill="#f0a9a9" opacity=".6"/></svg>`;
+  }
+  if(lv===4){
+    return `<svg viewBox="0 0 200 200">
+      <ellipse cx="100" cy="116" rx="50" ry="48" fill="#ffd84d" stroke="#e9b83b" stroke-width="3"/>
+      <path d="M150 100 q26 -6 30 14 q-22 4 -30 -6" fill="#ffcf3d" stroke="#e9b83b" stroke-width="3"/>
+      <circle cx="100" cy="74" r="36" fill="#ffdf63" stroke="#e9b83b" stroke-width="3"/>
+      <path d="M92 44 q8 -14 18 0 q-9 6 -18 0" fill="#f87171" stroke="#e0533f" stroke-width="2"/>
+      <path d="M100 56 q6 8 0 12" stroke="#f87171" stroke-width="3" fill="none"/>
+      <circle cx="89" cy="72" r="5.5" fill="#3a2e12"/><circle cx="112" cy="72" r="5.5" fill="#3a2e12"/>
+      <circle cx="89" cy="70" r="1.8" fill="#fff"/><circle cx="112" cy="70" r="1.8" fill="#fff"/>
+      <path d="M93 84 l14 0 l-7 10 z" fill="#f5972b"/>
+      <path d="M58 110 q-18 6 -22 -8" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M142 110 q18 6 22 -8" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+  }
+  return `<svg viewBox="0 0 200 200">
+    <ellipse cx="100" cy="120" rx="54" ry="52" fill="#ffd84d" stroke="#e9b83b" stroke-width="3"/>
+    <path d="M150 104 q30 -4 36 18 q-26 4 -36 -8" fill="#ffcf3d" stroke="#e9b83b" stroke-width="3"/>
+    <path d="M56 110 q-26 -10 -30 12 q22 6 30 -4" fill="#ffcf3d" stroke="#e9b83b" stroke-width="3"/>
+    <circle cx="100" cy="72" r="38" fill="#ffdf63" stroke="#e9b83b" stroke-width="3"/>
+    <path d="M86 40 q14 -18 28 0 q-14 8 -28 0" fill="#f87171" stroke="#e0533f" stroke-width="2"/>
+    <path d="M100 52 q8 12 0 16" stroke="#e0533f" stroke-width="3" fill="none"/>
+    <circle cx="89" cy="70" r="6" fill="#3a2e12"/><circle cx="113" cy="70" r="6" fill="#3a2e12"/>
+    <circle cx="89" cy="68" r="2" fill="#fff"/><circle cx="113" cy="68" r="2" fill="#fff"/>
+    <path d="M90 84 l20 0 l-10 13 z" fill="#f5972b" stroke="#d97f1f" stroke-width="1.5"/>
+    <path d="M64 116 q-20 8 -24 -10" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M136 116 q20 8 24 -10" stroke="#e9b83b" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle cx="72" cy="96" r="6" fill="#f0a9a9" opacity=".6"/><circle cx="128" cy="96" r="6" fill="#f0a9a9" opacity=".6"/></svg>`;
+}
+
+/* ---- render ---- */
+function render(){
+  state.chick.xp=computeXP();
+  save();
+  renderToday(); renderData(); renderChick(); renderHabitList();
+  // date
+  const d=new Date(); const wd=['日','一','二','三','四','五','六'][d.getDay()];
+  document.getElementById('datepill').textContent=`${d.getMonth()+1}月${d.getDate()}日 周${wd}`;
+  // storage warning
+  if(!storageOK && !document.getElementById('storeWarn')){
+    const b=document.createElement('div'); b.id='storeWarn';
+    b.style.cssText='background:#3a2a12;color:#fbbf24;border-bottom:1px solid #5a4012;font-size:12px;text-align:center;padding:7px 10px;';
+    b.textContent='⚠️ 当前环境无法保存数据（多为 file:// 限制），数据仅本次有效，建议用下方本地服务地址打开';
+    document.querySelector('.topbar').before(b);
+  }
+}
+
+function renderToday(){
+  const wrap=document.getElementById('todayList'); wrap.innerHTML='';
+  state.habits.forEach(h=>{
+    const done=isDone(h);
+    const div=document.createElement('div'); div.className='habit';
+    let sub, bar='';
+    if(h.kind==='check'){ sub= done?'今天已完成 ✓':'点击左侧圆圈完成'; }
+    else{
+      const v=todayVal(h); const goal=h.goal>0?h.goal:0;
+      sub= v>0? `今日 ${v}${h.unit}`+(goal?` / 目标 ${goal}${h.unit}`:'') : `记录今日${h.unit||'数值'}`;
+      if(goal){ const p=Math.min(100, Math.round(v/goal*100)); bar=`<div class="bar"><i style="width:${p}%;background:${h.color}"></i></div>`; }
+    }
+    div.innerHTML=`
+      <div class="ic" style="background:${h.color}22;">${h.icon}</div>
+      <div class="mid"><div class="nm">${esc(h.name)}</div><div class="sub">${sub}</div>${bar}</div>
+      <button class="toggle ${done?'done':''}" style="${done?`background:${h.color}`:''}">✓</button>`;
+    div.querySelector('.toggle').onclick=()=>onToggle(h.id);
+    div.querySelector('.mid').onclick=()=>{ if(h.kind==='count') openCnt(h.id); };
+    wrap.appendChild(div);
+  });
+  if(state.habits.length===0) wrap.innerHTML='<div class="empty">还没有习惯，点下面按钮添加一个吧 🐣</div>';
+  // stats
+  const doneCnt=state.habits.filter(isDone).length;
+  document.getElementById('stToday').textContent=`${doneCnt}/${state.habits.length}`;
+  document.getElementById('stTotal').textContent=state.habits.reduce((a,h)=>a+totalCompletions(h),0);
+  document.getElementById('stBest').textContent=Math.max(0,...state.habits.map(streakOf));
+  // chick mini
+  const st=getStage(state.chick.xp);
+  document.getElementById('chickMini').innerHTML=chickSVG(st.lv);
+  document.getElementById('chickNameMini').textContent=state.chick.name||'小鸡';
+  document.getElementById('chickLvMini').textContent=`Lv.${st.lv} ${st.name}`;
+}
+
+function onToggle(id){
+  const h=getHabit(id); const t=todayStr();
+  if(h.kind==='count'){ openCnt(id); return; }
+  if(h.records[t]) delete h.records[t]; else h.records[t]=1;
+  render(); toast(h.records[t]?`${h.name} 打卡成功 +12 🐤`:`已取消 ${h.name}`);
+}
+
+function renderData(){
+  // week bars
+  const bars=document.getElementById('weekBars'); bars.innerHTML='';
+  const labels=['日','一','二','三','四','五','六'];
+  for(let i=6;i>=0;i--){
+    const d=dateOffset(-i); const k=fmt(d);
+    const done=state.habits.filter(h=>h.records[k]>0).length;
+    const rate=state.habits.length? Math.round(done/state.habits.length*100):0;
+    const col=document.createElement('div'); col.className='col';
+    col.innerHTML=`<div class="b" style="height:${Math.max(rate,4)}%" title="${rate}%"></div><div class="lab">${i===0?'今':labels[d.getDay()]}</div>`;
+    bars.appendChild(col);
+  }
+  // habit score this week
+  const hs=document.getElementById('habitScore'); hs.innerHTML='';
+  state.habits.forEach(h=>{
+    let wk=0; for(let i=6;i>=0;i--){ if(h.records[fmt(dateOffset(-i))]>0) wk++; }
+    const p=Math.round(wk/7*100);
+    const row=document.createElement('div'); row.className='hs';
+    row.innerHTML=`<div class="nm">${h.icon} ${esc(h.name)}</div><div class="track"><i style="width:${p}%;background:${h.color}"></i></div><div class="v">${wk}/7天</div>`;
+    hs.appendChild(row);
+  });
+  if(state.habits.length===0) hs.innerHTML='<div class="empty">暂无数据</div>';
+  // totals
+  let tot=0,days=new Set(),full=0;
+  state.habits.forEach(h=>Object.keys(h.records).forEach(k=>{ if(h.records[k]>0){tot++; days.add(k);} }));
+  if(state.habits.length>0) days.forEach(k=>{ if(state.habits.every(h=>h.records[k]>0)) full++; });
+  document.getElementById('dTotal').textContent=tot;
+  document.getElementById('dDays').textContent=days.size;
+  document.getElementById('dFull').textContent=full;
+}
+
+function renderChick(){
+  const st=getStage(state.chick.xp);
+  document.getElementById('chickBig').innerHTML=chickSVG(st.lv);
+  document.getElementById('chickNameBig').textContent=state.chick.name||'小鸡';
+  document.getElementById('chickLvBig').textContent=`Lv.${st.lv} · ${st.name}`;
+  document.getElementById('chickDescBig').textContent=st.desc;
+  // xp bar
+  const idx=STAGES.indexOf(st);
+  const next=STAGES[idx+1];
+  let pct, now, nxt;
+  if(next){ pct=Math.round((state.chick.xp-st.min)/(next.min-st.min)*100); now=`${state.chick.xp} XP`; nxt=`距「${next.name}」还差 ${next.min-state.chick.xp}`; }
+  else { pct=100; now=`${state.chick.xp} XP 满级`; nxt='已成年，继续陪伴你 🎉'; }
+  document.getElementById('xpFill').style.width=pct+'%';
+  document.getElementById('xpNow').textContent=now;
+  document.getElementById('xpNext').textContent=nxt;
+  // evo steps
+  const ev=document.getElementById('evoSteps'); ev.innerHTML='';
+  STAGES.forEach(s=>{
+    const on=state.chick.xp>=s.min;
+    const d=document.createElement('div'); d.className='s'+(on?' on':'');
+    d.innerHTML=`<div class="dot"></div>${s.name}`;
+    ev.appendChild(d);
+  });
+}
+
+function renderHabitList(){
+  const wrap=document.getElementById('habitList'); wrap.innerHTML='';
+  state.habits.forEach(h=>{
+    const div=document.createElement('div'); div.className='habit';
+    div.innerHTML=`
+      <div class="ic" style="background:${h.color}22;">${h.icon}</div>
+      <div class="mid"><div class="nm">${esc(h.name)}</div><div class="sub">${h.kind==='check'?'打卡型':`计数型 · ${h.unit||''}${h.goal>0?` · 目标${h.goal}`:''}`} · 连续${streakOf(h)}天</div></div>
+      <button class="del">删除</button>`;
+    div.querySelector('.del').onclick=()=>{ if(confirm(`确定删除「${h.name}」？打卡记录也会一并清除。`)){ state.habits=state.habits.filter(x=>x.id!==h.id); render(); toast('已删除'); } };
+    div.querySelector('.mid').onclick=()=>openModal(h);
+    div.querySelector('.ic').onclick=()=>openModal(h);
+    wrap.appendChild(div);
+  });
+  if(state.habits.length===0) wrap.innerHTML='<div class="empty">还没有习惯</div>';
+}
+
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---- modal ---- */
+function buildChips(){
+  const ic=document.getElementById('iconChips'); ic.innerHTML='';
+  ICONS.forEach(e=>{ const d=document.createElement('div'); d.className='c'+(e===curIcon?' on':''); d.textContent=e; d.onclick=()=>{curIcon=e; buildChips();}; ic.appendChild(d); });
+  const cc=document.getElementById('colorChips'); cc.innerHTML='';
+  COLORS.forEach(c=>{ const d=document.createElement('div'); d.className='c'+(c===curColor?' on':''); d.style.background=c+'33'; d.style.borderColor=c; d.style.color=c; d.textContent='●'; d.onclick=()=>{curColor=c; buildChips();}; cc.appendChild(d); });
+}
+function openModal(h){
+  editing=h||null;
+  document.getElementById('modalTitle').textContent=h?'编辑习惯':'新建习惯';
+  document.getElementById('fName').value=h?h.name:'';
+  document.getElementById('fUnit').value=h?h.unit:'';
+  document.getElementById('fGoal').value=h?(h.goal||''):'';
+  curKind=h?h.kind:'check'; curIcon=h?h.icon:'🚫'; curColor=h?h.color:'#34d399';
+  syncKind(); buildChips();
+  document.getElementById('modal').classList.add('show');
+}
+function syncKind(){
+  document.querySelectorAll('#kindSeg button').forEach(b=>b.classList.toggle('on',b.dataset.k===curKind));
+  document.getElementById('unitField').style.display=curKind==='count'?'block':'none';
+  document.getElementById('goalField').style.display=curKind==='count'?'block':'none';
+}
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+
+/* count modal */
+let cntId=null;
+function openCnt(id){
+  const h=getHabit(id); cntId=id;
+  document.getElementById('cntTitle').textContent=`记录「${h.name}」`;
+  document.getElementById('cntLabel').textContent=`数值（${h.unit||''}）`;
+  document.getElementById('cntVal').value=todayVal(h)||'';
+  document.getElementById('cntModal').classList.add('show');
+  setTimeout(()=>document.getElementById('cntVal').focus(),200);
+}
+
+/* ---- events ---- */
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+});
+document.getElementById('addHabit').onclick=()=>openModal(null);
+document.getElementById('addQuick').onclick=()=>openModal(null);
+document.getElementById('cancelModal').onclick=closeModal;
+document.getElementById('modal').onclick=e=>{ if(e.target.id==='modal') closeModal(); };
+document.querySelectorAll('#kindSeg button').forEach(b=>b.onclick=()=>{ curKind=b.dataset.k; syncKind(); });
+document.getElementById('saveHabit').onclick=()=>{
+  const name=document.getElementById('fName').value.trim();
+  if(!name){ toast('请填写名称'); return; }
+  const unit=document.getElementById('fUnit').value.trim();
+  const goal=parseFloat(document.getElementById('fGoal').value)||0;
+  if(editing){
+    editing.name=name; editing.icon=curIcon; editing.kind=curKind; editing.unit=unit; editing.goal=goal; editing.color=curColor;
+  }else{
+    state.habits.push({id:'h'+Date.now()+Math.random().toString(36).slice(2,6),name,icon:curIcon,kind:curKind,unit,goal,color:curColor,records:{}});
+  }
+  closeModal(); render(); toast('已保存');
+};
+document.getElementById('cntCancel').onclick=()=>document.getElementById('cntModal').classList.remove('show');
+document.getElementById('cntModal').onclick=e=>{ if(e.target.id==='cntModal') document.getElementById('cntModal').classList.remove('show'); };
+document.getElementById('cntSave').onclick=()=>{
+  const v=parseFloat(document.getElementById('cntVal').value)||0;
+  if(cntId){ const h=getHabit(cntId); if(v>0) h.records[todayStr()]=v; else delete h.records[todayStr()]; }
+  document.getElementById('cntModal').classList.remove('show');
+  render(); toast(v>0?`${getHabit(cntId).name} +${v}${getHabit(cntId).unit||''} 🐤`:'已清除今日记录');
+};
+document.getElementById('renameChick').onclick=()=>{
+  const n=prompt('给小鸡取个名字：',state.chick.name||'小豆芽');
+  if(n&&n.trim()){ state.chick.name=n.trim(); render(); toast('小鸡有了新名字 🐤'); }
+};
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='打卡自律备份_'+todayStr()+'.json'; a.click();
+  toast('已导出备份');
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{
+    try{ const s=JSON.parse(r.result); if(s&&s.habits){ state=s; render(); toast('导入成功'); } else toast('文件格式不正确'); }
+    catch(err){ toast('导入失败：不是有效 JSON'); }
+  }; r.readAsText(f); e.target.value='';
+};
+
+let toastTimer;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1600); }
+
+render();
+</script></body></html>
