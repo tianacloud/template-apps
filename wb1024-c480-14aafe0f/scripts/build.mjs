@@ -4,7 +4,7 @@ const source=JSON.parse(await readFile('source.json','utf8'));
 const html=await readFile('app.html','utf8'); await mkdir('dist/assets',{recursive:true});
 const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
 const body=html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)[1].replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
-const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].filter(m=>!m[0].includes('application/json')).map(m=>m[1]);
+const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].filter(m=>!m[0].slice(0,m[0].indexOf('>')).includes('application/json')).map(m=>m[1]);
 let js=`const originalHTML=${JSON.stringify(html)};\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst slot=document.createElement('script');slot.id='bakedCfg';slot.type='application/json';slot.textContent='null';document.body.appendChild(slot);\nconst style=document.createElement('link');style.rel='stylesheet';style.href=new URL('./app.css',import.meta.url).href;document.head.appendChild(style);\n`;
 js+=scripts.map(s=>s.replace('var clone = document.documentElement.cloneNode(true);',"var clone = new DOMParser().parseFromString(originalHTML, 'text/html').documentElement;")).join('\n;\n');
 await writeFile('dist/assets/app.js',js); await writeFile('dist/assets/app.css',css);
