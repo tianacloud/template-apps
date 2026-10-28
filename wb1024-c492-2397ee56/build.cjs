@@ -1,0 +1,1 @@
+const fs=require("fs"); const source=require("./source.json"); fs.mkdirSync("dist/assets",{recursive:true}); fs.copyFileSync("src/app.js","dist/assets/app.js"); fs.copyFileSync("public/icon.png","dist/icon.png"); console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
