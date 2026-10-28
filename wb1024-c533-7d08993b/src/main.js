@@ -13,7 +13,7 @@ window.openSSD=async function(path='index.html') {
   if(url.origin!==ssdBase.origin || !url.pathname.startsWith(ssdBase.pathname)) return;
   const response=await fetch(url); if(!response.ok) throw new Error('SSD 资源加载失败');
   const html=await response.text(); frame.dataset.url=url.href;
-  frame.srcdoc=html.replace('<head>', '<head><base href="'+ssdBase.href+'">');
+  frame.srcdoc=html.replace(/(href|src)="(assets\/[^"]+)"/g, (_,attr,path) => attr + '="' + new URL(path, ssdBase).href + '"');
 };
 frame.addEventListener('load',()=>{
   if (!frame.srcdoc) return;

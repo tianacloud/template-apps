@@ -8,7 +8,7 @@ const DB = (() => {
   const cache = { meta: null, index: null, shards: new Map() };
 
   async function getJSON(path) {
-    const res = await fetch(path, { cache: 'no-cache' });
+    const res = await fetch(new URL(path, ssdURL()), { cache: 'no-cache' });
     if (!res.ok) throw new Error('加载失败 ' + path + ' (' + res.status + ')');
     return res.json();
   }

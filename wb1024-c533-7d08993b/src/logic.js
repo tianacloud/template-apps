@@ -398,7 +398,7 @@
       if (!total) { ctx.fillText('暂无未购配件', w/2 - 30, h/2); return; }
 
       const colors = ['#2d7a5e','#e8890c','#4aa383','#f5a623','#2274a5','#d95d39','#6b5b95','#88b04b','#f7cac9','#92a8d1'];
-      const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 40;
+      const cx = w / 2, cy = h / 2, r = Math.max(0, Math.min(w, h) / 2 - 40);
       let start = -Math.PI / 2;
 
       items.forEach((c, i) => {
@@ -486,7 +486,7 @@
       const items = appData.components.filter(c => c.price > 0);
       const total = items.reduce((s, c) => s + c.price, 0);
       const cx = rect.width / 2, cy = rect.height / 2 - 10;
-      const r = Math.min(rect.width, rect.height) / 2 - 50;
+      const r = Math.max(0, Math.min(rect.width, rect.height) / 2 - 50);
       const colors = ['#2d7a5e','#e8890c','#4aa383','#f5a623','#2274a5','#d95d39','#6b5b95','#88b04b','#f7cac9','#92a8d1','#955251','#b565a7'];
       let start = -Math.PI / 2;
 
