@@ -156,10 +156,10 @@ function showHome() {
   const main = document.getElementById('main');
   let html = '<section class="hero">'
     + '<h1>17 个顺手小工具，打开即用</h1>'
-    + '<p>不用登录、不用联网、不上传任何数据。所有计算都在你的浏览器里完成，关掉页面什么都不留下。</p>'
+    + '<p>工具计算在浏览器中完成，收藏、主题和最近使用保存在当前浏览器。</p>'
     + '<div class="hero-chips">'
-    + '<span class="chip">免登录</span><span class="chip">纯本地运行</span>'
-    + '<span class="chip">支持离线</span><span class="chip">Ctrl K 快速唤起</span>'
+    + '<span class="chip">本地计算</span><span class="chip">纯本地运行</span>'
+    + '<span class="chip">无需上传</span><span class="chip">Ctrl K 快速唤起</span>'
     + '</div></section>';
 
   CATS.forEach(c => {
