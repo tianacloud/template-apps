@@ -127,14 +127,14 @@ function render() {
       </div>
     </div>`;
 
-  host.querySelector('#clearAll').onclick = () => { Basket.clear(); location.href = 'compare.html'; };
+  host.querySelector('#clearAll').onclick = () => { Basket.clear(); goSSD('compare.html'); };
   host.querySelector('#onlyDiff').onchange = e => { onlyDiff = e.target.checked; renderSpecTable(); };
   host.querySelectorAll('[data-rm]').forEach(b => {
     b.onclick = () => {
       const id = Number(b.dataset.rm);
       const rest = LIST.map(r => r.id).filter(x => x !== id);
       Basket.set(rest);
-      location.href = 'compare.html?ids=' + rest.join(',');
+      goSSD('compare.html?ids=' + rest.join(','));
     };
   });
   host.querySelector('#benchSel').onchange = renderBenchChart;

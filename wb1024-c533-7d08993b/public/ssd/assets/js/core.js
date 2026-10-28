@@ -1,3 +1,5 @@
+function goSSD(path) { if (window.parent !== window && window.parent.openSSD) window.parent.openSSD(path); else location.assign(path); }
+function ssdURL() { return window.frameElement?.dataset.url || location.href; }
 /* ============================================================
    core.js — 数据加载 / 格式化 / 对比篮 / 公共组件
    ============================================================ */
@@ -222,7 +224,7 @@ function initBenchMode() {
 function saveBenchMode(mode) {
   if (mode && BENCH_MODES[mode]) benchMode = mode;
   try { localStorage.setItem(MODE_KEY, benchMode); } catch (e) { /* 隐私模式忽略 */ }
-  const u = new URL(location.href);
+  const u = new URL(ssdURL());
   u.searchParams.set('mode', benchMode);
   history.replaceState(null, '', u.toString());
 }
@@ -392,7 +394,7 @@ const UI = {
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   },
   qs(name) {
-    return new URLSearchParams(location.search).get(name);
+    return new URL(ssdURL()).searchParams.get(name);
   },
   toast(msg) {
     let t = document.getElementById('toast');
@@ -441,7 +443,7 @@ const UI = {
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
           const q = input.value.trim();
-          location.href = 'index.html' + (q ? '?q=' + encodeURIComponent(q) : '');
+          goSSD('index.html' + (q ? '?q=' + encodeURIComponent(q) : '')); 
         }
       });
     });

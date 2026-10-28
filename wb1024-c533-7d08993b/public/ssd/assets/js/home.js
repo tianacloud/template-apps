@@ -422,7 +422,7 @@ function renderLadder(host, page, allRows) {
   host.querySelectorAll('.lrow').forEach(row => {
     row.addEventListener('click', e => {
       if (e.target.closest('a') || e.target.closest('input')) return;
-      location.href = 'detail.html?id=' + row.dataset.id;
+      goSSD('detail.html?id=' + row.dataset.id);
     });
   });
 }
