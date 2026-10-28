@@ -735,9 +735,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
 }
 </style>
 <script>
+var previewStore={data:{},getItem(k){return this.data[k]||null},setItem(k,v){this.data[k]=v}};
   (function () {
     try {
-      var saved = localStorage.getItem('expired-radar.theme');
+      var saved = previewStore.getItem('expired-radar.theme');
       var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', theme);
       var meta = document.querySelector('meta[name="theme-color"]');
@@ -748,7 +749,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
   })();
 </script>
 </head>
-<body>
+<body><div style="text-align:center;padding:8px;background:#233a35;color:white">示例体验，数据仅保留在本页 <button id="previewReset" type="button">恢复示例</button></div>
 <div class="bg-glow" aria-hidden="true"></div>
 
 <div class="app">
@@ -885,14 +886,15 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
       <button class="btn btn-danger-ghost" id="btnDelete" type="button" hidden>删除</button>
       <div class="spacer"></div>
       <button class="btn btn-ghost" id="btnCancel" type="button">取消</button>
-      <button class="btn btn-primary" id="btnSave" type="submit">保存</button>
+      <button class="btn btn-primary" id="btnSave" type="button">保存</button>
     </div>
   </form>
 </aside>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script>/* ===========================================================
+<script>function previewConfirm(){return true;}
+/* ===========================================================
    到期雷达 — 全部逻辑跑在浏览器本地，无依赖
    =========================================================== */
 (function () {
@@ -996,7 +998,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
 
   function load() {
     try {
-      var raw = localStorage.getItem(KEY);
+      var raw = previewStore.getItem(KEY);
       if (!raw) return false;
       var data = JSON.parse(raw);
       if (!data || !Array.isArray(data.items)) return false;
@@ -1006,7 +1008,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
   }
 
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ v: 1, items: state.items })); }
+    try { previewStore.setItem(KEY, JSON.stringify({ v: 1, items: state.items })); }
     catch (e) { toast('保存失败，浏览器存储可能被禁用了'); }
   }
 
@@ -1362,7 +1364,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
 
   /* ---------------- 保存 / 删除 ---------------- */
 
-  $('#form').addEventListener('submit', function (e) {
+  $('#btnSave').addEventListener('click', function (e) {
     e.preventDefault();
     var name = $('#fName').value.trim();
     var date = $('#fDate').value;
@@ -1403,7 +1405,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
   function removeItem(id) {
     var it = state.items.filter(function (x) { return x.id === id; })[0];
     if (!it) return;
-    if (!window.confirm('删除「' + it.name + '」？删掉之后就盯不到了。')) return;
+    if (!previewConfirm('删除「' + it.name + '」？删掉之后就盯不到了。')) return;
     state.items = state.items.filter(function (x) { return x.id !== id; });
     save(); closeDrawer(); render();
     toast('已删除「' + it.name + '」');
@@ -1552,7 +1554,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
       btn.setAttribute('aria-label', btn.title);
     }
     if (persist) {
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+      try { previewStore.setItem(THEME_KEY, theme); } catch (e) {}
     }
   }
 
@@ -1566,7 +1568,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
     var mq = window.matchMedia('(prefers-color-scheme: light)');
     var onSchemeChange = function (e) {
       var saved = null;
-      try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
+      try { saved = previewStore.getItem(THEME_KEY); } catch (err) {}
       if (!saved) applyTheme(e.matches ? 'light' : 'dark', false);
     };
     if (mq.addEventListener) mq.addEventListener('change', onSchemeChange);
@@ -1639,11 +1641,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
     render();
   });
 
-  $('#btnExport').addEventListener('click', exportCSV);
+  $('#btnExport').addEventListener('click', function(){ toast('安装后可导出 CSV'); });
 
   $('#btnWipe').addEventListener('click', function () {
     if (!state.items.length) { toast('本来就是空的'); return; }
-    if (!window.confirm('清空全部 ' + state.items.length + ' 条记录？这个操作不能撤销。')) return;
+    if (!previewConfirm('清空全部 ' + state.items.length + ' 条记录？这个操作不能撤销。')) return;
     state.items = [];
     save();
     render();
@@ -1678,6 +1680,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-
   $('#fDate').addEventListener('input', updatePreview);
   $('#fDate').addEventListener('change', updatePreview);
 
+  $('#previewReset').addEventListener('click', function(){ state.items = demoItems(); save(); closeDrawer(); render(); toast('已恢复示例'); });
   /* ---------------- 启动 ---------------- */
 
   (function init() {
