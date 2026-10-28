@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#12A87A">
+<meta name="description" content="知食 —— 拍一张，这餐就清楚了。输入身高体重，记录每餐，实时算清营养与热量，给出饮食和训练建议。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="知食">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>知食 · 每天知道自己吃了什么</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%2312A87A'/%3E%3Ctext x='32' y='46' font-size='38' fill='white' text-anchor='middle' font-family='PingFang SC,Microsoft YaHei,sans-serif'%3E%E7%9F%A5%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= 建档 ================= -->
+  <div id="onb" class="onb hide">
+    <div class="onb-logo">
+      <div class="logo-m">知</div>
+      <div>
+        <div style="font-weight:800;font-size:15px;letter-spacing:-.3px">知食</div>
+        <div class="tiny muted">NutriLens</div>
+      </div>
+    </div>
+
+    <div id="onbStep1" class="onb-step">
+      <h1>先认识你一下</h1>
+      <p class="lead">这些数字只存在这台手机里，用来算你的基础代谢和每日目标。</p>
+      <div class="step-dots"><i class="on"></i><i></i><i></i></div>
+
+      <div class="field">
+        <label>怎么称呼你 <span class="hint">选填</span></label>
+        <input class="inp" id="fNick" placeholder="比如 老肖" maxlength="8">
+      </div>
+
+      <div class="field">
+        <label>我目前的目标是</label>
+        <div class="chips" id="goalChips">
+          <button class="chip on" data-goal="lose">减脂塑形</button>
+          <button class="chip" data-goal="keep">维持体重</button>
+          <button class="chip" data-goal="gain">增肌增重</button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>性别</label>
+          <div class="chips" id="sexChips">
+            <button class="chip on" data-sex="m" style="flex:1">男</button>
+            <button class="chip" data-sex="f" style="flex:1">女</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>年龄</label>
+          <input class="inp" id="fAge" type="number" inputmode="numeric" placeholder="如 35" value="35">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>身高 <span class="hint">cm</span></label>
+          <input class="inp" id="fHeight" type="number" inputmode="numeric" placeholder="如 172" value="172">
+        </div>
+        <div class="field">
+          <label>当前体重 <span class="hint">kg</span></label>
+          <input class="inp" id="fWeight" type="number" inputmode="decimal" placeholder="如 68.5" value="68.5">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>目标体重 <span class="hint">kg</span></label>
+        <input class="inp" id="fTarget" type="number" inputmode="decimal" placeholder="如 63" value="63">
+      </div>
+
+      <button class="btn" style="margin-top:8px" data-onclick="Onb.next(2)">下一步</button>
+      <button class="btn ghost" style="margin-top:9px;font-size:14px" data-onclick="Sample.load()">先看一份示例记录 ›</button>
+      <p class="tiny muted" style="text-align:center;margin-top:12px;line-height:1.6">
+        不想填也行，示例里有 7 天的完整记录可以直接看效果</p>
+    </div>
+
+    <div id="onbStep2" class="onb-step hide">
+      <h1>平时动得多吗</h1>
+      <p class="lead">选最接近你日常状态的一项，我们用它推算每日消耗。</p>
+      <div class="step-dots"><i class="on"></i><i class="on"></i><i></i></div>
+      <div id="actList" style="margin-bottom:18px"></div>
+      <button class="btn" data-onclick="Onb.next(3)">下一步</button>
+      <button class="btn ghost" style="margin-top:9px" data-onclick="Onb.next(1)">上一步</button>
+    </div>
+
+    <div id="onbStep3" class="onb-step hide">
+      <h1>你的每日预算</h1>
+      <p class="lead">根据你的身体数据算出来的，之后可以随时在「我的」里调整。</p>
+      <div class="step-dots"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <div class="card" id="planPreview" style="margin-bottom:16px"></div>
+      <button class="btn" data-onclick="Onb.finish()">开始记录</button>
+      <button class="btn ghost" style="margin-top:9px" data-onclick="Onb.next(2)">上一步</button>
+      <p class="tiny muted" style="text-align:center;margin-top:14px;line-height:1.6">
+        数据模型采用 Mifflin-St Jeor 公式，仅作健康参考，不替代专业医疗建议</p>
+    </div>
+  </div>
+
+  <!-- ================= 主应用 ================= -->
+  <div id="main" class="hide">
+
+    <!-- 今日 -->
+    <section class="page on" id="pg-today">
+      <div class="topbar">
+        <div>
+          <p class="hello" id="greet">早上好</p>
+          <div class="subline" id="todayDate">—</div>
+        </div>
+        <div class="avatar" id="avatarLetter" data-onclick="App.tab('me')">肖</div>
+      </div>
+      <div class="today-wrap">
+        <div class="ring-card" id="ringCard"></div>
+
+        <div class="t-main">
+          <div class="macro-row" id="macroRow"></div>
+          <div class="sec-title">
+            <h3>今天吃了什么</h3>
+            <span class="more" id="todayTotal">—</span>
+          </div>
+          <div id="mealList"></div>
+        </div>
+
+        <aside class="t-side">
+          <div class="sec-title"><h3>营养师点评</h3></div>
+          <div class="coach" id="coachBox"></div>
+          <div class="sec-title"><h3>本周节奏</h3><span class="more" data-onclick="App.tab('week')">查看周报 ›</span></div>
+          <div class="card"><div class="bars" id="miniBars"></div></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 记录 -->
+    <section class="page" id="pg-log">
+      <div class="topbar">
+        <div>
+          <p class="hello">记录</p>
+          <div class="subline">按天回看每一餐</div>
+        </div>
+      </div>
+      <div class="wrap">
+        <div class="cal" id="calStrip"></div>
+        <div id="logDetail"></div>
+      </div>
+    </section>
+
+    <!-- 周报 -->
+    <section class="page" id="pg-week">
+      <div class="topbar">
+        <div>
+          <p class="hello">周报</p>
+          <div class="subline">最近 7 天</div>
+        </div>
+      </div>
+      <div class="wrap" id="weekBody"></div>
+    </section>
+
+    <!-- 我的 -->
+    <section class="page" id="pg-me">
+      <div class="topbar">
+        <div>
+          <p class="hello">我的</p>
+          <div class="subline">身体数据与目标</div>
+        </div>
+      </div>
+      <div class="wrap" id="meBody"></div>
+    </section>
+
+    <!-- 导航 -->
+    <nav class="tabbar">
+      <div class="brand">
+        <div class="logo-m">知</div>
+        <div class="brand-tx"><b>知食</b><span>NutriLens</span></div>
+      </div>
+      <button class="tab on" data-tab="today" data-onclick="App.tab('today')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg><span>今日</span>
+      </button>
+      <button class="tab" data-tab="log" data-onclick="App.tab('log')">
+        <svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg><span>记录</span>
+      </button>
+      <button class="tab-add" data-onclick="Add.open()" aria-label="记录一餐"><span>+</span><em>记录一餐</em></button>
+      <button class="tab" data-tab="week" data-onclick="App.tab('week')">
+        <svg viewBox="0 0 24 24"><path d="M4 20V11M9.3 20V5M14.7 20v-6M20 20v-9"/></svg><span>周报</span>
+      </button>
+      <button class="tab" data-tab="me" data-onclick="App.tab('me')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.7-3.6 3.6-5.6 7.2-5.6s6.5 2 7.2 5.6"/></svg><span>我的</span>
+      </button>
+      <div class="side-foot">
+        <p>所有数据只保存在本机浏览器<br>不上传、不注册、免登录</p>
+        <button data-onclick="Sample.load()">载入示例记录 ›</button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- 弹层 -->
+<div class="mask" id="mask" data-onclick="Sheet.close()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-h">
+    <h3 id="sheetTitle">记录一餐</h3>
+    <button class="sheet-x" data-onclick="Sheet.close()">✕</button>
+  </div>
+  <div class="sheet-b" id="sheetBody"></div>
+  <div class="sheet-f" id="sheetFoot"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="food-db.js"></script>
+<script src="sample-photos.js"></script>
+<script src="sample-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
