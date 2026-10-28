@@ -227,7 +227,7 @@
   .lw .alt{font-size:10px;color:var(--muted);opacity:.72;margin-left:2px;font-weight:400;}
 </style>
 </head>
-<body>
+<body><div style="padding:8px;background:#243445;color:white">示例体验，数据仅保留在本页。 <button id="previewReset">恢复示例</button></div>
   <h1>拆句器 · 拆主干 / 翻译 / 语法</h1>
   <div class="sub">英文粘进去 → 一键拆解 → 顶部「全文概览」看整篇骨架，下面逐句拆解（主干分色 + 每词中文 + 语法解释）。每句译文框里有「翻译」开关，关掉先自己理解、打开才显示译文（显示后才可选 逐词 / 通顺 / 意群）。点任意词看成分。</div>
 
@@ -307,6 +307,8 @@
   </div>
 
 <script>
+const previewData={}; const previewStorage={getItem:k=>previewData[k]??null,setItem:(k,v)=>{previewData[k]=v}};
+
 window.addEventListener('error',function(e){var s=document.getElementById('status');if(s)s.textContent='出错了：'+(e.message||e.error);});
 // ===== 离线识别引擎（纯规则，无外部依赖，预览/浏览器都能跑）=====
 const VERB_LEX = new Set(("be is am are was were been being have has had do does did make makes made help helps take takes took get gets got give gives gave use uses used buy buys bought sell sells sold show shows showed need needs needed want wants like likes love loves know knows go goes went come comes came see sees saw find finds found keep keeps kept put push pull open opens close closes create creates build builds built run runs play plays work works start starts stop stops change changes grow grows become became feel feels felt think thinks say says said tell tells told ask asks answer hope wish believe learn learns learned teach teaches teach read reads write writes speak speaks talk talks listen listens hear hears watch watches look seem appear appears remain stay leave leaves join lead leads follow call turn move pay cost include offer provide receive accept choose chose decide expect explain suggest mention describe mean require allow belong contain produce deliver improve reduce increase develop design order orders ordered sleep sleeps sit sat eat ate drink drank drive drove fall fell feed fed fight fought fly flew forget forgot freeze froze bring brought break broke begin began bend bent bleed bled blow blew catch caught deal dealt dig dug draw drew dream dreamt dream feed fed feel felt fight fought find found fly flew forget forgot forgive forgave freeze froze get got give gave go went grow grew hang hung hear heard hide hid hit hit hold held hurt hurt keep kept know knew lead led learn learnt learned leave left lend lent let let lie lay light lit lose lost make made mean meant meet met pay paid read read ride rode ring rang rise rose run ran say said see saw sell sold send sent show showed shut shut sing sang sink sank sit sat sleep slept speak spoke spend spent stand stood steal stole stick stuck swim swam take took teach taught tear tore tell told think thought throw threw understand understood wake woke wear wore win won write wrote").split(" "));
@@ -1422,9 +1424,10 @@ let spellOn=true;          // 内置拼写检查开关（自研词库查表，�
 // 我的生词本（用户右键主动添加，存 localStorage 持久化；加入的词直接反哺翻译查询，优先级最高）
 // 内置补漏词根（高频但 ECDICT 精选集没收的词；加入即反哺翻译与拼写检查，优先级高于 BIGDICT）
 let USERDICT={"seclude":"使隔离/使隐居","secluded":"与世隔绝的/隐居的","seclusion":"隐居/隔离","forbade":"禁止(过去)","forbidden":"被禁止的","wept":"哭泣(过去)","knelt":"跪下(过去)","arose":"起来/出现(过去)","awoken":"被唤醒的","forgave":"原谅(过去)","forgiven":"被原谅的","withdrew":"退出/撤回(过去)","underwent":"经历(过去)","dwelt":"居住(过去)","clung":"紧紧抓住(过去)","bliss":"极乐/幸福","fussy":"挑剔的/大惊小怪的","serene":"宁静的","itch":"发痒/渴望","behold":"看/目睹","contort":"扭曲","contorted":"扭曲的","contortion":"扭曲；扭体","contortionist":"柔术演员","slither":"蜿蜒滑行","smirk":"得意地笑；假笑","scowl":"皱眉；怒视","pout":"噘嘴","stutter":"口吃；结巴","rapport":"融洽；和睦","introspection":"内省；反省","resilience":"韧性；恢复力","fallacy":"谬误；错误观念","epiphany":"顿悟；突然领悟","whimsical":"异想天开的；古怪有趣的","meticulous":"一丝不苟的；极仔细的","succinct":"简洁的；简明的","apathetic":"冷漠的；无动于衷的"};
-function loadMyWords(){ try{ return JSON.parse(localStorage.getItem("myWords")||"[]"); }catch(e){ return []; } }
-function saveMyWords(a){ try{ localStorage.setItem("myWords", JSON.stringify(a)); }catch(e){} }
-function loadUserDict(){ try{ const s=localStorage.getItem("myWords"); if(s){ JSON.parse(s).forEach(r=>{ if(r&&r.word) USERDICT[r.word.toLowerCase()]=r.zh; }); } }catch(e){} }
+const previewBaseDict={...USERDICT};
+function loadMyWords(){ try{ return JSON.parse(previewStorage.getItem("myWords")||"[]"); }catch(e){ return []; } }
+function saveMyWords(a){ try{ previewStorage.setItem("myWords", JSON.stringify(a)); }catch(e){} }
+function loadUserDict(){ try{ const s=previewStorage.getItem("myWords"); if(s){ JSON.parse(s).forEach(r=>{ if(r&&r.word) USERDICT[r.word.toLowerCase()]=r.zh; }); } }catch(e){} }
 loadUserDict();
 function modeOf(idx){ return (idx in sentMode) ? sentMode[idx] : trMode; }
 function showOf(idx){ return (idx in sentShow) ? sentShow[idx] : trShow; }
@@ -1722,13 +1725,13 @@ autoBtn.addEventListener("click",()=>{
 });
 // 内置拼写检查开关：开=词库查不到的词画红波浪线（含两词连写探测）；关=干干净净只看拆解
 const spellBtn=document.getElementById("spellBtn");
-try{ if(localStorage.getItem("spellOn")==="0") spellOn=false; }catch(e){}
+try{ if(previewStorage.getItem("spellOn")==="0") spellOn=false; }catch(e){}
 function setSpellBtn(){ spellBtn.textContent="拼写检查："+(spellOn?"开":"关"); spellBtn.style.opacity=spellOn?"":".55"; }
 setSpellBtn();
 spellBtn.title="内置拼写检查（自研，毫秒级）：词库里查不到的词画红色波浪线，两个词连写（如 Likemany）还会在悬停提示拆法。替代被关掉的浏览器拼写检查";
 spellBtn.addEventListener("click",()=>{
   spellOn=!spellOn;
-  try{ localStorage.setItem("spellOn",spellOn?"1":"0"); }catch(e){}
+  try{ previewStorage.setItem("spellOn",spellOn?"1":"0"); }catch(e){}
   setSpellBtn();
   render();                      // 重画，让波浪线立即显/隐
 });
@@ -1928,6 +1931,9 @@ document.getElementById("missDl").addEventListener("click",()=>{
   setTimeout(()=>URL.revokeObjectURL(url),3000);
 });
 render();
+document.getElementById("missDl").disabled=true;
+document.getElementById("missDl").title="安装后可下载 CSV";
+document.getElementById("previewReset").onclick=()=>{ for(const k of Object.keys(previewData)) delete previewData[k]; USERDICT={...previewBaseDict}; document.getElementById("sample").click(); };
 </script>
 </body>
 </html>
