@@ -679,6 +679,12 @@
     document.body.style.overflow = '';
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
   /* ─────────────── 底部条 ─────────────── */
   function updateDock() {
     const btn = $('#goBtn');
