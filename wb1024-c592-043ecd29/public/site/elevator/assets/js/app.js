@@ -447,6 +447,7 @@ function openModal(html) {
   const mask = $('#modal-mask');
   $('#modal').innerHTML = html;
   mask.classList.add('show');
+  mask.querySelectorAll('[data-close-modal]').forEach(el => el.addEventListener('click', closeModal));
   document.body.style.overflow = 'hidden';
   return $('#modal');
 }
@@ -467,7 +468,7 @@ function openSpace(id) {
     <div class="modal-head">
       <div class="sc-icon" style="background:${s.color}1a;width:52px;height:52px;border-radius:13px;display:grid;place-items:center;font-size:26px">${s.icon}</div>
       <div><h2>${s.name}</h2><div class="sys-en">${s.en}</div></div>
-      <button class="close" onclick="closeModal()">✕</button>
+      <button class="close" data-close-modal>✕</button>
     </div>
     <div class="tags">
       <span class="pill">📍 ${s.pos}</span>
@@ -519,7 +520,7 @@ function openSystem(id, fromQuiz) {
         <div class="fig-cap">关键部件结构剖面与配合关系</div></div>
       <div class="figure"><div class="fig-label">③ 实物图<span class="tag" style="background:#fff7ed;color:#c2410c">实拍/教学图</span></div>
         <div class="fig-body">${(def && def.photos && def.photos.length)
-          ? `<img src="${photoUrl(def.photos[0].f)}" alt="${s.name}实物" loading="lazy" onclick="openGalleryImg('${def.photos[0].f}','real')" onerror="this.style.display='none'">`
+          ? `<img src="${photoUrl(def.photos[0].f)}" alt="${s.name}实物" loading="lazy" data-gallery-file="${def.photos[0].f}">`
           : `<div style="display:grid;place-items:center;height:100%;color:var(--c-muted);font-size:.9rem">暂无实物照片</div>`}</div>
         <div class="fig-cap">${def && def.photos && def.photos.length ? def.photos[0].cap : '可在「实物图库」查看同类部件'}</div></div>
       <div class="figure"><div class="fig-label">④ 仿真图<span class="tag" style="background:#ecfdf5;color:#047857">动态运行</span></div>
@@ -551,6 +552,7 @@ function openSystem(id, fromQuiz) {
   `);
   m.classList.add('show');
   $('#m-close').addEventListener('click', closeModal);
+  m.querySelectorAll('[data-gallery-file]').forEach(el => el.addEventListener('click', () => openGalleryImg(el.dataset.galleryFile, 'real')));
 
   // 仿真图：在第三栏挂载实时仿真（无读数区）
   const host = $('#modal-sim');

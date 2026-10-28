@@ -441,6 +441,7 @@ function openModal(html) {
   const mask = $('#modal-mask');
   $('#modal').innerHTML = html;
   mask.classList.add('show');
+  mask.querySelectorAll('[data-close-modal]').forEach(el => el.addEventListener('click', closeModal));
   document.body.style.overflow = 'hidden';
   return $('#modal');
 }
@@ -458,7 +459,7 @@ function openSpace(id) {
     <div class="modal-head">
       <div class="sc-icon" style="background:${s.color}1a;width:52px;height:52px;border-radius:13px;display:grid;place-items:center;font-size:26px">${s.icon}</div>
       <div><h2>${s.name}</h2><div class="sys-en">${s.en}</div></div>
-      <button class="close" onclick="closeModal()">✕</button>
+      <button class="close" data-close-modal>✕</button>
     </div>
     <div class="tags">
       <span class="pill">📍 ${s.pos}</span>
