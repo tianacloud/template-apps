@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS tasks (task_date TEXT NOT NULL, quadrant INTEGER NOT NULL CHECK(quadrant BETWEEN 1 AND 4), title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(task_date, quadrant));
