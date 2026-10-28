@@ -1,0 +1,199 @@
+
+<div id="bgWrap" aria-hidden="true"><canvas id="bgCanvas"></canvas></div>
+<div id="bgPhoto" aria-hidden="true"></div>
+<div id="hud">
+  <div style="display:flex;align-items:center"><span class="logo" id="logoIcon"></span><span id="hudTitle">像素课堂 · 宝可梦养成</span></div>
+  <div class="hud-r">
+    <button class="btn btn-sm" id="btnScene">风景开</button>
+    <button class="btn btn-sm" id="btnBg">背景开</button>
+    <button class="btn btn-sm" id="btnSound">音效</button>
+    <button class="btn btn-sm" id="btnPzSet">奖励设置</button>
+    <button class="btn btn-sm" id="btnExport">备份</button>
+    <button class="btn btn-sm" id="btnImport">恢复</button>
+  </div>
+</div>
+
+<!-- ============ 首页：选班级 ============ -->
+<div id="screenHome" class="screen">
+  <div class="hero">
+    <div class="hero-stage">
+      <div class="hero-halo"></div>
+      <div class="hero-window"><canvas id="heroPet" class="pet" width="144" height="168"></canvas></div>
+      <div class="hero-plate"></div>
+    </div>
+    <div class="hero-body">
+      <div class="hero-kicker">CLASSROOM · PIXEL PET</div>
+      <h1>像素课堂</h1>
+      <p class="hero-lead">多一分思考，多一次进化。</p>
+      <p class="hero-desc">每个同学都会领到一颗<b>神秘蛋</b>，里面藏着 45 种宝可梦之一，随机分配、互不重复；答对越多，进化越高。<br><span id="evoCount"></span><br>养到尽头还有神秘转盘大奖<b class="hero-prize" id="heroPrizes"></b></p>
+      <div class="hero-cta">
+        <button class="hero-btn">＋ 新建班级</button>
+        <span class="hero-hint">先建一个班，学生就能领到自己的宝可梦 →</span>
+      </div>
+    </div>
+    <div class="hero-board">
+      <!-- 三个数字由启动脚本按真实数据填（以前写死 45/22/155，改物种数就对不上了） -->
+      <div class="hbr hb-t"><b id="hbSpecies">45</b><span>种宝可梦</span></div>
+      <div class="hbr hb-p"><b id="hbChains">22</b><span>条进化线</span></div>
+      <div class="hbr hb-g"><b id="hbArts">155</b><span>张像素立绘</span></div>
+    </div>
+  </div>
+  <div class="sec-title">📁 选择班级</div>
+  <div id="classList" class="classes"></div>
+  <div class="footer-tip">提示：数据自动保存在本机浏览器 · 换电脑前记得点右上角「备份」<br>像素课堂 <span id="ftVer">v6.18</span>（45 种全进化链 · 22 条进化线 · 2026-10-05 金阙圣光转生光环 + 细节优化） · 为课堂多巴胺而设计</div>
+</div>
+
+<!-- ============ 班级页 ============ -->
+<div id="screenClass" class="screen hidden">
+  <div class="chead">
+    <button class="btn" id="btnBack">← 返回</button>
+    <div class="cinfo">
+      <div class="cn" id="className"></div>
+      <div class="cs" id="classStats"></div>
+    </div>
+    <div class="cactions">
+      <button class="btn btn-sm" id="btnAddStu">添加学生</button>
+      <button class="btn btn-sm" id="btnSort">姓氏排序</button>
+      <button class="btn btn-sm btn-blue" id="btnPick">随机点名</button>
+      <button class="btn btn-sm btn-gold" id="btnBoard">排行榜</button>
+      <button class="btn btn-sm btn-teal" id="btnSheet">成绩单</button>
+    </div>
+  </div>
+  <div id="pets" class="pets"></div>
+</div>
+<div id="rail" class="hidden"></div>
+<div id="railBubble"></div>
+
+<!-- ============ 新建班级 ============ -->
+<div class="modal hidden" id="createModal">
+  <div class="panel">
+    <button class="xclose" data-x="createModal">✕</button>
+    <h2>🆕 新建班级</h2>
+    <p class="sub">建班后，每位学生将自动孵化一只独一无二的宝可梦宠物（45 种 × 随机配色 × 花纹，全班不重样）</p>
+    <label class="fld">班级名称</label>
+    <input type="text" id="inpClassName" placeholder="例如：初二（3）班" maxlength="20">
+    <label class="fld">学生名单（一键导入：支持从 Excel / 花名册直接粘贴）</label>
+    <textarea id="inpNames" placeholder="每行一个名字，也可用 逗号、顿号、空格 分隔&#10;支持粘贴带序号的名单，如：&#10;1.王小明&#10;2.李华&#10;3.张伟"></textarea>
+    <div class="prow">
+      <button class="btn" id="btnDemo">🎲 一键生成演示班级(60人)</button>
+      <button class="btn btn-teal" id="btnCreate">✅ 创建班级</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 添加学生 ============ -->
+<div class="modal hidden" id="addStuModal">
+  <div class="panel">
+    <button class="xclose" data-x="addStuModal">✕</button>
+    <h2>➕ 添加学生</h2>
+    <label class="fld">新学生名单</label>
+    <textarea id="inpNames2" placeholder="每行一个名字，或用逗号、顿号、空格分隔"></textarea>
+    <div class="prow"><button class="btn btn-teal" id="btnAddStuOk">✅ 添加</button></div>
+  </div>
+</div>
+
+<!-- ============ 学生详情 ============ -->
+<div class="modal hidden" id="stuModal">
+  <div class="panel">
+    <button class="xclose" data-x="stuModal">✕</button>
+    <h2 id="stuName"></h2>
+    <p class="sub" id="stuSpecies"></p>
+    <div style="display:flex;justify-content:center"><canvas id="stuPet" class="pet" width="300" height="210"></canvas></div>
+    <div class="stugrid">
+      <div><b id="stuTotal">0</b><span>累计答题</span></div>
+      <div><b id="stuStage">-</b><span>当前形态</span></div>
+      <div><b id="stuPrestige">-</b><span>转生次数</span></div>
+      <div><b id="stuPz">0</b><span>已抽奖品</span></div>
+    </div>
+    <div class="stu-btns">
+      <button class="btn btn-coral" id="stuPlus">答对 +1</button>
+      <button class="btn" id="stuUndo">撤销</button>
+      <button class="btn btn-gold hidden" id="stuLot">去抽奖</button>
+    </div>
+    <div class="pzlist hidden" id="stuPzList"></div>
+  </div>
+</div>
+
+<!-- ============ 抽奖 ============ -->
+<div class="modal hidden" id="lotModal">
+  <div class="panel">
+    <!-- v6.18：补一个关闭按钮。原来这个弹窗只有「开始抽奖」，误点进来只能刷新页面才能出去 -->
+    <button class="xclose" data-x="lotModal" id="lotX" title="关闭">✕</button>
+    <h2 style="text-align:center">🎁 究极形态 · 幸运大转盘</h2>
+    <div id="wheelBox">
+      <div class="wheelwrap">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="300" height="300"></canvas>
+      </div>
+      <p class="sub" style="text-align:center" id="lotTip"></p>
+      <div class="prow" style="justify-content:center">
+        <button class="btn btn-blue btn-sm" id="lotSet">奖励设置</button>
+        <button class="btn btn-coral" id="wheelGo">🎡 开始抽奖！</button>
+      </div>
+    </div>
+    <div id="lotResult" class="hidden"></div>
+  </div>
+</div>
+
+<!-- ============ 奖励设置（种类/几率固定，仅名称+图标可改） ============ -->
+<div class="modal hidden" id="pzModal">
+  <div class="panel">
+    <button class="xclose" data-x="pzModal">✕</button>
+    <h2 id="pzTitle">奖励设置</h2>
+    <p class="pzhint">
+      转盘固定 <b>5 格</b>：4 个实物/特权奖各 <b>3/14</b>（各 21.4%），第 5 格「谢谢惠顾」<b>1/7</b>（14.3%，不公示）。<br>
+      <b>种类数量与中奖几率固定不可改</b>（改概率会出现"我们班运气差"的分班争议）；<br>
+      你能改的是每一格的<b>奖品名称、图标和扇区颜色</b>——左侧序号就是转盘上的格位。
+    </p>
+    <div class="pzbody">
+      <div class="pzleft">
+        <canvas id="pzPrev" width="160" height="160"></canvas>
+        <p class="pzcap">实时预览</p>
+      </div>
+      <div class="pzright" id="pzRows"></div>
+    </div>
+    <div class="pbtns">
+      <button class="btn btn-blue" id="pzReset">恢复默认</button>
+      <button class="btn" data-x="pzModal">取消</button>
+      <button class="btn btn-coral" id="pzSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 随机点名 ============ -->
+<div class="modal hidden" id="pickModal">
+  <div class="panel">
+    <h2 style="text-align:center">🎲 幸运抽问</h2>
+    <p class="sub" style="text-align:center">命运之轮正在选择下一位答题勇士……<br>已自动避开最近点过的同学，人人都有机会</p>
+    <div id="pickName">?</div>
+    <div class="pbtns">
+      <button class="btn btn-coral" id="pickOk" disabled>✋ 答对 +1</button>
+      <button class="btn" id="pickRe" disabled>🔄 再抽一个</button>
+      <button class="btn" data-x="pickModal">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 排行榜 ============ -->
+<div class="modal hidden" id="boardModal">
+  <div class="panel">
+    <button class="xclose" data-x="boardModal">✕</button>
+    <h2>🏆 养成排行榜</h2>
+    <div id="boardList"></div>
+  </div>
+</div>
+
+<!-- ============ 确认框 ============ -->
+<div class="modal hidden" id="confirmModal">
+  <div class="panel" style="max-width:380px">
+    <h2 id="cfTitle">确认</h2>
+    <p class="sub" id="cfText" style="font-size:14px"></p>
+    <div class="prow">
+      <button class="btn" data-x="confirmModal">取消</button>
+      <button class="btn btn-red" id="cfOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="importFile" accept=".json" class="hidden">
