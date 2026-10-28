@@ -2118,6 +2118,10 @@ function initParticles() {
   });
 }
 
+function openDataMenu() {
+  openFormModal('数据', `<div style="display:grid;gap:10px"><button class="btn btn-ghost" onclick="openCloudModal()">☁ 云同步（自动）</button><button class="btn btn-ghost" onclick="openSyncModal()">🔁 同步码（手机↔电脑）</button><button class="btn btn-ghost" onclick="exportData()">导出备份</button><button class="btn btn-ghost" onclick="document.getElementById('import-file').click()">导入恢复</button><button class="btn btn-danger" onclick="confirmClearAll()">清空数据</button></div>`, '完成', null);
+}
+
 /* ========== 启动 ========== */
 function init() {
   ensureSeed();
