@@ -2093,7 +2093,7 @@ function openPoint(id){
   const cb = $('chkBtn'); if(cb) cb.onclick = ()=>{ cb.disabled=true; window.recordCheck(p.id,p.cats||0).then(async()=>{await reloadPoints();closeSheet();toast('打卡成功');}).catch(()=>{toast('保存未确认，请刷新查看');}); };
   const fb = $('favBtn'); if(fb) fb.onclick = ()=>{fb.disabled=true;window.recordFavorite(p.id).then(async()=>{await reloadPoints();closeSheet();toast('已收藏');}).catch(()=>{toast('保存未确认，请刷新查看');});};
 }
-function closeSheet(){ $('sheet').classList.remove('up'); S.curPoint=-1; }
+function closeSheet(){ $('sheet').classList.remove('up'); document.querySelector('.screen').scrollTop=0; S.curPoint=-1; }
 
 /* ============ 渲染调度 ============ */
 const NAV = {
