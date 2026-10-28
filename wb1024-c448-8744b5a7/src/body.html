@@ -1,0 +1,154 @@
+
+<h1>提前还贷决策助手 · 通用测算计算器</h1>
+<div class="hint">一个工具算清「该不该提前还贷、还多少、选哪种方式」。支持<b>等额本息 / 等额本金</b>，覆盖公积金贷 / 商贷 / 组合贷等，并纳入<b>首套个税利息抵扣</b>的真实收益测算。<b>①→③ 设置参数，第 ④ 部分出结论</b>。纯本地运算、无后端、即开即用。</div>
+
+<div class="pain">
+  <div class="pain-title">🤔 提前还贷，你是不是也纠结过这几个问题？</div>
+  <ul>
+    <li>「等额本息前期利息太多，提前还了是不是亏？」——前几期利息是沉没成本，真正该算的是未来。</li>
+    <li>「提前还款，选'减少月供'还是'缩短期限'？」——同样的钱，两种选法累计利息能差一倍。</li>
+    <li>「首套房能抵税，提前还了税盾没了，到底划不划算？」——要把抵税算进净收益才看得清。</li>
+  </ul>
+  <div class="pain-foot">本工具把这套「高频、高金额、高焦虑」的还贷决策，变成「填几个数 → 看一张对照表」。</div>
+</div>
+
+<!-- 1 贷款参数 -->
+<div class="card">
+  <h2><span class="num">1</span>贷款参数设置</h2>
+  <div class="inputrow"><label>贷款类型</label>
+    <select id="loanType">
+      <option value="">请选择 / 自定义</option>
+      <option>公积金贷款</option><option selected="">商业贷款</option>
+      <option>组合贷款</option><option>消费贷款</option><option>其他</option>
+    </select>
+    <input type="text" id="loanName" placeholder="备注名（可选，仅标注用）">
+  </div>
+  <div class="inputrow"><label>还款方式</label>
+    <select id="method">
+      <option value="equal">等额本息（每月还款额相同）</option>
+      <option value="principal">等额本金（每月本金相同）</option>
+    </select>
+  </div>
+  <div class="inputrow"><label>剩余本金</label><input type="number" id="principal" min="0" step="1000" value="500000"> 元<span style="color:var(--sub);font-size:12px">（示例数据，可改为你的实际贷款）</span></div>
+  <div class="inputrow"><label>剩余期数</label><input type="number" id="periods" min="1" step="1" value="360"> 月 <span id="perYears" style="color:var(--sub);font-size:12px">（约 30.0 年）</span></div>
+  <div class="inputrow"><label>年利率</label><input type="number" id="rate" min="0" max="24" step="0.01" value="4.2"> %</div>
+
+  <div class="subh" style="color:var(--amber);margin-top:8px">税务设置（首套房贷可享个税利息抵扣，可选）</div>
+  <div class="inputrow"><label>首套利息抵扣</label>
+    <select id="taxDeduct">
+      <option value="no" selected="">否（不适用 / 二套及以上）</option>
+      <option value="yes">是（首套，可抵扣个税）</option>
+    </select>
+    <span style="color:var(--sub);font-size:12px">每月定额扣 1,000 元应纳税所得额，最长 240 个月</span>
+  </div>
+  <div class="inputrow"><label>年应纳税所得额</label><input type="number" id="taxIncome" min="0" step="1000" value="200000"> 元
+    <span style="color:var(--sub);font-size:12px">个税APP「年度汇算」可见；工具据此自动匹配税率表算边际税率</span>
+  </div>
+  <div class="inputrow"><label>已抵扣月数</label><input type="number" id="deductedM" min="0" max="240" step="1" value="0"> 月
+    <span style="color:var(--sub);font-size:12px">已享受过的抵扣月数（受 240 月总上限约束）</span>
+  </div>
+
+  <div class="stat"><span>当前月供（等额本息为固定值；等额本金为首月，逐月递减）</span><b id="curPay">¥2,445.09 / 月</b></div>
+  <div class="note">说明：以上为可配置输入，替换为你实际贷款数据即可。月利率自动由年利率 ÷ 12 计算，无需手填。</div>
+</div>
+
+<!-- 2 利率比较 -->
+<div class="card">
+  <h2><span class="num">2</span>是否值得提前还？利率比较</h2>
+  <div class="inputrow"><label>存款利率 / 机会成本率</label>
+    <input type="range" id="dep" min="0" max="5" step="0.1" value="1.6">
+    <input type="number" id="depN" min="0" max="10" step="0.1" value="1.6"> %
+  </div>
+  <div class="verdict win" id="verdict">
+    <div class="big" id="vTitle">提前还款 = 赚</div>
+    <div class="sub" id="vSub">贷款利率 4.20% ＞ 存款 1.60%，每留 1 元现金少赚 2.600%/年 → 应提前还款</div>
+  </div>
+  <div class="stat"><span>贷款利率</span><b id="loanRateShow">4.200%</b></div>
+  <div class="stat"><span>存款利率</span><b id="depShow">1.60%</b></div>
+  <div class="stat"><span>净利差（每年）</span><b id="spread">+2.600%</b></div>
+  <div class="stat"><span>临界点（存款利率 = 贷款利率）</span><b id="breakeven">4.200%</b></div>
+  <div id="taxBox" style="display:none">
+    <div class="stat"><span>首套抵税 · 自动匹配边际税率</span><b id="taxMRate">—</b></div>
+    <div class="stat"><span>首套抵税 · 每年税盾</span><b id="taxAnnual">—</b></div>
+    <div class="stat"><span>首套抵税 · 剩余可抵扣</span><b id="taxRemain">—</b></div>
+    <div class="stat"><span>首套抵税 · 总共可省税</span><b id="taxTotal">—</b></div>
+  </div>
+  <div class="note">规则：<b>贷款利率 &gt; 存款利率 → 提前还款"赚"</b>（保留现金的机会成本高于还贷省下的利息）；反之则"亏"，保留现金更划算。<span class="key">只要存款率低于贷款利率，提前还款即稳赚；不存在"还到某个数最划算"的内点，闲钱越早还越值。</span><br>
+  若启用「首套房贷利息抵扣」：抵税相当于降低贷款实际融资成本，<b>提前还款会损失未来的税盾</b>，因此"收益最大化"需把抵税纳入净收益测算（见第 ④ 部分）。<b>边际税率无需手填</b>——填写「年应纳税所得额」后，工具自动按个税 7 级累进税率表匹配所属税档并精确计算税盾（已考虑跨档）。</div>
+</div>
+
+<!-- 3 还款金额与方式设置（输入） -->
+<div class="card">
+  <h2><span class="num">3</span>还款金额与方式设置</h2>
+  <div class="inputrow"><label>提前还款金额</label>
+    <input type="range" id="prepay" min="0" max="500000" step="5000" value="100000">
+    <input type="number" id="prepayN" min="0" step="1000" value="100000"> 元
+    <span style="color:var(--sub);font-size:12px">（一次性提前归还的本金）</span>
+  </div>
+  <div class="inputrow"><label>每月额外还款</label>
+    <input type="number" id="extra" min="0" step="100" value="0"> 元/月
+    <span style="color:var(--sub);font-size:12px">（在原有月供之外，每月固定多还一笔）</span>
+  </div>
+  <div class="inputrow"><label>每年额外还款</label>
+    <input type="number" id="extraY" min="0" step="1000" value="0"> 元/年
+    <span style="color:var(--sub);font-size:12px">（每年末一次性多还一笔，如年终奖冲抵本金）</span>
+  </div>
+  <div class="note">在此选择你要执行的还款方式：<b>一次性提前还款</b>、<b>每月额外还款</b>、<b>每年额外还款</b>，三者可单独或组合使用（都设为 0 即不提前还款）。填写后，测算结果统一在下方第 ④ 部分给出。</div>
+</div>
+
+<!-- 4 测算结论（输出） -->
+<div class="card">
+  <h2><span class="num">4</span>测算结论</h2>
+
+  <div class="baseline">
+    <span>当前状态（不提前还款）</span>
+    <span>月供 <b id="basePay">¥2,445.09</b></span>
+    <span>期限 <b id="baseTerm">30.0 年（360 期）</b></span>
+    <span>剩余应付利息 <b id="baseInt">¥380,231</b></span>
+  </div>
+
+  <div class="subh" style="color:var(--blue)">4.1 一次性提前还款对比（金额见第 ③ 部分）</div>
+  <table class="cmp">
+    <thead>
+      <tr><th>指标</th><th>当前（不提前）</th><th>方案A：减少月供</th><th class="hl">方案B：缩短期限<span class="tag">推荐</span></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>提前还款额（元）</td><td>—</td><td id="cellPA">¥100,000</td><td class="hl" id="cellPB">¥100,000</td></tr>
+      <tr><td>月供（元 / 月）</td><td id="cPay">¥2,445.09</td><td id="aPay">1,956.07</td><td class="hl" id="bPay">2,445.09（不变）</td></tr>
+      <tr><td>还款期限</td><td id="cTerm">30.0 年（360 期）</td><td id="aTerm">30.0 年（360 期）</td><td class="hl" id="bTerm">20.3 年（243 期）</td></tr>
+      <tr><td>累计利息（元）</td><td id="cInt">¥380,231</td><td id="aInt">¥304,185</td><td class="hl" id="bInt">¥194,832</td></tr>
+      <tr><td>省利息（元 / 比例）</td><td>—</td><td id="aSave">76,046（20.0%）</td><td class="hl" id="bSave">185,399（48.8%）</td></tr>
+      <tr><td>可享抵税收益（税后，元）</td><td id="cTax">—</td><td id="aTax">—</td><td class="hl" id="bTax">—</td></tr>
+      <tr><td>抵税后净利息成本（元）</td><td id="cNetCost">—</td><td id="aNetCost">—</td><td class="hl" id="bNetCost">—</td></tr>
+      <tr class="emph"><td>提前还款净收益（省息 − 损失税）</td><td>—</td><td id="aNet">¥76,046</td><td class="hl" id="bNet">¥185,399</td></tr>
+    </tbody>
+  </table>
+  <div class="note">结论：目标是<b>减少总利息</b>一律选 <b style="color:var(--green)">方案B 缩短期限</b>；目标是<b>降低每月现金支出</b>才选 方案A 减少月供。同等金额下，方案B 比方案A 多省约一半利息。两方案"提前还款额"与"剩余本金"相同，差异只在月供与期限如何分配。<br>
+  <b>净收益口径</b>：若启用首套抵税，"提前还款净收益 = 省利息 − 提前还清所损失的未来税盾"。因为方案B 缩短期限会提前结束贷款、从而提前终止抵税，所以净收益比"省利息"略低——这才是纳入抵税后的真实收益。</div>
+
+  <div class="subh" style="color:var(--green);margin-top:18px">4.2 持续额外还款对比（加速还清，金额见第 ③ 部分）</div>
+  <table class="cmp">
+    <thead>
+      <tr><th>指标</th><th>当前（不提前）</th><th class="hl">加速后</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>每月额外还款（元）</td><td>—</td><td class="hl" id="exE">—</td></tr>
+      <tr><td>每年额外还款（元）</td><td>—</td><td class="hl" id="exEY">—</td></tr>
+      <tr><td>还清用时</td><td id="cTerm2">30.0 年（360 期）</td><td class="hl" id="exYears">30.0 年（360 期）</td></tr>
+      <tr><td>累计利息（元）</td><td id="cInt2">¥380,231</td><td class="hl" id="exInt">¥380,231</td></tr>
+      <tr><td>可享抵税收益（税后，元）</td><td id="cTax2">—</td><td class="hl" id="exTax">—</td></tr>
+      <tr><td>抵税后净利息成本（元）</td><td id="cNetCost2">—</td><td class="hl" id="exNetCost">—</td></tr>
+      <tr class="emph"><td>省利息（元）</td><td>—</td><td class="hl" id="exSave">¥-0</td></tr>
+    </tbody>
+  </table>
+  <div class="note">说明：在原有还款基础上，每月 / 每年多还一笔，等价于持续"缩短期限"。两者可单独或叠加使用（都设为 0 即不提前还款）。加速还清同样会提前终止抵税（若启用），其净利息成本已扣除抵税收益。</div>
+  <div class="rec" id="recBox" style="margin-top:18px">【收益最大化】贷款 4.20% ＞ 存款 1.60%，对手中 <b>¥100,000</b> 闲钱：<br>• 提前还款（方案B 缩短期限）：省利息 ¥185,399。<br>• 不提前、存 1.60%（按 20.3 年计）：约 ¥32,437。<br><b>结论：提前还款更划算，多赚 ¥152,962。</b></div>
+</div>
+
+<div class="footer">
+  <div class="ft-title">关于本作品</div>
+  <p>本作品为 <b>WorkBuddy「1024 造物挑战」程序员节应用创作大赛</b> 参赛作品。核心是一个<b>零依赖、纯前端</b>的「提前还贷决策助手」：输入贷款参数与你的闲钱，即可对比「一次性提前还 / 每月额外还 / 每年额外还」三种方式，并在「减少月供」与「缩短期限」之间给出量化结论，纳首套抵税后的真实净收益。</p>
+  <p>技术栈：单文件 HTML + 原生 JavaScript，计算引擎纯函数化（<code>monthlyPayment / totalInterest / scenarioKeepTerm / scenarioShortenTerm / simulateExtra</code>），无后端、无第三方依赖、数据不出本地。新增还款方式只需扩展纯函数，渲染层无需改动。</p>
+  <p class="ft-meta">由 WorkBuddy Agent 辅助开发 · 2026</p>
+</div>
+
