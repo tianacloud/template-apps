@@ -22,6 +22,8 @@ window.AudioEngine = (function () {
   let playlist = [];
   let playlistIndex = 0;
   let playlistErrors = 0;
+  const localFiles = new Map();
+  let playlistGeneration = 0;
 
   /* ---------------- 基础设施 ---------------- */
 
@@ -369,6 +371,7 @@ window.AudioEngine = (function () {
   /* ---------------- 播放列表（本机文件 / 在线链接） ---------------- */
 
   function stopPlaylist() {
+    playlistGeneration++;
     if (audioEl) {
       try {
         audioEl.pause();
@@ -384,6 +387,31 @@ window.AudioEngine = (function () {
   function playNextInPlaylist() {
     if (!playlist.length) { playing = false; return; }
 
+    const localFile = localFiles.get(playlist[playlistIndex]);
+    if (localFile) {
+      const generation = playlistGeneration;
+      localFile.arrayBuffer().then(bytes => ctx.decodeAudioData(bytes)).then(buffer => {
+        if (!playing || generation !== playlistGeneration) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(master);
+        nodes.push(source);
+        source.onended = () => {
+          if (!playing || generation !== playlistGeneration) return;
+          playlistIndex = (playlistIndex + 1) % playlist.length;
+          playlistErrors = 0;
+          playNextInPlaylist();
+        };
+        source.start();
+      }).catch(() => {
+        if (!playing || generation !== playlistGeneration) return;
+        playlistErrors++;
+        if (playlistErrors >= playlist.length) { playing = false; stopPlaylist(); return; }
+        playlistIndex = (playlistIndex + 1) % playlist.length;
+        playNextInPlaylist();
+      });
+      return;
+    }
     audioEl = new Audio();
     audioEl.src = playlist[playlistIndex];
     audioEl.volume = volume;
@@ -548,6 +576,8 @@ window.AudioEngine = (function () {
 
   return {
     BUILTIN_SOURCES,
+    registerLocalFile: (url, file) => localFiles.set(url, file),
+    forgetLocalFile: (url) => localFiles.delete(url),
     play,
     stop,
     setVolume,

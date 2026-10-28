@@ -775,7 +775,8 @@
       rm.title = '移除';
       rm.addEventListener('click', () => {
         const key = audioTarget === 'focus' ? 'focusAudio' : 'breakAudio';
-        S[key].files.splice(i, 1);
+        const removed = S[key].files.splice(i, 1)[0];
+        if (removed) { Audio.forgetLocalFile(removed); URL.revokeObjectURL(removed); }
         S[key].fileNames.splice(i, 1);
         saveSettings();
         renderFileList(S[key].fileNames);
@@ -1048,7 +1049,8 @@
       const files = Array.prototype.slice.call(e.target.files || []);
       if (!files.length) return;
       const key = audioTarget === 'focus' ? 'focusAudio' : 'breakAudio';
-      S[key].files = files.map((f) => URL.createObjectURL(f));
+      (S[key].files || []).forEach((url) => { Audio.forgetLocalFile(url); URL.revokeObjectURL(url); });
+      S[key].files = files.map((f) => { const url = URL.createObjectURL(f); Audio.registerLocalFile(url, f); return url; });
       S[key].fileNames = files.map((f) => f.name);
       S[key].type = 'local';
       $('#audioType').value = 'local';
