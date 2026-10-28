@@ -1,0 +1,10 @@
+import {readFile, mkdir, writeFile, cp, rm} from 'node:fs/promises';
+const html=await readFile('index.html','utf8');
+const body=html.split('<body>')[1].split('<script src=')[0];
+const files=['meta','regulations-cn','regulations-cn-ext','regulations-intl','registration-flow','review-rules','self-check','fulltext','market'];
+const chunks=await Promise.all(files.map(x=>readFile(`data/${x}.js`,'utf8')));
+const app=await readFile('assets/js/app.js','utf8');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title="医械法规云"; document.getElementById("app").innerHTML=${JSON.stringify(body)}; const l=document.createElement("link"); l.rel="stylesheet"; l.href=new URL("app.css",import.meta.url).href; document.head.appendChild(l);\n`+chunks.join('\n;\n')+'\n;\n'+app);
+await cp('assets/css/app.css','dist/assets/app.css'); await cp('icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
