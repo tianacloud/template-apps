@@ -1,5 +1,5 @@
 const link=document.createElement('link'); link.rel='stylesheet'; link.href=new URL('./style.css',import.meta.url).href; document.head.appendChild(link);
-document.body.innerHTML = "\n\n<div id=\"login\" data-page-node-id=\"0W2o76r1y0knQ4GrElLyw6\">\n  <div class=\"login-card\" data-page-node-id=\"zczt0vBArZ6QHX6KHNOjRF\">\n    <h1 data-page-node-id=\"SsMMjHdvoHzdDF70FDPdqK\">企业内部物资进销存</h1>\n    <div class=\"sub\" data-page-node-id=\"bqOx3baL5HHvSYviN5N3je\">办公 / 劳保用品管理平台 · V4 交互原型</div>\n    <div class=\"field\" data-page-node-id=\"zFcUqTSMjrWQCoYKDmgq37\">\n      <label data-page-node-id=\"0azBkldYxfNSXbL6mE0dZW\">用户名</label>\n      <input id=\"login-user\" placeholder=\"请输入用户名\" data-page-node-id=\"ZFtJpu8lk8vszTnSQZ19IR\">\n    </div>\n    \n        <button class=\"btn\" style=\"width:100%\" onclick=\"doLogin()\" data-page-node-id=\"ohMlKzQrNcalvztp5kK5ra\">登 录</button>\n    <div style=\"text-align:center;color:var(--muted);font-size:11px;margin-top:14px;\" data-page-node-id=\"RE2G1XWDqGyMSdu7gv1sL7\">原型为演示数据，操作保存在本机浏览器<br data-page-node-id=\"A7EB70z7Owd9txRBXJgnPJ\">演示账号：小王（行政专员）/ 小李（技术部专员）/ 小张（技术部主管）/ 行政主管 / 分管副总，选择演示角色进入</div>\n  </div>\n</div>\n\n<div id=\"app\" data-page-node-id=\"0qLSN7eJr9gDKNrRGhonx6\">\n  <div class=\"topbar\" data-page-node-id=\"ilcFbMs3AwDNuCwmFtuSF9\">\n    <button class=\"menu-btn\" onclick=\"toggleSidebar()\" aria-label=\"菜单\" data-page-node-id=\"B5LywWoOrwV2nEr9Lq3A09\">☰</button>\n    <div class=\"logo\" data-page-node-id=\"NMCc3vMzXTEb5Vnj3DyuRN\">📦 物资进销存</div>\n    <div class=\"spacer\" data-page-node-id=\"8GVeBgdAHIHC3DnUAKkmuS\"></div>\n    <div class=\"who\" data-page-node-id=\"bsYwCnsfXVl46sse8B3V3B\">角色：<b id=\"who-role\" data-page-node-id=\"sIDQwQ5VbR86BI3N0sDma8\"></b> · <span id=\"who-name\" data-page-node-id=\"soeOJJ2CiDYnp8Ql5nDfU6\"></span></div>\n    <button class=\"btn ghost sm\" onclick=\"doLogout()\" style=\"margin-left:14px;\" data-page-node-id=\"5Ev6D6oHGnKsANGDDTvpvB\">退出</button>\n  </div>\n  <div class=\"layout\" data-page-node-id=\"9nT5n87dQOpHrjBAXvPXD8\">\n    <div class=\"sidebar-backdrop\" id=\"sidebar-backdrop\" onclick=\"toggleSidebar()\" data-page-node-id=\"85bHKf8aLvdFN8eCQxZAS6\"></div>\n    <div class=\"sidebar\" id=\"sidebar\" data-page-node-id=\"x6On7LjRB9Q8wHeXfvYH8T\"></div>\n    <div class=\"content\" id=\"content\" data-page-node-id=\"mBq4gZIFvTZB7Gyy3gLmSp\"></div>\n  </div>\n</div>\n\n<div class=\"modal-mask\" id=\"modal\" data-page-node-id=\"gE375xZRJXeuc1pYh4cbdY\"><div class=\"modal\" id=\"modal-box\" data-page-node-id=\"EMYkYn8Z7vl8086BFn3YE0\"></div></div>\n<div class=\"toast\" id=\"toast\" data-page-node-id=\"sob7ZcgMkZDYuzHTAtz5Pt\"></div>\n\n";
+document.body.innerHTML = "\n\n<div id=\"login\" data-page-node-id=\"0W2o76r1y0knQ4GrElLyw6\">\n  <div class=\"login-card\" data-page-node-id=\"zczt0vBArZ6QHX6KHNOjRF\">\n    <h1 data-page-node-id=\"SsMMjHdvoHzdDF70FDPdqK\">企业内部物资进销存</h1>\n    <div class=\"sub\" data-page-node-id=\"bqOx3baL5HHvSYviN5N3je\">办公 / 劳保用品管理平台 · V4 交互原型</div>\n    <div class=\"field\" data-page-node-id=\"zFcUqTSMjrWQCoYKDmgq37\">\n      <label data-page-node-id=\"0azBkldYxfNSXbL6mE0dZW\">用户名</label>\n      <input id=\"login-user\" placeholder=\"请输入用户名\" data-page-node-id=\"ZFtJpu8lk8vszTnSQZ19IR\">\n    </div>\n    \n        <button class=\"btn\" style=\"width:100%\" data-hclick=\"0\" data-page-node-id=\"ohMlKzQrNcalvztp5kK5ra\">登 录</button>\n    <div style=\"text-align:center;color:var(--muted);font-size:11px;margin-top:14px;\" data-page-node-id=\"RE2G1XWDqGyMSdu7gv1sL7\">原型为演示数据，操作保存在本机浏览器<br data-page-node-id=\"A7EB70z7Owd9txRBXJgnPJ\">演示账号：小王（行政专员）/ 小李（技术部专员）/ 小张（技术部主管）/ 行政主管 / 分管副总，选择演示角色进入</div>\n  </div>\n</div>\n\n<div id=\"app\" data-page-node-id=\"0qLSN7eJr9gDKNrRGhonx6\">\n  <div class=\"topbar\" data-page-node-id=\"ilcFbMs3AwDNuCwmFtuSF9\">\n    <button class=\"menu-btn\" data-hclick=\"1\" aria-label=\"菜单\" data-page-node-id=\"B5LywWoOrwV2nEr9Lq3A09\">☰</button>\n    <div class=\"logo\" data-page-node-id=\"NMCc3vMzXTEb5Vnj3DyuRN\">📦 物资进销存</div>\n    <div class=\"spacer\" data-page-node-id=\"8GVeBgdAHIHC3DnUAKkmuS\"></div>\n    <div class=\"who\" data-page-node-id=\"bsYwCnsfXVl46sse8B3V3B\">角色：<b id=\"who-role\" data-page-node-id=\"sIDQwQ5VbR86BI3N0sDma8\"></b> · <span id=\"who-name\" data-page-node-id=\"soeOJJ2CiDYnp8Ql5nDfU6\"></span></div>\n    <button class=\"btn ghost sm\" data-hclick=\"2\" style=\"margin-left:14px;\" data-page-node-id=\"5Ev6D6oHGnKsANGDDTvpvB\">退出</button>\n  </div>\n  <div class=\"layout\" data-page-node-id=\"9nT5n87dQOpHrjBAXvPXD8\">\n    <div class=\"sidebar-backdrop\" id=\"sidebar-backdrop\" data-hclick=\"3\" data-page-node-id=\"85bHKf8aLvdFN8eCQxZAS6\"></div>\n    <div class=\"sidebar\" id=\"sidebar\" data-page-node-id=\"x6On7LjRB9Q8wHeXfvYH8T\"></div>\n    <div class=\"content\" id=\"content\" data-page-node-id=\"mBq4gZIFvTZB7Gyy3gLmSp\"></div>\n  </div>\n</div>\n\n<div class=\"modal-mask\" id=\"modal\" data-page-node-id=\"gE375xZRJXeuc1pYh4cbdY\"><div class=\"modal\" id=\"modal-box\" data-page-node-id=\"EMYkYn8Z7vl8086BFn3YE0\"></div></div>\n<div class=\"toast\" id=\"toast\" data-page-node-id=\"sob7ZcgMkZDYuzHTAtz5Pt\"></div>\n\n";
 
 /* ===================== 数据层 ===================== */
 const K='inv_proto_v3';
@@ -93,7 +93,7 @@ function buildSidebar(){
   if(isAdmin){ items.push({sec:'基础数据'}); items.push({v:'materials',ic:'📦',t:'物资档案'},{v:'suppliers',ic:'🏭',t:'供应商'}); }
   if(isAdmin){ items.push({sec:'统计与设置'}); items.push({v:'cost',ic:'💰',t:'成本统计'},{v:'settings',ic:'⚙️',t:'系统设置'}); }
   let html='';
-  items.forEach(it=>{ if(it.sec) html+=`<div class="nav-sec">${it.sec}</div>`; else html+=`<div class="nav-item" data-v="${it.v}" onclick="showView('${it.v}')">${it.ic}<span>${it.t}</span>${it.badge?`<span class="badge">${it.badge}</span>`:''}</div>`; });
+  items.forEach(it=>{ if(it.sec) html+=`<div class="nav-sec">${it.sec}</div>`; else html+=`<div class="nav-item" data-v="${it.v}" data-hclick="4" data-aclick="${encodeURIComponent(JSON.stringify(it.v))}">${it.ic}<span>${it.t}</span>${it.badge?`<span class="badge">${it.badge}</span>`:''}</div>`; });
   document.getElementById('sidebar').innerHTML=html;
 }
 function countPending(){
@@ -155,7 +155,7 @@ function renderDashboard(c){
     todos.push({t:'低库存预警项',n:low,v:'inventory'});
   }
   todos.push({t:'我的提交待办',n:myTodo,v:'myrec'});
-  const todoHtml=todos.filter(x=>x.n>0).length?todos.map(x=>`<div class="todo-item" onclick="showView('${x.v}')"><span class="t">${x.t}</span><span class="cnt ${x.t.indexOf('低库存')>=0?'red':(x.t.indexOf('待审批')>=0||x.t.indexOf('待执行')>=0?'amber':'green')}">${x.n}</span></div>`).join(''):'<div class="empty">暂无待办 🎉</div>';
+  const todoHtml=todos.filter(x=>x.n>0).length?todos.map(x=>`<div class="todo-item" data-hclick="5" data-aclick="${encodeURIComponent(JSON.stringify(x.v))}"><span class="t">${x.t}</span><span class="cnt ${x.t.indexOf('低库存')>=0?'red':(x.t.indexOf('待审批')>=0||x.t.indexOf('待执行')>=0?'amber':'green')}">${x.n}</span></div>`).join(''):'<div class="empty">暂无待办 🎉</div>';
   // 重点关注动态
   const feeds=[];
   const filterByPerm=(arr,getDept,getApplicant)=>arr.filter(x=>{
@@ -174,16 +174,16 @@ function renderDashboard(c){
   const lowRows=DB.materials.filter(p=>p.stock<=p.warnQty);
   const lowHtml=lowRows.length?`<table><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>当前库存</th><th>库存预警数量</th><th>状态</th></tr></thead><tbody>${lowRows.map(p=>`<tr><td>${p.code}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.stock}${p.unit}</td><td>${p.warnQty}${p.unit}</td><td><span class="tag low">需补货</span></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无低库存物品 🎉</div>';
   const statsHtml=canSeeAdmin?`
-      <div class="card stat clickable" onclick="showView('materials')"><div class="label">物资种类</div><div class="num">${DB.materials.length}</div></div>
-      <div class="card stat clickable" onclick="showView('inventory')"><div class="label">库存总额(估)</div><div class="num green">¥${stockVal.toLocaleString()}</div></div>
-      <div class="card stat clickable" onclick="showView('inventory')"><div class="label">低库存预警</div><div class="num ${low?'red':'green'}">${low}</div></div>
-      <div class="card stat clickable" onclick="showView('approve')"><div class="label">待我审批</div><div class="num ${pending?'amber':'green'}">${pending}</div></div>
-      <div class="card stat clickable" onclick="showView('myrec')"><div class="label">我的待办</div><div class="num ${myTodo?'amber':'green'}">${myTodo}</div></div>
+      <div class="card stat clickable" data-hclick="6"><div class="label">物资种类</div><div class="num">${DB.materials.length}</div></div>
+      <div class="card stat clickable" data-hclick="7"><div class="label">库存总额(估)</div><div class="num green">¥${stockVal.toLocaleString()}</div></div>
+      <div class="card stat clickable" data-hclick="8"><div class="label">低库存预警</div><div class="num ${low?'red':'green'}">${low}</div></div>
+      <div class="card stat clickable" data-hclick="9"><div class="label">待我审批</div><div class="num ${pending?'amber':'green'}">${pending}</div></div>
+      <div class="card stat clickable" data-hclick="10"><div class="label">我的待办</div><div class="num ${myTodo?'amber':'green'}">${myTodo}</div></div>
       <div class="card stat"><div class="label">本月采购金额</div><div class="num">¥${monthPur.toLocaleString()}</div></div>
       <div class="card stat"><div class="label">本月领用金额</div><div class="num green">¥${monthIssue.toLocaleString()}</div></div>
-      <div class="card stat clickable" onclick="showSuppliersExpiring()"><div class="label">合同续约提醒</div><div class="num ${expiring.length?'red':'green'}">${expiring.length}</div></div>`:`
-      <div class="card stat clickable" onclick="showView('approve')"><div class="label">待我审批</div><div class="num ${pending?'amber':'green'}">${pending}</div></div>
-      <div class="card stat clickable" onclick="showView('myrec')"><div class="label">我的待办</div><div class="num ${myTodo?'amber':'green'}">${myTodo}</div></div>`;
+      <div class="card stat clickable" data-hclick="11"><div class="label">合同续约提醒</div><div class="num ${expiring.length?'red':'green'}">${expiring.length}</div></div>`:`
+      <div class="card stat clickable" data-hclick="12"><div class="label">待我审批</div><div class="num ${pending?'amber':'green'}">${pending}</div></div>
+      <div class="card stat clickable" data-hclick="13"><div class="label">我的待办</div><div class="num ${myTodo?'amber':'green'}">${myTodo}</div></div>`;
   const bottomHtml=canSeeAdmin?`
     <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px;">
       <div class="card"><h3 style="margin-bottom:12px;">今日 / 本周待办</h3>${todoHtml}</div>
@@ -203,11 +203,11 @@ function renderDashboard(c){
 /* ===================== 物资档案 ===================== */
 function renderMaterials(c){
   const rows=DB.materials.map(p=>`<tr><td>${p.code}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td><td>${p.cat}</td><td>${p.supplier}</td><td>¥${p.price}</td><td>${p.stock}${p.unit}</td><td>${p.location}</td><td>${p.stock<=p.warnQty?'<span class="tag low">低</span>':'<span class="tag ok">正常</span>'}</td><td>${p.expire||'-'}</td></tr>`).join('');
-  c.innerHTML=`<div class="page-head"><h2>物资档案</h2><span class="desc">基础信息，支持 Excel 导入 / 增改删</span><div class="spacer"></div><button class="btn ghost sm" onclick="showImport()">📥 Excel 导入</button><button class="btn sm" onclick="addMaterial()" style="margin-left:8px;">+ 新建物资</button></div>
+  c.innerHTML=`<div class="page-head"><h2>物资档案</h2><span class="desc">基础信息，支持 Excel 导入 / 增改删</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="14">📥 Excel 导入</button><button class="btn sm" data-hclick="15" style="margin-left:8px;">+ 新建物资</button></div>
     <div class="card"><table><thead><tr><th>物料编码</th><th>名称</th><th>规格</th><th>单位</th><th>类别</th><th>默认供应商</th><th>单价</th><th>库存</th><th>存放位置</th><th>状态</th><th>效期</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-function showImport(){ openModal(`<h3>Excel 导入</h3><div class="body">正式系统支持上传表格自动建档案。建议列：<br><b>物料编码 / 名称 / 规格型号 / 单位 / 类别 / 默认供应商 / 参考单价 / 库存预警数量 / 存放位置 / 责任人 / 保质期</b><br><br>把现有表发我，按真实列调整模板。</div><div class="foot"><button class="btn" onclick="closeModal()">知道了</button></div>`); }
-function addMaterial(){ openModal(`<h3>新建物资</h3><div class="body"><div class="form-row"><div class="field"><label>物料编码</label><input id="nm-code" placeholder="如 WL006"></div><div class="field"><label>名称</label><input id="nm-name"></div></div><div class="form-row"><div class="field"><label>规格型号</label><input id="nm-spec"></div><div class="field"><label>单位</label><input id="nm-unit" placeholder="个/包/盒"></div><div class="field"><label>类别</label><select id="nm-cat"><option value="">请选择</option><option>基础办公用品</option><option>劳保用品</option><option>固定资产</option></select></div></div><div class="form-row"><div class="field"><label>默认供应商</label><input id="nm-sup"></div><div class="field"><label>单价(¥)</label><input id="nm-price" type="number"></div><div class="field"><label>存放位置</label><input id="nm-loc"></div></div><div class="form-row"><div class="field"><label>库存预警数量</label><input id="nm-warn" type="number" value="0"></div><div class="field"><label>责任人</label><input id="nm-owner" value="行政部"></div></div></div><div class="foot"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveMaterial()">保存</button></div>`); }
+function showImport(){ openModal(`<h3>Excel 导入</h3><div class="body">正式系统支持上传表格自动建档案。建议列：<br><b>物料编码 / 名称 / 规格型号 / 单位 / 类别 / 默认供应商 / 参考单价 / 库存预警数量 / 存放位置 / 责任人 / 保质期</b><br><br>把现有表发我，按真实列调整模板。</div><div class="foot"><button class="btn" data-hclick="16">知道了</button></div>`); }
+function addMaterial(){ openModal(`<h3>新建物资</h3><div class="body"><div class="form-row"><div class="field"><label>物料编码</label><input id="nm-code" placeholder="如 WL006"></div><div class="field"><label>名称</label><input id="nm-name"></div></div><div class="form-row"><div class="field"><label>规格型号</label><input id="nm-spec"></div><div class="field"><label>单位</label><input id="nm-unit" placeholder="个/包/盒"></div><div class="field"><label>类别</label><select id="nm-cat"><option value="">请选择</option><option>基础办公用品</option><option>劳保用品</option><option>固定资产</option></select></div></div><div class="form-row"><div class="field"><label>默认供应商</label><input id="nm-sup"></div><div class="field"><label>单价(¥)</label><input id="nm-price" type="number"></div><div class="field"><label>存放位置</label><input id="nm-loc"></div></div><div class="form-row"><div class="field"><label>库存预警数量</label><input id="nm-warn" type="number" value="0"></div><div class="field"><label>责任人</label><input id="nm-owner" value="行政部"></div></div></div><div class="foot"><button class="btn ghost" data-hclick="17">取消</button><button class="btn" data-hclick="18">保存</button></div>`); }
 function saveMaterial(){ const code=val('nm-code').trim(), name=val('nm-name').trim(); if(!code||!name){toast('请填编码和名称');return;} const id=Math.max(0,...DB.materials.map(p=>p.id))+1; DB.materials.push({id,code,name,spec:val('nm-spec'),unit:val('nm-unit')||'个',cat:val('nm-cat')||'未分类',supplier:val('nm-sup'),price:num('nm-price'),stock:0,warnQty:num('nm-warn'),expire:'',location:val('nm-loc'),owner:val('nm-owner')||'行政部'}); save(); closeModal(); renderMaterials(document.getElementById('content')); toast('已新建物资'); }
 
 /* ===================== 供应商 ===================== */
@@ -221,16 +221,16 @@ function renderSuppliers(c){
   }).sort((a,b)=>new Date(a.contractEnd)-new Date(b.contractEnd));
   const filtering=!!DB.__filterExpiring;
   const list=filtering?expiring:DB.suppliers;
-  const rows=list.map(s=>`<tr><td>${s.name}</td><td>${s.contact}</td><td>${s.phone}</td><td>${s.addr}</td><td>${s.type||'-'}</td><td>${DB.purchases.filter(p=>p.supplier===s.name).length} 笔入库</td><td><button class="btn ghost sm" onclick="openSupplierDetail(${s.id})">详细信息</button></td></tr>`).join('');
-  const filterBanner=filtering&&expiring.length?`<div class="card" style="background:#fff7e6;border:1px solid #ffd591;margin-bottom:16px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-weight:700;color:#d46b08;font-size:15px;">⚠️ 当前仅显示合同即将到期的供应商</div><div style="color:#873800;font-size:13px;margin-top:4px;">${expiring.map(s=>`${s.name}（终止：${s.contractEnd}）`).join('、')}</div></div><button class="btn ghost sm" onclick="clearSupplierFilter()">清除筛选</button></div></div>`:filtering?'<div class="card" style="background:#f6ffed;border:1px solid #b7eb8f;margin-bottom:16px;"><div style="color:#389e0d;font-size:14px;">✅ 当前筛选：合同即将到期供应商 — 暂无到期记录</div></div>':'';
-  c.innerHTML=`<div class="page-head"><h2>供应商管理</h2><span class="desc">录入与汇总</span><div class="spacer"></div>${filtering?'<button class="btn ghost sm" onclick="clearSupplierFilter()">清除筛选</button>':''}<button class="btn sm" onclick="editSupplier()" style="margin-left:8px;">+ 新建供应商</button></div>${filterBanner}<div class="card"><table><thead><tr><th>名称</th><th>联系人</th><th>电话</th><th>地址</th><th>类型</th><th>入库笔数</th><th>操作</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="empty">无供应商</td></tr>'}</tbody></table></div>`;
+  const rows=list.map(s=>`<tr><td>${s.name}</td><td>${s.contact}</td><td>${s.phone}</td><td>${s.addr}</td><td>${s.type||'-'}</td><td>${DB.purchases.filter(p=>p.supplier===s.name).length} 笔入库</td><td><button class="btn ghost sm" data-hclick="19" data-aclick="${encodeURIComponent(JSON.stringify(s.id))}">详细信息</button></td></tr>`).join('');
+  const filterBanner=filtering&&expiring.length?`<div class="card" style="background:#fff7e6;border:1px solid #ffd591;margin-bottom:16px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><div><div style="font-weight:700;color:#d46b08;font-size:15px;">⚠️ 当前仅显示合同即将到期的供应商</div><div style="color:#873800;font-size:13px;margin-top:4px;">${expiring.map(s=>`${s.name}（终止：${s.contractEnd}）`).join('、')}</div></div><button class="btn ghost sm" data-hclick="20">清除筛选</button></div></div>`:filtering?'<div class="card" style="background:#f6ffed;border:1px solid #b7eb8f;margin-bottom:16px;"><div style="color:#389e0d;font-size:14px;">✅ 当前筛选：合同即将到期供应商 — 暂无到期记录</div></div>':'';
+  c.innerHTML=`<div class="page-head"><h2>供应商管理</h2><span class="desc">录入与汇总</span><div class="spacer"></div>${filtering?'<button class="btn ghost sm" data-hclick="21">清除筛选</button>':''}<button class="btn sm" data-hclick="22" style="margin-left:8px;">+ 新建供应商</button></div>${filterBanner}<div class="card"><table><thead><tr><th>名称</th><th>联系人</th><th>电话</th><th>地址</th><th>类型</th><th>入库笔数</th><th>操作</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="empty">无供应商</td></tr>'}</tbody></table></div>`;
 }
 function showSuppliersExpiring(){ DB.__filterExpiring=true; showView('suppliers'); }
 function clearSupplierFilter(){ DB.__filterExpiring=false; showView('suppliers'); }
 function openSupplierDetail(id){
   const s=DB.suppliers.find(x=>x.id===id); if(!s) return;
   const c=document.getElementById('content');
-  c.innerHTML=`<div class="page-head"><h2>供应商详情 · ${s.name}</h2><span class="desc">${s.type||''}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('suppliers')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>供应商详情 · ${s.name}</h2><span class="desc">${s.type||''}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="23">返回列表</button></div>
     <div class="card">
       <div class="sup-group-title">基本信息</div>
       <div class="detail-row"><div class="label">供应商名称</div><div class="value">${s.name}</div></div>
@@ -258,7 +258,7 @@ function openSupplierDetail(id){
       <div class="detail-row"><div class="label">开户行</div><div class="value">${s.bank||'-'}</div></div>
       <div class="detail-row"><div class="label">银行账号</div><div class="value">${s.account||'-'}</div></div>
       <div class="detail-row"><div class="label">税号</div><div class="value">${s.taxNo||'-'}</div></div>
-      <div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('suppliers')">返回列表</button><button class="btn" onclick="editSupplier(${s.id})">修改</button></div>
+      <div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="24">返回列表</button><button class="btn" data-hclick="25" data-aclick="${encodeURIComponent(JSON.stringify(s.id))}">修改</button></div>
     </div>`;
 }
 function editSupplier(id){
@@ -266,7 +266,7 @@ function editSupplier(id){
   window.__spAttachments=s?(s.attachments||[]):[];
   const c=document.getElementById('content');
   const sel=(idv,cur)=>idv===cur?'selected':'';
-  c.innerHTML=`<div class="page-head"><h2>${s?'修改供应商 '+s.name:'新建供应商'}</h2><span class="desc">${s?'修改后保存':'录入供应商档案'}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('suppliers')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>${s?'修改供应商 '+s.name:'新建供应商'}</h2><span class="desc">${s?'修改后保存':'录入供应商档案'}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="26">返回列表</button></div>
     <div class="card">
       <div class="form-row"><div class="field"><label>名称</label><input id="sp-name" value="${s?s.name:''}"></div><div class="field"><label>联系人</label><input id="sp-contact" value="${s?s.contact:''}"></div></div>
       <div class="form-row"><div class="field"><label>电话</label><input id="sp-phone" value="${s?s.phone:''}"></div><div class="field"><label>地址</label><input id="sp-addr" value="${s?s.addr:''}"></div><div class="field"><label>供应商类型</label><input id="sp-type" placeholder="厂家/经销商/电商" value="${s?s.type:''}"></div></div>
@@ -276,9 +276,9 @@ function editSupplier(id){
       <div class="form-row"><div class="field"><label>合同开始</label><input id="sp-cstart" type="date" value="${s?s.contractStart:''}"></div><div class="field"><label>合同结束</label><input id="sp-cend" type="date" value="${s?s.contractEnd:''}"></div><div class="field"><label>管理人</label><input id="sp-manager" value="${s?s.manager:''}"></div><div class="field"><label>合同进度</label><input id="sp-progress" value="${s?s.contractProgress:''}"></div></div>
       <div class="form-row"><div class="field"><label>传真</label><input id="sp-fax" value="${s?s.fax:''}"></div><div class="field"><label>邮箱</label><input id="sp-email" value="${s?s.email:''}"></div></div>
       <div class="form-row"><div class="field"><label>开户行</label><input id="sp-bank" value="${s?s.bank:''}"></div><div class="field"><label>银行账号</label><input id="sp-account" value="${s?s.account:''}"></div><div class="field"><label>税号</label><input id="sp-tax" value="${s?s.taxNo:''}"></div></div>
-      <div class="form-row" style="margin-top:10px;"><div class="field" style="flex:1;"><label>合同附件</label><input type="file" id="sp-files" multiple onchange="attachSupplierFiles(this)"><div id="sp-file-list" style="margin-top:6px;font-size:13px;color:#555;">${s&&s.attachments&&s.attachments.length?s.attachments.map(f=>`<div>📎 ${f}</div>`).join(''):''}</div></div></div>
+      <div class="form-row" style="margin-top:10px;"><div class="field" style="flex:1;"><label>合同附件</label><input type="file" id="sp-files" multiple data-hchange="27"><div id="sp-file-list" style="margin-top:6px;font-size:13px;color:#555;">${s&&s.attachments&&s.attachments.length?s.attachments.map(f=>`<div>📎 ${f}</div>`).join(''):''}</div></div></div>
       <div class="form-row"><div class="field"><label>备注</label><input id="sp-remarks" value="${s?s.remarks:''}"></div></div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('suppliers')">取消</button><button class="btn" onclick="saveSupplier(${id||0})">保存</button></div>
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="28">取消</button><button class="btn" data-hclick="29" data-aclick="${encodeURIComponent(JSON.stringify(id||0))}">保存</button></div>
     </div>`;
 }
 function attachSupplierFiles(input){
@@ -297,12 +297,12 @@ function saveSupplier(id){
 
 /* ===================== 搜索选人组件 ===================== */
 function buildSearch(id,label,placeholder,source,onPick){
-  return `<div class="field"><label>${label}</label><div class="searchbox" id="box-${id}"><input id="${id}" placeholder="${placeholder}" autocomplete="off" oninput="filterSearch('${id}',${JSON.stringify(source)},'${onPick}')"><div class="list" id="list-${id}" style="display:none"></div></div></div>`;
+  return `<div class="field"><label>${label}</label><div class="searchbox" id="box-${id}"><input id="${id}" placeholder="${placeholder}" autocomplete="off" data-hinput="30" data-ainput="${encodeURIComponent(JSON.stringify(id))},${encodeURIComponent(JSON.stringify(onPick??null))},${encodeURIComponent(JSON.stringify(source))}"><div class="list" id="list-${id}" style="display:none"></div></div></div>`;
 }
 function filterSearch(id,source,onPick){
   const v=document.getElementById(id).value.trim().toLowerCase(); const list=document.getElementById('list-'+id); if(!v){ list.style.display='none'; return; }
   const hits=source.filter(x=>x.toLowerCase().includes(v)).slice(0,8); if(!hits.length){list.style.display='none';return;}
-  list.innerHTML=hits.map(x=>`<div onclick="pickSearch('${id}',${JSON.stringify(x)},${onPick})">${x}</div>`).join(''); list.style.display='block';
+  list.innerHTML=hits.map(x=>`<div data-hclick="31" data-aclick="${encodeURIComponent(JSON.stringify(id))},${encodeURIComponent(JSON.stringify(x))},${encodeURIComponent(JSON.stringify(onPick??null))}">${x}</div>`).join(''); list.style.display='block';
 }
 function pickSearch(id,txt,onPick){ document.getElementById(id).value=txt; document.getElementById('list-'+id).style.display='none'; if(onPick) onPick(txt); }
 
@@ -313,17 +313,17 @@ function renderDemand(c){
   c.innerHTML=`<div class="page-head"><h2>需求提报</h2><span class="desc">需求人 → 直接上级/行政主管 → 分管副总 → 行政部承接</span></div><div class="card">
       <div class="hint">${flowHint}</div>
       <div class="form-row"><div class="field"><label>申请日期</label><input id="dm-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>${buildSearch('dm-ap','申请人','请输入姓名搜索',USERS.map(x=>x.name))}${buildSearch('dm-dept','部门','请输入部门搜索',DEPTS)}<div class="field"><label>是否重复性采购</label><select id="dm-repeat"><option>否</option><option>是</option></select></div></div>
-      <div id="dm-lines"></div><button class="add-line" onclick="addDmLine()">+ 增加物品</button>
+      <div id="dm-lines"></div><button class="add-line" data-hclick="32">+ 增加物品</button>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>预计使用时间</label><input id="dm-use" type="date" value="2026-07-25"></div><div class="field"><label>推荐厂家/链接</label><input id="dm-rec"></div><div class="field"><label>预算范围</label><input id="dm-budget" placeholder="如：200-300元"></div></div>
       <div class="form-row"><div class="field"><label>用途说明</label><textarea id="dm-reason" rows="2"></textarea></div></div>
       <div style="margin-top:14px;"><b>审批流程</b>${buildDemandFlow(null)}</div>
-      <div class="right" style="margin-top:14px;"><button class="btn" onclick="submitDemand()">提交需求</button></div></div>`;
+      <div class="right" style="margin-top:14px;"><button class="btn" data-hclick="33">提交需求</button></div></div>`;
   // 默认值
   setTimeout(()=>{ document.getElementById('dm-ap').value=u.name; document.getElementById('dm-dept').value=u.dept||''; },0);
   addDmLine();
 }
 function addDmLine(){
-  const wrap=document.getElementById('dm-lines'); const d=document.createElement('div'); d.className='line-item'; d.innerHTML=`<div class="field" style="flex:0 0 140px;"><label>物资分类</label><select class="dm-cat"><option value="">请选择</option><option value="办公、劳保用品">办公、劳保用品</option><option value="其他物资">其他物资</option></select></div><div class="field name"><label>物料名称</label><input class="dm-name" placeholder="如：A4打印纸"></div><div class="field spec"><label>规格</label><input class="dm-spec" placeholder="如：70g 500张/包"></div><div class="field qty"><label>数量</label><input type="number" class="dm-q" value="1" min="1"></div><div class="field qty" style="flex:0 0 80px;"><label>单位</label><input class="dm-unit" placeholder="如：个"></div><button class="btn ghost sm" onclick="this.parentNode.remove()">✕</button>`; wrap.appendChild(d);
+  const wrap=document.getElementById('dm-lines'); const d=document.createElement('div'); d.className='line-item'; d.innerHTML=`<div class="field" style="flex:0 0 140px;"><label>物资分类</label><select class="dm-cat"><option value="">请选择</option><option value="办公、劳保用品">办公、劳保用品</option><option value="其他物资">其他物资</option></select></div><div class="field name"><label>物料名称</label><input class="dm-name" placeholder="如：A4打印纸"></div><div class="field spec"><label>规格</label><input class="dm-spec" placeholder="如：70g 500张/包"></div><div class="field qty"><label>数量</label><input type="number" class="dm-q" value="1" min="1"></div><div class="field qty" style="flex:0 0 80px;"><label>单位</label><input class="dm-unit" placeholder="如：个"></div><button class="btn ghost sm" data-hclick="34">✕</button>`; wrap.appendChild(d);
 }
 function getDemandStatusByApplicant(name){
   const applicant=USERS.find(x=>x.name===name);
@@ -347,7 +347,7 @@ function renderDemandList(c){
   const canSeeAdmin=u.dept==='行政部'||u.role==='vp';
   const isLead=u.role==='deptLead';
   const desc=canSeeAdmin?'全流程跟踪（全部部门）':isLead?'本部门需求（我与下属）':'我提交的需求';
-  c.innerHTML=`<div class="page-head"><h2>需求列表</h2><span class="desc">${desc}</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/申请人/部门/物品" oninput="filterDemandList(this.value)"></div>
+  c.innerHTML=`<div class="page-head"><h2>需求列表</h2><span class="desc">${desc}</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/申请人/部门/物品" data-hinput="35"></div>
     <div class="card"><table><thead><tr><th>单号</th><th>申请日期</th><th>申请人</th><th>部门</th><th>物品</th><th>执行人</th><th>状态</th><th>操作</th></tr></thead><tbody id="demand-tbody">${demandRows('')}</tbody></table></div>`;
 }
 function demandRows(f){
@@ -365,7 +365,7 @@ function demandRows(f){
   if(!list.length) return '<tr><td colspan="8" class="empty">无匹配结果</td></tr>';
   return list.map(d=>{
     const st=d.status==='pending_adminLead'?'<span class="tag pending">待行政主管审批</span>':d.status==='pending_dept'?'<span class="tag pending">待部门审批</span>':d.status==='pending_vp'?'<span class="tag step">待副总审批/分配</span>':d.status==='assigned'?'<span class="tag assign">已分配·执行中</span>':d.status==='rejected'?'<span class="tag rejected">已驳回</span>':'<span class="tag received">已完成</span>';
-    return `<tr><td>${d.no}</td><td>${d.applyDate||d.date}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>(i.cat?i.cat+' · ':'')+i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td>${d.assignee||'—'}</td><td>${st}</td><td><button class="btn ghost sm" onclick="openDemand(${d.id})">查看</button></td></tr>`;
+    return `<tr><td>${d.no}</td><td>${d.applyDate||d.date}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>(i.cat?i.cat+' · ':'')+i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td>${d.assignee||'—'}</td><td>${st}</td><td><button class="btn ghost sm" data-hclick="36" data-aclick="${encodeURIComponent(JSON.stringify(d.id))}">查看</button></td></tr>`;
   }).join('');
 }
 function filterDemandList(v){ const tb=document.getElementById('demand-tbody'); if(tb) tb.innerHTML=demandRows(v); }
@@ -378,11 +378,11 @@ function openDemand(id){
   const canEdit=(d.applicant===DB.currentUser.name||['admin','adminLead','vp'].includes(DB.currentUser.role))&&d.status!=='received';
   const stTag=d.status==='pending_adminLead'?'<span class="tag pending">待行政主管审批</span>':d.status==='pending_dept'?'<span class="tag pending">待部门审批</span>':d.status==='pending_vp'?'<span class="tag step">待副总审批/分配</span>':d.status==='assigned'?'<span class="tag assign">已分配·执行中</span>':d.status==='rejected'?'<span class="tag rejected">已驳回</span>':'<span class="tag received">已完成</span>';
   const itemsList=`<div style="margin-top:4px;">${d.items.map((i,idx)=>`<div style="margin-bottom:10px;padding:10px 12px;background:#f8f9fa;border-radius:6px;"><div style="font-weight:600;margin-bottom:4px;">物品 ${idx+1}：${i.name}</div><div style="color:#555;font-size:13px;line-height:1.7;">规格型号：${i.spec||'-'}<br>数量：${i.q} ${i.unit||''}<br>物资分类：${i.cat||'-'}</div></div>`).join('')}</div>`;
-  const actions=canApproveAdminLead?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>行政主管审批意见（可选）</label><input id="dm-note"></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('demandList')">返回列表</button><button class="btn green" onclick="approveDemandAdminLead(${id})">通过并转分管副总</button></div>`
-    :canApproveDept?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>部门领导审批意见（可选）</label><input id="dm-note"></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('demandList')">返回列表</button><button class="btn green" onclick="approveDemandDept(${id})">通过并转分管副总</button></div>`
-    :canApproveVp?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>分配执行人</label><select id="dm-assignee"><option value="">请选择</option><option value="行政专员" ${d.assignee==='行政专员'?'selected':''}>行政专员</option><option value="行政主管" ${d.assignee==='行政主管'?'selected':''}>行政主管</option></select></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('demandList')">返回列表</button><button class="btn red sm" onclick="rejectDemand(${id})">驳回</button><button class="btn purple" onclick="approveDemandVp(${id})">审批通过并分配</button></div>`
-    :`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('demandList')">返回列表</button>${canEdit?`<button class="btn" onclick="editDemand(${id})">修改</button>`:''}</div>`;
-  c.innerHTML=`<div class="page-head"><h2>需求详情 ${d.no}</h2><span class="desc">${stTag}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('demandList')">返回列表</button></div>
+  const actions=canApproveAdminLead?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>行政主管审批意见（可选）</label><input id="dm-note"></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="37">返回列表</button><button class="btn green" data-hclick="38" data-aclick="${encodeURIComponent(JSON.stringify(id))}">通过并转分管副总</button></div>`
+    :canApproveDept?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>部门领导审批意见（可选）</label><input id="dm-note"></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="39">返回列表</button><button class="btn green" data-hclick="40" data-aclick="${encodeURIComponent(JSON.stringify(id))}">通过并转分管副总</button></div>`
+    :canApproveVp?`<div class="form-row" style="margin-top:10px;"><div class="field"><label>分配执行人</label><select id="dm-assignee"><option value="">请选择</option><option value="行政专员" ${d.assignee==='行政专员'?'selected':''}>行政专员</option><option value="行政主管" ${d.assignee==='行政主管'?'selected':''}>行政主管</option></select></div></div><div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="41">返回列表</button><button class="btn red sm" data-hclick="42" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn purple" data-hclick="43" data-aclick="${encodeURIComponent(JSON.stringify(id))}">审批通过并分配</button></div>`
+    :`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="44">返回列表</button>${canEdit?`<button class="btn" data-hclick="45" data-aclick="${encodeURIComponent(JSON.stringify(id))}">修改</button>`:''}</div>`;
+  c.innerHTML=`<div class="page-head"><h2>需求详情 ${d.no}</h2><span class="desc">${stTag}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="46">返回列表</button></div>
     <div class="card">
       <div class="detail-row"><div class="label">申请日期</div><div class="value">${d.applyDate||d.date}</div></div>
       <div class="detail-row"><div class="label">申请人</div><div class="value">${d.applicant}（${d.dept}）</div></div>
@@ -404,13 +404,13 @@ function rejectDemand(id){ const d=DB.demands.find(x=>x.id===id); d.status='reje
 
 /* ===================== 任务分配（跳转采购申请） ===================== */
 function renderTask(c){
-  c.innerHTML=`<div class="page-head"><h2>任务分配</h2><span class="desc">分管副总审批并分配已承接需求给行政专员/主管</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/申请人/部门/物品/执行人" oninput="filterTask(this.value)"></div><div class="hint">说明：需求经部门领导审批后，转分管副总审批并分配执行人（行政专员或行政主管）。执行人点击「生成采购申请」后跳转到采购申请页面，由专员手工填写后提交。</div><div class="card"><table><thead><tr><th>需求单号</th><th>申请人</th><th>部门</th><th>物品</th><th>执行人</th><th>操作</th></tr></thead><tbody id="task-tbody">${taskRows('')}</tbody></table></div>`;
+  c.innerHTML=`<div class="page-head"><h2>任务分配</h2><span class="desc">分管副总审批并分配已承接需求给行政专员/主管</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/申请人/部门/物品/执行人" data-hinput="47"></div><div class="hint">说明：需求经部门领导审批后，转分管副总审批并分配执行人（行政专员或行政主管）。执行人点击「生成采购申请」后跳转到采购申请页面，由专员手工填写后提交。</div><div class="card"><table><thead><tr><th>需求单号</th><th>申请人</th><th>部门</th><th>物品</th><th>执行人</th><th>操作</th></tr></thead><tbody id="task-tbody">${taskRows('')}</tbody></table></div>`;
 }
 function taskRows(f){
   const k=(f||'').trim().toLowerCase();
   const todo=DB.demands.filter(d=>d.status==='assigned'&&!d.done).filter(d=>!k||d.no.toLowerCase().includes(k)||d.applicant.toLowerCase().includes(k)||d.dept.toLowerCase().includes(k)||(d.assignee||'').toLowerCase().includes(k)||d.items.some(i=>(i.name||'').toLowerCase().includes(k))).slice().sort((a,b)=>((b.applyDate||b.date||'').localeCompare(a.applyDate||a.date||'')));
   if(!todo.length) return '<tr><td colspan="6" class="empty">暂无待分配/执行的需求</td></tr>';
-  return todo.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>(i.cat?i.cat+' · ':'')+i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td>${d.assignee}</td><td><button class="btn ghost sm" onclick="goPurReq(${d.id})">生成采购申请</button></td></tr>`).join('');
+  return todo.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>(i.cat?i.cat+' · ':'')+i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td>${d.assignee}</td><td><button class="btn ghost sm" data-hclick="48" data-aclick="${encodeURIComponent(JSON.stringify(d.id))}">生成采购申请</button></td></tr>`).join('');
 }
 function filterTask(v){ const tb=document.getElementById('task-tbody'); if(tb) tb.innerHTML=taskRows(v); }
 function goPurReq(did){ newPurReq(did); }
@@ -418,7 +418,7 @@ function goStockIn(pid){ newStockIn(pid); }
 
 /* ===================== 采购申请（页面 + 双模式 + 审批流） ===================== */
 function renderPurReq(c){
-  c.innerHTML=`<div class="page-head"><h2>采购申请</h2><span class="desc">专员 → 行政主管 → 分管副总</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/采购人/部门/物品" oninput="filterPurReq(this.value)"><button class="btn sm" onclick="newPurReq()" style="margin-left:8px;">+ 新建采购申请</button></div>
+  c.innerHTML=`<div class="page-head"><h2>采购申请</h2><span class="desc">专员 → 行政主管 → 分管副总</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/采购人/部门/物品" data-hinput="49"><button class="btn sm" data-hclick="50" style="margin-left:8px;">+ 新建采购申请</button></div>
     <div class="card"><table><thead><tr><th>单号</th><th>日期</th><th>采购人</th><th>物品</th><th>金额</th><th>状态</th><th>操作</th></tr></thead><tbody id="purreq-tbody">${purReqRows('')}</tbody></table></div>`;
 }
 function purReqRows(f){
@@ -428,7 +428,7 @@ function purReqRows(f){
   return list.map(p=>{
     const total=p.items.reduce((s,i)=>s+i.q*(i.price||0),0);
     const st=p.status==='pending_admin'?'<span class="tag pending">待主管审</span>':p.status==='pending_vp'?'<span class="tag step">待副总审</span>':p.status==='rejected'?'<span class="tag rejected">已驳回</span>':'<span class="tag done">已通过</span>';
-    return `<tr><td>${p.no}</td><td>${p.date}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td>¥${total.toLocaleString()}</td><td>${st}</td><td><button class="btn ghost sm" onclick="openPurReq(${p.id})">详情</button> <button class="btn ghost sm" onclick="editPurReq(${p.id})">修改</button></td></tr>`;
+    return `<tr><td>${p.no}</td><td>${p.date}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td>¥${total.toLocaleString()}</td><td>${st}</td><td><button class="btn ghost sm" data-hclick="51" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">详情</button> <button class="btn ghost sm" data-hclick="52" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">修改</button></td></tr>`;
   }).join('');
 }
 function filterPurReq(v){ const tb=document.getElementById('purreq-tbody'); if(tb) tb.innerHTML=purReqRows(v); }
@@ -437,18 +437,18 @@ function newPurReq(did){
   const prefill=did?DB.demands.find(d=>d.id===did):null;
   // 清空内容区，显示新建表单
   const c=document.getElementById('content');
-  c.innerHTML=`<div class="page-head"><h2>新建采购申请</h2><span class="desc">${prefill?'来自需求 '+prefill.no:'常规采购 / 新物资采购'}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('purReq')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>新建采购申请</h2><span class="desc">${prefill?'来自需求 '+prefill.no:'常规采购 / 新物资采购'}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="53">返回列表</button></div>
     <div class="card">
-      <div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-normal" onclick="setPrMode('normal')">常规重复采购</button><button id="seg-new" onclick="setPrMode('new')">新物资采购</button></div>
+      <div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-normal" data-hclick="54">常规重复采购</button><button id="seg-new" data-hclick="55">新物资采购</button></div>
       <div class="hint" id="pr-hint">常规物资：输入物料编码，自动带出名称、规格、单位、类别。</div>
       <div class="form-row"><div class="field"><label>采购人</label><input id="pr-ap" value="${u.name}"></div><div class="field"><label>部门</label><input id="pr-dept" value="行政部"></div><div class="field"><label>日期</label><input id="pr-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div>
       <div class="form-row"><div class="field"><label>申请事由</label><input id="pr-reason" placeholder="如：补充日常办公" value="${prefill?'需求'+prefill.no:''}"></div><div class="field"><label>需求人</label><input id="pr-requester" value="${prefill?prefill.applicant:''}"></div><div class="field"><label>需求部门</label><input id="pr-requester-dept" value="${prefill?prefill.dept:''}"></div></div>
-      <div class="form-row"><div class="field"><label>下单方式</label><select id="pr-orderway" onchange="onOrderWayChange(this.value)"><option value="">请选择</option><option value="A办公用品集采供应商">A办公用品集采供应商</option><option value="B办公用品集采供应商">B办公用品集采供应商</option><option value="其他方式下单">其他方式下单</option></select></div><div class="field"><label>支付方式</label><select id="pr-payway"><option value="">请选择</option><option value="垫付报销">垫付报销</option><option value="对公转账">对公转账</option><option value="冲抵备用金">冲抵备用金</option><option value="集采月结">集采月结</option></select></div><div class="field"><label>入库地址</label><select id="pr-warehouse"><option value="">请选择入库地址</option><option>总部大楼</option><option>分仓A</option><option>分仓B</option></select></div></div>
+      <div class="form-row"><div class="field"><label>下单方式</label><select id="pr-orderway" data-hchange="56"><option value="">请选择</option><option value="A办公用品集采供应商">A办公用品集采供应商</option><option value="B办公用品集采供应商">B办公用品集采供应商</option><option value="其他方式下单">其他方式下单</option></select></div><div class="field"><label>支付方式</label><select id="pr-payway"><option value="">请选择</option><option value="垫付报销">垫付报销</option><option value="对公转账">对公转账</option><option value="冲抵备用金">冲抵备用金</option><option value="集采月结">集采月结</option></select></div><div class="field"><label>入库地址</label><select id="pr-warehouse"><option value="">请选择入库地址</option><option>总部大楼</option><option>分仓A</option><option>分仓B</option></select></div></div>
       <div class="form-row"><div class="field"><label>实际支付总金额（可后补）</label><input id="pr-actual" type="number" placeholder="实际支付金额，可与申请金额不一致"></div><div class="field"><label>差异说明</label><input id="pr-diffnote" placeholder="如价格波动原因"></div><div class="field"><label>备注</label><input id="pr-note" placeholder="其他说明"></div></div>
-      <div id="pr-lines"></div><button class="add-line" onclick="addPrLine()">+ 增加物品</button>
+      <div id="pr-lines"></div><button class="add-line" data-hclick="57">+ 增加物品</button>
       <div class="right" style="margin-top:10px;font-size:15px;font-weight:700;">合计：<span id="pr-total">¥0</span></div>
       <div style="margin-top:14px;"><b>审批流程</b>${buildFlow({applicant:u.name,date:'2026-07-21',status:'pending_admin',approverLead:'',approverVp:''})}</div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('purReq')">取消</button><button class="btn" onclick="savePurReq()">提交审批</button></div>
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="58">取消</button><button class="btn" data-hclick="59">提交审批</button></div>
     </div>`;
   window.__prMode='normal';
   if(prefill&&prefill.items){
@@ -473,10 +473,10 @@ function addPrLine(item){
   const i=item||{}; const m=DB.materials.find(x=>x.name===i.name)||{};
   const matched=!!m.code;
   if(mode==='normal'){
-    d.innerHTML=`<div class="field code" style="flex:0 0 110px;"><label>物料编码</label><div class="searchbox"><input class="pr-code" placeholder="输入编码搜索" autocomplete="off" oninput="filterPrCode(this)" value="${matched?m.code:''}"><div class="list" style="display:none"></div></div></div><div class="field" style="flex:0 0 90px;"><label>类别</label><input class="pr-cat" value="${matched?m.cat:''}" ${matched?'readonly':''}></div><div class="field name"><label>物料名称</label><input class="pr-name" value="${i.name||''}" ${matched?'readonly':''}></div><div class="field spec"><label>规格型号</label><input class="pr-spec" value="${i.spec||''}" ${matched?'readonly':''}></div><div class="field" style="flex:0 0 110px;"><label>品牌/店铺</label><input class="pr-brand" value="${i.brand!==undefined?i.brand:(matched?m.supplier:'')}" placeholder="自动带入默认供应商，可改"></div><div class="field" style="flex:0 0 60px;"><label>单位</label><input class="pr-unit" value="${matched?m.unit:(i.unit||'')}" ${matched?'readonly':''}></div><div class="field qty"><label>数量</label><input type="number" class="pr-q" value="${i.q||10}" onchange="calcPrLine(this)"></div><div class="field price"><label>单价</label><input type="number" class="pr-pr" value="${matched?m.price:0}" onchange="calcPrLine(this)"></div><div class="field price"><label>金额</label><input type="number" class="pr-amt" value="0" readonly></div><button class="btn ghost sm" onclick="this.parentNode.remove()">✕</button>`;
+    d.innerHTML=`<div class="field code" style="flex:0 0 110px;"><label>物料编码</label><div class="searchbox"><input class="pr-code" placeholder="输入编码搜索" autocomplete="off" data-hinput="60" value="${matched?m.code:''}"><div class="list" style="display:none"></div></div></div><div class="field" style="flex:0 0 90px;"><label>类别</label><input class="pr-cat" value="${matched?m.cat:''}" ${matched?'readonly':''}></div><div class="field name"><label>物料名称</label><input class="pr-name" value="${i.name||''}" ${matched?'readonly':''}></div><div class="field spec"><label>规格型号</label><input class="pr-spec" value="${i.spec||''}" ${matched?'readonly':''}></div><div class="field" style="flex:0 0 110px;"><label>品牌/店铺</label><input class="pr-brand" value="${i.brand!==undefined?i.brand:(matched?m.supplier:'')}" placeholder="自动带入默认供应商，可改"></div><div class="field" style="flex:0 0 60px;"><label>单位</label><input class="pr-unit" value="${matched?m.unit:(i.unit||'')}" ${matched?'readonly':''}></div><div class="field qty"><label>数量</label><input type="number" class="pr-q" value="${i.q||10}" data-hchange="61"></div><div class="field price"><label>单价</label><input type="number" class="pr-pr" value="${matched?m.price:0}" data-hchange="62"></div><div class="field price"><label>金额</label><input type="number" class="pr-amt" value="0" readonly></div><button class="btn ghost sm" data-hclick="63">✕</button>`;
   } else {
     const catOptions=['基础办公用品','劳保用品','固定资产','其他'].map(o=>`<option value="${o}" ${matched&&m.cat===o?'selected':''}>${o}</option>`).join('');
-    d.innerHTML=`<div class="field code" style="flex:0 0 110px;"><label>物料编码</label><input class="pr-code" placeholder="新编码或临时" value="${matched?m.code:''}"></div><div class="field" style="flex:0 0 130px;"><label>类别</label><select class="pr-cat">${catOptions}</select></div><div class="field name"><label>物料名称</label><input class="pr-name" placeholder="手动填写" value="${i.name||''}"></div><div class="field spec"><label>规格型号</label><input class="pr-spec" placeholder="手动填写" value="${i.spec||''}"></div><div class="field" style="flex:0 0 110px;"><label>品牌/店铺</label><input class="pr-brand" value="${i.brand!==undefined?i.brand:(matched?m.supplier:'')}" placeholder="自动带入默认供应商，可改"></div><div class="field" style="flex:0 0 60px;"><label>单位</label><input class="pr-unit" placeholder="个/包" value="${i.unit||''}"></div><div class="field qty"><label>数量</label><input type="number" class="pr-q" value="${i.q||10}" onchange="calcPrLine(this)"></div><div class="field price"><label>单价</label><input type="number" class="pr-pr" value="${matched?m.price:0}" onchange="calcPrLine(this)"></div><div class="field price"><label>金额</label><input type="number" class="pr-amt" value="0" readonly></div><button class="btn ghost sm" onclick="this.parentNode.remove()">✕</button>`;
+    d.innerHTML=`<div class="field code" style="flex:0 0 110px;"><label>物料编码</label><input class="pr-code" placeholder="新编码或临时" value="${matched?m.code:''}"></div><div class="field" style="flex:0 0 130px;"><label>类别</label><select class="pr-cat">${catOptions}</select></div><div class="field name"><label>物料名称</label><input class="pr-name" placeholder="手动填写" value="${i.name||''}"></div><div class="field spec"><label>规格型号</label><input class="pr-spec" placeholder="手动填写" value="${i.spec||''}"></div><div class="field" style="flex:0 0 110px;"><label>品牌/店铺</label><input class="pr-brand" value="${i.brand!==undefined?i.brand:(matched?m.supplier:'')}" placeholder="自动带入默认供应商，可改"></div><div class="field" style="flex:0 0 60px;"><label>单位</label><input class="pr-unit" placeholder="个/包" value="${i.unit||''}"></div><div class="field qty"><label>数量</label><input type="number" class="pr-q" value="${i.q||10}" data-hchange="64"></div><div class="field price"><label>单价</label><input type="number" class="pr-pr" value="${matched?m.price:0}" data-hchange="65"></div><div class="field price"><label>金额</label><input type="number" class="pr-amt" value="0" readonly></div><button class="btn ghost sm" data-hclick="66">✕</button>`;
   }
   wrap.appendChild(d);
   calcPrLine(d.querySelector('.pr-q'));
@@ -484,7 +484,7 @@ function addPrLine(item){
 function filterPrCode(input){
   const v=input.value.trim().toLowerCase(); const list=input.nextElementSibling; if(!v){list.style.display='none';return;}
   const hits=DB.materials.filter(x=>x.code.toLowerCase().includes(v)||x.name.toLowerCase().includes(v)).slice(0,8); if(!hits.length){list.style.display='none';return;}
-  list.innerHTML=hits.map(m=>`<div onclick="fillPrLine(this.parentNode.previousElementSibling,${m.id})">${m.code} ${m.name}（${m.spec}）</div>`).join(''); list.style.display='block';
+  list.innerHTML=hits.map(m=>`<div data-hclick="67" data-aclick="${encodeURIComponent(JSON.stringify(m.id))}">${m.code} ${m.name}（${m.spec}）</div>`).join(''); list.style.display='block';
 }
 function fillPrLine(input,mid){
   const m=mat(mid); const line=input.closest('.line-item');
@@ -518,11 +518,11 @@ function openPurReq(id){
   const canEdit=(p.applicant===DB.currentUser.name||['admin','adminLead','vp'].includes(DB.currentUser.role))&&p.status!=='done';
   const stTag=p.status==='pending_admin'?'<span class="tag pending">待主管审</span>':p.status==='pending_vp'?'<span class="tag step">待副总审</span>':p.status==='rejected'?'<span class="tag rejected">已驳回</span>':'<span class="tag done">已通过</span>';
   const itemsTable=`<table class="inline-table" style="margin-top:4px;"><thead><tr><th>物料编码</th><th>类别</th><th>物料名称</th><th>品牌/店铺</th><th>规格型号</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th></tr></thead><tbody>${p.items.map(i=>`<tr><td>${i.code||'-'}</td><td>${i.cat||'-'}</td><td>${prItemName(i)}</td><td>${i.brand||'-'}</td><td>${i.spec||'-'}</td><td>${i.unit||'-'}</td><td>${i.q}</td><td>¥${(i.price||0).toLocaleString()}</td><td>¥${(i.q*(i.price||0)).toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
-  const actions=p.status==='done'&&isAdmin?`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('purReq')">返回列表</button><button class="btn" onclick="goStockIn(${p.id})">新建入库单</button></div>`
-    :canLead?`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('purReq')">返回列表</button><button class="btn red sm" onclick="rejectPurReq(${id})">驳回</button><button class="btn green" onclick="approvePurLead(${id})">主管通过→转副总</button></div>`
-    :canVp?`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('purReq')">返回列表</button><button class="btn red sm" onclick="rejectPurReq(${id})">驳回</button><button class="btn green" onclick="approvePurVp(${id})">副总通过</button></div>`
-    :`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('purReq')">返回列表</button>${canEdit?`<button class="btn" onclick="editPurReq(${id})">修改</button>`:''}</div>`;
-  c.innerHTML=`<div class="page-head"><h2>采购申请详情 ${p.no}</h2><span class="desc">${stTag}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('purReq')">返回列表</button></div>
+  const actions=p.status==='done'&&isAdmin?`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="68">返回列表</button><button class="btn" data-hclick="69" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">新建入库单</button></div>`
+    :canLead?`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="70">返回列表</button><button class="btn red sm" data-hclick="71" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="72" data-aclick="${encodeURIComponent(JSON.stringify(id))}">主管通过→转副总</button></div>`
+    :canVp?`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="73">返回列表</button><button class="btn red sm" data-hclick="74" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="75" data-aclick="${encodeURIComponent(JSON.stringify(id))}">副总通过</button></div>`
+    :`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="76">返回列表</button>${canEdit?`<button class="btn" data-hclick="77" data-aclick="${encodeURIComponent(JSON.stringify(id))}">修改</button>`:''}</div>`;
+  c.innerHTML=`<div class="page-head"><h2>采购申请详情 ${p.no}</h2><span class="desc">${stTag}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="78">返回列表</button></div>
     <div class="card">
       <div class="detail-row"><div class="label">采购人</div><div class="value">${p.applicant}（${p.dept}）</div></div>
       <div class="detail-row"><div class="label">日期</div><div class="value">${p.date}</div></div>
@@ -598,38 +598,38 @@ function rejectPurReq(id){ const p=DB.purchaseReqs.find(x=>x.id===id); p.status=
 
 /* ===================== 采购入库（明细表联动） ===================== */
 function renderStockIn(c){
-  c.innerHTML=`<div class="page-head"><h2>采购入库</h2><span class="desc">关联采购申请，输入编码/名称自动带出规格</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/供应商/物品" oninput="filterStockIn(this.value)"><button class="btn sm" onclick="newStockIn()" style="margin-left:8px;">+ 新建入库单</button></div>
+  c.innerHTML=`<div class="page-head"><h2>采购入库</h2><span class="desc">关联采购申请，输入编码/名称自动带出规格</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/供应商/物品" data-hinput="79"><button class="btn sm" data-hclick="80" style="margin-left:8px;">+ 新建入库单</button></div>
     <div class="card"><h3 style="margin-bottom:10px;">近期入库</h3><table><thead><tr><th>单号</th><th>日期</th><th>供应商</th><th>物品</th><th>关联申请</th><th>状态</th><th>操作</th></tr></thead><tbody id="stockin-tbody">${stockInRows('')}</tbody></table></div>`;
 }
 function stockInRows(f){
   const k=(f||'').trim().toLowerCase();
   const list=DB.purchases.slice().reverse().filter(p=>!k||p.no.toLowerCase().includes(k)||p.supplier.toLowerCase().includes(k)||p.items.some(i=>(mname(i.p)||'').toLowerCase().includes(k)));
   if(!list.length) return '<tr><td colspan="7" class="empty">无匹配结果</td></tr>';
-  return list.map(p=>`<tr><td>${p.no}</td><td>${p.date}</td><td>${p.supplier}</td><td>${p.items.map(i=>mname(i.p)+'×'+i.q).join('、')}</td><td>${p.refReq||'-'}</td><td><span class="tag done">已入库</span></td><td><button class="btn ghost sm" onclick="openStockIn(${p.id})">详情</button> <button class="btn ghost sm" onclick="editStockIn(${p.id})">修改</button></td></tr>`).join('');
+  return list.map(p=>`<tr><td>${p.no}</td><td>${p.date}</td><td>${p.supplier}</td><td>${p.items.map(i=>mname(i.p)+'×'+i.q).join('、')}</td><td>${p.refReq||'-'}</td><td><span class="tag done">已入库</span></td><td><button class="btn ghost sm" data-hclick="81" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">详情</button> <button class="btn ghost sm" data-hclick="82" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">修改</button></td></tr>`).join('');
 }
 function filterStockIn(v){ const tb=document.getElementById('stockin-tbody'); if(tb) tb.innerHTML=stockInRows(v); }
 function newStockIn(pid){
   const c=document.getElementById('content');
   const prefill=pid?DB.purchaseReqs.find(p=>p.id===pid):null;
-  c.innerHTML=`<div class="page-head"><h2>新建采购入库单</h2><span class="desc">填写物料编码或名称，自动带出规格、单位、类别</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('stockIn')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>新建采购入库单</h2><span class="desc">填写物料编码或名称，自动带出规格、单位、类别</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="83">返回列表</button></div>
     <div class="card">
       <div class="form-row"><div class="field"><label>入库单号</label><input id="si-no" value="${nextNo('RK2026-')}" disabled></div><div class="field"><label>日期</label><input id="si-date" type="date" value="2026-07-21"></div><div class="field"><label>经办人</label><input id="si-handler" value="${DB.currentUser.name}"></div></div>
-      <div class="form-row"><div class="field" style="flex:1;"><label>关联采购申请（可选）</label><select id="si-req" onchange="fillFromPurReq(this.value)"><option value="">不关联</option>${DB.purchaseReqs.filter(p=>p.status==='done').map(p=>`<option value="${p.no}" ${prefill&&p.no===prefill.no?'selected':''}>${p.no}</option>`).join('')}</select></div></div>
+      <div class="form-row"><div class="field" style="flex:1;"><label>关联采购申请（可选）</label><select id="si-req" data-hchange="84"><option value="">不关联</option>${DB.purchaseReqs.filter(p=>p.status==='done').map(p=>`<option value="${p.no}" ${prefill&&p.no===prefill.no?'selected':''}>${p.no}</option>`).join('')}</select></div></div>
       <table class="inline-table" style="margin-top:10px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>供应商</th><th>单位</th><th>类别</th><th>数量</th><th>单价</th><th>金额</th><th>存放位置</th><th>责任人</th><th></th></tr></thead><tbody id="si-lines"></tbody></table>
-      <div style="margin-top:10px;"><button class="add-line" onclick="addSiLine()">+ 增加一行</button></div>
+      <div style="margin-top:10px;"><button class="add-line" data-hclick="85">+ 增加一行</button></div>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>备注</label><textarea id="si-note" rows="2"></textarea></div></div>
-      <div class="right"><button class="btn ghost" onclick="showView('stockIn')">取消</button><button class="btn" onclick="saveStockIn()">确认入库</button></div>
+      <div class="right"><button class="btn ghost" data-hclick="86">取消</button><button class="btn" data-hclick="87">确认入库</button></div>
     </div>`;
   if(prefill) setTimeout(()=>fillFromPurReq(prefill.no),0); else addSiLine();
 }
 function addSiLine(){
-  const tbody=document.getElementById('si-lines'); const tr=document.createElement('tr'); tr.innerHTML=`<td><div class="searchbox"><input class="si-code" placeholder="编码/名称" autocomplete="off" oninput="filterSiCode(this)" style="min-width:120px"><div class="list" style="display:none"></div></div></td><td><input class="si-name" readonly></td><td><input class="si-spec" readonly></td><td><input class="si-sup" placeholder="默认供应商" style="width:90px"></td><td><input class="si-unit" readonly style="width:50px"></td><td><input class="si-cat" readonly style="width:70px"></td><td><input type="number" class="si-q" value="0" style="width:60px" onchange="calcSiLine(this)"></td><td><input type="number" class="si-pr" value="0" style="width:70px" onchange="calcSiLine(this)"></td><td><input class="si-amt" readonly style="width:70px"></td><td><input class="si-loc" style="width:90px"></td><td><input class="si-owner" style="width:70px"></td><td><button class="btn ghost sm" onclick="this.closest('tr').remove()">✕</button></td>`;
+  const tbody=document.getElementById('si-lines'); const tr=document.createElement('tr'); tr.innerHTML=`<td><div class="searchbox"><input class="si-code" placeholder="编码/名称" autocomplete="off" data-hinput="88" style="min-width:120px"><div class="list" style="display:none"></div></div></td><td><input class="si-name" readonly></td><td><input class="si-spec" readonly></td><td><input class="si-sup" placeholder="默认供应商" style="width:90px"></td><td><input class="si-unit" readonly style="width:50px"></td><td><input class="si-cat" readonly style="width:70px"></td><td><input type="number" class="si-q" value="0" style="width:60px" data-hchange="89"></td><td><input type="number" class="si-pr" value="0" style="width:70px" data-hchange="90"></td><td><input class="si-amt" readonly style="width:70px"></td><td><input class="si-loc" style="width:90px"></td><td><input class="si-owner" style="width:70px"></td><td><button class="btn ghost sm" data-hclick="91">✕</button></td>`;
   tbody.appendChild(tr);
 }
 function filterSiCode(input){
   const v=input.value.trim().toLowerCase(); const list=input.nextElementSibling; if(!v){list.style.display='none';return;}
   const hits=DB.materials.filter(x=>x.code.toLowerCase().includes(v)||x.name.toLowerCase().includes(v)).slice(0,8); if(!hits.length){list.style.display='none';return;}
-  list.innerHTML=hits.map(m=>`<div onclick="fillSiLine(this.parentNode.previousElementSibling,${m.id})">${m.code} ${m.name}（${m.spec}）</div>`).join(''); list.style.display='block';
+  list.innerHTML=hits.map(m=>`<div data-hclick="92" data-aclick="${encodeURIComponent(JSON.stringify(m.id))}">${m.code} ${m.name}（${m.spec}）</div>`).join(''); list.style.display='block';
 }
 function fillSiLine(input,mid){
   const m=mat(mid); const tr=input.closest('tr'); input.value=m.code; tr.querySelector('.si-name').value=m.name; tr.querySelector('.si-spec').value=m.spec; tr.querySelector('.si-sup').value=m.supplier||''; tr.querySelector('.si-unit').value=m.unit; tr.querySelector('.si-cat').value=m.cat; tr.querySelector('.si-pr').value=m.price; tr.querySelector('.si-loc').value=m.location; tr.querySelector('.si-owner').value=m.owner; calcSiLine(tr.querySelector('.si-q'));
@@ -695,7 +695,7 @@ function openStockIn(id){
   const c=document.getElementById('content');
   const total=p.items.reduce((s,i)=>s+i.q*(i.price||0),0);
   const itemsTable=`<table class="inline-table" style="margin-top:4px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>供应商</th><th>单位</th><th>类别</th><th>数量</th><th>单价</th><th>金额</th><th>存放位置</th><th>责任人</th></tr></thead><tbody>${p.items.map(i=>`<tr><td>${i.code||'-'}</td><td>${mname(i.p)||i.name}</td><td>${i.spec||'-'}</td><td>${i.supplier||'-'}</td><td>${i.unit||'-'}</td><td>${i.cat||'-'}</td><td>${i.q}</td><td>¥${(i.price||0).toLocaleString()}</td><td>¥${(i.q*(i.price||0)).toLocaleString()}</td><td>${i.location||'-'}</td><td>${i.owner||'-'}</td></tr>`).join('')}</tbody></table>`;
-  c.innerHTML=`<div class="page-head"><h2>入库详情 ${p.no}</h2><span class="desc"><span class="tag done">已入库</span></span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('stockIn')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>入库详情 ${p.no}</h2><span class="desc"><span class="tag done">已入库</span></span><div class="spacer"></div><button class="btn ghost sm" data-hclick="93">返回列表</button></div>
     <div class="card">
       <div class="detail-row"><div class="label">入库单号</div><div class="value">${p.no}</div></div>
       <div class="detail-row"><div class="label">日期</div><div class="value">${p.date}</div></div>
@@ -705,13 +705,13 @@ function openStockIn(id){
       <div class="detail-row"><div class="label">备注</div><div class="value">${p.note||'-'}</div></div>
       <div class="detail-row"><div class="label">物品明细</div><div class="value">${itemsTable}</div></div>
       <div class="detail-row"><div class="label">合计金额</div><div class="value" style="font-size:16px;font-weight:700;color:var(--brand);">¥${total.toLocaleString()}</div></div>
-      <div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('stockIn')">返回列表</button><button class="btn" onclick="editStockIn(${p.id})">修改</button></div>
+      <div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="94">返回列表</button><button class="btn" data-hclick="95" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">修改</button></div>
     </div>`;
 }
 
 /* ===================== 领用申请（全员+编码联动） ===================== */
 function renderIssue(c){
-  c.innerHTML=`<div class="page-head"><h2>领用申请</h2><span class="desc">普通物资：行政主管审批 → 抄送专员；劳保用品：人资部 → 物资部 → 审批领导</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/领用人/部门/物品" oninput="filterIssue(this.value)"><button class="btn sm" onclick="newIssue()" style="margin-left:8px;">+ 新建领用</button></div>
+  c.innerHTML=`<div class="page-head"><h2>领用申请</h2><span class="desc">普通物资：行政主管审批 → 抄送专员；劳保用品：人资部 → 物资部 → 审批领导</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/领用人/部门/物品" data-hinput="96"><button class="btn sm" data-hclick="97" style="margin-left:8px;">+ 新建领用</button></div>
     <div class="card"><div class="hint">💡 普通物资由行政主管审批通过即出库；劳保用品（如国际部出行装备）走：领用人 → 人资部 → 物资部 → 审批领导，支持非企微架构人员。</div><h3 style="margin-bottom:10px;">领用记录</h3><table><thead><tr><th>单号</th><th>领用日期</th><th>领用人</th><th>领用部门</th><th>物品</th><th>状态</th><th>操作</th></tr></thead><tbody id="issue-tbody">${issueRows('')}</tbody></table></div>`;
 }
 function issueRows(f){
@@ -732,8 +732,8 @@ function issueRows(f){
     const typeTag=p.issueType==='laobao'?'<span class="tag step">劳保</span>':'';
     const st=p.status==='rejected'?'<span class="tag rejected">已驳回</span>':p.status==='done'?'<span class="tag done">已出库</span>':'<span class="tag pending">审批中</span>';
     const canAct=isAdmin && p.status==='pending' && p.issueType!=='laobao';
-    const actBtns=canAct?`<button class="btn green sm" onclick="if(confirm('确认通过该领用申请并出库减库存？')){approveIssue(${p.id});}">通过</button> <button class="btn red sm" onclick="if(confirm('确认驳回该领用申请？')){rejectIssue(${p.id});}">驳回</button> `:'';
-    return `<tr><td>${p.no}</td><td>${p.date}</td><td>${p.applicant} ${typeTag}</td><td>${p.dept}</td><td>${p.items.map(i=>mname(i.p)+'×'+i.q).join('、')}</td><td>${st}</td><td>${actBtns}<button class="btn ghost sm" onclick="openIssue(${p.id})">查看</button></td></tr>`;
+    const actBtns=canAct?`<button class="btn green sm" data-hclick="98" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">通过</button> <button class="btn red sm" data-hclick="99" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">驳回</button> `:'';
+    return `<tr><td>${p.no}</td><td>${p.date}</td><td>${p.applicant} ${typeTag}</td><td>${p.dept}</td><td>${p.items.map(i=>mname(i.p)+'×'+i.q).join('、')}</td><td>${st}</td><td>${actBtns}<button class="btn ghost sm" data-hclick="100" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">查看</button></td></tr>`;
   }).join('');
 }
 function filterIssue(v){ const tb=document.getElementById('issue-tbody'); if(tb) tb.innerHTML=issueRows(v); }
@@ -741,9 +741,9 @@ function newIssue(){
   const u=DB.currentUser; const c=document.getElementById('content');
   const isAdminDept=(u.dept==='行政部');
   const tabs=isAdminDept
-    ?`<div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-is-normal" onclick="setIssueMode('normal')">普通物资</button><button id="seg-is-laobao" onclick="setIssueMode('laobao')">劳保用品（国际部出行）</button></div>`
+    ?`<div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-is-normal" data-hclick="101">普通物资</button><button id="seg-is-laobao" data-hclick="102">劳保用品（国际部出行）</button></div>`
     :`<div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-is-normal">普通物资</button></div>`;
-  c.innerHTML=`<div class="page-head"><h2>新建领用申请</h2><span class="desc">${isAdminDept?'普通物资 / 劳保用品':'普通物资'}</span><div class="spacer"></div><button class="btn ghost sm" onclick="document.getElementById('is-file').click()">📥 导入本地表格</button><input type="file" id="is-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importIssueExcel(this)"><button class="btn ghost sm" onclick="showView('issue')" style="margin-left:8px;">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>新建领用申请</h2><span class="desc">${isAdminDept?'普通物资 / 劳保用品':'普通物资'}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="103">📥 导入本地表格</button><input type="file" id="is-file" accept=".xlsx,.xls,.csv" style="display:none" data-hchange="104"><button class="btn ghost sm" data-hclick="105" style="margin-left:8px;">返回列表</button></div>
     <div class="card">
       ${tabs}
       <input type="hidden" id="is-type" value="normal">
@@ -751,10 +751,10 @@ function newIssue(){
       <div class="form-row"><div class="field" style="flex:1;">${buildSearch('is-ap','领用人','请输入姓名搜索',USERS.map(x=>x.name))}</div><div class="field" style="flex:1;">${buildSearch('is-dept','领用部门','请输入部门搜索',DEPTS)}</div><div class="field" style="flex:0 0 160px;"><label>领用日期</label><input id="is-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div>
       <div class="form-row" id="ext-row" style="display:none;"><div class="field"><label>外部领用人姓名</label><input id="is-ext-ap" placeholder="如：国际部员工姓名"></div><div class="field"><label>外部部门</label><input id="is-ext-dept" placeholder="如：国际部"></div></div>
       <table class="inline-table" style="margin-top:10px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>单位</th><th>数量</th><th></th></tr></thead><tbody id="is-lines"></tbody></table>
-      <div style="margin-top:10px;"><button class="add-line" onclick="addIsLine()">+ 增加一行</button></div>
+      <div style="margin-top:10px;"><button class="add-line" data-hclick="106">+ 增加一行</button></div>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>用途说明</label><textarea id="is-reason" rows="2"></textarea></div></div>
       <div style="margin-top:14px;"><b>审批流程</b>${buildIssueFlow(null)}</div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('issue')">取消</button><button class="btn" onclick="saveIssue()">提交审批</button></div>
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="107">取消</button><button class="btn" data-hclick="108">提交审批</button></div>
     </div>`;
   window.__issueMode='normal';
   setTimeout(()=>{ document.getElementById('is-ap').value=u.name; document.getElementById('is-dept').value=u.dept||''; },0);
@@ -857,13 +857,13 @@ function importIssueExcel(input){
   reader.readAsText(file,'utf-8');
 }
 function addIsLine(){
-  const tbody=document.getElementById('is-lines'); const tr=document.createElement('tr'); tr.innerHTML=`<td><div class="searchbox"><input class="is-code" placeholder="编码/名称" autocomplete="off" oninput="filterIsCode(this)" style="min-width:120px"><div class="list" style="display:none"></div></div></td><td><input class="is-name" readonly></td><td><input class="is-spec" readonly></td><td><input class="is-unit" readonly style="width:50px"></td><td><input type="number" class="is-q" value="1" style="width:60px"></td><td><button class="btn ghost sm" onclick="this.closest('tr').remove()">✕</button></td>`;
+  const tbody=document.getElementById('is-lines'); const tr=document.createElement('tr'); tr.innerHTML=`<td><div class="searchbox"><input class="is-code" placeholder="编码/名称" autocomplete="off" data-hinput="109" style="min-width:120px"><div class="list" style="display:none"></div></div></td><td><input class="is-name" readonly></td><td><input class="is-spec" readonly></td><td><input class="is-unit" readonly style="width:50px"></td><td><input type="number" class="is-q" value="1" style="width:60px"></td><td><button class="btn ghost sm" data-hclick="110">✕</button></td>`;
   tbody.appendChild(tr);
 }
 function filterIsCode(input){
   const v=input.value.trim().toLowerCase(); const list=input.nextElementSibling; if(!v){list.style.display='none';return;}
   const hits=DB.materials.filter(x=>x.code.toLowerCase().includes(v)||x.name.toLowerCase().includes(v)).slice(0,8); if(!hits.length){list.style.display='none';return;}
-  list.innerHTML=hits.map(m=>`<div onclick="fillIsLine(this.parentNode.previousElementSibling,${m.id})">${m.code} ${m.name}（库存${m.stock}${m.unit}）</div>`).join(''); list.style.display='block';
+  list.innerHTML=hits.map(m=>`<div data-hclick="111" data-aclick="${encodeURIComponent(JSON.stringify(m.id))}">${m.code} ${m.name}（库存${m.stock}${m.unit}）</div>`).join(''); list.style.display='block';
 }
 function fillIsLine(input,mid){
   const m=mat(mid); const tr=input.closest('tr'); input.value=m.code; tr.querySelector('.is-name').value=m.name; tr.querySelector('.is-spec').value=m.spec; tr.querySelector('.is-unit').value=m.unit;
@@ -884,21 +884,21 @@ function renderApprove(c){
   const r=DB.currentUser.role; let html=`<div class="page-head"><h2>审批中心</h2><span class="desc">当前角色待办汇总</span></div>`;
   if(r==='deptLead'){
     const list=DB.demands.filter(d=>d.status==='pending_dept'&&d.dept===DB.currentUser.dept);
-    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待部门领导审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" onclick="openDemand(${d.id})">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
+    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待部门领导审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" data-hclick="112" data-aclick="${encodeURIComponent(JSON.stringify(d.id))}">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
   }
   if(r==='vp'){
     const list=DB.demands.filter(d=>d.status==='pending_vp');
-    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待分管副总审批/分配）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" onclick="openDemand(${d.id})">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
+    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待分管副总审批/分配）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" data-hclick="113" data-aclick="${encodeURIComponent(JSON.stringify(d.id))}">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
   }
   if(r==='adminLead'){
     const dList=DB.demands.filter(d=>d.status==='pending_adminLead');
-    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待行政主管审批）</h3>${dList.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${dList.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" onclick="openDemand(${d.id})">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
+    html+=`<div class="card"><h3 style="margin-bottom:10px;">需求提报（待行政主管审批）</h3>${dList.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>部门</th><th>物品</th><th>操作</th></tr></thead><tbody>${dList.map(d=>`<tr><td>${d.no}</td><td>${d.applicant}</td><td>${d.dept}</td><td>${d.items.map(i=>i.name+'×'+i.q+(i.unit?i.unit:'')+(i.spec?'（'+i.spec+'）':'')).join('、')}</td><td><button class="btn green sm" data-hclick="114" data-aclick="${encodeURIComponent(JSON.stringify(d.id))}">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
     const list=DB.purchaseReqs.filter(p=>p.status==='pending_admin');
-    html+=`<div class="card" style="margin-top:14px;"><h3 style="margin-bottom:10px;">采购申请（待行政主管审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(p=>`<tr><td>${p.no}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td><button class="btn green sm" onclick="openPurReq(${p.id})">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
+    html+=`<div class="card" style="margin-top:14px;"><h3 style="margin-bottom:10px;">采购申请（待行政主管审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(p=>`<tr><td>${p.no}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td><button class="btn green sm" data-hclick="115" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
   }
   if(r==='vp'){
     const list=DB.purchaseReqs.filter(p=>p.status==='pending_vp');
-    html+=`<div class="card"><h3 style="margin-bottom:10px;">采购申请（待分管副总审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(p=>`<tr><td>${p.no}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td><button class="btn green sm" onclick="openPurReq(${p.id})">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
+    html+=`<div class="card"><h3 style="margin-bottom:10px;">采购申请（待分管副总审批）</h3>${list.length?`<table><thead><tr><th>单号</th><th>申请人</th><th>物品</th><th>操作</th></tr></thead><tbody>${list.map(p=>`<tr><td>${p.no}</td><td>${p.applicant}</td><td>${p.items.map(i=>prItemName(i)+'×'+i.q).join('、')}</td><td><button class="btn green sm" data-hclick="116" data-aclick="${encodeURIComponent(JSON.stringify(p.id))}">去审批</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>'}</div>`;
   }
   if(['admin','adminLead','vp'].includes(r)){
     const normal=DB.issues.filter(x=>x.status==='pending'&&x.issueType!=='laobao');
@@ -906,7 +906,7 @@ function renderApprove(c){
     const laobaoM=DB.issues.filter(x=>x.status==='hr_approved'&&x.issueType==='laobao');
     const laobaoL=DB.issues.filter(x=>x.status==='material_approved'&&x.issueType==='laobao');
     html+=`<div class="card" style="margin-top:14px;"><h3 style="margin-bottom:10px;">领用申请待办</h3>`;
-    const rows=[...normal.map(x=>({x,step:'行政主管审批',act:`<button class="btn green sm" onclick="openIssue(${x.id})">去审批</button>`})),...laobaoHR.map(x=>({x,step:'人资部审批',act:`<button class="btn green sm" onclick="openIssue(${x.id})">去审批</button>`})),...laobaoM.map(x=>({x,step:'物资部审批',act:`<button class="btn green sm" onclick="openIssue(${x.id})">去审批</button>`})),...laobaoL.map(x=>({x,step:'审批领导',act:`<button class="btn green sm" onclick="openIssue(${x.id})">去审批</button>`}))];
+    const rows=[...normal.map(x=>({x,step:'行政主管审批',act:`<button class="btn green sm" data-hclick="117" data-aclick="${encodeURIComponent(JSON.stringify(x.id))}">去审批</button>`})),...laobaoHR.map(x=>({x,step:'人资部审批',act:`<button class="btn green sm" data-hclick="118" data-aclick="${encodeURIComponent(JSON.stringify(x.id))}">去审批</button>`})),...laobaoM.map(x=>({x,step:'物资部审批',act:`<button class="btn green sm" data-hclick="119" data-aclick="${encodeURIComponent(JSON.stringify(x.id))}">去审批</button>`})),...laobaoL.map(x=>({x,step:'审批领导',act:`<button class="btn green sm" data-hclick="120" data-aclick="${encodeURIComponent(JSON.stringify(x.id))}">去审批</button>`}))];
     html+=rows.length?`<table><thead><tr><th>单号</th><th>类型</th><th>申请人</th><th>部门</th><th>当前步骤</th><th>物品</th><th>操作</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.x.no}</td><td>${r.x.issueType==='laobao'?'<span class="tag step">劳保</span>':'普通'}</td><td>${r.x.applicant}</td><td>${r.x.dept}</td><td>${r.step}</td><td>${r.x.items.map(i=>mname(i.p)+'×'+i.q).join('、')}</td><td>${r.act}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">暂无</div>';
     html+=`</div>`;
   }
@@ -929,15 +929,15 @@ function openIssue(id){
   const itemsTable=`<table class="inline-table" style="margin-top:4px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>单位</th><th>数量</th></tr></thead><tbody>${x.items.map(i=>{ const m=mat(i.p); return `<tr><td>${m?m.code:(i.code||'-')}</td><td>${mname(i.p)}</td><td>${m?m.spec:(i.spec||'-')}</td><td>${m?m.unit:(i.unit||'-')}</td><td>${i.q}</td></tr>`; }).join('')}</tbody></table>`;
   let actions='';
   if(isLaobao){
-    if(x.status==='pending') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button><button class="btn red sm" onclick="rejectIssue(${id})">驳回</button><button class="btn green" onclick="approveIssueHR(${id})">人资部通过</button></div>`;
-    else if(x.status==='hr_approved') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button><button class="btn red sm" onclick="rejectIssue(${id})">驳回</button><button class="btn green" onclick="approveIssueMaterial(${id})">物资部通过</button></div>`;
-    else if(x.status==='material_approved') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button><button class="btn red sm" onclick="rejectIssue(${id})">驳回</button><button class="btn green" onclick="approveIssueFinal(${id})">领导审批通过并出库</button></div>`;
-    else actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button>${canEdit?`<button class="btn" onclick="editIssue(${id})">修改</button>`:''}</div>`;
+    if(x.status==='pending') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="121">返回列表</button><button class="btn red sm" data-hclick="122" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="123" data-aclick="${encodeURIComponent(JSON.stringify(id))}">人资部通过</button></div>`;
+    else if(x.status==='hr_approved') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="124">返回列表</button><button class="btn red sm" data-hclick="125" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="126" data-aclick="${encodeURIComponent(JSON.stringify(id))}">物资部通过</button></div>`;
+    else if(x.status==='material_approved') actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="127">返回列表</button><button class="btn red sm" data-hclick="128" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="129" data-aclick="${encodeURIComponent(JSON.stringify(id))}">领导审批通过并出库</button></div>`;
+    else actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="130">返回列表</button>${canEdit?`<button class="btn" data-hclick="131" data-aclick="${encodeURIComponent(JSON.stringify(id))}">修改</button>`:''}</div>`;
   } else {
-    if(x.status==='pending'&&isAdmin) actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button><button class="btn red sm" onclick="rejectIssue(${id})">驳回</button><button class="btn green" onclick="approveIssue(${id})">审批通过并出库</button></div>`;
-    else actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" onclick="showView('issue')">返回列表</button>${canEdit?`<button class="btn" onclick="editIssue(${id})">修改</button>`:''}</div>`;
+    if(x.status==='pending'&&isAdmin) actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="132">返回列表</button><button class="btn red sm" data-hclick="133" data-aclick="${encodeURIComponent(JSON.stringify(id))}">驳回</button><button class="btn green" data-hclick="134" data-aclick="${encodeURIComponent(JSON.stringify(id))}">审批通过并出库</button></div>`;
+    else actions=`<div style="margin-top:14px;" class="right"><button class="btn ghost" data-hclick="135">返回列表</button>${canEdit?`<button class="btn" data-hclick="136" data-aclick="${encodeURIComponent(JSON.stringify(id))}">修改</button>`:''}</div>`;
   }
-  c.innerHTML=`<div class="page-head"><h2>领用详情 ${x.no}</h2><span class="desc">${typeTag} ${stTag}</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('issue')">返回列表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>领用详情 ${x.no}</h2><span class="desc">${typeTag} ${stTag}</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="137">返回列表</button></div>
     <div class="card">
       <div class="detail-row"><div class="label">领用日期</div><div class="value">${x.date}</div></div>
       <div class="detail-row"><div class="label">领用人</div><div class="value">${x.applicant}${x.extApplicant?'（外部：'+x.extApplicant+'）':''}（${x.dept}）</div></div>
@@ -950,7 +950,7 @@ function openIssue(id){
 
 /* ===================== 库存统计 ===================== */
 function renderInventory(c){
-  c.innerHTML=`<div class="page-head"><h2>库存统计</h2><span class="desc">实时库存 = 入库累计 - 出库累计，低于库存预警数量触发预警</span><div class="spacer"></div><input class="list-search" placeholder="搜索编码/名称/规格/类别" oninput="filterInventory(this.value)"><button class="btn ghost sm" onclick="toast('正式版支持导出Excel')" style="margin-left:8px;">⬇ 导出</button></div>
+  c.innerHTML=`<div class="page-head"><h2>库存统计</h2><span class="desc">实时库存 = 入库累计 - 出库累计，低于库存预警数量触发预警</span><div class="spacer"></div><input class="list-search" placeholder="搜索编码/名称/规格/类别" data-hinput="138"><button class="btn ghost sm" data-hclick="139" style="margin-left:8px;">⬇ 导出</button></div>
     <div class="card"><table><thead><tr><th>物料编码</th><th>名称</th><th>规格型号</th><th>单位</th><th>类别</th><th>入库数</th><th>出库数</th><th>库存数</th><th>库存金额</th><th>库存预警数量</th><th>状态</th><th>采购建议</th></tr></thead><tbody id="inv-tbody">${inventoryRows('')}</tbody></table></div>`;
 }
 function inventoryRows(f){
@@ -968,22 +968,22 @@ function filterInventory(v){ const tb=document.getElementById('inv-tbody'); if(t
 
 /* ===================== 盘点 ===================== */
 function renderCount(c){
-  c.innerHTML=`<div class="page-head"><h2>盘点</h2><span class="desc">导出盘点报表，实地核对后回填实盘数</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/盘点人/日期" oninput="filterCount(this.value)"><button class="btn sm" onclick="newCount()" style="margin-left:8px;">+ 生成盘点表</button></div>
+  c.innerHTML=`<div class="page-head"><h2>盘点</h2><span class="desc">导出盘点报表，实地核对后回填实盘数</span><div class="spacer"></div><input class="list-search" placeholder="搜索单号/盘点人/日期" data-hinput="140"><button class="btn sm" data-hclick="141" style="margin-left:8px;">+ 生成盘点表</button></div>
     <div class="card"><table><thead><tr><th>盘点单号</th><th>日期</th><th>盘点人</th><th>物品数</th><th>状态</th><th>操作</th></tr></thead><tbody id="count-tbody">${countRows('')}</tbody></table></div>`;
 }
 function countRows(f){
   const k=(f||'').trim().toLowerCase();
   const list=DB.counts.slice().reverse().filter(c=>!k||c.no.toLowerCase().includes(k)||(c.counter||'').toLowerCase().includes(k)||(c.date||'').toLowerCase().includes(k));
   if(!list.length) return '<tr><td colspan="6" class="empty">暂无盘点任务</td></tr>';
-  return list.map(k=>{ return `<tr><td>${k.no}</td><td>${k.date}</td><td>${k.counter}</td><td>${k.items.length}</td><td><span class="tag ${k.done?'done':'wait'}">${k.done?'已完成':'待盘点'}</span></td><td><button class="btn ghost sm" onclick="openCount(${k.id})">查看</button> <button class="btn ghost sm" onclick="exportCount(${k.id})">导出</button></td></tr>`; }).join('');
+  return list.map(k=>{ return `<tr><td>${k.no}</td><td>${k.date}</td><td>${k.counter}</td><td>${k.items.length}</td><td><span class="tag ${k.done?'done':'wait'}">${k.done?'已完成':'待盘点'}</span></td><td><button class="btn ghost sm" data-hclick="142" data-aclick="${encodeURIComponent(JSON.stringify(k.id))}">查看</button> <button class="btn ghost sm" data-hclick="143" data-aclick="${encodeURIComponent(JSON.stringify(k.id))}">导出</button></td></tr>`; }).join('');
 }
 function filterCount(v){ const tb=document.getElementById('count-tbody'); if(tb) tb.innerHTML=countRows(v); }
 function newCount(){ const no=nextNo('PD2026-'); const items=DB.materials.map(p=>({p:p.id,sysQty:p.stock,realQty:'',diff:0,status:'待盘'})); DB.counts.push({id:Math.max(0,...DB.counts.map(x=>x.id))+1,no,date:'2026-07-21',items,counter:DB.currentUser.name,done:false,note:''}); save(); renderCount(document.getElementById('content')); toast('已生成盘点表 '+no); }
 function openCount(id){
   const k=DB.counts.find(x=>x.id===id); if(!k) return;
   const c=document.getElementById('content');
-  const rows=k.items.map((it,idx)=>{ const m=mat(it.p); const diff=it.realQty!==''?(Number(it.realQty)-it.sysQty):0; return `<tr><td>${m.code}</td><td>${m.name}</td><td>${m.spec}</td><td>${m.unit}</td><td>${m.cat}</td><td>${it.sysQty}</td><td><input style="width:90px" type="number" value="${it.realQty}" oninput="updCountLive(${k.id},${idx},this.value)"></td><td id="cnt-diff-${k.id}-${idx}">${it.realQty!==''?(diff>0?'+'+diff:diff):'-'}</td><td id="cnt-st-${k.id}-${idx}">${diff<0?'<span class="tag low">亏</span>':diff>0?'<span class="tag ok">盈</span>':'<span class="tag wait">平</span>'}</td><td>${k.counter}</td><td><input style="width:100px" value="${it.note||''}" onchange="updCountNote(${k.id},${idx},this.value)"></td></tr>`; }).join('');
-  c.innerHTML=`<div class="page-head"><h2>盘点表 ${k.no}</h2><span class="desc">实地核对后回填实盘数</span><div class="spacer"></div><button class="btn ghost sm" onclick="renderCount(document.getElementById('content'))">返回列表</button><button class="btn ghost sm" onclick="exportCount(${k.id})" style="margin-left:8px;">⬇ 导出盘点表</button><button class="btn sm" onclick="finishCount(${k.id})" style="margin-left:8px;">完成盘点</button></div>
+  const rows=k.items.map((it,idx)=>{ const m=mat(it.p); const diff=it.realQty!==''?(Number(it.realQty)-it.sysQty):0; return `<tr><td>${m.code}</td><td>${m.name}</td><td>${m.spec}</td><td>${m.unit}</td><td>${m.cat}</td><td>${it.sysQty}</td><td><input style="width:90px" type="number" value="${it.realQty}" data-hinput="144" data-ainput="${encodeURIComponent(JSON.stringify(k.id))},${encodeURIComponent(JSON.stringify(idx))}"></td><td id="cnt-diff-${k.id}-${idx}">${it.realQty!==''?(diff>0?'+'+diff:diff):'-'}</td><td id="cnt-st-${k.id}-${idx}">${diff<0?'<span class="tag low">亏</span>':diff>0?'<span class="tag ok">盈</span>':'<span class="tag wait">平</span>'}</td><td>${k.counter}</td><td><input style="width:100px" value="${it.note||''}" data-hchange="145" data-achange="${encodeURIComponent(JSON.stringify(k.id))},${encodeURIComponent(JSON.stringify(idx))}"></td></tr>`; }).join('');
+  c.innerHTML=`<div class="page-head"><h2>盘点表 ${k.no}</h2><span class="desc">实地核对后回填实盘数</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="146">返回列表</button><button class="btn ghost sm" data-hclick="147" data-aclick="${encodeURIComponent(JSON.stringify(k.id))}" style="margin-left:8px;">⬇ 导出盘点表</button><button class="btn sm" data-hclick="148" data-aclick="${encodeURIComponent(JSON.stringify(k.id))}" style="margin-left:8px;">完成盘点</button></div>
     <div class="card count-scroll"><table class="inline-table count"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>单位</th><th>类别</th><th>库存数量</th><th>实盘数量</th><th>盈亏数量</th><th>状态</th><th>盘点人</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function updCountLive(kid,idx,v){ const k=DB.counts.find(x=>x.id===kid); k.items[idx].realQty=v; k.items[idx].diff=Number(v)-k.items[idx].sysQty; save(); const diff=k.items[idx].diff; const dEl=document.getElementById('cnt-diff-'+kid+'-'+idx); const sEl=document.getElementById('cnt-st-'+kid+'-'+idx); if(dEl) dEl.textContent=v===''?'':(diff>0?'+'+diff:diff); if(sEl) sEl.innerHTML=diff<0?'<span class="tag low">亏</span>':diff>0?'<span class="tag ok">盈</span>':'<span class="tag wait">平</span>'; }
@@ -1062,19 +1062,19 @@ function renderSettings(c){
     <div class="card" style="margin-bottom:16px;"><h3 style="margin-bottom:12px;">公司信息</h3>
       <div class="form-row"><div class="field"><label>公司名称</label><input id="co-name" value="${info.name||''}"></div><div class="field"><label>系统名称</label><input id="co-sys" value="${info.sysName||''}"></div></div>
       <div class="form-row"><div class="field"><label>备份时间</label><input id="co-backup" value="${info.backup||''}" placeholder="如 02:00"></div><div class="field"><label>通知方式</label><div style="padding-top:6px;">${['企业微信','邮件','短信'].map(n=>`<label class="switch" style="margin-right:16px"><input type="checkbox" class="co-notify" value="${n}" ${(info.notify||[]).includes(n)?'checked':''}> ${n}</label>`).join('')}</div></div></div>
-      <div style="margin-top:10px;"><button class="btn" onclick="saveSettings()">保存公司信息</button></div>
+      <div style="margin-top:10px;"><button class="btn" data-hclick="149">保存公司信息</button></div>
     </div>
     <div class="card" style="margin-bottom:16px;">
       <h3 style="margin-bottom:10px;">角色权限矩阵（可编辑）</h3>
       <table><thead><tr><th>功能</th>${PERM_ROLES.map(r=>`<th>${r.t}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>
-      <div style="margin-top:12px;"><button class="btn green" onclick="savePerm()">保存权限设置</button></div>
+      <div style="margin-top:12px;"><button class="btn green" data-hclick="150">保存权限设置</button></div>
     </div>
     <div class="card">
       <h3 style="margin-bottom:10px;">数据管理</h3>
-      <button class="btn purple" onclick="backupData()">💾 数据备份</button>
+      <button class="btn purple" data-hclick="151">💾 数据备份</button>
       <div class="hint" style="margin-top:14px;">🔒 <b>涉密控制</b>：字段级（成本/单价对普通员工隐藏）、页面级（供应商报价/成本报表仅指定角色可见）、数据级（员工只看本人/本部门记录）。</div>
       <div class="hint" style="margin-top:8px;">💾 <b>部署方案</b>：群晖 NAS + Docker 内网部署，数据存在 NAS 硬盘，每日自动备份副本。</div>
-      <div style="margin-top:14px;"><button class="btn ghost sm" onclick="if(confirm('重置原型演示数据？')){localStorage.removeItem('${K}');DB=seed();save();enter();toast('已重置');}">重置演示数据</button></div>
+      <div style="margin-top:14px;"><button class="btn ghost sm" data-hclick="152">重置演示数据</button></div>
     </div>`;
 }
 function savePerm(){ const perm={}; PERM_FEATURES.forEach(f=>{ perm[f]={}; PERM_ROLES.forEach(r=>{ const el=document.querySelector('.perm-sel[data-f="'+f+'"][data-r="'+r.k+'"]'); perm[f][r.k]=el?el.value:'hidden'; }); }); DB.settings.permissions=perm; save(); toast('权限设置已保存'); }
@@ -1085,13 +1085,13 @@ function backupData(){ toast('已触发本地备份'); }
 function editDemand(id){
   const d=DB.demands.find(x=>x.id===id); if(!d) return;
   const c=document.getElementById('content');
-  c.innerHTML=`<div class="page-head"><h2>修改需求 ${d.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('demandList')">返回列表</button></div><div class="card">
+  c.innerHTML=`<div class="page-head"><h2>修改需求 ${d.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="153">返回列表</button></div><div class="card">
       <div class="hint">💡 修改后单据状态将按申请人角色重置为初始审批节点，原审批记录清空。</div>
       <div class="form-row"><div class="field"><label>申请日期</label><input id="dm-date" type="date" value="${d.applyDate||d.date}"></div>${buildSearch('dm-ap','申请人','请输入姓名搜索',USERS.map(x=>x.name))}${buildSearch('dm-dept','部门','请输入部门搜索',DEPTS)}<div class="field"><label>是否重复性采购</label><select id="dm-repeat"><option ${d.isRepeat==='否'?'selected':''}>否</option><option ${d.isRepeat==='是'?'selected':''}>是</option></select></div></div>
-      <div id="dm-lines"></div><button class="add-line" onclick="addDmLine()">+ 增加物品</button>
+      <div id="dm-lines"></div><button class="add-line" data-hclick="154">+ 增加物品</button>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>预计使用时间</label><input id="dm-use" type="date" value="${d.expectedUse}"></div><div class="field"><label>推荐厂家/链接</label><input id="dm-rec" value="${d.recommend||''}"></div><div class="field"><label>预算范围</label><input id="dm-budget" value="${d.budget||''}"></div></div>
       <div class="form-row"><div class="field"><label>用途说明</label><textarea id="dm-reason" rows="2">${d.reason||''}</textarea></div></div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('demandList')">取消</button><button class="btn" onclick="saveDemandEdit(${id})">保存并重新提交</button></div></div>`;
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="155">取消</button><button class="btn" data-hclick="156" data-aclick="${encodeURIComponent(JSON.stringify(id))}">保存并重新提交</button></div></div>`;
   setTimeout(()=>{ document.getElementById('dm-ap').value=d.applicant; document.getElementById('dm-dept').value=d.dept; },0);
   d.items.forEach(i=>{ addDmLine(); const line=document.querySelectorAll('#dm-lines .line-item'); const last=line[line.length-1]; last.querySelector('.dm-cat').value=i.cat||''; last.querySelector('.dm-name').value=i.name; last.querySelector('.dm-spec').value=i.spec||''; last.querySelector('.dm-q').value=i.q; last.querySelector('.dm-unit').value=i.unit||''; });
 }
@@ -1105,15 +1105,15 @@ function saveDemandEdit(id){
 function editPurReq(id){
   const p=DB.purchaseReqs.find(x=>x.id===id); if(!p) return;
   const u=DB.currentUser; const c=document.getElementById('content');
-  c.innerHTML=`<div class="page-head"><h2>修改采购申请 ${p.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('purReq')">返回列表</button></div><div class="card">
+  c.innerHTML=`<div class="page-head"><h2>修改采购申请 ${p.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="157">返回列表</button></div><div class="card">
       <div class="hint">💡 修改后单据状态将重置为「待行政主管审批」，原审批记录清空。</div>
       <div class="form-row"><div class="field"><label>采购人</label><input id="pr-ap" value="${p.applicant}"></div><div class="field"><label>部门</label><input id="pr-dept" value="${p.dept}"></div><div class="field"><label>日期</label><input id="pr-date" type="date" value="${p.date}"></div></div>
       <div class="form-row"><div class="field"><label>申请事由</label><input id="pr-reason" value="${p.reason||''}"></div><div class="field"><label>需求人</label><input id="pr-requester" value="${p.requester||''}"></div><div class="field"><label>需求部门</label><input id="pr-requester-dept" value="${p.requesterDept||''}"></div></div>
-      <div class="form-row"><div class="field"><label>下单方式</label><select id="pr-orderway" onchange="onOrderWayChange(this.value)"><option value="">请选择</option><option value="A办公用品集采供应商" ${p.orderWay==='A办公用品集采供应商'?'selected':''}>A办公用品集采供应商</option><option value="B办公用品集采供应商" ${p.orderWay==='B办公用品集采供应商'?'selected':''}>B办公用品集采供应商</option><option value="其他方式下单" ${p.orderWay==='其他方式下单'?'selected':''}>其他方式下单</option></select></div><div class="field"><label>支付方式</label><select id="pr-payway"><option value="">请选择</option><option value="垫付报销" ${p.payWay==='垫付报销'?'selected':''}>垫付报销</option><option value="对公转账" ${p.payWay==='对公转账'?'selected':''}>对公转账</option><option value="冲抵备用金" ${p.payWay==='冲抵备用金'?'selected':''}>冲抵备用金</option><option value="集采月结" ${p.payWay==='集采月结'?'selected':''}>集采月结</option></select></div><div class="field"><label>入库地址</label><select id="pr-warehouse"><option value="">请选择入库地址</option><option ${p.warehouse==='总部大楼'?'selected':''}>总部大楼</option><option ${p.warehouse==='分仓A'?'selected':''}>分仓A</option><option ${p.warehouse==='分仓B'?'selected':''}>分仓B</option></select></div></div>
+      <div class="form-row"><div class="field"><label>下单方式</label><select id="pr-orderway" data-hchange="158"><option value="">请选择</option><option value="A办公用品集采供应商" ${p.orderWay==='A办公用品集采供应商'?'selected':''}>A办公用品集采供应商</option><option value="B办公用品集采供应商" ${p.orderWay==='B办公用品集采供应商'?'selected':''}>B办公用品集采供应商</option><option value="其他方式下单" ${p.orderWay==='其他方式下单'?'selected':''}>其他方式下单</option></select></div><div class="field"><label>支付方式</label><select id="pr-payway"><option value="">请选择</option><option value="垫付报销" ${p.payWay==='垫付报销'?'selected':''}>垫付报销</option><option value="对公转账" ${p.payWay==='对公转账'?'selected':''}>对公转账</option><option value="冲抵备用金" ${p.payWay==='冲抵备用金'?'selected':''}>冲抵备用金</option><option value="集采月结" ${p.payWay==='集采月结'?'selected':''}>集采月结</option></select></div><div class="field"><label>入库地址</label><select id="pr-warehouse"><option value="">请选择入库地址</option><option ${p.warehouse==='总部大楼'?'selected':''}>总部大楼</option><option ${p.warehouse==='分仓A'?'selected':''}>分仓A</option><option ${p.warehouse==='分仓B'?'selected':''}>分仓B</option></select></div></div>
       <div class="form-row"><div class="field"><label>实际支付总金额（可后补）</label><input id="pr-actual" type="number" value="${p.actualPay||''}" placeholder="实际支付金额，可与申请金额不一致"></div><div class="field"><label>差异说明</label><input id="pr-diffnote" value="${p.diffNote||''}" placeholder="如价格波动原因"></div><div class="field"><label>备注</label><input id="pr-note" value="${p.note||''}"></div></div>
-      <div id="pr-lines"></div><button class="add-line" onclick="addPrLine()">+ 增加物品</button>
+      <div id="pr-lines"></div><button class="add-line" data-hclick="159">+ 增加物品</button>
       <div class="right" style="margin-top:10px;font-size:15px;font-weight:700;">合计：<span id="pr-total">¥0</span></div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('purReq')">取消</button><button class="btn" onclick="savePurReqEdit(${id})">保存并重新提交</button></div></div>`;
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="160">取消</button><button class="btn" data-hclick="161" data-aclick="${encodeURIComponent(JSON.stringify(id))}">保存并重新提交</button></div></div>`;
   window.__prMode='normal';
   p.items.forEach(i=>{ addPrLine(i); const line=document.querySelectorAll('#pr-lines .line-item'); const last=line[line.length-1]; last.querySelector('.pr-brand').value=i.brand||''; calcPrLine(last.querySelector('.pr-q')); });
 }
@@ -1131,14 +1131,14 @@ function savePurReqEdit(id){
 function editStockIn(id){
   const p=DB.purchases.find(x=>x.id===id); if(!p) return;
   const c=document.getElementById('content');
-  c.innerHTML=`<div class="page-head"><h2>修改入库单 ${p.no}</h2><span class="desc">修改后将重新计算库存</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('stockIn')">返回列表</button></div><div class="card">
+  c.innerHTML=`<div class="page-head"><h2>修改入库单 ${p.no}</h2><span class="desc">修改后将重新计算库存</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="162">返回列表</button></div><div class="card">
       <div class="hint">💡 保存时会先扣减原入库数量，再按新数量重新入库。</div>
       <div class="form-row"><div class="field"><label>入库单号</label><input id="si-no" value="${p.no}" disabled></div><div class="field"><label>日期</label><input id="si-date" type="date" value="${p.date}"></div><div class="field"><label>经办人</label><input id="si-handler" value="${p.handler}"></div></div>
-      <div class="form-row"><div class="field"><label>供应商</label><input id="si-sup" value="${p.supplier}"></div><div class="field"><label>关联采购申请（可选）</label><select id="si-req" onchange="fillFromPurReq(this.value)"><option value="">不关联</option>${DB.purchaseReqs.filter(pr=>pr.status==='done').map(pr=>`<option value="${pr.no}" ${p.refReq===pr.no?'selected':''}>${pr.no}</option>`).join('')}</select></div></div>
+      <div class="form-row"><div class="field"><label>供应商</label><input id="si-sup" value="${p.supplier}"></div><div class="field"><label>关联采购申请（可选）</label><select id="si-req" data-hchange="163"><option value="">不关联</option>${DB.purchaseReqs.filter(pr=>pr.status==='done').map(pr=>`<option value="${pr.no}" ${p.refReq===pr.no?'selected':''}>${pr.no}</option>`).join('')}</select></div></div>
       <table class="inline-table" style="margin-top:10px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>供应商</th><th>单位</th><th>类别</th><th>数量</th><th>单价</th><th>金额</th><th>存放位置</th><th>责任人</th><th></th></tr></thead><tbody id="si-lines"></tbody></table>
-      <div style="margin-top:10px;"><button class="add-line" onclick="addSiLine()">+ 增加一行</button></div>
+      <div style="margin-top:10px;"><button class="add-line" data-hclick="164">+ 增加一行</button></div>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>备注</label><textarea id="si-note" rows="2">${p.note||''}</textarea></div></div>
-      <div class="right"><button class="btn ghost" onclick="showView('stockIn')">取消</button><button class="btn" onclick="saveStockInEdit(${id})">保存</button></div></div>`;
+      <div class="right"><button class="btn ghost" data-hclick="165">取消</button><button class="btn" data-hclick="166" data-aclick="${encodeURIComponent(JSON.stringify(id))}">保存</button></div></div>`;
   p.items.forEach(i=>{ addSiLine(); const tr=document.querySelectorAll('#si-lines tr'); const last=tr[tr.length-1]; const m=DB.materials.find(x=>x.id===i.p); if(m){ last.querySelector('.si-code').value=m.code; last.querySelector('.si-name').value=m.name; last.querySelector('.si-spec').value=m.spec; last.querySelector('.si-sup').value=i.supplier||m.supplier||''; last.querySelector('.si-unit').value=m.unit; last.querySelector('.si-cat').value=m.cat; } else { last.querySelector('.si-code').value=i.code||''; last.querySelector('.si-name').value=i.name||''; last.querySelector('.si-spec').value=i.spec||''; last.querySelector('.si-sup').value=i.supplier||''; last.querySelector('.si-unit').value=i.unit||''; last.querySelector('.si-cat').value=i.cat||''; } last.querySelector('.si-q').value=i.q; last.querySelector('.si-pr').value=i.price; last.querySelector('.si-loc').value=i.location||''; last.querySelector('.si-owner').value=i.owner||''; calcSiLine(last.querySelector('.si-q')); });
 }
 function saveStockInEdit(id){
@@ -1161,9 +1161,9 @@ function editIssue(id){
   const c=document.getElementById('content'); const isLaobao=x.issueType==='laobao';
   const u=DB.currentUser; const isAdminDept=(u.dept==='行政部');
   const tabs=isAdminDept
-    ?`<div class="seg" style="margin-bottom:14px;"><button class="${!isLaobao?'on':''}" id="seg-is-normal" onclick="setIssueMode('normal')">普通物资</button><button class="${isLaobao?'on':''}" id="seg-is-laobao" onclick="setIssueMode('laobao')">劳保用品（国际部出行）</button></div>`
+    ?`<div class="seg" style="margin-bottom:14px;"><button class="${!isLaobao?'on':''}" id="seg-is-normal" data-hclick="167">普通物资</button><button class="${isLaobao?'on':''}" id="seg-is-laobao" data-hclick="168">劳保用品（国际部出行）</button></div>`
     :`<div class="seg" style="margin-bottom:14px;"><button class="on" id="seg-is-normal">普通物资</button></div>`;
-  c.innerHTML=`<div class="page-head"><h2>修改领用申请 ${x.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" onclick="showView('issue')">返回列表</button></div><div class="card">
+  c.innerHTML=`<div class="page-head"><h2>修改领用申请 ${x.no}</h2><span class="desc">修改后将重新提交审批</span><div class="spacer"></div><button class="btn ghost sm" data-hclick="169">返回列表</button></div><div class="card">
       <div class="hint">💡 若原领用已出库，保存时会先恢复库存；单据状态重置为待审批。</div>
       ${tabs}
       <input type="hidden" id="is-type" value="${x.issueType||'normal'}">
@@ -1171,9 +1171,9 @@ function editIssue(id){
       <div class="form-row"><div class="field" style="flex:1;">${buildSearch('is-ap','领用人','请输入姓名搜索',USERS.map(u=>u.name))}</div><div class="field" style="flex:1;">${buildSearch('is-dept','领用部门','请输入部门搜索',DEPTS)}</div><div class="field" style="flex:0 0 160px;"><label>领用日期</label><input id="is-date" type="date" value="${x.date}"></div></div>
       <div class="form-row" id="ext-row" style="display:${isLaobao?'':'none'};"><div class="field"><label>外部领用人姓名</label><input id="is-ext-ap" value="${x.extApplicant||''}" placeholder="如：国际部员工姓名"></div><div class="field"><label>外部部门</label><input id="is-ext-dept" value="${x.extDept||''}" placeholder="如：国际部"></div></div>
       <table class="inline-table" style="margin-top:10px;"><thead><tr><th>物料编码</th><th>物料名称</th><th>规格型号</th><th>单位</th><th>数量</th><th></th></tr></thead><tbody id="is-lines"></tbody></table>
-      <div style="margin-top:10px;"><button class="add-line" onclick="addIsLine()">+ 增加一行</button></div>
+      <div style="margin-top:10px;"><button class="add-line" data-hclick="170">+ 增加一行</button></div>
       <div class="form-row" style="margin-top:10px;"><div class="field"><label>用途说明</label><textarea id="is-reason" rows="2">${x.reason||''}</textarea></div></div>
-      <div class="right" style="margin-top:14px;"><button class="btn ghost" onclick="showView('issue')">取消</button><button class="btn" onclick="saveIssueEdit(${id})">保存并重新提交</button></div></div>`;
+      <div class="right" style="margin-top:14px;"><button class="btn ghost" data-hclick="171">取消</button><button class="btn" data-hclick="172" data-aclick="${encodeURIComponent(JSON.stringify(id))}">保存并重新提交</button></div></div>`;
   window.__issueMode=x.issueType||'normal';
   setTimeout(()=>{ document.getElementById('is-ap').value=x.applicant; document.getElementById('is-dept').value=x.dept; },0);
   x.items.forEach(i=>{ addIsLine(); const tr=document.querySelectorAll('#is-lines tr'); const last=tr[tr.length-1]; const m=DB.materials.find(x=>x.id===i.p); if(m){ last.querySelector('.is-code').value=m.code; last.querySelector('.is-name').value=m.name; last.querySelector('.is-spec').value=m.spec; last.querySelector('.is-unit').value=m.unit; } last.querySelector('.is-q').value=i.q; });
@@ -1197,3 +1197,186 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 if(DB.currentUser) enter();
 
 Object.assign(window, {load,save,doLogin,doLogout,enter,buildSidebar,countPending,showView,toggleSidebar,closeSidebar,catDonut,renderDashboard,renderMaterials,showImport,addMaterial,saveMaterial,renderSuppliers,showSuppliersExpiring,clearSupplierFilter,openSupplierDetail,editSupplier,attachSupplierFiles,saveSupplier,buildSearch,filterSearch,pickSearch,renderDemand,addDmLine,getDemandStatusByApplicant,submitDemand,renderDemandList,demandRows,filterDemandList,openDemand,approveDemandAdminLead,approveDemandDept,approveDemandVp,rejectDemand,renderTask,taskRows,filterTask,goPurReq,goStockIn,renderPurReq,purReqRows,filterPurReq,newPurReq,setPrMode,onOrderWayChange,addPrLine,filterPrCode,fillPrLine,calcPrLine,updatePrTotal,savePurReq,openPurReq,buildFlow,buildDemandFlow,buildIssueFlow,approvePurLead,approvePurVp,rejectPurReq,renderStockIn,stockInRows,filterStockIn,newStockIn,addSiLine,filterSiCode,fillSiLine,calcSiLine,fillFromPurReq,saveStockIn,openStockIn,renderIssue,issueRows,filterIssue,newIssue,setIssueMode,parseCSV,mapIssueHeader,importIssueExcel,addIsLine,filterIsCode,fillIsLine,saveIssue,renderApprove,approveIssue,approveIssueHR,approveIssueMaterial,approveIssueFinal,rejectIssue,openIssue,renderInventory,inventoryRows,filterInventory,renderCount,countRows,filterCount,newCount,openCount,updCountLive,updCountNote,exportCount,finishCount,svgLineChart,renderCost,renderMyRec,permDefault,defaultPerm,renderSettings,savePerm,saveSettings,backupData,editDemand,saveDemandEdit,editPurReq,savePurReqEdit,editStockIn,saveStockInEdit,editIssue,saveIssueEdit,openModal,closeModal,toast});
+
+window.resetDemo=()=>{if(confirm('重置原型演示数据？')){localStorage.removeItem(K);DB=seed();save();enter();toast('已重置');}};
+
+const actionHandlers = [
+function(event){doLogin()},
+function(event){toggleSidebar()},
+function(event){doLogout()},
+function(event){toggleSidebar()},
+function(event,v0){showView(v0)},
+function(event,v0){showView(v0)},
+function(event){showView('materials')},
+function(event){showView('inventory')},
+function(event){showView('inventory')},
+function(event){showView('approve')},
+function(event){showView('myrec')},
+function(event){showSuppliersExpiring()},
+function(event){showView('approve')},
+function(event){showView('myrec')},
+function(event){showImport()},
+function(event){addMaterial()},
+function(event){closeModal()},
+function(event){closeModal()},
+function(event){saveMaterial()},
+function(event,v0){openSupplierDetail(v0)},
+function(event){clearSupplierFilter()},
+function(event){clearSupplierFilter()},
+function(event){editSupplier()},
+function(event){showView('suppliers')},
+function(event){showView('suppliers')},
+function(event,v0){editSupplier(v0)},
+function(event){showView('suppliers')},
+function(event){attachSupplierFiles(this)},
+function(event){showView('suppliers')},
+function(event,v0){saveSupplier(v0)},
+function(event,v0,v1,v2){filterSearch(v0,v2,v1)},
+function(event,v0,v1,v2){pickSearch(v0,v1,v2)},
+function(event){addDmLine()},
+function(event){submitDemand()},
+function(event){this.parentNode.remove()},
+function(event){filterDemandList(this.value)},
+function(event,v0){openDemand(v0)},
+function(event){showView('demandList')},
+function(event,v0){approveDemandAdminLead(v0)},
+function(event){showView('demandList')},
+function(event,v0){approveDemandDept(v0)},
+function(event){showView('demandList')},
+function(event,v0){rejectDemand(v0)},
+function(event,v0){approveDemandVp(v0)},
+function(event){showView('demandList')},
+function(event,v0){editDemand(v0)},
+function(event){showView('demandList')},
+function(event){filterTask(this.value)},
+function(event,v0){goPurReq(v0)},
+function(event){filterPurReq(this.value)},
+function(event){newPurReq()},
+function(event,v0){openPurReq(v0)},
+function(event,v0){editPurReq(v0)},
+function(event){showView('purReq')},
+function(event){setPrMode('normal')},
+function(event){setPrMode('new')},
+function(event){onOrderWayChange(this.value)},
+function(event){addPrLine()},
+function(event){showView('purReq')},
+function(event){savePurReq()},
+function(event){filterPrCode(this)},
+function(event){calcPrLine(this)},
+function(event){calcPrLine(this)},
+function(event){this.parentNode.remove()},
+function(event){calcPrLine(this)},
+function(event){calcPrLine(this)},
+function(event){this.parentNode.remove()},
+function(event,v0){fillPrLine(this.parentNode.previousElementSibling,v0)},
+function(event){showView('purReq')},
+function(event,v0){goStockIn(v0)},
+function(event){showView('purReq')},
+function(event,v0){rejectPurReq(v0)},
+function(event,v0){approvePurLead(v0)},
+function(event){showView('purReq')},
+function(event,v0){rejectPurReq(v0)},
+function(event,v0){approvePurVp(v0)},
+function(event){showView('purReq')},
+function(event,v0){editPurReq(v0)},
+function(event){showView('purReq')},
+function(event){filterStockIn(this.value)},
+function(event){newStockIn()},
+function(event,v0){openStockIn(v0)},
+function(event,v0){editStockIn(v0)},
+function(event){showView('stockIn')},
+function(event){fillFromPurReq(this.value)},
+function(event){addSiLine()},
+function(event){showView('stockIn')},
+function(event){saveStockIn()},
+function(event){filterSiCode(this)},
+function(event){calcSiLine(this)},
+function(event){calcSiLine(this)},
+function(event){this.closest('tr').remove()},
+function(event,v0){fillSiLine(this.parentNode.previousElementSibling,v0)},
+function(event){showView('stockIn')},
+function(event){showView('stockIn')},
+function(event,v0){editStockIn(v0)},
+function(event){filterIssue(this.value)},
+function(event){newIssue()},
+function(event,v0){if(confirm('确认通过该领用申请并出库减库存？')){approveIssue(v0);}},
+function(event,v0){if(confirm('确认驳回该领用申请？')){rejectIssue(v0);}},
+function(event,v0){openIssue(v0)},
+function(event){setIssueMode('normal')},
+function(event){setIssueMode('laobao')},
+function(event){document.getElementById('is-file').click()},
+function(event){importIssueExcel(this)},
+function(event){showView('issue')},
+function(event){addIsLine()},
+function(event){showView('issue')},
+function(event){saveIssue()},
+function(event){filterIsCode(this)},
+function(event){this.closest('tr').remove()},
+function(event,v0){fillIsLine(this.parentNode.previousElementSibling,v0)},
+function(event,v0){openDemand(v0)},
+function(event,v0){openDemand(v0)},
+function(event,v0){openDemand(v0)},
+function(event,v0){openPurReq(v0)},
+function(event,v0){openPurReq(v0)},
+function(event,v0){openIssue(v0)},
+function(event,v0){openIssue(v0)},
+function(event,v0){openIssue(v0)},
+function(event,v0){openIssue(v0)},
+function(event){showView('issue')},
+function(event,v0){rejectIssue(v0)},
+function(event,v0){approveIssueHR(v0)},
+function(event){showView('issue')},
+function(event,v0){rejectIssue(v0)},
+function(event,v0){approveIssueMaterial(v0)},
+function(event){showView('issue')},
+function(event,v0){rejectIssue(v0)},
+function(event,v0){approveIssueFinal(v0)},
+function(event){showView('issue')},
+function(event,v0){editIssue(v0)},
+function(event){showView('issue')},
+function(event,v0){rejectIssue(v0)},
+function(event,v0){approveIssue(v0)},
+function(event){showView('issue')},
+function(event,v0){editIssue(v0)},
+function(event){showView('issue')},
+function(event){filterInventory(this.value)},
+function(event){toast('正式版支持导出Excel')},
+function(event){filterCount(this.value)},
+function(event){newCount()},
+function(event,v0){openCount(v0)},
+function(event,v0){exportCount(v0)},
+function(event,v0,v1){updCountLive(v0,v1,this.value)},
+function(event,v0,v1){updCountNote(v0,v1,this.value)},
+function(event){renderCount(document.getElementById('content'))},
+function(event,v0){exportCount(v0)},
+function(event,v0){finishCount(v0)},
+function(event){saveSettings()},
+function(event){savePerm()},
+function(event){backupData()},
+function(event){resetDemo()},
+function(event){showView('demandList')},
+function(event){addDmLine()},
+function(event){showView('demandList')},
+function(event,v0){saveDemandEdit(v0)},
+function(event){showView('purReq')},
+function(event){onOrderWayChange(this.value)},
+function(event){addPrLine()},
+function(event){showView('purReq')},
+function(event,v0){savePurReqEdit(v0)},
+function(event){showView('stockIn')},
+function(event){fillFromPurReq(this.value)},
+function(event){addSiLine()},
+function(event){showView('stockIn')},
+function(event,v0){saveStockInEdit(v0)},
+function(event){setIssueMode('normal')},
+function(event){setIssueMode('laobao')},
+function(event){showView('issue')},
+function(event){addIsLine()},
+function(event){showView('issue')},
+function(event,v0){saveIssueEdit(v0)}
+];
+for (const kind of ['click','change','input']) document.addEventListener(kind, function(event) {
+ const el=event.target.closest('[data-h'+kind+']'); if(!el) return;
+ const raw=el.getAttribute('data-a'+kind); const args=raw ? raw.split(',').map(x=>JSON.parse(decodeURIComponent(x))) : [];
+ actionHandlers[Number(el.getAttribute('data-h'+kind))].call(el,event,...args);
+});
