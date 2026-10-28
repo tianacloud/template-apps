@@ -1,0 +1,2 @@
+import {mkdir,cp,readFile,rm} from 'node:fs/promises';
+await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});await cp('src/app.js','dist/assets/app.js');await cp('public/site','dist/site',{recursive:true});await cp('public/icon.png','dist/icon.png');const s=JSON.parse(await readFile('source.json','utf8'));console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:s.git_instance_id}));
