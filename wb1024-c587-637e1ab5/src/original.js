@@ -1315,6 +1315,7 @@ export default function start(){
     properties["章节名称"] = { text: String(r['章节名称'] || '') };
     if (r['科目']) properties["科目"] = { select: String(r['科目']) };
     properties["核心考点"] = { text: String(r['核心考点'] || '') };
+    properties["学习内容"] = { text: String(r['学习内容'] || '') };
     if (r['状态']) properties["状态"] = { select: String(r['状态']) };
     return properties;
   }
