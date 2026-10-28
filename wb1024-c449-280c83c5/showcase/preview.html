@@ -1781,7 +1781,7 @@ h1, h2, h3, h4, p { margin: 0; }
 
   function cloudPushFail(st, raw, manual, cb) {
     cloud.status = "err"; cloud.err = cloudMsg(st, raw);
-    cloud.dirty = true; // 记下未上传成功，联网/回到前台时自动补传
+    cloud.dirty = false; // 结果未知时不重放
     if (manual) toast("云端保存失败：" + cloud.err + "（已存本地）", "warn");
     if (state.view === "settings") renderSafe();
     if (cb) cb(false);
@@ -2417,13 +2417,13 @@ h1, h2, h3, h4, p { margin: 0; }
   /* ---------- 设置页 ---------- */
 
   function viewSettings() {
-    var html = '<div class="view-head"><div><h1>⚙️ 设置</h1><div class="sub">课程表、打卡与设置会自动保存到云数据库，同一家庭码的设备实时共享</div></div></div>';
+    var html = '<div class="view-head"><div><h1>⚙️ 设置</h1><div class="sub">课程表、打卡与设置会自动保存到云数据库，同一家庭码的设备共享</div></div></div>';
     html += '<div class="grid-2">';
 
     html += '<div class="card"><h3>👧 基本信息</h3>'
       + '<div class="form-row"><label>宝贝昵称</label><input class="input" id="setName" value="' + esc(state.settings.name) + '"></div>'
       + '<div class="form-row"><label>所在城市</label><input class="input" id="setCity" value="' + esc(state.settings.city) + '">'
-      + '<span class="hint">用于显示天气（中文城市名，如 杭州）</span></div>'
+      + '<span class="hint">保留城市设置；实时天气暂不可用</span></div>'
       + '<div class="form-row"><label>主题</label><select class="input" id="setTheme">'
       + '<option value="light"' + (state.settings.theme === "light" ? " selected" : "") + '>浅色 · 明亮</option>'
       + '<option value="dark"' + (state.settings.theme === "dark" ? " selected" : "") + '>深色 · 护眼</option></select></div>'
@@ -2439,7 +2439,7 @@ h1, h2, h3, h4, p { margin: 0; }
       + '<div class="card-sub">状态：<b id="cloudStatus">' + esc(cloudStatusText()) + '</b>'
       + (cloud.err ? '<br><span style="color:var(--muted)">原因：' + esc(cloud.err) + '</span>' : '')
       + '<br><span style="color:var(--muted)">家庭码：<b>' + esc(cloud.code) + '</b>'
-      + ' · 传输：' + (cloud.mode === "rest" ? "原生直连（免组件，兼容老设备）" : "未知")
+      + ' · 传输：' + (cloud.mode === "rest" ? "Tiana 数据库" : "未知")
       + (cloud.http ? ' · 最近返回 HTTP ' + cloud.http : '') + '</span>'
       + '<br><span style="color:var(--muted)">自动同步：<b>' + (cloudAuto() ? "已开启" : "已关闭") + '</b>'
       + (cloud.lastAt ? ' · 最近同步：' + esc(syncTimeText(cloud.lastAt)) : ' · 尚未同步过') + '</span></div>'
@@ -2454,7 +2454,7 @@ h1, h2, h3, h4, p { margin: 0; }
       + '<ul style="font-size:13px;line-height:1.9;padding-left:18px;color:var(--text);margin-top:10px">'
       + '<li>课程表、打卡星星、设置都会<b>自动保存到云数据库</b>，换设备 / 清缓存都不会丢</li>'
       + '<li>打开或刷新页面会自动拉取云端数据；哪台设备最新就用哪台的</li>'
-      + '<li>断网时先存本机，联网 / 回到前台 / 每 2 分钟会自动补传；本机始终可用</li>'
+      + '<li>写入结果未确认时请检查云端记录后再操作</li>'
       + '</ul></div>';
 
     html += '<div class="card"><h3>💾 课程表数据</h3>'
@@ -2468,7 +2468,7 @@ h1, h2, h3, h4, p { margin: 0; }
       + '</div>';
 
     html += '<div class="card"><h3>📲 装到手机 / 平板上</h3>'
-      + '<div class="card-sub">装到主屏幕后可像 App 一样全屏打开，断网也能用</div>'
+      + '<div class="card-sub">可在浏览器中全屏显示，使用时需要网络连接</div>'
       + (state.installEvt ? '<div class="form-row"><label>一键安装</label><button class="btn-primary btn-sm" id="installBtn">📲 安装应用</button></div>' : '')
       + '<div class="form-row"><label>全屏显示</label><button class="btn-ghost btn-sm" data-fs>⛶ 进入全屏</button><span class="hint">隐藏浏览器地址栏</span></div>'
       + '<ul style="font-size:13px;line-height:1.9;padding-left:18px;color:var(--text);margin-top:8px">'
@@ -2478,7 +2478,7 @@ h1, h2, h3, h4, p { margin: 0; }
 
     html += '<div class="card"><h3>ℹ️ 使用小贴士</h3><ul style="font-size:13.5px;line-height:1.9;padding-left:18px;color:var(--text)">'
       + '<li>手机上是「每日卡片」浏览，点任意一天进入完整日程；在日视图里左右滑动可以切换星期</li>'
-      + '<li>屏保模式：点右上角「🖥️ 屏保」，显示时钟、天气、当前与下一个项目；点任意处或按 Esc 退出</li>'
+      + '<li>屏保模式：点右上角「🖥️ 屏保」，显示时钟、当前与下一个项目；点任意处或按 Esc 退出</li>'
       + '<li>修改课程表：点「✏️ 编辑」，再点任意卡片/格子即可改内容、图标、颜色与所属时间段</li>'
       + '<li>打卡收集星星：在日视图点右侧圆圈，累计星星可解锁玩法页的勋章</li>'
       + '<li>口算小闯关：玩法页里选难度（10 以内加法 / 减法 / 20 以内混合），一次 10 题；电脑上可直接按 1~4 选答案，最好成绩会记录</li>'
