@@ -6,4 +6,4 @@ const entry=`document.head.insertAdjacentHTML('beforeend', ${JSON.stringify('<st
 fs.writeFileSync('dist/assets/app.js',entry);
 fs.copyFileSync('src/game.js','dist/assets/game.js');
 fs.copyFileSync('public/icon.png','dist/icon.png');
-console.log('TIANA_PROJECT_PARAMS='+JSON.stringify({entry:'assets/app.js',...JSON.parse(fs.readFileSync('source.json','utf8'))}));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(fs.readFileSync('source.json','utf8'))}));
