@@ -898,7 +898,7 @@
   /* ---------------- layout ---------------- */
 
   function layout() {
-    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vw = document.documentElement.clientWidth || window.innerWidth;
     var size = Math.min(vw - 32, 440);
     var gap = Math.max(10, Math.round(size * 0.03));
     var cell = (size - gap * 5) / 4;
