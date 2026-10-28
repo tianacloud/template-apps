@@ -1,1 +1,1 @@
-const frame=document.createElement('iframe');frame.title='电梯与扶梯仿真课堂';frame.src=new URL('../site/index.html',import.meta.url).href;Object.assign(frame.style,{position:'fixed',inset:'0',width:'100%',height:'100%',border:'0'});document.body.style.margin='0';document.body.append(frame);
+location.replace(new URL('../site/index.html',import.meta.url).href);
