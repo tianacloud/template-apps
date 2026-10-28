@@ -421,7 +421,7 @@ function viewProfile(p){
     +'<button class="btn ghost" id="vaxBtn">导出养护记录</button>'
     +'<button class="btn ghost" id="linkBtn">生成同步链接</button>'
     +'<button class="btn mute" id="expBtn">导出备份</button>'
-    +'<button class="btn mute" id="impBtn">导入备份</button>'
+    +'<button class="btn mute" id="impBtn">导入备份</button><input id="backupInput" type="file" accept=".json" hidden>'
     +'<button class="btn mute" id="delBtn">删除档案</button></div>'
     +'<div style="font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.6">寄养、托运、保险常被要求提供疫苗记录，可先导出一份留底。<br>数据只存在本机，换设备时用「生成同步链接」把档案带过去。</div></div>'
     +ageCard(p)+costCard(p)
@@ -475,7 +475,7 @@ function bind(p){
   on('delBtn',()=>{if(confirm('删除「'+p.name+'」的全部档案与记录？此操作不可恢复。')){
     db.pets=db.pets.filter(x=>x.id!==p.id);cur=db.pets.length?db.pets[0].id:null;save();render();}});
   on('expBtn',()=>download('毛孩子养护台-备份.json',JSON.stringify(db,null,2),'application/json'));
-  on('impBtn',()=>{const i=document.createElement('input');i.type='file';i.accept='.json';
+  on('impBtn',()=>{const i=document.getElementById('backupInput');i.value='';
     i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
       r.onload=()=>{try{const d=JSON.parse(r.result);
         if(d&&Array.isArray(d.pets)){db=d;cur=db.pets.length?db.pets[0].id:null;save();render();}
