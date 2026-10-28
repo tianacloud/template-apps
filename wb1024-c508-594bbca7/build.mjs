@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';
+const html=await fs.readFile('src/editor.html','utf8');
+const style=html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)[1];
+let body=html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)[1];
+const scripts=[];
+body=body.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi,(_,attrs,code)=>{scripts.push(code);return attrs.includes('detector-code')?'<script id="detector-code" type="text/plain">'+code+'</script>':''});
+await fs.mkdir('dist/assets',{recursive:true});
+const boot=`document.head.appendChild(Object.assign(document.createElement('style'),{textContent:${JSON.stringify(style)}}));\ndocument.body.innerHTML=${JSON.stringify(body)};\n`;
+await fs.writeFile('dist/assets/app.js',boot+scripts.join('\n;\n'));
+await fs.copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(await fs.readFile('source.json','utf8'))}));
