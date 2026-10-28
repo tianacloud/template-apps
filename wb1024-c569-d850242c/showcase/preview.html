@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内审员考试试卷生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Roboto,sans-serif;
+     background:#f2f4f7;color:#1f2430;font-size:15px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{background:linear-gradient(120deg,#0f2b52,#1a5fb4);color:#fff;border-radius:10px;
+        padding:20px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar h1{font-size:22px;font-weight:600;letter-spacing:.5px}
+.topbar .sub{font-size:13px;opacity:.85;margin-top:2px}
+.topbar .spacer{flex:1}
+.bank-badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+            border-radius:6px;padding:7px 14px;font-size:13px}
+.bank-badge b{font-size:17px;margin:0 3px}
+.ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+
+/* ---------- 步骤条 ---------- */
+.steps{display:flex;gap:8px;margin:18px 0 0;flex-wrap:wrap}
+.step{flex:1;min-width:150px;background:#fff;border:1px solid #dde4ee;border-radius:8px;
+      padding:11px 15px;font-size:13.5px;color:#7b8794;display:flex;align-items:center;gap:9px}
+.step .n{width:23px;height:23px;border-radius:50%;background:#e3e8f0;color:#7b8794;
+         display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex-shrink:0}
+.step.on{border-color:#1a5fb4;color:#0f2b52;font-weight:600;box-shadow:0 2px 8px rgba(26,95,180,.13)}
+.step.on .n{background:#1a5fb4;color:#fff}
+.step.done .n{background:#2e7d32;color:#fff}
+.step.done{color:#2e7d32;border-color:#bcd9be}
+
+/* ---------- 卡片 ---------- */
+.card{background:#fff;border:1px solid #dde4ee;border-radius:10px;padding:22px 26px;margin-top:16px}
+.card h2{font-size:17px;color:#0f2b52;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card h2 .ico{width:19px;height:19px;color:#1a5fb4}
+.card .hint{font-size:13px;color:#7b8794;margin-bottom:16px}
+.card h3{font-size:14.5px;color:#0f2b52;margin:20px 0 9px;padding-left:9px;border-left:4px solid #1a5fb4}
+
+/* ---------- 表单 ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.fld label{display:block;font-size:13px;color:#4a5568;margin-bottom:5px;font-weight:500}
+.fld input,.fld select{width:100%;padding:9px 11px;border:1px solid #cbd5e0;border-radius:6px;
+                       font-size:15px;font-family:inherit;background:#fff;color:#1f2430}
+.fld input:focus,.fld select:focus{outline:none;border-color:#1a5fb4;box-shadow:0 0 0 3px rgba(26,95,180,.12)}
+
+table.tb{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+table.tb th{background:#e8eef7;color:#0f2b52;font-weight:600}
+table.tb th,table.tb td{border:1px solid #c8d3e0;padding:7px 9px;text-align:center}
+table.tb td.lft{text-align:left}
+table.tb input{width:62px;padding:5px 6px;border:1px solid #cbd5e0;border-radius:4px;
+               text-align:center;font-size:14px;font-family:inherit}
+table.tb input.bad{border-color:#c62828;background:#fdeeee}
+table.tb tfoot td{background:#f5f8fc;font-weight:600}
+.sum-ok{color:#2e7d32;font-weight:600}
+.sum-bad{color:#c62828;font-weight:600}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border:1px solid transparent;
+     border-radius:6px;font-size:14.5px;font-family:inherit;cursor:pointer;background:#1a5fb4;color:#fff;
+     transition:.15s;font-weight:500;min-height:44px}
+.btn:hover{background:#164e94}
+.btn.sec{background:#fff;color:#1a5fb4;border-color:#a8c2e3}
+.btn.sec:hover{background:#f0f5fc}
+.btn.gray{background:#fff;color:#5a6675;border-color:#cbd5e0}
+.btn.gray:hover{background:#f5f7fa}
+.btn.green{background:#2e7d32}
+.btn.green:hover{background:#256428}
+.btn.sm{padding:6px 12px;font-size:13px;min-height:34px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}
+.btnbar .spacer{flex:1}
+
+/* ---------- 提示条 ---------- */
+.alert{border-radius:6px;padding:11px 15px;font-size:13.5px;margin-top:12px;display:flex;gap:9px;align-items:flex-start}
+.alert .ico{width:17px;height:17px;margin-top:3px}
+.alert.warn{background:#fdf3e8;border-left:4px solid #c77700;color:#7a4b00}
+.alert.err{background:#fdeeee;border-left:4px solid #c62828;color:#8d1d1d}
+.alert.ok{background:#eef6ee;border-left:4px solid #2e7d32;color:#1b5e20}
+.alert.info{background:#eef3fb;border-left:4px solid #1a5fb4;color:#123c72}
+
+/* ---------- 待确认卷 ---------- */
+.sec-hd{background:#e8eef7;border-left:5px solid #1a5fb4;padding:9px 14px;margin:22px 0 12px;
+        font-weight:600;color:#0f2b52;font-size:15px;display:flex;align-items:center;gap:10px}
+.sec-hd .cnt{font-weight:400;font-size:13px;color:#5a6675}
+.qitem{border:1px solid #dde4ee;border-radius:7px;padding:13px 16px;margin-bottom:10px;background:#fff;
+       display:flex;gap:13px;align-items:flex-start}
+.qitem:hover{border-color:#a8c2e3;background:#fcfdff}
+.qitem .qno{background:#0f2b52;color:#fff;width:28px;height:28px;border-radius:5px;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.qitem .qbody{flex:1;min-width:0}
+.qitem .qtext{font-size:14.5px;color:#1f2430;white-space:pre-wrap;word-break:break-word}
+.qitem .qopts{font-size:13.5px;color:#4a5568;margin-top:5px;white-space:pre-wrap}
+.qitem .qmeta{margin-top:8px;font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11.5px;font-weight:600}
+.pill.s1{background:#e3edfb;color:#12467f}
+.pill.s2{background:#e5f3e6;color:#1e6023}
+.pill.s3{background:#fdeee2;color:#8a4b00}
+.pill.s4{background:#f0e6f8;color:#5b2d82}
+.pill.id{background:#eef0f4;color:#5a6675;font-weight:500;font-family:Consolas,Monaco,monospace}
+.ans-tag{color:#c62828;font-weight:600}
+.clause-tag{color:#1a5fb4}
+.qitem .qact{flex-shrink:0}
+
+/* ---------- 输出区 ---------- */
+.outgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:6px}
+.outbox{border:1px solid #dde4ee;border-radius:8px;padding:16px 18px;background:#fbfcfe}
+.outbox h4{font-size:14.5px;color:#0f2b52;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.outbox p{font-size:12.5px;color:#7b8794;margin-bottom:12px;line-height:1.6}
+.outbox .btn{width:100%;justify-content:center;margin-bottom:8px}
+.outbox .btn:last-child{margin-bottom:0}
+
+/* ---------- 预览 ---------- */
+#previewMask{display:none;position:fixed;inset:0;background:rgba(15,26,45,.62);z-index:900;
+             overflow:auto;padding:24px 12px}
+#previewBox{max-width:900px;margin:0 auto;background:#e9ecf1;border-radius:9px;overflow:hidden}
+#previewBar{background:#0f2b52;color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;
+            position:sticky;top:0;z-index:5}
+#previewBar .t{font-size:15px;font-weight:600;flex:1}
+#previewFrame{width:100%;height:78vh;border:none;background:#fff;display:block}
+
+/* 隐藏的排版测量容器 */
+#measure{position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none}
+
+@media (max-width:760px){
+  .wrap{padding:14px 12px 50px}
+  .topbar{padding:16px 18px}.topbar h1{font-size:19px}
+  .card{padding:18px 16px}
+  .step{min-width:120px;font-size:12.5px}
+  table.tb{font-size:12.5px}
+  table.tb th,table.tb td{padding:5px 4px}
+  table.tb input{width:46px}
+  .qitem{flex-direction:column;gap:9px}
+  .qitem .qact{width:100%}
+  .qitem .qact .btn{width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <svg class="ico" viewBox="0 0 24 24" style="width:30px;height:30px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2 4 4h-4V4zM8 13h8v1.5H8V13zm0 3.5h8V18H8v-1.5zM8 9.5h4V11H8V9.5z"/></svg>
+    <div>
+      <h1>内审员考试试卷生成器</h1>
+      <div class="sub">ISO 9001 · ISO 14001 · ISO 45001 · IATF 16949　四体系整合内审员考核</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="bank-badge" id="bankBadge">题库载入中…</div>
+  </div>
+
+  <div class="steps">
+    <div class="step on" id="stp1"><span class="n">1</span>组卷设置</div>
+    <div class="step" id="stp2"><span class="n">2</span>编辑待确认卷</div>
+    <div class="step" id="stp3"><span class="n">3</span>输出试卷</div>
+  </div>
+
+  <div id="bankAlert"></div>
+
+  <!-- ============ 步骤1：设置 ============ -->
+  <section id="pane1">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.3 7.3 0 0 0-1.7-1l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.5 8.8a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3c.1.2.4.3.6.2l2.4-1c.5.4 1.1.7 1.7 1l.4 2.5c0 .2.2.4.5.4h3.8c.3 0 .5-.2.5-.4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1c.2.1.5 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg>试卷基本信息</h2>
+      <div class="hint">这些信息会打印在试卷首页。</div>
+      <div class="grid">
+        <div class="fld"><label>试卷标题</label><input id="cfgTitle" value="内审员认证考核"></div>
+        <div class="fld"><label>副标题 / 适用范围</label><input id="cfgSub" value="ISO 9001 / ISO 14001 / ISO 45001 / IATF 16949 四体系"></div>
+        <div class="fld"><label>考试时长（分钟）</label><input id="cfgDur" type="number" min="10" max="300" value="90"></div>
+        <div class="fld"><label>认证合格分数线（分）</label><input id="cfgPass" type="number" min="0" max="100" value="80"></div>
+        <div class="fld"><label>卷别编号</label><input id="cfgCode" value="B卷"></div>
+        <div class="fld" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cfgShowSrc" checked style="width:auto;margin:0">
+          <label style="margin:0;white-space:nowrap">答案中显示题库来源</label>
+        </div>
+      </div>
+
+      <h3>组卷规则</h3>
+      <div class="hint">题数与分值可按需微调，总分自动计算。默认配置总分 100 分。</div>
+      <table class="tb">
+        <thead><tr><th style="width:22%">题型</th><th style="width:19%">题数</th><th style="width:19%">每题分值</th><th style="width:19%">小计分值</th><th>说明</th></tr></thead>
+        <tbody id="ruleBody"></tbody>
+        <tfoot><tr><td>合计</td><td id="ruleQTotal">48</td><td>—</td><td id="ruleSTotal">100</td><td class="lft" id="ruleNote"></td></tr></tfoot>
+      </table>
+
+      <h3>四体系题目占比</h3>
+      <div class="hint">先填权重自动分配，也可直接修改下表任一格子手动微调。每列合计必须等于该题型的题数。</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px">
+        <div class="fld"><label>ISO 9001 权重</label><input id="w0" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>ISO 14001 权重</label><input id="w1" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>ISO 45001 权重</label><input id="w2" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>IATF 16949 权重</label><input id="w3" type="number" min="0" step="0.5" value="2"></div>
+      </div>
+      <div class="btnbar" style="margin-top:0;margin-bottom:12px">
+        <button class="btn sec sm" onclick="applyWeights()">按权重重新分配</button>
+        <button class="btn gray sm" onclick="resetWeights()">恢复默认 1:1:1:2</button>
+      </div>
+      <table class="tb">
+        <thead><tr><th style="width:24%">体系</th><th>单选</th><th>多选</th><th>判断</th><th>简答</th><th>案例</th><th>小计</th></tr></thead>
+        <tbody id="allocBody"></tbody>
+        <tfoot><tr id="allocFoot"></tr></tfoot>
+      </table>
+      <div id="allocMsg"></div>
+
+      <div class="btnbar">
+        <button class="btn" id="btnMake" onclick="doDraw()">
+          <svg class="ico" viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M20.7 7.3l-4-4a1 1 0 0 0-1.4 0l-11 11c-.1.1-.2.3-.3.5l-1 4a1 1 0 0 0 1.2 1.2l4-1c.2 0 .4-.1.5-.3l11-11a1 1 0 0 0 0-1.4zM6.8 17.9l-2 .5.5-2L14 7.7l1.5 1.5-8.7 8.7zM17 8.2 15.5 6.7 16 6.2 17.5 7.7l-.5.5z"/></svg>
+          编辑试卷（生成待确认卷）</button>
+        <div class="spacer"></div>
+        <button class="btn gray sm" onclick="reloadBank()">重新载入题库</button>
+        <button class="btn gray sm" onclick="document.getElementById('txtInput').click()">导入题库 txt</button>
+        <input type="file" id="txtInput" accept=".txt" multiple style="display:none" onchange="importTxt(this.files)">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 步骤2：待确认卷 ============ -->
+  <section id="pane2" style="display:none">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h12v2H3v-2z"/></svg>待确认试卷</h2>
+      <div class="hint">逐题核对。点「换一题」将在<b>同体系、同题型</b>范围内重新抽取，并自动避开本卷已用题目。</div>
+      <div class="btnbar" style="margin-top:0">
+        <button class="btn gray sm" onclick="goStep(1)">返回设置</button>
+        <button class="btn sec sm" onclick="doDraw()">整卷重抽</button>
+        <div class="spacer"></div>
+        <span id="paperStat" style="font-size:13px;color:#5a6675"></span>
+        <button class="btn green" onclick="confirmPaper()">
+          <svg class="ico" viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          确认并生成试卷</button>
+      </div>
+      <div id="paperList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 步骤3：输出 ============ -->
+  <section id="pane3" style="display:none">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>输出试卷</h2>
+      <div class="hint" id="outHint"></div>
+      <div class="outgrid">
+        <div class="outbox">
+          <h4><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px;fill:#1a5fb4"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V7h14v12z"/></svg>待印试卷（考生用）</h4>
+          <p>严格 4 页 A4，首页含标题、考生信息栏、各大题得分栏与总分栏，不含任何答案。</p>
+          <button class="btn" onclick="dl('blank','html')">下载 HTML</button>
+          <button class="btn sec" onclick="dl('blank','doc')">下载 Word</button>
+          <button class="btn gray" onclick="preview('blank')">预览 / 打印</button>
+        </div>
+        <div class="outbox">
+          <h4><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px;fill:#c62828"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3 6.5 3.6v.1L12 11.6 5.5 8v-.1L12 4.3zM5 9.9l6 3.3v6.5l-6-3.3V9.9zm8 9.8v-6.5l6-3.3v6.5l-6 3.3z"/></svg>含答案试卷（阅卷用）</h4>
+          <p>每题后另起一行：<span style="color:#c62828;font-weight:600">红色</span>显示标准答案与解析，<span style="color:#1a5fb4;font-weight:600">蓝色</span>标注标准条款出处。</p>
+          <button class="btn" onclick="dl('key','html')">下载 HTML</button>
+          <button class="btn sec" onclick="dl('key','doc')">下载 Word</button>
+          <button class="btn gray" onclick="preview('key')">预览 / 打印</button>
+        </div>
+      </div>
+      <div class="alert info">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+        <div><b>Word 文件说明：</b>下载的 .doc 为 Word 兼容格式，可用 Microsoft Word 或 WPS 直接打开并二次编辑、另存为 .docx。若浏览器提示"保留"，选择保留即可。<br>
+        <b>转 PDF：</b>点「预览 / 打印」后在打印对话框中选择"另存为 PDF"，纸张 A4、边距默认、缩放 100%、勾选背景图形。</div>
+      </div>
+      <div class="btnbar">
+        <button class="btn gray" onclick="goStep(2)">返回修改</button>
+        <button class="btn sec" onclick="doDraw()">重新组卷</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 预览遮罩 -->
+<div id="previewMask">
+  <div id="previewBox">
+    <div id="previewBar">
+      <span class="t" id="previewTitle">预览</span>
+      <button class="btn sec sm" onclick="printPreview()">打印 / 另存为 PDF</button>
+      <button class="btn gray sm" onclick="closePreview()">关闭</button>
+    </div>
+    <iframe id="previewFrame"></iframe>
+  </div>
+</div>
+
+<div id="measure"></div>
+
+<script>
+/* 本文件由 tools/构建题库数据.py 自动生成，请勿手工编辑。
+   题库源文件在 question bank/*.txt，修改后重新运行脚本即可。
+   生成时间：2026-08-29 09:12:49   题目总数：600 */
+window.QUESTION_BANK = {"generatedAt":"2026-08-29 09:12:49","total":200,"stat":{"ISO9001":{"单选":40,"多选":20,"判断":20,"简答":20,"案例":20},"ISO14001":{"单选":40,"多选":20,"判断":20,"简答":20,"案例":20},"ISO45001":{"单选":40,"多选":20,"判断":20,"简答":20,"案例":20},"IATF16949":{"单选":80,"多选":40,"判断":40,"简答":40,"案例":40}},"questions":[{"id":"IATF16949-判断-021","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，组织不一定需要定期对特殊过程控制的适宜性、充分性和有效性进行评价，并保留与顾客特殊要求有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于顾客特殊要求的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 4.3.2"},{"id":"IATF16949-判断-022","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，在测量系统分析场景下，组织不一定需要保持与变更控制相关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于变更控制的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 8.5.6.1"},{"id":"IATF16949-判断-023","sys":"IATF16949","type":"判断","q":"IATF 16949:2016要求组织必须确保应急计划过程的输出满足规定的要求，涉及供应商质量管理体系开发时应特别关注。","options":[],"answer":"正确","analysis":"本题判断依据为IATF 16949:2016关于供应商质量管理体系开发的规定。正确选项反映标准的实际要求。","clause":"IATF 16949:2016 8.4.2.3"},{"id":"IATF16949-判断-024","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，组织应定期对化学品安全的适宜性、充分性和有效性进行评价，并保留与停工后的验证有关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为IATF 16949:2016关于停工后的验证的规定。正确选项反映标准的实际要求。","clause":"IATF 16949:2016 8.5.1.4"},{"id":"IATF16949-判断-025","sys":"IATF16949","type":"判断","q":"IATF 16949:2016要求组织可以选择性确保人员能力培训过程的输出满足规定的要求，涉及企业责任时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于企业责任的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 5.1.1.3"},{"id":"IATF16949-判断-026","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，在不合格品处理场景下，组织不一定需要保持与企业责任相关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于企业责任的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 5.1.1.3"},{"id":"IATF16949-判断-027","sys":"IATF16949","type":"判断","q":"IATF 16949:2016要求组织可以选择性确保内部审核过程的输出满足规定的要求，涉及顾客特殊要求时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于顾客特殊要求的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 4.3.2"},{"id":"IATF16949-判断-028","sys":"IATF16949","type":"判断","q":"IATF 16949:2016要求组织可以选择性确保化学品安全过程的输出满足规定的要求，涉及顾客特殊要求时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为IATF 16949:2016关于顾客特殊要求的规定。错误选项反映标准的实际要求。","clause":"IATF 16949:2016 4.3.2"},{"id":"IATF16949-判断-029","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，最高管理者应确保统计过程控制的相关职责和权限得到分配和沟通，并与校准/验证记录相协调。","options":[],"answer":"正确","analysis":"本题判断依据为IATF 16949:2016关于校准/验证记录的规定。正确选项反映标准的实际要求。","clause":"IATF 16949:2016 7.1.5.2.1"},{"id":"IATF16949-判断-030","sys":"IATF16949","type":"判断","q":"根据IATF 16949:2016，最高管理者应确保管理评审的相关职责和权限得到分配和沟通，并与质量目标及其实施相协调。","options":[],"answer":"正确","analysis":"本题判断依据为IATF 16949:2016关于质量目标及其实施的规定。正确选项反映标准的实际要求。","clause":"IATF 16949:2016 6.2.2.1"},{"id":"IATF16949-单选-041","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016的要求，在统计过程控制场景下，以下关于标准化作业的做法正确的是？","options":["A. 对过程进行策划并在受控条件下实施","B. 由操作人员自行决定","C. 口头交代即可无需记录","D. 外审时再补做文件"],"answer":"A","analysis":"正确选项对应标准关于标准化作业的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 8.5.1.2"},{"id":"IATF16949-单选-042","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016的规定，当基础设施与工厂设备维护出现不符合时，组织应首先采取的措施是？","options":["A. 仅记录不符合即可继续生产","B. 等待客户投诉后再处理","C. 对不符合做出响应，控制和纠正不符合","D. 追究责任人员的过失"],"answer":"C","analysis":"正确选项对应标准关于基础设施与工厂设备维护的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 7.1.3.1"},{"id":"IATF16949-单选-043","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016的要求，在变更管理场景下，以下关于产品审核的做法正确的是？","options":["A. 确保人员具备必要的能力并保留成文信息","B. 由操作人员自行决定","C. 口头交代即可无需记录","D. 外审时再补做文件"],"answer":"A","analysis":"正确选项对应标准关于产品审核的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 9.2.2.4"},{"id":"IATF16949-单选-044","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016，关于测量系统分析，以下理解正确的是？","options":["A. 资源配置可在体系运行后再安排","B. 管理体系只需满足认证最低要求","C. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系","D. 有效性和效率无需同时考虑"],"answer":"C","analysis":"正确选项对应标准关于测量系统分析的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 7.1.5.1.1"},{"id":"IATF16949-单选-045","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016，关于校准/验证记录，以下理解正确的是？","options":["A. 管理体系只需满足认证最低要求","B. 有效性和效率无需同时考虑","C. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系","D. 资源配置可在体系运行后再安排"],"answer":"C","analysis":"正确选项对应标准关于校准/验证记录的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 7.1.5.2.1"},{"id":"IATF16949-单选-046","sys":"IATF16949","type":"单选","q":"根据IATF 16949:2016的要求，在职业健康暴露场景下，以下关于全尺寸测量和功能性试验的做法正确的是？","options":["A. 口头交代即可无需记录","B. 外审时再补做文件","C. 由操作人员自行决定","D. 定期监视和测量过程绩效指标"],"answer":"D","analysis":"正确选项对应标准关于全尺寸测量和功能性试验的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 8.6.2"},{"id":"IATF16949-单选-047","sys":"IATF16949","type":"单选","q":"在半导体材料制造过程中，为满足IATF 16949:2016关于产品安全性的要求，以下哪项措施最为关键？","options":["A. 由外部顾问全权负责","B. 建立系统的策划、实施、检查和改进机制","C. 仅在出现问题时应急处理","D. 等待客户提出要求后再行动"],"answer":"B","analysis":"正确选项对应标准关于产品安全性的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 8.2.4.1"},{"id":"IATF16949-单选-048","sys":"IATF16949","type":"单选","q":"在半导体材料制造过程中，为满足IATF 16949:2016关于全尺寸测量和功能性试验的要求，以下哪项措施最为关键？","options":["A. 等待客户提出要求后再行动","B. 仅在出现问题时应急处理","C. 由外部顾问全权负责","D. 建立系统的策划、实施、检查和改进机制"],"answer":"D","analysis":"正确选项对应标准关于全尺寸测量和功能性试验的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 8.6.2"},{"id":"IATF16949-单选-049","sys":"IATF16949","type":"单选","q":"某半导体材料企业拟改进制造过程审核的管控水平，根据IATF 16949:2016，应首先开展的活动是？","options":["A. 直接购买先进检测设备","B. 立即修订所有程序文件","C. 进行现状分析和风险识别，确定改进方向","D. 等待下一次管理评审时一并讨论"],"answer":"C","analysis":"正确选项对应标准关于制造过程审核的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 9.2.2.3"},{"id":"IATF16949-单选-050","sys":"IATF16949","type":"单选","q":"在半导体材料制造过程中，为满足IATF 16949:2016关于基础设施与工厂设备维护的要求，以下哪项措施最为关键？","options":["A. 仅在出现问题时应急处理","B. 等待客户提出要求后再行动","C. 建立系统的策划、实施、检查和改进机制","D. 由外部顾问全权负责"],"answer":"C","analysis":"正确选项对应标准关于基础设施与工厂设备维护的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"IATF 16949:2016 7.1.3.1"},{"id":"IATF16949-多选-001","sys":"IATF16949","type":"多选","q":"某公司承接某顾客一款高纯材料的新项目，项目组按先期产品质量策划的思路推进。关于五大核心工具在各阶段的运用，下列做法正确的有？","options":["A. 在批量生产前完成测量系统分析，确认关键特性所用量具的变差满足接收准则后方可投入使用","B. 过程失效模式及后果分析中识别出的高风险失效模式，其建议措施应在控制计划中落实为具体的控制方法","C. 只要产品最终检验合格，过程失效模式及后果分析可在量产后补做以节省项目周期","D. 生产件批准提交的样件，应取自正式生产工装、在正常生产节拍下制造","E. 统计过程控制的控制图可在顾客审核前，用近期检验台账数据集中补录绘制"],"answer":"BAD","analysis":"本题考核五大核心工具的联动运用。A 项体现过程失效模式分析与控制计划的对应关系；B 项体现测量系统分析应先于量产；D 项是生产件批准对样件代表性的基本要求。C 项错误，统计过程控制要求基于生产过程实时采集数据以实现过程监控与及时反应，事后集中补录使控制图丧失预警功能，属记录不真实；E 项错误，风险分析应在策划阶段前置开展并作为控制计划的输入，量产后补做违背了预防为主的原则。","clause":"IATF 16949:2016 8.5.1.1 控制计划；IATF 16949:2016 7.1.5.1.1 测量系统分析；IATF 16949:2016 9.1.1.1 制造过程的监视和测量；IATF 16949:2016 8.3.4.4 产品批准过程"},{"id":"IATF16949-多选-002","sys":"IATF16949","type":"多选","q":"某公司是汽车供应链的二级供应商，正在建立质量管理体系。关于 IATF 16949 与 ISO 9001 的关系以及顾客特殊要求的处理，下列理解正确的有？","options":["A. 顾客特殊要求只约束直接供货的一级供应商，二级供应商无需考虑","B. 顾客特殊要求应被识别、评价，并纳入组织质量管理体系的相关过程与文件中","C. IATF 16949:2016 不是独立的质量管理体系标准，须与 ISO 9001:2015 结合使用","D. 当某项顾客特殊要求严于标准的通用要求时，组织可自行决定不予采纳","E. 组织应保持形成文件的信息，以证明顾客特殊要求已完成评价并落实到位"],"answer":"CBE","analysis":"本题考核体系构成与顾客特殊要求的落地。A 项是标准的基本定位；B、D 项体现顾客特殊要求须经识别、评价、纳入体系并留存证据。C 项错误，顾客特殊要求经合同或订单接受后即成为组织必须满足的要求，不能单方面豁免；E 项错误，顾客要求可沿供应链逐级传递，二级、三级供应商同样需要识别本级适用的顾客特殊要求并向下传递。","clause":"IATF 16949:2016 4.3.2 顾客特殊要求；IATF 16949:2016 8.4.3.1 外部提供过程、产品和服务的信息-补充"},{"id":"IATF16949-多选-003","sys":"IATF16949","type":"多选","q":"被识别为特殊特性的项目，应在下列哪些文件中一致标注与控制？","options":["A. 员工考勤表","B. 作业指导书","C. 过程 FMEA","D. 图纸/规范","E. 控制计划"],"answer":"DCEB","analysis":"特殊特性需在 FMEA、控制计划、作业指导书、图纸等文件中一致标注并控制；考勤表不相关。","clause":"IATF 16949:2016 8.3.3.3 特殊特性；IATF 16949:2016 8.5.1.1 控制计划"},{"id":"IATF16949-多选-004","sys":"IATF16949","type":"多选","q":"组织通常应建立的控制计划包括？","options":["A. 售后回访计划","B. 试生产控制计划","C. 生产控制计划","D. 样件控制计划","E. 回收处理计划"],"answer":"DBC","analysis":"控制计划覆盖样件、试生产、生产三个阶段；售后/回收不属控制计划范畴。","clause":"IATF 16949:2016 8.5.1.1 控制计划"},{"id":"IATF16949-多选-005","sys":"IATF16949","type":"多选","q":"应急计划应考虑并覆盖可能导致生产中断的情形，包括？","options":["A. 关键设备故障","B. 劳动力短缺或溢出","C. 办公文具短缺","D. 外部供方交付中断","E. 公用动力（水电气）中断"],"answer":"AEDB","analysis":"应急计划针对影响交付与质量的中断风险；文具短缺一般不构成生产中断风险。","clause":"IATF 16949:2016 6.1.2.3 应急计划"},{"id":"IATF16949-多选-006","sys":"IATF16949","type":"多选","q":"对测量系统进行分析时，通常应评估的内容包括？","options":["A. 再现性","B. 偏倚、线性、稳定性","C. GR&R（重复性与再现性）","D. 重复性","E. 顾客满意度"],"answer":"DACB","analysis":"MSA 评估测量系统的重复性、再现性、偏倚、线性、稳定性等；顾客满意度不在 MSA 范围内。","clause":"IATF 16949:2016 7.1.5.1.1 测量系统分析"},{"id":"IATF16949-多选-007","sys":"IATF16949","type":"多选","q":"统计过程控制（SPC）通常涉及的要素包括？","options":["A. 过程能力指数 Cpk/Ppk","B. 过程处于统计受控状态的判定","C. 员工薪酬核算","D. 控制图判异准则","E. 控制图"],"answer":"EADB","analysis":"SPC 运用控制图、判异准则与能力指数，先判稳再算能力；薪酬核算不属 SPC。","clause":"IATF 16949:2016 9.1.1.1 制造过程的监视和测量"},{"id":"IATF16949-多选-008","sys":"IATF16949","type":"多选","q":"某公司体系办策划年度内部审核方案，拟对 A 车间的某工序开展制造过程审核。下列做法符合标准要求的有？","options":["A. 审核应到生产现场核实设备实际参数设置与控制计划、作业指导书的规定是否一致","B. 制造过程审核应覆盖所有制造过程，并在三年周期内覆盖到包含夜班在内的各班次","C. 该工序上一年度审核结果为零不符合，本年度可直接免于审核","D. 制造过程审核可仅在办公室查阅检验记录和报表，不必进入车间","E. 审核中发现的不符合应分析原因、实施纠正措施，并验证措施的有效性"],"answer":"ABE","analysis":"本题考核制造过程审核的实施要点。A 项体现过程审核以现场符合性验证为核心；B 项体现过程覆盖与班次抽样的要求；D 项体现审核发现的闭环管理。C 项错误，脱离现场的书面审核无法验证过程的实际受控状态；E 项错误，审核方案应基于过程绩效与风险确定频次和范围，历史结果良好可作为调整审核深度的输入，但不构成免于审核的理由。","clause":"IATF 16949:2016 9.2.2.3 制造过程审核；IATF 16949:2016 9.2.2.1 内部审核方案"},{"id":"IATF16949-多选-009","sys":"IATF16949","type":"多选","q":"某公司采购某类高纯原材料及外协加工服务，正在完善外部供方管理。下列做法符合标准要求的有？","options":["A. 对绩效持续下降的供方启动第二方审核或供方开发，并跟踪改进成效","B. 供方一经批准列入合格名录，即可长期有效，无需再评价","C. 依据供方的质量绩效、所供产品对最终产品的影响程度和风险，确定选择与评价的准则","D. 顾客指定的供方由顾客负责，本公司无需对其实施监视，也不承担产品质量责任","E. 监视供方的交付绩效、质量异常以及顾客通报的中断事件和特殊状态"],"answer":"CAE","analysis":"本题考核外部供方全过程管理。A 项体现基于风险确定控制类型和程度；B 项体现监视结果与第二方审核、供方开发的联动；D 项体现供方绩效监视的内容。C 项错误，即使是顾客指定的供方，组织仍须将其纳入监视范围并对交付给顾客的产品质量负责；E 项错误，合格供方应按规定周期或在发生绩效异常、重大变更时重新评价。","clause":"IATF 16949:2016 8.4.1.2 供应商选择过程；IATF 16949:2016 8.4.1.3 顾客指定的供应商；IATF 16949:2016 8.4.2.4 供应商监视；IATF 16949:2016 8.4.2.5 供应商开发"},{"id":"IATF16949-多选-010","sys":"IATF16949","type":"多选","q":"对发现的不合格输出，组织可采取的评审处置方式包括？","options":["A. 直接隐瞒不发运","B. 降级使用","C. 纠正（返工/返修）","D. 让步接收（须顾客授权）","E. 退货或报废"],"answer":"CBED","analysis":"不合格处置含纠正、降级、退货/报废、让步（需顾客授权）；隐瞒不符合诚信与标准要求。","clause":"ISO 9001:2015 8.7.1 不合格输出的控制；IATF 16949:2016 8.7.1.7 不合格品的处置"},{"id":"IATF16949-案例-009","sys":"IATF16949","type":"案例","q":"在废液收集处置方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合IATF 16949:2016要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】废液收集处置做法不符合IATF 16949:2016关于内部审核员能力的要求；【依据条款】IATF 16949:2016 7.2.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 7.2.3"},{"id":"IATF16949-案例-010","sys":"IATF16949","type":"案例","q":"某公司在建立产品追溯过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据IATF 16949:2016分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】产品追溯做法不符合IATF 16949:2016关于质量目标及其实施的要求；【依据条款】IATF 16949:2016 6.2.2.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 6.2.2.1"},{"id":"IATF16949-案例-011","sys":"IATF16949","type":"案例","q":"某公司在建立特殊过程控制过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据IATF 16949:2016分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】特殊过程控制做法不符合IATF 16949:2016关于作业准备的验证的要求；【依据条款】IATF 16949:2016 8.5.1.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 8.5.1.3"},{"id":"IATF16949-案例-012","sys":"IATF16949","type":"案例","q":"某半导体材料制造企业在废液收集处置环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合IATF 16949:2016分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】废液收集处置做法不符合IATF 16949:2016关于校准/验证记录的要求；【依据条款】IATF 16949:2016 7.1.5.2.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 7.1.5.2.1"},{"id":"IATF16949-案例-013","sys":"IATF16949","type":"案例","q":"某公司在建立管理评审过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据IATF 16949:2016分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】管理评审做法不符合IATF 16949:2016关于外观项目的要求；【依据条款】IATF 16949:2016 8.6.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 8.6.3"},{"id":"IATF16949-案例-014","sys":"IATF16949","type":"案例","q":"在不合格品处理方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合IATF 16949:2016要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】不合格品处理做法不符合IATF 16949:2016关于制造过程设计输出的要求；【依据条款】IATF 16949:2016 8.3.5.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 8.3.5.2"},{"id":"IATF16949-案例-015","sys":"IATF16949","type":"案例","q":"某公司在建立顾客特殊要求过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据IATF 16949:2016分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】顾客特殊要求做法不符合IATF 16949:2016关于产品审核的要求；【依据条款】IATF 16949:2016 9.2.2.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 9.2.2.4"},{"id":"IATF16949-案例-016","sys":"IATF16949","type":"案例","q":"在废液收集处置方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合IATF 16949:2016要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】废液收集处置做法不符合IATF 16949:2016关于制造过程设计输出的要求；【依据条款】IATF 16949:2016 8.3.5.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 8.3.5.2"},{"id":"IATF16949-案例-017","sys":"IATF16949","type":"案例","q":"某公司在建立供应商管理过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据IATF 16949:2016分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】供应商管理做法不符合IATF 16949:2016关于过程有效性和效率的要求；【依据条款】IATF 16949:2016 5.1.1.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 5.1.1.2"},{"id":"IATF16949-案例-018","sys":"IATF16949","type":"案例","q":"在废气处理系统方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合IATF 16949:2016要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】废气处理系统做法不符合IATF 16949:2016关于产品安全性的要求；【依据条款】IATF 16949:2016 8.2.4.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"IATF 16949:2016 8.2.4.1"},{"id":"IATF16949-简答-009","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于制造过程设计输出的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 8.3.5.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 8.3.5.2"},{"id":"IATF16949-简答-010","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于制造过程的监视和测量的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 9.1.1.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 9.1.1.1"},{"id":"IATF16949-简答-011","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于应急计划的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 6.1.2.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 6.1.2.3"},{"id":"IATF16949-简答-012","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于企业责任的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 5.1.1.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 5.1.1.3"},{"id":"IATF16949-简答-013","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于产品设计输入的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 8.3.3.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 8.3.3.1"},{"id":"IATF16949-简答-014","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于基础设施与工厂设备维护的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 7.1.3.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 7.1.3.1"},{"id":"IATF16949-简答-015","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于基础设施与工厂设备维护的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 7.1.3.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 7.1.3.1"},{"id":"IATF16949-简答-016","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于全尺寸测量和功能性试验的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 8.6.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 8.6.2"},{"id":"IATF16949-简答-017","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于基础设施与工厂设备维护的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 7.1.3.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 7.1.3.1"},{"id":"IATF16949-简答-018","sys":"IATF16949","type":"简答","q":"请简述IATF 16949:2016中关于制造过程的监视和测量的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见IATF 16949:2016 9.1.1.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"IATF 16949:2016 9.1.1.1"},{"id":"ISO14001-判断-011","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，在静电防护场景下，组织不一定需要保持与环境管理体系范围相关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于环境管理体系范围的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 4.3"},{"id":"ISO14001-判断-012","sys":"ISO14001","type":"判断","q":"ISO 14001:2026要求组织可以选择性确保文件控制过程的输出满足规定的要求，涉及环境目标时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于环境目标的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 6.2"},{"id":"ISO14001-判断-013","sys":"ISO14001","type":"判断","q":"ISO 14001:2026要求组织可以选择性确保废液收集处置过程的输出满足规定的要求，涉及理解组织及其所处的环境时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于理解组织及其所处的环境的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 4.1"},{"id":"ISO14001-判断-014","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，最高管理者应确保人员能力培训的相关职责和权限得到分配和沟通，并与合规义务相协调。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 14001:2026关于合规义务的规定。正确选项反映标准的实际要求。","clause":"ISO 14001:2026 6.1.3"},{"id":"ISO14001-判断-015","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，组织不一定需要定期对人员能力培训的适宜性、充分性和有效性进行评价，并保留与变更的策划有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于变更的策划的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 6.3"},{"id":"ISO14001-判断-016","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，最高管理者应确保废液收集处置的相关职责和权限得到分配和沟通，并与应急准备和响应相协调。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 14001:2026关于应急准备和响应的规定。正确选项反映标准的实际要求。","clause":"ISO 14001:2026 8.2"},{"id":"ISO14001-判断-017","sys":"ISO14001","type":"判断","q":"ISO 14001:2026要求组织可以选择性确保变更管理过程的输出满足规定的要求，涉及持续改进时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于持续改进的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 10.3"},{"id":"ISO14001-判断-018","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，组织不一定需要定期对洁净室环境的适宜性、充分性和有效性进行评价，并保留与不符合和纠正措施有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 14001:2026关于不符合和纠正措施的规定。错误选项反映标准的实际要求。","clause":"ISO 14001:2026 10.2"},{"id":"ISO14001-判断-019","sys":"ISO14001","type":"判断","q":"根据ISO 14001:2026，在供应商管理场景下，组织应保持与理解相关方的需求和期望相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 14001:2026关于理解相关方的需求和期望的规定。正确选项反映标准的实际要求。","clause":"ISO 14001:2026 4.2"},{"id":"ISO14001-判断-020","sys":"ISO14001","type":"判断","q":"ISO 14001:2026要求组织必须确保管理评审过程的输出满足规定的要求，涉及理解组织及其所处的环境时应特别关注。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 14001:2026关于理解组织及其所处的环境的规定。正确选项反映标准的实际要求。","clause":"ISO 14001:2026 4.1"},{"id":"ISO14001-单选-021","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026，关于监视、测量、分析和评价，以下理解正确的是？","options":["A. 有效性和效率无需同时考虑","B. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系","C. 管理体系只需满足认证最低要求","D. 资源配置可在体系运行后再安排"],"answer":"B","analysis":"正确选项对应标准关于监视、测量、分析和评价的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 9.1.1"},{"id":"ISO14001-单选-022","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026的规定，当应对风险和机遇的措施出现不符合时，组织应首先采取的措施是？","options":["A. 追究责任人员的过失","B. 对不符合做出响应，控制和纠正不符合","C. 仅记录不符合即可继续生产","D. 等待客户投诉后再处理"],"answer":"B","analysis":"正确选项对应标准关于应对风险和机遇的措施的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 6.1.1"},{"id":"ISO14001-单选-023","sys":"ISO14001","type":"单选","q":"在半导体材料制造过程中，为满足ISO 14001:2026关于合规义务的要求，以下哪项措施最为关键？","options":["A. 仅在出现问题时应急处理","B. 建立系统的策划、实施、检查和改进机制","C. 由外部顾问全权负责","D. 等待客户提出要求后再行动"],"answer":"B","analysis":"正确选项对应标准关于合规义务的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 6.1.3"},{"id":"ISO14001-单选-024","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026，关于环境方针，以下理解正确的是？","options":["A. 有效性和效率无需同时考虑","B. 管理体系只需满足认证最低要求","C. 资源配置可在体系运行后再安排","D. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系"],"answer":"D","analysis":"正确选项对应标准关于环境方针的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 5.2"},{"id":"ISO14001-单选-025","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026的要求，在测量系统分析场景下，以下关于应急准备和响应的做法正确的是？","options":["A. 外审时再补做文件","B. 由操作人员自行决定","C. 口头交代即可无需记录","D. 对过程进行策划并在受控条件下实施"],"answer":"D","analysis":"正确选项对应标准关于应急准备和响应的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 8.2"},{"id":"ISO14001-单选-026","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026的要求，在统计过程控制场景下，以下关于资源的做法正确的是？","options":["A. 外审时再补做文件","B. 口头交代即可无需记录","C. 由操作人员自行决定","D. 制定形成文件的程序并保持相关记录"],"answer":"D","analysis":"正确选项对应标准关于资源的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 7.1"},{"id":"ISO14001-单选-027","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026的要求，在风险与机遇场景下，以下关于持续改进的做法正确的是？","options":["A. 外审时再补做文件","B. 由操作人员自行决定","C. 制定形成文件的程序并保持相关记录","D. 口头交代即可无需记录"],"answer":"C","analysis":"正确选项对应标准关于持续改进的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 10.3"},{"id":"ISO14001-单选-028","sys":"ISO14001","type":"单选","q":"某半导体材料企业拟改进内部审核的管控水平，根据ISO 14001:2026，应首先开展的活动是？","options":["A. 直接购买先进检测设备","B. 等待下一次管理评审时一并讨论","C. 进行现状分析和风险识别，确定改进方向","D. 立即修订所有程序文件"],"answer":"C","analysis":"正确选项对应标准关于内部审核的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 9.2"},{"id":"ISO14001-单选-029","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026的规定，当应对风险和机遇的措施出现不符合时，组织应首先采取的措施是？","options":["A. 仅记录不符合即可继续生产","B. 追究责任人员的过失","C. 对不符合做出响应，控制和纠正不符合","D. 等待客户投诉后再处理"],"answer":"C","analysis":"正确选项对应标准关于应对风险和机遇的措施的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 6.1.1"},{"id":"ISO14001-单选-030","sys":"ISO14001","type":"单选","q":"根据ISO 14001:2026，关于合规性评价，以下理解正确的是？","options":["A. 有效性和效率无需同时考虑","B. 管理体系只需满足认证最低要求","C. 资源配置可在体系运行后再安排","D. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系"],"answer":"D","analysis":"正确选项对应标准关于合规性评价的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 14001:2026 9.1.2"},{"id":"ISO14001-多选-001","sys":"ISO14001","type":"多选","q":"按 ISO 14001:2026 4.1 的要求，组织在确定与环境管理体系相关的外部议题时，应考虑受组织影响或能够影响组织的外部环境状况。下列属于标准明确列举的外部环境状况的有？","options":["A. 气候变化","B. 污染水平","C. 生物多样性和生态系统健康","D. 自然资源的可获得性","E. 公司内部各部门的绩效考核指标"],"answer":"BDAC","analysis":"2026 版在 4.1 中明确将外部环境状况作为必须考虑的外部议题，并具体列举了污染水平、自然资源的可获得性、气候变化、生物多样性和生态系统健康等方面，体现了对全球环境议题的响应。E 项属于内部议题（内部治理与绩效管理），不属于外部环境状况。对半导体材料制造企业而言，区域大气污染物总量控制、工业用水与超纯水供给的可获得性、极端天气对厂务系统的影响均是典型的外部环境状况。","clause":"ISO 14001:2026 4.1 理解组织及其所处的环境"},{"id":"ISO14001-多选-002","sys":"ISO14001","type":"多选","q":"某公司修订《环境因素识别与评价控制程序》。按 ISO 14001:2026 6.1.2 的要求，识别环境因素时应考虑的内容包括？","options":["A. 该环境因素对应污染物的处理成本高低","B. 确定并形成文件的重要环境因素判定准则","C. 正常和异常的运行状态，以及可合理预见的紧急情况（紧急情况须单独识别）","D. 生命周期视角下组织可控制或可施加影响的各阶段","E. 变更（包括已纳入计划的或新的开发，以及新的或修改的活动、产品和服务）"],"answer":"ECDB","analysis":"标准要求组织在确定环境因素及相关环境影响时考虑变更、正常与异常运行状态及可合理预见的紧急情况，并采用生命周期视角；同时应运用所建立的准则确定具有或可能具有重要环境影响的环境因素，即重要环境因素，并保持环境因素与相关环境影响、重要性判定准则、重要环境因素的形成文件的信息。D 项处理成本属于组织自行决策时可参考的经济因素，但不是标准要求的识别与判定输入，若以成本高低决定是否列为重要环境因素，反而会导致漏判。","clause":"ISO 14001:2026 6.1.2 环境因素"},{"id":"ISO14001-多选-003","sys":"ISO14001","type":"多选","q":"ISO 14001:2026 新增 6.3 变更的策划。当组织确定需要对环境管理体系进行变更时，应考虑的内容包括？","options":["A. 环境管理体系的完整性","B. 资源的可获得性","C. 职责和权限的分配或再分配","D. 变更的目的及其潜在后果","E. 变更是否已获得客户书面同意"],"answer":"DABC","analysis":"6.3 是 2026 版唯一的全新条款，要求变更予以策划并有计划地实施，明确应考虑变更目的及其潜在后果、体系的完整性、资源的可获得性、职责和权限的分配或再分配四项。E 项客户同意在特定合同情形下可能是商务或产品变更的要求（如汽车链客户的变更通知），但不属于本条款对体系变更策划的通用要求。半导体材料制造中的典型体系变更包括新增产线、更换原料或溶剂体系、改造废气废液处理设施、更换危废处置单位、组织架构或关键岗位调整等。","clause":"ISO 14001:2026 6.3 变更的策划"},{"id":"ISO14001-多选-004","sys":"ISO14001","type":"多选","q":"按 ISO 14001:2026 8.1 的要求，某公司对外部提供的过程、产品和服务（如危废处置、废气设施运维、化学品配送）实施控制，下列做法正确的有？","options":["A. 因外部供方持有资质许可，公司可不再对其现场作业进行任何监视","B. 考虑就产品和服务在运输交付、使用、寿命结束后处理和最终处置等阶段的潜在重大环境影响提供信息","C. 确定对外部提供过程的控制类型与程度，并将其规定在体系中","D. 保持运行策划和控制所需的形成文件的过程，以确信过程按策划执行","E. 从生命周期视角确定与采购的产品和服务有关的环境要求，并向外部供方（含承包方）沟通"],"answer":"ECDB","analysis":"2026 版将\"外包过程\"扩展为\"外部提供的过程、产品和服务\"，覆盖面更广，并明确 8.1 需保持形成文件的过程。标准要求组织建立对采购环节的环境要求并向供方沟通，确定控制类型与程度，同时从生命周期视角考虑设计开发、运输交付、使用及寿命结束后处置阶段的环境影响并在必要时提供信息。E 项错误：资质是准入条件，不能替代过程监视与绩效验证，且组织对其重要环境因素的管理义务不因委外而转移。","clause":"ISO 14001:2026 8.1 运行策划和控制"},{"id":"ISO14001-多选-005","sys":"ISO14001","type":"多选","q":"按 ISO 14001:2026 8.2 的要求，某公司建立化学品泄漏应急准备和响应过程，应包含的内容有？","options":["A. 在可行时定期试验所策划的响应措施","B. 只需向应急救援小组成员提供相关信息和培训，一般岗位员工无需知晓","C. 对实际发生的紧急情况做出响应","D. 通过策划的措施做好响应准备，以预防或减轻紧急情况带来的不利环境影响","E. 定期评审并修订过程和策划的响应措施，特别是在紧急情况发生后或试验后"],"answer":"DCEA","analysis":"标准要求组织建立、实施并保持应急准备和响应所需的形成文件的过程，涵盖预防与减轻、响应、评审修订、定期试验，以及向有关相关方（包括在其控制下工作的人员）提供有关的信息和培训。E 项错误：一线操作人员往往是泄漏的第一发现者与第一响应者，其报警、初期处置与撤离的信息与培训不可缺失；此外周边单位、园区应急指挥机构等外部相关方在必要时也应获得相关信息。","clause":"ISO 14001:2026 8.2 应急准备和响应"},{"id":"ISO14001-多选-006","sys":"ISO14001","type":"多选","q":"按 ISO 14001:2026 9.2.2 的要求，组织策划、建立、实施并保持内部审核方案时，应做到？","options":["A. 考虑相关过程的环境重要性、影响组织的变化以及以往审核的结果","B. 保留审核方案实施和审核结果的形成文件的信息","C. 为保证独立性，全部内部审核必须委托外部机构实施","D. 规定每次审核的审核目标","E. 规定每次审核的审核准则和范围"],"answer":"DEAB","analysis":"2026 版明确要求审核方案规定每次审核的审核目标，这是相对 2015 版的重要变化；同时保留了规定准则与范围、考虑过程环境重要性与组织变化及以往审核结果、选择审核员并实施审核以确保过程的客观性与公正性、向管理者报告结果、保留形成文件的信息等要求。E 项错误：标准要求的是审核员不审核自己的工作以确保客观公正，并未要求必须委外；内部审核由具备能力的内部审核员实施是通行做法。","clause":"ISO 14001:2026 9.2.2 内部审核方案；ISO 14001:2026 9.2.1 总则"},{"id":"ISO14001-多选-007","sys":"ISO14001","type":"多选","q":"按 ISO 14001:2026 9.3.2 的要求，管理评审的输入应包括下列哪些内容？","options":["A. 资源的充分性、来自相关方的有关信息（含抱怨）、持续改进的机会","B. 以往管理评审所采取措施的状况","C. 与环境管理体系相关的内外部议题的变化，包括相关方的需求和期望、重要环境因素、风险和机遇","D. 环境目标的实现程度、不符合和纠正措施、监视和测量结果、合规义务的履行情况、审核结果等环境绩效信息","E. 各部门本年度的人员离职率与薪酬调整方案"],"answer":"BDCA","analysis":"2026 版将管理评审拆分为 9.3.1 总则、9.3.2 管理评审输入、9.3.3 管理评审结果三条，使输入清单更加清晰可核查。输入通常包括以往评审措施的状况，内外部议题（含相关方需求期望、重要环境因素、风险和机遇）的变化，环境目标的实现程度，以体现在不符合与纠正措施、监视测量结果、合规义务履行情况、审核结果等方面的环境绩效信息，资源的充分性，来自相关方的有关信息（含抱怨），以及持续改进的机会。E 项属于人力资源管理事项，除非与环境体系能力或资源直接相关，否则不构成标准要求的输入。","clause":"ISO 14001:2026 9.3.2 管理评审输入"},{"id":"ISO14001-多选-008","sys":"ISO14001","type":"多选","q":"某公司体系办组织转版培训，梳理 ISO 14001:2026 相对 ISO 14001:2015 的变化。下列说法正确的有？","options":["A. 本次修订取消了对重要环境因素的识别要求，改由风险评价统一处理","B. 术语部分新增\"方针\"，删除\"外包\"和\"风险\"，\"相关方\"增列同义词\"利益相关方\"，并取消了原附录 B","C. 新增 6.3 变更的策划，是本次修订中唯一的全新条款","D. 第 10 章删除了原 10.1 总则，调整为 10.1 持续改进、10.2 不符合和纠正措施","E. 7.4 沟通拆分为 7.4.1 总则、7.4.2 内部沟通、7.4.3 外部沟通"],"answer":"CEDB","analysis":"本次修订被定性为适度修订，条款数量与总体结构大体保留，主要变化来自采纳协调结构（HS）。A 至 D 均为 2026 版的实际变化点。E 项错误：环境因素的识别与重要环境因素的判定仍是 6.1.2 的核心要求，也是 ISO 14001 区别于其他管理体系标准的特色要求；6.1.4 风险和机遇独立成条是结构调整，并非用风险评价取代环境因素评价，两者来源与用途不同。","clause":"ISO 14001:2026 6.3 变更的策划；ISO 14001:2026 7.4 沟通；ISO 14001:2026 10 改进；ISO 14001:2026 3 术语和定义"},{"id":"ISO14001-多选-009","sys":"ISO14001","type":"多选","q":"某公司策划\"年度危险废物产生量单位产品下降 8%\"这一环境目标。按 ISO 14001:2026 6.2 的要求，策划如何实现该目标时应确定的内容有？","options":["A. 供应商的商务报价与付款条件","B. 如何将实现环境目标的措施融入组织的业务过程","C. 如何评价结果，包括用于监视实现目标进展情况的参数","D. 由谁负责、何时完成","E. 要做什么、需要什么资源"],"answer":"EDCB","analysis":"标准要求组织在策划如何实现环境目标时确定做什么、需要什么资源、由谁负责、何时完成、如何评价结果（包括用于监视可测量环境目标实现进展的参数），并考虑如何将实现环境目标的措施融入组织的业务过程。E 项属于采购商务条款，虽在措施实施中可能涉及，但不是本条款要求确定的策划要素。危险废物减量目标常涉及工艺改进、溶剂回用、包装容器循环等措施，须落实到责任部门与时限，并设定可监视的过程参数。","clause":"ISO 14001:2026 6.2 环境目标及其实现的策划"},{"id":"ISO14001-多选-010","sys":"ISO14001","type":"多选","q":"某公司发生一起废气处理洗涤塔循环泵故障导致短时超标排放的不符合。按 ISO 14001:2026 10.2 的要求，组织应采取的行动包括？","options":["A. 做出响应，采取措施控制并纠正不符合，处理其后果（包括减轻不利环境影响）","B. 通过评审和分析不符合、确定其原因、确定是否存在或可能发生类似不符合，评价是否需要采取措施以消除原因","C. 实施所需的措施，并评审所采取纠正措施的有效性","D. 必要时对环境管理体系进行变更","E. 只要污染物排放已恢复达标，即可直接关闭该不符合"],"answer":"ABCD","analysis":"10.2 要求的完整闭环包括响应与纠正、原因分析与类似问题排查、实施措施、评价有效性、必要时变更体系，同时保留不符合的性质及后续所采取措施、任何纠正措施结果的形成文件的信息，且纠正措施应与所发生不符合造成影响（包括环境影响）的重要程度相适应。E 项错误：恢复达标仅是纠正，未消除原因（如泵未纳入关键环保设施清单、无备用泵、点检项目缺失、异常报警未联动），类似故障仍会再发生。","clause":"ISO 14001:2026 10.2 不符合和纠正措施"},{"id":"ISO14001-案例-005","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在供应商管理环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】供应商管理做法不符合ISO 14001:2026关于信息交流的要求；【依据条款】ISO 14001:2026 7.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 7.4"},{"id":"ISO14001-案例-006","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在废气处理系统环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】废气处理系统做法不符合ISO 14001:2026关于环境因素的要求；【依据条款】ISO 14001:2026 6.1.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 6.1.2"},{"id":"ISO14001-案例-007","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在废液收集处置环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】废液收集处置做法不符合ISO 14001:2026关于组织的角色、职责和权限的要求；【依据条款】ISO 14001:2026 5.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 5.3"},{"id":"ISO14001-案例-008","sys":"ISO14001","type":"案例","q":"在化学品安全方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 14001:2026要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】化学品安全做法不符合ISO 14001:2026关于应对风险和机遇的措施的要求；【依据条款】ISO 14001:2026 6.1.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 6.1.1"},{"id":"ISO14001-案例-009","sys":"ISO14001","type":"案例","q":"某公司在建立顾客特殊要求过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 14001:2026分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】顾客特殊要求做法不符合ISO 14001:2026关于合规性评价的要求；【依据条款】ISO 14001:2026 9.1.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 9.1.2"},{"id":"ISO14001-案例-010","sys":"ISO14001","type":"案例","q":"某公司在建立洁净室环境过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 14001:2026分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】洁净室环境做法不符合ISO 14001:2026关于应急准备和响应的要求；【依据条款】ISO 14001:2026 8.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 8.2"},{"id":"ISO14001-案例-011","sys":"ISO14001","type":"案例","q":"在文件控制方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 14001:2026要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】文件控制做法不符合ISO 14001:2026关于管理评审的要求；【依据条款】ISO 14001:2026 9.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 9.3"},{"id":"ISO14001-案例-012","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在内部审核环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】内部审核做法不符合ISO 14001:2026关于领导作用和承诺的要求；【依据条款】ISO 14001:2026 5.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 5.1"},{"id":"ISO14001-案例-013","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在废液收集处置环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】废液收集处置做法不符合ISO 14001:2026关于应对风险和机遇的措施的要求；【依据条款】ISO 14001:2026 6.1.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 6.1.1"},{"id":"ISO14001-案例-014","sys":"ISO14001","type":"案例","q":"某半导体材料制造企业在应急计划环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 14001:2026分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】应急计划做法不符合ISO 14001:2026关于运行的策划和控制的要求；【依据条款】ISO 14001:2026 8.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 14001:2026 8.1"},{"id":"ISO14001-简答-005","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于应对风险和机遇的措施的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 6.1.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 6.1.1"},{"id":"ISO14001-简答-006","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于内部审核的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 9.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 9.2"},{"id":"ISO14001-简答-007","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于应急准备和响应的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 8.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 8.2"},{"id":"ISO14001-简答-008","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于成文信息的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 7.5。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 7.5"},{"id":"ISO14001-简答-009","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于措施的策划的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 6.1.4。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 6.1.4"},{"id":"ISO14001-简答-010","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于环境管理体系范围的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 4.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 4.3"},{"id":"ISO14001-简答-011","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于环境管理体系范围的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 4.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 4.3"},{"id":"ISO14001-简答-012","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于成文信息的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 7.5。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 7.5"},{"id":"ISO14001-简答-013","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于信息交流的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 7.4。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 7.4"},{"id":"ISO14001-简答-014","sys":"ISO14001","type":"简答","q":"请简述ISO 14001:2026中关于不符合和纠正措施的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 14001:2026 10.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 14001:2026 10.2"},{"id":"ISO45001-判断-011","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，组织不一定需要定期对记录管理的适宜性、充分性和有效性进行评价，并保留与管理评审有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于管理评审的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 9.3"},{"id":"ISO45001-判断-012","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，最高管理者不一定需要确保人员能力培训的相关职责和权限得到分配和沟通，并与运行的策划和控制相协调。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于运行的策划和控制的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 8.1"},{"id":"ISO45001-判断-013","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，组织应定期对设备维护保养的适宜性、充分性和有效性进行评价，并保留与信息交流有关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 45001:2018关于信息交流的规定。正确选项反映标准的实际要求。","clause":"ISO 45001:2018 7.4"},{"id":"ISO45001-判断-014","sys":"ISO45001","type":"判断","q":"ISO 45001:2018要求组织可以选择性确保记录管理过程的输出满足规定的要求，涉及领导作用和承诺时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于领导作用和承诺的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 5.1"},{"id":"ISO45001-判断-015","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，组织不一定需要定期对实验室管理的适宜性、充分性和有效性进行评价，并保留与危险源辨识及风险和机遇的评价有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于危险源辨识及风险和机遇的评价的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 6.1.2"},{"id":"ISO45001-判断-016","sys":"ISO45001","type":"判断","q":"ISO 45001:2018要求组织可以选择性确保统计过程控制过程的输出满足规定的要求，涉及危险源辨识及风险和机遇的评价时不一定需要特别关注。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于危险源辨识及风险和机遇的评价的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 6.1.2"},{"id":"ISO45001-判断-017","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，在静电防护场景下，组织应保持与管理评审相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 45001:2018关于管理评审的规定。正确选项反映标准的实际要求。","clause":"ISO 45001:2018 9.3"},{"id":"ISO45001-判断-018","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，组织应定期对产品追溯的适宜性、充分性和有效性进行评价，并保留与应对风险和机遇的措施有关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 45001:2018关于应对风险和机遇的措施的规定。正确选项反映标准的实际要求。","clause":"ISO 45001:2018 6.1.1"},{"id":"ISO45001-判断-019","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，在静电防护场景下，组织不一定需要保持与危险源辨识及风险和机遇的评价相关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 45001:2018关于危险源辨识及风险和机遇的评价的规定。错误选项反映标准的实际要求。","clause":"ISO 45001:2018 6.1.2"},{"id":"ISO45001-判断-020","sys":"ISO45001","type":"判断","q":"根据ISO 45001:2018，在管理评审场景下，组织应保持与管理评审相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 45001:2018关于管理评审的规定。正确选项反映标准的实际要求。","clause":"ISO 45001:2018 9.3"},{"id":"ISO45001-单选-021","sys":"ISO45001","type":"单选","q":"根据ISO 45001:2018，关于职业健康安全管理体系范围，以下理解正确的是？","options":["A. 资源配置可在体系运行后再安排","B. 管理体系只需满足认证最低要求","C. 有效性和效率无需同时考虑","D. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系"],"answer":"D","analysis":"正确选项对应标准关于职业健康安全管理体系范围的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 4.3"},{"id":"ISO45001-单选-022","sys":"ISO45001","type":"单选","q":"某半导体材料企业拟改进工作人员的协商和参与的管控水平，根据ISO 45001:2018，应首先开展的活动是？","options":["A. 直接购买先进检测设备","B. 等待下一次管理评审时一并讨论","C. 进行现状分析和风险识别，确定改进方向","D. 立即修订所有程序文件"],"answer":"C","analysis":"正确选项对应标准关于工作人员的协商和参与的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 5.4"},{"id":"ISO45001-单选-023","sys":"ISO45001","type":"单选","q":"某半导体材料企业拟改进领导作用和承诺的管控水平，根据ISO 45001:2018，应首先开展的活动是？","options":["A. 直接购买先进检测设备","B. 进行现状分析和风险识别，确定改进方向","C. 等待下一次管理评审时一并讨论","D. 立即修订所有程序文件"],"answer":"B","analysis":"正确选项对应标准关于领导作用和承诺的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 5.1"},{"id":"ISO45001-单选-024","sys":"ISO45001","type":"单选","q":"根据ISO 45001:2018的规定，当应对风险和机遇的措施出现不符合时，组织应首先采取的措施是？","options":["A. 仅记录不符合即可继续生产","B. 等待客户投诉后再处理","C. 对不符合做出响应，控制和纠正不符合","D. 追究责任人员的过失"],"answer":"C","analysis":"正确选项对应标准关于应对风险和机遇的措施的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 6.1.1"},{"id":"ISO45001-单选-025","sys":"ISO45001","type":"单选","q":"在半导体材料制造过程中，为满足ISO 45001:2018关于组织的角色、职责和权限的要求，以下哪项措施最为关键？","options":["A. 由外部顾问全权负责","B. 仅在出现问题时应急处理","C. 建立系统的策划、实施、检查和改进机制","D. 等待客户提出要求后再行动"],"answer":"C","analysis":"正确选项对应标准关于组织的角色、职责和权限的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 5.3"},{"id":"ISO45001-单选-026","sys":"ISO45001","type":"单选","q":"根据ISO 45001:2018的要求，在供应商管理场景下，以下关于领导作用和承诺的做法正确的是？","options":["A. 由操作人员自行决定","B. 外审时再补做文件","C. 对过程进行策划并在受控条件下实施","D. 口头交代即可无需记录"],"answer":"C","analysis":"正确选项对应标准关于领导作用和承诺的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 5.1"},{"id":"ISO45001-单选-027","sys":"ISO45001","type":"单选","q":"在半导体材料制造过程中，为满足ISO 45001:2018关于能力的要求，以下哪项措施最为关键？","options":["A. 等待客户提出要求后再行动","B. 仅在出现问题时应急处理","C. 由外部顾问全权负责","D. 建立系统的策划、实施、检查和改进机制"],"answer":"D","analysis":"正确选项对应标准关于能力的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 7.2"},{"id":"ISO45001-单选-028","sys":"ISO45001","type":"单选","q":"某半导体材料企业拟改进法律法规要求和其他要求的确定的管控水平，根据ISO 45001:2018，应首先开展的活动是？","options":["A. 直接购买先进检测设备","B. 等待下一次管理评审时一并讨论","C. 进行现状分析和风险识别，确定改进方向","D. 立即修订所有程序文件"],"answer":"C","analysis":"正确选项对应标准关于法律法规要求和其他要求的确定的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 6.1.3"},{"id":"ISO45001-单选-029","sys":"ISO45001","type":"单选","q":"根据ISO 45001:2018的要求，在人员能力培训场景下，以下关于理解组织及其所处的环境的做法正确的是？","options":["A. 口头交代即可无需记录","B. 定期监视和测量过程绩效指标","C. 由操作人员自行决定","D. 外审时再补做文件"],"answer":"B","analysis":"正确选项对应标准关于理解组织及其所处的环境的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 4.1"},{"id":"ISO45001-单选-030","sys":"ISO45001","type":"单选","q":"根据ISO 45001:2018，关于职业健康安全目标，以下理解正确的是？","options":["A. 资源配置可在体系运行后再安排","B. 有效性和效率无需同时考虑","C. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系","D. 管理体系只需满足认证最低要求"],"answer":"C","analysis":"正确选项对应标准关于职业健康安全目标的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 45001:2018 6.2"},{"id":"ISO45001-多选-001","sys":"ISO45001","type":"多选","q":"某公司体系办梳理内外部议题，下列各项中可作为职业健康安全管理体系\"内部议题\"的有？","options":["A. 组织的安全文化、领导作用方式与工作人员的能力状况","B. 所在地区新颁布的职业病危害因素定期检测要求","C. 老旧生产设备的本质安全水平与自动化程度","D. 特种气体供应商的送货车辆路线安排","E. 洁净车间倒班制度与连续夜班安排"],"answer":"ECA","analysis":"内部议题通常涉及组织的治理结构、活动与过程、战略方针目标、资源能力、信息系统、工作时间与工作组织方式、劳动关系、组织文化等。A 属于工作组织方式，C 属于设备与技术条件，D 属于文化与能力，均为内部议题。B 是法律法规要求，属于外部议题；E 属于外部供方相关的外部议题（但其入厂后的作业风险须纳入承包方/外部供方控制）。","clause":"ISO 45001:2018 4.1 理解组织及其所处的环境"},{"id":"ISO45001-多选-002","sys":"ISO45001","type":"多选","q":"依据标准，职业健康安全方针应当包含的承诺有？","options":["A. 满足法律法规要求和其他要求","B. 承诺对所有事故实行免责，鼓励主动上报","C. 提供安全健康的工作条件以防止与工作相关的伤害和健康损害","D. 工作人员及其代表（若有）的协商和参与","E. 消除危险源和降低职业健康安全风险"],"answer":"CAED","analysis":"标准规定方针应包括提供安全健康工作条件的承诺、满足法律法规要求和其他要求的承诺、消除危险源和降低职业健康安全风险的承诺、持续改进体系的承诺，以及工作人员及工作人员代表协商和参与的承诺。E 项\"对所有事故免责\"混淆了鼓励上报的无惩罚性文化与依法依规追责的边界，标准要求的是保护工作人员免遭因报告事件、危险源、风险和机遇而受到的报复，而非对所有事故一律免责。","clause":"ISO 45001:2018 5.2 职业健康安全方针"},{"id":"ISO45001-多选-003","sys":"ISO45001","type":"多选","q":"在危险源辨识时，下列哪些情形属于标准要求应予以考虑的内容？","options":["A. 同事之间的言语欺凌与骚扰造成的心理健康影响","B. 夜班连续作业带来的疲劳与工作负荷","C. 清洗设备管路等非常规的检维修作业","D. 以往在其他同类工厂发生的化学品灼伤事件","E. 工作场所附近道路上与公司活动无关的社会交通事故"],"answer":"CBAD","analysis":"标准要求危险源辨识考虑工作组织方式、社会因素（含工作负荷、工作时间、受害、骚扰和欺凌）、领导作用与组织文化；常规和非常规活动与情况（含基础设施、设备、材料、物质及工作场所的物理条件、人为因素、实际执行的工作方式）；以往发生的内部或外部相关事件及其原因；潜在的紧急情况等。E 项与组织活动无关且不在组织控制或影响范围内，不属于本体系应辨识的危险源；但若涉及员工上下班班车或公务外出，则应纳入。","clause":"ISO 45001:2018 6.1.2.1 危险源辨识"},{"id":"ISO45001-多选-004","sys":"ISO45001","type":"多选","q":"某工序需在密闭反应釜内进行清洗，下列措施中属于\"工程控制措施和重新组织工作\"层级的有？","options":["A. 调整作业时段并采用两人轮换以减少单人连续暴露时间","B. 为作业人员配备正压式空气呼吸器","C. 在入口张贴\"受限空间，未经许可禁止入内\"警示牌","D. 加装在线气体检测联锁与强制通风装置","E. 改用可在线自动清洗的设备结构，取消人员进入"],"answer":"DA","analysis":"控制层级第三级为工程控制措施和重新组织工作，A 的检测联锁与强制通风属典型工程控制，C 的作业组织调整属重新组织工作。B 属于第一级\"消除\"（取消人员进入即消除了受限空间作业危险源）。E 属于第四级标识警告和管理控制。D 属于第五级个体防护装备。区分层级是本题考核重点。","clause":"ISO 45001:2018 8.1.2 消除危险源和降低职业健康安全风险"},{"id":"ISO45001-多选-005","sys":"ISO45001","type":"多选","q":"关于\"工作人员的协商和参与\"，下列做法符合标准要求的有？","options":["A. 由体系办统一代表全体工作人员表达意见，不再单独征询非管理岗位人员","B. 确定纠正措施时吸收事件当事班组参与","C. 建立工作人员代表参加的安全生产委员会并保障其获得清晰易懂的相关信息","D. 在确定危险源辨识与风险评价方法时征求一线操作人员意见","E. 识别并消除工作人员参与的障碍（如语言文化差异、担心被报复、缺少时间）"],"answer":"DCBE","analysis":"标准要求组织建立协商与参与的过程，提供必要机制、时间、培训和资源，及时提供关于体系的清晰易懂的相关信息，确定并消除参与的障碍（如未答复员工意见、语言或读写障碍、报复行为或报复威胁、阻碍参与的方针或做法等）。并强调非管理岗位工作人员应参与确定协商参与机制、危险源辨识与风险评价、控制措施的确定、能力与培训需求、沟通内容与方式、控制措施及其有效实施使用、事件与不符合的调查及纠正措施的确定等。E 项以体系办代表取代直接参与，恰恰是常见不符合。","clause":"ISO 45001:2018 5.4 工作人员的协商和参与"},{"id":"ISO45001-多选-006","sys":"ISO45001","type":"多选","q":"某公司拟开展应急准备与响应工作，下列内容属于标准明确要求的有？","options":["A. 应急预案一经政府部门备案，即无需再评审修订","B. 向承包方、访客、应急服务机构、政府部门及周边社区沟通相关信息","C. 向全体工作人员沟通并提供关于其职责和义务的信息","D. 定期测试和演练所策划的响应能力","E. 策划包括提供急救在内的响应措施"],"answer":"EDCB","analysis":"标准要求组织建立、实施和保持所需的过程以准备和响应潜在紧急情况，内容包括：策划响应措施（含提供急救）；提供相关培训；定期测试和演练所策划的响应能力；评价绩效并在必要时修订所策划的响应措施（含测试后，特别是紧急情况发生后）；向全体工作人员沟通并提供有关其职责和义务的信息；向承包方、访客、应急服务机构、政府部门和适当时向当地社区沟通相关信息；考虑所有相关方的需求和能力并确保其适当参与。E 项与\"必要时修订\"要求相悖，备案不等于持续适宜。","clause":"ISO 45001:2018 8.2 应急准备和响应"},{"id":"ISO45001-多选-007","sys":"ISO45001","type":"多选","q":"下列关于职业健康安全绩效监视和测量的说法，正确的有？","options":["A. 应确定需要监视和测量的内容、方法、准则以及监视测量的时机","B. 应确定分析、评价结果的时机，并保留适当的形成文件的信息作为证据","C. 用于符合性判定的监视测量设备应经校准或验证并予以保持","D. 评价合规情况的准则可以包括适用的法律法规要求、其他要求以及组织自身的准则","E. 监视指标只能采用事故率、工时损失率等结果性（滞后）指标"],"answer":"ABCD","analysis":"标准要求确定监视测量的内容（含法律法规和其他要求的履行程度、与已识别危险源风险和机遇有关的活动与运行、目标进展、控制与运行控制的有效性等）、方法、准则、时机以及分析评价的时机，并保留结果与设备维护校准验证的形成文件的信息。D 项错误，标准鼓励结合过程性（先行）指标，如隐患整改及时率、作业许可合规率、培训覆盖率、演练完成率等，仅用滞后指标不足以驱动预防。","clause":"ISO 45001:2018 9.1.1 监视、测量、分析和绩效评价（总则）"},{"id":"ISO45001-多选-008","sys":"ISO45001","type":"多选","q":"某内审员计划审核 A 车间\"高纯化学品换桶作业\"，下列可作为客观证据的有？","options":["A. 现场观察操作人员实际佩戴与使用防护用品的情况","B. 换桶作业人员的能力评价与培训记录","C. 车间主任口头保证\"我们一直严格按规程执行\"","D. 该作业的危险源辨识与风险评价记录及控制措施清单","E. 泄漏应急处置演练记录与应急物资点检记录"],"answer":"DABE","analysis":"客观证据是可被证实的与审核准则有关的记录、事实陈述或其他信息，包括文件与记录审查、现场观察、人员访谈的可核实内容。D 项为无支撑的主观保证，不能单独作为符合的证据；若访谈内容可与记录、现场情况相互印证，则可作为证据的组成部分。审核证据应通过多源印证提高结论可靠性。","clause":"ISO 45001:2018 9.2.2 内部审核方案；ISO 45001:2018 8.1.1 运行策划和控制（总则）"},{"id":"ISO45001-多选-009","sys":"ISO45001","type":"多选","q":"某公司发生一起特种气体管路微量泄漏未遂事件，按标准要求，后续应开展的工作包括？","options":["A. 及时响应，采取措施控制和纠正，并处理其造成的后果","B. 评审已有的职业健康安全风险评价的充分性，必要时更新","C. 在工作人员参与并吸收其他相关方介入的情况下，评价消除根本原因的需求，调查并确定原因","D. 因未造成人员伤害，可不保留任何形成文件的信息","E. 依据控制层级和变更管理要求确定并实施措施，随后评审所采取纠正措施的有效性"],"answer":"ACBE","analysis":"标准要求组织建立过程以确定和管理事件与不符合，包括及时响应与纠正、处理后果、评价消除根本原因的需求（通过调查、确定不符合原因、确定是否存在或可能发生类似情况）、评审已有的风险评价、确定并实施措施（遵循控制层级与变更管理）、评审纠正措施有效性、必要时变更体系；并应保留事件或不符合的性质及后续所采取措施、任何措施和纠正措施的结果（含有效性）的形成文件的信息，并将其向工作人员及其代表和其他相关方沟通。E 项错误。","clause":"ISO 45001:2018 10.2 事件、不符合和纠正措施"},{"id":"ISO45001-多选-010","sys":"ISO45001","type":"多选","q":"关于 ISO 45001:2018 相对 OHSAS 18001:2007 的主要变化，下列描述正确的有？","options":["A. 大幅强化工作人员的协商和参与，并要求识别与消除参与障碍","B. 取消了对法律法规符合性评价的要求","C. 引入风险和机遇的概念，区分职业健康安全风险与管理体系风险，并要求确定机遇","D. 强化最高管理者的领导作用，不再强制要求任命管理者代表","E. 采用高阶结构，新增\"组织所处的环境\"和\"相关方需求和期望\"要求"],"answer":"EDAC","analysis":"ISO 45001:2018 采用 ISO 高阶结构（第 4~10 章），新增组织环境与相关方要求；强化领导作用与安全文化，不再强制设置管理者代表；显著扩展工作人员协商和参与的具体事项并要求消除参与障碍；引入基于风险的思维，明确区分职业健康安全风险与体系其他风险，并新增职业健康安全机遇与其他机遇的确定。E 项错误，合规性评价要求不仅保留而且更加明确，是绩效评价的独立条款。","clause":"ISO 45001:2018 5.1 领导作用和承诺；ISO 45001:2018 5.4 工作人员的协商和参与；ISO 45001:2018 6.1.1 应对风险和机遇的措施（总则）；ISO 45001:2018 9.1.2 合规性评价"},{"id":"ISO45001-案例-005","sys":"ISO45001","type":"案例","q":"某公司在建立文件控制过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 45001:2018分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】文件控制做法不符合ISO 45001:2018关于能力的要求；【依据条款】ISO 45001:2018 7.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 7.2"},{"id":"ISO45001-案例-006","sys":"ISO45001","type":"案例","q":"在废气处理系统方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 45001:2018要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】废气处理系统做法不符合ISO 45001:2018关于措施的策划的要求；【依据条款】ISO 45001:2018 6.1.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 6.1.4"},{"id":"ISO45001-案例-007","sys":"ISO45001","type":"案例","q":"在测量系统分析方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 45001:2018要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】测量系统分析做法不符合ISO 45001:2018关于管理评审的要求；【依据条款】ISO 45001:2018 9.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 9.3"},{"id":"ISO45001-案例-008","sys":"ISO45001","type":"案例","q":"在产品追溯方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 45001:2018要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】产品追溯做法不符合ISO 45001:2018关于理解工作人员和其他相关方的需求和期望的要求；【依据条款】ISO 45001:2018 4.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 4.2"},{"id":"ISO45001-案例-009","sys":"ISO45001","type":"案例","q":"某半导体材料制造企业在实验室管理环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 45001:2018分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】实验室管理做法不符合ISO 45001:2018关于持续改进的要求；【依据条款】ISO 45001:2018 10.3；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 10.3"},{"id":"ISO45001-案例-010","sys":"ISO45001","type":"案例","q":"某半导体材料制造企业在风险与机遇环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 45001:2018分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】风险与机遇做法不符合ISO 45001:2018关于理解组织及其所处的环境的要求；【依据条款】ISO 45001:2018 4.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 4.1"},{"id":"ISO45001-案例-011","sys":"ISO45001","type":"案例","q":"在实验室管理方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 45001:2018要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】实验室管理做法不符合ISO 45001:2018关于信息交流的要求；【依据条款】ISO 45001:2018 7.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 7.4"},{"id":"ISO45001-案例-012","sys":"ISO45001","type":"案例","q":"某半导体材料制造企业在风险与机遇环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 45001:2018分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】风险与机遇做法不符合ISO 45001:2018关于资源的要求；【依据条款】ISO 45001:2018 7.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 7.1"},{"id":"ISO45001-案例-013","sys":"ISO45001","type":"案例","q":"在管理评审方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 45001:2018要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】管理评审做法不符合ISO 45001:2018关于资源的要求；【依据条款】ISO 45001:2018 7.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 7.1"},{"id":"ISO45001-案例-014","sys":"ISO45001","type":"案例","q":"某公司在建立职业健康暴露过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 45001:2018分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】职业健康暴露做法不符合ISO 45001:2018关于理解工作人员和其他相关方的需求和期望的要求；【依据条款】ISO 45001:2018 4.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 45001:2018 4.2"},{"id":"ISO45001-简答-005","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于应急准备和响应的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 8.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 8.2"},{"id":"ISO45001-简答-006","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于工作人员的协商和参与的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 5.4。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 5.4"},{"id":"ISO45001-简答-007","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于应急准备和响应的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 8.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 8.2"},{"id":"ISO45001-简答-008","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于意识的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 7.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 7.3"},{"id":"ISO45001-简答-009","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于信息交流的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 7.4。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 7.4"},{"id":"ISO45001-简答-010","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于职业健康安全目标的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 6.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 6.2"},{"id":"ISO45001-简答-011","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于职业健康安全管理体系范围的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 4.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 4.3"},{"id":"ISO45001-简答-012","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于资源的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 7.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 7.1"},{"id":"ISO45001-简答-013","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于领导作用和承诺的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 5.1。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 5.1"},{"id":"ISO45001-简答-014","sys":"ISO45001","type":"简答","q":"请简述ISO 45001:2018中关于法律法规要求和其他要求的确定的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 45001:2018 6.1.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 45001:2018 6.1.3"},{"id":"ISO9001-判断-011","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，在实验室管理场景下，组织不一定需要保持与持续改进相关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 9001:2015关于持续改进的规定。错误选项反映标准的实际要求。","clause":"ISO 9001:2015 10.3"},{"id":"ISO9001-判断-012","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，组织不一定需要定期对统计过程控制的适宜性、充分性和有效性进行评价，并保留与内部审核有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 9001:2015关于内部审核的规定。错误选项反映标准的实际要求。","clause":"ISO 9001:2015 9.2"},{"id":"ISO9001-判断-013","sys":"ISO9001","type":"判断","q":"ISO 9001:2015要求组织必须确保不合格品处理过程的输出满足规定的要求，涉及不合格输出的控制时应特别关注。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于不合格输出的控制的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 8.7"},{"id":"ISO9001-判断-014","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，在静电防护场景下，组织应保持与监视和测量资源相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于监视和测量资源的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 7.1.5"},{"id":"ISO9001-判断-015","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，在人员能力培训场景下，组织应保持与组织的岗位、职责和权限相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于组织的岗位、职责和权限的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 5.3"},{"id":"ISO9001-判断-016","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，组织应定期对统计过程控制的适宜性、充分性和有效性进行评价，并保留与资源—人员有关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于资源—人员的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 7.1.2"},{"id":"ISO9001-判断-017","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，在洁净室环境场景下，组织应保持与组织的岗位、职责和权限相关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于组织的岗位、职责和权限的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 5.3"},{"id":"ISO9001-判断-018","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，组织不一定需要定期对设备维护保养的适宜性、充分性和有效性进行评价，并保留与基础设施有关的成文信息。","options":[],"answer":"错误","analysis":"本题判断依据为ISO 9001:2015关于基础设施的规定。错误选项反映标准的实际要求。","clause":"ISO 9001:2015 7.1.3"},{"id":"ISO9001-判断-019","sys":"ISO9001","type":"判断","q":"根据ISO 9001:2015，组织应定期对测量系统分析的适宜性、充分性和有效性进行评价，并保留与内部审核有关的成文信息。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于内部审核的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 9.2"},{"id":"ISO9001-判断-020","sys":"ISO9001","type":"判断","q":"ISO 9001:2015要求组织必须确保废液收集处置过程的输出满足规定的要求，涉及产品和服务的设计和开发时应特别关注。","options":[],"answer":"正确","analysis":"本题判断依据为ISO 9001:2015关于产品和服务的设计和开发的规定。正确选项反映标准的实际要求。","clause":"ISO 9001:2015 8.3"},{"id":"ISO9001-单选-021","sys":"ISO9001","type":"单选","q":"根据ISO 9001:2015，关于产品和服务的设计和开发，以下理解正确的是？","options":["A. 有效性和效率无需同时考虑","B. 资源配置可在体系运行后再安排","C. 管理体系只需满足认证最低要求","D. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系"],"answer":"D","analysis":"正确选项对应标准关于产品和服务的设计和开发的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 8.3"},{"id":"ISO9001-单选-022","sys":"ISO9001","type":"单选","q":"根据ISO 9001:2015，关于监视和测量资源，以下理解正确的是？","options":["A. 管理体系只需满足认证最低要求","B. 组织应确定并提供所需资源以建立、实施、保持和持续改进管理体系","C. 资源配置可在体系运行后再安排","D. 有效性和效率无需同时考虑"],"answer":"B","analysis":"正确选项对应标准关于监视和测量资源的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 7.1.5"},{"id":"ISO9001-单选-023","sys":"ISO9001","type":"单选","q":"在半导体材料制造过程中，为满足ISO 9001:2015关于产品和服务的放行的要求，以下哪项措施最为关键？","options":["A. 建立系统的策划、实施、检查和改进机制","B. 等待客户提出要求后再行动","C. 仅在出现问题时应急处理","D. 由外部顾问全权负责"],"answer":"A","analysis":"正确选项对应标准关于产品和服务的放行的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 8.6"},{"id":"ISO9001-单选-024","sys":"ISO9001","type":"单选","q":"根据ISO 9001:2015的规定，当成文信息出现不符合时，组织应首先采取的措施是？","options":["A. 对不符合做出响应，控制和纠正不符合","B. 追究责任人员的过失","C. 仅记录不符合即可继续生产","D. 等待客户投诉后再处理"],"answer":"A","analysis":"正确选项对应标准关于成文信息的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 7.5"},{"id":"ISO9001-单选-025","sys":"ISO9001","type":"单选","q":"根据ISO 9001:2015的要求，在化学品安全场景下，以下关于应对风险和机遇的措施的做法正确的是？","options":["A. 口头交代即可无需记录","B. 确保人员具备必要的能力并保留成文信息","C. 外审时再补做文件","D. 由操作人员自行决定"],"answer":"B","analysis":"正确选项对应标准关于应对风险和机遇的措施的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 6.1"},{"id":"ISO9001-单选-026","sys":"ISO9001","type":"单选","q":"某半导体材料企业拟改进质量目标及其实现的策划的管控水平，根据ISO 9001:2015，应首先开展的活动是？","options":["A. 立即修订所有程序文件","B. 进行现状分析和风险识别，确定改进方向","C. 直接购买先进检测设备","D. 等待下一次管理评审时一并讨论"],"answer":"B","analysis":"正确选项对应标准关于质量目标及其实现的策划的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 6.2"},{"id":"ISO9001-单选-027","sys":"ISO9001","type":"单选","q":"某半导体材料企业拟改进内部审核的管控水平，根据ISO 9001:2015，应首先开展的活动是？","options":["A. 进行现状分析和风险识别，确定改进方向","B. 直接购买先进检测设备","C. 等待下一次管理评审时一并讨论","D. 立即修订所有程序文件"],"answer":"A","analysis":"正确选项对应标准关于内部审核的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 9.2"},{"id":"ISO9001-单选-028","sys":"ISO9001","type":"单选","q":"某半导体材料企业拟改进变更的策划的管控水平，根据ISO 9001:2015，应首先开展的活动是？","options":["A. 立即修订所有程序文件","B. 等待下一次管理评审时一并讨论","C. 进行现状分析和风险识别，确定改进方向","D. 直接购买先进检测设备"],"answer":"C","analysis":"正确选项对应标准关于变更的策划的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 6.3"},{"id":"ISO9001-单选-029","sys":"ISO9001","type":"单选","q":"根据ISO 9001:2015的要求，在产品追溯场景下，以下关于变更的策划的做法正确的是？","options":["A. 确保人员具备必要的能力并保留成文信息","B. 口头交代即可无需记录","C. 外审时再补做文件","D. 由操作人员自行决定"],"answer":"A","analysis":"正确选项对应标准关于变更的策划的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 6.3"},{"id":"ISO9001-单选-030","sys":"ISO9001","type":"单选","q":"在半导体材料制造过程中，为满足ISO 9001:2015关于不符合和纠正措施的要求，以下哪项措施最为关键？","options":["A. 由外部顾问全权负责","B. 仅在出现问题时应急处理","C. 建立系统的策划、实施、检查和改进机制","D. 等待客户提出要求后再行动"],"answer":"C","analysis":"正确选项对应标准关于不符合和纠正措施的要求，其他选项为常见理解误区或不符合标准要求的做法。","clause":"ISO 9001:2015 10.2"},{"id":"ISO9001-多选-001","sys":"ISO9001","type":"多选","q":"某公司梳理与质量管理体系有关的相关方及其要求，下列做法中符合标准要求的有哪些？","options":["A. 相关方要求一经确定即固化，除非客户书面通知变更才更新","B. 确定与体系有关的相关方，以及这些相关方与产品和服务要求有关的要求","C. 相关方仅限于客户和政府监管部门，供方与员工不属于相关方","D. 客户在 ESG 问卷中提出的气候变化相关要求，若与体系有关，应纳入相关方要求识别并作出响应安排","E. 对相关方及其要求的信息进行监视和评审，因为要求会随时间变化"],"answer":"BED","analysis":"4.2 要求组织确定与体系有关的相关方及其相关要求，并监视和评审这些信息。C 项不当地限缩了相关方范围，供方、员工、认证机构、周边社区等均可能是相关方。E 项与\"监视和评审\"要求相悖，法规更新、市场变化同样会导致要求变化。D 项对应 Amd 1:2024 在 4.2 增加的注，明确相关方可能提出与气候变化有关的要求，这是 2026 年内审的重点关注方向。","clause":"ISO 9001:2015 4.2 理解相关方的需求和期望"},{"id":"ISO9001-多选-002","sys":"ISO9001","type":"多选","q":"就\"以顾客为关注焦点\"，最高管理者应确保做到的有哪些？","options":["A. 始终保持增强顾客满意的关注点","B. 亲自参加每一次顾客投诉的现场处理","C. 承诺客户提出的任何要求均无条件接受","D. 确定、理解并持续满足顾客要求以及适用的法律法规要求","E. 确定和应对能够影响产品和服务合格以及增强顾客满意能力的风险和机遇"],"answer":"DEA","analysis":"5.1.2 要求最高管理者通过确保三方面的落实来证实其以顾客为关注焦点的领导作用和承诺：顾客要求和适用法律法规要求得到确定、理解并持续得到满足；确定和应对影响产品服务合格及增强顾客满意能力的风险和机遇；始终致力于增强顾客满意。D 项属于具体执行层面，不是标准要求；E 项与 8.2.3 要求评审并确认组织有能力满足要求相冲突，盲目承诺反而会造成不符合。","clause":"ISO 9001:2015 5.1.2 以顾客为关注焦点"},{"id":"ISO9001-多选-003","sys":"ISO9001","type":"多选","q":"某公司识别出\"关键高纯原料单一供应商供货中断\"这一风险，下列可作为风险应对方式的有哪些？","options":["A. 改变该原料的技术路线，从设计上消除对该原料的依赖","B. 直接删除该风险条目，理由是尚未发生","C. 与现有供方签订保供协议并提高安全库存水平","D. 开发并认可第二供应源，分散供货风险","E. 承担该风险，但明确承担的理由并纳入监视"],"answer":"DCEA","analysis":"6.1.2 的注中列举了应对风险的多种方式：规避风险、为寻求机遇承担风险、消除风险源、改变风险的可能性或后果、分担风险、通过明智决策保留风险等。A 为分担/降低，B 为降低后果，C 为经决策保留风险（须有依据并持续监视），E 为消除风险源。D 项以\"尚未发生\"为由删除识别出的风险，属于典型的形式主义做法，不符合基于风险的思维。","clause":"ISO 9001:2015 6.1.2 措施的策划"},{"id":"ISO9001-多选-004","sys":"ISO9001","type":"多选","q":"就洁净车间\"过程运行环境\"的控制，下列属于标准要求或合理控制措施的有哪些？","options":["A. 环境要求仅需在体系文件中规定，现场无需验证实施情况","B. 组织应确定、提供并维护过程运行所需的环境，以获得合格的产品和服务","C. 环境可包括物理因素（如温度、湿度、洁净度、气流）以及社会和心理因素","D. 只要产品最终检验合格，洁净区环境参数超标可以不予处置","E. 按规定频次监视洁净区尘埃粒子、温湿度、压差并保留记录，超标时启动处置"],"answer":"BCE","analysis":"7.1.4 要求组织确定、提供并维护过程运行所需的环境，其注明确环境可以是物理的、社会的、心理的和环境的因素组合，如温度、热量、湿度、照明、空气流动、卫生、噪声等。对半导体材料制造而言，洁净度、微振动、静电、压差是关键环境因素，应有监视与超标处置机制。D 项以结果合格掩盖过程失控，忽视了过程稳定性和潜在批次风险；E 项脱离现场实施，无法提供符合性证据。","clause":"ISO 9001:2015 7.1.4 过程运行环境"},{"id":"ISO9001-多选-005","sys":"ISO9001","type":"多选","q":"某公司将某工序的清洗作业外包给外部提供者。就该外包过程，下列说法正确的有哪些？","options":["A. 外包后组织不再对该过程的输出承担符合性责任","B. 该外包过程属于体系范围内的过程，组织应确保其受控","C. 应向外部提供者沟通拟提供的过程产品和服务的要求、人员能力资格要求、绩效控制和监视要求，以及组织或其顾客拟在外部提供者现场实施的验证或确认活动","D. 只要外部提供者持有第三方认证证书，即可免除其他控制措施","E. 组织应确定对外部提供者的控制以及对其输出的控制的类型和程度"],"answer":"BEC","analysis":"8.4.1 明确当组织的产品和服务由外部提供者提供，或过程由外部提供者代表组织实施时，均适用外部提供的控制要求；8.4.2 要求外包过程保持在体系控制之内，并基于潜在影响确定控制类型和程度；8.4.3 规定了向外部提供者沟通的信息内容。B 项错误，外包不转移符合性责任。E 项错误，第三方认证可作为评价输入之一，但不能替代针对具体过程要求的控制。","clause":"ISO 9001:2015 8.4.1 外部提供的过程、产品和服务的控制——总则；ISO 9001:2015 8.4.2 控制类型和程度；ISO 9001:2015 8.4.3 提供给外部提供者的信息"},{"id":"ISO9001-多选-006","sys":"ISO9001","type":"多选","q":"在生产和服务提供的受控条件中，下列属于标准明确列出内容的有哪些？","options":["A. 可获得形成文件的信息，以规定拟生产产品的特性和拟获得的结果","B. 采取措施防止人为错误","C. 配备胜任的人员，包括所要求的资格","D. 在适当阶段实施监视和测量活动，以验证是否符合过程控制准则和产品接收准则","E. 所有员工必须持有国家职业资格证书方可上岗"],"answer":"ADBC","analysis":"8.5.1 列出的受控条件包括：可获得规定产品特性与拟获得结果的形成文件的信息；可获得和使用适宜的监视和测量资源；在适当阶段实施监视和测量活动；使用适宜的基础设施和环境；配备胜任的人员（含所要求的资格）；对输出不能由后续监视测量验证的过程进行确认和定期再确认；采取措施防止人为错误；实施放行、交付和交付后的活动。防错要求是 2015 版明确列出的内容，在半导体材料制造中常表现为投料条码核对、参数系统锁定、双人复核、物料定置等。E 项将\"胜任\"错误等同为国家职业资格证书，标准要求的是与岗位相适应的能力与资格，具体形式由组织确定。","clause":"ISO 9001:2015 8.5.1 生产和服务提供的控制"},{"id":"ISO9001-多选-007","sys":"ISO9001","type":"多选","q":"对不合格输出的处置，下列符合标准要求的有哪些？","options":["A. 获得让步接收的授权","B. 为避免影响交付业绩，对轻微不合格可不予记录","C. 可采取纠正、隔离、限制、退货或暂停对产品和服务的提供等方式","D. 不合格输出在纠正之后应验证其是否符合要求","E. 告知顾客"],"answer":"CEAD","analysis":"8.7.1 规定组织可通过纠正，隔离、限制、退货或暂停提供，告知顾客，获得让步接收的授权等一种或几种途径处置不合格输出；并明确在不合格输出得到纠正之后应验证其符合要求。8.7.2 要求保留描述不合格、所采取措施、获得的让步及处置决定人员的形成文件的信息。E 项直接违反留证要求，且会导致不合格数据失真，无法支撑 9.1.3 的分析与评价和 10.2 的原因分析。","clause":"ISO 9001:2015 8.7.1 不合格输出的控制；ISO 9001:2015 8.7.2 不合格输出的控制"},{"id":"ISO9001-多选-008","sys":"ISO9001","type":"多选","q":"某公司监视顾客对其需求和期望满足程度的感受，可采用的信息来源包括哪些？","options":["A. 顾客对交付产品的意见反馈与顾客投诉记录","B. 内部质量目标完成率统计表","C. 与顾客的会谈纪要、业务回顾会议记录","D. 市场占有率分析、顾客赞扬与经销商报告","E. 顾客调查问卷与顾客满意度评分"],"answer":"EACD","analysis":"9.1.2 要求组织监视顾客对其需求和期望已被满足程度的感受，并确定获取、监视和评审这些信息的方法。其注列举了顾客调查、顾客对交付产品和服务的反馈、与顾客的会谈、市场占有率分析、顾客赞扬、担保索赔和经销商报告等。E 项属于组织内部绩效数据，反映的是组织自身表现，不能替代对顾客感受的监视，这是内审中常见的混淆点。","clause":"ISO 9001:2015 9.1.2 顾客满意"},{"id":"ISO9001-多选-009","sys":"ISO9001","type":"多选","q":"下列属于管理评审输入应考虑内容的有哪些？","options":["A. 员工个人年度绩效考核明细与薪酬分配方案","B. 顾客满意和相关方反馈、质量目标的实现程度、过程绩效以及产品和服务的合格情况","C. 外部提供者的绩效","D. 与质量管理体系相关的内外部议题的变化，包括气候变化相关议题的变化情况","E. 以往管理评审所采取措施的情况"],"answer":"EDBC","analysis":"9.3.2 规定管理评审输入应包括：以往管理评审所采取措施的情况；与体系相关的内外部议题的变化；有关体系绩效和有效性的信息（含顾客满意和相关方反馈、质量目标实现程度、过程绩效及产品服务合格情况、不合格及纠正措施、监视和测量结果、审核结果、外部提供者的绩效）；资源的充分性；应对风险和机遇所采取措施的有效性；改进的机会。B 项中的气候变化议题变化，来自 4.1 经 Amd 1:2024 修正后的要求在评审输入中的自然延伸。E 项属于人力资源管理事务，不是标准规定的管理评审输入。","clause":"ISO 9001:2015 9.3.2 管理评审输入"},{"id":"ISO9001-多选-010","sys":"ISO9001","type":"多选","q":"发生不合格时，组织应采取的措施包括哪些？","options":["A. 实施所需的措施，并评审所采取的纠正措施的有效性","B. 必要时更新策划期间确定的风险和机遇，必要时变更质量管理体系","C. 对责任人给予经济处罚以体现措施的严肃性","D. 作出响应，采取措施予以控制和纠正，并处置产生的后果","E. 通过评审和分析不合格、确定不合格的原因、确定是否存在或可能发生类似的不合格，评价是否需要采取措施以消除不合格的原因"],"answer":"DEAB","analysis":"10.2.1 完整规定了不合格发生时的处置逻辑：先作出响应并纠正、处置后果；再评价是否需要消除原因以防止再发生或在其他场合发生，途径是评审分析不合格、确定原因、确定是否存在或可能发生类似不合格；然后实施措施；评审纠正措施的有效性；必要时更新风险和机遇、变更体系。10.2.2 要求保留不合格性质及后续措施、纠正措施结果的形成文件的信息。E 项属于内部管理手段，不属于标准要求的纠正措施，且以处罚代替原因分析是审核中常见的典型缺陷。","clause":"ISO 9001:2015 10.2.1 不合格和纠正措施；ISO 9001:2015 10.2.2 不合格和纠正措施"},{"id":"ISO9001-案例-005","sys":"ISO9001","type":"案例","q":"在内部审核方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 9001:2015要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】内部审核做法不符合ISO 9001:2015关于过程运行环境的要求；【依据条款】ISO 9001:2015 7.1.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 7.1.4"},{"id":"ISO9001-案例-006","sys":"ISO9001","type":"案例","q":"某半导体材料制造企业在产品追溯环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 9001:2015分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】产品追溯做法不符合ISO 9001:2015关于过程运行环境的要求；【依据条款】ISO 9001:2015 7.1.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 7.1.4"},{"id":"ISO9001-案例-007","sys":"ISO9001","type":"案例","q":"某公司在建立特殊过程控制过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 9001:2015分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】特殊过程控制做法不符合ISO 9001:2015关于质量管理体系及其过程的要求；【依据条款】ISO 9001:2015 4.4.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 4.4.1"},{"id":"ISO9001-案例-008","sys":"ISO9001","type":"案例","q":"某半导体材料制造企业在测量系统分析环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 9001:2015分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】测量系统分析做法不符合ISO 9001:2015关于过程运行环境的要求；【依据条款】ISO 9001:2015 7.1.4；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 7.1.4"},{"id":"ISO9001-案例-009","sys":"ISO9001","type":"案例","q":"某半导体材料制造企业在应急计划环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 9001:2015分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】应急计划做法不符合ISO 9001:2015关于不符合和纠正措施的要求；【依据条款】ISO 9001:2015 10.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 10.2"},{"id":"ISO9001-案例-010","sys":"ISO9001","type":"案例","q":"某半导体材料制造企业在统计过程控制环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 9001:2015分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】统计过程控制做法不符合ISO 9001:2015关于监视、测量、分析和评价的要求；【依据条款】ISO 9001:2015 9.1；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 9.1"},{"id":"ISO9001-案例-011","sys":"ISO9001","type":"案例","q":"在风险与机遇方面，某公司仅按年度计划进行一次合规性评价，年内多次新增相关要求后未及时更新评价结果。请结合ISO 9001:2015要求分析该做法存在的问题及改进方向。","options":[],"answer":"【不符合事实】风险与机遇做法不符合ISO 9001:2015关于不合格输出的控制的要求；【依据条款】ISO 9001:2015 8.7；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 8.7"},{"id":"ISO9001-案例-012","sys":"ISO9001","type":"案例","q":"某半导体材料制造企业在产品追溯环节发现一批产品性能偏离规格，但生产主管认为偏差不大仍决定放行。请结合ISO 9001:2015分析该做法是否符合标准要求，如不符合请说明应如何处理。","options":[],"answer":"【不符合事实】产品追溯做法不符合ISO 9001:2015关于资源—人员的要求；【依据条款】ISO 9001:2015 7.1.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 7.1.2"},{"id":"ISO9001-案例-013","sys":"ISO9001","type":"案例","q":"某公司在建立实验室管理过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 9001:2015分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】实验室管理做法不符合ISO 9001:2015关于内部审核的要求；【依据条款】ISO 9001:2015 9.2；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 9.2"},{"id":"ISO9001-案例-014","sys":"ISO9001","type":"案例","q":"某公司在建立洁净室环境过程中，将相关文件整理归档后未做进一步评审和更新。审核员在内部审核时发现文件与实际操作不一致。请根据ISO 9001:2015分析存在的问题并提出整改建议。","options":[],"answer":"【不符合事实】洁净室环境做法不符合ISO 9001:2015关于不合格输出的控制的要求；【依据条款】ISO 9001:2015 8.7；【不符合类型】一般不符合/改进项；【原因分析】可能原因包括：未建立有效的监控机制、人员对该过程的重要性认识不足、执行与监督脱节；【纠正措施】立即停止不符合行为、对受影响产品隔离评审、修订相关程序并培训、增加监督检查频次并纳入考核。","analysis":"按要点给分：不符合事实描述（2分）、条款引用（2分）、原因分析（2分）、纠正与纠正措施（4分）。","clause":"ISO 9001:2015 8.7"},{"id":"ISO9001-简答-005","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于持续改进的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 10.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 10.3"},{"id":"ISO9001-简答-006","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于基础设施的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 7.1.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 7.1.3"},{"id":"ISO9001-简答-007","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于资源—人员的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 7.1.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 7.1.2"},{"id":"ISO9001-简答-008","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于成文信息的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 7.5。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 7.5"},{"id":"ISO9001-简答-009","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于过程运行环境的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 7.1.4。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 7.1.4"},{"id":"ISO9001-简答-010","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于质量方针的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 5.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 5.2"},{"id":"ISO9001-简答-011","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于不符合和纠正措施的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 10.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 10.2"},{"id":"ISO9001-简答-012","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于变更的策划的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 6.3。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 6.3"},{"id":"ISO9001-简答-013","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于能力的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 7.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 7.2"},{"id":"ISO9001-简答-014","sys":"ISO9001","type":"简答","q":"请简述ISO 9001:2015中关于不符合和纠正措施的主要要求。","options":[],"answer":"① 组织应识别并确定需要应对的风险和机遇；② 策划应对这些风险和机遇的措施；③ 评价这些措施的有效性；④ 将措施整合到管理体系的各项过程中。具体要求详见ISO 9001:2015 10.2。","analysis":"按要点给分：识别与确定（2分）、措施策划（2分）、有效性评价（2分）、过程整合（2分）。","clause":"ISO 9001:2015 10.2"}]};
+
+</script>
+<script>
+/* =========================================================================
+   内审员考试试卷生成器  —  全内联、零外部依赖、file:// 双击即用
+   ========================================================================= */
+
+var SYS   = ['ISO9001','ISO14001','ISO45001','IATF16949'];
+var SYSCN = {ISO9001:'ISO 9001', ISO14001:'ISO 14001', ISO45001:'ISO 45001', IATF16949:'IATF 16949'};
+var SYSPILL = {ISO9001:'s1', ISO14001:'s2', ISO45001:'s3', IATF16949:'s4'};
+var TYPES = ['单选','多选','判断','简答','案例'];
+var TYPECN = {单选:'单项选择题', 多选:'多项选择题', 判断:'判断题', 简答:'简答题', 案例:'案例分析题'};
+var CNNUM = ['一','二','三','四','五'];
+var LS_CFG = 'wb_auditor_exam_cfg';
+var LS_BANK = 'wb_auditor_exam_bank';
+
+var BANK = [];        // 全部题目
+var BANKSRC = '';     // 题库来源说明
+var RULE = {单选:{n:20,s:1}, 多选:{n:10,s:2}, 判断:{n:10,s:2}, 简答:{n:4,s:5}, 案例:{n:4,s:5}};
+var ALLOC = {};       // ALLOC[sys][type] = 题数
+var PAPER = null;     // 当前试卷 {items:[{type,q}], meta:{}}
+var LAYOUT = null;    // 待印卷分页结果
+
+/* ---------------- 工具 ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+
+/* ---------------- 题库载入 ---------------- */
+function normalize(list){
+  var out=[];
+  for(var i=0;i<list.length;i++){
+    var q=list[i];
+    if(!q||!q.id||!q.sys||!q.type) continue;
+    if(SYS.indexOf(q.sys)<0||TYPES.indexOf(q.type)<0) continue;
+    out.push({id:q.id, sys:q.sys, type:q.type, q:q.q||'', options:q.options||[],
+              answer:q.answer||'', analysis:q.analysis||'', clause:q.clause||''});
+  }
+  return out;
+}
+
+function loadBank(){
+  var saved = null;
+  try{ var raw=localStorage.getItem(LS_BANK); if(raw) saved=JSON.parse(raw); }catch(e){}
+  if(saved && saved.questions && saved.questions.length){
+    BANK = normalize(saved.questions);
+    BANKSRC = '手工导入的 txt（' + (saved.at||'') + '）';
+  } else if(window.QUESTION_BANK && window.QUESTION_BANK.questions){
+    BANK = normalize(window.QUESTION_BANK.questions);
+    BANKSRC = '内置题库（生成于 ' + (window.QUESTION_BANK.generatedAt||'') + '）';
+  } else {
+    BANK = []; BANKSRC = '';
+  }
+  renderBankInfo();
+}
+
+function reloadBank(){
+  try{ localStorage.removeItem(LS_BANK); }catch(e){}
+  location.reload();
+}
+
+function countBank(sys,type){
+  var n=0; for(var i=0;i<BANK.length;i++) if(BANK[i].sys===sys&&BANK[i].type===type) n++;
+  return n;
+}
+
+function renderBankInfo(){
+  var box=$('bankAlert');
+  if(!BANK.length){
+    $('bankBadge').innerHTML='题库未载入';
+    box.innerHTML='<div class="alert err"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2zm0-4h-2V8h2z"/></svg><div>'+
+      '<b>未能载入题库。</b>请任选一种方式修复：<br>'+
+      '① 确认题库已打包进本页面（单文件版无外部依赖）；<br>'+
+      '② 编辑过 <code>question bank/*.txt</code> 后运行 <code>tools/构建题库数据.py</code> 重新生成；<br>'+
+      '③ 直接点下方「导入题库 txt」按钮，选中 question bank 文件夹里的全部 txt 文件（可多选），无需安装任何软件。</div></div>';
+    return;
+  }
+  $('bankBadge').innerHTML='题库 <b>'+BANK.length+'</b> 题';
+  var rows=[];
+  for(var i=0;i<SYS.length;i++){
+    var s=SYS[i],parts=[];
+    for(var j=0;j<TYPES.length;j++) parts.push(TYPES[j]+countBank(s,TYPES[j]));
+    rows.push(SYSCN[s]+'（'+parts.join('/')+'）');
+  }
+  box.innerHTML='<div class="alert ok"><svg class="ico" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg><div>'+
+    '题库已载入，来源：'+esc(BANKSRC)+'<br>'+esc(rows.join('　·　'))+'</div></div>';
+}
+
+/* 手工导入 txt（file:// 下 fetch 受限，用 FileReader 读本地文件） */
+function importTxt(files){
+  if(!files||!files.length) return;
+  var all=[], done=0, errs=[];
+  for(var i=0;i<files.length;i++){
+    (function(f){
+      var r=new FileReader();
+      r.onload=function(){
+        try{ all=all.concat(parseTxt(r.result,f.name,errs)); }
+        catch(e){ errs.push(f.name+'：'+e.message); }
+        if(++done===files.length) finishImport(all,errs);
+      };
+      r.onerror=function(){ errs.push(f.name+'：读取失败'); if(++done===files.length) finishImport(all,errs); };
+      r.readAsText(f,'UTF-8');
+    })(files[i]);
+  }
+}
+
+function parseTxt(text,fname,errs){
+  text = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n');
+  var FIELDS=['序号','体系','题型','题目','选项','答案','解析','条款'];
+  var blocks = text.split(/\n={6,}[ \t]*(?=\n|$)/);
+  var out=[];
+  for(var b=0;b<blocks.length;b++){
+    var lines=blocks[b].split('\n'), cur=null, d={};
+    for(var i=0;i<lines.length;i++){
+      var ln=lines[i];
+      if(/^\s*#/.test(ln)) continue;
+      var m=ln.match(/^(序号|体系|题型|题目|选项|答案|解析|条款)=(.*)$/);
+      if(m){ cur=m[1]; d[cur]=m[2].trim(); }
+      else if(cur!==null){ d[cur]=(d[cur]+'\n'+ln).replace(/^\n+|\n+$/g,''); }
+    }
+    if(!d['序号']||!d['体系']||!d['题型']) continue;
+    var opts=[];
+    if(d['选项']){ var oa=d['选项'].split('\n'); for(var k=0;k<oa.length;k++){ var t=oa[k].trim(); if(t) opts.push(t); } }
+    out.push({id:d['序号'].trim(), sys:d['体系'].trim(), type:d['题型'].trim(),
+              q:(d['题目']||'').trim(), options:opts, answer:(d['答案']||'').trim(),
+              analysis:(d['解析']||'').trim(), clause:(d['条款']||'').trim()});
+  }
+  if(!out.length) errs.push(fname+'：未解析出任何题目，请检查格式');
+  return out;
+}
+
+function finishImport(list,errs){
+  var norm=normalize(list);
+  if(!norm.length){ alert('导入失败，未解析出有效题目。\n\n'+errs.join('\n')); return; }
+  var seen={}, uniq=[];
+  for(var i=0;i<norm.length;i++){ if(!seen[norm[i].id]){ seen[norm[i].id]=1; uniq.push(norm[i]); } }
+  try{ localStorage.setItem(LS_BANK, JSON.stringify({at:today(), questions:uniq})); }
+  catch(e){ alert('题库已载入本次会话，但因浏览器存储空间限制无法记住（下次需重新导入）。'); }
+  BANK=uniq; BANKSRC='手工导入的 txt（'+today()+'）';
+  renderBankInfo(); renderAlloc();
+  alert('导入成功：共 '+uniq.length+' 题。'+(errs.length?('\n\n提醒：\n'+errs.join('\n')):''));
+}
+
+/* ---------------- 设置区 ---------------- */
+function renderRule(){
+  var tb=$('ruleBody'), h='', qt=0, st=0;
+  var note={单选:'四选一，每题 1 个正确答案', 多选:'多选，少选/多选均不得分',
+            判断:'正确 / 错误', 简答:'按要点给分', 案例:'开具不符合项或原因分析与纠正预防措施'};
+  for(var i=0;i<TYPES.length;i++){
+    var t=TYPES[i], r=RULE[t];
+    qt+=r.n; st+=r.n*r.s;
+    h+='<tr><td class="lft"><b>'+CNNUM[i]+'、'+TYPECN[t]+'</b></td>'+
+       '<td><input type="number" min="0" max="60" value="'+r.n+'" oninput="onRule(\''+t+'\',\'n\',this.value)"></td>'+
+       '<td><input type="number" min="0" max="20" step="0.5" value="'+r.s+'" oninput="onRule(\''+t+'\',\'s\',this.value)"></td>'+
+       '<td id="sc_'+t+'">'+(r.n*r.s)+'</td><td class="lft" style="font-size:12.5px;color:#5a6675">'+note[t]+'</td></tr>';
+  }
+  tb.innerHTML=h;
+  $('ruleQTotal').textContent=qt;
+  $('ruleSTotal').innerHTML='<span class="'+(st===100?'sum-ok':'sum-bad')+'">'+st+' 分</span>';
+  $('ruleNote').innerHTML = st===100 ? '<span class="sum-ok">总分 100 分，符合标准配置</span>'
+                                     : '<span class="sum-bad">当前总分 '+st+' 分（默认配置应为 100 分）</span>';
+}
+
+function onRule(t,k,v){
+  var n=parseFloat(v); if(isNaN(n)||n<0) n=0;
+  RULE[t][k]=n;
+  if(k==='n') applyWeights(); else renderRule();
+  saveCfg();
+}
+
+/* 最大余数法：把 total 按 weights 分成整数 */
+function allocate(total,weights){
+  var sum=0,i; for(i=0;i<weights.length;i++) sum+=weights[i];
+  var res=[],rem=[];
+  if(sum<=0){ for(i=0;i<weights.length;i++) res.push(0); res[0]=total; return res; }
+  var used=0;
+  for(i=0;i<weights.length;i++){
+    var exact=total*weights[i]/sum, f=Math.floor(exact);
+    res.push(f); rem.push({i:i,r:exact-f}); used+=f;
+  }
+  rem.sort(function(a,b){ return b.r-a.r; });
+  var left=total-used, p=0;
+  while(left>0 && rem.length){ res[rem[p%rem.length].i]++; left--; p++; }
+  return res;
+}
+
+function getWeights(){
+  var w=[];
+  for(var i=0;i<4;i++){ var v=parseFloat($('w'+i).value); w.push(isNaN(v)||v<0?0:v); }
+  return w;
+}
+
+function applyWeights(){
+  var w=getWeights();
+  for(var i=0;i<SYS.length;i++){ if(!ALLOC[SYS[i]]) ALLOC[SYS[i]]={}; }
+  for(var j=0;j<TYPES.length;j++){
+    var t=TYPES[j], a=allocate(RULE[t].n,w);
+    for(var i2=0;i2<SYS.length;i2++) ALLOC[SYS[i2]][t]=a[i2];
+  }
+  renderRule(); renderAlloc(); saveCfg();
+}
+
+function resetWeights(){
+  $('w0').value=1; $('w1').value=1; $('w2').value=1; $('w3').value=2;
+  RULE={单选:{n:20,s:1}, 多选:{n:10,s:2}, 判断:{n:10,s:2}, 简答:{n:4,s:5}, 案例:{n:4,s:5}};
+  applyWeights();
+}
+
+function renderAlloc(){
+  var h='',i,j;
+  for(i=0;i<SYS.length;i++){
+    var s=SYS[i], sub=0;
+    h+='<tr><td class="lft"><span class="pill '+SYSPILL[s]+'">'+SYSCN[s]+'</span></td>';
+    for(j=0;j<TYPES.length;j++){
+      var t=TYPES[j], v=(ALLOC[s]&&ALLOC[s][t])||0, avail=countBank(s,t);
+      sub+=v;
+      var bad = v>avail;
+      h+='<td><input type="number" min="0" value="'+v+'" class="'+(bad?'bad':'')+'" '+
+         'title="题库现有 '+avail+' 题" oninput="onAlloc(\''+s+'\',\''+t+'\',this.value)"></td>';
+    }
+    h+='<td><b>'+sub+'</b></td></tr>';
+  }
+  $('allocBody').innerHTML=h;
+
+  var f='<td>各题型合计</td>', msgs=[];
+  for(j=0;j<TYPES.length;j++){
+    var t2=TYPES[j], c=0;
+    for(i=0;i<SYS.length;i++) c+=(ALLOC[SYS[i]]&&ALLOC[SYS[i]][t2])||0;
+    var need=RULE[t2].n, ok=(c===need);
+    if(!ok) msgs.push(TYPECN[t2]+'合计 '+c+' 题，应为 '+need+' 题');
+    f+='<td><span class="'+(ok?'sum-ok':'sum-bad')+'">'+c+' / '+need+'</span></td>';
+  }
+  var tot=0; for(i=0;i<SYS.length;i++) for(j=0;j<TYPES.length;j++) tot+=(ALLOC[SYS[i]]&&ALLOC[SYS[i]][TYPES[j]])||0;
+  f+='<td><b>'+tot+'</b></td>';
+  $('allocFoot').innerHTML=f;
+
+  // 库存校验
+  for(i=0;i<SYS.length;i++) for(j=0;j<TYPES.length;j++){
+    var s3=SYS[i],t3=TYPES[j],need2=(ALLOC[s3]&&ALLOC[s3][t3])||0,av=countBank(s3,t3);
+    if(need2>av) msgs.push(SYSCN[s3]+' '+TYPECN[t3]+' 需 '+need2+' 题，题库仅 '+av+' 题');
+  }
+  $('allocMsg').innerHTML = msgs.length
+    ? '<div class="alert warn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2zm0-4h-2V8h2z"/></svg><div>'+esc(msgs.join('；'))+'</div></div>'
+    : '';
+  $('btnMake').disabled = msgs.length>0 || !BANK.length;
+}
+
+function onAlloc(s,t,v){
+  var n=parseInt(v,10); if(isNaN(n)||n<0) n=0;
+  if(!ALLOC[s]) ALLOC[s]={};
+  ALLOC[s][t]=n; renderAlloc(); saveCfg();
+}
+
+function saveCfg(){
+  try{
+    localStorage.setItem(LS_CFG, JSON.stringify({
+      title:$('cfgTitle').value, sub:$('cfgSub').value, dur:$('cfgDur').value, pass:$('cfgPass').value,
+      code:$('cfgCode').value, showSrc:$('cfgShowSrc').checked,
+      rule:RULE, alloc:ALLOC, w:getWeights()
+    }));
+  }catch(e){}
+}
+
+function loadCfg(){
+  var c=null;
+  try{ var raw=localStorage.getItem(LS_CFG); if(raw) c=JSON.parse(raw); }catch(e){}
+  if(c){
+    if(c.title) $('cfgTitle').value=c.title;
+    if(c.sub) $('cfgSub').value=c.sub;
+    if(c.dur) $('cfgDur').value=c.dur;
+    if(c.pass) $('cfgPass').value=c.pass;
+    if(c.code) $('cfgCode').value=c.code;
+    if(typeof c.showSrc==='boolean') $('cfgShowSrc').checked=c.showSrc;
+    if(c.rule) RULE=c.rule;
+    if(c.alloc) ALLOC=c.alloc;
+    if(c.w) for(var i=0;i<4;i++) $('w'+i).value=c.w[i];
+    renderRule(); renderAlloc();
+  } else {
+    applyWeights();
+  }
+}
+
+/* ---------------- 抽题 ---------------- */
+function pool(sys,type,exclude){
+  var r=[];
+  for(var i=0;i<BANK.length;i++){
+    var q=BANK[i];
+    if(q.sys===sys&&q.type===type&&!exclude[q.id]) r.push(q);
+  }
+  return r;
+}
+
+function doDraw(){
+  if(!BANK.length){ alert('题库未载入，无法组卷。'); return; }
+  var used={}, items=[];
+  for(var j=0;j<TYPES.length;j++){
+    var t=TYPES[j], bucket=[];
+    for(var i=0;i<SYS.length;i++){
+      var s=SYS[i], need=(ALLOC[s]&&ALLOC[s][t])||0;
+      if(!need) continue;
+      var p=shuffle(pool(s,t,used));
+      if(p.length<need){ alert(SYSCN[s]+' '+TYPECN[t]+' 题量不足（需 '+need+'，有 '+p.length+'）。'); return; }
+      for(var k=0;k<need;k++){ used[p[k].id]=1; bucket.push(p[k]); }
+    }
+    shuffle(bucket);   // 同一大题内打乱体系顺序，避免按体系扎堆
+    for(var m=0;m<bucket.length;m++) items.push({type:t, q:bucket[m]});
+  }
+  PAPER={ items:items, meta:{
+    title:$('cfgTitle').value, sub:$('cfgSub').value,
+    dur:parseInt($('cfgDur').value,10)||90, pass:parseInt($('cfgPass').value,10)||80,
+    code:$('cfgCode').value, showSrc:$('cfgShowSrc').checked,
+    date:today(), rule:JSON.parse(JSON.stringify(RULE))
+  }};
+  LAYOUT=null;
+  renderPaper(); goStep(2);
+  window.scrollTo(0,0);
+}
+
+function usedIds(){
+  var m={}; for(var i=0;i<PAPER.items.length;i++) m[PAPER.items[i].q.id]=1; return m;
+}
+
+function reroll(idx){
+  var it=PAPER.items[idx], ex=usedIds();
+  delete ex[it.q.id];
+  var p=pool(it.q.sys,it.q.type,ex);
+  if(!p.length){ alert('该体系该题型已无其他可用题目。'); return; }
+  it.q = p[Math.floor(Math.random()*p.length)];
+  LAYOUT=null;
+  renderPaper();
+  var el=document.querySelector('[data-idx="'+idx+'"]');
+  if(el){ el.style.transition='background .5s'; el.style.background='#fff8e1';
+          setTimeout(function(){ el.style.background=''; },700); }
+}
+
+function renderPaper(){
+  var h='', no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], t=it.type, q=it.q;
+    if(t!==lastType){
+      secIdx++;
+      var r=PAPER.meta.rule[t];
+      h+='<div class="sec-hd">'+CNNUM[secIdx]+'、'+TYPECN[t]+
+         '<span class="cnt">共 '+r.n+' 小题，每题 '+r.s+' 分，合计 '+(r.n*r.s)+' 分</span></div>';
+      lastType=t;
+    }
+    no[t]++;
+    h+='<div class="qitem" data-idx="'+i+'"><div class="qno">'+no[t]+'</div><div class="qbody">'+
+       '<div class="qtext">'+nl2br(q.q)+'</div>';
+    if(q.options&&q.options.length) h+='<div class="qopts">'+nl2br(q.options.join('\n'))+'</div>';
+    h+='<div class="qmeta"><span class="pill '+SYSPILL[q.sys]+'">'+SYSCN[q.sys]+'</span>'+
+       '<span class="pill id">'+esc(q.id)+'</span>'+
+       '<span class="ans-tag">答案：'+esc(q.answer.split('\n')[0].slice(0,60))+(q.answer.indexOf('\n')>0?' …':'')+'</span>'+
+       '<span class="clause-tag">'+esc(q.clause)+'</span></div></div>'+
+       '<div class="qact"><button class="btn sec sm" onclick="reroll('+i+')">'+
+       '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6a5.9 5.9 0 0 1 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>换一题</button></div></div>';
+  }
+  $('paperList').innerHTML=h;
+  var cnt={}; for(i=0;i<SYS.length;i++) cnt[SYS[i]]=0;
+  for(i=0;i<PAPER.items.length;i++) cnt[PAPER.items[i].q.sys]++;
+  var parts=[]; for(i=0;i<SYS.length;i++) parts.push(SYSCN[SYS[i]]+' '+cnt[SYS[i]]);
+  var tot=0; for(var t2 in PAPER.meta.rule) tot+=PAPER.meta.rule[t2].n*PAPER.meta.rule[t2].s;
+  $('paperStat').textContent='共 '+PAPER.items.length+' 题 / '+tot+' 分　·　'+parts.join(' · ');
+}
+
+function goStep(n){
+  $('pane1').style.display = n===1?'':'none';
+  $('pane2').style.display = n===2?'':'none';
+  $('pane3').style.display = n===3?'':'none';
+  for(var i=1;i<=3;i++){
+    var e=$('stp'+i); e.className='step'+(i===n?' on':(i<n?' done':''));
+  }
+}
+
+function confirmPaper(){
+  if(!PAPER){ return; }
+  LAYOUT = computeLayout();
+  var tot=0; for(var t in PAPER.meta.rule) tot+=PAPER.meta.rule[t].n*PAPER.meta.rule[t].s;
+  $('outHint').innerHTML='试卷已锁定：<b>'+PAPER.items.length+' 题 / 总分 '+tot+' 分 / 考试时长 '+
+     PAPER.meta.dur+' 分钟 / 合格线 '+PAPER.meta.pass+' 分</b>。待印试卷已排版为 <b>'+LAYOUT.pages.length+' 页 A4</b>'+
+     (LAYOUT.fontPt!==10.5?('（为保证 4 页排满，正文字号自动调整为 '+LAYOUT.fontPt+'pt）'):'')+'。';
+  goStep(3); window.scrollTo(0,0);
+}
+
+/* =========================================================================
+   待印试卷排版引擎：把内容精确排进 4 页 A4
+   思路：简答/案例的答题区是弹性空间。先用最小答题区试排，
+        页数 >4 就缩字号，页数 <4 就整体放大答题区，命中 4 页后
+        再把每页剩余空白按比例补给该页的答题区，使 4 页都排满。
+   ========================================================================= */
+var PAGE_W_MM = 180;    // A4 210 - 左右各 15mm
+var PAGE_H_MM = 252;    // A4 297 - 上下各 15mm - 页脚 15mm
+var MM = 96/25.4;
+
+function mm2px(v){ return v*MM; }
+
+function buildItems(){
+  var items=[], no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  items.push({kind:'head'});
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], t=it.type;
+    if(t!==lastType){
+      secIdx++;
+      if(secIdx>0) items.push({kind:'gap'});
+      items.push({kind:'sec', type:t, idx:secIdx});
+      lastType=t;
+    }
+    no[t]++;
+    items.push({kind:'q', type:t, no:no[t], q:it.q,
+                flex:(t==='简答'||t==='案例'),
+                baseAns:(t==='简答'?9:16), ansMM:(t==='简答'?9:16)});
+  }
+  return items;
+}
+
+function itemHTML(it,forMeasure){
+  var m=PAPER.meta;
+  if(it.kind==='head'){
+    var tot=0,cells='',heads='',full='';
+    for(var i=0;i<TYPES.length;i++){
+      var t=TYPES[i], r=m.rule[t], sc=r.n*r.s; tot+=sc;
+      heads+='<th>'+CNNUM[i]+'</th>'; full+='<td>'+sc+'</td>'; cells+='<td></td>';
+    }
+    return '<div class="p-head">'+
+      '<div class="p-title">'+esc(m.title)+'</div>'+
+      (m.sub?'<div class="p-sub">'+esc(m.sub)+'</div>':'')+
+      '<div class="p-code">'+esc(m.code)+'　|　考试时长：'+m.dur+' 分钟　|　总分：'+tot+' 分　|　合格线：'+m.pass+' 分</div>'+
+      '<table class="p-info"><tr>'+
+        '<td>姓&nbsp;&nbsp;&nbsp;&nbsp;名：<span class="ul"></span></td>'+
+        '<td>工&nbsp;&nbsp;&nbsp;&nbsp;号：<span class="ul"></span></td>'+
+        '<td>部&nbsp;&nbsp;&nbsp;&nbsp;门：<span class="ul"></span></td>'+
+        '<td>考试日期：<span class="ul"></span></td></tr></table>'+
+      '<table class="p-score"><tr><th>题&nbsp;号</th>'+heads+'<th>总&nbsp;分</th></tr>'+
+        '<tr><th>满&nbsp;分</th>'+full+'<td>'+tot+'</td></tr>'+
+        '<tr><th>得&nbsp;分</th>'+cells+'<td></td></tr></table>'+
+      '<div class="p-notice"><b>考试须知：</b>请先填写个人信息；选择题答案填在括号内；判断题正确填"√"、错误填"×"；简答题与案例分析题按要点给分，请分条作答。</div></div>';
+  }
+  if(it.kind==='gap'){ return '<div class="p-gap"></div>'; }
+  if(it.kind==='sec'){
+    var r2=PAPER.meta.rule[it.type];
+    return '<div class="p-sec">'+CNNUM[it.idx]+'、'+TYPECN[it.type]+
+           '（本大题共 '+r2.n+' 小题，每小题 '+r2.s+' 分，共 '+(r2.n*r2.s)+' 分）</div>';
+  }
+  var q=it.q, h='<div class="p-q">';
+  var brk = (it.type==='单选'||it.type==='多选'||it.type==='判断') ? '（　　）' : '';
+  h+='<div class="p-qt">'+it.no+'. '+nl2br(q.q)+brk+'</div>';
+  if(q.options&&q.options.length){
+    h+='<div class="p-opt">';
+    for(var k=0;k<q.options.length;k++) h+='<span class="op">'+esc(q.options[k])+'</span>';
+    h+='</div>';
+  }
+  if(it.flex){
+    h+='<div class="p-ans" style="height:'+it.ansMM+'mm"></div>';
+  }
+  return h+'</div>';
+}
+
+function paperCSS(fontPt){
+  return ''+
+  '@page{size:A4;margin:0}'+
+  '*{box-sizing:border-box;margin:0;padding:0}'+
+  'body{font-family:"Microsoft YaHei","SimSun",-apple-system,sans-serif;font-size:'+fontPt+'pt;'+
+     'line-height:1.4;color:#000;background:#e9ecf1}'+
+  '.page{width:210mm;height:297mm;padding:15mm;background:#fff;margin:0 auto 8mm;position:relative;'+
+        'page-break-after:always;overflow:hidden}'+
+  '.page:last-child{page-break-after:auto;margin-bottom:0}'+
+  '.pbody{height:252mm;overflow:hidden}'+
+  '.pfoot{position:absolute;left:15mm;right:15mm;bottom:7mm;text-align:center;font-size:9pt;color:#333;'+
+         'border-top:1px solid #999;padding-top:2mm}'+
+  '.phead{position:absolute;left:15mm;right:15mm;top:7mm;text-align:center;font-size:9pt;color:#333;'+
+         'border-bottom:1px solid #999;padding-bottom:2mm}'+
+  '.p-gap{height:5mm}'+
+  '.p-title{text-align:center;font-size:'+(fontPt+7)+'pt;font-weight:bold;letter-spacing:2px;margin-bottom:1mm}'+
+  '.p-sub{text-align:center;font-size:'+(fontPt-0.5)+'pt;margin-bottom:1.5mm}'+
+  '.p-code{text-align:center;font-size:'+(fontPt-1)+'pt;margin-bottom:2mm}'+
+  '.p-info{width:100%;margin-bottom:2mm;font-size:'+(fontPt-0.5)+'pt}'+
+  '.p-info td{padding:1mm 0;white-space:nowrap}'+
+  '.p-info .ul{display:inline-block;width:26mm;border-bottom:1px solid #000;height:1em;vertical-align:bottom}'+
+  '.p-score{width:100%;border-collapse:collapse;margin-bottom:2mm;font-size:'+(fontPt-0.5)+'pt;text-align:center}'+
+  '.p-score th,.p-score td{border:1px solid #000;padding:1.1mm .8mm;height:5.5mm}'+
+  '.p-score th{background:#f0f0f0;font-weight:normal}'+
+  '.p-notice{border:1px solid #000;padding:1.5mm 2mm;font-size:'+(fontPt-1)+'pt;line-height:1.5}'+
+  '.p-notice ol{margin:1mm 0 0 5mm}'+
+  '.p-notice li{margin:.25mm 0}'+
+  '.p-sec{font-weight:bold;font-size:'+(fontPt+0.5)+'pt;margin:2mm 0 1mm;padding-bottom:1mm;'+
+         'border-bottom:1px solid #000}'+
+  '.p-q{margin-bottom:1mm;page-break-inside:avoid;break-inside:avoid}'+
+  '.p-qt{text-align:justify}'+
+  '.p-opt{margin-top:.5mm;column-count:2;column-gap:8mm}'+
+  '.p-opt .op{display:block;break-inside:avoid;margin:.3mm 0}'+
+  '.p-ans{border-bottom:1px dashed #bbb;margin-top:1mm}'+
+  '.p-key{margin:1mm 0 3mm;padding-left:5mm}'+
+  '.p-key .ka{color:#C00000;font-weight:bold}'+
+  '.p-key .kx{color:#C00000}'+
+  '.p-key .kc{color:#0047AB}'+
+  '@media print{body{background:#fff}.page{margin:0;box-shadow:none}}';
+}
+
+/* 计算分页：返回 {pages:[[itemIdx..]], items, fontPt}
+   目标：无论随机抽到哪些题，都严格排成 4 页 A4。
+   做法：在「字号 × 答题区下限」候选配置中，顺序选第一个能装进 4 页的；
+        再用弹性答题区把每页补满到 4 页（不足则放大答题区，超出则回退）。 */
+function computeLayout(){
+  var host=$('measure');
+  // [字号, 简答答题区下限mm, 案例答题区下限mm]，按"可读字号 + 舒适答题区"优先排序
+  var CFG=[
+    [9.5,14,22],[9,14,22],[8.5,10,16],[8.5,6,12],
+    [8,16,24],[8,14,20],[8,12,18],[8,10,16],
+    [7.5,14,20],[7.5,10,16],[7.5,6,12],[7.5,0,0]
+  ];
+  function fitAt(pt,fj,fc){
+    var items=buildItems();
+    for(var i=0;i<items.length;i++) if(items[i].flex) items[i].ansMM=(items[i].type==='简答')?fj:fc;
+    var res=packOnce(host,items,pt);
+    if(res.pages.length>4) return null;
+    var grow=0;
+    while(res.pages.length<4 && grow<260){
+      grow+=4;
+      for(var j=0;j<items.length;j++) if(items[j].flex) items[j].ansMM=((items[j].type==='简答')?fj:fc)+grow;
+      var t=packOnce(host,items,pt);
+      if(t.pages.length>4){ grow-=4; for(var k=0;k<items.length;k++) if(items[k].flex) items[k].ansMM=((items[k].type==='简答')?fj:fc)+grow; res=packOnce(host,items,pt); break; }
+      res=t;
+    }
+    if(res.pages.length===4) fillPages(host,items,res,pt);
+    return {pages:res.pages, items:items, fontPt:pt};
+  }
+  for(var c=0;c<CFG.length;c++){
+    var r=fitAt(CFG[c][0],CFG[c][1],CFG[c][2]);
+    if(r){ host.innerHTML=''; return r; }
+  }
+  var r2=fitAt(7.5,0,0); host.innerHTML=''; return r2;
+}
+
+function setAns(items,extra){
+  for(var i=0;i<items.length;i++) if(items[i].flex) items[i].ansMM=items[i].baseAns+extra;
+}
+
+/* 用真实 DOM 量高，贪心装页 */
+function packOnce(host,items,pt){
+  var html='<style>'+paperCSS(pt)+'</style><div class="page"><div class="pbody" id="__mb">';
+  for(var i=0;i<items.length;i++) html+='<div data-i="'+i+'">'+itemHTML(items[i],true)+'</div>';
+  html+='</div></div>';
+  host.innerHTML=html;
+  var body=host.querySelector('#__mb');
+  var kids=body.children, limit=mm2px(PAGE_H_MM), pages=[], cur=[], h=0, heights=[];
+  for(var k=0;k<kids.length;k++){
+    var st=window.getComputedStyle(kids[k]);
+    var hh=kids[k].offsetHeight+parseFloat(st.marginTop||0)+parseFloat(st.marginBottom||0);
+    heights.push(hh);
+    // 大题标题不能落在页尾（后面至少还要跟一题）
+    var isSec = items[k].kind==='sec';
+    if(h+hh>limit+0.5 && cur.length){ pages.push(cur); cur=[]; h=0; }
+    cur.push(k); h+=hh;
+    if(isSec && k+1<kids.length){
+      var st2=window.getComputedStyle(kids[k+1]);
+      var nh=kids[k+1].offsetHeight+parseFloat(st2.marginTop||0)+parseFloat(st2.marginBottom||0);
+      if(h+nh>limit+0.5){ cur.pop(); h-=hh; if(cur.length){ pages.push(cur); } cur=[k]; h=hh; }
+    }
+  }
+  if(cur.length) pages.push(cur);
+  return {pages:pages, heights:heights};
+}
+
+/* 把每页富余空间分给该页的弹性答题区 */
+function fillPages(host,items,res,pt){
+  var limit=mm2px(PAGE_H_MM);
+  for(var p=0;p<res.pages.length;p++){
+    var idxs=res.pages[p], used=0, flexes=[];
+    for(var i=0;i<idxs.length;i++){
+      used+=res.heights[idxs[i]];
+      if(items[idxs[i]].flex) flexes.push(idxs[i]);
+    }
+    var freeMM=(limit-used)/MM-2;                 // 留 2mm 安全余量
+    if(freeMM<=0||!flexes.length) continue;
+    var add=Math.floor(freeMM/flexes.length*10)/10;
+    if(add<=0) continue;
+    for(var j=0;j<flexes.length;j++) items[flexes[j]].ansMM+=add;
+  }
+  // 复核一次，若超页则回退
+  var chk=packOnce(host,items,pt);
+  if(chk.pages.length>4){
+    for(var m=0;m<items.length;m++) if(items[m].flex) items[m].ansMM=Math.max(items[m].baseAns,items[m].ansMM-6);
+    chk=packOnce(host,items,pt);
+    if(chk.pages.length>4){ for(var n=0;n<items.length;n++) if(items[n].flex) items[n].ansMM=items[n].baseAns; chk=packOnce(host,items,pt); }
+  }
+  res.pages=chk.pages; res.heights=chk.heights;
+}
+
+/* ---------------- 生成成品 HTML ---------------- */
+function buildBlankHTML(forWord){
+  if(!LAYOUT) LAYOUT=computeLayout();
+  var L=LAYOUT, m=PAPER.meta, total=L.pages.length;
+  var body='';
+  for(var p=0;p<total;p++){
+    body+='<div class="page"><div class="pbody">';
+    for(var i=0;i<L.pages[p].length;i++) body+=itemHTML(L.items[L.pages[p][i]],false);
+    body+='</div></div>';
+    if(forWord && p<total-1) body+='<br clear="all" style="page-break-before:always">';
+  }
+  return wrapDoc(esc(m.title)+'（待印）', paperCSS(L.fontPt), body, forWord);
+}
+
+function buildKeyHTML(forWord){
+  var m=PAPER.meta, no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  var tot=0; for(var t0 in m.rule) tot+=m.rule[t0].n*m.rule[t0].s;
+  var body='<div class="page"><div class="pbody">';
+  body+='<div class="p-title">'+esc(m.title)+'　【标准答案与评分解析】</div>';
+  if(m.sub) body+='<div class="p-sub">'+esc(m.sub)+'</div>';
+  body+='<div class="p-code">'+esc(m.code)+'　|　考试时长：'+m.dur+' 分钟　|　总分：'+tot+
+        ' 分　|　合格线：'+m.pass+' 分　|　生成日期：'+m.date+'</div>';
+  var showSrc = ($('cfgShowSrc') ? $('cfgShowSrc').checked : m.showSrc);
+  if(showSrc && BANKSRC) body+='<div class="p-code" style="font-size:'+(10.5-1)+'pt;color:#1a5fb4">题库来源：'+esc(BANKSRC)+'</div>';
+  body+='<div class="p-notice" style="margin-bottom:4mm"><b>阅卷说明</b><ol>'+
+        '<li>选择题、判断题按标准答案判分，答案完全一致方可得分，多选题不设漏选分。</li>'+
+        '<li>简答题与案例分析题按要点给分，考生表述与要点意思相符即可得分。</li>'+
+        '<li>案例分析题若要求开具不符合项，须包含"不符合事实、依据条款、不符合类型"三要素；'+
+        '若要求原因分析与纠正预防措施，须包含"根本原因、纠正、纠正措施、预防措施"要素。</li>'+
+        '<li>合格线 '+m.pass+' 分。</li></ol></div>';
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], ty=it.type, q=it.q;
+    if(ty!==lastType){
+      secIdx++;
+      var r=m.rule[ty];
+      body+='<div class="p-sec">'+CNNUM[secIdx]+'、'+TYPECN[ty]+
+            '（本大题共 '+r.n+' 小题，每小题 '+r.s+' 分，共 '+(r.n*r.s)+' 分）</div>';
+      lastType=ty;
+    }
+    no[ty]++;
+    var brk=(ty==='单选'||ty==='多选'||ty==='判断')?'（　　）':'';
+    body+='<div class="p-q"><div class="p-qt">'+no[ty]+'. '+nl2br(q.q)+brk+'</div>';
+    if(q.options&&q.options.length){
+      body+='<div class="p-opt">';
+      for(var k=0;k<q.options.length;k++) body+='<span class="op">'+esc(q.options[k])+'</span>';
+      body+='</div>';
+    }
+    body+='</div><div class="p-key">'+
+          '<div class="ka">【标准答案】'+nl2br(q.answer)+'</div>';
+    if(q.analysis) body+='<div class="kx">【解析】'+nl2br(q.analysis)+'</div>';
+    body+='<div class="kc">【标准条款】'+nl2br(q.clause)+'　〔题号 '+esc(q.id)+'　'+SYSCN[q.sys]+'〕</div></div>';
+  }
+  body+='</div></div>';
+  var css=paperCSS(10.5).replace('.page{width:210mm;height:297mm;','.page{width:210mm;min-height:297mm;height:auto;')
+                        .replace('.pbody{height:252mm;overflow:hidden}','.pbody{height:auto}');
+  return wrapDoc(esc(m.title)+'（含答案）', css, body, forWord);
+}
+
+function wrapDoc(title,css,body,forWord){
+  if(forWord){
+    return '\uFEFF<html xmlns:o="urn:schemas-microsoft-com:office:office" '+
+      'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+      '<head><meta charset="utf-8"><title>'+title+'</title>'+
+      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>'+
+      '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'+
+      '<style>@page WordSection1{size:21.0cm 29.7cm;margin:1.5cm 1.5cm 1.5cm 1.5cm;}'+
+      'div.WordSection1{page:WordSection1;}'+css+
+      '.page{width:auto;height:auto;min-height:0;padding:0;margin:0;background:#fff}'+
+      '.pbody{height:auto;overflow:visible}'+
+      '.pfoot{position:static;text-align:center;font-size:9pt;color:#333;border-top:1px solid #999;'+
+      'padding-top:2mm;margin-top:3mm;left:auto;right:auto;bottom:auto}'+
+      '</style></head><body><div class="WordSection1">'+body+'</div></body></html>';
+  }
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1.0">'+
+    '<title>'+title+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+}
+
+/* ---------------- 下载 / 预览 ---------------- */
+function fileBase(kind){
+  var m=PAPER.meta;
+  var t=m.title.replace(/[\\\/:*?"<>|]/g,'');
+  var d=m.date.replace(/-0?/g,'.');
+  var c=m.code.replace(/\s/g,'');
+  return t+c+'('+d+')'+(kind==='blank'?'':'(答案)');
+}
+
+function dl(kind,fmt){
+  if(!PAPER){ return; }
+  var isWord = fmt==='doc';
+  var html = kind==='blank' ? buildBlankHTML(isWord) : buildKeyHTML(isWord);
+  var mime = isWord ? 'application/msword' : 'text/html;charset=utf-8';
+  var name = fileBase(kind)+'.'+(isWord?'doc':'html');
+  var blob = new Blob([html],{type:mime});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); document.body.removeChild(a); },1200);
+}
+
+function preview(kind){
+  if(!PAPER) return;
+  var html = kind==='blank' ? buildBlankHTML(false) : buildKeyHTML(false);
+  $('previewTitle').textContent = kind==='blank'
+      ? ('待印试卷预览　（共 '+LAYOUT.pages.length+' 页 A4）') : '含答案试卷预览';
+  $('previewMask').style.display='block';
+  document.body.style.overflow='hidden';
+  var f=$('previewFrame');
+  f.srcdoc = html;
+}
+
+function closePreview(){
+  $('previewMask').style.display='none';
+  document.body.style.overflow='';
+  $('previewFrame').srcdoc='';
+}
+
+function printPreview(){
+  var f=$('previewFrame');
+  try{ f.contentWindow.focus(); f.contentWindow.print(); }
+  catch(e){ alert('请在预览区域内右键选择"打印"。'); }
+}
+
+document.getElementById('previewMask').addEventListener('click',function(e){
+  if(e.target===this) closePreview();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && $('previewMask').style.display==='block') closePreview();
+});
+
+/* ---------------- 启动 ---------------- */
+['cfgTitle','cfgSub','cfgDur','cfgCode'].forEach(function(id){
+  document.addEventListener('DOMContentLoaded',function(){
+    var el=$(id); if(el) el.addEventListener('input',saveCfg);
+  });
+});
+
+(function init(){
+  loadBank();
+  renderRule();
+  loadCfg();
+  if(!Object.keys(ALLOC).length) applyWeights(); else renderAlloc();
+})();
+</script>
+</body>
+</html>
