@@ -85,6 +85,20 @@ test("pack preserves photo assets larger than one MiB", async t => {
   assert.deepEqual(Buffer.from(zip["photo.jpg"]), photo);
 });
 
+test("one Function placeholder can be recorded in multiple repositories", async t => {
+  const f = await fixture(t);
+  const variable = {name: "FUNCTION_ID:api", placeholder: "__TIANA_FUNCTION_API_abc139fd__", description: "API function", files: ["config.js"]};
+  f.metadata.repositories = ["web", "worker"].map(key => ({key, path: `repositories/${key}`, variables: [variable]}));
+  for (const repo of f.metadata.repositories) {
+    await mkdir(path.join(f.directory, repo.path), {recursive: true});
+    await writeFile(path.join(f.directory, repo.path, "config.js"), `export const api = '${variable.placeholder}';`);
+  }
+  await writeFile(path.join(f.directory, "metadata.json"), JSON.stringify(f.metadata));
+  await validateTemplate(f.root, "demo");
+  await writeFile(path.join(f.directory, "src/extra.js"), variable.placeholder);
+  await assert.rejects(validateTemplate(f.root, "demo"), /unrecorded location src\/extra.js/);
+});
+
 test("installation package builds the selected source and separates preview and SQL", async t => {
   const f = await fixture(t);
   await mkdir(path.join(f.directory, "showcase"), { recursive: true });
@@ -114,4 +128,31 @@ test("installation package builds the selected source and separates preview and 
   assert.equal(strFromU8(files["seed.sql"]),await readFile(path.join(f.directory,"seed.sql"),"utf8"));
   const again = await packInstallTemplate(f.root,"demo",commit);
   assert.equal(again.sha256,result.sha256);
+});
+
+test("backend install builds Web in shared repository and preserves Function recipes", async t => {
+  const f = await fixture(t);
+  const repo = path.join(f.directory, "repositories/app");
+  await mkdir(path.join(repo, "functions/fn-old"), {recursive:true});
+  await writeFile(path.join(repo, "functions/fn-old/main.go"), "package main\nfunc main() {}\n");
+  await writeFile(path.join(repo,"package.json"),JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
+  await writeFile(path.join(repo,"package-lock.json"),JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));
+  const placeholder = "__TIANA_FUNCTION_API_abc139fd__";
+  await writeFile(path.join(repo,"app.js"),`call('${placeholder}');`);
+  await writeFile(path.join(repo,"build.cjs"),`const fs=require('fs');fs.mkdirSync('dist');fs.copyFileSync('app.js','dist/app.js');console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'app.js'}));`);
+  const variable = {name:"FUNCTION_ID:api",placeholder,description:"Function backend",files:["app.js"]};
+  Object.assign(f.metadata,{private_database:true,web_repository:"app",
+    repositories:[{key:"app",path:"repositories/app",variables:[variable]}],
+    functions:[{key:"api",name:"API",repository:"app",source_directory:"functions/fn-old",database:{endpoint_parameter:"SQLITE_ENDPOINT",token_parameter:"SQLITE_TOKEN"}}],site_variables:[variable]});
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  const git = (...args) => execFileSync("git",args,{cwd:f.root,encoding:"utf8",stdio:"pipe"});
+  git("add",".");git("-c","user.name=Fixture","-c","user.email=fixture@example.test","commit","-qm","Backend materials");
+  const {packInstallTemplate} = await import("./pack-template.mjs");
+  const result = await packInstallTemplate(f.root,"demo");
+  const files = unzipSync(await readFile(result.file));
+  const manifest = JSON.parse(strFromU8(files["install.json"]));
+  for (const key of ["private_database","web_repository","repositories","functions","site_variables"])
+    assert.deepEqual(manifest[key],f.metadata[key]);
+  assert.match(strFromU8(unzipSync(files["site.tweb"])["data/app.js"]),/__TIANA_FUNCTION_API_abc139fd__/);
+  assert.ok(unzipSync(files["source.zip"])["repositories/app/functions/fn-old/main.go"]);
 });

@@ -56,7 +56,9 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
       await mkdir(path.dirname(path.join(buildRoot, name)), { recursive: true });
       await writeFile(path.join(buildRoot, name), data);
     }
-    const run = (args) => execFileSync("npm", args, { cwd: buildRoot, env: { ...process.env, TIANA_TEMPLATE_BUILD: "1" }, encoding: "utf8", stdio: "pipe", maxBuffer: 64 * 1024 * 1024 });
+    const webRepository = (metadata.repositories ?? []).find(repo => repo.key === metadata.web_repository);
+    const webRoot = webRepository ? path.join(buildRoot, webRepository.path) : buildRoot;
+    const run = (args) => execFileSync("npm", args, { cwd: webRoot, env: { ...process.env, TIANA_TEMPLATE_BUILD: "1" }, encoding: "utf8", stdio: "pipe", maxBuffer: 64 * 1024 * 1024 });
     run(["ci", "--no-audit", "--no-fund"]);
     const output = run(["run", "build", "--", source.source_commit]);
     const paramsLine = output.split("\n").find(line => line.startsWith("TIANA_PROJECT_PARAMS "));
@@ -64,15 +66,21 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
     const { entry } = JSON.parse(paramsLine.slice("TIANA_PROJECT_PARAMS ".length));
     const siteFiles = { "web.yaml": new Uint8Array() };
     async function collect(relative = "") {
-      for (const item of await readdir(path.join(buildRoot, "dist", relative), { withFileTypes: true })) {
+      for (const item of await readdir(path.join(webRoot, "dist", relative), { withFileTypes: true })) {
         const name = relative ? `${relative}/${item.name}` : item.name;
         if (item.isDirectory()) await collect(name);
-        else if (item.isFile()) siteFiles[`data/${name}`] = await readFile(path.join(buildRoot, "dist", name));
+        else if (item.isFile()) siteFiles[`data/${name}`] = await readFile(path.join(webRoot, "dist", name));
         else throw new Error(`Build output is not a regular file: ${name}`);
       }
     }
     await collect();
     if (!entry || !siteFiles[`data/${entry}`]) throw new Error("Build output is missing its fixed entry");
+    for (const variable of metadata.site_variables ?? []) {
+      for (const file of variable.files) {
+        if (!siteFiles[`data/${file}`]?.includes(variable.placeholder))
+          throw new Error(`Built site placeholder missing: ${file}`);
+      }
+    }
     const site = archive(siteFiles);
     if (site.length > 16 * 1024 * 1024 || Object.values(siteFiles).reduce((sum, data) => sum + data.length, 0) > 16 * 1024 * 1024 || Object.keys(siteFiles).length > 4097)
       throw new Error("Build exceeds the Web archive resource budget");
@@ -97,7 +105,10 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
       if (!["WEB_ID", "SQLITE_INSTANCE_ID", "APP_NAME"].includes(variable.name))
         throw new Error(`Unsupported installation SQL variable: ${variable.name}`);
     }
-    materials["install.json"] = Buffer.from(JSON.stringify({ metadata, entry, database_required: metadata.database_required, variables }, null, 2) + "\n");
+    const manifest = { metadata, entry, database_required: metadata.database_required, variables };
+    for (const key of ["private_database", "web_repository", "repositories", "functions", "site_variables"])
+      if (metadata[key] !== undefined) manifest[key] = metadata[key];
+    materials["install.json"] = Buffer.from(JSON.stringify(manifest, null, 2) + "\n");
     const bytes = archive(materials);
     const file = path.join(directory, `${source.source_commit}.install.zip`);
     await writeFile(file, bytes);

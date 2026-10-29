@@ -63,3 +63,34 @@ seed.sql               # metadata.seeds 存在时收录
 一键安装为用户创建 SQLite 和 Web，将数据库 ID 绑定到 Web 参数，然后依次尝试 schema 和 seed，最后由 OSS 复制同一 site.tweb 到 Web 存储。SQL 占位符只写在字符串字面量内，安装器转义替换值中的单引号。schema 优先 `CREATE TABLE IF NOT EXISTS`，seed 尽量使用稳定主键配合 `INSERT OR IGNORE` 等幂等写法。SQL 语句报错会记录后继续，制作时须自行执行、复查真实结果；传输或材料读取失败会使任务重试。
 
 发布前同时验证源码方式与一键安装方式。showcase 的示例数据不等同于真实初始数据，安装后的数据只由 schema、seed 及应用已实现的初始化逻辑决定。
+
+## 函数后端与共享仓库
+
+函数模板在 metadata.json 增加 `repositories`、`functions`、`web_repository`、`private_database` 和 `site_variables`；打包器将这些字段原样带入 install.json。源 ZIP 的根部保留 metadata/showcase/SQL，每个逻辑 Git 快照保存一次，例如 `repositories/app/`，其中可以同时包含前端、多个函数 ID 目录和公共 Go 包。
+
+```json
+{
+  "database_required": true,
+  "private_database": true,
+  "web_repository": "app",
+  "repositories": [{
+    "key": "app",
+    "path": "repositories/app",
+    "variables": [{"name":"FUNCTION_ID:api","placeholder":"__TIANA_FUNCTION_API_91ad47ef__","description":"安装后的订单函数","files":["src/app.js"]}]
+  }],
+  "functions": [{
+    "key": "api", "name": "订单接口", "repository": "app", "source_directory": "functions/fn-original",
+    "parameters": {"MESSAGE":"欢迎使用订单服务"},
+    "database": {"endpoint_parameter":"SQLITE_ENDPOINT","token_parameter":"SQLITE_TOKEN"}
+  }],
+  "site_variables": [{"name":"FUNCTION_ID:api","placeholder":"__TIANA_FUNCTION_API_91ad47ef__","description":"安装后的订单函数","files":["app.js"]}]
+}
+```
+
+上例与原 metadata 的名称、简介、schema/seeds 等字段一起使用。`npm run pack` 在 web_repository 对应子目录执行 npm ci/build 并读取其 dist。源 variables 的路径相对于对应仓库，site_variables 路径相对于前端 dist，必须填写本次构建实际文件名。占位符须以普通字符串保留在编译文件中；打包器检查声明位置。Function/Git 变量为 `FUNCTION_ID:<key>`、`GIT_INSTANCE_ID:<key>`，其余资源变量沿用 WEB_ID、SQLITE_INSTANCE_ID。每个变量使用独立的随机占位符。
+
+安装为每个逻辑仓库创建一个 Git，为每个函数创建新 Function ID。`source_directory` 必填，使用 `functions/<old_function_id>`；安装时改名为 `functions/<new_function_id>`。源码变量按改名前的路径替换，共享包原样保留。跨目录 import/replace 等若包含旧函数目录，也需声明相应替换，不能只改目录名。安装在一次 Git 初始化提交中完成该仓库的所有映射，随后逐函数编译；同仓后续构建使用前一构建依赖写回后的提交。
+
+`private_database: true` 让 SQLite 仅供函数后端使用，Web 不绑定该数据库。安装创建新实例 Token，只写入函数 database 声明的参数；parameters 只允许作者主动筛选的公开业务初值，不导出在线参数全表。函数可选 cors 使用当前函数 CORS 对象。前端经 `context.functions.fetch` 调用新函数，安装器更新 Web 现有函数列表，并替换 site_variables 中的前端引用。
+
+函数源码始终包含在安装包中，安装时必需；用户不保留额外前端源码时，函数使用的 Git 仍保留，同仓前端仍关联它。不同仓库不能因为包含同名文件而合并。发布前应从另一租户实际安装、调用并验证新数据库数据及浏览器凭据隔离；保留一份共享 Git、映射新函数目录、失败重试复用已创建资源均需验收。

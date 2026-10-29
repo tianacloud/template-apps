@@ -29,7 +29,36 @@ export function validateTemplateFiles(files, templateName) {
   }
   if (files["showcase/preview.html"].length > 500000) throw new Error("showcase/preview.html must not exceed 500,000 bytes before compression");
   if (typeof metadata.database_required !== "boolean") throw new Error("metadata.json requires database_required");
-  const variables = metadata.variables ?? [];
+  const repositories = new Map();
+  for (const repo of metadata.repositories ?? []) {
+    if (!repo.key || repositories.has(repo.key) || !(repo.path === "." || relativeFile(repo.path)))
+      throw new Error("Repositories require unique keys and relative source paths");
+    repositories.set(repo.key, repo);
+  }
+  if (metadata.web_repository && !repositories.has(metadata.web_repository))
+    throw new Error("web_repository must reference a repository");
+  const functionKeys = new Set();
+  const sourceDirectories = new Set();
+  for (const fn of metadata.functions ?? []) {
+    const repo = repositories.get(fn.repository);
+    if (!fn.key || functionKeys.has(fn.key) || !fn.name?.trim() || !repo)
+      throw new Error("Functions require unique keys, names and a declared repository");
+    functionKeys.add(fn.key);
+    const dir = fn.source_directory ?? "";
+    if (!relativeFile(dir) || !/^functions\/[^/]+$/.test(dir) || sourceDirectories.has(`${fn.repository}/${dir}`))
+      throw new Error("Function source_directory must select a distinct functions/<function_id> directory");
+    sourceDirectories.add(`${fn.repository}/${dir}`);
+    const prefix = (repo.path === "." ? "" : repo.path + "/") + (dir + "/");
+    if (!Object.keys(files).some(name => name.startsWith(prefix) && !name.slice(prefix.length).includes("/") && name.endsWith(".go")))
+      throw new Error(`Function ${fn.key}: missing Go entry source`);
+    if (fn.database && (!metadata.database_required || !fn.database.endpoint_parameter || !fn.database.token_parameter || fn.database.endpoint_parameter === fn.database.token_parameter))
+      throw new Error("Function database requires database_required and distinct parameter names");
+  }
+  const variables = [...(metadata.variables ?? [])];
+  for (const repo of repositories.values()) {
+    for (const v of repo.variables ?? []) variables.push({...v, files: v.files.map(file => repo.path === "." ? file : `${repo.path}/${file}`)});
+  }
+  const locations = new Map();
   for (const variable of variables) {
     if (!variable.name || !variable.description?.trim() || !/^__TIANA_[A-Z0-9_]+_[a-f0-9]+__$/.test(variable.placeholder ?? "") || !variable.files?.length)
       throw new Error(`Variable ${variable.name ?? ""} requires a name, random placeholder, description and file locations`);
@@ -37,8 +66,13 @@ export function validateTemplateFiles(files, templateName) {
       if (!relativeFile(name) || name === "metadata.json" || !files[name]?.includes(variable.placeholder))
         throw new Error(`Variable ${variable.name}: placeholder not found in ${name}`);
     }
+    const recorded = locations.get(variable.placeholder) ?? new Set();
+    for (const name of variable.files) recorded.add(name);
+    locations.set(variable.placeholder, recorded);
+  }
+  for (const variable of variables) {
     for (const [name, bytes] of Object.entries(files)) {
-      if (name !== "metadata.json" && bytes.includes(variable.placeholder) && !variable.files.includes(name))
+      if (name !== "metadata.json" && bytes.includes(variable.placeholder) && !locations.get(variable.placeholder).has(name))
         throw new Error(`Variable ${variable.name}: unrecorded location ${name}`);
     }
   }
