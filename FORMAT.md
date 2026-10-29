@@ -63,3 +63,42 @@ seed.sql               # metadata.seeds 存在时收录
 一键安装为用户创建 SQLite 和 Web，将数据库 ID 绑定到 Web 参数，然后依次尝试 schema 和 seed，最后由 OSS 复制同一 site.tweb 到 Web 存储。SQL 占位符只写在字符串字面量内，安装器转义替换值中的单引号。schema 优先 `CREATE TABLE IF NOT EXISTS`，seed 尽量使用稳定主键配合 `INSERT OR IGNORE` 等幂等写法。SQL 语句报错会记录后继续，制作时须自行执行、复查真实结果；传输或材料读取失败会使任务重试。
 
 发布前同时验证源码方式与一键安装方式。showcase 的示例数据不等同于真实初始数据，安装后的数据只由 schema、seed 及应用已实现的初始化逻辑决定。
+
+## 可选素材文件（格式版本 2）
+
+需要素材的模板在 metadata.json 声明 `"file_seeds":"template-files"`，并将全部素材
+放入 `template-files/`。未声明时不允许夹带该目录；已声明时必须包含 1 至 256 个
+普通文件，累计不超过 16 MiB。拒绝软链接、特殊文件、文件与目录冲突、绝对路径、
+点路径、反斜线、控制字符和百分号编码路径。素材不参与变量替换。
+
+打包器从同一个确定提交读取源码与素材。source.zip 保留 `template-files/<path>`，
+install.zip 另含 `files/<path>`，两者字节完全相同。install.json 包含
+`format_version: 2`、`requires: ["template_files_v1"]` 和以下 files 对象：
+
+```json
+{"version":1,"root":"template-assets/","entries":[{"path":"images/cover.webp","size":24576,"sha256":"<实际字节的64位小写SHA-256>","content_type":"image/webp"}]}
+```
+
+entries 按路径 UTF-8 字节排序。打包回执的 file_manifest_sha256 对 install.json 中
+files 对象的原始 UTF-8 字节计算，不对重新序列化结果计算。回执还记录文件数和总字节。
+无素材包省略新版本、能力及 files 字段，继续原安装步骤。
+
+源码包和单项材料上限为 16 MiB，安装包上限 32 MiB，外层及嵌套归档累计解压不超过
+128 MiB、5,000 项。素材满足自身限制仍须通过整体归档限制。
+
+干净构建不得复制素材到 dist，也不得将素材重新内嵌到 JavaScript。打包器拒绝素材
+目录、相同文件字节及可识别的原始字节/base64 嵌入；任意变换后的素材仍需通过实际
+验收核对。静态小图片优化后、编码前不超过 16,384 字节时应实际内嵌到 JavaScript；
+其余按应用需求使用文件存储。市场预览保持自包含，不访问作者或安装用户的文件。
+
+应用和数据库记录使用 `template-assets/<path>`，通过 context.files 的 get、getUrl、
+bindImage 访问。不得保存作者文件 URL、租户 ID 或文件访问 Token。安装响应取得 Web ID
+后，本地开发先用 `tiana file put` 上传到 `<web-id>/template-assets/<path>` 并检查回执，
+再预览。`tiana web init-template` 仍仅下载解压源码，不修改云端资源。
+
+发布前验证保留源码及直接安装两种模式的桌面和手机路径，保存任务、真实对象摘要、
+Git 初始内容、数据库相对路径及浏览器读取结果。检查刷新、重新打开、另一授权会话、
+跨租户拒绝与安装隔离。使用独立模板，不修改已验收的 Oncall 模板。
+
+新格式发布须等待服务端兼容版 C 已覆盖全部安装节点，以及完整功能、Gaia 续装和
+终止清理、同频异常扫描告警验收完成。此打包器实现本身不代表云端已支持新格式。
