@@ -48,6 +48,7 @@ export function checkSeedBuildOutputs(siteFiles, seeds) {
   if (!seeds) return;
   for (const [name, data] of Object.entries(siteFiles)) {
     if (/(^|\/)(template-files|template-assets)(\/|$)/.test(name)) throw new Error(`External template files in Web build: ${name}`);
+    if (name === "data/icon.png") continue;
     const output = Buffer.from(data);
     for (const [seed, bytes] of Object.entries(seeds.materials)) {
       const content = Buffer.from(bytes);

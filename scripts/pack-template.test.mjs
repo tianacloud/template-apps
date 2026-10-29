@@ -177,3 +177,11 @@ test("raw manifest digest matches the server UTF-8 vector", async () => {
   assert.equal(encoded.file_manifest_sha256,"57712187d2dd348f35fab47c89a5455d96c5e0e3d7fa258ca6a7221c2acdf929");
   assert.ok(encoded.bytes.toString().includes(`"files":${raw}`));
 });
+
+test("required platform icon keeps its packaging exception without allowing renamed seed copies", async () => {
+  const { templateFileMaterials, checkSeedBuildOutputs } = await import("./template-files.mjs");
+  const bytes = Buffer.from("Synthetic platform icon bytes repeated for material detection");
+  const seeds = templateFileMaterials({"template-files/images/cover.png":bytes}, {file_seeds:"template-files"});
+  assert.doesNotThrow(() => checkSeedBuildOutputs({"data/icon.png":bytes}, seeds));
+  assert.throws(() => checkSeedBuildOutputs({"data/renamed.png":bytes}, seeds), /embedded/);
+});
