@@ -134,6 +134,7 @@ test("backend install builds Web in shared repository and preserves Function rec
   const f = await fixture(t);
   const repo = path.join(f.directory, "repositories/app");
   await mkdir(path.join(repo, "functions/fn-old"), {recursive:true});
+  await writeFile(path.join(repo, "functions/fn-old/go.mod"), "module service\n\ngo 1.26\n");
   await writeFile(path.join(repo, "functions/fn-old/main.go"), "package main\nfunc main() {}\n");
   await writeFile(path.join(repo,"package.json"),JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
   await writeFile(path.join(repo,"package-lock.json"),JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));
@@ -143,7 +144,11 @@ test("backend install builds Web in shared repository and preserves Function rec
   const variable = {name:"FUNCTION_ID:api",placeholder,description:"Function backend",files:["app.js"]};
   Object.assign(f.metadata,{private_database:true,web_repository:"app",
     repositories:[{key:"app",path:"repositories/app",variables:[variable]}],
-    functions:[{key:"api",name:"API",repository:"app",source_directory:"functions/fn-old",database:{endpoint_parameter:"SQLITE_ENDPOINT",token_parameter:"SQLITE_TOKEN"}}],site_variables:[variable]});
+    functions:[{key:"api",name:"API",repository:"app",source_dir:"/functions/fn-old",database:{endpoint_parameter:"SQLITE_ENDPOINT",token_parameter:"SQLITE_TOKEN"}}],site_variables:[variable]});
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  await writeFile(path.join(repo, "go.mod"), "module rootservice\n\ngo 1.26\n");
+  await writeFile(path.join(repo, "main.go"), "package main\nfunc main() {}\n");
+  f.metadata.functions.push({key:"copy",name:"Shared API",repository:"app",source_dir:"/functions/fn-old"}, {key:"root",name:"Root API",repository:"app",source_dir:"/"});
   await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
   const git = (...args) => execFileSync("git",args,{cwd:f.root,encoding:"utf8",stdio:"pipe"});
   git("add",".");git("-c","user.name=Fixture","-c","user.email=fixture@example.test","commit","-qm","Backend materials");

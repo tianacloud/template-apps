@@ -79,7 +79,7 @@ seed.sql               # metadata.seeds 存在时收录
     "variables": [{"name":"FUNCTION_ID:api","placeholder":"__TIANA_FUNCTION_API_91ad47ef__","description":"安装后的订单函数","files":["src/app.js"]}]
   }],
   "functions": [{
-    "key": "api", "name": "订单接口", "repository": "app", "source_directory": "functions/fn-original",
+    "key": "api", "name": "订单接口", "repository": "app", "source_dir": "/services/orders",
     "parameters": {"MESSAGE":"欢迎使用订单服务"},
     "database": {"endpoint_parameter":"SQLITE_ENDPOINT","token_parameter":"SQLITE_TOKEN"}
   }],
@@ -89,7 +89,7 @@ seed.sql               # metadata.seeds 存在时收录
 
 上例与原 metadata 的名称、简介、schema/seeds 等字段一起使用。`npm run pack` 在 web_repository 对应子目录执行 npm ci/build 并读取其 dist。源 variables 的路径相对于对应仓库，site_variables 路径相对于前端 dist，必须填写本次构建实际文件名。占位符须以普通字符串保留在编译文件中；打包器检查声明位置。Function/Git 变量为 `FUNCTION_ID:<key>`、`GIT_INSTANCE_ID:<key>`，其余资源变量沿用 WEB_ID、SQLITE_INSTANCE_ID。每个变量使用独立的随机占位符。
 
-安装为每个逻辑仓库创建一个 Git，为每个函数创建新 Function ID。`source_directory` 必填，使用 `functions/<old_function_id>`；安装时改名为 `functions/<new_function_id>`。源码变量按改名前的路径替换，共享包原样保留。跨目录 import/replace 等若包含旧函数目录，也需声明相应替换，不能只改目录名。安装在一次 Git 初始化提交中完成该仓库的所有映射，随后逐函数编译；同仓后续构建使用前一构建依赖写回后的提交。
+`source_dir` 填写服务元信息中保存的仓库内目录，支持 `/` 根目录；每个目录含自身 go.mod。安装保留仓库目录结构，为新服务 ID 关联同一个 source_dir，不改名源码目录。同仓同目录允许多个服务引用。源码 variables 的文件路径相对于原仓库，资源 ID 引用仍按声明替换；数据库 Token 只写入运行参数。
 
 `private_database: true` 让 SQLite 仅供函数后端使用，Web 不绑定该数据库。安装创建新实例 Token，只写入函数 database 声明的参数；parameters 只允许作者主动筛选的公开业务初值，不导出在线参数全表。函数可选 cors 使用当前函数 CORS 对象。前端经 `context.functions.fetch` 调用新函数，安装器更新 Web 现有函数列表，并替换 site_variables 中的前端引用。
 

@@ -38,17 +38,17 @@ export function validateTemplateFiles(files, templateName) {
   if (metadata.web_repository && !repositories.has(metadata.web_repository))
     throw new Error("web_repository must reference a repository");
   const functionKeys = new Set();
-  const sourceDirectories = new Set();
   for (const fn of metadata.functions ?? []) {
     const repo = repositories.get(fn.repository);
     if (!fn.key || functionKeys.has(fn.key) || !fn.name?.trim() || !repo)
       throw new Error("Functions require unique keys, names and a declared repository");
     functionKeys.add(fn.key);
-    const dir = fn.source_directory ?? "";
-    if (!relativeFile(dir) || !/^functions\/[^/]+$/.test(dir) || sourceDirectories.has(`${fn.repository}/${dir}`))
-      throw new Error("Function source_directory must select a distinct functions/<function_id> directory");
-    sourceDirectories.add(`${fn.repository}/${dir}`);
-    const prefix = (repo.path === "." ? "" : repo.path + "/") + (dir + "/");
+    const dir = (fn.source_dir ?? "").replace(/\/+$/, "");
+    if (fn.source_dir !== "/" && (!dir.startsWith("/") || !relativeFile(dir.slice(1))))
+      throw new Error("Function source_dir must be a repository path starting with /");
+    const prefix = (repo.path === "." ? "" : repo.path + "/") + (dir ? dir.slice(1) + "/" : "");
+    if (!files[prefix + "go.mod"])
+      throw new Error(`Function ${fn.key}: source_dir requires its own go.mod`);
     if (!Object.keys(files).some(name => name.startsWith(prefix) && !name.slice(prefix.length).includes("/") && name.endsWith(".go")))
       throw new Error(`Function ${fn.key}: missing Go entry source`);
     if (fn.database && (!metadata.database_required || !fn.database.endpoint_parameter || !fn.database.token_parameter || fn.database.endpoint_parameter === fn.database.token_parameter))
