@@ -18360,42 +18360,6 @@
           if (S.decorateCta) S.decorateCta(gb, "ghost");
         }
         panel.appendChild(ctaStack);
-        if (/[?&]qa=1/.test(location.search)) {
-          const row = el("div");
-          row.style.cssText = "display:flex;gap:8px;justify-content:center;margin-top:8px;";
-          if (!core.loginPendingDay(game) && (game.meta.loginDays || 0) < 7) {
-            const tb = el("button", "btn small", "\u{1F9EA} \u6D4B\u8BD5\xB7\u4E0B\u4E00\u5929");
-            tb.onclick = () => {
-              try {
-                core.AudioSys.play("select");
-              } catch (e) {
-              }
-              core.loginTestNextDay(game);
-              ov.remove();
-              showLogin(game);
-            };
-            row.appendChild(tb);
-          }
-          const rb = el("button", "btn small", "\u{1F9EA} \u6D4B\u8BD5\xB7\u91CD\u7F6E");
-          rb.onclick = () => {
-            try {
-              core.AudioSys.play("select");
-            } catch (e) {
-            }
-            game.meta.loginDays = 0;
-            game.meta.loginClaimed = {};
-            game.meta.lastLoginDate = "";
-            core.loginTestNextDay(game);
-            try {
-              core.saveMeta(game);
-            } catch (e) {
-            }
-            ov.remove();
-            showLogin(game);
-          };
-          row.appendChild(rb);
-          panel.appendChild(row);
-        }
         ov.appendChild(panel);
         S.root.appendChild(ov);
       }
@@ -21575,7 +21539,7 @@
             if (!code) {
               codeBox.textContent = "\u2014\u2014";
               linkBox.textContent = core.invite.H5_URL;
-              tip.textContent = "\u8FDE\u4E0A\u670D\u52A1\u5668\u540E\u624D\u6709\u9080\u8BF7\u7801";
+              tip.textContent = "\u9080\u8BF7\u7801\u529F\u80FD\u6682\u4E0D\u53EF\u7528";
               copyBtn.disabled = false;
               return;
             }
