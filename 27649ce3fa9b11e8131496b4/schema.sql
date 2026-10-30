@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id = 1), target_time TEXT NOT NULL, cook_mode INTEGER NOT NULL, cook_minutes INTEGER NOT NULL);
