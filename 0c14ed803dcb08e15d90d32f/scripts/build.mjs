@@ -1,0 +1,14 @@
+import { readFile, mkdir, rm, copyFile } from "node:fs/promises";
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||"")) throw Error("完整源码提交号必需");
+const source=JSON.parse(await readFile("source.json","utf8"));
+if(process.env.TIANA_TEMPLATE_BUILD!=="1" && (!source.git_instance_id || source.git_instance_id.startsWith("__TIANA_"))) throw Error("填写 Git 实例 ID");
+await rm("dist",{recursive:true,force:true}); await mkdir("dist/assets",{recursive:true});
+const body=await readFile("src/body.html","utf8");
+const names="fx app extra".split(" ");
+let js=`export async function mount(root, context) {\nroot.innerHTML="<p>正在读取历史资料…</p>";\nlet data; try { const response = await context.files.get("template-assets/history.json"); if (!response.ok) throw new Error("读取失败"); data = await response.json(); } catch (error) { root.innerHTML="<p>历史资料读取失败，请刷新后重试。</p>"; return; }\nconst { PERIODS,DYNASTIES,TOPICS,MEDIA,LORE,DETAIL,RULERS,PEOPLE,GEO,RELIC_TAGS,RELICS,WORLD_LINES,WORLD,IDIOM_KINDS,IDIOMS } = data;\ndocument.title="华夏五千年 · 中国历史长卷";root.innerHTML=${JSON.stringify(body)};const style=document.createElement("link");style.rel="stylesheet";style.href=new URL("style.css",import.meta.url).href;document.head.appendChild(style);\n`;
+for(const n of names) js+=await readFile(`src/assets/js/${n}.js`,"utf8")+"\n;\n";
+js += "\n}\n";
+await import("node:fs/promises").then(fs=>fs.writeFile("dist/assets/app.js",js));
+await copyFile("src/assets/css/style.css","dist/assets/style.css"); await copyFile("public/icon.png","dist/icon.png");
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",...source,source_commit:commit}));
