@@ -1316,3 +1316,15 @@ cameo();
 chatChips();
 
 Object.assign(window,{go,shuffle,pick,audio,tone,noise,toggleSfx,tryPassword,fillPw,hintAgain,signPledge,renderMap,startQuiz,updQuizHud,nextQ,answerQ,quizFail,levelWin,afterLevelUp,useJinnang,useLei,cameo,praise,comboFx,flyPen,renderHelpers,startDuel,updHp,duelCameo,nextDuelQ,duelAnswer,duelResolve,endDuel,passScreen,runSolo,updSoloHp,showCert,penPickNo,penStats,pRr,pWrap,buildPenCard,openPenCard,renderPenCard,penWeixin,penDataURLtoFile,penSaveDataURL,penMomentGuide,sharePenMoments,copyPenText,penFallbackCopy,huNorm,huScore,huAnswer,chatBubble,chatTyping,chatChips,chatReset,askHǔ,addTransfer,copyQuestion,legacyCopy,openAsk});
+// Dispatch the template's declared button actions under the hosted CSP.
+document.addEventListener('click', event => {
+  const el = event.target.closest('[onclick]');
+  if (!el) return;
+  const match = /^(?:([\wǔ]+)\((?:'([^']*)'|(this))?\)|(location\.reload)\(\))$/.exec(el.getAttribute('onclick'));
+  if (!match) return;
+  const fn = match[4] ? () => location.reload() : window[match[1]];
+  if (typeof fn !== 'function') return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  fn(match[3] ? el : match[2]);
+}, true);
