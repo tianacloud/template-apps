@@ -2,7 +2,7 @@ import {sql} from './db.js';
 import {preview} from './ui.js';
 import {layout} from './layout.js';
 import {roles as SPEAKERS,examples as EXAMPLES,decode,fortuneLines as FORTUNES} from './content.js';
-document.title='1024 码农急救包 · Programmer First-Aid Kit';
+document.title='码农急救包 · Programmer First-Aid Kit';
 document.getElementById('app').innerHTML=(preview?'<div class="preview-notice">示例体验 · 数据仅保留在本页 <button id="reset-example">恢复示例</button></div>':'')+layout;
 
 (function(){
