@@ -1,0 +1,206 @@
+
+    <header class="page">
+      <div>
+        <h1>蹬王之王</h1>
+        <p class="sub">实时追踪积分与重置卡的到期时间，按「先过期先用」决定用卡还是留积分，不让额度白白作废</p>
+        <p class="sub" style="margin-top: 2px">
+          <span id="live-dot" aria-hidden="true">●</span>
+          <span id="live-status">正在连接实时更新…</span>
+        </p>
+      </div>
+      <div class="actions">
+        <button id="refresh" type="button">刷新</button>
+
+      </div>
+    </header>
+
+    <section class="alert" id="alert" data-tone="ok" role="status" aria-live="polite">
+      <div class="alert-main">
+        <div class="alert-label">7 天内将要过期</div>
+        <div class="alert-figure mono" id="alert-figure" data-tone="danger">—</div>
+        <div class="sub" id="alert-sub">正在统计…</div>
+      </div>
+      <div class="alert-side">
+        <div>
+          <div class="alert-label">30 天内过期</div>
+          <div class="side-value mono" id="soon30">—</div>
+        </div>
+        <div>
+          <div class="alert-label">有效余额</div>
+          <div class="side-value mono" id="live-balance">—</div>
+        </div>
+        <div>
+          <div class="alert-label">已过期损失</div>
+          <div class="side-value mono" id="lost-balance">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpis" aria-label="用量概览">
+      <div class="card">
+        <div class="kpi-label">5 小时限额</div>
+        <div class="kpi-value" id="kpi-5h">—</div>
+        <div class="bar"><span id="bar-5h" style="width:0%"></span></div>
+        <div class="kpi-foot" id="kpi-5h-foot"></div>
+        <div class="kpi-foot" id="kpi-5h-reset"></div>
+        <div class="kpi-foot" id="kpi-5h-skip" hidden></div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">积分总余额</div>
+        <div class="kpi-value mono" id="kpi-total">—</div>
+        <div class="kpi-foot" id="kpi-total-foot"></div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">最早到期</div>
+        <div class="kpi-value mono" id="kpi-next">—</div>
+        <div class="kpi-foot" id="kpi-next-foot"></div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">可用重置卡</div>
+        <div class="kpi-value mono" id="kpi-card">—</div>
+        <div class="kpi-foot" id="kpi-card-foot"></div>
+      </div>
+    </section>
+
+    <div class="verdict" id="verdict" data-tone="idle" role="status">
+      <span class="verdict-badge" id="verdict-badge">加载中</span>
+      <div class="verdict-body">
+        <div class="verdict-title" id="verdict-title">正在读取额度与到期信息…</div>
+        <div class="verdict-reason" id="verdict-reason"></div>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom: 20px">
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" id="auto-toggle" />
+          <span class="track"><span class="thumb"></span></span>
+          <span>
+            自动刷新：定时重算一次「先过期先用」的结论并推到页面上
+            <span class="sub" style="display: block" id="auto-hint">只给建议，不代你做任何操作</span>
+          </span>
+        </label>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <label for="interval-value" class="sub">检测间隔</label>
+          <input
+            type="number"
+            id="interval-value"
+            min="1"
+            step="1"
+            style="width: 84px; height: 36px; padding: 0 10px; border-radius: 8px;
+                   border: 1px solid var(--mcode-border); background: var(--mcode-surface);
+                   color: var(--mcode-text); font-family: inherit; font-size: 14px"
+          />
+          <select
+            id="interval-unit"
+            style="height: 36px; padding: 0 10px; border-radius: 8px;
+                   border: 1px solid var(--mcode-border); background: var(--mcode-surface);
+                   color: var(--mcode-text); font-family: inherit; font-size: 14px"
+          >
+            <option value="1000">秒</option>
+            <option value="60000">分钟</option>
+          </select>
+          <button id="auto-run" type="button">立即判定一次</button>
+        </div>
+      </div>
+      <div class="status" id="auto-status" role="status" aria-live="polite"></div>
+      <div class="log" id="auto-log"></div>
+      <p class="note" id="auto-note">
+        判定结论为「保留积分」时不执行任何写操作；「立即判定一次」可随时手动触发，无节流。
+      </p>
+    </section>
+
+
+
+    <section class="card" style="margin-bottom: 20px">
+      <h2>自动化阈值</h2>
+      <p class="sub" style="margin: -6px 0 14px">
+        修改后立即生效。
+      </p>
+      <div class="settings">
+        <label class="setting">
+          <span class="k">用卡建议线</span>
+          <span class="row"><input type="number" id="cfg-card-trigger" min="1" max="100" step="1" /><span class="u">%</span></span>
+          <span class="sub">5 小时额度到这个值就**建议**动用一张重置卡（是否真的用由你决定）</span>
+        </label>
+        <label class="setting">
+          <span class="k">额度紧张（黄）</span>
+          <span class="row"><input type="number" id="cfg-tight" min="1" max="100" step="1" /><span class="u">%</span></span>
+          <span class="sub">用量到这个值开始显示黄色</span>
+        </label>
+        <label class="setting">
+          <span class="k">额度不足（红）</span>
+          <span class="row"><input type="number" id="cfg-low" min="1" max="100" step="1" /><span class="u">%</span></span>
+          <span class="sub">用量到这个值显示红色，必须大于黄色档</span>
+        </label>
+        <label class="setting">
+          <span class="k">刷新前不用卡</span>
+          <span class="row"><input type="number" id="cfg-skip" min="0" max="1440" step="5" /><span class="u">分钟</span></span>
+          <span class="sub">距刷新不足这个数就建议别用卡；0 = 不启用</span>
+        </label>
+      </div>
+
+      <div class="scale">
+        <div class="scale-bar" id="cfg-scale-bar"></div>
+        <div class="scale-marks" id="cfg-scale-marks"></div>
+        <div class="scale-legend" id="cfg-scale-legend"></div>
+      </div>
+
+      <div class="status" id="cfg-status" role="status" aria-live="polite"></div>
+      <p class="note" id="cfg-note"></p>
+    </section>
+
+    <section class="card" style="margin-bottom: 20px">
+      <h2>积分到期明细</h2>
+      <p class="sub" style="margin: -6px 0 12px" id="credit-caption"></p>
+      <p class="usedup" id="usedup-note" hidden></p>
+      <div class="tablewrap" id="credit-table"><div class="skeleton">读取中…</div></div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <h2>重置卡到期</h2>
+        <p class="cardup" id="cardup-note" hidden></p>
+        <div class="tablewrap" id="cards"><div class="skeleton">读取中…</div></div>
+      </div>
+      <div class="card">
+        <h2>平台积分池</h2>
+        <div class="tablewrap" id="platform-pools"><div class="skeleton">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom: 20px" id="lost-section">
+      <h2>你没来得及蹬完的 token</h2>
+      <p class="sub" style="margin: -6px 0 12px" id="lost-caption"></p>
+      <p class="lostup" id="lostup-note" hidden></p>
+      <div class="tablewrap" id="lost-table"><div class="empty">暂无过期未用完的积分</div></div>
+    </section>
+
+    <section class="card" style="margin-bottom: 20px" id="ledger-section">
+      <details>
+        <summary><b>台账（唯一数据源）</b> · <span class="sub" id="ledger-meta">读取中…</span></summary>
+        <p class="sub" style="margin: 10px 0">
+          额度、积分和重置卡信息全部来自你维护的<strong>台账</strong>。获授权访问此应用的人共享这份台账。
+          存储：<code id="ledger-path">应用共享台账</code>
+        </p>
+        <p class="sub" style="margin: 0 0 10px">
+          形状：<code>{"schemaVersion":1,"quota":{"fiveHour":{"usedPercent":0}},"cards":[],"credits":[]}</code>
+          —— <code>cards</code> 每项含 <code>cardId / label / sourceType / outBizNo / expireTimeMs</code>；
+          <code>credits</code> 每项含 <code>label / source / granted / used / balance / expireTimeMs</code>。
+          缺 <code>credits</code> 字段会被当成「数据不完整」⇒ 只给建议、不下结论。
+        </p>
+        <textarea
+          id="ledger-json"
+          rows="14"
+          spellcheck="false"
+          style="width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--mcode-border, rgba(127,127,127,.3)); background: transparent; color: inherit"
+        ></textarea>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap">
+          <button id="ledger-save" type="button" class="primary">保存账本</button>
+          <button id="ledger-reload" type="button">重新载入</button>
+          <span class="sub" id="ledger-status" role="status" aria-live="polite"></span>
+        </div>
+      </details>
+    </section>
+
+    
