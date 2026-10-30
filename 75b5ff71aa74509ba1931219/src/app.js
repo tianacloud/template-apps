@@ -781,10 +781,17 @@ function drawAll(Pout) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
-  const w1 = Math.floor(w * 0.46), hj = Math.floor(h * 0.62);
-  drawTop(ctx, 0, 0, w1, h, Pout);
-  drawJoint(ctx, w1, 0, w - w1, hj);
-  drawSection(ctx, w1, hj, w - w1, h - hj);
+  if (w < 600) {
+    const h1 = Math.floor(h / 3), h2 = Math.floor(h / 3);
+    drawTop(ctx, 0, 0, w, h1, Pout);
+    drawJoint(ctx, 0, h1, w, h2);
+    drawSection(ctx, 0, h1 + h2, w, h - h1 - h2);
+  } else {
+    const w1 = Math.floor(w * 0.46), hj = Math.floor(h * 0.62);
+    drawTop(ctx, 0, 0, w1, h, Pout);
+    drawJoint(ctx, w1, 0, w - w1, hj);
+    drawSection(ctx, w1, hj, w - w1, h - hj);
+  }
 }
 
 function drawTop(ctx, x0, y0, w, h, prof) {
@@ -837,7 +844,7 @@ function drawJoint(ctx, x0, y0, w, h) {
   txt(ctx, 'A 块（红，出榫）', x0 + 10, y0 + 30, '#b91c1c');
   txt(ctx, 'B 块（蓝，开卯）', x0 + 96, y0 + 30, '#1d4ed8');
   const ins = p.ten_p - p.gap;
-  txt(ctx, '榫凸出 ' + C.pyfmt(p.ten_p, 2) + ' ｜ 槽深 ' + C.pyfmt(p.sock_d, 2)
+  if (ctx.canvas.clientWidth >= 600) txt(ctx, '榫凸出 ' + C.pyfmt(p.ten_p, 2) + ' ｜ 槽深 ' + C.pyfmt(p.sock_d, 2)
         + ' ｜ 插入 ' + C.pyfmt(ins, 2) + ' ｜ 间隙 ' + C.pyfmt(p.clr, 2),
       x0 + w - 10, y0 + 13, MUT, '11px Consolas, monospace', 'right');
   txt(ctx, '槽底余壁 ' + C.pyfmt(p.rem, 2) + ' mm ｜ 盒间贴合 ' + C.pyfmt(p.gap, 2) + ' mm',
