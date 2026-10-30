@@ -48,6 +48,7 @@ export async function mount(root, { files }) {
     }))); 
     root.innerHTML = body;
     const script = document.createElement('script');
+    script.charset = 'utf-8';
     script.src = new URL('./game.js', import.meta.url).href;
     script.onerror = () => { notice.textContent = '游戏加载失败，请重新打开应用。'; document.body.appendChild(notice); };
     document.body.appendChild(script);
