@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS question_bank_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
