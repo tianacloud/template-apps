@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS timezone_preferences (id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL);
