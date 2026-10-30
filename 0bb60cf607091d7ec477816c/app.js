@@ -108,7 +108,10 @@ import { createTianaFetch } from '@tianacloud/serverless';
 
   function computeSlot(h){
     var base = parseDate(state.date);
-    var inst = new Date(base.y, base.m - 1, base.d, h, 0, 0, 0);
+    // 将基准时区的墙上时间转换为实际时刻，分享给其他时区时保持一致。
+    var wall = Date.UTC(base.y, base.m - 1, base.d, h, 0, 0, 0);
+    var inst = new Date(wall);
+    for (var k = 0; k < 3; k++) inst = new Date(wall - offsetMinutes(inst, dz) * 60000);
     var rows = [];
     for (var i = 0; i < state.cities.length; i++){
       var c = state.cities[i];
@@ -280,7 +283,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
   }
 
   function syncURL(){
-    var hash = "#d=" + state.date + "&s=" + state.start + "&e=" + state.end +
+    var hash = "#b=" + encodeURIComponent(dz) + "&d=" + state.date + "&s=" + state.start + "&e=" + state.end +
       "&h=" + (state.sel === null ? "" : state.sel) +
       "&c=" + state.cities.map(function(c){ return c.tz; }).join(",");
     try { history.replaceState(null, "", hash); } catch(e){}
@@ -294,6 +297,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
       var a = kv.split("=");
       try { o[a[0]] = decodeURIComponent(a[1] || ""); } catch(e) {}
     });
+    if (o.b) { try { new Intl.DateTimeFormat("en-US", {timeZone:o.b}); dz = o.b; } catch(e){} }
     if (o.d && /^\d{4}-\d{2}-\d{2}$/.test(o.d) && !isNaN(Date.parse(o.d))) state.date = o.d;
     if (o.s && /^\d+$/.test(o.s)) state.start = Math.max(0, Math.min(23, parseInt(o.s,10)));
     if (o.e && /^\d+$/.test(o.e)) state.end = Math.max(1, Math.min(24, parseInt(o.e,10)));
@@ -477,7 +481,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
       var saved = result.rows?.[0]?.[0]?.value;
       if (!saved || location.hash) return;
       history.replaceState(null,"",saved); readURL();
-      document.getElementById("date").value=state.date; document.getElementById("start").value=state.start; document.getElementById("end").value=state.end; render();
+      document.getElementById("date").value=state.date; document.getElementById("start").value=state.start; document.getElementById("end").value=state.end; document.getElementById("tzbadge").textContent="基准时区 · " + dz.replace(/_/g," "); render();
     } catch(e) { toast("无法读取已保存方案，请检查连接"); }
   }
   // 启动
