@@ -10,8 +10,8 @@ export async function mount(root, { files }) {
     const urls = { ...inlineImages };
     await Promise.all(externalImages.map(async path => { urls[path] = await files.getUrl('template-assets/img/' + path); }));
     window.imageUrl = path => urls[path] || '';
-    window.assetReferences = text => Object.entries(urls).reduce((v, [path, url]) => v.split(url).join('./assets/assets/img/' + path), text);
-    window.resolveReferences = text => text.replace(/\.\/assets\/assets\/img\/([^\"'\s)]+?\.png)/g, (_, path) => window.imageUrl(path));
+    window.assetReferences = text => Object.entries(urls).reduce((v, [path, url]) => v.split(url).join('template-assets/img/' + path), text);
+    window.resolveReferences = text => text.replace(/template-assets\/img\/([^\"'\s)]+?\.png)/g, (_, path) => window.imageUrl(path));
     const replaceImages = text => text.replace(/(?:\.\/assets\/assets\/img\/|\.\.\/img\/)([^'"\s)]+?\.png)/g, (_, path) => window.imageUrl(path));
     for (const css of [style, petsStyle]) { const el = document.createElement('style'); el.textContent = replaceImages(css); document.head.append(el); }
     root.innerHTML = replaceImages(body);

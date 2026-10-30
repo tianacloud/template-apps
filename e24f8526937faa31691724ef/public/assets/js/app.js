@@ -659,7 +659,7 @@
       // 优先使用已选的角色图片
       try {
         const b64 = localStorage.getItem(LS_CHAR_IMAGE);
-        if (b64) return b64.startsWith('./assets/assets/img/') ? imageUrl(b64.slice('./assets/assets/img/'.length)) : b64;
+        if (b64) return b64.startsWith('template-assets/img/') ? imageUrl(b64.slice('template-assets/img/'.length)) : b64;
       } catch(e) {}
       // 兜底：旧版固定PNG
       const profile = getProfile();
@@ -3390,7 +3390,7 @@
       }
       // 保存预设的名称，展示时以两层图片还原，不将合成位图写入存档。
       saveCharCombo({ bg: _pickBg, char: _pickChar });
-      saveCharImage('./assets/assets/img/preset/char/' + _pickChar + '.png');
+      saveCharImage('template-assets/img/preset/char/' + _pickChar + '.png');
       try { localStorage.setItem(LS_CHAR_SKIPPED, '0'); } catch(e) {}
       fillHome(getProfile());
       goPage('page-home');
@@ -3550,7 +3550,7 @@
       try { localStorage.setItem(LS_CHAR_SKIPPED, '1'); } catch(e) {}
 
       // 示例使用预设图片路径，不把位图编码进浏览器存储。
-      saveCharImage('./assets/assets/img/ui/demo-char.png');
+      saveCharImage('template-assets/img/ui/demo-char.png');
       clearCharCombo();
       fillHome(getProfile());
       goPage('page-home');
@@ -3651,7 +3651,7 @@
       fillHome(p);
       goPage('page-home');
     }
-    const DEFAULT_CHAR_IMG = './assets/assets/img/preset/char/character_01.png';
+    const DEFAULT_CHAR_IMG = 'template-assets/img/preset/char/character_01.png';
 
     // 顶部状态：显示云端连接情况，点击可看详情（排障用）
     function updateCloudBadge() {
