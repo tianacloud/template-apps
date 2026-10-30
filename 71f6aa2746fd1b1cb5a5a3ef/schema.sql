@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS typing_text (id INTEGER PRIMARY KEY CHECK (id = 1), content TEXT NOT NULL);
