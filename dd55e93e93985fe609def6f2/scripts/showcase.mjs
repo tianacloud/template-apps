@@ -1,0 +1,7 @@
+import {build} from 'esbuild';
+import {readFile,writeFile} from 'node:fs/promises';
+const result=await build({entryPoints:['src/entry.js'],bundle:true,define:{__PREVIEW__:'true'},format:'esm',write:false,plugins:[{name:'css',setup(b){b.onLoad({filter:/\.css$/},async a=>({contents:`const s=document.createElement('style');s.textContent=${JSON.stringify(await readFile(a.path,'utf8'))};document.head.appendChild(s);`,loader:'js'}))}}]});
+const code=result.outputFiles[0].text;
+const prefix=`const store=()=>{const m=new Map();return {getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear()}}; const localStorage=store(), sessionStorage=store();`;
+const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>如实 · 示例体验</title></head><body><div style="position:relative;z-index:5;background:#f7e9e3;padding:8px;text-align:center;font:13px sans-serif">示例体验，数据仅保留在本页 <button id="demo-reset">恢复示例</button></div><div id="app"></div><script type="module">${prefix}\n${code}\n document.getElementById('demo-reset').onclick=()=>{resetAll();location.hash='/dashboard'}; document.addEventListener('click',e=>{if(e.target.closest('#btn-export,#btn-reset')){e.preventDefault();e.stopImmediatePropagation();e.target.textContent='安装后可用'}},true);</script></body></html>`;
+await writeFile('showcase/preview.html',html);
