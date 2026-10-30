@@ -1,0 +1,1 @@
+/* Costume images supplied by the application file store. */
