@@ -66,6 +66,8 @@ function render() {
   renderPromptBox();
 }
 
+window.addEventListener('resize', () => render());
+
 function renderEdges() {
   const g = $('#edges');
   g.innerHTML = '';
