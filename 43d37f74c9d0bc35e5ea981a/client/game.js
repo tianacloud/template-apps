@@ -16492,8 +16492,8 @@ function showPvpResult(){
     ov.innerHTML = `<h1 class="${tone}">${title}</h1>
       <p>对战时长 ${Math.floor(t/60)}分${(t%60).toString().padStart(2,'0')}秒</p>
       <p>${hpLine}</p>
-      <button onclick="restartPVP()">再来一局</button>
-      <button onclick="backToMenu()">返回主页</button>`;
+      <button data-game-click="restartPVP()">再来一局</button>
+      <button data-game-click="backToMenu()">返回主页</button>`;
   }
 }
 // ===== ⚔️ 单挑胜利动画（每个英雄一套专属庆祝演出）=====
@@ -17393,8 +17393,8 @@ function gameOver(){
     <p>到达第 ${G.wave} 波 | ${lvLine}</p>
     ${endlessLine}
     ${hordeLine}
-    <button onclick="restartGame()">再来一次</button>
-    <button onclick="backToMenu()">返回主页</button>`;
+    <button data-game-click="restartGame()">再来一次</button>
+    <button data-game-click="backToMenu()">返回主页</button>`;
 }
 // 🔁 再来一次：沿用本局模式（单人 / 双人 / 与AI组队 / 三人），不要降级成单人
 //   🧟 尸潮不用背旗标——hordeOn 开关本身持久，「再来一次」照常还是尸潮
@@ -17433,8 +17433,8 @@ function winGame(){
     <p>你击败了所有Boss！</p>
     <p>用时 ${Math.floor(G.time/60)}分${Math.floor(G.time%60)}秒 | ${lvLine}</p>
     ${skList}
-    <button onclick="restartGame()">再玩一次</button>
-    <button onclick="backToMenu()">返回主页</button>`;
+    <button data-game-click="restartGame()">再玩一次</button>
+    <button data-game-click="backToMenu()">返回主页</button>`;
 }
 
 // 暂停/继续（游戏中有效）
@@ -17556,7 +17556,7 @@ function buildTutHeroPick(){ // 角色网格：按 远程 / 近战 分组（数�
     html += '<div class="tut-group-label">' + label + '</div><div class="tut-group">';
     for(const x of HERO_CODEX){
       if((HERO_ROLE[x.h]||'ranged') !== role) continue;
-      html += '<div class="tut-hero" onclick="tutPickHero(\'' + x.h + '\')"><span class="th-icon">' + x.icon + '</span><span class="th-name">' + x.name + '</span></div>';
+      html += '<div class="tut-hero" data-game-click="tutPickHero(\'' + x.h + '\')"><span class="th-icon">' + x.icon + '</span><span class="th-name">' + x.name + '</span></div>';
     }
     html += '</div>';
   }
@@ -17943,7 +17943,7 @@ function buildHeroCodex(){ // 左侧角色名列表（每次打开重建，顺�
   const list = document.getElementById('cdx-list');
   if(!list) return;
   list.innerHTML = HERO_CODEX.map(x =>
-    '<div class="cdx-item' + (x.h === _codexHero ? ' sel' : '') + '" id="cdx-' + x.h + '" onclick="showCodexHero(\'' + x.h + '\')"><span class="ci">' + x.icon + '</span>' + x.name + '</div>').join('');
+    '<div class="cdx-item' + (x.h === _codexHero ? ' sel' : '') + '" id="cdx-' + x.h + '" data-game-click="showCodexHero(\'' + x.h + '\')"><span class="ci">' + x.icon + '</span>' + x.name + '</div>').join('');
 }
 function showCodexHero(h){ // 右侧详情（介绍只有这一份数据，选角卡不再有）
   const x = codexHero(h);
@@ -19010,3 +19010,148 @@ setInterval(() => {
     NET.send(PROTO.input(TPAD.move, TPAD.aim));
   }
 }, 50);
+
+// Event delegation keeps the controls usable under a strict content security policy.
+const GAME_ACTIONS = {
+  "togglePause()": function(event) { togglePause(); },
+  "SND.toggle(); updateSoundBtn()": function(event) { SND.toggle(); updateSoundBtn(); },
+  "Music.toggle(); updateMusicBtn()": function(event) { Music.toggle(); updateMusicBtn(); },
+  "openSettings()": function(event) { openSettings(); },
+  "toggleFullscreen()": function(event) { toggleFullscreen(); },
+  "backToMenu()": function(event) { backToMenu(); },
+  "tutNextSkill()": function(event) { tutNextSkill(); },
+  "quitTutorial()": function(event) { quitTutorial(); },
+  "tutPickBack()": function(event) { tutPickBack(); },
+  "finishTutorial(false)": function(event) { finishTutorial(false); },
+  "startWithMenuMode()": function(event) { startWithMenuMode(); },
+  "openModeSelect()": function(event) { openModeSelect(); },
+  "openHeroCodex()": function(event) { openHeroCodex(); },
+  "openCredits()": function(event) { openCredits(); },
+  "toggleWorld()": function(event) { toggleWorld(); },
+  "selectMode('solo')": function(event) { selectMode('solo'); },
+  "selectMode('coop')": function(event) { selectMode('coop'); },
+  "selectMode('trio')": function(event) { selectMode('trio'); },
+  "selectMode('ai2p')": function(event) { selectMode('ai2p'); },
+  "selectMode('pvp-ai')": function(event) { selectMode('pvp-ai'); },
+  "selectMode('pvp')": function(event) { selectMode('pvp'); },
+  "selectMode('net')": function(event) { selectMode('net'); },
+  "toggleChallenge()": function(event) { toggleChallenge(); },
+  "toggleEndless()": function(event) { toggleEndless(); },
+  "toggleHorde()": function(event) { toggleHorde(); },
+  "closeModeSelect()": function(event) { closeModeSelect(); },
+  "pickHeroSide(0,'gunner')": function(event) { pickHeroSide(0,'gunner'); },
+  "pickHeroSide(0,'swordsman')": function(event) { pickHeroSide(0,'swordsman'); },
+  "pickHeroSide(0,'laser')": function(event) { pickHeroSide(0,'laser'); },
+  "pickHeroSide(0,'bomber')": function(event) { pickHeroSide(0,'bomber'); },
+  "pickHeroSide(0,'tornado')": function(event) { pickHeroSide(0,'tornado'); },
+  "pickHeroSide(0,'venom')": function(event) { pickHeroSide(0,'venom'); },
+  "pickHeroSide(0,'general')": function(event) { pickHeroSide(0,'general'); },
+  "pickHeroSide(0,'mage')": function(event) { pickHeroSide(0,'mage'); },
+  "pickHeroSide(0,'vampire')": function(event) { pickHeroSide(0,'vampire'); },
+  "pickHeroSide(0,'stone')": function(event) { pickHeroSide(0,'stone'); },
+  "pickHeroSide(0,'rookie')": function(event) { pickHeroSide(0,'rookie'); },
+  "pickHeroSide(0,'engineer')": function(event) { pickHeroSide(0,'engineer'); },
+  "pickHeroSide(0,'boomerang')": function(event) { pickHeroSide(0,'boomerang'); },
+  "pickHeroSide(0,'dogmilk')": function(event) { pickHeroSide(0,'dogmilk'); },
+  "pickHeroSide(0,'cardmaster')": function(event) { pickHeroSide(0,'cardmaster'); },
+  "pickHeroSide(0,'ketchup')": function(event) { pickHeroSide(0,'ketchup'); },
+  "pickHeroSide(0,'knight')": function(event) { pickHeroSide(0,'knight'); },
+  "pickHeroSide(0,'bard')": function(event) { pickHeroSide(0,'bard'); },
+  "pickHeroSide(0,'spring')": function(event) { pickHeroSide(0,'spring'); },
+  "pickHeroSide(1,'gunner')": function(event) { pickHeroSide(1,'gunner'); },
+  "pickHeroSide(1,'swordsman')": function(event) { pickHeroSide(1,'swordsman'); },
+  "pickHeroSide(1,'laser')": function(event) { pickHeroSide(1,'laser'); },
+  "pickHeroSide(1,'bomber')": function(event) { pickHeroSide(1,'bomber'); },
+  "pickHeroSide(1,'tornado')": function(event) { pickHeroSide(1,'tornado'); },
+  "pickHeroSide(1,'venom')": function(event) { pickHeroSide(1,'venom'); },
+  "pickHeroSide(1,'general')": function(event) { pickHeroSide(1,'general'); },
+  "pickHeroSide(1,'mage')": function(event) { pickHeroSide(1,'mage'); },
+  "pickHeroSide(1,'vampire')": function(event) { pickHeroSide(1,'vampire'); },
+  "pickHeroSide(1,'stone')": function(event) { pickHeroSide(1,'stone'); },
+  "pickHeroSide(1,'rookie')": function(event) { pickHeroSide(1,'rookie'); },
+  "pickHeroSide(1,'engineer')": function(event) { pickHeroSide(1,'engineer'); },
+  "pickHeroSide(1,'boomerang')": function(event) { pickHeroSide(1,'boomerang'); },
+  "pickHeroSide(1,'dogmilk')": function(event) { pickHeroSide(1,'dogmilk'); },
+  "pickHeroSide(1,'cardmaster')": function(event) { pickHeroSide(1,'cardmaster'); },
+  "pickHeroSide(1,'ketchup')": function(event) { pickHeroSide(1,'ketchup'); },
+  "pickHeroSide(1,'knight')": function(event) { pickHeroSide(1,'knight'); },
+  "pickHeroSide(1,'bard')": function(event) { pickHeroSide(1,'bard'); },
+  "pickHeroSide(1,'spring')": function(event) { pickHeroSide(1,'spring'); },
+  "pickHeroSide(2,'gunner')": function(event) { pickHeroSide(2,'gunner'); },
+  "pickHeroSide(2,'swordsman')": function(event) { pickHeroSide(2,'swordsman'); },
+  "pickHeroSide(2,'laser')": function(event) { pickHeroSide(2,'laser'); },
+  "pickHeroSide(2,'bomber')": function(event) { pickHeroSide(2,'bomber'); },
+  "pickHeroSide(2,'tornado')": function(event) { pickHeroSide(2,'tornado'); },
+  "pickHeroSide(2,'venom')": function(event) { pickHeroSide(2,'venom'); },
+  "pickHeroSide(2,'general')": function(event) { pickHeroSide(2,'general'); },
+  "pickHeroSide(2,'mage')": function(event) { pickHeroSide(2,'mage'); },
+  "pickHeroSide(2,'vampire')": function(event) { pickHeroSide(2,'vampire'); },
+  "pickHeroSide(2,'stone')": function(event) { pickHeroSide(2,'stone'); },
+  "pickHeroSide(2,'rookie')": function(event) { pickHeroSide(2,'rookie'); },
+  "pickHeroSide(2,'engineer')": function(event) { pickHeroSide(2,'engineer'); },
+  "pickHeroSide(2,'boomerang')": function(event) { pickHeroSide(2,'boomerang'); },
+  "pickHeroSide(2,'dogmilk')": function(event) { pickHeroSide(2,'dogmilk'); },
+  "pickHeroSide(2,'cardmaster')": function(event) { pickHeroSide(2,'cardmaster'); },
+  "pickHeroSide(2,'ketchup')": function(event) { pickHeroSide(2,'ketchup'); },
+  "pickHeroSide(2,'knight')": function(event) { pickHeroSide(2,'knight'); },
+  "pickHeroSide(2,'bard')": function(event) { pickHeroSide(2,'bard'); },
+  "pickHeroSide(2,'spring')": function(event) { pickHeroSide(2,'spring'); },
+  "confirmHeroPick()": function(event) { confirmHeroPick(); },
+  "closeHeroCodex()": function(event) { closeHeroCodex(); },
+  "closeCredits()": function(event) { closeCredits(); },
+  "resumeChallenge()": function(event) { resumeChallenge(); },
+  "netCreateOffer()": function(event) { netCreateOffer(); },
+  "netCopy('net-offer')": function(event) { netCopy('net-offer'); },
+  "netCopyLink()": function(event) { netCopyLink(); },
+  "netAcceptAnswer()": function(event) { netAcceptAnswer(); },
+  "netJoin()": function(event) { netJoin(); },
+  "netCopy('net-ans-out')": function(event) { netCopy('net-ans-out'); },
+  "netStartGame()": function(event) { netStartGame(); },
+  "closeNetPanel()": function(event) { closeNetPanel(); },
+  "applyVolume(this.value)": function(event) { applyVolume(this.value); },
+  "toggleMusicSetting()": function(event) { toggleMusicSetting(); },
+  "toggleAchSetting()": function(event) { toggleAchSetting(); },
+  "toggleDamageSetting()": function(event) { toggleDamageSetting(); },
+  "toggleViewMode()": function(event) { toggleViewMode(); },
+  "setDeviceMode('phone')": function(event) { setDeviceMode('phone'); },
+  "setDeviceMode('computer')": function(event) { setDeviceMode('computer'); },
+  "openKeybinds()": function(event) { openKeybinds(); },
+  "startTutorial()": function(event) { startTutorial(); },
+  "settingsJump(5)": function(event) { settingsJump(5); },
+  "settingsJump(10)": function(event) { settingsJump(10); },
+  "settingsJump(20)": function(event) { settingsJump(20); },
+  "settingsJump(30)": function(event) { settingsJump(30); },
+  "settingsJumpLaserBoss()": function(event) { settingsJumpLaserBoss(); },
+  "settingsJumpBladeBoss()": function(event) { settingsJumpBladeBoss(); },
+  "settingsJumpRamBoss()": function(event) { settingsJumpRamBoss(); },
+  "settingsJumpSourceBoss()": function(event) { settingsJumpSourceBoss(); },
+  "closeSettings(); debugWrathStage()": function(event) { closeSettings(); debugWrathStage(); },
+  "closeSettings()": function(event) { closeSettings(); },
+  "kbListen('p1','up')": function(event) { kbListen('p1','up'); },
+  "kbListen('p1','down')": function(event) { kbListen('p1','down'); },
+  "kbListen('p1','left')": function(event) { kbListen('p1','left'); },
+  "kbListen('p1','right')": function(event) { kbListen('p1','right'); },
+  "kbListen('p2','curUp')": function(event) { kbListen('p2','curUp'); },
+  "kbListen('p2','curDown')": function(event) { kbListen('p2','curDown'); },
+  "kbListen('p2','curLeft')": function(event) { kbListen('p2','curLeft'); },
+  "kbListen('p2','curRight')": function(event) { kbListen('p2','curRight'); },
+  "kbListen('p2','mvUp')": function(event) { kbListen('p2','mvUp'); },
+  "kbListen('p2','mvDown')": function(event) { kbListen('p2','mvDown'); },
+  "kbListen('p2','mvLeft')": function(event) { kbListen('p2','mvLeft'); },
+  "kbListen('p2','mvRight')": function(event) { kbListen('p2','mvRight'); },
+  "kbReset()": function(event) { kbReset(); },
+  "closeKeybinds()": function(event) { closeKeybinds(); },
+};
+function dispatchGameAction(event, attr) {
+  const element = event.target.closest('[' + attr + ']');
+  if (!element) return;
+  const action = element.getAttribute(attr);
+  const handler = GAME_ACTIONS[action];
+  if (handler) { handler.call(element, event); return; }
+  const dynamic = /^(tutPickHero|showCodexHero)\('([a-z0-9-]+)'\)$/.exec(action);
+  if (!dynamic || !HERO_KINDS.includes(dynamic[2])) return;
+  if (dynamic[1] === 'tutPickHero') tutPickHero(dynamic[2]);
+  else showCodexHero(dynamic[2]);
+}
+document.addEventListener('click', event => dispatchGameAction(event, 'data-game-click'));
+document.addEventListener('input', event => dispatchGameAction(event, 'data-game-input'));
