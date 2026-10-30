@@ -1,0 +1,157 @@
+
+
+<header class="topbar">
+  <div class="logo">
+    <span class="zh">第一现场</span>
+    <span class="en">SceneOne</span>
+  </div>
+  <span class="tagline">三千行日志，一眼定位第一现场</span>
+  <span class="badge-privacy">🔒 100% 本地计算 · 日志零上传</span>
+  <button class="btn ghost small" id="btnHelp">使用说明</button>
+</header>
+
+<main class="wrap">
+
+  <section class="card">
+    <header>
+      <h2>① 粘贴日志</h2>
+      <span class="sub">支持 CI 输出 / 服务日志 / 堆栈 / Nginx / JSON 行 · 可拖入 .log .txt .json 文件</span>
+    </header>
+    <div class="body">
+      <div class="input-toolbar">
+        <span style="font-size:12px;color:var(--muted)">试试样本：</span>
+        <span id="sampleBtns"></span>
+        <span class="spacer"></span>
+        <button class="btn" id="btnClear">清空</button>
+        <button class="btn primary" id="btnAnalyze">开始诊断 <kbd style="background:rgba(6,18,31,.25);border-color:rgba(6,18,31,.4);color:#06121f">Ctrl+Enter</kbd></button>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <textarea id="logInput" spellcheck="false" placeholder="把日志粘贴到这里，或拖入日志文件……&#10;&#10;例：CI 失败输出、uvicorn / gunicorn 报错、Java 堆栈、Nginx error.log、docker / kubectl 输出。"></textarea>
+        <div class="drop-hint">松开鼠标，开始读取文件</div>
+      </div>
+      <div class="input-meta">
+        <span id="inputCount">0 行 · 0 字符</span>
+        <span>所有解析与诊断均在本地完成，不发送任何网络请求</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="emptyState" class="empty">
+    <div class="big">等待日志输入</div>
+    <div>粘贴日志或点击上方样本，即可得到：第一现场定位 · 级联判定 · 错误知识库诊断 · Bug 报告</div>
+  </section>
+
+  <section id="results" hidden>
+
+    <div class="card">
+      <header><h2>② 诊断总览</h2><span class="sub" id="fmtBadge"></span></header>
+      <div class="body"><div class="chips" id="overviewChips"></div></div>
+    </div>
+
+    <div class="scene" id="sceneCard">
+      <header>
+        <span class="pin">📍</span>
+        <h2>第一现场 · 首个真实错误</h2>
+        <span class="sub" id="cascadeSummary"></span>
+      </header>
+      <div class="body" id="sceneBody"></div>
+    </div>
+
+    <div class="card">
+      <header><h2>③ 事件时间线</h2><span class="sub" id="timelineSub"></span></header>
+      <div class="body">
+        <div class="timeline-wrap" id="timelineWrap"></div>
+        <div class="legend">
+          <span><i style="background:var(--red)"></i>错误</span>
+          <span><i style="background:var(--orange)"></i>警告</span>
+          <span><i style="background:var(--accent)"></i>信息</span>
+          <span><i style="background:#6e7681"></i>其他</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="cardKb">
+      <header><h2>④ 错误知识库诊断</h2><span class="sub" id="kbSub"></span></header>
+      <div class="body"><div class="kb-grid" id="kbGrid"></div></div>
+    </div>
+
+    <div class="card" id="cardClusters">
+      <header><h2>⑤ 错误聚类与级联判定</h2><span class="sub">模板归一化后聚合；「疑似级联」= 由第一现场引发的后续错误</span></header>
+      <div class="body" style="overflow-x:auto">
+        <table class="clusters">
+          <thead><tr><th>#</th><th>次数</th><th>级别</th><th>首现行</th><th>聚类模板</th><th>判定</th><th>命中知识库</th></tr></thead>
+          <tbody id="clusterRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><h2>⑥ 关键实体</h2><span class="sub">从错误 / 警告行中抽取，分享前注意脱敏</span></header>
+      <div class="body"><div class="ent-chips" id="entChips"></div></div>
+    </div>
+
+    <div class="card">
+      <header><h2>⑦ 日志浏览器</h2><span class="sub" id="logviewSub"></span></header>
+      <div class="body">
+        <div class="logview-bar">
+          <select id="levelFilter">
+            <option value="all">全部级别</option>
+            <option value="error">仅错误</option>
+            <option value="warn">仅警告</option>
+            <option value="info">仅信息</option>
+            <option value="debug">仅调试</option>
+            <option value="other">仅其他</option>
+          </select>
+          <input type="search" id="logSearch" placeholder="搜索关键词，高亮匹配…">
+          <span class="spacer" style="flex:1"></span>
+          <button class="btn small" id="btnCopyMasked">复制脱敏日志</button>
+        </div>
+        <div class="log-list" id="logList"></div>
+      </div>
+    </div>
+
+    <div class="card" id="cardReport">
+      <header>
+        <h2>⑧ Bug 报告</h2>
+        <span class="sub">结构化 Markdown，可直接贴进 Issue / 群聊</span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn small" id="btnCopyReport">复制报告</button>
+        <button class="btn small" id="btnDownloadReport">下载 .md</button>
+      </header>
+      <div class="body"><textarea class="report-box" id="reportBox" readonly spellcheck="false"></textarea></div>
+    </div>
+
+  </section>
+</main>
+
+<footer class="footer">
+  <div>第一现场 SceneOne · 开发者日志与报错诊断台 · <span class="tags">零依赖 · 零上传 · 零安装</span></div>
+  <div class="tags">日志诊断 · 定位问题 · 整理报告</div>
+</footer>
+
+<div class="modal-mask" id="helpModal">
+  <div class="modal">
+    <h2>第一现场怎么用</h2>
+    <h3>它解决什么问题</h3>
+    <p>CI 红了、线上报了、服务挂了——第一反应是翻日志，但几百行输出里真正有用的往往只有开头那几行。这个工具把「翻日志」变成「读诊断」。</p>
+    <h3>使用步骤</h3>
+    <ul>
+      <li>粘贴日志，或把 .log / .txt / .json 文件拖进输入框；</li>
+      <li>点击「开始诊断」（或按 Ctrl+Enter）；</li>
+      <li>先看<b>第一现场</b>：首个真实错误及其上下文，后面成片的报错多半是它引起的级联；</li>
+      <li>按知识库给出的修复建议处理，用「Bug 报告」一键沉淀结论。</li>
+    </ul>
+    <h3>能力边界</h3>
+    <ul>
+      <li>基于确定性规则与内置错误知识库（100+ 条常见错误签名），不调用大模型，结果可复现；</li>
+      <li>所有计算在浏览器本地完成，日志不会离开你的设备——也因此可以安全粘贴生产日志；</li>
+      <li>「疑似级联」是启发式判定，仅供参考，请结合代码上下文确认。</li>
+    </ul>
+    <h3>隐私承诺</h3>
+    <p>无网络请求、无 Cookie、无埋点。页面可断网使用。</p>
+    <div class="close-row"><button class="btn primary" id="btnHelpClose">知道了</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
