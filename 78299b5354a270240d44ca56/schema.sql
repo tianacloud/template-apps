@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS cup_card (id TEXT PRIMARY KEY, data_json TEXT NOT NULL, image_path TEXT NOT NULL DEFAULT '');
