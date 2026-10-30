@@ -4027,7 +4027,7 @@ window.__QR_SRC = '';
         '<span class="dx-note">' +
           (res.probed
             ? '追脉 ' + res.probeGroups.length + ' 维：根漏 ' + res.gaps + ' 处 · 手滑 ' + res.slips + ' 处'
-            : '六维全对，无需追脉') +
+            : '未进行追脉，结果仅依据定基') +
         '</span>' +
       '</div>' +
       '<div class="block">' +
