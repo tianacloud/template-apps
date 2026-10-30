@@ -1074,7 +1074,7 @@ function renderBillPreview(){
     var amt=b.amount%1?b.amount.toFixed(2):b.amount.toFixed(0);
     var sub=c.n+(b.date&&b.date!==todayStr?' · '+b.date:'');
     return '<div class="record-item"><div class="rec-emoji" style="background:'+esc(/^#[0-9a-f]{3,8}$/i.test(c.bg)?c.bg:'#EDEDEA')+'">'+esc(c.e)+'</div>'
-      +'<div class="rec-main"><div class="rec-title">'+esc(b.name)+'</div><div class="rec-sub">'+sub+'</div></div>'
+      +'<div class="rec-main"><div class="rec-title">'+esc(b.name)+'</div><div class="rec-sub">'+esc(sub)+'</div></div>'
       +'<div class="rec-side"><div class="rec-amt">-¥'+amt+'</div></div>'
       +'<button class="del-btn" data-bill="'+i+'" title="移除这一笔">✕</button></div>';
   }).join('');
@@ -1103,10 +1103,10 @@ function recItemHTML(r,hourly,withDel){
   return '<div class="record-item">'
     +'<div class="rec-emoji" style="background:'+esc(/^#[0-9a-f]{3,8}$/i.test(c.bg)?c.bg:'#EDEDEA')+'">'+esc(c.e)+'</div>'
     +'<div class="rec-main"><div class="rec-title">'+esc(c.n)+(r.note?' · '+esc(r.note):'')+'</div>'
-    +'<div class="rec-sub">'+r.date+(r.demo?' · 示例':'')+'</div></div>'
+    +'<div class="rec-sub">'+esc(r.date)+(r.demo?' · 示例':'')+'</div></div>'
     +'<div class="rec-side"><div class="rec-amt">-¥'+amt+'</div>'
     +'<div class="rec-hours">≈ '+h.h+'小时'+h.m+'分工时</div></div>'
-    +(withDel?'<button class="del-btn" data-id="'+r.id+'" title="删除这条记录">✕</button>':'')
+    +(withDel?'<button class="del-btn" data-id="'+esc(r.id)+'" title="删除这条记录">✕</button>':'')
     +'</div>';
 }
 function renderDashboard(){
@@ -1295,7 +1295,7 @@ function renderDebt(){
       +'<span class="debt-dot" style="background:'+DEBT_DOTS[i%DEBT_DOTS.length]+'"></span>'
       +'<div class="debt-main"><div class="debt-name">'+esc(d.name)+(d.demo?'<span class="debt-demo">示例</span>':'')+'</div></div>'
       +'<div class="debt-amt">¥'+amt+'</div>'
-      +'<button class="del-btn" data-debt="'+d.id+'" title="还清了，删掉这条">✕</button>'
+      +'<button class="del-btn" data-debt="'+esc(d.id)+'" title="还清了，删掉这条">✕</button>'
       +'</div>';
   }).join('');
 }
@@ -1347,7 +1347,7 @@ function renderAssets(){
       +'<span class="debt-dot" style="background:'+DEBT_DOTS[i%DEBT_DOTS.length]+'"></span>'
       +'<div class="debt-main"><div class="debt-name">'+esc(a.name)+(a.demo?'<span class="debt-demo">示例</span>':'')+'</div></div>'
       +'<div class="debt-amt">'+(a.amount<0?'-':'')+'¥'+amt+'</div>'
-      +'<button class="del-btn" data-asset="'+a.id+'" title="删掉这个账户">✕</button>'
+      +'<button class="del-btn" data-asset="'+esc(a.id)+'" title="删掉这个账户">✕</button>'
       +'</div>';
   }).join('');
 }
@@ -1988,7 +1988,7 @@ function init(){
     var k=b.getAttribute('data-cc');
     var c=customCats.filter(function(x){return x.k===k})[0];
     if(!c)return;
-    openModal('删除自定义分类「'+esc(c.n)+'」？用它记过的账会显示为「其他」，记录本身不会丢。',function(){
+    openModal('删除自定义分类「'+c.n+'」？用它记过的账会显示为「其他」，记录本身不会丢。',function(){
       customCats=customCats.filter(function(x){return x.k!==k});
       if(selCat===k)selCat='other';
       saveAll();
@@ -2018,7 +2018,7 @@ function init(){
     var id=btn.getAttribute('data-debt');
     var d=debts.filter(function(x){return x.id===id})[0];
     if(!d)return;
-    openModal('「'+esc(d.name)+'」¥'+d.amount+'，还清了吗？删掉后无法恢复。',function(){onDeleteDebt(id)});
+    openModal('「'+d.name+'」¥'+d.amount+'，还清了吗？删掉后无法恢复。',function(){onDeleteDebt(id)});
   });
   /* 资产账户模块 */
   document.getElementById('assetForm').addEventListener('submit',onAddAsset);
@@ -2029,7 +2029,7 @@ function init(){
     var id=btn.getAttribute('data-asset');
     var a=assets.filter(function(x){return x.id===id})[0];
     if(!a)return;
-    openModal('删掉账户「'+esc(a.name)+'」（'+(a.amount<0?'-':'')+'¥'+Math.abs(a.amount).toFixed(Math.abs(a.amount)%1?2:0)+'）？删掉后无法恢复。',function(){onDeleteAsset(id)});
+    openModal('删掉账户「'+a.name+'」（'+(a.amount<0?'-':'')+'¥'+Math.abs(a.amount).toFixed(Math.abs(a.amount)%1?2:0)+'）？删掉后无法恢复。',function(){onDeleteAsset(id)});
   });
   /* 报表：月份切换 / Tab 切换 / 点选日期 */
   document.getElementById('repPrev').addEventListener('click',function(){shiftRepMonth(-1)});
@@ -2133,7 +2133,8 @@ function init(){
 }
 init();
 document.getElementById('preview-reset').addEventListener('click',function(){
-  clearTimeout(syncTimer); clearTimeout(toastTimer); previewStore={}; customCats=[]; curTheme=''; selCat='nai';
+  clearTimeout(syncTimer); clearTimeout(toastTimer); previewStore={}; customCats=[]; pendingBills=[]; curTheme=''; selCat='nai'; pickedEmoji='☕'; warnedBackup=false;
+  renderBillPreview(); closeModal(); lockClose();
   document.querySelectorAll('form').forEach(function(f){f.reset()});
   document.getElementById('toast').classList.remove('show'); document.getElementById('saveResult').style.display='none';
   document.getElementById('inDate').value=fmtDate(new Date());
