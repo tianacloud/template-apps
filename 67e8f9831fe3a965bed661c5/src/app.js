@@ -36,10 +36,12 @@
     plate: $('#plate'),
     vehicleType: $('#vehicleType'),
     usage: $('#usage'),
+    eligibility: $('#eligibility'),
     seats: $('#seats'),
     isNewEnergy: $('#isNewEnergy'),
     isDangerous: $('#isDangerous'),
     firstRegDate: $('#firstRegDate'),
+    officialExpiryDate: $('#officialExpiryDate'),
     lastInspectionDate: $('#lastInspectionDate'),
     method: $('#method'),
     baseDate: $('#baseDate'),
@@ -66,6 +68,7 @@
     els.seats.required = needSeats;
     if (needSeats && !els.seats.value) els.seats.value = type === 'schoolBus' ? 40 : 5;
     $('#dangerRow').classList.toggle('hidden', type !== 'truck');
+    $('#eligibilityRow').classList.toggle('hidden', !(type === 'motorcycle' || (type === 'passenger' && els.usage.value === 'nonOperating')));
   }
 
   /* ------------------------------ 读取表单值 ------------------------------ */
@@ -75,10 +78,12 @@
       plate: els.plate.value.trim().toUpperCase(),
       vehicleType: els.vehicleType.value,
       usage: els.usage.value,
+      eligibility: els.eligibility.value,
       seats: els.seats.value === '' ? '' : Number(els.seats.value),
       isNewEnergy: els.isNewEnergy.checked,
       isDangerous: els.isDangerous.checked,
       firstRegDate: els.firstRegDate.value,
+      officialExpiryDate: els.officialExpiryDate.value,
       lastInspectionDate: els.lastInspectionDate.value,
       method: els.method.value,
       baseDate: els.baseDate.value,
@@ -128,30 +133,18 @@
 
     // 关键指标
     const metrics = [];
-    if (r.status === 'exempt') {
-      metrics.push(metric('免检截止日', r.exemption.endDate, '登记 6 年以内可申请免检', 'info'));
-      metrics.push(metric('免检期剩余', r.exemption.remainingDays, '天', 'info'));
-      metrics.push(metric('首个需上线日', r.exemption.firstOnSiteDue, '满 6 年后按年度周期', 'info'));
-    } else {
-      metrics.push(metric('检验到期日', r.due.date, r.due.sourceLabel, r.days.isOverdue ? 'danger' : ''));
-      if (r.days.isOverdue) {
-        metrics.push(metric('已逾期', r.days.overdue, '天', 'danger'));
-      } else {
-        metrics.push(metric('剩余天数', r.days.remaining, '天', r.days.remaining <= r.input.warnDays ? 'warn' : 'ok'));
-      }
-      // 周期描述去掉"12 个月（…）"的外壳，只保留括号内的频率说明
-      const cycleFreq = r.cycle.text.replace(/^[\d.]+ ?个月（/, '').replace(/）$/, '');
-      metrics.push(metric('检验周期', r.cycle.months, '个月', '', cycleFreq));
-    }
+    metrics.push(metric('提醒日期', r.due.date, r.due.sourceLabel, r.days.isOverdue ? 'danger' : ''));
+    metrics.push(metric(r.days.isOverdue ? '日期已过' : '距提醒日期', r.days.isOverdue ? r.days.overdue : r.days.remaining, '天', r.days.isOverdue ? 'danger' : ''));
+    metrics.push(metric('周期', r.cycle.months, r.cycle.months === '待核实' ? '' : '个月', '', r.cycle.text));
     metrics.push(metric('车辆类型', r.input.vehicleTypeLabel, '', '', r.spec.regime === r.input.vehicleTypeLabel ? '' : r.spec.regime));
     metrics.push(metric('车龄', r.age.text, '', ''));
     metrics.push(
       metric(
         '是否需上线检测',
-        r.needOnSite ? '需要' : '暂不需要',
+        '需核实',
         '',
-        r.needOnSite ? 'warn' : 'ok',
-        r.needOnSite ? r.inspectNote : '当前无需驶入检测站'
+        'warn',
+        r.inspectNote
       )
     );
     $('#metrics').innerHTML = metrics.join('');
@@ -198,7 +191,7 @@
       basisItem('规则依据', r.spec.basis),
       basisItem('检验周期', r.cycle.text + '（车龄 ' + r.age.text + '，阈值 ' + (r.spec.thresholdYears != null ? r.spec.thresholdYears + ' 年' : '固定周期') + '）'),
       basisItem('推算方式', r.due.sourceLabel),
-      basisItem('免检政策', r.exemption.reason + (r.exemption.applicable ? '（免检截止 ' + r.exemption.endDate + '）' : '')),
+      basisItem('免检政策', r.exemption.reason),
       basisItem('判定基准日', r.baseDate + ' · 提醒阈值 ' + r.input.warnDays + ' 天')
     ].join('');
   }
@@ -219,16 +212,14 @@
 
   function statusDesc(r) {
     switch (r.status) {
-      case 'exempt':
-        return '车辆登记未满 6 年，处于免检政策覆盖范围内，本检验周期无需上线检测，但需在到期前办理免检申请。';
       case 'valid':
-        return '当前检验有效，距离本次检验到期还有 ' + r.days.remaining + ' 天（提醒阈值 ' + r.input.warnDays + ' 天）。';
+        return '提醒日期还有 ' + r.days.remaining + ' 天；请核对官方检验有效期。';
       case 'expiring':
         return r.days.remaining === 0
-          ? '今天即为检验到期日，请立即安排上线检测。'
-          : '距离检验到期仅剩 ' + r.days.remaining + ' 天，已进入提醒区间，请尽快预约检测。';
+          ? '提醒日期为今天，请核对官方有效期。 '
+          : '距离提醒日期还有 ' + r.days.remaining + ' 天，请核对官方有效期。';
       case 'overdue':
-        return '车辆已超过检验有效期 ' + r.days.overdue + ' 天，未按规定定期检验的机动车上路行驶将被扣留并处罚。';
+        return '提醒日期已过 ' + r.days.overdue + ' 天；请核对官方检验有效期。';
       default:
         return '';
     }
@@ -268,6 +259,7 @@
   });
 
   els.vehicleType.addEventListener('change', syncConditionalFields);
+  els.usage.addEventListener('change', syncConditionalFields);
 
   $('#btnReset').addEventListener('click', () => {
     form.reset();
@@ -287,10 +279,12 @@
     els.plate.value = v.plate;
     els.vehicleType.value = v.vehicleType;
     els.usage.value = v.usage;
+    els.eligibility.value = 'confirmed';
     els.seats.value = v.seats == null ? '' : v.seats;
     els.isNewEnergy.checked = !!v.isNewEnergy;
     els.isDangerous.checked = !!v.isDangerous;
     els.firstRegDate.value = v.firstRegDate;
+    els.officialExpiryDate.value = v.officialExpiryDate || ''; 
     els.lastInspectionDate.value = v.lastInspectionDate || '';
     els.method.value = v.method;
     els.baseDate.value = v.baseDate;

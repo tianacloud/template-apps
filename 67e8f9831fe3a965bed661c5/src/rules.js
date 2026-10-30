@@ -6,13 +6,13 @@
  * 1. UMD 包装，浏览器（window.VIR）与 Node（require）双端可直接运行；
  * 2. 判定过程全部记录在 result.steps 中，供界面展示"从输入到结论"的推演逻辑；
  * 3. 规则以数据（spec）方式描述，法规更新时只需改 getCycleSpec()；
- * 4. 所有日期按"自然日"计算（忽略时分秒），到期日与检验有效期对齐。
+ * 4. 所有日期按"自然日"计算（忽略时分秒），日期仅作估算，官方有效期以交管记录为准。
  *
  * 法规依据（整理自公开规定，截至 2026-10）：
  * - 《机动车登记规定》（公安部令第 164 号，2022-04-01 施行）关于定期安全技术检验期限；
- * - 《道路交通安全法实施条例》第九十二条（机动车定期检验）；
+ * - 《道路交通安全法实施条例》有关机动车定期检验规定；
  * - 《机动车安全技术检验规程》GB 38900 及配套检验方法标准；
- * - 小型/微型载客汽车 6 年内（含第 6 年）免检政策。
+ * - 2022 年机动车检验制度改革有关规定。
  *
  * 免责说明：本工具仅用于到期提醒推演，最终检验结论以公安交管部门业务系统为准。
  * ============================================================================
@@ -121,123 +121,27 @@
 
   /**
    * 检验周期规则表（按车辆类型 + 使用性质 + 车龄阈值划分）
-   * thresholdYears：达到该年限后检验周期缩短为 12 个月（每年 1 次）
+   * thresholdYears：检验周期变化的年限
    * cycleBefore / cycleAfter：阈值前后的检验周期（月）
-   * exemptable：是否适用"6 年内免检"政策
+   * exemptable：是否可能适用免上线政策
    */
   function getCycleSpec(type, usage, seats, isDangerous) {
-    switch (type) {
-      case 'passenger': {
-        const isOperating = usage === 'operating' || usage === 'nonToOperating';
-        if (isOperating) {
-          // 营运载客汽车：5 年以内每 2 年 1 次，5 年以上每年 1 次
-          return {
-            regime: '营运载客汽车',
-            thresholdYears: 5,
-            cycleBefore: 24,
-            cycleAfter: 12,
-            exemptable: false,
-            basis: '营运载客汽车：5 年以内每 2 年检验 1 次，5 年以上每年检验 1 次。'
-          };
-        }
-        if (Number(seats) <= 9) {
-          // 小型、微型载客汽车：6 年内（含第 6 年）可免检，6 年以上每年 1 次
-          return {
-            regime: '小型、微型载客汽车（9 座以下非营运）',
-            thresholdYears: 6,
-            cycleBefore: 24,
-            cycleAfter: 12,
-            exemptable: true,
-            basis: '小型、微型载客汽车：登记 6 年以内（含第 6 年）可申请免检；6 年以上每年检验 1 次。'
-          };
-        }
-        // 其他非营运载客汽车：10 年以内每 2 年，10 年以上每年
-        return {
-          regime: '非营运载客汽车（10 座及以上）',
-          thresholdYears: 10,
-          cycleBefore: 24,
-          cycleAfter: 12,
-          exemptable: false,
-          basis: '非营运载客汽车：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
-        };
-      }
-      case 'truck': {
-        if (isDangerous) {
-          // 危险货物运输车辆：检验有效期 6 个月
-          return {
-            regime: '危险货物运输车辆',
-            fixedMonths: 6,
-            exemptable: false,
-            basis: '危险货物运输车辆检验有效期 6 个月，即每半年检验 1 次。'
-          };
-        }
-        return {
-          regime: '载货汽车',
-          thresholdYears: 10,
-          cycleBefore: 24,
-          cycleAfter: 12,
-          exemptable: false,
-          basis: '载货汽车：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
-        };
-      }
-      case 'trailer':
-        return {
-          regime: '挂车',
-          thresholdYears: 10,
-          cycleBefore: 24,
-          cycleAfter: 12,
-          exemptable: false,
-          basis: '挂车按载货汽车周期执行：10 年以内每 2 年检验 1 次，超过 10 年每年检验 1 次。'
-        };
-      case 'motorcycle':
-        // 摩托车为特殊排期：第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次
-        return {
-          regime: '摩托车',
-          motorcycle: true,
-          exemptable: false,
-          basis: '摩托车：自注册之日起第 3 年、第 5 年、第 6 年各检验 1 次，此后每年检验 1 次。'
-        };
-      case 'schoolBus':
-        return {
-          regime: '校车',
-          fixedMonths: 12,
-          exemptable: false,
-          basis: '校车每年检验 1 次。'
-        };
-      case 'specialVehicle':
-        return {
-          regime: '专项作业车',
-          fixedMonths: 12,
-          exemptable: false,
-          basis: '专项作业车每年检验 1 次。'
-        };
-      case 'tractor':
-        return {
-          regime: '拖拉机、低速载货汽车',
-          fixedMonths: 12,
-          exemptable: false,
-          basis: '拖拉机、低速载货汽车每年检验 1 次。'
-        };
-      default:
-        return {
-          regime: '未知车辆类型',
-          fixedMonths: 12,
-          exemptable: false,
-          basis: '未识别的车辆类型，按每年检验 1 次保守处理。'
-        };
-    }
+    const operating = usage === 'operating' || usage === 'nonToOperating';
+    if (type === 'passenger' && !operating && Number(seats) <= 9) return {regime:'非营运小微型载客汽车（符合适用条件）',thresholdYears:10,cycleBefore:24,cycleAfter:12,exemptable:true,basis:'10 年内每两年申领检验标志，第 6、10 年上线；超过 10 年每年检验。'};
+    if (type === 'motorcycle') return {regime:'摩托车（符合适用条件）',thresholdYears:10,cycleBefore:24,cycleAfter:12,exemptable:true,basis:'10 年内每两年申领检验标志，第 6、10 年上线；超过 10 年每年检验。'};
+    if (type === 'passenger' && operating) return {regime:'营运载客汽车',thresholdYears:5,cycleBefore:12,cycleAfter:6,exemptable:false,basis:'5 年以内每年检验；达到 5 年后每半年检验。'};
+    if (type === 'truck' && isDangerous) return {regime:'危险货物运输车辆',fixedMonths:6,exemptable:false,basis:'每半年检验。'};
+    if (type === 'truck' || type === 'trailer' || type === 'passenger') return {regime:type === 'passenger'?'大型、中型非营运载客汽车':'载货汽车或挂车',thresholdYears:10,cycleBefore:12,cycleAfter:6,exemptable:false,basis:'10 年以内每年检验；达到 10 年后每半年检验。'};
+    if (type === 'schoolBus') return {regime:'校车',fixedMonths:6,exemptable:false,basis:'每半年检验；具体以校车标牌和登记信息为准。'};
+    return {regime:'其他机动车',fixedMonths:12,exemptable:false,basis:'一般机动车每年检验；特殊车辆请咨询登记地交管部门。'};
   }
 
-  /** 用于界面"规则速查表"展示 */
   const RULE_TABLE = [
-    { type: '小型、微型载客汽车（9 座以下非营运）', cycle: '6 年内免检（每 2 年一周期，可申请免检）；满 6 年后每年 1 次', basis: '小型、微型载客汽车 6 年内（含第 6 年）免检政策' },
-    { type: '非营运载客汽车（10 座及以上）', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '《机动车登记规定》定期检验期限' },
-    { type: '营运载客汽车', cycle: '5 年以内每 2 年 1 次；5 年以上每年 1 次', basis: '《机动车登记规定》定期检验期限' },
-    { type: '载货汽车', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '《机动车登记规定》定期检验期限' },
-    { type: '危险货物运输车辆', cycle: '检验有效期 6 个月（每半年 1 次）', basis: '危险货物运输车辆专项要求' },
-    { type: '挂车', cycle: '10 年以内每 2 年 1 次；超过 10 年每年 1 次', basis: '与载货汽车周期一致' },
-    { type: '摩托车', cycle: '第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次', basis: '《机动车登记规定》定期检验期限' },
-    { type: '校车 / 专项作业车 / 拖拉机（低速载货汽车）', cycle: '每年检验 1 次', basis: '《机动车登记规定》定期检验期限' }
+    {type:'符合条件的非营运小微型载客汽车、摩托车',cycle:'10 年内每两年申领标志，第 6、10 年上线；超过 10 年每年检验',basis:'2022 年车检改革；面包车和特殊情形除外'},
+    {type:'营运载客汽车',cycle:'5 年内每年；达到 5 年每半年',basis:'机动车检验规定'},
+    {type:'载货汽车、大型中型非营运载客汽车',cycle:'10 年内每年；达到 10 年每半年',basis:'机动车检验规定'},
+    {type:'危险货物运输车辆 / 校车',cycle:'每半年',basis:'以登记信息及专项规定为准'},
+    {type:'其他机动车',cycle:'一般每年',basis:'特殊车辆请向交管部门核实'}
   ];
 
   /* ============================ 3. 输入校验 ============================ */
@@ -287,6 +191,12 @@
       }
     }
 
+    if (!input.officialExpiryDate && input.usage === 'operatingToNon') errors.push({field:'usage', message:'营转非车辆适用规则可能不同，请向交管部门核实，暂不能估算。'});
+    if (!input.officialExpiryDate && (input.vehicleType === 'motorcycle' || (input.vehicleType === 'passenger' && input.usage === 'nonOperating' && Number(input.seats) <= 9)) && input.eligibility !== 'confirmed') errors.push({field:'eligibility', message:'请确认符合所列条件；不确定或不符合时请向交管部门核实。'});
+    if (!input.officialExpiryDate && (input.vehicleType === 'trailer' || input.vehicleType === 'specialVehicle' || input.vehicleType === 'tractor')) errors.push({field:'vehicleType', message:'该车辆可能适用专项规则，暂不能准确估算，请向交管部门核实。'});
+
+    if (input.officialExpiryDate && !parseDate(input.officialExpiryDate)) errors.push({field:'officialExpiryDate', message:'请输入合法的检验有效期日期。'});
+
     // --- 首次登记日期 ---
     const firstReg = parseDate(input.firstRegDate);
     if (!input.firstRegDate) {
@@ -316,7 +226,7 @@
     const method = input.method || 'auto';
     if (!['auto', 'lastInspection', 'firstRegistration'].includes(method)) {
       errors.push({ field: 'method', message: '未知的判定方式' });
-    } else if (method === 'lastInspection' && !lastInsp) {
+    } else if (!input.officialExpiryDate && method === 'lastInspection' && !lastInsp) {
       errors.push({ field: 'lastInspectionDate', message: '选择"按上次年检时间推算"时，必须填写上次年检日期' });
     }
 
@@ -332,415 +242,33 @@
   /* ====================== 4. 检验周期与到期日推算 ====================== */
 
   /** 某次检验日对应的下一检验周期（月）；摩托车走专用排期 */
-  function cycleMonthsAt(spec, firstReg, inspectionDate) {
+  function cycleMonthsAt(spec, firstReg, date) {
     if (spec.fixedMonths) return spec.fixedMonths;
-    if (spec.motorcycle) return 12;
-    const age = fullYears(firstReg, inspectionDate);
-    return age < spec.thresholdYears ? spec.cycleBefore : spec.cycleAfter;
+    return fullYears(firstReg, date) < spec.thresholdYears ? spec.cycleBefore : spec.cycleAfter;
   }
-
-  /**
-   * 由"某次检验日"推算下一次到期日
-   * 若检验周期跨过了年限阈值（如 6 年 / 10 年），按阈值后的年度周期提前到期
-   */
-  function nextDueFromInspection(spec, firstReg, inspectionDate) {
-    const months = cycleMonthsAt(spec, firstReg, inspectionDate);
-    let due = addMonths(inspectionDate, months);
-
-    if (!spec.fixedMonths && !spec.motorcycle && months > 12) {
-      const thresholdDate = addYears(firstReg, spec.thresholdYears);
-      const crosses = inspectionDate.getTime() < thresholdDate.getTime() && due.getTime() > thresholdDate.getTime();
-      if (crosses) {
-        const yearlyDue = addMonths(thresholdDate, 12);
-        if (yearlyDue.getTime() < due.getTime()) due = yearlyDue;
-      }
-    }
-    return due;
-  }
-
-  /** 摩托车专用检验排期：第 3 年、第 5 年、第 6 年各 1 次，此后每年 1 次（count 为逐年项数量） */
-  function motorcycleSchedule(firstReg, count) {
-    const list = [addYears(firstReg, 3), addYears(firstReg, 5), addYears(firstReg, 6)];
-    const years = count || 40;
-    for (let y = 7; y < 7 + years; y += 1) list.push(addYears(firstReg, y));
-    return list;
-  }
-
-  /** 生成自首次登记起的完整检验周期序列（用于"按首次登记推算"与一致性核对） */
-  function buildDueSequence(spec, firstReg, count) {
-    const n = count || 40;
-    if (spec.motorcycle) return motorcycleSchedule(firstReg, n);
-    const seq = [];
-    let cursor = startOfDay(firstReg);
-    for (let i = 0; i < n; i += 1) {
-      cursor = nextDueFromInspection(spec, firstReg, cursor);
-      seq.push(cursor);
-    }
-    return seq;
-  }
-
-  /**
-   * 免检判定
-   * 依据：小型、微型载客汽车登记 6 年以内（含第 6 年）可申请免检上线检验
-   */
-  function getExemption(spec, firstReg, baseDate) {
-    if (!spec.exemptable) {
-      return {
-        applicable: false,
-        active: false,
-        endDate: null,
-        reason: '该车辆类型不适用"6 年内免检"政策（仅小型、微型载客汽车适用）'
-      };
-    }
-    const endDate = addYears(firstReg, 6);
-    // 基准日早于或等于免检截止日 → 仍在免检期内（diffDays(baseDate, endDate) <= 0）
-    const active = diffDays(baseDate, endDate) <= 0;
-    return {
-      applicable: true,
-      active: active,
-      endDate: endDate,
-      reason: active
-        ? '车龄未满 6 年，登记 6 年以内（含第 6 年）可申请免检上线检验'
-        : '车龄已满 6 年，免检政策不再适用，需按周期上线检验'
-    };
-  }
-
-  /* ========================= 5. 主判定流程 ========================= */
-
-  /**
-   * 车辆年检到期判定主函数
-   * @param {object} input  表单输入
-   * @param {object} options { today, warnDays }
-   * @returns {object} 判定结果（含推演步骤 steps）
-   */
+  function nextDueFromInspection(spec, firstReg, date) { return addMonths(date, cycleMonthsAt(spec, firstReg, date)); }
+  function motorcycleSchedule(firstReg, count) { const out=[]; for (let y=2;y<=10;y+=2) out.push(addYears(firstReg,y)); for(let y=11;y<11+(count||40);y++) out.push(addYears(firstReg,y)); return out; }
+  function buildDueSequence(spec, firstReg, count) { const out=[]; let d=firstReg; for(let i=0;i<(count||80);i++){d=nextDueFromInspection(spec,firstReg,d);out.push(d);} return out; }
+  function getExemption(spec, firstReg, baseDate) { return {applicable:!!spec.exemptable,active:false,endDate:spec.exemptable?addYears(firstReg,10):null,reason:spec.exemptable?'第 2、4、8 年可免上线；实际适用条件由交管部门核实。':'本类别按相应规定上线检验。'}; }
   function evaluate(input, options) {
-    const opts = options || {};
-    const baseDate = parseDate(opts.today) || startOfDay(new Date());
-    const warnDays = opts.warnDays != null ? Number(opts.warnDays) : 30;
-
-    const errors = validateInput(input, baseDate);
-    if (errors.length) {
-      return { ok: false, errors: errors, steps: [], timeline: [], warnings: [], advice: [] };
-    }
-
-    const steps = [];
-    const warnings = [];
-    const advice = [];
-    const push = (title, detail, formula) => steps.push({ index: steps.length + 1, title, detail, formula: formula || '' });
-
-    /* 步骤 1：输入解析 */
-    const plate = String(input.plate || '').trim().toUpperCase().replace(/\s|·/g, '');
-    const typeLabel = VEHICLE_TYPES.find((t) => t.value === input.vehicleType).label;
-    const usageLabel = USAGE_NATURES.find((u) => u.value === input.usage).label;
-    const firstReg = parseDate(input.firstRegDate);
-    const lastInsp = input.lastInspectionDate ? parseDate(input.lastInspectionDate) : null;
-    const seats = input.vehicleType === 'truck' ? null : Number(input.seats || 0);
-
-    push(
-      '输入解析与校验',
-      `车牌 ${plate}、车辆类型「${typeLabel}」、使用性质「${usageLabel}」` +
-        (seats ? `、核定载人数 ${seats} 人` : '') +
-        `、首次登记日期 ${fmtDate(firstReg)}` +
-        (lastInsp ? `、上次年检日期 ${fmtDate(lastInsp)}` : '、未填写上次年检日期'),
-      '校验通过：无空值、日期合法、车牌格式合法、日期先后关系正确'
-    );
-
-    /* 步骤 2：车龄计算 */
-    const ageYears = fullYears(firstReg, baseDate);
-    const ageTextValue = ageText(firstReg, baseDate);
-    push(
-      '车龄计算',
-      `首次登记 ${fmtDate(firstReg)} → 判定基准日 ${fmtDate(baseDate)}，车龄 ${ageTextValue}（已满 ${ageYears} 年）`,
-      `车龄 = 基准日 ${fmtDate(baseDate)} − 首次登记日 ${fmtDate(firstReg)} = ${ageTextValue}`
-    );
-
-    /* 步骤 3：检验周期判定 */
-    const spec = getCycleSpec(input.vehicleType, input.usage, seats, !!input.isDangerous);
-    let cycleMonths;
-    let cycleText;
-    if (spec.motorcycle) {
-      cycleMonths = 12;
-      cycleText = '特殊排期（第 3 / 5 / 6 年各 1 次，此后每年 1 次）';
-    } else if (spec.fixedMonths) {
-      cycleMonths = spec.fixedMonths;
-      cycleText = cycleMonths + ' 个月（' + (cycleMonths === 6 ? '每半年 1 次' : '每年 1 次') + '）';
-    } else {
-      cycleMonths = ageYears < spec.thresholdYears ? spec.cycleBefore : spec.cycleAfter;
-      const beforeText = spec.cycleBefore === 24 ? '每 2 年 1 次' : '每年 1 次';
-      const afterText = spec.cycleAfter === 24 ? '每 2 年 1 次' : '每年 1 次';
-      cycleText = cycleMonths + ' 个月（' + (ageYears < spec.thresholdYears ? beforeText : afterText) + '）';
-    }
-    push(
-      '检验周期判定',
-      `适用规则：${spec.regime} → 当前周期 ${cycleText}；依据：${spec.basis}`,
-      spec.motorcycle
-        ? `摩托车按第 3、5、6 年及此后每年排期`
-        : spec.fixedMonths
-        ? `固定周期 = ${cycleMonths} 个月`
-        : `车龄 ${ageYears} 年 ${ageYears < spec.thresholdYears ? '<' : '≥'} 阈值 ${spec.thresholdYears} 年 → 周期 = ${cycleMonths} 个月`
-    );
-
-    /* 步骤 4：免检判定 */
-    const exemption = getExemption(spec, firstReg, baseDate);
-    let exemptionDue = null;
-    if (exemption.applicable) {
-      if (exemption.active) {
-        // 免检期内：满 6 年后转入年度周期，首次需要上线的到期日 = 免检截止日 + 12 个月
-        exemptionDue = addMonths(exemption.endDate, 12);
-        push(
-          '免检政策判定',
-          `符合免检条件，免检期至 ${fmtDate(exemption.endDate)}；首个需上线检验的到期日预计 ${fmtDate(exemptionDue)}`,
-          `免检截止日 = 首次登记日 ${fmtDate(firstReg)} + 6 年 = ${fmtDate(exemption.endDate)}；满 6 年后按年度周期 → ${fmtDate(exemptionDue)}`
-        );
-      } else {
-        push(
-          '免检政策判定',
-          `车龄已满 6 年，免检政策不再适用（免检截止日 ${fmtDate(exemption.endDate)}）`,
-          `基准日 ${fmtDate(baseDate)} > 免检截止日 ${fmtDate(exemption.endDate)}`
-        );
-      }
-    } else {
-      push('免检政策判定', exemption.reason, '不满足小型、微型载客汽车免检适用条件');
-    }
-
-    /* 步骤 5：推算下一次到期日 */
-    const method = input.method || 'auto';
-    const effectiveMethod = method === 'auto' ? (lastInsp ? 'lastInspection' : 'firstRegistration') : method;
-
-    // 检验周期序列（自首次登记起）：两种推算方式与一致性核对共用
-    const sequence = buildDueSequence(spec, firstReg, 40);
-
-    let dueDate = null;    // 主到期日（界面主展示）
-    let periodDue = null;  // 本检验周期到期日
-    let nextAfter = null;  // 完成本次检验后的下一到期日
-    let dueSource = '';
-    let dueSourceLabel = '';
-
-    if (effectiveMethod === 'lastInspection') {
-      // 方式一：上次年检日 + 检验周期
-      dueDate = nextDueFromInspection(spec, firstReg, lastInsp);
-      periodDue = dueDate;
-      nextAfter = nextDueFromInspection(spec, firstReg, dueDate);
-      dueSource = 'lastInspection';
-      dueSourceLabel = '按上次年检时间推算';
-      push(
-        '推算下次到期日（以上次年检为基准）',
-        `上次年检 ${fmtDate(lastInsp)} + 检验周期 ${cycleMonths} 个月 → 本次检验到期日 ${fmtDate(dueDate)}；` +
-          `若本次检验合格，下一到期日为 ${fmtDate(nextAfter)}`,
-        `本次到期日 = 上次年检日 ${fmtDate(lastInsp)} + ${cycleMonths} 个月 = ${fmtDate(dueDate)}`
-      );
-    } else {
-      // 方式二：首次登记日按周期序列推演
-      // 取"已到期但未推演到的上一个周期"作为本检验周期到期日，避免漏判逾期
-      const passed = sequence.filter((d) => diffDays(baseDate, d) >= 0);
-      periodDue = passed.length ? passed[passed.length - 1] : sequence[0];
-      const upcoming = sequence.find((d) => diffDays(d, baseDate) > 0);
-      nextAfter = upcoming || sequence[sequence.length - 1];
-      dueDate = periodDue;
-      dueSource = 'firstRegistration';
-      dueSourceLabel = '按首次登记日期推算';
-      const recent = sequence.filter((d) => diffDays(baseDate, d) >= 0).slice(-4);
-      push(
-        '推算检验周期序列与到期日（以首次登记为基准）',
-        `周期序列：${recent.map(fmtDate).join(' → ')} → …；` +
-          `本检验周期到期日 ${fmtDate(periodDue)}，完成检验后下一到期日 ${fmtDate(nextAfter)}`,
-        `序列推演：${recent.map(fmtDate).join(' → ')} → ${fmtDate(periodDue)}（≤ ${fmtDate(baseDate)}）→ ${fmtDate(nextAfter)}`
-      );
-      if (!exemption.active) {
-        warnings.push(
-          '未填写"上次年检日期"：以上到期日由首次登记日期按周期序列推演得到。若该周期已完成过检验，' +
-            '请补充上次年检日期，系统将自动切换为"按上次年检时间推算"精确判定。'
-        );
-      }
-    }
-
-    /* 步骤 6：一致性与边界核对 */
-    if (effectiveMethod === 'lastInspection' && !spec.motorcycle) {
-      const nearest = sequence.reduce((best, d) => {
-        const dist = Math.abs(diffDays(d, lastInsp));
-        return !best || dist < best.dist ? { date: d, dist } : best;
-      }, null);
-      if (nearest && nearest.dist > 45) {
-        warnings.push(
-          `填写的上次年检日期 ${fmtDate(lastInsp)} 与按首次登记推算的检验周期序列（最近一次 ${fmtDate(nearest.date)}）相差 ${nearest.dist} 天，请核对是否填错。`
-        );
-        push(
-          '检验周期一致性核对',
-          `上次年检 ${fmtDate(lastInsp)} 与周期序列最近节点 ${fmtDate(nearest.date)} 相差 ${nearest.dist} 天（超过 45 天容差），请核对填报日期`,
-          `|${fmtDate(lastInsp)} − ${fmtDate(nearest.date)}| = ${nearest.dist} 天 > 45 天容差`
-        );
-      } else {
-        push(
-          '检验周期一致性核对',
-          `上次年检 ${fmtDate(lastInsp)} 与周期序列最近节点 ${fmtDate(nearest.date)} 相差 ${nearest.dist} 天，数据自洽`,
-          `|${fmtDate(lastInsp)} − ${fmtDate(nearest.date)}| = ${nearest.dist} 天 ≤ 45 天容差`
-        );
-      }
-    } else {
-      push(
-        '检验周期一致性核对',
-        effectiveMethod === 'firstRegistration'
-          ? '本次结论直接由首次登记日期的检验周期序列推演得出，无需交叉核对'
-          : '摩托车采用第 3 / 5 / 6 年及此后逐年的专用排期，不与常规周期序列交叉核对',
-        '核对方式：按车辆类型选用对应周期序列'
-      );
-    }
-
-    /* 步骤 6.5：免检期内到期日改按"首个需上线检验日" */
-    const exemptMode = exemption.active;
-    if (exemptMode) {
-      dueDate = exemptionDue;
-      nextAfter = addMonths(exemptionDue, 12);
-      dueSource = 'exemption';
-      dueSourceLabel = '免检期内（按满 6 年后年度周期推算首个上线日）';
-    }
-
-    /* 步骤 7：天数计算 */
-    const days = diffDays(dueDate, baseDate);
-    const remaining = days >= 0 ? days : 0;
-    const overdue = days < 0 ? -days : 0;
-    push(
-      '剩余天数计算',
-      days >= 0
-        ? `基准日 ${fmtDate(baseDate)} → 到期日 ${fmtDate(dueDate)}，剩余 ${days} 天`
-        : `基准日 ${fmtDate(baseDate)} → 到期日 ${fmtDate(dueDate)}，已逾期 ${-days} 天`,
-      days >= 0
-        ? `剩余天数 = ${fmtDate(dueDate)} − ${fmtDate(baseDate)} = ${days} 天`
-        : `逾期天数 = ${fmtDate(baseDate)} − ${fmtDate(dueDate)} = ${-days} 天`
-    );
-
-    /* 步骤 8：状态判定 */
-    let status;
-    let statusLabel;
-    let statusTone;
-    if (exemptMode) {
-      status = 'exempt';
-      statusLabel = '免检期内';
-      statusTone = 'info';
-    } else if (days < 0) {
-      status = 'overdue';
-      statusLabel = '已逾期';
-      statusTone = 'danger';
-    } else if (days <= warnDays) {
-      status = 'expiring';
-      statusLabel = days === 0 ? '今日到期' : '即将到期';
-      statusTone = 'warn';
-    } else {
-      status = 'valid';
-      statusLabel = '检验有效';
-      statusTone = 'ok';
-    }
-    push(
-      '状态判定',
-      `剩余 ${days >= 0 ? days + ' 天' : '逾期 ' + -days + ' 天'}，提醒阈值 ${warnDays} 天 → 判定为「${statusLabel}」`,
-      status === 'exempt'
-        ? '免检政策生效 → 免检期内'
-        : status === 'overdue'
-          ? `${days} < 0 → 已逾期`
-          : status === 'expiring'
-            ? `0 ≤ ${days} ≤ ${warnDays} → 即将到期`
-            : `${days} > ${warnDays} → 检验有效`
-    );
-
-    /* 是否需要上线检测 */
-    const needOnSite = status === 'expiring' || status === 'overdue';
-    const inspectNote = spec.motorcycle
-      ? '摩托车检验需将车辆送至具备摩托车检测能力的检测站上线检测'
-      : spec.fixedMonths === 6
-        ? '危险货物运输车辆须每半年到检测站上线检验并取得检验合格标志'
-        : '安全技术检验需将车辆驶入检测站上线检测';
-
-    /* 连续 3 个检验周期未检验提示 */
-    const cycleSpanMonths = spec.motorcycle ? 12 : cycleMonths;
-    if (!exemptMode && overdue > 0 && overdue > cycleSpanMonths * 3 * 30) {
-      warnings.push(
-        `已连续超过 3 个检验周期（≈ ${cycleSpanMonths * 3} 个月）未参加定期检验，车辆可能已达到强制报废/注销条件，请尽快到检测站检验并咨询车管所。`
-      );
-    }
-
-    /* 处罚与提示 */
-    if (status === 'overdue') {
-      warnings.push(
-        `逾期未检验的机动车上道路行驶，将被扣留机动车并处罚款（通常 200 元），且未按规定定期进行安全技术检验的，一次记 3 分（以实际执法为准）。`
-      );
-    }
-    if (exemptMode) {
-      advice.push('免检期内仍需在每个检验周期到期前，通过"交管 12123"办理免检申请（需无违法未处理、无未结事故，并已投保交强险）。');
-      advice.push(`免检期至 ${fmtDate(exemption.endDate)}，首个需上线检验的到期日预计 ${fmtDate(exemptionDue)}，建议提前 30 天关注。`);
-    } else if (status === 'valid') {
-      advice.push(`当前检验有效，下次到期日 ${fmtDate(dueDate)}，建议在到期前 30 天内预约检测。`);
-    } else if (status === 'expiring') {
-      advice.push(`请尽快到具备资质的检测站进行上线检验，检验合格后由系统自动更新检验有效期；${inspectNote}。`);
-    } else {
-      advice.push(`车辆已逾期 ${overdue} 天，请立即联系检测站预约上线检验，检验合格前不得上路行驶。`);
-    }
-
-    /* 时间轴 */
-    const timeline = [];
-    timeline.push({ date: fmtDate(firstReg), label: '首次登记', type: 'start' });
-    if (exemption.applicable) {
-      timeline.push({
-        date: fmtDate(exemption.endDate),
-        label: exemption.active ? '免检截止' : '免检期结束',
-        type: 'exempt'
-      });
-    }
-    if (lastInsp) timeline.push({ date: fmtDate(lastInsp), label: '上次年检', type: 'last' });
-    timeline.push({ date: fmtDate(dueDate), label: exemptMode ? '首个上线日' : '下次到期', type: 'due' });
-
-    return {
-      ok: true,
-      input: {
-        plate,
-        vehicleType: input.vehicleType,
-        vehicleTypeLabel: typeLabel,
-        usage: input.usage,
-        usageLabel,
-        seats: seats || null,
-        isNewEnergy: !!input.isNewEnergy,
-        isDangerous: !!input.isDangerous,
-        firstRegDate: fmtDate(firstReg),
-        lastInspectionDate: lastInsp ? fmtDate(lastInsp) : '',
-        method,
-        effectiveMethod,
-        warnDays
-      },
-      baseDate: fmtDate(baseDate),
-      age: { years: ageYears, text: ageTextValue },
-      spec: { regime: spec.regime, basis: spec.basis, thresholdYears: spec.thresholdYears || null },
-      cycle: { months: cycleMonths, text: cycleText },
-      exemption: {
-        applicable: exemption.applicable,
-        active: exemption.active,
-        endDate: exemption.endDate ? fmtDate(exemption.endDate) : '',
-        firstOnSiteDue: exemptionDue ? fmtDate(exemptionDue) : '',
-        remainingDays: exemption.endDate ? Math.max(0, diffDays(exemption.endDate, baseDate)) : null,
-        reason: exemption.reason
-      },
-      due: {
-        date: fmtDate(dueDate),
-        periodDue: fmtDate(periodDue),
-        nextAfterThis: fmtDate(nextAfter),
-        source: dueSource,
-        sourceLabel: dueSourceLabel,
-        methodLabel: dueSourceLabel
-      },
-      days: {
-        raw: days,
-        remaining: remaining,
-        overdue: overdue,
-        isOverdue: days < 0
-      },
-      status: status,
-      statusLabel: statusLabel,
-      statusTone: statusTone,
-      needOnSite: needOnSite,
-      inspectNote: inspectNote,
-      warnings: warnings,
-      advice: advice,
-      steps: steps,
-      timeline: timeline
-    };
+    const baseDate=parseDate(options && options.today)||startOfDay(new Date());
+    const errors=validateInput(input,baseDate); if(errors.length) return {ok:false,errors};
+    const first=parseDate(input.firstRegDate), last=parseDate(input.lastInspectionDate), age=fullYears(first,baseDate);
+    const suppliedExpiry=parseDate(input.officialExpiryDate);
+    const spec=getCycleSpec(input.vehicleType,input.usage,Number(input.seats),!!input.isDangerous);
+    if (suppliedExpiry && (input.usage === 'operatingToNon' || input.eligibility !== 'confirmed' || ['trailer','specialVehicle','tractor'].includes(input.vehicleType))) { spec.basis='此情形的周期须向交管部门核实，提醒使用自行填写的有效期。'; spec.regime='具体规则待核实'; }
+    const seq=buildDueSequence(spec,first,120); const method=input.method||'auto';
+    const useLast=method==='lastInspection'||(method==='auto' && last);
+    const due=suppliedExpiry || (useLast?nextDueFromInspection(spec,first,last):(seq.find(d=>d.getTime()>=baseDate.getTime())||seq[seq.length-1]));
+    const days=diffDays(due,baseDate), warnDays=Number(input.warnDays), months=cycleMonthsAt(spec,first,useLast?last:baseDate);
+    const typeLabel=VEHICLE_TYPES.find(x=>x.value===input.vehicleType).label, usageLabel=USAGE_NATURES.find(x=>x.value===input.usage).label;
+    const sourceLabel=suppliedExpiry?'按用户填写的有效期提醒':useLast?'按上次检验日估算':'按登记周期估算';
+    const status=days<0?'overdue':days<=warnDays?'expiring':'valid';
+    const statusLabel=suppliedExpiry?(days<0?'填写日期已过':days<=warnDays?'填写日期临近':'填写日期'):(days<0?'估算已到期':days<=warnDays?'估算临期':'估算日期');
+    const next=seq.find(d=>d.getTime()>due.getTime());
+    const warnings=['请在交管 12123 或行驶证上核实有效期；本页面不能证明车辆当前检验有效。', suppliedExpiry?'提醒使用自行填写的日期，请确认其与官方记录一致。':'提前检验、逾期、变更用途和特殊车辆等可能影响有效期，不能仅用上次检验日确定官方到期日。'];
+    const exemption=getExemption(spec,first,baseDate); if(suppliedExpiry && spec.regime==='具体规则待核实') exemption.reason='具体适用条件和是否需上线请向交管部门核实。';
+    return {ok:true,input:{plate:String(input.plate).trim().toUpperCase(),vehicleType:input.vehicleType,vehicleTypeLabel:typeLabel,usage:input.usage,usageLabel,seats:Number(input.seats)||null,warnDays},baseDate:fmtDate(baseDate),age:{years:age,text:ageText(first,baseDate)},spec:{regime:spec.regime,basis:spec.basis,thresholdYears:spec.thresholdYears||null},cycle:{months:spec.regime==='具体规则待核实'?'待核实':months,text:spec.regime==='具体规则待核实'?'具体周期待核实':months+' 个月（估算周期）'},exemption:{applicable:exemption.applicable,active:false,endDate:exemption.endDate?fmtDate(exemption.endDate):'',reason:exemption.reason},due:{date:fmtDate(due),sourceLabel,periodDue:fmtDate(due),nextAfterThis:next?fmtDate(next):''},days:{raw:days,remaining:Math.max(days,0),overdue:Math.max(-days,0),isOverdue:days<0},status,statusLabel,statusTone:days<0?'danger':days<=warnDays?'warn':'info',needOnSite:null,inspectNote:'需根据车辆情况及官方记录核实',warnings,advice:['先核对官方检验有效期和是否需要上线，再安排申领或检验。'],timeline:[{date:fmtDate(first),label:'首次登记',type:'start'},...(last?[{date:fmtDate(last),label:'上次检验',type:'last'}]:[]),{date:fmtDate(due),label:suppliedExpiry?'填写日期':'估算日期',type:'due'}],steps:[{title:'输入与适用条件',detail:typeLabel+' · '+usageLabel+'；'+spec.regime},{title:'周期规则',detail:spec.basis},{title:'日期估算',detail:sourceLabel+'：'+fmtDate(due),formula:'估算日期与官方有效期可能不同'}]};
   }
 
   /* ============================ 6. 导出 ============================ */

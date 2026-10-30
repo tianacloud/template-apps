@@ -1,5 +1,5 @@
 /**
- * 示例数据集：覆盖"正常未到期 / 即将到期 / 已逾期 / 免检期内 / 摩托车特殊排期"五类典型场景
+ * 示例数据集：展示不同车辆和日期的估算
  * baseDate 固定为 2026-10-22，保证演示结果可复现（可在界面中修改基准日）
  */
 (function (root, factory) {
@@ -15,9 +15,9 @@
   return [
     {
       key: 'valid',
-      title: '正常未到期',
-      badge: '检验有效',
-      desc: '小型微客满 6 年后每年检验一次，上次年检在有效期内',
+      title: '非营运客车',
+      badge: '日期估算',
+      desc: '非营运小微型客车，按上次检验日期估算',
       input: {
         plate: '京A88888',
         vehicleType: 'passenger',
@@ -30,21 +30,13 @@
         method: 'lastInspection',
         baseDate: '2026-10-22',
         warnDays: 30
-      },
-      expect: {
-        status: 'valid',
-        statusLabel: '检验有效',
-        dueDate: '2027-03-16',
-        remaining: 145,
-        overdue: 0,
-        needOnSite: false
       }
     },
     {
       key: 'expiring',
-      title: '即将到期',
-      badge: '剩余 14 天',
-      desc: '距离到期不足 30 天，需要尽快预约上线检测',
+      title: '新能源客车',
+      badge: '日期估算',
+      desc: '新能源客车按上次检验日期估算',
       input: {
         plate: '粤BD12345',
         vehicleType: 'passenger',
@@ -57,21 +49,13 @@
         method: 'lastInspection',
         baseDate: '2026-10-22',
         warnDays: 30
-      },
-      expect: {
-        status: 'expiring',
-        statusLabel: '即将到期',
-        dueDate: '2026-11-05',
-        remaining: 14,
-        overdue: 0,
-        needOnSite: true
       }
     },
     {
       key: 'overdue',
-      title: '已逾期',
-      badge: '逾期 157 天',
-      desc: '载货汽车 10 年以内每 2 年检验一次，已超过检验有效期',
+      title: '载货汽车',
+      badge: '日期估算',
+      desc: '载货汽车按登记年限估算周期',
       input: {
         plate: '川AD66H66',
         vehicleType: 'truck',
@@ -84,21 +68,13 @@
         method: 'lastInspection',
         baseDate: '2026-10-22',
         warnDays: 30
-      },
-      expect: {
-        status: 'overdue',
-        statusLabel: '已逾期',
-        dueDate: '2026-05-18',
-        remaining: 0,
-        overdue: 157,
-        needOnSite: true
       }
     },
     {
       key: 'exempt',
-      title: '免检期内',
-      badge: '免检至 2030-05-10',
-      desc: '小型微客登记未满 6 年，本周期可申请免检上线检验',
+      title: '新登记客车',
+      badge: '日期估算',
+      desc: '符合条件的小微型客车按登记日期估算',
       input: {
         plate: '沪C88888',
         vehicleType: 'passenger',
@@ -111,20 +87,13 @@
         method: 'firstRegistration',
         baseDate: '2026-10-22',
         warnDays: 30
-      },
-      expect: {
-        status: 'exempt',
-        statusLabel: '免检期内',
-        dueDate: '2031-05-10',
-        exemptionEnd: '2030-05-10',
-        needOnSite: false
       }
     },
     {
       key: 'motorcycle',
-      title: '摩托车特殊排期',
-      badge: '逾期 63 天',
-      desc: '摩托车第 3 年首次检验，自注册满 3 年起算，当前已错过检验期',
+      title: '摩托车',
+      badge: '日期估算',
+      desc: '符合条件的摩托车按登记周期估算',
       input: {
         plate: '桂D88888',
         vehicleType: 'motorcycle',
@@ -137,13 +106,6 @@
         method: 'firstRegistration',
         baseDate: '2026-10-22',
         warnDays: 30
-      },
-      expect: {
-        status: 'overdue',
-        statusLabel: '已逾期',
-        dueDate: '2026-08-20',
-        overdue: 63,
-        needOnSite: true
       }
     }
   ];
