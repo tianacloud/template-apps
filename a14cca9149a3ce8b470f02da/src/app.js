@@ -668,8 +668,8 @@ function updateWallet(){
 }
 async function persistSave(){
   scoreReady = false; updateControls();
-  try { save = await awardWin(); updateWallet(); $('#score-status').textContent = '积分已保存'; }
-  catch(e) { $('#score-status').textContent = '积分保存结果未知，请刷新后核对'; updateControls(); return; }
+  try { save = await awardWin(); updateWallet(); $('#score-status').textContent = '积分已保存'; $('#bet-settle').textContent = $('#bet-settle').textContent.replace('正在保存…', '积分已保存'); }
+  catch(e) { $('#score-status').textContent = '积分保存结果未知，请刷新后核对'; $('#bet-settle').textContent = $('#bet-settle').textContent.replace('正在保存…', '保存结果未知，请刷新后核对'); updateControls(); return; }
   scoreReady = true; updateControls();
 }
 
