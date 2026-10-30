@@ -3535,7 +3535,7 @@ $('#import-input').onchange=e=>{
   const r=new FileReader();
   r.onload=()=>{ try{ const d=JSON.parse(r.result); state=Object.assign(defaultState(),d);
     if(!state.stats) state.stats=defaultState().stats; if(!state.badges) state.badges={};
-    save(); refresh(); toast('恢复成功！'); }catch(err){ toast('文件格式不对'); } };
+    save(); applyName(); refresh(); toast('恢复成功！'); }catch(err){ toast('文件格式不对'); } };
   r.readAsText(f);
   e.target.value='';
 };
