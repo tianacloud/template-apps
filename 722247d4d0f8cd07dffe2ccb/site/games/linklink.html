@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>连连看 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .ll-timer-wrap { width: 100%; max-width: 560px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .ll-timer { flex: 1; height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .ll-timer i { display: block; height: 100%; width: 100%; border-radius: 999px; background: linear-gradient(90deg, #2fbf8f, #5b6ef5); transition: width .3s linear; }
+  .ll-timer.low i { background: linear-gradient(90deg, #ff9f43, #f2545b); }
+  .ll-sec { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 14px; min-width: 46px; text-align: right; color: var(--ink-2); }
+
+  .ll-board {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 6px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    touch-action: manipulation;
+  }
+  .ll-tile {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s, opacity .2s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+  }
+  .ll-tile svg { width: 62%; height: 62%; }
+  .ll-tile:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .ll-tile.on { box-shadow: 0 0 0 2.5px var(--brand), var(--shadow-sm); transform: translateY(-1px); background: var(--brand-soft); }
+  .ll-tile.hint { animation: llPulse .8s ease-in-out 2; }
+  @keyframes llPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(91,110,245,0); } 50% { box-shadow: 0 0 0 3px rgba(91,110,245,.55); } }
+  .ll-tile.gone { opacity: 0; transform: scale(.6); pointer-events: none; }
+  .ll-tile.gap { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+
+  /* 画连线用 canvas，向四周多留出一格（46px），棋盘贴近窄屏边缘时会溢出视口，
+     这里裁掉横向溢出：canvas 仍可画到屏幕边缘，但不会把页面撑出横向滚动条 */
+  html, body { overflow-x: clip; }
+
+  /* 画连线用 canvas，向四周多留出一格，路径绕到棋盘外也能画全 */
+  .ll-canvas {
+    position: absolute; inset: -46px;
+    width: calc(100% + 92px); height: calc(100% + 92px);
+    pointer-events: none; z-index: 5;
+  }
+
+  .ll-tools { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .ll-tools .btn { position: relative; }
+  .ll-tools .btn em { font-style: normal; font-size: 11px; color: var(--ink-3); margin-left: 4px; }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">连连看<small>同类相连，拐弯不超过两次</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="scorebar">
+    <div class="score-box"><span class="lb">剩余</span><span class="val" id="left">40 对</span></div>
+    <div class="score-box"><span class="lb">可消</span><span class="val" id="pairs">—</span></div>
+  </div>
+
+  <div class="ll-timer-wrap">
+    <div class="ll-timer" id="timerBar"><i></i></div>
+    <span class="ll-sec" id="sec">4:00</span>
+  </div>
+
+  <div class="ll-board" id="board">
+    <canvas class="ll-canvas" id="fx"></canvas>
+  </div>
+
+  <div class="ll-tools">
+    <button class="btn" id="hintBtn">提示<em id="hintLeft">3</em></button>
+    <button class="btn" id="shuffleBtn">重排<em id="shuffleLeft">1</em></button>
+    <button class="btn btn-primary" id="newBtn">新开一局</button>
+  </div>
+</main>
+
+<div class="g-hint">
+  点两张相同的牌，路径不超过两次拐弯就能消掉 · 时间归零就输了 · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3 id="ovTitle">全部消完</h3>
+    <div class="big" id="ovScore">0:00</div>
+    <p id="ovSub">用了 0 次提示</p>
+    <div class="overlay-actions">
+      <button class="btn btn-primary" id="ovNew">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/linklink.js"></script>
+</body>
+</html>
