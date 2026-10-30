@@ -12,3 +12,8 @@ test('unknown prior upload blocks another write',async()=>{
  values.set('opengym-photo-upload:unknown',JSON.stringify({path:'photos/a.jpg',size:1,sha256:'bad'}));let writes=0;
  await assert.rejects(savePhoto(new Blob(['x']),{put:async()=>{writes++},get:async()=>new Response('',{status:404})}));assert.equal(writes,0);values.clear();
 });
+
+test('legacy photo decoding does not depend on a data URL fetch',async()=>{
+ const original=globalThis.fetch;globalThis.fetch=()=>{throw new Error('CSP blocks fetch')};
+ try { const blob=await photoBlob({image:'data:image/jpeg;base64,YWJj'});assert.equal(blob.type,'image/jpeg');assert.equal(await blob.text(),'abc'); } finally {globalThis.fetch=original;}
+});

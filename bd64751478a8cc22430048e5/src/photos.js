@@ -3,7 +3,7 @@ export const validPhotoPath = path => typeof path === 'string' && /^photos\/[a-z
 const legacy = image => typeof image === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image) && image.length < 1500000;
 export const validPhoto = value => validPhotoPath(value?.path) || legacy(value?.image);
 export async function photoBlob(photo, files) {
-  if (legacy(photo?.image)) return (await fetch(photo.image)).blob();
+  if (legacy(photo?.image)) { const [header, encoded] = photo.image.split(','); const binary = atob(encoded); const bytes = Uint8Array.from(binary, c => c.charCodeAt(0)); return new Blob([bytes], {type: header.slice(5, header.indexOf(';'))}); }
   if (!validPhotoPath(photo.path) || !files?.get) throw new Error('照片文件不可用');
   const response = await files.get(photo.path);
   if (!response.ok) throw new Error('照片读取失败，请检查网络后重试');
