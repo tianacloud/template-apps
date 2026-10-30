@@ -1,0 +1,1897 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root {
+  --bg: #0d1017;
+  --bg2: #12161f;
+  --card: #161b25;
+  --card2: #1c2230;
+  --line: rgba(255, 255, 255, 0.08);
+  --line2: rgba(255, 255, 255, 0.14);
+  --txt: #e8ecf4;
+  --txt2: #9aa4b8;
+  --txt3: #6b7488;
+  --gold: #f2c14e;
+  --cyan: #4fc4f5;
+  --red: #e8564f;
+  --green: #5ad2a0;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(1200px 600px at 20% -10%, #1a2130 0%, var(--bg) 60%);
+  color: var(--txt);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  min-height: 100%;
+}
+
+.app { max-width: 1120px; margin: 0 auto; padding: 18px 16px 40px; }
+
+/* ---------- top ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo {
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font-size: 22px; color: #14161c;
+  background: linear-gradient(140deg, #ffd980, #e0a33c);
+  box-shadow: 0 6px 18px rgba(242, 193, 78, 0.25);
+}
+.brand h1 { margin: 0; font-size: 19px; letter-spacing: 1px; }
+.brand p { margin: 2px 0 0; font-size: 12px; color: var(--txt3); }
+.topActions { display: flex; gap: 8px; }
+
+/* ---------- buttons ---------- */
+.btn {
+  border: 1px solid var(--line2);
+  background: var(--card2);
+  color: var(--txt);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: .16s;
+  font-family: inherit;
+}
+.btn:hover { background: #232b3b; border-color: rgba(255,255,255,.24); }
+.btn.ghost { background: transparent; }
+.btn.primary { background: linear-gradient(140deg, #ffd980, #e5a93f); color: #171a20; border: none; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: #ffb3ae; border-color: rgba(232,86,79,.35); }
+.btn.danger:hover { background: rgba(232,86,79,.16); }
+.btn.big { width: 100%; padding: 12px; font-size: 15px; margin-top: 18px; }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+
+/* ---------- layout ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.boardCol { min-width: 0; }
+
+/* ---------- players ---------- */
+.players { display: flex; align-items: stretch; gap: 10px; margin-bottom: 12px; }
+.pcard {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px; transition: .2s;
+}
+.pcard.active { border-color: rgba(242,193,78,.55); box-shadow: 0 0 0 1px rgba(242,193,78,.22), 0 8px 22px rgba(0,0,0,.35); }
+.pcard .stone { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+.stone.b { background: radial-gradient(circle at 32% 30%, #5b5f6b, #12141a); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.stone.w { background: radial-gradient(circle at 32% 30%, #fff, #c5c8d2); }
+.pinfo { flex: 1; min-width: 0; }
+.pname { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pmeta { font-size: 11.5px; color: var(--txt3); margin-top: 2px; }
+.pmeta b { color: var(--txt2); }
+
+.energy { display: flex; gap: 3px; align-items: center; flex: none; }
+.energy i {
+  width: 5px; height: 20px; border-radius: 3px; background: rgba(255,255,255,.1); display: block;
+}
+.energy i.on { background: linear-gradient(180deg, #ffd980, #e5a93f); box-shadow: 0 0 6px rgba(242,193,78,.4); }
+
+.turnChip {
+  flex: none; display: grid; place-items: center; padding: 0 14px;
+  font-size: 12px; color: var(--gold); background: rgba(242,193,78,.1);
+  border: 1px solid rgba(242,193,78,.22); border-radius: 14px; white-space: nowrap;
+}
+
+/* ---------- board ---------- */
+.boardWrap { position: relative; width: 100%; }
+#board { width: 100%; display: block; border-radius: 16px; touch-action: manipulation; cursor: pointer; }
+.thinking {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  background: rgba(10,12,18,.82); border: 1px solid var(--line2);
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; color: var(--txt2);
+  display: none; align-items: center; gap: 8px; backdrop-filter: blur(6px);
+}
+.thinking.on { display: flex; }
+.thinking span {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--gold);
+  animation: pulse 1s infinite ease-in-out;
+}
+@keyframes pulse { 0%,100% { opacity:.3; transform: scale(.8);} 50% { opacity:1; transform: scale(1.15);} }
+
+.hintBar {
+  margin-top: 10px; font-size: 12.5px; color: var(--txt2);
+  background: var(--card); border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan);
+  padding: 9px 12px; border-radius: 8px; min-height: 38px;
+  display: flex; align-items: center;
+}
+
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions .btn { flex: 1; }
+
+/* ---------- panels ---------- */
+.sideCol { display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.panelHead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.panelHead h2 { margin: 0; font-size: 14px; letter-spacing: .5px; }
+.panelSub { font-size: 11.5px; color: var(--txt3); }
+.panelSub b { color: var(--gold); }
+
+.skills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.skill {
+  position: relative; text-align: left; cursor: pointer;
+  background: var(--card2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px; color: var(--txt);
+  font-family: inherit; transition: .15s; overflow: hidden;
+}
+.skill:hover:not(.disabled) { border-color: var(--line2); transform: translateY(-1px); }
+.skill.on { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(242,193,78,.3); }
+.skill.disabled { opacity: .45; cursor: not-allowed; }
+.skill .ic { font-size: 17px; line-height: 1; }
+.skill .nm { font-size: 13.5px; font-weight: 600; margin-top: 6px; }
+.skill .tg { font-size: 10.5px; color: var(--txt3); margin-top: 1px; }
+.skill .cost {
+  position: absolute; right: 8px; top: 8px; font-size: 10.5px;
+  color: var(--gold); background: rgba(242,193,78,.12);
+  padding: 1px 6px; border-radius: 6px;
+}
+.skill .cdMask {
+  position: absolute; inset: 0; background: rgba(8,10,14,.72);
+  display: none; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--txt2); border-radius: 12px;
+}
+.skill.cooling .cdMask { display: flex; }
+
+.skillDesc { margin-top: 10px; font-size: 11.5px; line-height: 1.6; color: var(--txt3); }
+
+.effects, .log { list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--txt2); }
+.effects li, .log li { padding: 5px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 8px; align-items: baseline; }
+.effects li:last-child, .log li:last-child { border-bottom: none; }
+.effects li.empty, .log li.empty { color: var(--txt3); border: none; }
+.log { max-height: 132px; overflow-y: auto; }
+.log li { font-variant-numeric: tabular-nums; }
+.log .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.tag { font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.07); color: var(--txt3); }
+
+/* ---------- modal ---------- */
+.modal {
+  position: fixed; inset: 0; background: rgba(6, 8, 12, .74);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+  backdrop-filter: blur(4px); z-index: 40;
+}
+.modal.on { display: flex; }
+.modalCard {
+  width: 100%; max-width: 380px; background: var(--bg2);
+  border: 1px solid var(--line2); border-radius: 18px; padding: 22px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+}
+.modalCard.wide { max-width: 520px; }
+.modalCard h2 { margin: 0 0 16px; font-size: 17px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; color: var(--txt3); margin-bottom: 7px; }
+.seg { display: flex; gap: 6px; }
+.seg button {
+  flex: 1; padding: 9px; border-radius: 10px; cursor: pointer; font-size: 13px;
+  background: var(--card); border: 1px solid var(--line); color: var(--txt2); font-family: inherit;
+}
+.seg button.on { background: rgba(242,193,78,.14); border-color: rgba(242,193,78,.5); color: var(--gold); }
+
+.score { text-align: center; font-size: 15px; line-height: 1.9; margin: 6px 0 10px; }
+.score b { font-size: 26px; color: var(--gold); }
+.resNote { font-size: 12.5px; color: var(--txt3); text-align: center; margin: 0 0 4px; }
+.modalBtns { display: flex; gap: 8px; margin-top: 16px; }
+.modalBtns .btn { flex: 1; }
+
+.rulesBody { font-size: 12.5px; line-height: 1.75; color: var(--txt2); max-height: 56vh; overflow-y: auto; }
+.rulesBody p { margin: 0 0 10px; }
+.rulesBody b { color: var(--txt); }
+.ruleList { margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.ruleRow { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.ruleRow .t { font-size: 12.5px; font-weight: 600; }
+.ruleRow .d { font-size: 11.5px; color: var(--txt3); margin-top: 2px; }
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 40px; transform: translate(-50%, 20px);
+  background: rgba(20, 24, 34, .96); border: 1px solid var(--line2);
+  color: var(--txt); padding: 10px 18px; border-radius: 10px; font-size: 13px;
+  opacity: 0; pointer-events: none; transition: .22s; z-index: 60;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .stage { grid-template-columns: 1fr; }
+  .sideCol { order: 2; }
+}
+@media (max-width: 520px) {
+  .app { padding: 12px 10px 30px; }
+  .players { flex-wrap: wrap; }
+  .turnChip { order: 3; width: 100%; padding: 6px; }
+  .skills { grid-template-columns: 1fr 1fr; }
+}
+</style></head><body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◑</span>
+      <div>
+        <h1>技能围棋</h1>
+        <p id="subTitle">9 路 · 人机对战</p>
+      </div>
+    </div>
+    <div class="topActions">
+      <button class="btn ghost" id="btnRules">规则</button>
+      <button class="btn ghost" id="btnNew">新对局</button>
+    </div>
+  </header>
+
+  <main class="stage">
+
+    <section class="boardCol">
+      <div class="players">
+        <div class="pcard black" id="pcardBlack">
+          <div class="stone b"></div>
+          <div class="pinfo">
+            <div class="pname" id="nameBlack">黑方 · 你</div>
+            <div class="pmeta">提子 <b id="capBlack">0</b></div>
+          </div>
+          <div class="energy" id="enBlack"></div>
+        </div>
+        <div class="turnChip" id="turnChip">黑方行棋</div>
+        <div class="pcard white" id="pcardWhite">
+          <div class="stone w"></div>
+          <div class="pinfo">
+            <div class="pname" id="nameWhite">白方 · AI</div>
+            <div class="pmeta">提子 <b id="capWhite">0</b></div>
+          </div>
+          <div class="energy" id="enWhite"></div>
+        </div>
+      </div>
+
+      <div class="boardWrap">
+        <canvas id="board"></canvas>
+        <div class="thinking" id="thinking"><span></span>AI 思考中</div>
+      </div>
+
+      <div class="hintBar" id="hintBar">点击交叉点落子 · 使用技能不占用落子机会</div>
+
+      <div class="actions">
+        <button class="btn" id="btnPass">虚着</button>
+        <button class="btn" id="btnUndo">悔棋</button>
+        <button class="btn danger" id="btnResign">认输</button>
+      </div>
+    </section>
+
+    <aside class="sideCol">
+      <div class="panel">
+        <div class="panelHead">
+          <h2>技能</h2>
+          <span class="panelSub">能量 <b id="myEnergy">2</b> / 10</span>
+        </div>
+        <div class="skills" id="skills"></div>
+        <div class="skillDesc" id="skillDesc">选中一个技能后，按提示点击棋盘目标。每回合可使用多个技能（受能量与冷却限制）。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead"><h2>战场效果</h2></div>
+        <ul class="effects" id="effects"><li class="empty">暂无生效中的效果</li></ul>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead"><h2>对局日志</h2></div>
+        <ul class="log" id="log"></ul>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<!-- 开局设置 -->
+<div class="modal" id="setupModal">
+  <div class="modalCard">
+    <h2>开始新对局</h2>
+    <div class="field">
+      <label>棋盘</label>
+      <div class="seg" id="segSize">
+        <button class="on" data-v="9">9 路</button>
+        <button data-v="13">13 路</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>模式</label>
+      <div class="seg" id="segMode">
+        <button class="on" data-v="pve">人机对战</button>
+        <button data-v="pvp">双人同屏</button>
+      </div>
+    </div>
+    <div class="field" id="fieldColor">
+      <label>我方执子</label>
+      <div class="seg" id="segColor">
+        <button class="on" data-v="1">执黑先行</button>
+        <button data-v="2">执白后行</button>
+      </div>
+    </div>
+    <button class="btn primary big" id="btnStart">开始</button>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div class="modal" id="resultModal">
+  <div class="modalCard">
+    <h2 id="resTitle">对局结束</h2>
+    <div class="score" id="resScore"></div>
+    <p class="resNote" id="resNote"></p>
+    <div class="modalBtns">
+      <button class="btn" id="btnAgain">再来一局</button>
+      <button class="btn primary" id="btnCloseResult">复盘棋盘</button>
+    </div>
+  </div>
+</div>
+
+<!-- 规则 -->
+<div class="modal" id="rulesModal">
+  <div class="modalCard wide">
+    <h2>玩法说明</h2>
+    <div class="rulesBody">
+      <p><b>基础：</b>标准围棋规则（气、提子、打劫禁着、虚着）。双方连续虚着即终局，按「地 + 活子」数子，黑方贴目（9 路 3.5 子 / 13 路 6.5 子）。</p>
+      <p><b>能量：</b>每落一子 +1 能量，每提一子 +2 能量，上限 10。</p>
+      <p><b>技能：</b>选中技能后点击棋盘目标即可施放。<b>使用技能不占用本回合落子机会</b>，一个回合内可以连用多个技能（受能量与冷却限制），再落子结束回合。</p>
+      <div class="ruleList" id="ruleList"></div>
+      <p><b>胜负：</b>数子后黑方总分减去贴目，高于白方则黑胜。</p>
+    </div>
+    <button class="btn primary big" id="btnCloseRules">明白了</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+
+
+
+
+<script>/* skills.js - 技能定义（H5 / 小程序共用）
+ * target: none | point(空点) | own-stone | enemy-stone | area(区域中心)
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    (root.SkillGo = root.SkillGo || {}).Skills = factory();
+  }
+})(typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this), function () {
+  'use strict';
+
+  var SKILLS = [
+    {
+      id: 'fortify',
+      name: '磐石',
+      tag: '加固',
+      icon: '◇',
+      cost: 2,
+      cd: 4,
+      target: 'own-stone',
+      type: 'self',
+      color: '#f2c14e',
+      desc: '指定己方一颗棋子，其所在整块棋 3 回合内免疫被提。',
+      tip: '点击自己的一颗棋子'
+    },
+    {
+      id: 'airdrop',
+      name: '飞石',
+      tag: '空降',
+      icon: '✦',
+      cost: 3,
+      cd: 5,
+      target: 'point',
+      type: 'self',
+      color: '#5ad2a0',
+      desc: '在任意空点额外落一子，不占用本回合落子机会，可正常提子。',
+      tip: '点击一个空交叉点'
+    },
+    {
+      id: 'ban',
+      name: '封印',
+      tag: '禁行',
+      icon: '✕',
+      cost: 2,
+      cd: 4,
+      target: 'point',
+      type: 'enemy',
+      color: '#e86a6a',
+      desc: '封锁一个空点，对手 3 回合内不能在此落子。',
+      tip: '点击要封锁的空点'
+    },
+    {
+      id: 'fog',
+      name: '障眼',
+      tag: '迷雾',
+      icon: '☁',
+      cost: 2,
+      cd: 5,
+      target: 'area',
+      type: 'enemy',
+      color: '#8f9bd8',
+      desc: '以该点为中心的 3×3 区域起雾，对手 3 回合内看不见这片棋子。',
+      tip: '点击区域中心'
+    },
+    {
+      id: 'quake',
+      name: '震星',
+      tag: '地裂',
+      icon: '⚡',
+      cost: 4,
+      cd: 6,
+      target: 'enemy-stone',
+      type: 'enemy',
+      color: '#ff9f43',
+      desc: '直接拔掉对手一颗棋子，随后结算双方气。可一击破眼、断连。',
+      tip: '点击对手的一颗棋子'
+    },
+    {
+      id: 'sight',
+      name: '天眼',
+      tag: '洞察',
+      icon: '◉',
+      cost: 1,
+      cd: 3,
+      target: 'none',
+      type: 'self',
+      color: '#4fc4f5',
+      desc: '点亮势力图 3 回合：显示当前空点归属预测，辅助围地判断。',
+      tip: '无需目标，直接使用'
+    }
+  ];
+
+  var MAP = {};
+  for (var i = 0; i < SKILLS.length; i++) MAP[SKILLS[i].id] = SKILLS[i];
+
+  return {
+    LIST: SKILLS,
+    MAP: MAP,
+    get: function (id) { return MAP[id] || null; }
+  };
+});
+
+;
+/* rules.js - 技能围棋核心规则引擎（H5 / 小程序共用）
+ * UMD: CommonJS(module.exports) 用于小程序，全局 SkillGo.Rules 用于浏览器。
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('./skills.js'));
+  } else {
+    (root.SkillGo = root.SkillGo || {}).Rules = factory(root.SkillGo.Skills);
+  }
+})(typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this), function (Skills) {
+  'use strict';
+
+  var EMPTY = 0, BLACK = 1, WHITE = 2;
+  var DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+  var ENERGY_MAX = 10;
+  var ENERGY_START = 2;
+  var ENERGY_PER_MOVE = 1;
+  var ENERGY_PER_CAPTURE = 2;
+  var EFFECT_PLIES = 6; // 3 个回合（双方各 3 手）
+
+  function opp(c) { return c === BLACK ? WHITE : BLACK; }
+  function idxOf(size, r, c) { return r * size + c; }
+  function rowOf(size, i) { return Math.floor(i / size); }
+  function colOf(size, i) { return i % size; }
+
+  function neighbors(size, i) {
+    var r = rowOf(size, i), c = colOf(size, i), out = [];
+    for (var d = 0; d < 4; d++) {
+      var nr = r + DIRS[d][0], nc = c + DIRS[d][1];
+      if (nr < 0 || nc < 0 || nr >= size || nc >= size) continue;
+      out.push(idxOf(size, nr, nc));
+    }
+    return out;
+  }
+
+  function getGroup(board, size, start) {
+    var color = board[start];
+    if (color === EMPTY) return [];
+    var seen = {}, group = [], stack = [start];
+    seen[start] = 1;
+    while (stack.length) {
+      var cur = stack.pop();
+      group.push(cur);
+      var ns = neighbors(size, cur);
+      for (var k = 0; k < ns.length; k++) {
+        var n = ns[k];
+        if (seen[n]) continue;
+        if (board[n] === color) { seen[n] = 1; stack.push(n); }
+      }
+    }
+    return group;
+  }
+
+  function groupLiberties(board, size, group) {
+    var libs = {}, count = 0;
+    for (var i = 0; i < group.length; i++) {
+      var ns = neighbors(size, group[i]);
+      for (var k = 0; k < ns.length; k++) {
+        if (board[ns[k]] === EMPTY && !libs[ns[k]]) { libs[ns[k]] = 1; count++; }
+      }
+    }
+    return { count: count, points: Object.keys(libs).map(Number) };
+  }
+
+  function boardKey(board) { return board.join(''); }
+
+  // ---------- 状态 ----------
+
+  function createGame(opts) {
+    opts = opts || {};
+    var size = opts.size || 9;
+    var state = {
+      size: size,
+      board: new Array(size * size).fill(EMPTY),
+      turn: BLACK,
+      moveNumber: 0,
+      passCount: 0,
+      lastMove: -1,
+      lastCaptured: [],
+      captured: [0, 0, 0],
+      energy: [0, ENERGY_START, ENERGY_START],
+      cooldown: [{}, {}],           // index: color-1
+      effects: { fortify: [], ban: [], fog: [], sight: [0, 0] },
+      positions: {},                // 超劫：局面重复检测
+      over: false,
+      result: null,
+      mode: opts.mode || 'pve',     // pve | pvp
+      humanColor: opts.humanColor || BLACK,
+      log: []
+    };
+    state.positions[boardKey(state.board)] = 1;
+    return state;
+  }
+
+  function clone(state) { return JSON.parse(JSON.stringify(state)); }
+
+  function cdMap(state, color) { return state.cooldown[color - 1]; }
+
+  function isFortified(state, color, group) {
+    var fs = state.effects.fortify;
+    for (var i = 0; i < fs.length; i++) {
+      var f = fs[i];
+      if (f.owner !== color || f.until <= state.moveNumber) continue;
+      for (var j = 0; j < group.length; j++) {
+        if (f.cells.indexOf(group[j]) >= 0) return true;
+      }
+    }
+    return false;
+  }
+
+  function isBanned(state, i, color) {
+    var bs = state.effects.ban;
+    for (var k = 0; k < bs.length; k++) {
+      if (bs[k].idx === i && bs[k].until > state.moveNumber && bs[k].by !== color) return true;
+    }
+    return false;
+  }
+
+  function banList(state, color) {
+    var bs = state.effects.ban, out = [];
+    for (var k = 0; k < bs.length; k++) {
+      if (bs[k].until > state.moveNumber && bs[k].by !== color) out.push(bs[k].idx);
+    }
+    return out;
+  }
+
+  function fogCells(state, color) {
+    var fs = state.effects.fog, out = [];
+    for (var k = 0; k < fs.length; k++) {
+      if (fs[k].until > state.moveNumber && fs[k].by !== color) {
+        out = out.concat(fs[k].cells);
+      }
+    }
+    return out;
+  }
+
+  function sightOn(state, color) { return state.effects.sight[color - 1] > state.moveNumber; }
+
+  // ---------- 落子 ----------
+
+  function legality(state, i, color) {
+    if (state.over) return '对局已结束';
+    if (i < 0 || i >= state.board.length) return '超出棋盘';
+    if (state.board[i] !== EMPTY) return '该点已有棋子';
+    if (isBanned(state, i, color)) return '该点被封印';
+    if (state.turn !== color) return '不是你的回合';
+    return null;
+  }
+
+  // 移除某方所有无气（且不免疫）的块
+  function removeDead(state, color) {
+    var removed = [];
+    var visited = {};
+    for (var i = 0; i < state.board.length; i++) {
+      if (state.board[i] !== color || visited[i]) continue;
+      var g = getGroup(state.board, state.size, i);
+      for (var k = 0; k < g.length; k++) visited[g[k]] = 1;
+      if (groupLiberties(state.board, state.size, g).count === 0) {
+        if (isFortified(state, color, g)) continue;
+        for (var m = 0; m < g.length; m++) { state.board[g[m]] = EMPTY; removed.push(g[m]); }
+      }
+    }
+    return removed;
+  }
+
+  function gainEnergy(state, color, amount) {
+    state.energy[color] = Math.min(ENERGY_MAX, state.energy[color] + amount);
+  }
+
+  function settleCaptures(state, mover) {
+    var removed = removeDead(state, opp(mover));
+    var selfRemoved = removeDead(state, mover);
+    removed = removed.concat(selfRemoved);
+    if (removed.length) {
+      state.captured[mover] += removed.length;
+      gainEnergy(state, mover, ENERGY_PER_CAPTURE * removed.length);
+    }
+    return removed;
+  }
+
+  /* 落子。fromSkill=true 时表示飞石等技能落子（仍受提子结算约束）。 */
+  function play(state, i, color, fromSkill) {
+    color = color || state.turn;
+    if (!fromSkill) {
+      var err = legality(state, i, color);
+      if (err) return { ok: false, reason: err };
+    } else {
+      if (state.board[i] !== EMPTY) return { ok: false, reason: '该点已有棋子' };
+      if (isBanned(state, i, color)) return { ok: false, reason: '该点被封印' };
+    }
+
+    var backup = state.board.slice();
+    state.board[i] = color;
+
+    var removed = settleCaptures(state, color);
+
+    // 自杀手：落子后自己无气且未提掉任何敌子 -> 非法（飞石同样不允许自杀）
+    if (removed.length === 0) {
+      var mine = getGroup(state.board, state.size, i);
+      if (groupLiberties(state.board, state.size, mine).count === 0) {
+        state.board = backup;
+        return { ok: false, reason: '自杀手，不允许' };
+      }
+    }
+
+    // 超劫检测
+    var key = boardKey(state.board);
+    if (state.positions[key]) {
+      state.board = backup;
+      state.captured[color] -= removed.length;
+      return { ok: false, reason: '打劫禁着（局面重复）' };
+    }
+    state.positions[key] = 1;
+
+    state.lastMove = i;
+    state.lastCaptured = removed;
+    state.passCount = 0;
+    gainEnergy(state, color, ENERGY_PER_MOVE);
+    if (!fromSkill) state.moveNumber++;
+    return { ok: true, captured: removed };
+  }
+
+  function pass(state, color) {
+    color = color || state.turn;
+    state.passCount++;
+    state.lastMove = -1;
+    state.moveNumber++;
+    tick(state, color);
+    if (state.passCount >= 2) finish(state);
+    return { ok: true };
+  }
+
+  /* 回合结束：切换行棋方、冷却 -1、清理过期效果 */
+  function tick(state, color) {
+    var cd = cdMap(state, color);
+    for (var k in cd) if (cd.hasOwnProperty(k)) {
+      cd[k] = cd[k] - 1;
+      if (cd[k] <= 0) delete cd[k];
+    }
+    state.effects.fortify = state.effects.fortify.filter(function (f) { return f.until > state.moveNumber; });
+    state.effects.ban = state.effects.ban.filter(function (b) { return b.until > state.moveNumber; });
+    state.effects.fog = state.effects.fog.filter(function (f) { return f.until > state.moveNumber; });
+    state.turn = opp(color);
+  }
+
+  function endTurn(state, color) {
+    color = color || state.turn;
+    tick(state, color);
+    return state;
+  }
+
+  // ---------- 技能 ----------
+
+  function canUse(state, skillId, color) {
+    color = color || state.turn;
+    var s = Skills.get(skillId);
+    if (!s) return { ok: false, reason: '未知技能' };
+    if (state.over) return { ok: false, reason: '对局已结束' };
+    if (state.turn !== color) return { ok: false, reason: '不是你的回合' };
+    if (cdMap(state, color)[skillId]) return { ok: false, reason: '冷却中（剩 ' + cdMap(state, color)[skillId] + ' 回合）' };
+    if (state.energy[color] < s.cost) return { ok: false, reason: '能量不足（需 ' + s.cost + '）' };
+    return { ok: true };
+  }
+
+  function useSkill(state, skillId, targetIdx, color) {
+    color = color || state.turn;
+    var check = canUse(state, skillId, color);
+    if (!check.ok) return check;
+    var s = Skills.get(skillId);
+    var i = targetIdx;
+
+    // 目标合法性
+    if (s.target === 'point' && (i == null || i < 0 || state.board[i] !== EMPTY)) {
+      return { ok: false, reason: '需要指定一个空交叉点' };
+    }
+    if (s.target === 'own-stone' && (i == null || state.board[i] !== color)) {
+      return { ok: false, reason: '需要指定己方的一颗棋子' };
+    }
+    if (s.target === 'enemy-stone' && (i == null || state.board[i] !== opp(color))) {
+      return { ok: false, reason: '需要指定对手的一颗棋子' };
+    }
+    if (s.target === 'area' && (i == null || i < 0 || i >= state.board.length)) {
+      return { ok: false, reason: '需要指定一个区域中心' };
+    }
+
+    var res = { ok: true, skill: s.id };
+    if (s.id === 'fortify') {
+      var g = getGroup(state.board, state.size, i);
+      state.effects.fortify.push({ owner: color, cells: g.slice(), until: state.moveNumber + EFFECT_PLIES });
+      res.cells = g.slice();
+    } else if (s.id === 'airdrop') {
+      var pr = play(state, i, color, true);
+      if (!pr.ok) return pr;
+      res.captured = pr.captured;
+    } else if (s.id === 'ban') {
+      state.effects.ban.push({ idx: i, by: color, until: state.moveNumber + EFFECT_PLIES });
+    } else if (s.id === 'fog') {
+      res.cells = areaCells(state.size, i);
+      state.effects.fog.push({ by: color, cells: res.cells, until: state.moveNumber + EFFECT_PLIES });
+    } else if (s.id === 'quake') {
+      state.board[i] = EMPTY;
+      state.captured[color] += 1;
+      gainEnergy(state, color, ENERGY_PER_CAPTURE);
+      var rm = removeDead(state, opp(color));
+      var rm2 = removeDead(state, color);
+      var all = rm.concat(rm2);
+      if (all.length) {
+        state.captured[color] += all.length;
+        gainEnergy(state, color, ENERGY_PER_CAPTURE * all.length);
+      }
+      state.lastMove = i;
+      res.captured = [i].concat(all);
+    } else if (s.id === 'sight') {
+      state.effects.sight[color - 1] = state.moveNumber + EFFECT_PLIES;
+    }
+
+    state.energy[color] -= s.cost;
+    state.cooldown[color - 1][s.id] = s.cd;
+    state.log.push({ n: state.moveNumber, c: color, s: s.id, t: i });
+    return res;
+  }
+
+  function areaCells(size, i) {
+    var r = rowOf(size, i), c = colOf(size, i), out = [];
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        var nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= size || nc >= size) continue;
+        out.push(idxOf(size, nr, nc));
+      }
+    }
+    return out;
+  }
+
+  // ---------- 终局与数子 ----------
+
+  function estimateTerritory(state) {
+    var size = state.size, board = state.board;
+    var owner = new Array(size * size).fill(0); // 0 未定 / 1 黑 / 2 白
+    var visited = {};
+    var terr = [0, 0, 0];
+    for (var i = 0; i < board.length; i++) {
+      if (board[i] !== EMPTY || visited[i]) continue;
+      var region = [], stack = [i], touch = {};
+      visited[i] = 1;
+      while (stack.length) {
+        var cur = stack.pop();
+        region.push(cur);
+        var ns = neighbors(size, cur);
+        for (var k = 0; k < ns.length; k++) {
+          var n = ns[k];
+          if (board[n] === EMPTY) {
+            if (!visited[n]) { visited[n] = 1; stack.push(n); }
+          } else {
+            touch[board[n]] = 1;
+          }
+        }
+      }
+      var keys = Object.keys(touch);
+      var oc = keys.length === 1 ? Number(keys[0]) : 0;
+      if (oc) {
+        for (var m = 0; m < region.length; m++) owner[region[m]] = oc;
+        terr[oc] += region.length;
+      }
+    }
+    var stones = [0, 0, 0];
+    for (var j = 0; j < board.length; j++) if (board[j]) stones[board[j]]++;
+    var komi = size >= 13 ? 6.5 : 3.5;
+    var black = terr[BLACK] + stones[BLACK];
+    var white = terr[WHITE] + stones[WHITE] + komi;
+    return {
+      owner: owner,
+      territory: terr,
+      stones: stones,
+      komi: komi,
+      black: black,
+      white: white,
+      diff: black - white
+    };
+  }
+
+  function finish(state) {
+    var t = estimateTerritory(state);
+    state.over = true;
+    state.result = {
+      black: t.black,
+      white: t.white,
+      diff: t.diff,
+      winner: t.diff > 0 ? BLACK : WHITE,
+      detail: t
+    };
+    return state.result;
+  }
+
+  return {
+    EMPTY: EMPTY, BLACK: BLACK, WHITE: WHITE,
+    ENERGY_MAX: ENERGY_MAX,
+    ENERGY_PER_MOVE: ENERGY_PER_MOVE,
+    ENERGY_PER_CAPTURE: ENERGY_PER_CAPTURE,
+    createGame: createGame,
+    clone: clone,
+    play: play,
+    pass: pass,
+    endTurn: endTurn,
+    legality: legality,
+    useSkill: useSkill,
+    canUse: canUse,
+    isBanned: isBanned,
+    banList: banList,
+    fogCells: fogCells,
+    sightOn: sightOn,
+    isFortified: isFortified,
+    getGroup: getGroup,
+    groupLiberties: groupLiberties,
+    neighbors: neighbors,
+    areaCells: areaCells,
+    estimateTerritory: estimateTerritory,
+    finish: finish,
+    opp: opp,
+    rowOf: rowOf,
+    colOf: colOf,
+    idxOf: idxOf,
+    boardKey: boardKey
+  };
+});
+
+;
+/* ai.js - 启发式 AI 对手（H5 / 小程序共用）
+ * 提供 chooseMove（选点）与 planTurn（输出一整回合的动作序列：技能 + 落子）。
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('./rules.js'), require('./skills.js'));
+  } else {
+    (root.SkillGo = root.SkillGo || {}).AI = factory(root.SkillGo.Rules, root.SkillGo.Skills);
+  }
+})(typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this), function (Rules, Skills) {
+  'use strict';
+
+  var EMPTY = 0;
+
+  function libs(board, size, group) {
+    return Rules.groupLiberties(board, size, group).count;
+  }
+
+  /* 纯 board 模拟落子，忽略技能效果（AI 近似） */
+  function simulate(board, size, i, color) {
+    var b = board.slice();
+    if (b[i] !== EMPTY) return null;
+    b[i] = color;
+    var captured = 0, visited = {};
+    var ns = Rules.neighbors(size, i);
+    for (var k = 0; k < ns.length; k++) {
+      var n = ns[k];
+      if (b[n] !== Rules.opp(color) || visited[n]) continue;
+      var g = Rules.getGroup(b, size, n);
+      for (var m = 0; m < g.length; m++) visited[g[m]] = 1;
+      if (libs(b, size, g) === 0) {
+        for (var q = 0; q < g.length; q++) b[g[q]] = EMPTY;
+        captured += g.length;
+      }
+    }
+    var mine = Rules.getGroup(b, size, i);
+    var myLibs = libs(b, size, mine);
+    if (captured === 0 && myLibs === 0) return null; // 自杀
+    return { board: b, captured: captured, myLibs: myLibs, mine: mine };
+  }
+
+  function libertyUtility(n) {
+    if (n <= 1) return -14;
+    if (n === 2) return -4;
+    if (n === 3) return 1;
+    if (n === 4) return 3;
+    return 4;
+  }
+
+  function isEyeish(board, size, i, color) {
+    var ns = Rules.neighbors(size, i);
+    if (ns.length < 4) return false;
+    for (var k = 0; k < ns.length; k++) if (board[ns[k]] !== color) return false;
+    return true;
+  }
+
+  function dist(a, b, size) {
+    return Math.abs(Rules.rowOf(size, a) - Rules.rowOf(size, b)) + Math.abs(Rules.colOf(size, a) - Rules.colOf(size, b));
+  }
+
+  function scoreMove(state, i, color) {
+    var size = state.size, board = state.board;
+    var sim = simulate(board, size, i, color);
+    if (!sim) return -9999;
+
+    var s = 0;
+    s += sim.captured * 16;
+    s += libertyUtility(sim.myLibs);
+
+    // 压迫：落子后相邻敌块处于被打吃状态
+    var ns = Rules.neighbors(size, i), seen = {};
+    for (var k = 0; k < ns.length; k++) {
+      var n = ns[k];
+      if (sim.board[n] !== Rules.opp(color) || seen[n]) continue;
+      var g = Rules.getGroup(sim.board, size, n);
+      for (var m = 0; m < g.length; m++) seen[g[m]] = 1;
+      var l = libs(sim.board, size, g);
+      if (l === 1) s += 5 + g.length * 1.5;
+      else if (l === 2) s += 1.5;
+    }
+
+    if (isEyeish(board, size, i, color) && sim.captured === 0) s -= 7; // 不填自己的眼
+
+    // 距离势场：与己方棋子保持 2~3 路，与对方棋子贴身
+    var myMin = 99, opMin = 99;
+    for (var j = 0; j < board.length; j++) {
+      if (board[j] === EMPTY) continue;
+      var d = dist(i, j, size);
+      if (board[j] === color) { if (d < myMin) myMin = d; }
+      else if (d < opMin) opMin = d;
+    }
+    if (myMin <= 2) s += 2.4;
+    else if (myMin === 3) s += 2.0;
+    else if (myMin === 4) s += 0.6;
+    else if (myMin >= 6) s -= 1.0;
+
+    if (opMin === 1) s += 2.0;
+    else if (opMin === 2) s += 1.0;
+
+    // 开局向中心 / 星位靠拢
+    if (state.moveNumber < 10) {
+      var cr = (size - 1) / 2, cc = (size - 1) / 2;
+      var dc = Math.abs(Rules.rowOf(size, i) - cr) + Math.abs(Rules.colOf(size, i) - cc);
+      s += Math.max(0, (size - dc)) * 0.35;
+    } else {
+      // 中后期偏好己方势力范围内的点
+      var t = state._terr;
+      if (t && t.owner[i] === color) s += 1.6;
+    }
+
+    s += Math.random() * 1.8;
+    return s;
+  }
+
+  function chooseMove(state, color) {
+    color = color || state.turn;
+    state._terr = Rules.estimateTerritory(state);
+    var best = -1, bestScore = -Infinity;
+    var banned = {};
+    var bl = Rules.banList(state, color);
+    for (var k = 0; k < bl.length; k++) banned[bl[k]] = 1;
+
+    for (var i = 0; i < state.board.length; i++) {
+      if (state.board[i] !== EMPTY) continue;
+      if (banned[i]) continue;
+      var sc = scoreMove(state, i, color);
+      if (sc > bestScore) { bestScore = sc; best = i; }
+    }
+    delete state._terr;
+    return { idx: best, score: bestScore };
+  }
+
+  /* 找出对手最密集的 3×3 中心 */
+  function densestFogCenter(state, color) {
+    var size = state.size, best = -1, bestN = 0;
+    for (var i = 0; i < state.board.length; i++) {
+      var cells = Rules.areaCells(size, i), n = 0;
+      for (var k = 0; k < cells.length; k++) if (state.board[cells[k]] === color) n++;
+      if (n > bestN) { bestN = n; best = i; }
+    }
+    return bestN > 0 ? best : -1;
+  }
+
+  /* 找出某方气数最少的大块中的一颗棋子 */
+  function weakestStone(state, color, minSize) {
+    var visited = {}, best = -1, bestScore = -Infinity;
+    for (var i = 0; i < state.board.length; i++) {
+      if (state.board[i] !== color || visited[i]) continue;
+      var g = Rules.getGroup(state.board, state.size, i);
+      for (var m = 0; m < g.length; m++) visited[g[m]] = 1;
+      if (g.length < minSize) continue;
+      var l = Rules.groupLiberties(state.board, state.size, g).count;
+      var sc = g.length * 2 - l * 1.5;
+      if (sc > bestScore) { bestScore = sc; best = i; }
+    }
+    return best;
+  }
+
+  /* 规划一整个回合：在克隆状态上预演，保证动作序列可执行 */
+  function planTurn(state, color) {
+    color = color || state.turn;
+    var sim = Rules.clone(state);
+    var actions = [];
+    var used = 0;
+
+    function trySkill(id, target) {
+      if (used >= 2) return false;
+      var r = Rules.useSkill(sim, id, target, color);
+      if (r.ok) { actions.push({ type: 'skill', id: id, target: target }); used++; return true; }
+      return false;
+    }
+
+    var enemy = Rules.opp(color);
+
+    // 1. 自保：己方大块只剩 1~2 口气 -> 加固
+    if (sim.energy[color] >= 2) {
+      var weakSelf = weakestStone(sim, color, 3);
+      if (weakSelf >= 0) {
+        var g = Rules.getGroup(sim.board, sim.size, weakSelf);
+        var l = Rules.groupLiberties(sim.board, sim.size, g).count;
+        if (l <= 2) trySkill('fortify', weakSelf);
+      }
+    }
+
+    // 2. 强攻：对手有大气数少的块 -> 震星
+    if (sim.energy[color] >= 4) {
+      var weakEnemy = weakestStone(sim, enemy, 3);
+      if (weakEnemy >= 0) {
+        var ge = Rules.getGroup(sim.board, sim.size, weakEnemy);
+        var le = Rules.groupLiberties(sim.board, sim.size, ge).count;
+        if (le <= 2) trySkill('quake', weakEnemy);
+      }
+    }
+
+    // 3. 封印：封锁对手当前最佳落点
+    if (sim.energy[color] >= 2) {
+      var enemyBest = chooseMove(sim, enemy).idx;
+      if (enemyBest >= 0 && Math.random() < 0.75) trySkill('ban', enemyBest);
+    }
+
+    // 4. 飞石：抢占自己的次佳点扩张
+    if (sim.energy[color] >= 3) {
+      var my1 = chooseMove(sim, color).idx;
+      if (my1 >= 0) trySkill('airdrop', my1);
+    }
+
+    // 5. 迷雾：干扰对手视野
+    if (sim.energy[color] >= 2 && Math.random() < 0.5) {
+      var fc = densestFogCenter(sim, enemy);
+      if (fc >= 0) trySkill('fog', fc);
+    }
+
+    // 6. 天眼：能量溢出时点亮势力图
+    if (sim.energy[color] >= 6) trySkill('sight', -1);
+
+    // 落子 / 虚着
+    var mv = chooseMove(sim, color);
+    if (mv.idx >= 0) {
+      var pr = Rules.play(sim, mv.idx, color);
+      if (pr.ok) actions.push({ type: 'move', idx: mv.idx });
+      else {
+        var mv2 = chooseMove(sim, color);
+        if (mv2.idx >= 0 && mv2.idx !== mv.idx) actions.push({ type: 'move', idx: mv2.idx });
+        else actions.push({ type: 'pass' });
+      }
+    } else {
+      actions.push({ type: 'pass' });
+    }
+
+    return actions;
+  }
+
+  return {
+    chooseMove: chooseMove,
+    planTurn: planTurn,
+    scoreMove: scoreMove
+  };
+});
+
+;
+/* render.js - 共用 Canvas 2D 绘制层（H5 / 小程序复用）
+ * 只依赖 ctx 的标准 2D API，无 DOM 依赖。
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('./rules.js'), require('./skills.js'));
+  } else {
+    (root.SkillGo = root.SkillGo || {}).Render = factory(root.SkillGo.Rules, root.SkillGo.Skills);
+  }
+})(typeof self !== 'undefined' ? self : (typeof global !== 'undefined' ? global : this), function (Rules, Skills) {
+  'use strict';
+
+  var THEME = {
+    wood1: '#dcb887',
+    wood2: '#c99a63',
+    woodEdge: 'rgba(38, 24, 12, 0.35)',
+    line: 'rgba(58, 38, 18, 0.62)',
+    lineBold: 'rgba(44, 28, 12, 0.85)',
+    star: 'rgba(48, 30, 12, 0.9)',
+    black1: '#5b5f6b',
+    black2: '#12141a',
+    white1: '#ffffff',
+    white2: '#c9ccd6',
+    label: 'rgba(60, 40, 20, 0.75)'
+  };
+
+  var COL_LETTERS = 'ABCDEFGHJKLMNOPQRSTUVWXYZ'; // 跳过 I
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function layout(canvasPx, size, pad) {
+    pad = pad == null ? 26 : pad;
+    var inner = canvasPx - pad * 2;
+    var cell = inner / (size - 1);
+    return { px: canvasPx, size: size, pad: pad, cell: cell, ox: pad, oy: pad, r: cell * 0.455 };
+  }
+
+  function cellPos(L, i) {
+    return {
+      x: L.ox + Rules.colOf(L.size, i) * L.cell,
+      y: L.oy + Rules.rowOf(L.size, i) * L.cell
+    };
+  }
+
+  function pointToCell(L, x, y) {
+    var c = Math.round((x - L.ox) / L.cell);
+    var r = Math.round((y - L.oy) / L.cell);
+    if (r < 0 || c < 0 || r >= L.size || c >= L.size) return -1;
+    var p = cellPos(L, Rules.idxOf(L.size, r, c));
+    var dx = x - p.x, dy = y - p.y;
+    if (dx * dx + dy * dy > (L.cell * 0.52) * (L.cell * 0.52)) return -1;
+    return Rules.idxOf(L.size, r, c);
+  }
+
+  function starPoints(size) {
+    if (size === 9) return [[2, 2], [2, 6], [6, 2], [6, 6], [4, 4]];
+    if (size === 13) return [[3, 3], [3, 9], [9, 3], [9, 9], [6, 6]];
+    if (size === 19) return [[3, 3], [3, 9], [3, 15], [9, 3], [9, 9], [9, 15], [15, 3], [15, 9], [15, 15]];
+    return [];
+  }
+
+  function drawStone(ctx, x, y, r, color, opts) {
+    opts = opts || {};
+    if (opts.ghost) {
+      ctx.save();
+      ctx.globalAlpha = opts.alpha == null ? 0.42 : opts.alpha;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + 1, y + 2, r * 0.98, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(12, 8, 4, 0.28)';
+    ctx.fill();
+    ctx.restore();
+
+    var g = ctx.createRadialGradient(x - r * 0.32, y - r * 0.36, r * 0.12, x, y, r);
+    if (color === 1) {
+      g.addColorStop(0, THEME.black1);
+      g.addColorStop(1, THEME.black2);
+    } else {
+      g.addColorStop(0, THEME.white1);
+      g.addColorStop(1, THEME.white2);
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = Math.max(0.6, r * 0.06);
+    ctx.strokeStyle = color === 1 ? 'rgba(0,0,0,0.55)' : 'rgba(120,122,135,0.55)';
+    ctx.stroke();
+    if (opts.ghost) ctx.restore();
+  }
+
+  /* 主绘制
+   * o = { L, state, viewer, hover, skill, territory, showTerritory }
+   */
+  function draw(ctx, o) {
+    var L = o.L, s = o.state, size = s.size;
+    var boardPx = L.px;
+
+    // 棋盘底
+    ctx.clearRect(0, 0, boardPx, boardPx);
+    var bg = ctx.createLinearGradient(0, 0, boardPx, boardPx);
+    bg.addColorStop(0, THEME.wood1);
+    bg.addColorStop(1, THEME.wood2);
+    roundRect(ctx, 2, 2, boardPx - 4, boardPx - 4, 14);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = THEME.woodEdge;
+    ctx.stroke();
+
+    // 网格
+    ctx.strokeStyle = THEME.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var i = 0; i < size; i++) {
+      var a = L.oy + i * L.cell, b = L.ox + i * L.cell;
+      ctx.moveTo(L.ox, a); ctx.lineTo(L.ox + (size - 1) * L.cell, a);
+      ctx.moveTo(b, L.oy); ctx.lineTo(b, L.oy + (size - 1) * L.cell);
+    }
+    ctx.stroke();
+
+    // 外框加粗
+    var e = L.ox, f = L.oy + (size - 1) * L.cell;
+    ctx.strokeStyle = THEME.lineBold;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(e, L.oy); ctx.lineTo(e, f); ctx.lineTo(e + (size - 1) * L.cell, f);
+    ctx.lineTo(e + (size - 1) * L.cell, L.oy); ctx.closePath();
+    ctx.stroke();
+
+    // 星位
+    var stars = starPoints(size);
+    ctx.fillStyle = THEME.star;
+    for (var k = 0; k < stars.length; k++) {
+      var sp = { x: L.ox + stars[k][1] * L.cell, y: L.oy + stars[k][0] * L.cell };
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, Math.max(2, L.cell * 0.085), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 坐标
+    ctx.fillStyle = THEME.label;
+    ctx.font = '10px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var ci = 0; ci < size; ci++) {
+      ctx.fillText(COL_LETTERS[ci], L.ox + ci * L.cell, L.oy - L.pad * 0.55);
+      ctx.fillText(String(size - ci), L.ox - L.pad * 0.6, L.oy + ci * L.cell);
+    }
+
+    var viewer = o.viewer || s.turn;
+    var fogSet = {};
+    var fog = Rules.fogCells(s, viewer);
+    for (var fi = 0; fi < fog.length; fi++) fogSet[fog[fi]] = 1;
+
+    // 势力图（天眼 / 结算）
+    if (o.showTerritory && o.territory) {
+      for (var t = 0; t < s.board.length; t++) {
+        var ow = o.territory.owner[t];
+        if (!ow || s.board[t] !== 0) continue;
+        var p = cellPos(L, t);
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, L.r * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = ow === 1 ? '#2b2f3a' : '#f2f2f6';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // 加固光环
+    for (var q = 0; q < s.effects.fortify.length; q++) {
+      var ft = s.effects.fortify[q];
+      if (ft.until <= s.moveNumber) continue;
+      ctx.save();
+      ctx.strokeStyle = ft.owner === viewer ? '#f2c14e' : 'rgba(242,193,78,0.5)';
+      ctx.lineWidth = Math.max(1.5, L.cell * 0.07);
+      ctx.setLineDash([L.cell * 0.22, L.cell * 0.14]);
+      for (var qc = 0; qc < ft.cells.length; qc++) {
+        var pp = cellPos(L, ft.cells[qc]);
+        ctx.beginPath();
+        ctx.arc(pp.x, pp.y, L.r * 1.02, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 棋子
+    for (var idx = 0; idx < s.board.length; idx++) {
+      if (!s.board[idx]) continue;
+      if (fogSet[idx]) continue;
+      var cp = cellPos(L, idx);
+      drawStone(ctx, cp.x, cp.y, L.r, s.board[idx]);
+    }
+
+    // 禁行标记
+    for (var b = 0; b < s.effects.ban.length; b++) {
+      var bn = s.effects.ban[b];
+      if (bn.until <= s.moveNumber) continue;
+      var bp = cellPos(L, bn.idx);
+      var rr = L.r * 0.62;
+      ctx.save();
+      ctx.strokeStyle = '#e8564f';
+      ctx.lineWidth = Math.max(1.6, L.cell * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(bp.x - rr, bp.y - rr); ctx.lineTo(bp.x + rr, bp.y + rr);
+      ctx.moveTo(bp.x + rr, bp.y - rr); ctx.lineTo(bp.x - rr, bp.y + rr);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 迷雾遮罩
+    for (var g2 = 0; g2 < s.effects.fog.length; g2++) {
+      var fg = s.effects.fog[g2];
+      if (fg.until <= s.moveNumber || fg.by === viewer) continue;
+      for (var fc = 0; fc < fg.cells.length; fc++) {
+        var fp = cellPos(L, fg.cells[fc]);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(fp.x, fp.y, L.cell * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(28, 30, 40, 0.9)';
+        ctx.fill();
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(150, 160, 200, 0.35)';
+        ctx.lineWidth = 1.2;
+        for (var sl = -2; sl <= 2; sl++) {
+          ctx.beginPath();
+          ctx.moveTo(fp.x - L.cell * 0.5 + sl * L.cell * 0.25, fp.y + L.cell * 0.5);
+          ctx.lineTo(fp.x - L.cell * 0.5 + sl * L.cell * 0.25 + L.cell, fp.y - L.cell * 0.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(190, 200, 240, 0.85)';
+        ctx.font = 'bold ' + Math.round(L.cell * 0.42) + 'px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', fp.x, fp.y + 1);
+      }
+    }
+
+    // 技能目标提示
+    var sk = o.skill;
+    if (sk) {
+      for (var ti = 0; ti < s.board.length; ti++) {
+        if (!targetValid(s, sk, ti, s.turn)) continue;
+        var tp = cellPos(L, ti);
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = sk.color;
+        ctx.lineWidth = Math.max(1.2, L.cell * 0.06);
+        ctx.beginPath();
+        ctx.arc(tp.x, tp.y, L.r * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // 最后一手
+    if (s.lastMove >= 0 && s.board[s.lastMove]) {
+      var lp = cellPos(L, s.lastMove);
+      ctx.save();
+      ctx.strokeStyle = s.board[s.lastMove] === 1 ? '#ffd166' : '#e8564f';
+      ctx.lineWidth = Math.max(1.4, L.cell * 0.07);
+      ctx.beginPath();
+      ctx.arc(lp.x, lp.y, L.r * 0.34, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 悬停预览
+    if (o.hover >= 0 && s.board[o.hover] === 0 && !s.over) {
+      var hp = cellPos(L, o.hover);
+      var banned = Rules.isBanned(s, o.hover, s.turn);
+      drawStone(ctx, hp.x, hp.y, L.r, s.turn, { ghost: true, alpha: banned ? 0.2 : 0.45 });
+    }
+  }
+
+  function targetValid(state, skill, i, color) {
+    if (skill.target === 'none') return false;
+    if (skill.target === 'point') return state.board[i] === 0 && !Rules.isBanned(state, i, color);
+    if (skill.target === 'own-stone') return state.board[i] === color;
+    if (skill.target === 'enemy-stone') return state.board[i] === Rules.opp(color);
+    if (skill.target === 'area') return i >= 0;
+    return false;
+  }
+
+  return {
+    THEME: THEME,
+    layout: layout,
+    cellPos: cellPos,
+    pointToCell: pointToCell,
+    drawStone: drawStone,
+    draw: draw,
+    roundRect: roundRect,
+    targetValid: targetValid
+  };
+});
+
+;
+/* main.js - 技能围棋 H5 版交互逻辑 */
+(function () {
+  'use strict';
+
+  var R = SkillGo.Rules, AI = SkillGo.AI, RD = SkillGo.Render, SK = SkillGo.Skills;
+  var LETTERS = 'ABCDEFGHJKLMNOPQRSTUVWXYZ';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $('board');
+  var ctx = canvas.getContext('2d');
+
+  var state = null;
+  var L = null;
+  var ui = {
+    skill: null,
+    hover: -1,
+    history: [],
+    records: [],
+    busy: false,
+    showTerr: false,
+    setup: { size: 9, mode: 'pve', color: 1 }
+  };
+
+  // ---------- 工具 ----------
+  function coord(i) {
+    if (i == null || i < 0) return '-';
+    return LETTERS[R.colOf(state.size, i)] + (state.size - R.rowOf(state.size, i));
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 1800);
+  }
+
+  function humanColor() { return state.mode === 'pve' ? state.humanColor : state.turn; }
+  function isHumanTurn() { return state.mode === 'pvp' || state.turn === state.humanColor; }
+
+  function pushRecord(color, text) {
+    ui.records.push({ color: color, text: text });
+    if (ui.records.length > 60) ui.records.shift();
+  }
+
+  // ---------- 布局 ----------
+  function resize() {
+    if (!state) return;
+    var wrap = canvas.parentElement;
+    var w = Math.max(240, Math.min(wrap.clientWidth, 560));
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(w * dpr);
+    canvas.style.height = w + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    L = RD.layout(w, state.size, state.size >= 13 ? 22 : 26);
+    render();
+  }
+  window.addEventListener('resize', resize);
+
+  function render() {
+    if (!state || !L) return;
+    var viewer = state.mode === 'pvp' ? state.turn : state.humanColor;
+    var showT = ui.showTerr || state.over || R.sightOn(state, viewer);
+    RD.draw(ctx, {
+      L: L,
+      state: state,
+      viewer: viewer,
+      hover: ui.hover,
+      skill: ui.skill,
+      territory: showT ? R.estimateTerritory(state) : null,
+      showTerritory: showT
+    });
+  }
+
+  // ---------- 对局 ----------
+  function newGame() {
+    state = R.createGame({ size: ui.setup.size, mode: ui.setup.mode, humanColor: ui.setup.color });
+    ui.history = [];
+    ui.records = [];
+    ui.skill = null;
+    ui.busy = false;
+    ui.showTerr = false;
+    $('subTitle').textContent = ui.setup.size + ' 路 · ' + (ui.setup.mode === 'pve' ? '人机对战' : '双人同屏');
+    $('nameBlack').textContent = '黑方 · ' + (ui.setup.mode === 'pve'
+      ? (state.humanColor === 1 ? '你' : 'AI')
+      : '玩家 1');
+    $('nameWhite').textContent = '白方 · ' + (ui.setup.mode === 'pve'
+      ? (state.humanColor === 2 ? '你' : 'AI')
+      : '玩家 2');
+    buildEnergyCells();
+    resize();
+    updateUI();
+    if (state.mode === 'pve' && !isHumanTurn()) aiTurn();
+  }
+
+  function buildEnergyCells() {
+    var hb = $('enBlack'), hw = $('enWhite');
+    hb.innerHTML = ''; hw.innerHTML = '';
+    for (var i = 0; i < R.ENERGY_MAX; i++) {
+      hb.appendChild(document.createElement('i'));
+      hw.appendChild(document.createElement('i'));
+    }
+  }
+
+  function snapshot() { ui.history.push(R.clone(state)); if (ui.history.length > 80) ui.history.shift(); }
+
+  function doMove(idx) {
+    if (ui.busy || state.over || !isHumanTurn()) return;
+    var color = state.turn;
+    snapshot();
+    var r = R.play(state, idx, color);
+    if (!r.ok) { ui.history.pop(); toast(r.reason); return; }
+    pushRecord(color, '落子 ' + coord(idx) + (r.captured.length ? ' · 提子 ' + r.captured.length : ''));
+    ui.skill = null;
+    R.endTurn(state, color);
+    afterAction();
+  }
+
+  function doSkill(skillId, idx) {
+    if (ui.busy || state.over || !isHumanTurn()) return;
+    var color = state.turn;
+    var r = R.useSkill(state, skillId, idx, color);
+    if (!r.ok) { toast(r.reason); return; }
+    var s = SK.get(skillId);
+    pushRecord(color, '施放【' + s.name + '】' + (idx >= 0 ? ' @ ' + coord(idx) : '') +
+      (r.captured && r.captured.length ? ' · 拔子 ' + r.captured.length : ''));
+    toast('已施放：' + s.name + '·' + s.tag);
+    ui.skill = null;
+    render();
+    updateUI();
+  }
+
+  function afterAction() {
+    render();
+    updateUI();
+    if (state.over) { showResult(); return; }
+    if (state.mode === 'pve' && !isHumanTurn()) aiTurn();
+  }
+
+  function aiTurn() {
+    if (state.over) { updateUI(); return; }
+    ui.busy = true;
+    $('thinking').classList.add('on');
+    var color = state.turn;
+    var actions = AI.planTurn(state, color);
+    var i = 0;
+    function step() {
+      if (state.over) { end(); return; }
+      if (i >= actions.length) { end(); return; }
+      var a = actions[i++];
+      if (a.type === 'skill') {
+        var r = R.useSkill(state, a.id, a.target, color);
+        if (r.ok) {
+          var s = SK.get(a.id);
+          pushRecord(color, '施放【' + s.name + '】' + (a.target >= 0 ? ' @ ' + coord(a.target) : ''));
+          if (a.id !== 'sight') toast('AI 施放了 ' + s.name + '·' + s.tag);
+        }
+      } else if (a.type === 'move') {
+        var m = R.play(state, a.idx, color);
+        if (m.ok) {
+          pushRecord(color, '落子 ' + coord(a.idx) + (m.captured.length ? ' · 提子 ' + m.captured.length : ''));
+        }
+      } else {
+        R.pass(state, color);
+        pushRecord(color, '虚着');
+      }
+      render();
+      updateUI();
+      setTimeout(step, 460);
+    }
+    function end() {
+      if (!state.over) R.endTurn(state, color);
+      ui.busy = false;
+      $('thinking').classList.remove('on');
+      render();
+      updateUI();
+      if (state.over) showResult();
+    }
+    setTimeout(step, 360);
+  }
+
+  // ---------- UI 更新 ----------
+  function updateUI() {
+    // 能量
+    var cells = [$('enBlack').children, $('enWhite').children];
+    for (var c = 1; c <= 2; c++) {
+      for (var i = 0; i < cells[c - 1].length; i++) {
+        cells[c - 1][i].className = i < state.energy[c] ? 'on' : '';
+      }
+    }
+    $('capBlack').textContent = state.captured[1];
+    $('capWhite').textContent = state.captured[2];
+    $('myEnergy').textContent = state.energy[isHumanTurn() ? state.turn : (state.mode === 'pve' ? state.humanColor : state.turn)];
+
+    // 回合指示
+    var turnName = state.turn === 1 ? '黑方' : '白方';
+    $('turnChip').textContent = state.over ? '对局结束' : turnName + '行棋';
+    $('pcardBlack').className = 'pcard black' + (state.turn === 1 && !state.over ? ' active' : '');
+    $('pcardWhite').className = 'pcard white' + (state.turn === 2 && !state.over ? ' active' : '');
+
+    renderSkills();
+    renderEffects();
+    renderLog();
+    updateHint();
+  }
+
+  function renderSkills() {
+    var box = $('skills');
+    if (!box.childElementCount) {
+      box.innerHTML = '';
+      SK.LIST.forEach(function (s) {
+        var b = document.createElement('button');
+        b.className = 'skill';
+        b.dataset.id = s.id;
+        b.innerHTML =
+          '<div class="cost">' + s.cost + '⚡</div>' +
+          '<div class="ic" style="color:' + s.color + '">' + s.icon + '</div>' +
+          '<div class="nm">' + s.name + '</div>' +
+          '<div class="tg">' + s.tag + '</div>' +
+          '<div class="cdMask"><span></span></div>';
+        b.addEventListener('click', function () { pickSkill(s.id); });
+        box.appendChild(b);
+      });
+    }
+    var color = state.mode === 'pve' ? state.humanColor : state.turn;
+    var cd = state.cooldown[color - 1];
+    var myTurn = isHumanTurn() && !state.over;
+    Array.prototype.forEach.call(box.children, function (b) {
+      var s = SK.get(b.dataset.id);
+      var cooling = !!cd[s.id];
+      var poor = state.energy[color] < s.cost;
+      var dis = !myTurn || cooling || poor;
+      b.className = 'skill' + (dis ? ' disabled' : '') + (cooling ? ' cooling' : '') + (ui.skill && ui.skill.id === s.id ? ' on' : '');
+      b.querySelector('.cdMask span').textContent = cooling ? '冷却 ' + cd[s.id] : '';
+    });
+  }
+
+  function renderEffects() {
+    var ul = $('effects');
+    var items = [];
+    state.effects.fortify.forEach(function (f) {
+      items.push(['gold', (f.owner === 1 ? '黑' : '白') + '方磐石加固中 · ' + turnsLeft(f.until) + ' 回合']);
+    });
+    state.effects.ban.forEach(function (f) {
+      items.push(['red', '封印 ' + coord(f.idx) + ' · ' + turnsLeft(f.until) + ' 回合']);
+    });
+    state.effects.fog.forEach(function (f) {
+      items.push(['cyan', (f.by === 1 ? '黑' : '白') + '方布下迷雾 ' + coord(f.cells[4]) + ' 一带 · ' + turnsLeft(f.until) + ' 回合']);
+    });
+    if (R.sightOn(state, 1)) items.push(['cyan', '黑方天眼开启 · ' + turnsLeft(state.effects.sight[0]) + ' 回合']);
+    if (R.sightOn(state, 2)) items.push(['cyan', '白方天眼开启 · ' + turnsLeft(state.effects.sight[1]) + ' 回合']);
+
+    ul.innerHTML = items.length
+      ? items.map(function (it) {
+        var c = it[0] === 'gold' ? '#f2c14e' : (it[0] === 'red' ? '#e8564f' : '#4fc4f5');
+        return '<li><span class="dot" style="background:' + c + '"></span>' + it[1] + '</li>';
+      }).join('')
+      : '<li class="empty">暂无生效中的效果</li>';
+  }
+
+  function turnsLeft(until) {
+    return Math.max(0, Math.ceil((until - state.moveNumber) / 2));
+  }
+
+  function renderLog() {
+    var ul = $('log');
+    if (!ui.records.length) { ul.innerHTML = '<li class="empty">暂无记录</li>'; return; }
+    var recent = ui.records.slice(-24).reverse();
+    ul.innerHTML = recent.map(function (r, i) {
+      var c = r.color === 1 ? 'radial-gradient(circle at 32% 30%,#5b5f6b,#12141a)' : 'radial-gradient(circle at 32% 30%,#fff,#c5c8d2)';
+      var n = ui.records.length - i;
+      return '<li><span class="dot" style="background:' + c + '"></span><span class="tag">' + n + '</span>' + r.text + '</li>';
+    }).join('');
+  }
+
+  function updateHint() {
+    var h = $('hintBar');
+    if (state.over) { h.textContent = '对局结束 · 点击「新对局」再来一盘'; return; }
+    if (ui.skill) {
+      h.textContent = '【' + ui.skill.name + '】' + ui.skill.tip + '（再点一次技能卡取消）';
+    } else if (!isHumanTurn()) {
+      h.textContent = '对手回合中…';
+    } else {
+      h.textContent = '点击交叉点落子 · 使用技能不占用落子机会（每回合可连用多个技能）';
+    }
+  }
+
+  function pickSkill(id) {
+    if (ui.busy || state.over || !isHumanTurn()) { toast('现在不是你的回合'); return; }
+    var s = SK.get(id);
+    var color = state.turn;
+    var check = R.canUse(state, id, color);
+    if (!check.ok) { toast(check.reason); return; }
+    if (s.target === 'none') { doSkill(id, -1); return; }
+    ui.skill = ui.skill && ui.skill.id === id ? null : s;
+    ui.hover = -1;
+    updateHint();
+    renderSkills();
+    render();
+  }
+
+  // ---------- 交互 ----------
+  function localPos(e) {
+    var rect = canvas.getBoundingClientRect();
+    var t = e.touches && e.touches[0] ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  }
+
+  var lastTap = 0;
+  function onClick(e) {
+    if (!state || ui.busy) return;
+    var now = Date.now();
+    if (now - lastTap < 350) { e.preventDefault(); return; } // 防止 touch + click 双触发
+    lastTap = now;
+    e.preventDefault();
+    var p = localPos(e);
+    var idx = RD.pointToCell(L, p.x, p.y);
+    if (idx < 0) return;
+    if (ui.skill) {
+      if (!RD.targetValid(state, ui.skill, idx, state.turn)) { toast('该目标无效：' + ui.skill.tip); return; }
+      doSkill(ui.skill.id, idx);
+    } else {
+      doMove(idx);
+    }
+  }
+
+  canvas.addEventListener('click', onClick);
+  canvas.addEventListener('touchstart', function (e) { onClick(e); }, { passive: false });
+
+  canvas.addEventListener('mousemove', function (e) {
+    if (!state) return;
+    var p = localPos(e);
+    var idx = RD.pointToCell(L, p.x, p.y);
+    if (idx !== ui.hover) { ui.hover = idx; render(); }
+  });
+  canvas.addEventListener('mouseleave', function () { ui.hover = -1; render(); });
+
+  $('btnPass').addEventListener('click', function () {
+    if (ui.busy || state.over || !isHumanTurn()) return;
+    snapshot();
+    var c = state.turn;
+    pushRecord(c, '虚着');
+    R.pass(state, c);
+    ui.skill = null;
+    if (state.over) { showResult(); return; }
+    if (state.mode === 'pve' && !isHumanTurn()) aiTurn();
+    else { render(); updateUI(); }
+  });
+
+  $('btnUndo').addEventListener('click', function () {
+    if (ui.busy || !ui.history.length) { toast('没有可悔的棋'); return; }
+    state = ui.history.pop();
+    if (ui.records.length) ui.records.pop();
+    ui.skill = null;
+    ui.showTerr = false;
+    // pve：若回退后仍轮到 AI，再退一步回到玩家回合
+    if (state.mode === 'pve' && !isHumanTurn() && ui.history.length) {
+      state = ui.history.pop();
+      if (ui.records.length) ui.records.pop();
+    }
+    resize();
+    updateUI();
+    toast('已悔棋');
+  });
+
+  $('btnResign').addEventListener('click', function () {
+    if (state.over) return;
+    var loser = state.mode === 'pve' ? state.humanColor : state.turn;
+    var t = R.estimateTerritory(state);
+    state.over = true;
+    state.result = { winner: R.opp(loser), resign: true, black: t.black, white: t.white, diff: t.diff, detail: t };
+    render();
+    updateUI();
+    showResult();
+  });
+
+  $('btnNew').addEventListener('click', function () { $('setupModal').classList.add('on'); });
+  $('btnAgain').addEventListener('click', function () {
+    $('resultModal').classList.remove('on');
+    $('setupModal').classList.add('on');
+  });
+  $('btnCloseResult').addEventListener('click', function () { $('resultModal').classList.remove('on'); });
+  $('btnRules').addEventListener('click', function () { $('rulesModal').classList.add('on'); });
+  $('btnCloseRules').addEventListener('click', function () { $('rulesModal').classList.remove('on'); });
+
+  // 设置弹窗
+  function bindSeg(id, key, cast) {
+    var seg = $(id);
+    seg.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      Array.prototype.forEach.call(seg.children, function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      ui.setup[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+      if (key === 'mode') $('fieldColor').style.display = ui.setup.mode === 'pve' ? '' : 'none';
+    });
+  }
+  bindSeg('segSize', 'size', Number);
+  bindSeg('segMode', 'mode');
+  bindSeg('segColor', 'color', Number);
+
+  $('btnStart').addEventListener('click', function () {
+    $('setupModal').classList.remove('on');
+    newGame();
+  });
+
+  // 规则弹窗内容
+  (function fillRules() {
+    var box = $('ruleList');
+    box.innerHTML = SK.LIST.map(function (s) {
+      return '<div class="ruleRow"><div class="t" style="color:' + s.color + '">' +
+        s.icon + ' ' + s.name + ' · ' + s.tag + '　<span style="color:#f2c14e;font-size:11px">' + s.cost + '⚡</span>' +
+        '　<span style="color:#6b7488;font-size:11px">冷却 ' + s.cd + ' 回合</span></div>' +
+        '<div class="d">' + s.desc + '</div></div>';
+    }).join('');
+  })();
+
+  // ---------- 结算 ----------
+  function showResult() {
+    var r = state.result;
+    if (!r) return;
+    var t = r.detail || R.estimateTerritory(state);
+    var winnerName = r.winner === 1 ? '黑方' : '白方';
+    var iAm = state.mode === 'pve' ? (r.winner === state.humanColor) : null;
+    $('resTitle').textContent = r.resign
+      ? (winnerName + '胜（对方认输）')
+      : (winnerName + '胜 · 数子');
+    $('resScore').innerHTML =
+      '黑方 ' + t.black + ' 子　vs　白方 ' + t.white + ' 子（含贴目 ' + t.komi + '）<br>' +
+      '分差 <b>' + (t.diff > 0 ? '+' : '') + t.diff.toFixed(1) + '</b>';
+    $('resNote').textContent = iAm === null
+      ? '黑地 ' + t.territory[1] + ' + 黑子 ' + t.stones[1] + '　|　白地 ' + t.territory[2] + ' + 白子 ' + t.stones[2]
+      : (iAm ? '你赢了，棋感不错。' : '这局输了，试试用技能断掉对方大块。');
+    $('resultModal').classList.add('on');
+    ui.showTerr = true;
+    render();
+  }
+
+  // ---------- 启动 ----------
+  state = R.createGame({ size: 9, mode: 'pve', humanColor: 1 });
+  buildEnergyCells();
+  resize();
+  updateUI();
+  $('setupModal').classList.add('on');
+})();
+</script></body></html>
