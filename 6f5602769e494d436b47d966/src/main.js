@@ -321,7 +321,7 @@ async function importJSON(input){
   try{
     const arr=JSON.parse(await f.text()); if(!Array.isArray(arr)) throw Error('文件格式不正确');
     const imported=[];
-    for(const t of arr){ if(!t?.title) continue; const images=[]; for(const image of t.images||[]){if(typeof image!=='string'||!image.startsWith('data:image/')) throw Error('备份图片格式不正确'); const blob=await (await fetch(image)).blob(); images.push(await storeImage(blob));} imported.push({id:uid(),title:String(t.title),note:String(t.note||''),date:t.date||todayStr(),time:t.time||'',prio:t.prio==null?2:+t.prio,done:!!t.done,doneAt:t.doneAt||'',images,createdAt:t.createdAt||new Date().toISOString()}); }
+    for(const t of arr){ if(!t?.title) continue; const images=[]; for(const image of t.images||[]){if(typeof image!=='string'||!image.startsWith('data:image/')) throw Error('备份图片格式不正确'); const match=/^data:(image\/[a-zA-Z0-9.+-]+);base64,([a-zA-Z0-9+/=]+)$/.exec(image); if(!match) throw Error('备份图片格式不正确'); const binary=atob(match[2]); const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0)); const blob=new Blob([bytes],{type:match[1]}); images.push(await storeImage(blob));} imported.push({id:uid(),title:String(t.title),note:String(t.note||''),date:t.date||todayStr(),time:t.time||'',prio:t.prio==null?2:+t.prio,done:!!t.done,doneAt:t.doneAt||'',images,createdAt:t.createdAt||new Date().toISOString()}); }
     tasks.push(...imported); save(); refreshAll(); toast('已导入，正在保存');
   }catch(e){alert('导入失败：'+e.message);}
 }
