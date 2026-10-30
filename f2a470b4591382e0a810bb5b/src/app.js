@@ -1,5 +1,7 @@
 import { createTianaFetch } from '@tianacloud/serverless';
 export async function mount(root, { files }) {
+  root.style.color = '#fff';
+  root.style.fontFamily = "'Noto Sans SC', sans-serif";
   let fontError = false;
   try {
     for (const [name,path] of [['Orbitron','template-assets/fonts/orbitron.woff2'], ['Noto Sans SC','template-assets/fonts/noto-sans-sc.woff2']]) {
