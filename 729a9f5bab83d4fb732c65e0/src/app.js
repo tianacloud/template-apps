@@ -16,7 +16,7 @@ export async function mount(root, {files}) {
   async function get(path) { const r=await files.get('template-assets/'+path); if(!r.ok) throw Error('素材读取失败：'+path); const u=URL.createObjectURL(await r.blob());urls.push(u);return u; }
   const names=Array.from({length:88},(_,i)=>`font-${String(i).padStart(2,'0')}.woff2`);
   const loaded=await Promise.all([...names,'backdrop.jpg'].map(get));
-  root.textContent=''; run(initialMuted,saveMuted,loaded); document.body.append(warning);
+  root.textContent=''; run(root,initialMuted,saveMuted,loaded); document.body.append(warning);
   return ()=>{urls.forEach(URL.revokeObjectURL);warning.remove();};
  } catch(error) {urls.forEach(URL.revokeObjectURL);root.textContent='游戏无法启动：'+error.message;throw error;}
 }
