@@ -1073,6 +1073,9 @@ const cloudPreferences = {getItem:key => storedPreferences[key] ?? null, setItem
             soundNext: next.soundNext || null,
             soundVersion: next.soundVersion || 0,
           };
+          if (document.activeElement !== el.durationInput) {
+            el.durationInput.value = String(snapshot.durationSec / 60);
+          }
           deadlineAt =
             snapshot.phase === 'running' ? Date.now() + snapshot.remainingSec * 1000 : null;
 
