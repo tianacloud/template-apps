@@ -1,0 +1,689 @@
+import { createTianaFetch } from '@tianacloud/serverless';
+const style=document.createElement("style"); style.textContent="\n  :root{\n    --bg-1:#0f0c29; --bg-2:#1a1535; --bg-3:#16213e;\n    --accent-1:#7c3aed; --accent-2:#06b6d4; --accent-3:#f472b6;\n    --glass:rgba(255,255,255,0.06);\n    --glass-border:rgba(255,255,255,0.12);\n    --txt:#e8eaf2; --txt-dim:#9aa0b5; --good:#34d399; --warn:#fbbf24; --bad:#fb7185;\n  }\n  *{box-sizing:border-box;margin:0;padding:0}\n  html{height:100%;scroll-behavior:smooth}\n  body{\n    font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif;\n    color:var(--txt);\n    background:var(--bg-1);\n    min-height:100vh;\n    padding:28px 16px 64px;\n  }\n  /* 背景光晕用 fixed 伪元素实现：兼容移动端，整页滚动/截图也不会出现断层 */\n  body::before{content:\"\";position:fixed;inset:0;z-index:-1;pointer-events:none;\n    background:\n      radial-gradient(1200px 600px at 12% -10%, rgba(124,58,237,0.28), transparent 60%),\n      radial-gradient(1000px 600px at 110% 10%, rgba(6,182,212,0.22), transparent 55%),\n      radial-gradient(800px 500px at 50% 120%, rgba(244,114,182,0.15), transparent 60%),\n      linear-gradient(135deg,var(--bg-1),var(--bg-2) 45%,var(--bg-3));\n  }\n  ::selection{background:rgba(124,58,237,.45);color:#fff}\n  body::-webkit-scrollbar{width:10px}\n  body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}\n  body::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24)}\n  body::-webkit-scrollbar-track{background:transparent}\n  .wrap{max-width:980px;margin:0 auto}\n  header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}\n  .logo{font-size:30px;filter:drop-shadow(0 4px 12px rgba(124,58,237,.5))}\n  .title h1{font-size:24px;font-weight:800;letter-spacing:.5px;\n    background:linear-gradient(135deg,#fff,#c4b5fd 60%,#67e8f9);\n    -webkit-background-clip:text;background-clip:text;color:transparent}\n  .title p{color:var(--txt-dim);font-size:13px;margin-top:3px}\n  .badge{margin-left:auto;font-size:12px;font-weight:700;padding:7px 13px;border-radius:999px;\n    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));color:#fff;\n    box-shadow:0 6px 18px rgba(124,58,237,.4);white-space:nowrap}\n  .card{background:var(--glass);border:1px solid var(--glass-border);border-radius:18px;\n    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);\n    box-shadow:0 20px 50px rgba(0,0,0,.35);padding:22px;margin-top:18px;\n    transition:transform .3s,box-shadow .3s}\n  .card:not(.result):hover{transform:translateY(-2px);box-shadow:0 26px 60px rgba(0,0,0,.42)}\n  .row{display:flex;gap:14px;flex-wrap:wrap}\n  .grow{flex:1 1 320px}\n  textarea{width:100%;min-height:260px;resize:vertical;border-radius:14px;\n    background:rgba(0,0,0,.32);border:1px solid var(--glass-border);color:#d7dcf0;\n    padding:16px;font-family:\"JetBrains Mono\",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;\n    font-size:13px;line-height:1.55;outline:none;transition:border-color .2s,box-shadow .2s}\n  textarea:focus{border-color:var(--accent-1);box-shadow:0 0 0 3px rgba(124,58,237,.25)}\n  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}\n  select{background:rgba(0,0,0,.32);border:1px solid var(--glass-border);color:var(--txt);\n    padding:9px 12px;border-radius:10px;font-size:13px;outline:none}\n  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:13px;font-weight:700;\n    padding:10px 16px;transition:transform .12s,box-shadow .2s,opacity .2s}\n  button:active{transform:translateY(1px)}\n  .btn-primary{background:linear-gradient(135deg,var(--accent-1),var(--accent-2));color:#fff;\n    box-shadow:0 8px 22px rgba(124,58,237,.4)}\n  .btn-primary:hover{box-shadow:0 10px 28px rgba(6,182,212,.45)}\n  .btn-ghost{background:rgba(255,255,255,.08);color:var(--txt);border:1px solid var(--glass-border)}\n  .btn-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22)}\n  .btn-primary:hover{transform:translateY(-1px)}\n  button:focus-visible,select:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}\n  .hint{color:var(--txt-dim);font-size:12px;margin-left:auto}\n  .result{display:none;opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}\n  .result.show{display:block;opacity:1;transform:none}\n  .score-head{display:flex;align-items:center;gap:24px;flex-wrap:wrap}\n  .gauge{position:relative;width:168px;height:168px;flex:0 0 auto}\n  .gauge svg{transform:rotate(-90deg)}\n  .gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}\n  .gauge .num b{font-size:46px;font-weight:800;line-height:1}\n  .gauge .num span{font-size:12px;color:var(--txt-dim);margin-top:4px}\n  .grade-pill{font-size:34px;font-weight:900;width:78px;height:78px;border-radius:50%;\n    display:flex;align-items:center;justify-content:center;flex:0 0 auto;\n    box-shadow:0 8px 24px rgba(0,0,0,.4)}\n  .meta{flex:1 1 220px}\n  .meta h2{font-size:18px;margin-bottom:6px}\n  .meta .debt{display:inline-block;margin-top:8px;font-size:12px;padding:5px 11px;border-radius:999px;\n    background:rgba(251,113,133,.16);color:var(--bad);border:1px solid rgba(251,113,133,.3)}\n  .meta .summary{color:var(--txt-dim);font-size:13px;margin-top:10px;line-height:1.6}\n  .dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:6px}\n  .dim{background:rgba(0,0,0,.22);border:1px solid var(--glass-border);border-radius:12px;padding:13px 14px;transition:transform .2s,background .2s}\n  .dim:hover{transform:translateY(-2px);background:rgba(0,0,0,.28)}\n  .dim .dh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:8px}\n  .dim .dh b{font-weight:700}\n  .dim .dh .v{font-weight:800;font-size:15px}\n  .bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}\n  .bar i{display:block;height:100%;width:0;border-radius:6px;transition:width 1s cubic-bezier(.2,.8,.2,1)}\n  .findings h3,.share h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}\n  .tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}\n  .tag.high{background:rgba(251,113,133,.18);color:var(--bad)}\n  .tag.mid{background:rgba(251,191,36,.18);color:var(--warn)}\n  .tag.low{background:rgba(52,211,153,.16);color:var(--good)}\n  .issue{display:flex;gap:12px;padding:11px 12px;border-radius:10px;background:rgba(0,0,0,.2);\n    border:1px solid var(--glass-border);margin-bottom:9px;align-items:flex-start;transition:background .2s,transform .2s}\n  .issue:hover{background:rgba(255,255,255,.05);transform:translateX(2px)}\n  .issue .ln{font-family:ui-monospace,monospace;font-size:12px;color:var(--txt-dim);min-width:54px}\n  .issue .body{font-size:13px;line-height:1.5}\n  .issue .body .msg{font-weight:600}\n  .issue .body .fix{color:var(--txt-dim);font-size:12px;margin-top:3px}\n  .empty{color:var(--txt-dim);font-size:13px;padding:10px 0}\n  .sharecard{margin-top:8px;border-radius:16px;padding:22px;\n    background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(6,182,212,.18));\n    border:1px solid var(--glass-border);position:relative;overflow:hidden}\n  .sharecard::after{content:\"CODE\";position:absolute;right:-10px;bottom:-26px;font-size:120px;font-weight:900;\n    color:rgba(255,255,255,.06)}\n  .sharecard .sc-top{display:flex;align-items:center;gap:12px}\n  .sharecard .sc-emoji{font-size:30px}\n  .sharecard .sc-name{font-weight:800;font-size:16px}\n  .sharecard .sc-sub{font-size:12px;color:var(--txt-dim)}\n  .sharecard .sc-score{display:flex;gap:22px;margin-top:16px;flex-wrap:wrap}\n  .sharecard .sc-score div{font-size:12px;color:var(--txt-dim)}\n  .sharecard .sc-score div b{display:block;font-size:22px;color:var(--txt);font-weight:800;margin-top:2px}\n  .sharecard .sc-quote{margin-top:14px;font-size:13px;color:#cbd2ea;font-style:italic}\n  .copybtn{margin-top:14px}\n  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;\n    background:rgba(20,20,40,.95);border:1px solid var(--glass-border);color:#fff;padding:11px 18px;\n    border-radius:12px;font-size:13px;transition:opacity .3s,transform .3s;pointer-events:none;z-index:99}\n  .toast.show{opacity:1;transform:translateX(-50%)}\n  .heartbeat{animation:hb 1s ease-in-out infinite}\n  @keyframes hb{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}\n  .filebtn{position:relative;overflow:hidden}\n  .filebtn input[type=file]{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer}\n  textarea.drag{outline:2px dashed var(--accent-2);outline-offset:-8px;background:rgba(6,182,212,.06)}\n  .dropzone{font-size:12px;color:var(--txt-dim);margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}\n  .topfn .tf{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:10px;\n    background:rgba(0,0,0,.2);border:1px solid var(--glass-border);margin-bottom:9px;align-items:center;flex-wrap:wrap}\n  .topfn .tf .nm{font-weight:700;font-size:13px}\n  .topfn .tf .meta{font-size:12px;color:var(--txt-dim)}\n  .topfn .tf .badge2{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(251,113,133,.16);color:var(--bad)}\n  .exportrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}\n  .history h3{display:flex;align-items:center;gap:8px;font-size:15px;margin-bottom:12px}\n  .hist-delta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}\n  .hist-delta .d-badge{font-size:13px;font-weight:800;padding:7px 14px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid var(--glass-border)}\n  .hist-delta .up{color:var(--good);background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.3)}\n  .hist-delta .down{color:var(--bad);background:rgba(251,113,133,.14);border-color:rgba(251,113,133,.3)}\n  .hist-delta .flat{color:var(--txt-dim)}\n  .hist-chart{width:100%;overflow-x:auto}\n  .hist-chart svg{display:block;width:100%;height:auto}\n  .hist-list{margin-top:14px;display:flex;flex-direction:column;gap:8px}\n  .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;border-radius:10px;background:rgba(0,0,0,.2);border:1px solid var(--glass-border);font-size:12px;align-items:center;flex-wrap:wrap}\n  .hist-item .h-time{color:var(--txt-dim)}\n  .hist-item .h-score{font-weight:800;font-size:15px}\n  .hist-item .h-grade{font-weight:800;padding:2px 9px;border-radius:999px;font-size:12px}\n  footer{text-align:center;color:var(--txt-dim);font-size:12px;margin-top:26px;line-height:1.7}\n  @media (max-width:600px){\n    body{padding:18px 12px 48px}\n    .card{padding:16px;margin-top:14px}\n    .title h1{font-size:20px}\n    .logo{font-size:26px}\n    .badge{font-size:11px;padding:6px 11px}\n    .gauge{width:140px;height:140px}\n    .gauge svg{width:140px;height:140px}\n    .gauge .num b{font-size:38px}\n    textarea{min-height:200px;padding:13px}\n    .controls{gap:8px}\n    button{padding:9px 13px}\n    .score-head{gap:16px}\n    .grade-pill{width:64px;height:64px;font-size:28px}\n    .dims{grid-template-columns:1fr}\n    .meta h2{font-size:16px}\n  }\n"; document.head.appendChild(style);
+document.body.innerHTML="\n<div data-page-node-id=\"wwROwFdzVOZuOMTqHj4fYl\" class=\"wrap\">\n  <header data-page-node-id=\"hdfET2MV2CnJq1w3VvRKmo\" class=\"top\">\n    <div data-page-node-id=\"H0KgNgpcrlRvsZ3po4NOKc\" class=\"logo\"><!--pnid:LWnHUIYQbxJ9lo3yXnkyo8-->🩺</div>\n    <div data-page-node-id=\"qI8BG2fpwP83VObNNF7ahh\" class=\"title\">\n      <h1 data-page-node-id=\"2vyKTto2xYwgMJX1v1ZEYp\"><!--pnid:vRvSTtxN90DIeqwsOsyFm4-->代码健康体检中心</h1>\n      <p data-page-node-id=\"mPhH2b6YmZH3sbHcO0ZRXY\"><!--pnid:gilMpQ7tylnMkk9bRvRQp4-->粘贴你的代码，生成一份技术债体检报告</p>\n    </div>\n    <div data-page-node-id=\"0VjQCTYtMvYc76qPm0vNkU\" class=\"badge\"><!--pnid:7SxR6LMo070fXbp71KvM32-->⌨ 代码体检</div>\n  </header>\n\n  <section data-page-node-id=\"2q3mDCpZc6Q910fxB1PUjs\" class=\"card\">\n    <div data-page-node-id=\"2Z4U6WI0GlGIFv8CZL3Zjy\" class=\"row\">\n      <div data-page-node-id=\"cmW60Zc6ZvgKYbCSM4AHSQ\" class=\"grow\">\n        <textarea data-page-node-id=\"xvPV9E4RLXyX3lY1OPIG6H\" id=\"code\" placeholder=\"把代码粘贴到这里…（支持 Java / JavaScript / Python / 通用）&#10;&#10;例如：一个有点“技术债”的方法，看看体检结果有多刺激 😏\"></textarea>\n      </div>\n    </div>\n    <div data-page-node-id=\"VSG5ZtWSCN7uDRsgVYyUmU\" class=\"controls\">\n      <select data-page-node-id=\"J7nIhiTeZAWfLR69IJfXD0\" id=\"lang\">\n        <option data-page-node-id=\"jUSJ0q2k1oKGXyoh4IHz31\" value=\"auto\"><!--pnid:h7DFtE0AvITIqYX7Qi68za-->语言：自动识别</option>\n        <option data-page-node-id=\"XwTjxoyLbDbAXZzA4Xw4Tj\" value=\"java\"><!--pnid:v9aHpHh8CEJIvEaqlMIT50-->Java</option>\n        <option data-page-node-id=\"79E313fS9MHREQERybvj0Z\" value=\"js\"><!--pnid:9ecUnjY1cpzlyNh0hQhib0-->JavaScript</option>\n        <option data-page-node-id=\"bZOWzWEDpxGyD2QP6oRh1Z\" value=\"python\"><!--pnid:0iVB90BgwUCoJX1D9lg5lH-->Python</option>\n      </select>\n      <button data-page-node-id=\"gi8yqX57CTkyFDCmUoZ7wf\" class=\"btn-ghost\" id=\"sample\"><!--pnid:N5bLD2KYSLiEEjtaw8Iw2n-->填入示例</button>\n      <button data-page-node-id=\"6AFVSyg34mMyKJMg9eA45L\" class=\"btn-ghost\" id=\"legacy\"><!--pnid:aZ9NzV3Ukef0gv2Ic4CkBg-->填入祖传代码 🍜</button>\n      <button data-page-node-id=\"hldjzkS9ZOr4Ek68qgBoLY\" class=\"btn-ghost filebtn\" id=\"uploadBtn\"><!--pnid:6HmvpCkfIq1khgBhduwNRS-->📂 上传文件<input data-page-node-id=\"ZcVTc4jSA0OfI8GEX5LmMH\" accept=\".java,.js,.py,.txt,text/*\" id=\"fileInput\" type=\"file\"></button>\n      <button data-page-node-id=\"HecVEDDZb5OAX1X0P5CuoD\" class=\"btn-ghost\" id=\"clear\"><!--pnid:QNcp0xUyV2vucdHlWpcJFu-->清空</button>\n      <button data-page-node-id=\"Wz778Lh65VjC5TnDZKNkVM\" class=\"btn-primary\" id=\"run\"><!--pnid:IXPI62OydrvCXpE0Ue046v-->开始体检 💊</button>\n      <span data-page-node-id=\"CWnFcY8PwPRSeIF7jN6AaQ\" class=\"hint\" id=\"hint\"><!--pnid:VD4wIqAfDU9uzw2RjMvpmi-->小提示：把 .java/.js/.py 文件拖进文本框也能识别</span>\n    </div>\n    <div data-page-node-id=\"LUnKORCTX2fmh0o2WCMT83\" class=\"dropzone\" id=\"dropzone\"><!--pnid:wsVcndByaBfd1WmXLUbco3-->⬇ 支持拖拽文件到文本框（或点“上传文件”选择）</div>\n  </section>\n\n  <section data-page-node-id=\"BuK79uIpHcyWDYX8ymyIxz\" class=\"card result\" id=\"result\">\n    <div data-page-node-id=\"aewSbBBsFHO2WufqYv7Ec5\" class=\"score-head\">\n      <div data-page-node-id=\"RMVUuYQZCjGVKaBeZ7lXP8\" class=\"gauge\">\n        <svg data-page-node-id=\"CmCLgVZmyRfAlByDYMpOvC\" height=\"168\" viewBox=\"0 0 168 168\" width=\"168\">\n          <circle data-page-node-id=\"fKsPqAUzRCGuRhSbLB8or0\" cx=\"84\" cy=\"84\" fill=\"none\" r=\"74\" stroke=\"rgba(255,255,255,.16)\" stroke-width=\"14\"/>\n          <circle data-page-node-id=\"71hAzRIcoyDDhWSufHmhis\" cx=\"84\" cy=\"84\" fill=\"none\" id=\"arc\" r=\"74\" stroke=\"url(#g)\" stroke-dasharray=\"465\" stroke-dashoffset=\"465\" stroke-linecap=\"round\" stroke-width=\"14\"/>\n          <defs data-page-node-id=\"dOE1UWocxexaIJyJhP2EvW\"><linearGradient data-page-node-id=\"7P0s4EMWvx7yOV6NHgV0fH\" id=\"g\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">\n            <stop data-page-node-id=\"nRPFmlRep6wTfKWGusOuKZ\" offset=\"0%\" stop-color=\"#7c3aed\"/><stop data-page-node-id=\"ews8hq7phvERH5JtdW0iVn\" offset=\"100%\" stop-color=\"#06b6d4\"/>\n          </linearGradient></defs>\n        </svg>\n        <div data-page-node-id=\"Ud8xCt7DPF6GOQ2TXqOgYb\" class=\"num\"><b data-page-node-id=\"tgJg7Zrqa5TwKHXfUIo3d2\" id=\"score\"><!--pnid:xI7ISLq4A68uMdujxED0Rx-->0</b><span data-page-node-id=\"A2xBzcCmvW9CVSvENw1eXB\"><!--pnid:blqf3XXeSokDVgIBdPKikD-->综合健康分</span></div>\n      </div>\n      <div data-page-node-id=\"ZPbr6Ho6NGX6vNXfBIRM4r\" class=\"grade-pill\" id=\"grade\"><!--pnid:IRCrqKbgdbIPK60oDqN5Al-->—</div>\n      <div data-page-node-id=\"N1W0uNXFJYOrOvF1Hprw8c\" class=\"meta\">\n        <h2 data-page-node-id=\"EIZyqub80wbOKFTOnab8n2\" id=\"verdict\"><!--pnid:rClg4XK2Ik4w1t5JctZFNe-->体检中…</h2>\n        <div data-page-node-id=\"65STtXDF5ry6TZs8odwVH8\" style=\"display:flex; flex-wrap:wrap; gap:8px\">\n          <span data-page-node-id=\"A9UQQTodFjsJKFMoBDmFbQ\" class=\"debt\" id=\"debt\"><!--pnid:ppNs7dERL3FMQ8EA9bPyfH-->技术债指数：—</span>\n          <span data-page-node-id=\"H5DxjFt99QxKmVNDZ8CXdH\" class=\"debt\" id=\"debtHours\" style=\"background:rgba(251,191,36,.16); color:var(--warn); border-color:rgba(251,191,36,.3)\"><!--pnid:fcmVfC4wqvCI3JcYMt1bLN-->预计修复：—</span>\n        </div>\n        <div data-page-node-id=\"VCZSEKmqU6NI88SdTJ67iv\" class=\"summary\" id=\"summary\"></div>\n      </div>\n    </div>\n\n    <div data-page-node-id=\"LqNltR2BKN4quD8m6dJjaL\" class=\"dims\" id=\"dims\" style=\"margin-top:22px\"></div>\n\n    <div data-page-node-id=\"JNzulz7m8SFQ86bguo1NYn\" class=\"findings\" style=\"margin-top:24px\">\n      <h3 data-page-node-id=\"DyVjkADuuyKNPRVugrtJsY\"><!--pnid:humttqL12Yd42JtgFbeBId-->🔎 坏味道清单 <span data-page-node-id=\"zahBadcgxNuwvfw01GO7MQ\" class=\"hint\" id=\"issueCount\" style=\"margin-left:auto\"></span></h3>\n      <div data-page-node-id=\"9blnLVZVr1ksKHzAe2r0or\" id=\"issues\"></div>\n    </div>\n\n    <div data-page-node-id=\"Ln31091loqAopabx5nBfIq\" class=\"topfn\" id=\"topfn\" style=\"margin-top:24px; display:none\">\n      <h3 data-page-node-id=\"mX30iBZJPzBT5hsvmGkkQC\"><!--pnid:U41f34dDB0p3agjOAb4PhR-->🔥 Top 复杂函数 <span data-page-node-id=\"ywelnXbbGTled4wu5S7y3R\" class=\"hint\" style=\"margin-left:auto; font-size:12px\"><!--pnid:iCvHUNMpPUFdkVPWCgiDXO-->圈复杂度最高的几个方法，建议优先拆分</span></h3>\n      <div data-page-node-id=\"S1jzm1nHIRtqhmwCPZBaAE\" id=\"topfnList\"></div>\n    </div>\n\n    <div data-page-node-id=\"uY2mCCmWT8DVBtXRt6KsjK\" class=\"share\" style=\"margin-top:24px\">\n      <h3 data-page-node-id=\"UXp5snYlXn57QCmBEznqZ1\"><!--pnid:eiVIVjA5WX2h20V6efQ1VG-->📇 可分享体检卡</h3>\n      <div data-page-node-id=\"UtlvmYyIeRYHAPlMP5clkx\" class=\"sharecard\" id=\"sharecard\">\n        <div data-page-node-id=\"keKiI0kouTnBwfg3LewG3q\" class=\"sc-top\">\n          <div data-page-node-id=\"LPYUbkIdcWePoLRlOoj6ZJ\" class=\"sc-emoji\"><!--pnid:ioXcgCyJKgSX1U38ZmsqFQ-->🩺</div>\n          <div data-page-node-id=\"7D4WplUzLRwaPzl4LtsprO\">\n            <div data-page-node-id=\"0kPr1rpKVhBebMwEnPDWmx\" class=\"sc-name\"><!--pnid:QA01AUZ5k41C9NdLgsm1Lb-->我的代码体检报告</div>\n            <div data-page-node-id=\"reN3c8RkTcHtBJhUh00rI2\" class=\"sc-sub\" id=\"scMeta\"><!--pnid:YZ4Pibg3TiutLF2wTIczuj-->—</div>\n          </div>\n        </div>\n        <div data-page-node-id=\"r686boOHWLdGWdDXswmIx3\" class=\"sc-score\">\n          <div data-page-node-id=\"7Q8zSdswDoghH9TDpy5JiH\"><!--pnid:2UHL7IK4MfKrcdZCm20VPb-->综合分<b data-page-node-id=\"LG37mbuBkl4Xai2qKivKT1\" id=\"scScore\"><!--pnid:RVCEOnPspKFEZ6rgRCRlnY-->—</b></div>\n          <div data-page-node-id=\"V5tX8AUwWLt7VD6Ro7kqpw\"><!--pnid:g5HteM6D2YcYHeOaRUJhBe-->评级<b data-page-node-id=\"TAFhDGi6SiXGTGwrsyioj9\" id=\"scGrade\"><!--pnid:3TyreeLBKoRkmG13NGDL3t-->—</b></div>\n          <div data-page-node-id=\"P3jgMrxPfnatMrzcMqVGZN\"><!--pnid:5MJRTns1HC6jHf2IwJoo6d-->代码行<b data-page-node-id=\"bLlfevzv4PVXMClSaqqvY1\" id=\"scLoc\"><!--pnid:DFKCRCA3QCL7IlnOafsEmF-->—</b></div>\n          <div data-page-node-id=\"9CxSgguIRg2gajglauoo5T\"><!--pnid:fDoDVenQVkz0yA5nDWD4jM-->坏味道<b data-page-node-id=\"wvwq2TFpNexwnjynT6qXXI\" id=\"scSmell\"><!--pnid:6vmmEu9vfvrb5PxGXIPSQS-->—</b></div>\n          <div data-page-node-id=\"WFqWjXhP6bHdc8JGMm5NQl\"><!--pnid:kniq7nGqOV0x27LBcWMOTg-->修复工时<b data-page-node-id=\"kv5V14SuC8pXypd4uIOcRc\" id=\"scHours\"><!--pnid:x6K5D7GIelPHkw6hfZDsLS-->—</b></div>\n        </div>\n        <div data-page-node-id=\"wuGq5Hs9vPGCMRiSq1JrNr\" class=\"sc-quote\" id=\"scQuote\"><!--pnid:7MvvOVYHTnu9yhNEayvycT-->—</div>\n      </div>\n      <button data-page-node-id=\"FwcgqNMaGlMulUUTVvticS\" class=\"btn-ghost copybtn\" id=\"copy\"><!--pnid:tIv2ebNNF1rs8p1tKFY3Ug-->复制分享文案 📋</button>\n      <div data-page-node-id=\"O7rph7nC2qgPxkqziscECi\" class=\"exportrow\">\n        <button data-page-node-id=\"trCavToV1RdWEiLXNDkLOq\" class=\"btn-ghost\" id=\"exportMd\"><!--pnid:p2vmK1SpOsL0FWiBLRmU3z-->⬇ 导出 Markdown</button>\n        <button data-page-node-id=\"Hjoqm6ZzLhceVzTTTqpOrM\" class=\"btn-ghost\" id=\"exportJson\"><!--pnid:jmnA1U5BO5tLRztJJpge5R-->⬇ 导出 JSON</button>\n        <button data-page-node-id=\"kahALmEvqk1AJ4y8wjdthY\" class=\"btn-ghost\" id=\"exportPng\"><!--pnid:CFRR1QqooUu2VLJJWaHUFJ-->🖼 导出体检卡 PNG</button>\n        <button data-page-node-id=\"jeqEzLQIRlsKMb4wejs9Hm\" class=\"btn-ghost\" id=\"copyAll\"><!--pnid:2KznT9tzdzdm5E65DbfuZW-->📑 一键复制全部修复建议</button>\n      </div>\n    </div>\n  </section>\n\n  <section data-page-node-id=\"bZMri2b9y2pd2Z6zBNx6nC\" class=\"card\" id=\"historyCard\">\n    <div data-page-node-id=\"4EIRwpdRaATSYxDTzKKH4K\" class=\"history\" id=\"history\" style=\"margin-top:0\">\n      <h3 data-page-node-id=\"Wm5VJFaFOpanvtjSivuKET\"><!--pnid:EFQTQ3qL9wJ6GtP1q6p7iB-->📈 历史趋势对比 <span data-page-node-id=\"Y69nWzD8O4kNyAUs66ROHy\" class=\"hint\" id=\"histMeta\" style=\"margin-left:auto; font-size:12px\"></span></h3>\n      <div data-page-node-id=\"C8ZxY4PFQEbfmRqt0STDRw\" class=\"hist-delta\" id=\"histDelta\"></div>\n      <div data-page-node-id=\"AyJTA6OX594f0UvpqsSLa2\" class=\"hist-chart\" id=\"histChart\"></div>\n      <div data-page-node-id=\"XJ9rPZu6Fpvx33bHdDZ4yC\" class=\"hist-list\" id=\"histList\"></div>\n      <button data-page-node-id=\"04rqarrHVIH8jLzhUC2y4A\" class=\"btn-ghost\" id=\"clearHist\" style=\"margin-top:12px\"><!--pnid:S7S2j3P1ohcZt5Z5qmpHIs-->🗑 清空历史记录</button>\n    </div>\n  </section>\n\n  <footer data-page-node-id=\"Ncp2y850UFEolSu9tv9n4f\"><!--pnid:oTOJSwirml0VFtCAIL4EHo-->\n    基于代码评审经验的启发式分析<br data-page-node-id=\"SU8ej1IbwETsB3ZwIiVsZb\"><!--pnid:jbcDI91T5BZ7YlOxyBtrU1-->\n    分析方法为启发式规则，仅供娱乐与自检参考，不等同于专业静态分析工具。\n  </footer>\n</div>\n\n<div data-page-node-id=\"aoyrSz6jURuEdeBEfMNrqw\" class=\"toast\" id=\"toast\"></div>\n\n";
+
+const $ = s => document.querySelector(s);
+let scoreTimer=null;   // 数字滚动定时器，连续体检时先清掉上一次的
+const SAMPLE = `public Order calc(List<Item> items, int t){
+  int x=0; int a=0;
+  for(int i=0;i<items.size();i++){
+    if(items.get(i).getPrice()>100){
+      if(t==1){ x = x + items.get(i).getPrice()*2; }
+      else { a = a + items.get(i).getPrice(); }
+    }
+    try{ save(items.get(i)); }catch(Exception e){}
+  }
+  // TODO: 优化性能
+  System.out.println("done "+x);
+  return new Order(x,a, 0.95);
+}`;
+
+// “祖传面条代码”示例：故意写得很糟、很有梗的 Java，用于演示新维度（安全/性能/健壮性/风格）
+const LEGACY_SAMPLE = `public void processData(List<String> data, String cfg){
+  int a=0,b=0,c=0,d=0,e=0;
+  int retry_count = 3;
+  String password = "EXAMPLE_PASSWORD";
+  String api_key = "EXAMPLE_API_KEY";
+  try{
+    for(int i=0;i<data.size();i++){
+      String s = data.get(i);
+      if(s!=null){
+        if(s.startsWith("A")){
+          if(a>10){
+            for(int j=0;j<data.size();j++){
+              String x = data.get(j);
+              System.out.println("debug: "+x);
+              if(x!=null){ s = s + x; }
+            }
+            try{ conn.query("select * from t where id="+i); }catch(Exception ex){}
+          } else { b = b + 1; }
+        } else if(s.startsWith("B")){
+          for(int k=0;k<data.size();k++){
+            String y = data.get(k);
+            System.out.println("debug2: "+y);
+            s = s + y;
+          }
+          c = c + 1;
+        } else { d = d + 1; }
+      }
+      e = e + 1;
+    }
+    // TODO: 这个函数是谁写的？？？
+    String first = data.get(0);
+    String city = user.getProfile().getAddress().getCity().toUpperCase();
+    \tif(d>0){ d = d - 1; }
+    if(e<0) throw new RuntimeException("boom");
+  }catch(Exception err){}
+  System.out.println("total="+e);
+  eval("runSomething()");
+}`;
+
+const WHITELIST = new Set(['i','j','k','n','e','x','y','t','f','id','ok','_','ch','pi']);
+const LANG_NAME = {java:'Java', js:'JavaScript', python:'Python', generic:'通用'};
+
+function detectLang(code, sel){
+  if(sel!=='auto') return sel;
+  if(/\bpublic\s+class\b|\bSystem\.out|\bvoid\b|\bimport\s+java\b|\bprivate\s+\w/.test(code)) return 'java';
+  if(/\bdef\s+\w+\s*\(|\bprint\(|\belif\b|\bself\b/.test(code)) return 'python';
+  if(/\bfunction\b|\bconst\b|\blet\b|\bvar\b|\b=>\b|\bconsole\./.test(code)) return 'js';
+  return 'generic';
+}
+
+function analyze(raw, langSel){
+  const lines = raw.replace(/\r\n/g,'\n').split('\n');
+  const lang = detectLang(raw, langSel);
+  const nonEmpty = lines.filter(l=>l.trim()!=='');
+  const loc = nonEmpty.length;
+
+  // 判断某行是否为注释行（供坏味道 / 魔法数字等维度排除注释内容）
+  const isCommentLine = l => (lang==='python')
+    ? l.trim().startsWith('#')
+    : (l.trim().startsWith('//') || l.trim().startsWith('/*') || l.trim().startsWith('*') || /^\s*\*/.test(l));
+
+  // 注释行
+  let commentCount = 0;
+  if(lang==='python'){
+    commentCount = lines.filter(l=>l.trim().startsWith('#')).length;
+  } else {
+    let inBlock=false;
+    for(const l of lines){
+      const t=l.trim();
+      if(inBlock){ commentCount++; if(/\*\//.test(l)) inBlock=false; continue; }
+      if(t.startsWith('//')){ commentCount++; continue; }
+      if(/\/\*/.test(l)){ inBlock=true; commentCount++; if(/\*\//.test(l)) inBlock=false; }
+    }
+  }
+
+  // 函数 / 方法边界
+  let fnRegex;
+  if(lang==='python') fnRegex=/\bdef\s+(\w+)\s*\(/g;
+  else if(lang==='java') fnRegex=/(?:public|private|protected|static|\s)+[\w<>\[\],\s]+\s+(\w+)\s*\([^)]*\)\s*\{/g;
+  else fnRegex=/(?:function\s+(\w+)\s*\(|(\w+)\s*=\s*\([^)]*\)\s*=>|(\w+)\s*\([^)]*\)\s*\{)/g;
+  let fnMatches=[];
+  // 过滤掉被误识别为函数的关键字（if/for/while 等），让函数计数与 Top 复杂函数更准
+  const RESERVED=new Set(['if','for','while','switch','catch','else','try','do','return','new',
+    'typeof','function','synchronized','final','static','public','private','protected','void',
+    'int','float','double','boolean','char','String','List','var','let','const']);
+  lines.forEach((l,idx)=>{ let m; fnRegex.lastIndex=0;
+    while((m=fnRegex.exec(l))!==null){
+      const nm=m[1]||m[2]||m[3]||'匿名';
+      if(RESERVED.has(nm)) continue;
+      fnMatches.push({name:nm, line:idx});
+    }
+  });
+  const fnCount = fnMatches.length;
+
+  // 嵌套深度 + 圈复杂度 + 长函数
+  let depth=0, maxDepth=0, complexity=1;
+  const compRe=/\b(if|else|for|while|switch|case|catch)\b|\&\&|\|\||\?/g;
+  const longFnThreshold=50;
+  let longFnCount=0;
+  let braceBalance=0;
+
+  lines.forEach((l,idx)=>{
+    // 复杂度按非注释行累计
+    const stripped = l.replace(/\/\/.*/,'').replace(/\/\*.*?\*\//g,'')
+      .replace(/#.*/,'');
+    let cm; compRe.lastIndex=0; while((cm=compRe.exec(stripped))!==null) complexity++;
+    // 嵌套（用花括号估算，python 用缩进）
+    if(lang==='python'){
+      const ind=(l.match(/^(\s*)/)[1].length)/4;
+      depth=ind; if(depth>maxDepth)maxDepth=depth;
+    } else {
+      for(const ch of l){ if(ch==='{'){depth++;braceBalance++; if(depth>maxDepth)maxDepth=depth;} else if(ch==='}'){depth--;braceBalance--;} }
+    }
+  });
+  // 长函数：相邻函数声明之间的行数
+  for(let i=0;i<fnMatches.length;i++){
+    const start=fnMatches[i].line;
+    const end = (i+1<fnMatches.length)?fnMatches[i+1].line:lines.length;
+    const body = end-start-1;
+    if(body>longFnThreshold) longFnCount++;
+  }
+
+  // 短命名
+  let shortHits=0; const seen=new Set();
+  const idRe=/\b([a-z_][a-z0-9_]*)\b/g; let im;
+  lines.forEach(l=>{ idRe.lastIndex=0; while((im=idRe.exec(l))!==null){
+    const w=im[1];
+    if(w.length<=2 && !WHITELIST.has(w) && !/^(if|in|or|do|is|by|of|to|as)$/.test(w)){
+      if(!seen.has(w)){ seen.add(w); shortHits++; }
+    }
+  }});
+
+  // 魔法数字
+  let magicHits=0; const magicExamples=[];
+  const numRe=/\b(\d{2,}|\.\d+|\d+\.\d+)\b/g; let nm;
+  lines.forEach((l,idx)=>{
+    if(isCommentLine(l)) return;          // 注释（含块注释）里的数字不算魔法数字
+    numRe.lastIndex=0; while((nm=numRe.exec(l))!==null){
+      if(magicExamples.length<5) magicExamples.push({line:idx+1,val:nm[1]});
+      magicHits++;
+    }
+  });
+
+  // 重复行（先去除首尾空白并折叠多余空格再比对，识别近似重复；排除纯括号/过短行）
+  const norm = l => l.trim().replace(/\s+/g,' ');
+  const cnt={};
+  nonEmpty.forEach(l=>{
+    const k=norm(l);
+    if(/^[{}()\[\],;]+$/.test(k)) return;
+    if(k.replace(/[^A-Za-z0-9\u4e00-\u9fa5]/g,'').length<4) return;
+    cnt[k]=(cnt[k]||0)+1;
+  });
+  let dupLines=0; const dupExamples=[];
+  Object.keys(cnt).forEach(k=>{ if(cnt[k]>1){ dupLines+=cnt[k]-1;
+    if(dupExamples.length<3) dupExamples.push(k.slice(0,40)); }});
+
+  // 坏味道
+  let todo=0, dbg=0, longLine=0, emptyCatch=0;
+  lines.forEach((l,idx)=>{
+    if(/\b(TODO|FIXME|HACK|XXX)\b/.test(l)) todo++;   // TODO 多在注释里，仍要统计
+    if(!isCommentLine(l)){                              // 调试残留 / 超长行只看真实代码行
+      if(/\b(console\.log|System\.out\.print|print\(|debugger)/.test(l)) dbg++;
+      if(l.length>120) longLine++;
+    }
+  });
+  emptyCatch = (raw.match(/catch\s*\([^)]*\)\s*\{\s*\}/g)||[]).length;
+
+  // 评分工具
+  const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
+
+  // ============ 函数级粒度分析：按函数/方法拆分，计算各自的圈复杂度与行数 ============
+  const topFns=[];
+  for(let i=0;i<fnMatches.length;i++){
+    const start=fnMatches[i].line;
+    const end=(i+1<fnMatches.length)?fnMatches[i+1].line:lines.length;
+    let fDepth=0, fMaxDepth=0, fComplexity=1;
+    for(let j=start;j<end;j++){
+      const l=lines[j];
+      const stripped=l.replace(/\/\/.*/,'').replace(/\/\*.*?\*\//g,'').replace(/#.*/,'');
+      let cm; compRe.lastIndex=0; while((cm=compRe.exec(stripped))!==null) fComplexity++;
+      for(const ch of l){ if(ch==='{'){fDepth++;if(fDepth>fMaxDepth)fMaxDepth=fDepth;} else if(ch==='}'){fDepth--;} }
+    }
+    topFns.push({name:fnMatches[i].name, line:start+1, complexity:fComplexity, lines:Math.max(0,end-start), maxDepth:fMaxDepth});
+  }
+  topFns.sort((a,b)=>b.complexity-a.complexity);
+  const topComplexFns = topFns.slice(0,3);
+
+  // ============ 新增维度 A：安全风险 security ============
+  // 硬编码密钥/密码/API Key
+  const secretRe=/(password|passwd|secret|api[_-]?key|access[_-]?key|token|pwd)\s*[:=]\s*["'][^"']{6,}["']/gi;
+  let hardSecret=0; const secretExamples=[];
+  let sm; secretRe.lastIndex=0;
+  while((sm=secretRe.exec(raw))!==null){ hardSecret++; if(secretExamples.length<5) secretExamples.push(sm[1]); }
+  // SQL 字符串拼接：出现 select/update/insert/delete 且与 + / 模板字符串拼接
+  const sqlConcat=(raw.match(/(select|update|insert|delete)\b[^;]{0,80}(\+|\$\{)/gi)||[]).length;
+  // 危险调用：eval / exec / Runtime.getRuntime / new Function
+  const dangerousCalls=(raw.match(/\beval\s*\(|\bexec\s*\(|\bRuntime\.getRuntime|new\s+Function\s*\(/g)||[]).length;
+  const scoreSecurity = clamp(100 - hardSecret*25 - sqlConcat*12 - dangerousCalls*20);
+
+  // ============ 新增维度 B：性能隐患 performance ============
+  // 循环体内疑似 IO/DB 调用（近似 N+1）、字符串累加 +=、循环内重复编译正则
+  let nPlusOne=0, loopStrConcat=0, loopRegexCompile=0;
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i];
+    if(/^\s*(for|while)\b/.test(l) && l.includes('{')){
+      let depth=0, opened=false; const body=[];
+      for(let j=i;j<lines.length;j++){
+        for(const ch of lines[j]){ if(ch==='{'){depth++;opened=true;} else if(ch==='}')depth--; }
+        if(j>i) body.push(lines[j]);
+        if(opened && depth<=0 && j>i) break;
+      }
+      body.forEach(bl=>{
+        if(/\.(get|query|find|save|select|load|execute|fetch)\s*\(/.test(bl)) nPlusOne++;
+        if(/\+=/.test(bl)) loopStrConcat++;
+        if(/(new\s+RegExp|\.compile\s*\()/.test(bl)) loopRegexCompile++;
+      });
+    }
+  }
+  const scorePerformance = clamp(100 - nPlusOne*5 - loopStrConcat*4 - loopRegexCompile*8);
+
+  // ============ 新增维度 C：健壮性 / 空安全 robustness ============
+  // 链式调用无判空风险（连续 3 次以上 (). ）、直接取下标 0、抛异常无 try 包裹
+  let chainRisks=0, nullAccess=0;
+  const chainRe=/(\w+\(\)\.){2,}/g;
+  lines.forEach(l=>{
+    if(isCommentLine(l)) return;
+    chainRe.lastIndex=0; if(chainRe.exec(l)) chainRisks++;
+    if(/\.get\(\s*0\s*\)/.test(l)) nullAccess++;
+  });
+  const throwCount=(raw.match(/\bthrow\b/g)||[]).length;
+  const tryCount=(raw.match(/\btry\b/g)||[]).length;
+  const uncaught = Math.max(0, throwCount - tryCount);
+  const scoreRobustness = clamp(100 - chainRisks*12 - uncaught*8 - nullAccess*10);
+
+  // ============ 新增维度 D：一致性 / 风格 consistency ============
+  // 行首 tab 与空格混用、命名风格不一致（驼峰 + 下划线同时存在）、括号风格
+  let tabSpaceMix=0;
+  lines.forEach(l=>{ if((/^\t+ /.test(l))||(/^ +\t/.test(l))) tabSpaceMix++; });
+  let camel=0, snake=0;
+  lines.forEach(l=>{
+    if(isCommentLine(l)) return;
+    camel += (l.match(/\b[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*\b/g)||[]).length;
+    snake += (l.match(/\b[a-z][a-z0-9]*_[a-z0-9]+\b/g)||[]).length;
+  });
+  const styleMix = (camel>0 && snake>0) ? Math.min(camel+snake, 20) : 0;
+  const scoreConsistency = clamp(100 - tabSpaceMix*15 - styleMix*3);
+
+  // ---- 维度评分（保留 6 个原维度，并加入 4 个新维度）----
+  const scoreComplexity = clamp(100 - Math.max(0,maxDepth-3)*9 - Math.max(0,complexity-6)*2.5);
+  const scoreNaming = clamp(100 - shortHits*7);
+  const dupRatio = loc? dupLines/loc : 0;
+  const scoreDup = clamp(100 - dupRatio*220);
+  const scoreSmells = clamp(100 - todo*4 - dbg*6 - longLine*1.5 - emptyCatch*16 - longFnCount*10);
+  const ratio = loc? commentCount/loc : 0;
+  let scoreComment;
+  if(loc===0) scoreComment=100;
+  else if(ratio<0.05) scoreComment=clamp(100-45);
+  else if(ratio>0.45) scoreComment=clamp(100-22);
+  else scoreComment=100;
+  const scoreStructure = clamp(100 - longFnCount*8 - (fnCount===0&&loc>30?22:0));
+
+  const dims=[
+    {name:'复杂度控制', v:scoreComplexity, tip:`最大嵌套 ${maxDepth} 层，圈复杂度≈${complexity}`},
+    {name:'命名规范', v:scoreNaming, tip:`疑似偏短标识符 ${shortHits} 个`},
+    {name:'重复代码', v:scoreDup, tip:`重复行 ${dupLines} 行（占 ${(dupRatio*100).toFixed(0)}%）`},
+    {name:'坏味道', v:scoreSmells, tip:`TODO/FIXME ${todo} · 调试语句 ${dbg} · 空catch ${emptyCatch}`},
+    {name:'注释健康', v:scoreComment, tip:`注释率 ${(ratio*100).toFixed(0)}%`},
+    {name:'结构清晰', v:scoreStructure, tip:`函数 ${fnCount} 个 · 超长函数 ${longFnCount} 个`},
+    {name:'安全风险', v:scoreSecurity, tip:`硬编码密钥 ${hardSecret} · 危险调用 ${dangerousCalls} · SQL拼接 ${sqlConcat}`},
+    {name:'性能隐患', v:scorePerformance, tip:`循环内IO/DB ${nPlusOne} · 字符串累加 ${loopStrConcat}`},
+    {name:'健壮性', v:scoreRobustness, tip:`链式判空风险 ${chainRisks} · 抛异常 ${uncaught} · 直接取值 ${nullAccess}`},
+    {name:'风格一致', v:scoreConsistency, tip:`缩进混用 ${tabSpaceMix} · 命名混用 ${styleMix}`},
+  ];
+
+  // 综合分：10 个维度加权（权重之和 = 1.0）
+  const overall = Math.round(
+    scoreComplexity*0.12 + scoreNaming*0.09 + scoreDup*0.09 +
+    scoreSmells*0.12 + scoreComment*0.06 + scoreStructure*0.11 +
+    scoreSecurity*0.13 + scorePerformance*0.10 + scoreRobustness*0.08 + scoreConsistency*0.10
+  );
+
+  // ---- 结论 ----
+  let grade, gColor, verdict, quote;
+  if(overall>=90){grade='S';gColor='#34d399';verdict='✨ 代码界的健康标杆';quote='“这代码干净得发光，CTO 看了想给你加薪。”';}
+  else if(overall>=80){grade='A';gColor='#22d3ee';verdict='👍 状态良好，小毛病可修';quote='“整体健康，顺手把几个小坏味道收拾了就完美。”';}
+  else if(overall>=70){grade='B';gColor='#a3e635';verdict='🙂 亚健康，建议调理';quote='“能跑，但技术债开始悄悄利息了。”';}
+  else if(overall>=60){grade='C';gColor='#fbbf24';verdict='😟 欠债有点多';quote='“再不重构，下个接手的人会记住你的名字——带情绪的。”';}
+  else if(overall>=40){grade='D';gColor='#fb923c';verdict='🤒 病得不轻';quote='“建议立即挂号：重构科 + 单元测试科。”';}
+  else {grade='E';gColor='#fb7185';verdict='🚑 重症监护';quote='“这是代码还是事故现场勘查？保命要紧，先删了重写。”';}
+
+  // ---- 坏味道清单 ----
+  const issues=[];
+  if(maxDepth>3) issues.push({sev:'mid',ln:'结构',msg:`嵌套深度达 ${maxDepth} 层`,fix:'用提前返回 / 抽取方法把金字塔拍平。'});
+  if(complexity>12) issues.push({sev:'mid',ln:'逻辑',msg:`圈复杂度≈${complexity}，单块逻辑偏重`,fix:'拆分分支、提取策略或工具方法。'});
+  if(shortHits>0) issues.push({sev:'low',ln:'命名',msg:`发现 ${shortHits} 个偏短标识符（如 ${[...seen].slice(0,4).join(', ')}）`,fix:'用有业务含义的名字，别让三个月后的自己猜谜。'});
+  if(magicHits>0) issues.push({sev:'mid',ln:'魔法数字',msg:`出现 ${magicHits} 处疑似魔法数字`,fix:'抽成具名常量（如 MAX_RETRY=3）。', ex:magicExamples});
+  if(dupLines>0) issues.push({sev:'mid',ln:'重复',msg:`${dupLines} 行重复代码`,fix:'抽公共方法 / 模板，别复制粘贴。'});
+  if(todo>0) issues.push({sev:'low',ln:'TODO',msg:`遗留 ${todo} 处 TODO/FIXME/HACK`,fix:'要么现在做，要么建任务跟踪，别让它烂在注释里。'});
+  if(dbg>0) issues.push({sev:'high',ln:'调试残留',msg:`${dbg} 处调试/打印语句`,fix:'提交前清掉 console.log / System.out / print。'});
+  if(emptyCatch>0) issues.push({sev:'high',ln:'空 catch',msg:`${emptyCatch} 个空 catch 块`,fix:'至少打日志，吞异常是生产事故的温床。'});
+  if(longLine>0) issues.push({sev:'low',ln:'行长',msg:`${longLine} 行超过 120 字符`,fix:'换行或拆分表达式，照顾 Code Review 的同事。'});
+  if(longFnCount>0) issues.push({sev:'high',ln:'长函数',msg:`${longFnCount} 个超长函数（>50行）`,fix:'一个方法只做一件事，超长就拆。'});
+  // —— 新增维度相关坏味道 ——
+  if(hardSecret>0) issues.push({sev:'high',ln:'安全',msg:`${hardSecret} 处疑似硬编码密钥/密码（如 ${secretExamples.slice(0,3).join(', ')}）`,fix:'密钥移入配置中心 / 环境变量，禁止明文落在代码里。'});
+  if(sqlConcat>0) issues.push({sev:'high',ln:'安全',msg:`${sqlConcat} 处疑似 SQL 字符串拼接`,fix:'改用参数化查询（PreparedStatement），防 SQL 注入。'});
+  if(dangerousCalls>0) issues.push({sev:'high',ln:'安全',msg:`${dangerousCalls} 处危险动态执行（eval/exec/Runtime）`,fix:'避免执行外部拼接的字符串，存在注入与任意代码执行风险。'});
+  if(nPlusOne>0) issues.push({sev:'mid',ln:'性能',msg:`循环内疑似 ${nPlusOne} 次 IO/DB 调用（近似 N+1）`,fix:'把查询提到循环外，或批量查询 / 用 JOIN 一次性取数。'});
+  if(loopStrConcat>0) issues.push({sev:'low',ln:'性能',msg:`循环内出现 ${loopStrConcat} 次字符串累加（+=）`,fix:'改用数组 push 后 join，或 StringBuilder，避免反复创建字符串。'});
+  if(loopRegexCompile>0) issues.push({sev:'low',ln:'性能',msg:`循环内重复编译正则 ${loopRegexCompile} 次`,fix:'把正则对象提到循环外复用，别每次都 new RegExp。'});
+  if(chainRisks>0) issues.push({sev:'mid',ln:'健壮性',msg:`${chainRisks} 行连续链式调用（>2 次）疑似无判空`,fix:'在链式调用前判空，或改用 Optional / 空安全的可选链。'});
+  if(nullAccess>0) issues.push({sev:'mid',ln:'健壮性',msg:`${nullAccess} 处直接取下标/取值（如 .get(0)）未判空`,fix:'先判断集合非空 / 索引合法，避免 NullPointerException。'});
+  if(uncaught>0) issues.push({sev:'mid',ln:'健壮性',msg:`${uncaught} 处抛出异常但缺少 try 包裹`,fix:'在调用点补充异常处理，或明确向上抛出并文档化。'});
+  if(tabSpaceMix>0) issues.push({sev:'low',ln:'风格',msg:`${tabSpaceMix} 行缩进 tab 与空格混用`,fix:'统一用空格（或 tab），配置编辑器自动格式化。'});
+  if(styleMix>0) issues.push({sev:'low',ln:'风格',msg:`命名风格混用（驼峰 camelCase 与下划线 snake_case 并存）`,fix:'一个项目统一一种命名约定，别混着来。'});
+  if(issues.length===0) issues.push({sev:'low',ln:'—',msg:'未检出明显坏味道，干得漂亮',fix:'保持这个水准，考虑补点测试。'});
+
+  const sevRank={high:0,mid:1,low:2};
+  issues.sort((a,b)=>sevRank[a.sev]-sevRank[b.sev]);
+
+  // ---- 技术债工时估算：高危×1.5h、中等×0.5h、轻微×0.1h ----
+  let techDebtHours=0;
+  issues.forEach(it=>{
+    const w = it.sev==='high'?1.5 : it.sev==='mid'?0.5 : 0.1;
+    techDebtHours += w;
+  });
+  techDebtHours = Math.round(techDebtHours*10)/10;
+
+  return {lang,loc,fnCount,commentCount,overall,grade,gColor,verdict,quote,dims,issues,dupLines,
+    debt:100-overall, magicHits, techDebtHours, topFns:topComplexFns};
+}
+
+function escapeHtml(value){ return String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function render(r){
+  window.__lastResult = r;   // 供导出 / 一键复制使用
+  const res=$('#result'); res.style.display='block';          // 先显示占位，避免透明状态仍占版面空当
+  requestAnimationFrame(()=>res.classList.add('show'));        // 下一帧再加 .show 触发淡入动画
+  const C=465;
+  $('#arc').style.strokeDashoffset = C - C*(r.overall/100);
+  // 数字滚动（连续体检时先清掉上一次的定时器，避免多个计时器叠加）
+  if(scoreTimer){ clearInterval(scoreTimer); scoreTimer=null; }
+  let cur=0; const target=r.overall;
+  scoreTimer=setInterval(()=>{ cur+=Math.max(1,Math.round((target-cur)/4)); if(cur>=target){cur=target;clearInterval(scoreTimer);scoreTimer=null;} $('#score').textContent=cur; },40);
+  $('#grade').textContent=r.grade; $('#grade').style.background=r.gColor;
+  $('#grade').style.color = (r.grade==='S'||r.grade==='A'||r.grade==='B')?'#0b1020':'#1a1020';
+  $('#verdict').textContent=r.verdict;
+  $('#debt').textContent=`技术债指数：${r.debt} / 100`;
+  $('#debtHours').textContent=`预计修复：${r.techDebtHours} 小时`;
+  $('#summary').textContent=`语言：${LANG_NAME[r.lang]} · 有效代码 ${r.loc} 行 · 函数 ${r.fnCount} 个 · 注释 ${r.commentCount} 行。${r.quote}`;
+
+  // 维度
+  const dimsBox=$('#dims'); dimsBox.innerHTML='';
+  r.dims.forEach(d=>{
+    const color = d.v>=80?'#34d399':d.v>=60?'#fbbf24':'#fb7185';
+    const el=document.createElement('div'); el.className='dim';
+    el.innerHTML=`<div class="dh"><b>${d.name}</b><span class="v" style="color:${color}">${d.v}</span></div>
+      <div class="bar"><i style="background:${color}"></i></div>
+      <div style="font-size:11px;color:var(--txt-dim);margin-top:7px">${d.tip}</div>`;
+    dimsBox.appendChild(el);
+    requestAnimationFrame(()=>{ el.querySelector('i').style.width=d.v+'%'; });
+  });
+
+  // 坏味道
+  const iss=$('#issues'); iss.innerHTML='';
+  r.issues.forEach(it=>{
+    const sevText={high:'高危',mid:'中等',low:'轻微'}[it.sev];
+    const ex = it.ex? it.ex.map(e=>`第${e.line}行: ${e.val}`).join('， '):'';
+    const div=document.createElement('div'); div.className='issue';
+    div.innerHTML=`<span class="tag ${it.sev}">${sevText}</span>
+      <div class="body"><div class="msg">[${it.ln}] ${escapeHtml(it.msg)}</div>
+      <div class="fix">💡 ${it.fix}${ex?` （示例：${escapeHtml(ex)}）`:''}</div></div>`;
+    iss.appendChild(div);
+  });
+  $('#issueCount').textContent=`共 ${r.issues.length} 项`;
+
+  // Top 复杂函数
+  const tfBox=$('#topfn'); const tfList=$('#topfnList'); tfList.innerHTML='';
+  if(r.topFns && r.topFns.length){
+    tfBox.style.display='block';
+    r.topFns.forEach(f=>{
+      const div=document.createElement('div'); div.className='tf';
+      div.innerHTML=`<div><div class="nm">🔧 ${f.name} <span class="meta">（第 ${f.line} 行起）</span></div>
+        <div class="meta">圈复杂度 ${f.complexity} · 约 ${f.lines} 行 · 最大嵌套 ${f.maxDepth} 层</div></div>
+        <div class="badge2">建议拆分</div>`;
+      tfList.appendChild(div);
+    });
+  } else {
+    tfBox.style.display='none';
+  }
+
+  // 分享卡
+  $('#scMeta').textContent=`${LANG_NAME[r.lang]} · ${r.loc} 行 · 由代码健康体检中心生成`;
+  $('#scScore').textContent=r.overall; $('#scGrade').textContent=r.grade;
+  $('#scLoc').textContent=r.loc; $('#scSmell').textContent=r.issues.length- (r.issues.length&&r.issues[0].ln==='—'?1:0);
+  $('#scHours').textContent=r.techDebtHours+'h';
+  $('#scQuote').textContent=r.quote;
+  $('#copy').dataset.payload = `🩺 我的代码体检报告｜综合分 ${r.overall}（${r.grade}级）｜${r.loc} 行代码 · ${r.issues.length} 个坏味道 · 预计修复 ${r.techDebtHours} 小时｜${r.verdict}\n${r.quote}\n—— 由代码健康体检中心生成`;
+  // 记录历史趋势
+  saveHistory(r);
+}
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+
+// 复制文本：优先用 Clipboard API；非安全上下文（如 file://）或不可用时回退 execCommand
+function fallbackCopy(txt){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.top='-9999px'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand('copy'); document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+function copyText(txt){
+  if(!txt) return Promise.resolve(false);
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(txt).then(()=>true).catch(()=>fallbackCopy(txt));
+  }
+  return Promise.resolve(fallbackCopy(txt));
+}
+
+$('#sample').onclick=()=>{ $('#code').value=SAMPLE; };
+$('#clear').onclick=()=>{ $('#code').value=''; const res=$('#result'); res.classList.remove('show'); res.style.display='none'; };
+$('#run').onclick=()=>{
+  const code=$('#code').value.trim();
+  if(!code){ toast('先粘贴点代码吧～'); return; }
+  $('#run').textContent='体检中 💗'; $('#run').classList.add('heartbeat');
+  setTimeout(()=>{
+    const r=analyze($('#code').value, $('#lang').value);
+    render(r);
+    $('#run').textContent='重新体检 💊'; $('#run').classList.remove('heartbeat');
+    $('#result').scrollIntoView({behavior:'smooth',block:'start'});
+  }, 650);
+};
+$('#copy').onclick=()=>{
+  if(!window.__lastResult){ toast('请先体检生成报告'); return; }
+  const txt=$('#copy').dataset.payload||'';
+  copyText(txt).then(ok=>toast(ok?'分享文案已复制 📋':'复制失败，请手动选择')).catch(()=>toast('复制失败，请手动选择'));
+};
+
+// “祖传面条代码”示例
+$('#legacy').onclick=()=>{ $('#code').value=LEGACY_SAMPLE; $('#lang').value='java'; toast('已填入“祖传面条代码”🍜'); };
+
+// ============ 文件上传 / 拖拽（纯前端 FileReader） ============
+function readFile(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{ $('#code').value=e.target.result; toast('已读取：'+file.name); };
+  reader.onerror=()=>toast('文件读取失败');
+  reader.readAsText(file);
+}
+$('#fileInput').addEventListener('change', e=>{ readFile(e.target.files && e.target.files[0]); });
+const ta=$('#code');
+['dragenter','dragover'].forEach(ev=>ta.addEventListener(ev, e=>{ e.preventDefault(); ta.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>ta.addEventListener(ev, e=>{ e.preventDefault(); ta.classList.remove('drag'); }));
+ta.addEventListener('drop', e=>{ const f=e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if(f) readFile(f); });
+
+// ============ 导出能力 ============
+const sevTextCN = s => s==='high'?'高危':s==='mid'?'中等':'轻微';
+
+// 导出 Markdown
+function exportMarkdown(r){
+  if(!r){ toast('请先体检'); return; }
+  const L=[];
+  L.push('# 🩺 代码健康体检报告');
+  L.push('');
+  L.push(`- **综合健康分**：${r.overall}（${r.grade} 级）`);
+  L.push(`- **诊断**：${r.verdict}`);
+  L.push(`- **语言**：${LANG_NAME[r.lang]} · 有效代码 ${r.loc} 行 · 函数 ${r.fnCount} 个 · 注释 ${r.commentCount} 行`);
+  L.push(`- **技术债指数**：${r.debt} / 100`);
+  L.push(`- **预计修复工时**：${r.techDebtHours} 小时`);
+  L.push('');
+  L.push(`> ${r.quote}`);
+  L.push('');
+  L.push('## 📊 维度评分（共 '+r.dims.length+' 项）');
+  r.dims.forEach(d=>{ L.push(`- **${d.name}**：${d.v} — ${d.tip}`); });
+  L.push('');
+  L.push('## 🔥 Top 复杂函数');
+  if(r.topFns && r.topFns.length){
+    r.topFns.forEach(f=>L.push(`- \`${f.name}\`（第 ${f.line} 行起）：圈复杂度 ${f.complexity} · 约 ${f.lines} 行 · 最大嵌套 ${f.maxDepth} 层 → 建议拆分`));
+  } else { L.push('- 未检测到可命名的函数'); }
+  L.push('');
+  L.push('## 🔎 坏味道清单');
+  r.issues.forEach(it=>{ L.push(`- **[${it.ln}] ${sevTextCN(it.sev)}** ${it.msg}  → 💡 ${it.fix}`); });
+  L.push('');
+  L.push('---');
+  L.push('由代码健康体检中心生成 · 启发式规则，仅供自检参考。');
+  downloadBlob(new Blob([L.join('\n')],{type:'text/markdown;charset=utf-8'}), `代码体检报告_${r.overall}分.md`);
+  toast('Markdown 已导出 📄');
+}
+
+// 导出 JSON（结构化）
+function exportJSON(r){
+  if(!r){ toast('请先体检'); return; }
+  downloadBlob(new Blob([JSON.stringify(r,null,2)],{type:'application/json;charset=utf-8'}), `代码体检报告_${r.overall}分.json`);
+  toast('JSON 已导出 📦');
+}
+
+// 一键复制全部修复建议
+function copyAllFixes(r){
+  if(!r){ toast('请先体检'); return; }
+  const fixes = r.issues
+    .filter(it=>!/未检出明显坏味道/.test(it.msg))
+    .map(it=>`【${it.ln}·${sevTextCN(it.sev)}】${it.fix}`);
+  const txt = fixes.length ? fixes.join('\n') : '当前代码未检出明显坏味道，继续保持～';
+  copyText(txt).then(ok=>toast(ok?'已复制全部修复建议 📑':'复制失败，请手动选择')).catch(()=>toast('复制失败，请手动选择'));
+}
+
+// ============ 导出体检卡 PNG（纯 canvas 手写绘制，无外部库） ============
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function wrapText(ctx,text,x,y,maxWidth,lineHeight,maxLines){
+  const chars=text.split('');
+  let line='';
+  for(let i=0;i<chars.length;i++){
+    const test=line+chars[i];
+    if(ctx.measureText(test).width>maxWidth && line){
+      if(maxLines<=1){ while(line && ctx.measureText(line+'…').width>maxWidth) line=line.slice(0,-1); ctx.fillText(line+'…',x,y); return; }
+      ctx.fillText(line,x,y); y+=lineHeight; line=chars[i]; maxLines--;
+    } else line=test;
+  }
+  ctx.fillText(line,x,y);
+}
+function exportPNG(r){
+  if(!r){ toast('请先体检'); return; }
+  const W=760, H=480;
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  // 背景
+  const g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#1a1535'); g.addColorStop(1,'#16213e');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // 光晕
+  ctx.fillStyle='rgba(124,58,237,0.32)'; ctx.beginPath(); ctx.arc(90,30,140,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(6,182,212,0.22)'; ctx.beginPath(); ctx.arc(W-30,70,160,0,Math.PI*2); ctx.fill();
+  // 玻璃面板
+  ctx.fillStyle='rgba(255,255,255,0.06)'; roundRect(ctx,28,28,W-56,H-56,18); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.14)'; ctx.lineWidth=1; roundRect(ctx,28,28,W-56,H-56,18); ctx.stroke();
+  // 标题
+  ctx.fillStyle='#fff'; ctx.font='bold 26px sans-serif'; ctx.fillText('🩺 代码健康体检报告',54,80);
+  ctx.fillStyle='#9aa0b5'; ctx.font='13px sans-serif'; ctx.fillText(`${LANG_NAME[r.lang]} · ${r.loc} 行 · 由代码健康体检中心生成`,54,104);
+  // 大分数
+  ctx.fillStyle='#fff'; ctx.font='bold 72px sans-serif'; ctx.fillText(String(r.overall),54,182);
+  ctx.fillStyle='#9aa0b5'; ctx.font='13px sans-serif'; ctx.fillText('综合健康分',58,204);
+  // 评级圆
+  ctx.fillStyle=r.gColor; ctx.beginPath(); ctx.arc(330,150,38,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#0b1020'; ctx.font='bold 38px sans-serif'; ctx.textAlign='center'; ctx.fillText(r.grade,330,164); ctx.textAlign='left';
+  // 指标：坏味道 / 修复工时
+  const smellCount = r.issues.length - (r.issues.length && r.issues[0].ln==='—'?1:0);
+  ctx.fillStyle='#cbd2ea'; ctx.font='bold 22px sans-serif';
+  ctx.fillText(String(smellCount), 430, 144);
+  ctx.fillText(r.techDebtHours+'h', 580, 144);
+  ctx.fillStyle='#9aa0b5'; ctx.font='12px sans-serif';
+  ctx.fillText('坏味道', 432, 164);
+  ctx.fillText('修复工时', 582, 164);
+  // 维度条
+  let dy=212;
+  r.dims.forEach(d=>{
+    ctx.fillStyle='#9aa0b5'; ctx.font='12px sans-serif'; ctx.fillText(d.name, 54, dy+10);
+    ctx.fillStyle='rgba(255,255,255,0.12)'; roundRect(ctx,150,dy,W-200,8,4); ctx.fill();
+    ctx.fillStyle = d.v>=80?'#34d399':d.v>=60?'#fbbf24':'#fb7185';
+    if(d.v>0) roundRect(ctx,150,dy,(W-200)*d.v/100,8,4); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 12px sans-serif'; ctx.fillText(String(d.v), W-44, dy+10);
+    dy+=18;
+  });
+  // 诊断金句（复用 wrapText 自动换行）
+  ctx.fillStyle='#cbd2ea'; ctx.font='italic 13px sans-serif';
+  wrapText(ctx, r.quote, 54, 412, W-84, 16, 2);
+  // 底部签名
+  ctx.fillStyle='#9aa0b5'; ctx.font='12px sans-serif'; ctx.fillText('—— 由代码健康体检中心生成',54,H-28);
+  c.toBlob(b=>{ if(b) downloadBlob(b, `代码体检卡_${r.overall}分.png`); }, 'image/png');
+  toast('体检卡 PNG 已导出 🖼');
+}
+
+// 通用：触发浏览器下载
+function downloadBlob(blob, name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+// 历史记录保存在当前应用绑定的数据库中。
+let historyCache=[];
+function loadHistory(){ return historyCache; }
+async function executeHistory(sql,args=[]){
+  const auth=window.tiana?.auth;
+  if(typeof auth?.getAccessToken!=='function' || typeof window.tiana?.connection!=='function') throw new Error('数据库连接尚未就绪');
+  const conn=await window.tiana.connection();
+  if(conn.sql_api!=='hrana-v3') throw new Error('当前数据库协议暂不支持历史记录');
+  const fetchSql=createTianaFetch({origin:conn.origin,auth,requestBodyMode:'buffered'});
+  const response=await fetchSql(`${conn.origin}/v3/pipeline`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({requests:[{type:'execute',stmt:{sql,args,want_rows:true}},{type:'close'}]})});
+  if(!response.ok) throw new Error('数据库请求结果未知，请刷新后核对');
+  const body=await response.json(), result=body.results?.[0];
+  if(result?.type!=='ok'||result.response?.type!=='execute') throw new Error('数据库操作失败，请刷新后核对');
+  return result.response.result;
+}
+async function refreshHistory(){
+  try { const result=await executeHistory('SELECT payload FROM health_history ORDER BY created_at DESC, id DESC LIMIT 30'); historyCache=result.rows.map(row=>JSON.parse(row[0].value)).reverse(); renderTrend(); }
+  catch(e){ $('#histMeta').textContent=e.message; }
+}
+async function saveHistory(r){
+  const item={ts:Date.now(),overall:r.overall,grade:r.grade,lang:r.lang,loc:r.loc,debt:r.debt,hours:r.techDebtHours,dims:r.dims.map(d=>({name:d.name,v:d.v}))};
+  try { await executeHistory('INSERT INTO health_history (id, created_at, payload) VALUES (?, ?, ?)',[{type:'text',value:crypto.randomUUID()},{type:'integer',value:String(item.ts)},{type:'text',value:JSON.stringify(item)}]); await refreshHistory(); }
+  catch(e){ toast('历史保存失败，请刷新后核对'); $('#histMeta').textContent=e.message; }
+}
+function renderTrend(){
+  const list=loadHistory();
+  const meta=$('#histMeta'), deltaBox=$('#histDelta'), chart=$('#histChart'), listBox=$('#histList');
+  deltaBox.innerHTML=''; chart.innerHTML=''; listBox.innerHTML='';
+  if(list.length===0){ meta.textContent=''; listBox.innerHTML='<div class="empty">还没有历史记录，体检一次就开始记录你的代码健康轨迹 🩺</div>'; return; }
+  const last=list[list.length-1], prev=list.length>1?list[list.length-2]:null;
+  const best=Math.max(...list.map(x=>x.overall));
+  const avg=Math.round(list.reduce((s,x)=>s+x.overall,0)/list.length);
+  meta.textContent=`共 ${list.length} 次 · 最佳 ${best} · 平均 ${avg}`;
+  if(prev){
+    const diff=last.overall-prev.overall, cls=diff>0?'up':diff<0?'down':'flat', arrow=diff>0?'▲':diff<0?'▼':'＝';
+    deltaBox.innerHTML=`<span class="d-badge ${cls}">较上次 ${arrow} ${diff>0?'+':''}${diff} 分</span>
+      <span class="d-badge">当前 ${last.overall}（${last.grade}）</span>
+      <span class="d-badge flat">最佳 ${best} · 平均 ${avg}</span>`;
+  } else {
+    deltaBox.innerHTML=`<span class="d-badge">首次体检：${last.overall}（${last.grade}）</span>
+      <span class="d-badge flat">继续体检可看到进步曲线</span>`;
+  }
+  const W=Math.max(560, list.length*46), H=200, padL=34, padR=14, padT=14, padB=26;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const px=i=> padL + (list.length===1?plotW/2:plotW*i/(list.length-1));
+  const py=v=> padT + plotH*(1-v/100);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet">`;
+  [0,25,50,75,100].forEach(g=>{ const yy=py(g);
+    svg+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
+    svg+=`<text x="${padL-6}" y="${yy+4}" fill="#9aa0b5" font-size="10" text-anchor="end">${g}</text>`; });
+  let line=''; list.forEach((p,i)=>{ line+=(i===0?'M':'L')+px(i)+' '+py(p.overall)+' '; });
+  const area='M'+px(0)+' '+py(0)+' '+list.map((p,i)=>'L'+px(i)+' '+py(p.overall)).join(' ')+' L'+px(list.length-1)+' '+py(0)+' Z';
+  svg+=`<path d="${area}" fill="url(#ha)" opacity="0.18"/>`;
+  svg+=`<path d="${line}" fill="none" stroke="url(#hg)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const lblEvery = list.length>12 ? Math.ceil(list.length/10) : 1;
+  list.forEach((p,i)=>{ const cx=px(i), cy=py(p.overall);
+    const col=p.overall>=80?'#34d399':p.overall>=60?'#fbbf24':'#fb7185';
+    svg+=`<circle cx="${cx}" cy="${cy}" r="4" fill="${col}" stroke="#0f0c29" stroke-width="1.5"/>`;
+    if(i%lblEvery===0 || i===list.length-1) svg+=`<text x="${cx}" y="${cy-9}" fill="#e8eaf2" font-size="10" text-anchor="middle">${p.overall}</text>`; });
+  svg+=`<defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+    <linearGradient id="ha" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs>`;
+  svg+=`</svg>`; chart.innerHTML=svg;
+  const recent=[...list].reverse().slice(0,8);
+  recent.forEach(p=>{ const d=new Date(p.ts);
+    const t=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const col=p.overall>=80?'#34d399':p.overall>=60?'#fbbf24':'#fb7185';
+    const div=document.createElement('div'); div.className='hist-item';
+    div.innerHTML=`<span class="h-time">${t} · ${LANG_NAME[p.lang]} · ${p.loc}行</span>
+      <span style="display:flex;gap:10px;align-items:center"><span class="h-grade" style="background:${col}22;color:${col}">${p.grade}</span>
+      <span class="h-score" style="color:${col}">${p.overall}</span></span>`; listBox.appendChild(div); });
+}
+
+// 导出按钮绑定
+$('#exportMd').onclick=()=>exportMarkdown(window.__lastResult);
+$('#exportJson').onclick=()=>exportJSON(window.__lastResult);
+$('#exportPng').onclick=()=>exportPNG(window.__lastResult);
+$('#copyAll').onclick=()=>copyAllFixes(window.__lastResult);
+$('#clearHist').onclick=async()=>{ try{await executeHistory('DELETE FROM health_history'); await refreshHistory(); toast('历史记录已清空 🗑');}catch(e){toast('清空结果未知，请刷新后核对');} };
+refreshHistory();

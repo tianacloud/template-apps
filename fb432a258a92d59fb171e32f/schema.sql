@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS health_history (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, payload TEXT NOT NULL);
