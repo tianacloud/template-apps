@@ -2759,7 +2759,7 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 /* ═══ 头像与场景背景 ═══ */
 function avatarOf(id){
   if(id==="self") return DATA.selfAvatar||"";
-  var c=(S&&S.crew[id])||DATA.crew[id];
+  var c=DATA.crew[id];
   return (c&&c.avatar)||"";
 }
 function avatarImg(id,cls){
@@ -2790,7 +2790,7 @@ function initCrew(){
   for(var k in DATA.crew){
     if(!DATA.crew.hasOwnProperty(k)) continue;
     var c=DATA.crew[k], n={};
-    for(var p in c){ if(c.hasOwnProperty(p)) n[p]=c[p]; }
+    for(var p in c){ if(c.hasOwnProperty(p) && p!=="avatar") n[p]=c[p]; }
     n.id=k; n.met=false; o[k]=n;
   }
   if(o.zhou) o.zhou.met=true;
@@ -2826,8 +2826,13 @@ function slotRead(n){
   var raw=sget(slotKey(n)); if(!raw) return null;
   try{ var o=JSON.parse(raw); return (o && o.act) ? o : null; }catch(e){ return null; }
 }
+function stripMedia(state){
+  var o=JSON.parse(JSON.stringify(state));
+  if(o.crew) Object.values(o.crew).forEach(function(c){delete c.avatar;});
+  return o;
+}
 function slotWrite(n,state){
-  var o=JSON.parse(JSON.stringify(state)); o.ts=Date.now(); o.slot=n;
+  var o=stripMedia(state); o.ts=Date.now(); o.slot=n;
   sset(slotKey(n), JSON.stringify(o));
 }
 function slotDel(n){ sdel(slotKey(n)); }
@@ -2837,7 +2842,7 @@ function save(){
     try{ S.pv=(LIST && LIST[S.i] && LIST[S.i].title) || (actInfo(S.act).name+"阶段"); }catch(e){}
     S.ts=Date.now();
   }
-  sset(LS,JSON.stringify(S));
+  sset(LS,JSON.stringify(stripMedia(S)));
   markSaved();
 }
 function load(){
