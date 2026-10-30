@@ -1247,7 +1247,8 @@
           var ci = result.cols[ti].idx;
           if (ci < 0) { rec.cells.push(null); return; }
           if (tg.from === "__source__") {
-            rec.cells.push(okUse ? (m.cands[0].tag.replace(/\.(xls|xlsx|csv)$/i, "")) : "");
+            var selected = okUse ? pickVal(m.cands, prefer, mode, defValName) : null;
+            rec.cells.push(selected ? selected.tag.replace(/\.(xls|xlsx|csv)$/i, "") : "");
             return;
           }
           // 每个目标列各自从内容表对应的列取值
@@ -1918,12 +1919,10 @@
   function buildRows() {
     return S.result.sheets.map(function (sh, si) {
       var src = S.bill.sheets[si];
-      var rows = [], marks = {};
+      var rows = src.rows.map(function (row) { return (row || []).slice(); }), marks = {};
       var targetIdx = sh.cols.map(function (c) { return c.idx; });
-      // 表头
-      rows.push(sh.header.slice());
       sh.rows.forEach(function (rec) {
-        var row = (src.rows[rec.r] || []).slice();
+        var row = rows[rec.r];
         targetIdx.forEach(function (ci, ti) {
           var key = si + ":" + rec.r + ":" + ci;
           var v = S.edits[key];
@@ -1933,10 +1932,9 @@
           if (typeof row[ci] === "string" && row[ci] !== "" && !isNaN(Number(row[ci]))) row[ci] = Number(row[ci]);
           var isEdit = S.edits[key] !== undefined;
           if (!isEdit) {
-            marks[(rows.length) + ":" + ci] = rec.level === "exact" ? 4 : (rec.level === "fuzzy" ? 5 : 6);
+            marks[rec.r + ":" + ci] = rec.level === "exact" ? 4 : (rec.level === "fuzzy" ? 5 : 6);
           }
         });
-        rows.push(row);
       });
       return { name: sh.name, rows: rows, marks: marks };
     });
