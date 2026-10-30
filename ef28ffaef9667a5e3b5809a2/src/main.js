@@ -1,0 +1,1375 @@
+import css from "./style.css?inline";
+const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
+document.body.innerHTML = "\n\n<div class=\"topbar\">\n  <div class=\"brand\">\n    <div class=\"mark\"></div>\n    <div>程序员体检中心<br><small>CODE HEALTH CLINIC</small></div>\n  </div>\n  <div class=\"spacer\"></div>\n  <div class=\"privacy\">🔒 <b>纯本地解析</b>，代码与日志不会离开浏览器</div>\n</div>\n\n<div class=\"wrap\">\n  <div class=\"hero\">\n    <h1>你的代码，<em>最近还好吗</em>？</h1>\n    <p>把 git 提交记录交给体检中心，三十秒生成一份属于你的健康档案；人多的话，还能出一张团队对照单。</p>\n  </div>\n\n  <div class=\"card input-card\" id=\"inputCard\">\n    <div class=\"step\">\n      <div class=\"step-no\">1</div>\n      <div class=\"step-body\">\n        <div class=\"step-title\">在仓库根目录执行命令 <span>把输出复制下来</span></div>\n        <div class=\"cmd\">\n          <code id=\"cmdText\"><span class=\"k\">git</span> log --pretty=format:<span class=\"s\">'@@%an|%ad|%s'</span> --date=iso --numstat</code>\n          <button class=\"copy\" id=\"copyCmd\">复制</button>\n        </div>\n      </div>\n    </div>\n    <div class=\"step\">\n      <div class=\"step-no\">2</div>\n      <div class=\"step-body\">\n        <div class=\"step-title\">粘贴输出 <span>也兼容直接粘贴 <code style=\"font-family:var(--mono);font-size:11.5px;color:#8A8F99\">git log</code> 全文（含 --stat）</span></div>\n        <textarea id=\"raw\" placeholder=\"@@张三|2026-10-20 21:13:05 +0800|fix: 修复登录态丢失&#10;12\t3\tsrc/auth/session.ts&#10;5\t0\tsrc/auth/index.ts\"></textarea>\n        <div class=\"row\">\n          <button class=\"btn primary\" id=\"run\">开始体检 →</button>\n          <input class=\"repo-input\" id=\"repoName\" placeholder=\"项目名称（可选）\">\n          <button class=\"btn\" id=\"sample\">载入示例数据</button>\n          <button class=\"btn\" id=\"clear\">清空</button>\n          <span class=\"spacer\" style=\"flex:1\"></span>\n          <span class=\"chip\">识别到 <b id=\"cnt\">0</b> 条提交</span>\n        </div>\n      </div>\n    </div>\n  </div>\n\n  <div class=\"empty\" id=\"empty\">\n    <div class=\"ico\">☰</div>\n    <p>还没有体检数据。可以先点「载入示例数据」看看报告长什么样。</p>\n  </div>\n\n  <div id=\"report\"></div>\n</div>\n\n<div class=\"toast\" id=\"toast\"></div>\n\n";
+
+/* =========================================================
+   核心解析与指标计算 —— 纯函数，不依赖 DOM
+   ========================================================= */
+const MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+
+function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+
+function tzToMin(tz){
+  if (!tz || tz === 'Z') return 0;
+  const m = tz.match(/([+-])(\d{2}):?(\d{2})/);
+  if (!m) return 0;
+  const v = (+m[2]) * 60 + (+m[3]);
+  return m[1] === '-' ? -v : v;
+}
+
+function parseDateStr(s){
+  s = String(s || '').trim();
+  if (!s) return null;
+  let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?\s*([+-]\d{2}:?\d{2}|Z)?/);
+  if (m){
+    const off = m[7] ? tzToMin(m[7]) : -new Date().getTimezoneOffset();
+    const ms = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) - off * 60000;
+    return { ms, offMin: off };
+  }
+  m = s.match(/([A-Z][a-z]{2})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})\s*([+-]\d{4})?/);
+  if (m && MONTHS[m[1]] !== undefined){
+    const off = m[7] ? tzToMin(m[7]) : -new Date().getTimezoneOffset();
+    const ms = Date.UTC(+m[6], MONTHS[m[1]], +m[2], +m[3], +m[4], +m[5]) - off * 60000;
+    return { ms, offMin: off };
+  }
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m){
+    const off = -new Date().getTimezoneOffset();
+    const ms = Date.UTC(+m[1], +m[2] - 1, +m[3], 12, 0, 0) - off * 60000;
+    return { ms, offMin: off };
+  }
+  return null;
+}
+
+/* 三种输入格式统一解析：
+   A) @@name|date|subject  +  numstat 行
+   B) name|date|subject
+   C) 原生 git log（commit/Author/Date/缩进正文/--stat）
+*/
+function parseLog(text){
+  const commits = [];
+  let cur = null;
+  const lines = String(text || '').replace(/\r/g, '').split('\n');
+  const push = () => { if (cur && (cur.subject || cur.files.length || cur.statTotal)) commits.push(cur); cur = null; };
+
+  for (let i = 0; i < lines.length; i++){
+    const raw = lines[i];
+    const line = raw.trim();
+    if (!line) continue;
+
+    let m = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/);
+    if (m && cur){
+      cur.files.push({ add: m[1] === '-' ? 0 : +m[1], del: m[2] === '-' ? 0 : +m[2], path: m[3].trim() });
+      continue;
+    }
+
+    m = line.match(/^(.+?)\s+\|\s+(\d+)\s*[+-]*$/);
+    if (m && cur && !cur.files.length){ cur.statTotal += (+m[2]); continue; }
+
+    if (line.indexOf('@@') === 0){
+      push();
+      cur = mkPipeCommit(line.slice(2));
+      continue;
+    }
+
+    m = line.match(/^commit\s+([0-9a-f]{6,40})/i);
+    if (m){
+      push();
+      cur = { hash: m[1], author: '', ms: null, offMin: 0, subject: '', files: [], statTotal: 0 };
+      continue;
+    }
+
+    if (cur && !cur.author){
+      m = line.match(/^Author:\s*(.+?)\s*<[^>]*>\s*$/);
+      if (m){ cur.author = m[1].trim(); continue; }
+      m = line.match(/^Author:\s*(.+)$/);
+      if (m){ cur.author = m[1].trim(); continue; }
+    }
+
+    if (cur && cur.ms === null){
+      m = line.match(/^Date:\s*(.+)$/);
+      if (m){
+        const d = parseDateStr(m[1]);
+        if (d){ cur.ms = d.ms; cur.offMin = d.offMin; continue; }
+      }
+    }
+
+    if (line.indexOf('|') > 0){
+      const p = line.split('|');
+      const d = parseDateStr(p[1] || '');
+      if (d){
+        push();
+        cur = { author: (p[0] || '').trim() || '匿名', ms: d.ms, offMin: d.offMin,
+                subject: p.slice(2).join('|').trim(), files: [], statTotal: 0 };
+        continue;
+      }
+    }
+
+    if (cur && !cur.subject && /^\s{2,}\S/.test(raw)){ cur.subject = line; continue; }
+  }
+  push();
+  return commits.filter(c => c.ms !== null && c.ms > 0);
+}
+
+function mkPipeCommit(body){
+  const p = String(body).split('|');
+  const d = parseDateStr(p[1] || '');
+  if (!d) return null;
+  return {
+    author: (p[0] || '').trim() || '匿名',
+    ms: d.ms, offMin: d.offMin,
+    subject: p.slice(2).join('|').trim(),
+    files: [], statTotal: 0
+  };
+}
+
+const RE_CONVENTIONAL = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?:/i;
+const RE_FIX = /(fix|bug|hotfix|修复|修正|补丁|排查|问题)/i;
+const RE_FEAT = /(feat|add|新增|添加|实现|支持|接入|开发)/i;
+const RE_REFACTOR = /(refactor|重构|优化|optimi|整理|拆分|简化)/i;
+const RE_CHORE = /(chore|docs|doc:|test|ci|build|依赖|升级|版本|文案|注释)/i;
+const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+
+function extOf(p){
+  const base = p.split('/').pop() || '';
+  const i = base.lastIndexOf('.');
+  if (i <= 0) return '(无扩展名)';
+  return base.slice(i + 1).toLowerCase();
+}
+function dirOf(p){
+  const parts = p.split('/');
+  if (parts.length === 1) return './';
+  return parts.slice(0, Math.min(2, parts.length - 1)).join('/') + '/';
+}
+function topN(map, n){
+  return Object.keys(map).map(k => ({ k, v: map[k] })).sort((a, b) => b.v - a.v).slice(0, n);
+}
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+/* 把原始 commit 规范化：本地时区小时、日期串、增删行 */
+function prepareCommits(commits){
+  return commits.map(c => {
+    const d = new Date(c.ms + c.offMin * 60000);
+    const add = c.files.reduce((s, f) => s + f.add, 0);
+    const del = c.files.reduce((s, f) => s + f.del, 0);
+    return {
+      author: c.author || '匿名',
+      subject: c.subject || '',
+      hour: d.getUTCHours(),
+      dow: d.getUTCDay(),
+      dateStr: d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()),
+      add, del,
+      churn: c.files.length ? add + del : (c.statTotal || 0),
+      files: c.files
+    };
+  }).sort((a, b) => a.dateStr < b.dateStr ? -1 : a.dateStr > b.dateStr ? 1 : 0);
+}
+
+/* ============ 任意一组提交的完整体检指标 ============ */
+function statsOf(list){
+  const n = list.length;
+  const hourHist = new Array(24).fill(0);
+  const dowHist = new Array(7).fill(0);
+  const heat = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  const byDate = {}, byAuthor = {}, extMap = {}, dirMap = {};
+  let churn = 0, addAll = 0, delAll = 0, msgLen = 0, conv = 0, emoji = 0;
+  let fix = 0, feat = 0, refactor = 0, chore = 0, other = 0;
+
+  list.forEach(c => {
+    hourHist[c.hour]++; dowHist[c.dow]++; heat[c.dow][c.hour]++;
+    byDate[c.dateStr] = (byDate[c.dateStr] || 0) + 1;
+    byAuthor[c.author] = 1;
+    churn += c.churn; addAll += c.add; delAll += c.del;
+    const s = c.subject;
+    msgLen += s.length;
+    if (RE_CONVENTIONAL.test(s)) conv++;
+    if (EMOJI_RE.test(s)) emoji++;
+    if (RE_FIX.test(s)) fix++;
+    else if (RE_FEAT.test(s)) feat++;
+    else if (RE_REFACTOR.test(s)) refactor++;
+    else if (RE_CHORE.test(s)) chore++;
+    else other++;
+
+    c.files.forEach(f => {
+      extMap[extOf(f.path)] = (extMap[extOf(f.path)] || 0) + 1;
+      dirMap[dirOf(f.path)] = (dirMap[dirOf(f.path)] || 0) + 1;
+    });
+  });
+
+  const dates = Object.keys(byDate).sort();
+  const spanDays = Math.max(1, Math.round((new Date(dates[dates.length - 1]) - new Date(dates[0])) / 86400000) + 1);
+  const activeDays = dates.length;
+  const avgPerDay = n / spanDays;
+
+  const nightN = list.filter(c => c.hour >= 23 || c.hour <= 4).length;
+  const weekendN = list.filter(c => c.dow === 0 || c.dow === 6).length;
+  const nightRatio = nightN / n, weekendRatio = weekendN / n;
+
+  let streak = 1, curStreak = 1;
+  for (let i = 1; i < dates.length; i++){
+    const gap = Math.round((new Date(dates[i]) - new Date(dates[i - 1])) / 86400000);
+    if (gap === 1){ curStreak++; streak = Math.max(streak, curStreak); }
+    else curStreak = 1;
+  }
+  const peakDay = Math.max.apply(null, Object.keys(byDate).map(k => byDate[k]));
+  const peakDate = Object.keys(byDate).find(k => byDate[k] === peakDay);
+  const avgMsgLen = Math.round(msgLen / n);
+  const convRatio = conv / n;
+  const fixRatio = fix / n;
+  const avgChurn = Math.round(churn / n);
+
+  /* ---- 指数 ---- */
+  const care = clamp(Math.round(100 - nightRatio * 145 - weekendRatio * 95 - Math.max(0, streak - 7) * 3.2 - Math.max(0, peakDay - 6) * 1.8), 4, 100);
+  const grind = clamp(Math.round(nightRatio * 190 + weekendRatio * 120 + Math.min(streak, 30) * 2.4 + Math.min(n, 400) / 9 + (avgPerDay > 3 ? 10 : 0)), 3, 100);
+
+  const sortedHours = hourHist.map((v, h) => ({ v, h })).sort((a, b) => b.v - a.v);
+  const top3 = sortedHours.slice(0, 3).reduce((s, x) => s + x.v, 0);
+  const focus = clamp(Math.round((top3 / n) * 196), 5, 100);
+  const spec = clamp(Math.round(convRatio * 100 * 0.62 + Math.min(avgMsgLen, 34) / 34 * 34 + (emoji > n * 0.1 ? 0 : 4)), 0, 100);
+  const output = clamp(Math.round(avgPerDay / 3 * 100), 0, 100);
+  const team = clamp(Math.round(30 + Object.keys(byAuthor).length * 16), 0, 100);
+  const overall = clamp(Math.round(care * 0.34 + spec * 0.30 + focus * 0.21 + Math.min(100, n / 3.2) * 0.15), 0, 100);
+  const grade = overall >= 88 ? 'A' : overall >= 76 ? 'B+' : overall >= 64 ? 'B' : overall >= 50 ? 'C+' : overall >= 38 ? 'C' : 'D';
+
+  /* ---- 人格标签 ---- */
+  let persona = { main: '稳健输出型选手', sub: '作息与节奏都在合理区间，属于团队里最省心的那种人。' };
+  if (nightRatio >= 0.25){
+    persona = { main: '夜行性苦修僧', sub: '有 ' + Math.round(nightRatio * 100) + '% 的提交发生在 23 点之后，月亮比太阳更熟悉你的光标。' };
+  } else if (weekendRatio >= 0.25){
+    persona = { main: '周末隐形劳模', sub: '周末提交占了 ' + Math.round(weekendRatio * 100) + '%，周一的同事以为代码是自动写好的。' };
+  } else if (streak >= 14){
+    persona = { main: '永动提交机器', sub: '最长连续 ' + streak + ' 天提交，日历上没有一格是空白的。' };
+  } else if (fixRatio >= 0.3){
+    persona = { main: '专职消防员', sub: '有 ' + Math.round(fixRatio * 100) + '% 的提交在灭火，建议排查一下火源到底在哪儿。' };
+  } else if (avgMsgLen <= 12){
+    persona = { main: '惜字如金体', sub: '提交信息平均只有 ' + avgMsgLen + ' 个字，一个「改」走天下，未来的你只能靠猜。' };
+  } else if (convRatio >= 0.6){
+    persona = { main: '规范强迫症患者', sub: '提交信息规范覆盖 ' + Math.round(convRatio * 100) + '%，未来的你会为今天的你鼓掌。' };
+  } else if (avgChurn >= 320){
+    persona = { main: '大包大揽型', sub: '单次提交平均改动 ' + avgChurn + ' 行，一口气干完一个需求，评审的人得先备好咖啡。' };
+  } else if (avgPerDay >= 2){
+    persona = { main: '小步快跑派', sub: '日均 ' + avgPerDay.toFixed(1) + ' 次提交、单次改动 ' + avgChurn + ' 行，节奏感极佳。' };
+  } else if (feat >= fix && feat >= refactor && feat > other){
+    persona = { main: '功能推进器', sub: '开疆拓土为主，善后修缮为辅。' };
+  }
+
+  const tags = [];
+  if (nightRatio >= 0.18) tags.push({ t: '熬夜 ' + Math.round(nightRatio * 100) + '%', warn: true });
+  if (weekendRatio >= 0.2) tags.push({ t: '周末出勤 ' + Math.round(weekendRatio * 100) + '%', warn: true });
+  if (streak >= 10) tags.push({ t: '连击 ' + streak + ' 天', warn: true });
+  if (avgMsgLen < 12) tags.push({ t: '惜字如金', warn: false });
+  if (convRatio >= 0.5) tags.push({ t: '规范提交', warn: false });
+  if (fixRatio >= 0.35) tags.push({ t: '修复型人格', warn: false });
+  if (avgChurn >= 400) tags.push({ t: '大爆炸提交', warn: true });
+  if (Object.keys(byAuthor).length >= 3) tags.push({ t: Object.keys(byAuthor).length + ' 人协作', warn: false });
+
+  /* ---- 医嘱 ---- */
+  const advice = [];
+  if (nightRatio >= 0.15) advice.push('夜间提交占比 ' + Math.round(nightRatio * 100) + '%（参考 <15%）。长期零点后工作与注意力衰减、代谢紊乱高度相关，建议把重活挪到上午，夜里只做低负荷收尾。');
+  if (weekendRatio >= 0.2) advice.push('周末提交占 ' + Math.round(weekendRatio * 100) + '%。不是不能写，但建议给自己设一个「不提交日」，恢复期对长期产出比多写两小时更值钱。');
+  if (streak >= 10) advice.push('已连续 ' + streak + ' 天提交。连续作战会掩盖疲劳累积，建议在下一个里程碑后安排一次完整休息。');
+  if (avgMsgLen < 18) advice.push('提交信息平均 ' + avgMsgLen + ' 字（参考 ≥20 字）。三个月后的你只能靠这句话还原现场，建议补上「为什么改」而不只是「改了什么」。');
+  if (convRatio < 0.4) advice.push('规范前缀覆盖率仅 ' + Math.round(convRatio * 100) + '%。接入 commitlint + 一份 CONTRIBUTING 模板，是投入产出比最高的一次改善。');
+  if (fixRatio >= 0.4) advice.push('修复型提交占 ' + Math.round(fixRatio * 100) + '%。火情密集通常意味着缺少回归测试或边界约定，建议补齐高频模块的测试。');
+  if (avgChurn >= 400) advice.push('单次提交平均改动 ' + avgChurn + ' 行。大 commit 会显著提高评审成本与回滚风险，建议按「一个可描述的行为」拆分。');
+  if (advice.length < 2) advice.push('各项指标都在健康区间，保持当前节奏即可。真正的风险往往出现在指标突然变好的时候——那通常意味着你在憋大招。');
+
+  const topHours = sortedHours.slice(0, 3).map(x => x.h).sort((a, b) => a - b);
+  const bandOf = h => h <= 4 ? '凌晨' : h <= 8 ? '清晨' : h <= 11 ? '上午' : h <= 13 ? '午间' : h <= 17 ? '下午' : h <= 20 ? '傍晚' : h <= 22 ? '晚上' : '深夜';
+
+  return {
+    n, authors: Object.keys(byAuthor).length, spanDays, activeDays, avgPerDay, churn, addAll, delAll,
+    hourHist, dowHist, heat, nightRatio, weekendRatio, nightN, weekendN,
+    streak, peakDay, peakDate, avgMsgLen, convRatio, fixRatio, avgChurn, emojiN: emoji,
+    types: { fix, feat, refactor, chore, other },
+    extTop: topN(extMap, 6), dirTop: topN(dirMap, 6),
+    score: { care, grind, spec, focus, output, team, overall }, grade,
+    persona, tags, advice, topHours,
+    peakBand: bandOf(topHours[1] !== undefined ? topHours[1] : topHours[0]),
+    firstDate: dates[0], lastDate: dates[dates.length - 1]
+  };
+}
+
+/* ============ 单人报告 ============ */
+function buildReport(commits, meta){
+  meta = meta || {};
+  const prepared = prepareCommits(commits);
+  if (!prepared.length) return null;
+  const st = statsOf(prepared);
+
+  const byAuthor = {};
+  prepared.forEach(c => {
+    const a = byAuthor[c.author] || (byAuthor[c.author] = {
+      name: c.author, n: 0, churn: 0, night: 0, weekend: 0, dates: {}
+    });
+    a.n++; a.churn += c.churn;
+    if (c.hour >= 23 || c.hour <= 4) a.night++;
+    if (c.dow === 0 || c.dow === 6) a.weekend++;
+    a.dates[c.dateStr] = 1;
+  });
+
+  const leaderboard = Object.keys(byAuthor).map(k => {
+    const a = byAuthor[k];
+    return {
+      name: a.name, n: a.n, churn: a.churn,
+      nightRatio: a.night / a.n, weekendRatio: a.weekend / a.n,
+      activeDays: Object.keys(a.dates).length,
+      share: a.n / st.n
+    };
+  }).sort((x, y) => y.n - x.n);
+
+  return Object.assign({}, st, {
+    leaderboard,
+    meta: {
+      repo: meta.repo || '未命名仓库',
+      date: meta.date || (new Date().toISOString().slice(0, 10)),
+      id: meta.id || ('CH-' + Math.abs(Math.round(st.churn * 31 + st.n * 7919)).toString(16).toUpperCase().slice(0, 6))
+    }
+  });
+}
+
+/* ============ 多人对比 ============ */
+function buildCompare(commits, meta){
+  meta = meta || {};
+  const prepared = prepareCommits(commits);
+  if (!prepared.length) return null;
+
+  const groups = {};
+  prepared.forEach(c => { (groups[c.author] = groups[c.author] || []).push(c); });
+
+  const members = Object.keys(groups).map(name => {
+    const st = statsOf(groups[name]);
+    return Object.assign({
+      name, share: st.n / prepared.length,
+      care: st.score.care, grind: st.score.grind, spec: st.score.spec,
+      focus: st.score.focus, output: st.score.output, overall: st.score.overall
+    }, st);
+  }).sort((a, b) => b.n - a.n);
+
+  if (members.length < 2) return null;
+
+  const all = statsOf(prepared);
+
+  /* ---- 颁奖 ---- */
+  const pure = (key, dir) => {
+    const arr = members.filter(m => !isNaN(m[key]));
+    const sorted = arr.slice().sort((a, b) => dir === 'low' ? a[key] - b[key] : b[key] - a[key]);
+    return sorted[0];
+  };
+  const awardDefs = [
+    { t: '输出之王', d: '提交数量', m: 'n', dir: 'high', fmt: v => v + ' 次提交' },
+    { t: '肝帝奖', d: '肝度指数', m: 'grind', dir: 'high', fmt: v => '肝度 ' + v },
+    { t: '养生标兵', d: '养生指数', m: 'care', dir: 'high', fmt: v => '养生 ' + v },
+    { t: '规范典范', d: '规范指数', m: 'spec', dir: 'high', fmt: v => '规范 ' + v },
+    { t: '夜猫子', d: '深夜提交占比', m: 'nightRatio', dir: 'high', fmt: v => '深夜 ' + Math.round(v * 100) + '%', min: 0.12 },
+    { t: '单日爆发', d: '单日提交峰值', m: 'peakDay', dir: 'high', fmt: v => '峰值 ' + v + ' 次', min: 4 },
+    { t: '修补匠', d: '修复型提交占比', m: 'fixRatio', dir: 'high', fmt: v => '修复型 ' + Math.round(v * 100) + '%', min: 0.25 },
+    { t: '全勤奖', d: '活跃天数', m: 'activeDays', dir: 'high', fmt: v => '活跃 ' + v + ' 天' }
+  ];
+  const awards = [];
+  const winCount = {};
+  awardDefs.forEach(def => {
+    const arr = members.filter(m => def.min === undefined || m[def.m] >= def.min);
+    if (!arr.length) return;
+    const ranked = arr.slice().sort((a, b) => b[def.m] - a[def.m]);
+    const best = ranked.find(m => (winCount[m.name] || 0) < 2) || ranked[0];
+    if (!best || best[def.m] === 0) return;
+    winCount[best.name] = (winCount[best.name] || 0) + 1;
+    awards.push({ title: def.t, desc: def.d, name: best.name, value: def.fmt(best[def.m]) });
+  });
+
+  /* ---- 结论 ---- */
+  const byNight = members.slice().sort((a, b) => b.nightRatio - a.nightRatio);
+  const bySpec = members.slice().sort((a, b) => b.spec - a.spec);
+  const byCare = members.slice().sort((a, b) => b.care - a.care);
+  const top = members[0];
+  const notes = [];
+  notes.push('本区间共 ' + members.length + ' 人贡献 ' + all.n + ' 次提交，' + top.name + ' 以 ' + top.n + ' 次（' + Math.round(top.share * 100) + '%）居首。');
+  if (byNight[0].nightRatio !== byNight[byNight.length - 1].nightRatio){
+    notes.push('作息差异最大：' + byNight[0].name + ' 深夜提交占 ' + Math.round(byNight[0].nightRatio * 100) + '%，而 ' + byNight[byNight.length - 1].name + ' 只有 ' + Math.round(byNight[byNight.length - 1].nightRatio * 100) + '%。');
+  }
+  if (bySpec[0].spec - bySpec[bySpec.length - 1].spec >= 15){
+    notes.push('提交规范上 ' + bySpec[0].name + '（' + bySpec[0].spec + ' 分）明显领先，团队整体的信息质量还有拉齐空间。');
+  }
+  notes.push('综合来看 ' + byCare[0].name + ' 的作息最健康（养生 ' + byCare[0].care + ' 分），节奏值得抄作业。');
+
+  return {
+    members,
+    awards,
+    notes,
+    all,
+    meta: {
+      repo: meta.repo || '未命名仓库',
+      date: meta.date || (new Date().toISOString().slice(0, 10)),
+      id: meta.id || ('TM-' + Math.abs(Math.round(all.churn * 17 + all.n * 4643)).toString(16).toUpperCase().slice(0, 6))
+    }
+  };
+}
+
+
+
+/* =========================================================
+   UI 层
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const rawEl = $('#raw'), cntEl = $('#cnt'), reportEl = $('#report'), emptyEl = $('#empty');
+let REP = null, CMP = null, LAST = null, MODE = 'single';
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.classList.remove('on'), 2000);
+}
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function pct(v){ return Math.round(v * 100) + '%'; }
+function heatColor(v, max){
+  if (!v) return '#EDEBE3';
+  const steps = ['#DDE2F5', '#BFC8EC', '#93A2E0', '#6577CF', '#3B4FB8', '#22307F'];
+  const r = Math.min(1, v / Math.max(1, max));
+  return steps[Math.min(steps.length - 1, Math.floor(r * steps.length))];
+}
+
+/* ---------- 示例数据生成 ---------- */
+function genSample(){
+  let seed = 20261024;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const pick = arr => arr[Math.floor(rnd() * arr.length)];
+  const authors = [
+    { name: '张三', w: 0.46, nightBias: 0.42 },
+    { name: '李娜', w: 0.27, nightBias: 0.12 },
+    { name: '王磊', w: 0.17, nightBias: 0.2 },
+    { name: '陈静', w: 0.1, nightBias: 0.05 }
+  ];
+  const pool = [];
+  authors.forEach(a => { for (let i = 0; i < Math.round(a.w * 100); i++) pool.push(a); });
+
+  const subs = [
+    ['feat', ['实现订单导出功能', '新增多租户配置项', '支持自定义快捷指令', '接入企业微信通知', '添加批量重试机制', '实现增量同步逻辑']],
+    ['fix', ['修复登录态偶发丢失', '修正分页边界差一错误', '修复并发写入覆盖问题', '修正时区导致的日期偏移', '修复空列表白屏']],
+    ['refactor', ['重构鉴权中间件', '拆分过长的事务方法', '优化列表渲染性能', '简化状态机分支']],
+    ['chore', ['更新依赖版本', '补充部署说明', '调整 CI 缓存策略', '清理无用配置']],
+    ['docs', ['补充接口文档示例', '完善 README 快速上手', '补充故障排查手册']],
+    ['perf', ['优化首屏加载耗时', '减少重复查询', '压缩图片资源体积']],
+    ['test', ['补充订单模块单测', '增加边界用例覆盖']]
+  ];
+  const files = ['src/auth/session.ts', 'src/auth/index.ts', 'src/api/client.ts', 'src/api/order.ts',
+    'src/views/dashboard.vue', 'src/views/order-list.vue', 'src/utils/format.ts', 'src/store/user.ts',
+    'server/handler/order.go', 'server/handler/user.go', 'server/model/migrate.sql', 'docs/api.md',
+    'config/deploy.yaml', 'scripts/build.sh', 'src/components/Table.tsx', 'src/components/Modal.tsx'];
+
+  const rows = [];
+  const start = new Date(Date.UTC(2026, 6, 26));
+  for (let d = 0; d < 88; d++){
+    const day = new Date(start.getTime() + d * 86400000);
+    const dow = day.getUTCDay();
+    let p = dow === 0 ? 0.18 : dow === 6 ? 0.3 : 0.62;
+    if (d > 60) p += 0.12;
+    if (rnd() > p) continue;
+    const cnt = 1 + Math.floor(rnd() * (dow === 0 || dow === 6 ? 3 : 6));
+    for (let k = 0; k < cnt; k++){
+      const a = pick(pool);
+      let h;
+      const r = rnd();
+      if (r < a.nightBias) h = rnd() < 0.5 ? 22 + Math.floor(rnd() * 2) : Math.floor(rnd() * 3);
+      else if (r < a.nightBias + 0.45) h = 9 + Math.floor(rnd() * 10);
+      else h = 14 + Math.floor(rnd() * 7);
+      const mi = Math.floor(rnd() * 60), se = Math.floor(rnd() * 60);
+      const type = pick(subs);
+      const msg = type[1][Math.floor(rnd() * type[1].length)];
+      const loose = ['改了点样式', '临时提交', '再修一版', '先备份一下', '调试用', 'update', '试一下', '小改动', '补一下'];
+      const sub = rnd() < 0.24 ? loose[Math.floor(rnd() * loose.length)] : type[0] + ': ' + msg;
+      const dateStr = day.toISOString().slice(0, 10);
+      rows.push({ ts: dateStr + ' ' + pad2(h) + ':' + pad2(mi) + ':' + pad2(se) + ' +0800', a: a.name, sub: sub, rnd });
+    }
+  }
+  rows.sort((x, y) => x.ts < y.ts ? -1 : 1);
+
+  const out = [];
+  rows.forEach(r => {
+    out.push('@@' + r.a + '|' + r.ts + '|' + r.sub);
+    const fc = 1 + Math.floor(r.rnd() * 3);
+    for (let i = 0; i < fc; i++){
+      const f = files[Math.floor(r.rnd() * files.length)];
+      out.push((Math.floor(r.rnd() * 90) + 1) + '\t' + (r.rnd() < 0.6 ? 0 : Math.floor(r.rnd() * 40)) + '\t' + f);
+    }
+  });
+  return out.join('\n');
+}
+
+/* ---------- 渲染 ---------- */
+function render(rep){
+  REP = rep; CMP = null; MODE = 'single';
+  reportEl.innerHTML =
+    '<div class="tabs">' +
+      '<button class="tab on" data-m="single">个人体检单</button>' +
+      (rep.authors >= 2
+        ? '<button class="tab" data-m="compare">多人对比<span class="tab-badge">' + rep.authors + '</span></button>'
+        : '<span class="tabs-hint">仅 1 位作者，无法开启多人对比</span>') +
+      (rep.authors >= 2 ? '<span class="tabs-hint">团队共 ' + rep.authors + ' 人，可横向对照</span>' : '') +
+    '</div>' +
+    '<div id="sheetHost"></div>';
+  reportEl.classList.add('on');
+  emptyEl.style.display = 'none';
+  Array.prototype.forEach.call(reportEl.querySelectorAll('.tab'), t => {
+    t.onclick = () => switchMode(t.getAttribute('data-m'));
+  });
+  renderSheet(rep);
+}
+
+function switchMode(m){
+  if (m === MODE) return;
+  MODE = m;
+  Array.prototype.forEach.call(reportEl.querySelectorAll('.tab'), t => {
+    t.classList.toggle('on', t.getAttribute('data-m') === m);
+  });
+  if (m === 'compare') renderCompare(); else renderSheet(REP);
+}
+
+function renderSheet(rep){
+  const s = rep.score;
+
+  const rows = [
+    ['提交总数', rep.n + ' 次', '—', 'na', '—'],
+    ['活跃天数', rep.activeDays + ' 天', '—', 'na', '—'],
+    ['平均每日提交', rep.avgPerDay.toFixed(1) + ' 次', '—', 'na', '—'],
+    ['深夜提交占比', pct(rep.nightRatio), '< 15%', rep.nightRatio >= 0.15 ? 'up' : 'ok', rep.nightRatio >= 0.15 ? '超标 ↑' : '正常'],
+    ['周末提交占比', pct(rep.weekendRatio), '< 20%', rep.weekendRatio >= 0.2 ? 'up' : 'ok', rep.weekendRatio >= 0.2 ? '偏高 ↑' : '正常'],
+    ['最长连续提交', rep.streak + ' 天', '< 7 天', rep.streak >= 7 ? 'up' : 'ok', rep.streak >= 7 ? '过长 ↑' : '正常'],
+    ['单日提交峰值', rep.peakDay + ' 次', '< 8 次', rep.peakDay >= 8 ? 'up' : 'ok', rep.peakDay >= 8 ? '爆发 ↑' : '正常'],
+    ['提交信息均长', rep.avgMsgLen + ' 字', '≥ 20 字', rep.avgMsgLen < 20 ? 'down' : 'ok', rep.avgMsgLen < 20 ? '偏短 ↓' : '正常'],
+    ['规范前缀覆盖', pct(rep.convRatio), '≥ 60%', rep.convRatio < 0.6 ? 'down' : 'ok', rep.convRatio < 0.6 ? '不足 ↓' : '达标'],
+    ['修复型占比', pct(rep.fixRatio), '< 35%', rep.fixRatio >= 0.35 ? 'up' : 'ok', rep.fixRatio >= 0.35 ? '偏高 ↑' : '正常'],
+    ['代码变更行数', rep.churn.toLocaleString() + ' 行', '—', 'na', '—'],
+    ['单次提交均改', rep.avgChurn + ' 行', '< 300 行', rep.avgChurn >= 300 ? 'up' : 'ok', rep.avgChurn >= 300 ? '偏大 ↑' : '正常']
+  ];
+
+  $('#sheetHost').innerHTML =
+    '<div class="sheet">' +
+      '<div class="sheet-head">' +
+        '<div class="t1"><h2>程序员体检报告</h2><span class="en">Code Health Report</span></div>' +
+        '<div class="meta">' +
+          '<div>受检者 / REPOSITORY<strong>' + esc(rep.meta.repo) + '</strong></div>' +
+          '<div>样本区间 / RANGE<strong>' + rep.firstDate + ' → ' + rep.lastDate + '</strong></div>' +
+          '<div>提交样本 / SAMPLES<strong>' + rep.n + ' commits · ' + rep.authors + ' 人</strong></div>' +
+          '<div>报告编号 / NO.<strong>' + rep.meta.id + '</strong></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">一</span><h3>常规检查</h3><span class="en">GENERAL</span><span class="line"></span></div>' +
+        '<table class="tb"><thead><tr><th style="width:34%">检查项目</th><th style="width:22%">结果</th><th style="width:22%">参考范围</th><th style="text-align:right">提示</th></tr></thead><tbody>' +
+        rows.map(r => '<tr><td>' + r[0] + '</td><td class="num">' + r[1] + '</td><td class="ref">' + r[2] + '</td><td class="st">' + (r[3] === 'na' ? '<span class="na">—</span>' : '<i class="' + r[3] + '">' + r[4] + '</i>') + '</td></tr>').join('') +
+        '</tbody></table>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">二</span><h3>作息热力图</h3><span class="en">CIRCADIAN MAP</span><span class="line"></span></div>' +
+        '<div class="heat-wrap">' +
+          '<div class="heat">' + heatHTML(rep) + '</div>' +
+          '<div class="radar-box">' + radarHTML(rep) + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">三</span><h3>口味分析</h3><span class="en">PALATE</span><span class="line"></span></div>' +
+        '<div class="bars">' + barsHTML(rep) + '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">四</span><h3>诊断结论</h3><span class="en">DIAGNOSIS</span><span class="line"></span></div>' +
+        '<div class="diag">' +
+          '<div class="diag-main">' +
+            '<div class="grade">' + rep.grade + '</div>' +
+            '<div class="gl">综合评级 / ' + s.overall + ' 分</div>' +
+            '<div class="score-chips">' +
+              '<div>养生指数<b>' + s.care + '</b></div>' +
+              '<div>肝度指数<b>' + s.grind + '</b></div>' +
+              '<div>规范指数<b>' + s.spec + '</b></div>' +
+              '<div>专注指数<b>' + s.focus + '</b></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="diag-body">' +
+            '<div class="persona">' + esc(rep.persona.main) + '</div>' +
+            '<div class="persona-sub">' + esc(rep.persona.sub) + '</div>' +
+            '<div class="tags">' + rep.tags.map(t => '<span class="tag' + (t.warn ? ' warn' : '') + '">' + esc(t.t) + '</span>').join('') + '</div>' +
+            '<ul class="advice">' + rep.advice.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">五</span><h3>团队档案</h3><span class="en">TEAM</span><span class="line"></span></div>' +
+        '<table class="tb"><thead><tr><th>成员</th><th>提交</th><th>占比</th><th>活跃天</th><th>深夜占比</th><th style="text-align:right">代码变更</th></tr></thead><tbody>' +
+        rep.leaderboard.map(m => '<tr><td>' + esc(m.name) + '</td><td class="num">' + m.n + '</td><td class="ref">' + pct(m.share) + '</td><td class="ref">' + m.activeDays + '</td><td class="ref">' + pct(m.nightRatio) + '</td><td class="st"><span class="chnum' + (m.nightRatio >= 0.3 ? ' hot' : '') + '">' + m.churn.toLocaleString() + ' 行</span></td></tr>').join('') +
+        '</tbody></table>' +
+      '</div>' +
+
+      '<div class="signature">' +
+        '<div class="sig">主检医师 / PHYSICIAN<b>体检中心值班医师</b><i></i></div>' +
+        '<div class="sig">报告日期 / DATE<b>' + rep.meta.date + '</b><i></i></div>' +
+        '<div class="stamp">代码健康<br>已阅 · 健康</div>' +
+      '</div>' +
+
+      '<div class="foot">' +
+        '<div class="note">本报告由体检中心在浏览器本地完成解析，未上传任何代码或提交记录。指标仅用于趣味参考，不作为任何形式的绩效依据。</div>' +
+        '<div class="acts">' +
+          '<button class="btn" id="againBtn">重新体检</button>' +
+          '<button class="btn" id="copySum">复制摘要</button>' +
+          '<button class="btn primary" id="exportBtn">导出体检长图</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  emptyEl.style.display = 'none';
+  reportEl.classList.add('on');
+  $('#exportBtn').onclick = exportPoster;
+  $('#copySum').onclick = copySummary;
+  $('#againBtn').onclick = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); rawEl.focus(); };
+}
+
+function heatHTML(rep){
+  const max = Math.max.apply(null, rep.heat.map(r => Math.max.apply(null, r)).concat([1]));
+  const labels = ['一', '二', '三', '四', '五', '六', '日'];
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  let h = '<div class="heat-grid">';
+  h += '<div></div>';
+  for (let i = 0; i < 24; i++) h += '<div class="heat-lab" style="text-align:center;padding:0">' + (i % 3 === 0 ? i : '') + '</div>';
+  order.forEach((d, ri) => {
+    h += '<div class="heat-lab">' + labels[ri] + '</div>';
+    for (let i = 0; i < 24; i++){
+      const v = rep.heat[d][i];
+      h += '<div class="heat-cell" data-v="' + v + '" title="周' + labels[ri] + ' ' + pad2(i) + ':00 · ' + v + ' 次" style="background:' + heatColor(v, max) + '"></div>';
+    }
+  });
+  h += '</div>';
+  h += '<div class="heat-legend"><span>少</span>' +
+    ['#EDEBE3', '#DDE2F5', '#BFC8EC', '#93A2E0', '#6577CF', '#3B4FB8', '#22307F'].map(c => '<span class="sq" style="background:' + c + '"></span>').join('') +
+    '<span>多</span><span style="margin-left:14px">高频时段：' + rep.topHours.map(x => pad2(x) + ':00').join(' · ') + '（' + rep.peakBand + '）</span></div>';
+  return h;
+}
+
+function radarHTML(rep){
+  const dims = [
+    ['养生', rep.score.care],
+    ['规范', rep.score.spec],
+    ['专注', rep.score.focus],
+    ['产出', Math.min(100, Math.round(rep.avgPerDay / 3 * 100))],
+    ['协作', Math.min(100, 30 + rep.authors * 16)]
+  ];
+  const W = 250, H = 220, cx = W / 2, cy = H / 2 + 4, R = 74, n = dims.length;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  };
+  let g = '';
+  [0.25, 0.5, 0.75, 1].forEach(k => {
+    const p = [];
+    for (let i = 0; i < n; i++) p.push(pt(i, R * k).map(v => v.toFixed(1)).join(','));
+    g += '<polygon points="' + p.join(' ') + '" fill="none" stroke="#E2DED3" stroke-width="1"/>';
+  });
+  for (let i = 0; i < n; i++){
+    const e = pt(i, R);
+    g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '" stroke="#E2DED3"/>';
+  }
+  const poly = dims.map((d, i) => pt(i, R * Math.max(0.06, d[1] / 100)).map(v => v.toFixed(1)).join(',')).join(' ');
+  g += '<polygon points="' + poly + '" fill="rgba(43,67,168,.16)" stroke="#2B43A8" stroke-width="1.6"/>';
+  dims.forEach((d, i) => {
+    const p2 = pt(i, R * Math.max(0.06, d[1] / 100));
+    g += '<circle cx="' + p2[0].toFixed(1) + '" cy="' + p2[1].toFixed(1) + '" r="2.6" fill="#2B43A8"/>';
+    const lp = pt(i, R + 20);
+    g += '<text x="' + lp[0].toFixed(1) + '" y="' + (lp[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="10.5" fill="#6E7480" font-family="-apple-system,PingFang SC,sans-serif">' + d[0] + ' ' + d[1] + '</text>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:250px;display:block;margin:0 auto">' + g + '</svg>';
+}
+
+function barsHTML(rep){
+  const t = rep.types, tot = rep.n;
+  const typeRows = [
+    ['fix 修复', t.fix, ''],
+    ['feat 新增', t.feat, ' teal'],
+    ['refactor 重构', t.refactor, ' teal'],
+    ['chore 杂务', t.chore + t.other > 0 ? t.chore : 0, ' teal'],
+    ['other 其他', t.other, ' teal']
+  ].filter(r => r[1] > 0);
+  const maxT = Math.max.apply(null, typeRows.map(r => r[1]).concat([1]));
+  const extRows = rep.extTop.slice(0, 5);
+  const maxE = Math.max.apply(null, extRows.map(r => r.v).concat([1]));
+
+  const block = (title, rows2, max) => '<div><div style="font-size:11px;color:#9AA0AA;letter-spacing:.08em;margin-bottom:10px">' + title + '</div>' +
+    rows2.map(r => '<div class="bar-row' + (r[2] || '') + '"><span class="name">' + esc(r[0]) + '</span><span class="track"><span class="fill" style="width:' + (r[1] / max * 100).toFixed(1) + '%"></span></span><span class="v">' + r[1] + '</span></div>').join('') + '</div>';
+
+  return block('提交类型分布 / COMMIT TYPE', typeRows.map(r => [r[0], r[1], r[2]]), maxT) +
+         block('改动文件类型 / FILE TYPE', extRows.map(r => ['.' + r.k, r.v, ' teal']), maxE);
+}
+
+/* =========================================================
+   多人对比
+   ========================================================= */
+const CMP_COLORS = ['#2B43A8', '#0E8074', '#B23A2E', '#A8720B', '#6B4FA8', '#0F7BA8'];
+
+function renderCompare(){
+  if (!LAST){ toast('请先生成报告'); return; }
+  if (!CMP) CMP = buildCompare(LAST, { repo: REP.meta.repo });
+  if (!CMP){ toast('至少需要 2 位作者才能对比'); return; }
+  $('#sheetHost').innerHTML = compareHTML(CMP);
+  $('#cmpExport').onclick = exportComparePoster;
+  $('#cmpSingle').onclick = () => switchMode('single');
+  $$('.tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-m') === 'compare'));
+}
+function $$(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
+
+function compareHTML(cmp){
+  const ms = cmp.members;
+  const show = ms.slice(0, 6);
+  const maxN = Math.max.apply(null, ms.map(m => m.n).concat([1]));
+  const total = cmp.all.n;
+
+  const ranks = ms.slice(0, 6).map((m, i) =>
+    '<div class="rank-card' + (i === 0 ? ' top' : '') + '">' +
+      '<div class="rank-no">NO.' + pad2(i + 1) + '</div>' +
+      '<div class="rank-grade">' + m.grade + '</div>' +
+      '<div class="rank-name">' + esc(m.name) + '</div>' +
+      '<div class="rank-persona">' + esc(m.persona.main) + '</div>' +
+      '<div class="rank-bar"><i style="width:' + (m.n / maxN * 100).toFixed(1) + '%"></i></div>' +
+      '<div class="rank-meta"><span>' + m.n + ' 次</span><span>' + Math.round(m.n / total * 100) + '%</span></div>' +
+    '</div>').join('');
+
+  const DEF = [
+    ['提交数', m => m.n, v => v + ' 次', 'high'],
+    ['提交占比', m => m.share, v => Math.round(v * 100) + '%', null],
+    ['活跃天数', m => m.activeDays, v => v + ' 天', 'high'],
+    ['日均提交', m => m.avgPerDay, v => v.toFixed(1) + ' 次', 'high'],
+    ['深夜占比', m => m.nightRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['周末占比', m => m.weekendRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['最长连击', m => m.streak, v => v + ' 天', null],
+    ['信息均长', m => m.avgMsgLen, v => v + ' 字', 'high'],
+    ['规范覆盖', m => m.convRatio, v => Math.round(v * 100) + '%', 'high'],
+    ['修复型占比', m => m.fixRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['单次均改', m => m.avgChurn, v => v + ' 行', 'low'],
+    ['综合分', m => m.overall, v => String(v), 'high']
+  ];
+
+  const bodyRows = DEF.map(def => {
+    const vals = show.map(def[1]);
+    let bi = -1, wi = -1;
+    if (def[3] && vals.filter((v, i) => vals.indexOf(v) === i).length > 1){
+      bi = 0; wi = 0;
+      vals.forEach((v, i) => {
+        if (def[3] === 'high' ? v > vals[bi] : v < vals[bi]) bi = i;
+        if (def[3] === 'high' ? v < vals[wi] : v > vals[wi]) wi = i;
+      });
+    }
+    return '<tr><td>' + def[0] + '</td>' + show.map((m, i) =>
+      '<td class="' + (i === bi ? 'best' : i === wi ? 'worst' : '') + '">' + def[2](vals[i]) + '</td>').join('') + '</tr>';
+  }).join('');
+
+  const head =
+    '<thead><tr><th>指标</th>' + show.map(m =>
+      '<th><span class="mxn">' + esc(m.name) + '</span><span class="mxg">评级 ' + m.grade + '</span></th>').join('') + '</tr></thead>';
+
+  const awards = cmp.awards.map(a =>
+    '<div class="award"><h4>' + esc(a.title) + '</h4><div class="w">' + esc(a.name) + '</div>' +
+    '<div class="v">' + esc(a.value) + ' · ' + esc(a.desc) + '</div></div>').join('');
+
+  const legend = show.map((m, i) =>
+    '<div><i style="background:' + CMP_COLORS[i % 6] + '"></i><b>' + esc(m.name) + '</b><span>' + m.overall + ' 分</span></div>').join('');
+
+  return '<div class="sheet">' +
+      '<div class="sheet-head">' +
+        '<div class="t1"><h2>团队对照报告</h2><span class="en">Team Comparison</span></div>' +
+        '<div class="meta">' +
+          '<div>受检团队 / TEAM<strong>' + esc(cmp.meta.repo) + '</strong></div>' +
+          '<div>对比人数 / MEMBERS<strong>' + ms.length + ' 人</strong></div>' +
+          '<div>样本区间 / RANGE<strong>' + cmp.all.firstDate + ' → ' + cmp.all.lastDate + '</strong></div>' +
+          '<div>报告编号 / NO.<strong>' + cmp.meta.id + '</strong></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">一</span><h3>排行榜</h3><span class="en">RANKING</span><span class="line"></span></div>' +
+        '<div class="rank-row">' + ranks + '</div>' +
+        '<div class="hint" style="margin-top:12px">排行榜按提交量排序；右上角评级是健康综合分——提交多不等于分高，作息与规范同样计分。</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">二</span><h3>指标对照</h3><span class="en">MATRIX</span><span class="line"></span></div>' +
+        '<table class="matrix">' + head + '<tbody>' + bodyRows + '</tbody></table>' +
+        (ms.length > 6 ? '<div class="hint" style="margin-top:10px">仅展示提交量前 6 位成员</div>' : '') +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">三</span><h3>能力叠图</h3><span class="en">OVERLAY</span><span class="line"></span></div>' +
+        '<div class="cmp-radar">' +
+          '<div class="radar-box2">' + radarCMP(show) + '</div>' +
+          '<div class="legend-list">' + legend + '</div>' +
+        '</div>' +
+        '<div class="hint" style="margin-top:14px">五轴含义：养生＝作息规律度 · 规范＝提交信息质量 · 专注＝工作时段集中度 · 产出＝日均提交强度 · 出勤＝活跃天占比</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">四</span><h3>年度颁奖</h3><span class="en">AWARDS</span><span class="line"></span></div>' +
+        '<div class="awards">' + awards + '</div>' +
+      '</div>' +
+
+      '<div class="sec">' +
+        '<div class="sec-title"><span class="idx">五</span><h3>对照结论</h3><span class="en">CONCLUSION</span><span class="line"></span></div>' +
+        '<p class="cmp-note">' + cmp.notes.map(n => esc(n)).join('<br>') + '</p>' +
+      '</div>' +
+
+      '<div class="signature">' +
+        '<div class="sig">主检医师 / PHYSICIAN<b>体检中心值班医师</b><i></i></div>' +
+        '<div class="sig">报告日期 / DATE<b>' + cmp.meta.date + '</b><i></i></div>' +
+        '<div class="stamp">团队对照<br>已阅 · 健康</div>' +
+      '</div>' +
+
+      '<div class="foot">' +
+        '<div class="note">同一份提交记录按作者拆分后逐项体检。单项最优已标注，数值仅反映提交习惯，不代表贡献高低。</div>' +
+        '<div class="acts">' +
+          '<button class="btn" id="cmpSingle">查看个人体检单</button>' +
+          '<button class="btn primary" id="cmpExport">导出对比长图</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function radarCMP(ms){
+  const dims = ['养生', '规范', '专注', '产出', '出勤'];
+  const val = m => [m.care, m.spec, m.focus, m.output, Math.round(m.activeDays / Math.max(1, m.spanDays) * 100)];
+  const W = 330, H = 300, cx = W / 2, cy = H / 2 + 4, R = 96, n = 5;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  };
+  let g = '';
+  [0.25, 0.5, 0.75, 1].forEach(k => {
+    const p = [];
+    for (let i = 0; i < n; i++) p.push(pt(i, R * k).map(v => v.toFixed(1)).join(','));
+    g += '<polygon points="' + p.join(' ') + '" fill="none" stroke="#E2DED3" stroke-width="1"/>';
+  });
+  for (let i = 0; i < n; i++){
+    const e = pt(i, R);
+    g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '" stroke="#E2DED3"/>';
+    const lp = pt(i, R + 22);
+    g += '<text x="' + lp[0].toFixed(1) + '" y="' + (lp[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="11" fill="#9AA0AA" font-family="-apple-system,PingFang SC,sans-serif">' + dims[i] + '</text>';
+  }
+  ms.forEach((m, mi) => {
+    const vs = val(m);
+    const poly = vs.map((v, i) => pt(i, R * Math.max(0.08, v / 100)).map(x => x.toFixed(1)).join(',')).join(' ');
+    g += '<polygon points="' + poly + '" fill="' + CMP_COLORS[mi % 6] + '" fill-opacity="0.09" stroke="' + CMP_COLORS[mi % 6] + '" stroke-width="1.7" stroke-linejoin="round"/>';
+    vs.forEach((v, i) => {
+      const p = pt(i, R * Math.max(0.08, v / 100));
+      g += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="' + CMP_COLORS[mi % 6] + '"/>';
+    });
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:330px;display:block">' + g + '</svg>';
+}
+
+/* ---------- 对比长图导出 ---------- */
+function exportComparePoster(){
+  if (!CMP) return;
+  const svg = buildComparePosterSVG(CMP);
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  const scale = 2;
+  const w = 880, h = +(svg.match(/height="(\d+)"/) || [0, 1500])[1];
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = w * scale; cv.height = h * scale;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#FFFDF8'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      const name = (CMP.meta.repo || 'team').replace(/[^\w\u4e00-\u9fa5-]+/g, '_');
+      a.download = 'code-health-team-' + name + '-' + CMP.meta.date + '.png';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('对比长图已导出');
+    }, 'image/png');
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => toast('导出失败，请改用截图');
+  img.src = url;
+}
+
+function buildComparePosterSVG(cmp){
+  const W = 880, PAD = 56, INNER = W - PAD * 2;
+  const FONT = "-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif";
+  const SERIF = "'Songti SC','STSong',SimSun,Georgia,serif";
+  const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
+  const out = [];
+  let y = 0;
+
+  const T = (x, yy, txt, o) => {
+    o = o || {};
+    out.push('<text x="' + x + '" y="' + yy + '" font-size="' + (o.size || 14) + '" fill="' + (o.fill || '#14161B') +
+      '" font-weight="' + (o.w || 400) + '" font-family="' + (o.font || FONT) + '"' +
+      (o.anchor ? ' text-anchor="' + o.anchor + '"' : '') +
+      (o.ls ? ' letter-spacing="' + o.ls + '"' : '') + '>' + esc(txt) + '</text>');
+  };
+  const R = (x, yy, w, h, fill, extra) => out.push('<rect x="' + x + '" y="' + yy + '" width="' + w + '" height="' + h + '" fill="' + fill + '" ' + (extra || '') + '/>');
+  const L = (x1, y1, x2, y2, c, w) => out.push('<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (c || '#E2DED3') + '" stroke-width="' + (w || 1) + '"/>');
+  const CIR = (cx, cy, r, stroke, sw) => out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + stroke + '" stroke-width="' + sw + '"/>');
+
+  const ms = cmp.members;
+  const show = ms.slice(0, 5);
+  const total = cmp.all.n;
+
+  /* 页头 */
+  y = 62;
+  T(PAD, y, '团队对照报告', { size: 28, w: 700, font: SERIF, ls: 3 });
+  T(PAD + 206, y - 3, 'TEAM COMPARISON', { size: 9, fill: '#9AA0AA', ls: 3.5, font: MONO });
+  CIR(W - PAD - 30, 54, 26, '#B23A2E', 1.5);
+  T(W - PAD - 30, 58, '健康', { size: 10.5, fill: '#B23A2E', anchor: 'middle', font: SERIF, ls: 1 });
+  y += 16;
+  L(PAD, y, W - PAD, y, '#14161B', 2);
+
+  y += 30;
+  const metas = [
+    ['受检团队 / TEAM', cmp.meta.repo],
+    ['样本区间 / RANGE', cmp.all.firstDate + ' → ' + cmp.all.lastDate],
+    ['对比人数 / MEMBERS', ms.length + ' 人 · ' + total + ' 次提交'],
+    ['报告编号 / NO.', cmp.meta.id]
+  ];
+  metas.forEach((m, i) => {
+    const x = PAD + (i % 2) * (INNER / 2 + 24);
+    const yy = y + Math.floor(i / 2) * 58;
+    T(x, yy, m[0], { size: 9, fill: '#9AA0AA', font: MONO, ls: 0.5 });
+    T(x, yy + 21, m[1], { size: 13, w: 600, font: MONO });
+  });
+  y += 112;
+  L(PAD, y, W - PAD, y, '#E2DED3', 1);
+
+  /* 一 排行榜（卡片） */
+  y += 40;
+  T(PAD, y, '一 排行榜', { size: 13, w: 700, font: SERIF, ls: 2 });
+  T(PAD + 96, y, 'RANKING', { size: 8.5, fill: '#B9BEC7', font: MONO, ls: 2 });
+  y += 22;
+  const nCard = Math.min(4, ms.length);
+  const gap = 12, cw = (INNER - gap * (nCard - 1)) / nCard;
+  const maxN = Math.max.apply(null, ms.map(m => m.n).concat([1]));
+  for (let i = 0; i < nCard; i++){
+    const m = ms[i];
+    const x = PAD + i * (cw + gap);
+    R(x, y, cw, 114, i === 0 ? '#F0F2FC' : '#F7F4EC', 'rx="8"');
+    if (i === 0) R(x, y, cw, 114, 'none', 'rx="8" stroke="#BFC8EC" stroke-width="1"');
+    T(x + 16, y + 22, 'NO.' + pad2(i + 1), { size: 8.5, fill: '#A8ADB6', font: MONO, ls: 1.5 });
+    T(x + cw - 16, y + 31, m.grade, { size: 22, w: 700, font: SERIF, fill: '#2B43A8', anchor: 'end' });
+    T(x + 16, y + 50, m.name, { size: 16, w: 700, font: SERIF, ls: 1 });
+    T(x + 16, y + 68, m.persona.main.slice(0, 11), { size: 9.5, fill: '#8A8F99' });
+    R(x + 16, y + 79, cw - 32, 5, '#E7E3D8', 'rx="2.5"');
+    R(x + 16, y + 79, Math.max(3, (cw - 32) * m.n / maxN), 5, '#2B43A8', 'rx="2.5"');
+    T(x + 16, y + 103, m.n + ' 次', { size: 10, fill: '#6E7480', font: MONO });
+    T(x + cw - 16, y + 103, Math.round(m.n / total * 100) + '%', { size: 10, fill: '#A8ADB6', font: MONO, anchor: 'end' });
+  }
+  y += 114;
+  T(PAD, y + 20, '排行榜按提交量排序；右上角评级为健康综合分，与提交量不完全相关', { size: 9, fill: '#A8ADB6' });
+  y += 44;
+
+  /* 二 指标对照 */
+  T(PAD, y, '二 指标对照', { size: 13, w: 700, font: SERIF, ls: 2 });
+  T(PAD + 110, y, 'MATRIX', { size: 8.5, fill: '#B9BEC7', font: MONO, ls: 2 });
+  y += 26;
+  const labelW = 132;
+  const colW = (INNER - labelW) / show.length;
+  T(PAD, y - 4, '指标', { size: 9, fill: '#9AA0AA', ls: 1 });
+  show.forEach((m, i) => {
+    const x = PAD + labelW + colW * i + colW / 2;
+    T(x, y - 4, m.name, { size: 11, w: 600, anchor: 'middle' });
+    T(x, y + 9, '评级 ' + m.grade, { size: 8.5, fill: '#2B43A8', anchor: 'middle', font: SERIF });
+  });
+  y += 16;
+  L(PAD, y, W - PAD, y, '#DCD7CB', 1);
+  y += 22;
+
+  const DEF = [
+    ['提交数', m => m.n, v => v + ' 次', 'high'],
+    ['提交占比', m => m.share, v => Math.round(v * 100) + '%', null],
+    ['活跃天数', m => m.activeDays, v => v + ' 天', 'high'],
+    ['日均提交', m => m.avgPerDay, v => v.toFixed(1), 'high'],
+    ['深夜占比', m => m.nightRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['周末占比', m => m.weekendRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['最长连击', m => m.streak, v => v + ' 天', null],
+    ['信息均长', m => m.avgMsgLen, v => v + ' 字', 'high'],
+    ['规范覆盖', m => m.convRatio, v => Math.round(v * 100) + '%', 'high'],
+    ['修复型占比', m => m.fixRatio, v => Math.round(v * 100) + '%', 'low'],
+    ['单次均改', m => m.avgChurn, v => v + ' 行', 'low'],
+    ['综合分', m => m.overall, v => String(v), 'high']
+  ];
+  DEF.forEach(def => {
+    const vals = show.map(def[1]);
+    let bi = -1;
+    if (def[3] && vals.filter((v, i) => vals.indexOf(v) === i).length > 1){
+      bi = 0;
+      vals.forEach((v, i) => { if (def[3] === 'high' ? v > vals[bi] : v < vals[bi]) bi = i; });
+    }
+    T(PAD, y, def[0], { size: 12, fill: '#6E7480' });
+    vals.forEach((v, i) => {
+      const x = PAD + labelW + colW * i + colW / 2;
+      if (i === bi) R(x - colW / 2 + 4, y - 15, colW - 8, 24, '#EEF5F0', 'rx="5"');
+      T(x, y, def[2](v), { size: 12, w: i === bi ? 700 : 400, anchor: 'middle', font: MONO, fill: i === bi ? '#1D7350' : '#3A3F49' });
+    });
+    y += 30;
+    L(PAD, y - 10, W - PAD, y - 10, '#F1EEE6', 1);
+  });
+
+  /* 三 颁奖 */
+  y += 24;
+  T(PAD, y, '三 年度颁奖', { size: 13, w: 700, font: SERIF, ls: 2 });
+  T(PAD + 110, y, 'AWARDS', { size: 8.5, fill: '#B9BEC7', font: MONO, ls: 2 });
+  y += 24;
+  const aw = cmp.awards.slice(0, 6);
+  const awW = (INNER - 14) / 2;
+  aw.forEach((a, i) => {
+    const x = PAD + (i % 2) * (awW + 14);
+    const yy = y + Math.floor(i / 2) * 70;
+    R(x, yy, awW, 60, '#FBF7EA', 'rx="7"');
+    R(x + 4, yy + 4, awW - 8, 52, 'none', 'rx="5" stroke="#E8DDBE" stroke-width="1"');
+    T(x + 16, yy + 21, a.title, { size: 10.5, fill: '#8A5E08', ls: 2, w: 600 });
+    T(x + 16, yy + 46, a.name, { size: 16, w: 700, font: SERIF });
+    T(x + awW - 16, yy + 46, a.value, { size: 10, fill: '#8A8F99', anchor: 'end', font: MONO });
+  });
+  y += Math.ceil(aw.length / 2) * 70 + 6;
+
+  /* 四 结论 */
+  y += 34;
+  T(PAD, y, '四 对照结论', { size: 13, w: 700, font: SERIF, ls: 2 });
+  T(PAD + 110, y, 'CONCLUSION', { size: 8.5, fill: '#B9BEC7', font: MONO, ls: 2 });
+  y += 26;
+  cmp.notes.forEach(n => {
+    wrapText(n, INNER, 12).forEach(l => { T(PAD, y, l, { size: 12, fill: '#3A3F49' }); y += 20; });
+    y += 4;
+  });
+
+  y += 22;
+  L(PAD, y, W - PAD, y, '#E2DED3', 1);
+  y += 24;
+  T(PAD, y, '同一份提交记录按作者拆分后逐项体检 · 指标仅作趣味参考，不代表贡献高低', { size: 9.5, fill: '#9AA0AA' });
+  y += 19;
+  T(PAD, y, 'CODE HEALTH CLINIC', { size: 9.5, fill: '#B9BEC7', font: MONO, ls: 1 });
+  T(W - PAD, y, 'NO. ' + cmp.meta.id, { size: 9.5, fill: '#B9BEC7', font: MONO, anchor: 'end' });
+  y += 44;
+
+  const H = Math.ceil(y);
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+    '<rect width="' + W + '" height="' + H + '" fill="#FFFDF8"/>' +
+    '<rect x="0" y="0" width="' + W + '" height="5" fill="#2B43A8"/>' +
+    out.join('') + '</svg>';
+}
+
+/* ---------- 摘要 ---------- */
+function summaryText(rep){
+  const s = rep.score;
+  return '【程序员体检报告】' + rep.meta.repo + ' · ' + rep.meta.id + '\n' +
+    '区间：' + rep.firstDate + ' → ' + rep.lastDate + '（' + rep.n + ' 次提交 / ' + rep.authors + ' 人）\n' +
+    '评级：' + rep.grade + '（' + s.overall + ' 分）｜养生 ' + s.care + ' · 肝度 ' + s.grind + ' · 规范 ' + s.spec + ' · 专注 ' + s.focus + '\n' +
+    '诊断：' + rep.persona.main + ' —— ' + rep.persona.sub + '\n' +
+    '体征：深夜 ' + pct(rep.nightRatio) + '｜周末 ' + pct(rep.weekendRatio) + '｜连击 ' + rep.streak + ' 天｜峰值 ' + rep.peakDay + ' 次/日\n' +
+    '高频时段：' + rep.topHours.map(x => pad2(x) + ':00').join(' / ') + '\n' +
+    '（数据在浏览器本地解析，未上传任何代码）';
+}
+
+function copySummary(){
+  if (!REP) return;
+  const txt = summaryText(REP);
+  navigator.clipboard.writeText(txt).then(() => toast('摘要已复制'), () => toast('复制失败，请手动选中'));
+}
+
+/* ---------- 导出长图 ---------- */
+function buildPosterSVG(rep){
+  const W = 880, PAD = 56, INNER = W - PAD * 2;
+  const FONT = "-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif";
+  const SERIF = "'Songti SC','STSong',SimSun,Georgia,serif";
+  const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
+  const out = [];
+  let y = 0;
+
+  const T = (x, yy, txt, o) => {
+    o = o || {};
+    out.push('<text x="' + x + '" y="' + yy + '" font-size="' + (o.size || 14) + '" fill="' + (o.fill || '#14161B') +
+      '" font-weight="' + (o.w || 400) + '" font-family="' + (o.font || FONT) + '"' +
+      (o.anchor ? ' text-anchor="' + o.anchor + '"' : '') +
+      (o.ls ? ' letter-spacing="' + o.ls + '"' : '') + '>' + esc(txt) + '</text>');
+  };
+  const R = (x, yy, w, h, fill, extra) => out.push('<rect x="' + x + '" y="' + yy + '" width="' + w + '" height="' + h + '" fill="' + fill + '" ' + (extra || '') + '/>');
+  const L = (x1, y1, x2, y2, c, w) => out.push('<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (c || '#E2DED3') + '" stroke-width="' + (w || 1) + '"/>');
+  const CIR = (cx, cy, r, stroke, sw) => out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + stroke + '" stroke-width="' + sw + '"/>');
+  const head = (cn, en, enx) => {
+    T(PAD, y, cn, { size: 13, w: 700, font: SERIF, ls: 2 });
+    T(PAD + enx, y, en, { size: 8.5, fill: '#B9BEC7', font: MONO, ls: 2 });
+  };
+
+  /* ── 页头 ── */
+  y = 62;
+  T(PAD, y, '程序员体检报告', { size: 28, w: 700, font: SERIF, ls: 3 });
+  T(PAD + 234, y - 3, 'CODE HEALTH REPORT', { size: 9, fill: '#9AA0AA', ls: 3.5, font: MONO });
+  CIR(W - PAD - 30, 54, 26, '#B23A2E', 1.5);
+  T(W - PAD - 30, 58, '健康', { size: 10.5, fill: '#B23A2E', anchor: 'middle', font: SERIF, ls: 1 });
+  y += 16;
+  L(PAD, y, W - PAD, y, '#14161B', 2);
+
+  /* ── 元信息 ── */
+  y += 30;
+  const metas = [
+    ['受检者 / REPOSITORY', rep.meta.repo],
+    ['样本区间 / RANGE', rep.firstDate + ' → ' + rep.lastDate],
+    ['提交样本 / SAMPLES', rep.n + ' commits · ' + rep.authors + ' 人'],
+    ['报告编号 / NO.', rep.meta.id]
+  ];
+  metas.forEach((m, i) => {
+    const x = PAD + (i % 2) * (INNER / 2 + 24);
+    const yy = y + Math.floor(i / 2) * 58;
+    T(x, yy, m[0], { size: 9, fill: '#9AA0AA', font: MONO, ls: 0.5 });
+    T(x, yy + 21, m[1], { size: 13, w: 600, font: MONO });
+  });
+  y += 118;
+  L(PAD, y, W - PAD, y, '#E2DED3', 1);
+
+  /* ── 评级 ── */
+  y += 24;
+  const s = rep.score;
+  R(PAD, y, INNER, 118, '#F6F3EA', 'rx="6"');
+  T(PAD + 26, y + 68, rep.grade, { size: 48, w: 700, font: SERIF, fill: '#2B43A8' });
+  T(PAD + 114, y + 42, '综合评级', { size: 10.5, fill: '#9AA0AA', ls: 1 });
+  T(PAD + 114, y + 66, s.overall + ' 分', { size: 17, w: 600, font: MONO });
+  T(PAD + 114, y + 90, 'OVERALL', { size: 8, fill: '#BBBFC8', font: MONO, ls: 2 });
+  const chips = [['养生指数', s.care], ['肝度指数', s.grind], ['规范指数', s.spec], ['专注指数', s.focus]];
+  const cw = (INNER - 300) / 4;
+  chips.forEach((c, i) => {
+    const x = PAD + 250 + i * cw;
+    T(x, y + 44, c[0], { size: 10, fill: '#9AA0AA' });
+    T(x, y + 74, c[1], { size: 26, w: 600, font: MONO });
+    R(x, y + 86, 64, 3, '#E2DED3', 'rx="1.5"');
+    R(x, y + 86, Math.max(3, 64 * c[1] / 100), 3, '#2B43A8', 'rx="1.5"');
+  });
+  y += 118;
+
+  /* ── 一 常规检查 ── */
+  y += 40;
+  head('一 常规检查', 'GENERAL', 96);
+  y += 26;
+  const rx = PAD + 250, dx = PAD + 396, stx = W - PAD;
+  T(PAD, y, '检查项目', { size: 9, fill: '#9AA0AA', ls: 1 });
+  T(rx, y, '结果', { size: 9, fill: '#9AA0AA', ls: 1 });
+  T(dx, y, '参考范围', { size: 9, fill: '#9AA0AA', ls: 1 });
+  T(stx, y, '提示', { size: 9, fill: '#9AA0AA', ls: 1, anchor: 'end' });
+  y += 11;
+  L(PAD, y, W - PAD, y, '#DCD7CB', 1);
+  y += 24;
+  const rows = [
+    ['提交总数', rep.n + ' 次', '—', 'na'],
+    ['活跃天数', rep.activeDays + ' 天', '—', 'na'],
+    ['平均每日提交', rep.avgPerDay.toFixed(1) + ' 次', '—', 'na'],
+    ['深夜提交占比', pct(rep.nightRatio), '< 15%', rep.nightRatio >= 0.15 ? 'up' : 'ok'],
+    ['周末提交占比', pct(rep.weekendRatio), '< 20%', rep.weekendRatio >= 0.2 ? 'up' : 'ok'],
+    ['最长连续提交', rep.streak + ' 天', '< 7 天', rep.streak >= 7 ? 'up' : 'ok'],
+    ['单日提交峰值', rep.peakDay + ' 次', '< 8 次', rep.peakDay >= 8 ? 'up' : 'ok'],
+    ['提交信息均长', rep.avgMsgLen + ' 字', '≥ 20 字', rep.avgMsgLen < 20 ? 'down' : 'ok'],
+    ['规范前缀覆盖', pct(rep.convRatio), '≥ 60%', rep.convRatio < 0.6 ? 'down' : 'ok'],
+    ['修复型占比', pct(rep.fixRatio), '< 35%', rep.fixRatio >= 0.35 ? 'up' : 'ok'],
+    ['代码变更行数', rep.churn.toLocaleString() + ' 行', '—', 'na'],
+    ['单次提交均改', rep.avgChurn + ' 行', '< 300 行', rep.avgChurn >= 300 ? 'up' : 'ok']
+  ];
+  rows.forEach(r => {
+    T(PAD, y, r[0], { size: 12.5 });
+    T(rx, y, r[1], { size: 13.5, w: 600, font: MONO });
+    T(dx, y, r[2], { size: 11, fill: '#9AA0AA', font: MONO });
+    if (r[3] === 'na') T(stx, y, '—', { size: 11, fill: '#C6CAD1', anchor: 'end', font: MONO });
+    else if (r[3] === 'up') T(stx, y, '↑ 超标', { size: 11, w: 600, fill: '#B23A2E', anchor: 'end' });
+    else if (r[3] === 'down') T(stx, y, '↓ 不足', { size: 11, w: 600, fill: '#A8720B', anchor: 'end' });
+    else T(stx, y, '正常', { size: 11, fill: '#1D7350', anchor: 'end' });
+    y += 30;
+    L(PAD, y - 10, W - PAD, y - 10, '#F1EEE6', 1);
+  });
+
+  /* ── 二 作息热力图 ── */
+  y += 24;
+  head('二 作息热力图', 'CIRCADIAN MAP', 136);
+  T(W - PAD, y, '高频时段 ' + rep.topHours.map(x => pad2(x) + ':00').join(' / '), { size: 9.5, fill: '#6E7480', anchor: 'end', font: MONO });
+  y += 26;
+  const gx = PAD + 30, cw2 = (INNER - 30) / 24, ch = 18, gp = 3;
+  const maxV = Math.max.apply(null, rep.heat.map(r => Math.max.apply(null, r)).concat([1]));
+  const days = ['一', '二', '三', '四', '五', '六', '日'];
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  order.forEach((d, ri) => {
+    T(gx - 9, y + ri * (ch + gp) + 13, days[ri], { size: 9.5, fill: '#9AA0AA', anchor: 'end', font: SERIF });
+    for (let i = 0; i < 24; i++){
+      R(gx + i * cw2, y + ri * (ch + gp), cw2 - gp, ch, heatColor(rep.heat[d][i], maxV), 'rx="1.5"');
+    }
+  });
+  y += 7 * (ch + gp) + 16;
+  for (let i = 0; i < 24; i += 3){
+    T(gx + i * cw2 + (cw2 - gp) / 2, y, String(i), { size: 8.5, fill: '#BFC3CB', anchor: 'middle', font: MONO });
+  }
+  T(gx + 23 * cw2, y, '时', { size: 8.5, fill: '#BFC3CB', anchor: 'end', font: MONO });
+  y += 16;
+  const legend = ['#EDEBE3', '#DDE2F5', '#BFC8EC', '#93A2E0', '#6577CF', '#3B4FB8', '#22307F'];
+  T(PAD, y + 9, '少', { size: 9, fill: '#BFC3CB' });
+  legend.forEach((c, i) => R(PAD + 18 + i * 13, y, 10, 10, c, 'rx="1.5"'));
+  T(PAD + 18 + legend.length * 13 + 4, y + 9, '多', { size: 9, fill: '#BFC3CB' });
+  T(PAD + 18 + legend.length * 13 + 34, y + 9, '周一至周日 × 0-23 时', { size: 9, fill: '#C6CAD1' });
+  y += 26;
+
+  /* ── 三 口味分析 ── */
+  y += 22;
+  head('三 口味分析', 'PALATE', 96);
+  y += 26;
+  const t = rep.types;
+  const types = [['fix 修复', t.fix], ['feat 新增', t.feat], ['refactor 重构', t.refactor], ['chore 杂务', t.chore], ['other 其他', t.other]].filter(x => x[1] > 0).slice(0, 5);
+  const maxT = Math.max.apply(null, types.map(x => x[1]).concat([1]));
+  const barW = 178;
+  types.forEach((x, i) => {
+    const yy = y + i * 25;
+    T(PAD, yy + 11, x[0], { size: 11, fill: '#6E7480' });
+    R(PAD + 104, yy + 3, barW, 7, '#EDEBE3', 'rx="3.5"');
+    R(PAD + 104, yy + 3, Math.max(3, barW * x[1] / maxT), 7, '#2B43A8', 'rx="3.5"');
+    T(PAD + 104 + barW + 10, yy + 11, String(x[1]), { size: 10.5, fill: '#9AA0AA', font: MONO });
+  });
+  const exts = rep.extTop.slice(0, 5);
+  const maxE = Math.max.apply(null, exts.map(x => x.v).concat([1]));
+  const cx2 = PAD + INNER / 2 + 34;
+  exts.forEach((x, i) => {
+    const yy = y + i * 25;
+    T(cx2, yy + 11, '.' + x.k, { size: 11, fill: '#6E7480', font: MONO });
+    R(cx2 + 104, yy + 3, barW, 7, '#EDEBE3', 'rx="3.5"');
+    R(cx2 + 104, yy + 3, Math.max(3, barW * x.v / maxE), 7, '#0E8074', 'rx="3.5"');
+    T(cx2 + 104 + barW + 10, yy + 11, String(x.v), { size: 10.5, fill: '#9AA0AA', font: MONO });
+  });
+  y += Math.max(types.length, exts.length) * 25 + 6;
+
+  /* ── 四 诊断结论 ── */
+  y += 40;
+  head('四 诊断结论', 'DIAGNOSIS', 96);
+  y += 36;
+  T(PAD, y, rep.persona.main, { size: 25, w: 700, font: SERIF, ls: 1 });
+  y += 30;
+  wrapText(rep.persona.sub, INNER, 12).forEach(l => { T(PAD, y, l, { size: 12, fill: '#6E7480' }); y += 19; });
+  y += 12;
+  let tx = PAD;
+  rep.tags.slice(0, 6).forEach(tg => {
+    const w = tg.t.length * 10.5 + 22;
+    if (tx + w > W - PAD){ tx = PAD; y += 30; }
+    R(tx, y - 16, w, 24, tg.warn ? '#FBEFED' : '#EDEFFA', 'rx="12"');
+    T(tx + w / 2, y, tg.t, { size: 10.5, fill: tg.warn ? '#B23A2E' : '#2B43A8', anchor: 'middle' });
+    tx += w + 8;
+  });
+  y += 44;
+
+  rep.advice.slice(0, 4).forEach(a => {
+    CIR(PAD + 7, y - 4, 7, '#D9A9A2', 1);
+    T(PAD + 7, y - 0.5, '医', { size: 8, fill: '#B23A2E', anchor: 'middle', font: SERIF });
+    const lines = wrapText(a, INNER - 32, 12);
+    lines.forEach((l, i) => T(PAD + 26, y + i * 19, l, { size: 12, fill: '#3A3F49' }));
+    y += lines.length * 19 + 13;
+  });
+
+  /* ── 页脚 ── */
+  y += 18;
+  L(PAD, y, W - PAD, y, '#E2DED3', 1);
+  y += 26;
+  T(PAD, y, '本报告在浏览器本地完成解析，未上传任何代码或提交记录 · 指标仅作趣味参考', { size: 9.5, fill: '#9AA0AA' });
+  y += 19;
+  T(PAD, y, 'CODE HEALTH CLINIC', { size: 9.5, fill: '#B9BEC7', font: MONO, ls: 1 });
+  T(W - PAD, y, 'NO. ' + rep.meta.id, { size: 9.5, fill: '#B9BEC7', font: MONO, anchor: 'end' });
+  y += 44;
+
+  const H = Math.ceil(y);
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+    '<rect width="' + W + '" height="' + H + '" fill="#FFFDF8"/>' +
+    '<rect x="0" y="0" width="' + W + '" height="5" fill="#2B43A8"/>' +
+    out.join('') + '</svg>';
+}
+
+function wrapText(text, maxW, size){
+  const out = [];
+  let cur = '', w = 0;
+  for (const ch of String(text)){
+    const cw = /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? size : size * 0.54;
+    if (ch === '\n' || w + cw > maxW){ out.push(cur); cur = ch === '\n' ? '' : ch; w = ch === '\n' ? 0 : cw; continue; }
+    cur += ch; w += cw;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function exportPoster(){
+  if (!REP) return;
+  const svg = buildPosterSVG(REP);
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  const scale = 2;
+  const w = 880, h = +(svg.match(/height="(\d+)"/) || [0, 1400])[1];
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = w * scale; cv.height = h * scale;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#FFFDF8';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      const name = (REP.meta.repo || 'code').replace(/[^\w\u4e00-\u9fa5-]+/g, '_');
+      a.download = 'code-health-' + name + '-' + REP.meta.date + '.png';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('长图已导出');
+    }, 'image/png');
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => toast('导出失败，请改用截图');
+  img.src = url;
+}
+
+/* ---------- 事件 ---------- */
+function doParse(){
+  const txt = rawEl.value.trim();
+  if (!txt){ toast('先粘贴一点提交记录吧'); return; }
+  const commits = parseLog(txt);
+  LAST = commits;
+  if (!commits.length){ toast('没解析出提交，请检查格式'); return; }
+  const nameEl = $('#repoName');
+  const rep = buildReport(commits, { repo: (nameEl && nameEl.value.trim()) || '本地仓库' });
+  if (!rep){ toast('数据不足'); return; }
+  render(rep);
+  reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+rawEl.addEventListener('input', () => {
+  const c = parseLog(rawEl.value);
+  cntEl.textContent = c.length;
+});
+$('#run').onclick = doParse;
+$('#sample').onclick = () => {
+  rawEl.value = genSample();
+  cntEl.textContent = parseLog(rawEl.value).length;
+  doParse();
+};
+$('#clear').onclick = () => {
+  rawEl.value = ''; cntEl.textContent = '0';
+  reportEl.classList.remove('on'); reportEl.innerHTML = '';
+  emptyEl.style.display = '';
+};
+$('#copyCmd').onclick = () => {
+  navigator.clipboard.writeText($('#cmdText').textContent).then(() => toast('命令已复制'), () => toast('复制失败'));
+};
+rawEl.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') doParse();
+});
+
+/* 分享链接直出示例：index.html#demo 或 index.html#compare */
+if (location.hash === '#demo' || location.hash === '#compare'){
+  const nameEl = $('#repoName');
+  if (nameEl) nameEl.value = 'nebula-console';
+  rawEl.value = genSample();
+  cntEl.textContent = parseLog(rawEl.value).length;
+  doParse();
+  if (location.hash === '#compare') setTimeout(() => switchMode('compare'), 40);
+  setTimeout(() => window.scrollTo({ top: 0 }), 60);
+}
