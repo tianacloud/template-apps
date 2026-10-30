@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Tesla Roadster · 喷气腾空 | 网页版</title>
+<style>
+:root{
+  --red:#ff3b4e; --red2:#e31937; --cy:#5ce1ff; --amb:#ffc861;
+  --pnl:rgba(9,13,22,.72); --line:rgba(130,180,255,.20);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#05070d;overflow:hidden;color:#e8eef7;
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+#wrap{position:fixed;inset:0}
+canvas{display:block;position:absolute;inset:0}
+.panel{position:absolute;background:var(--pnl);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+#hudL{left:12px;top:12px;padding:10px 13px;min-width:196px}
+#hudR{right:12px;top:12px;padding:10px 13px;text-align:right;min-width:172px}
+.row{display:flex;justify-content:space-between;gap:16px;font-size:12.5px;line-height:1.65;letter-spacing:.4px}
+.k{color:#8ba0c0}
+.v{font-variant-numeric:tabular-nums;font-weight:700;color:#fff}
+#hudR .v{color:var(--cy)}
+.big{font-size:25px;font-weight:800;color:#fff;line-height:1.2;font-variant-numeric:tabular-nums}
+.accent{color:var(--red)!important}
+.hbar{margin-top:7px;height:7px;border-radius:6px;background:rgba(255,255,255,.10);overflow:hidden}
+.hbar>i{display:block;height:100%;width:100%;border-radius:6px;
+  background:linear-gradient(90deg,#5ce1ff,#8affc1);transition:width .08s linear}
+.hbar.warn>i{background:linear-gradient(90deg,#ffb545,#ff3b4e)}
+#toast{position:absolute;left:50%;top:16%;transform:translateX(-50%);text-align:center;
+  pointer-events:none;font-weight:800;font-size:20px;letter-spacing:1px;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+#ctrl{left:50%;bottom:14px;transform:translateX(-50%);padding:11px 14px 12px;width:min(560px,calc(100vw - 20px))}
+.crow{display:flex;gap:10px;align-items:stretch;justify-content:center}
+.cbtn{flex:1;min-height:54px;border-radius:12px;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03));color:#e9f1ff;
+  font:700 15px/1 inherit;font-family:inherit;letter-spacing:.5px;cursor:pointer;touch-action:none}
+.cbtn:active,.cbtn.on{background:linear-gradient(180deg,rgba(92,225,255,.32),rgba(92,225,255,.12));border-color:var(--cy)}
+.cbtn.thrust{flex:1.5;background:linear-gradient(180deg,rgba(255,59,78,.40),rgba(227,25,55,.18));border-color:rgba(255,90,105,.55)}
+.cbtn.thrust:active,.cbtn.thrust.on{background:linear-gradient(180deg,#ff5566,#c2132c);border-color:#ff8894}
+.srow{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:12px;color:#9fb2cf}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:26px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:6px;
+  background:linear-gradient(90deg,#2b3a55,#5ce1ff)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-7px;border-radius:50%;
+  background:#fff;border:3px solid var(--cy);box-shadow:0 2px 8px rgba(0,0,0,.5);cursor:pointer}
+input[type=range]::-moz-range-track{height:8px;border-radius:6px;background:#2b3a55}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--cy)}
+#thrVal{width:46px;text-align:right;color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+#fuelRow{margin-top:8px}
+#fuelBar{flex:1}
+.mini{display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mini button{font:600 12px/1 inherit;font-family:inherit;padding:7px 11px;border-radius:9px;color:#cfe0f5;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);cursor:pointer;touch-action:none}
+.mini button.act{background:rgba(92,225,255,.18);border-color:var(--cy);color:#fff}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;
+  background:radial-gradient(ellipse at center,rgba(6,10,20,.72),rgba(3,5,10,.93));
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+#card{max-width:640px;width:100%;padding:24px 26px;border-radius:20px;text-align:center;
+  background:linear-gradient(180deg,rgba(16,22,36,.96),rgba(8,11,20,.96));
+  border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.6);max-height:92vh;overflow:auto}
+h1{margin:0 0 4px;font-size:30px;letter-spacing:1px}
+h1 b{color:var(--red)}
+.sub{color:#93a7c6;font-size:13.5px;margin-bottom:16px;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:9px;text-align:left;margin:14px 0 4px}
+.cell{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:9px 11px}
+.cell h4{margin:0 0 5px;font-size:12.5px;color:var(--cy);letter-spacing:.6px}
+.cell p{margin:0;font-size:12px;color:#a9bbd6;line-height:1.75}
+kbd{display:inline-block;min-width:20px;padding:1px 6px;margin:0 1px;border-radius:5px;font-size:11px;
+  background:#1c2740;border:1px solid #33456b;border-bottom-width:2px;color:#eaf2ff}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
+.stat{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:9px}
+.stat span{display:block;font-size:11px;color:#8ba0c0}
+.stat b{font-size:19px;color:#fff;font-variant-numeric:tabular-nums}
+.btn{margin-top:16px;padding:14px 30px;border:0;border-radius:13px;cursor:pointer;font:800 16px/1 inherit;font-family:inherit;
+  letter-spacing:1px;color:#fff;background:linear-gradient(180deg,#ff4b5e,#c2132c);
+  box-shadow:0 10px 26px rgba(227,25,55,.36);touch-action:none}
+.btn.alt{background:linear-gradient(180deg,#2b3d5e,#1b2740);box-shadow:none;margin-left:8px}
+.tip{margin-top:12px;font-size:11.5px;color:#7d90ad;line-height:1.7}
+@media (max-width:560px){#hudL,#hudR{min-width:0;padding:8px 10px}.row{font-size:11.5px}.big{font-size:20px}
+  h1{font-size:23px}#ctrl{bottom:8px}.cbtn{min-height:48px;font-size:14px}}
+</style>
+</head>
+<body>
+<div style="position:fixed;z-index:9999;right:8px;bottom:8px;background:#121a29;color:white;padding:6px;border-radius:6px;font:12px sans-serif">示例体验 · 状态仅保存在当前页面 <button id="restoreExample" type="button">恢复示例</button></div>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="hudL" class="panel">
+    <div class="row"><span class="k">高度</span><span class="v" id="hAlt">0 m</span></div>
+    <div class="row"><span class="k">离面</span><span class="v" id="hRad">—</span></div>
+    <div class="row"><span class="k">地速</span><span class="v" id="hSpd">0 km/h</span></div>
+    <div class="row"><span class="k">升降率</span><span class="v" id="hVs">0 m/s</span></div>
+    <div class="row"><span class="k">俯仰</span><span class="v" id="hAng">0°</span></div>
+    <div class="hbar"><i id="altBar" style="width:0%"></i></div>
+  </div>
+
+  <div id="hudR" class="panel">
+    <div class="row"><span class="k">得分</span><span class="v big" id="hScore">0</span></div>
+    <div class="row"><span class="k">光环</span><span class="v" id="hRing">0 / 0</span></div>
+    <div class="row"><span class="k">生命</span><span class="v" id="hLives">♥♥♥</span></div>
+    <div class="row"><span class="k">目标</span><span class="v accent" id="hGoal">—</span></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="ctrl" class="panel">
+    <div class="crow">
+      <button class="cbtn" id="btnUp">◀ 抬头</button>
+      <button class="cbtn thrust" id="btnTh">⏻ 推进 · 按住</button>
+      <button class="cbtn" id="btnDn">低头 ▶</button>
+    </div>
+    <div class="srow"><span>推力</span><input id="thr" type="range" min="10" max="100" step="1" value="70"><span id="thrVal">70%</span></div>
+    <div class="srow" id="fuelRow"><span>燃料</span><div class="hbar" id="fuelBar"><i style="width:100%"></i></div><span id="thrVal2" style="width:46px;text-align:right;color:#fff;font-weight:700">100%</span></div>
+    <div class="mini">
+      <span style="font-size:11.5px;color:#8ba0c0;align-self:center" id="hintTxt">空格=推进 · ←→=俯仰 · Shift=前推 · A/D=俯仰(地面行驶)</span>
+      <button id="btnAssist" class="act">辅助稳定：开</button>
+      <button id="btnPause">暂停</button>
+    </div>
+  </div>
+
+  <div id="overlay"><div id="card"></div></div>
+</div>
+<script>
+/* =======================================================================
+   Tesla Roadster · 喷气腾空   (单文件 HTML5 / Canvas2D)
+   物理：刚体平动 + 转动，推力沿车身 Up 轴（推力矢量），燃料消耗，随高度衰减的空气阻力
+   碰撞：分离轴定理（OBB vs AABB），软着陆判定
+   ======================================================================= */
+(function(){
+'use strict';
+
+/* ---------------------------- 常量 ---------------------------- */
+const PPM       = 10;      // 10 像素 = 1 米
+const GRAV      = 420;     // px/s^2
+const THRUST_MAX= 1180;    // 100% 推力加速度
+const BOOST_ACC = 900;     // 前推助推
+const TORQUE    = 7.6;     // 俯仰角加速度
+const MAX_AV    = 5.2;
+const FUEL_MAX  = 100;
+const BURN_THR  = 4.0;     // 满推力每秒燃料
+const BURN_BST  = 5.5;
+const MAX_SPD   = 900;     // 速度上限（px/s），防穿透
+const LAND_VY   = 135, LAND_VX = 120, LAND_ANG = 0.34;
+const CRASH_V   = 265;
+const WORLD_L   = -520, WORLD_R = 7600;
+const SHIP_ALT  = 2400;    // 无人回收船高度(px)
+
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const TAU=Math.PI*2;
+function normAngle(a){a=(a+Math.PI)%TAU; if(a<0)a+=TAU; return a-Math.PI;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------------------------- 画布 ---------------------------- */
+const cvs=document.getElementById('game'), ctx=cvs.getContext('2d');
+let W=0,H=0,dpr=1;
+function resize(){
+  W=window.innerWidth; H=window.innerHeight;
+  dpr=Math.min(2,window.devicePixelRatio||1);
+  cvs.width=Math.floor(W*dpr); cvs.height=Math.floor(H*dpr);
+  cvs.style.width=W+'px'; cvs.style.height=H+'px';
+}
+window.addEventListener('resize',resize); resize();
+
+/* ---------------------------- 音效 ---------------------------- */
+const Audio_={ctx:null,master:null,thrGain:null,ready:false};
+function initAudio(){
+  if(Audio_.ready) return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    const c=new AC(); const m=c.createGain(); m.gain.value=0.55; m.connect(c.destination);
+    // 白噪声
+    const len=c.sampleRate*2, buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    const src=c.createBufferSource(); src.buffer=buf; src.loop=true;
+    const bp=c.createBiquadFilter(); bp.type='lowpass'; bp.frequency.value=760; bp.Q.value=1.1;
+    const g=c.createGain(); g.gain.value=0;
+    src.connect(bp); bp.connect(g); g.connect(m); src.start();
+    Audio_.ctx=c; Audio_.master=m; Audio_.thrGain=g; Audio_.ready=true;
+  }catch(e){}
+}
+function tone(f1,f2,dur,type,vol){
+  if(!Audio_.ready) return;
+  try{const c=Audio_.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f1,t);
+    if(f2) o.frequency.exponentialRampToValueAtTime(Math.max(30,f2),t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.25,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(Audio_.master); o.start(t); o.stop(t+dur+0.02);}catch(e){}
+}
+function noiseBurst(dur,f0,f1,vol){
+  if(!Audio_.ready) return;
+  try{const c=Audio_.ctx,t=c.currentTime;
+    const len=Math.floor(c.sampleRate*dur), b=c.createBuffer(1,len,c.sampleRate), d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const s=c.createBufferSource(); s.buffer=b;
+    const f=c.createBiquadFilter(); f.type='lowpass';
+    f.frequency.setValueAtTime(f0,t); f.frequency.exponentialRampToValueAtTime(Math.max(60,f1),t+dur);
+    const g=c.createGain(); g.gain.setValueAtTime(vol||0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    s.connect(f); f.connect(g); g.connect(Audio_.master); s.start(t);}catch(e){}
+}
+function setThrSound(on,amt){
+  if(!Audio_.ready||!Audio_.thrGain) return;
+  try{Audio_.thrGain.gain.setTargetAtTime(on?0.30*amt:0, Audio_.ctx.currentTime, 0.05);}catch(e){}
+}
+
+/* ---------------------------- 世界数据 ---------------------------- */
+let solids=[], rings=[], pickups=[], particles=[], stars=[], toasts=[];
+let ship=null, rand=Math.random, cam={x:0,y:0}, scale=1, shake=0;
+let state='menu', lives=3, score=0, combo=0, comboT=0, altAward=0, bestAltM=0;
+let flight={air:0, maxAlt:0, rot:0, flips:0, startY:0};
+let assist=true;
+let deadTimer=0;
+const msgs={space:false,ceil:false};
+
+const car={x:60,y:-26,vx:0,vy:0,a:0,av:0,grounded:false,alive:true};
+const CAR_POLY=[[-62,-6],[-58,-15],[-40,-18],[-14,-19],[10,-19],[32,-17],[50,-13],[60,-6],
+                [60,6],[52,12],[36,15],[-34,15],[-52,12],[-62,6]];
+
+/* ---------------------------- 关卡生成 ---------------------------- */
+function buildLevel(seed){
+  rand=mulberry32(seed);
+  solids=[]; rings=[]; pickups=[]; particles=[];
+  // 发射台（地面）
+  solids.push({x:-180,w:520,top:0,h:40,kind:'base',mult:1,label:'发射台'});
+  // 城市楼群
+  let x=560;
+  while(x<2700){
+    const w=Math.round(lerp(90,210,rand())), h=Math.round(lerp(140,700,Math.pow(rand(),0.75)));
+    solids.push({x:x,w:w,top:-h,h:h,kind:'bldg',mult:0,label:'',lit:rand()});
+    x += w + Math.round(lerp(80,250,rand()));
+  }
+  // 山地阶梯
+  for(let i=0;i<14;i++){
+    const hh=140+i*95;
+    solids.push({x:2900+i*90,w:92,top:-hh,h:hh,kind:'mtn',mult:0,label:''});
+  }
+  // 悬空平台
+  let px=4200;
+  while(px<5400){
+    const alt=Math.round(lerp(260,1500,rand())), w=Math.round(lerp(170,330,rand()));
+    solids.push({x:px,w:w,top:-alt,h:20,kind:'pad',mult:2,label:'悬空平台 ×2'});
+    px += w + Math.round(lerp(280,520,rand()));
+  }
+  // 无人回收船（横向漂移）
+  ship={x:5900,w:360,top:-SHIP_ALT,h:26,kind:'ship',mult:3,label:'无人回收船 ×3',
+        cx:5900,t:rand()*10, moving:true, dx:0};
+  solids.push(ship);
+  // 轨道平台
+  solids.push({x:6900,w:230,top:-3600,h:20,kind:'pad',mult:5,label:'轨道平台 ×5'});
+
+  // 光环通道
+  const N=15;
+  for(let i=0;i<N;i++){
+    const t=i/(N-1);
+    const rx=900+t*5900;
+    const ralt=Math.max(770, 300+2050*t+240*Math.sin(t*8.5)+ (rand()-0.5)*120);
+    rings.push({x:rx,y:-Math.max(220,ralt),r:lerp(100,78,t),used:false,pulse:rand()*TAU});
+  }
+  // 燃料电池
+  for(let i=0;i<18;i++){
+    pickups.push({x:760+i*350+rand()*200, y:-(260+rand()*2900), used:false, bob:rand()*TAU});
+  }
+  // 把漂浮物抬到实体之上，避免被楼体/山体埋住
+  liftAboveSolids();
+
+  // 星空
+  stars=[];
+  for(let i=0;i<220;i++) stars.push({x:rand(),y:rand(),r:rand()*1.5+0.4,tw:rand()*TAU});
+
+  score=0; lives=3; combo=0; comboT=0; altAward=0; bestAltM=0;
+  msgs.space=false; msgs.ceil=false;
+  resetCar(true);
+  cam.x=car.x; cam.y=car.y-80; scale=1; shake=0;
+}
+
+function solidRect(s){ return {x:s.x, top:s.top, w:s.w, h:s.h}; }
+
+/* 把漂浮物抬到实体表面之上，避免被楼体/山体埋住 */
+function liftAboveSolids(){
+  const items=rings.concat(pickups);
+  for(const it of items){
+    for(const s of solids){
+      if(s.kind!=='bldg' && s.kind!=='mtn') continue;
+      if(it.x<s.x-60 || it.x>s.x+s.w+60) continue;
+      if(it.y>s.top && it.y<s.top+s.h) it.y=s.top-90;
+    }
+  }
+}
+
+/* ---------------------------- 车体 ---------------------------- */
+function carPoints(){
+  const c=Math.cos(car.a), s=Math.sin(car.a), out=[];
+  for(const p of CAR_POLY) out.push({x:car.x+p[0]*c-p[1]*s, y:car.y+p[0]*s+p[1]*c});
+  return out;
+}
+function resetCar(full){
+  car.x=60; car.y=-26; car.vx=0; car.vy=0; car.a=0; car.av=0;
+  car.grounded=true; car.alive=true;
+  if(full){ fuel=FUEL_MAX; }
+  flight={air:0,maxAlt:0,rot:0,flips:0,startY:car.y};
+}
+let fuel=FUEL_MAX;
+
+/* ---------------------------- SAT 碰撞 ---------------------------- */
+function satPolyRect(pts,r){
+  const axes=[{x:1,y:0},{x:0,y:1}];
+  for(let i=0;i<pts.length;i++){
+    const p1=pts[i], p2=pts[(i+1)%pts.length];
+    const ex=p2.x-p1.x, ey=p2.y-p1.y, len=Math.hypot(ex,ey)||1;
+    axes.push({x:-ey/len,y:ex/len});
+  }
+  const rect=[{x:r.x,y:r.top},{x:r.x+r.w,y:r.top},{x:r.x+r.w,y:r.top+r.h},{x:r.x,y:r.top+r.h}];
+  let cx=0,cy=0; for(const p of pts){cx+=p.x;cy+=p.y;} cx/=pts.length; cy/=pts.length;
+  const rcx=r.x+r.w/2, rcy=r.top+r.h/2;
+  let best=null;
+  for(const ax of axes){
+    let pmin=Infinity,pmax=-Infinity,rmin=Infinity,rmax=-Infinity;
+    for(const p of pts){const d=p.x*ax.x+p.y*ax.y; if(d<pmin)pmin=d; if(d>pmax)pmax=d;}
+    for(const p of rect){const d=p.x*ax.x+p.y*ax.y; if(d<rmin)rmin=d; if(d>rmax)rmax=d;}
+    if(pmax<rmin||rmax<pmin) return null;
+    const o=Math.min(pmax,rmax)-Math.max(pmin,rmin);
+    if(!best||o<best.overlap){
+      let nx=ax.x, ny=ax.y;
+      if((cx-rcx)*ax.x+(cy-rcy)*ax.y<0){nx=-nx;ny=-ny;}
+      best={overlap:o,nx:nx,ny:ny};
+    }
+  }
+  return best;
+}
+
+/* ---------------------------- 粒子 ---------------------------- */
+function emit(n,x,y,vx,vy,life,size,colors,spread){
+  for(let i=0;i<n;i++){
+    const ang=Math.random()*TAU, sp=Math.random()*(spread||60);
+    particles.push({x:x,y:y,vx:vx+Math.cos(ang)*sp,vy:vy+Math.sin(ang)*sp,
+      life:life*(0.6+Math.random()*0.7),max:life,size:size*(0.6+Math.random()*0.8),
+      c:colors[(Math.random()*colors.length)|0]});
+  }
+}
+const FLAME=['#ffffff','#ffe9a8','#ffb545','#ff6a3d','#ff3b4e'];
+const DUST =['#9fb4cf','#6a7f9e','#4a5c78'];
+
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.life-=dt; if(p.life<=0){particles.splice(i,1);continue;}
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    p.vx*=1-1.6*dt; p.vy*=1-1.6*dt; p.vy+=90*dt;
+  }
+}
+
+/* ---------------------------- 输入 ---------------------------- */
+const keys={};
+const touch={up:false,dn:false,th:false};
+let throttle=0.70;
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if([' ','arrowleft','arrowright','arrowup','arrowdown','shift'].includes(k)) e.preventDefault();
+  if(k==='p'||k==='escape'){ if(state==='play') pause(); else if(state==='pause') resume(); }
+  if(k==='r'&&(state==='play'||state==='over'||state==='win')) startGame();
+  if(k==='t') toggleAssist();
+});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false; if(state==='play')pause();});
+
+function bindHold(id,setter){
+  const el=document.getElementById(id);
+  const on=e=>{e.preventDefault(); setter(true); el.classList.add('on'); if(Audio_.ctx&&Audio_.ctx.state==='suspended')Audio_.ctx.resume();};
+  const off=e=>{e.preventDefault&&e.preventDefault(); setter(false); el.classList.remove('on');};
+  el.addEventListener('pointerdown',on);
+  el.addEventListener('pointerup',off);
+  el.addEventListener('pointercancel',off);
+  el.addEventListener('pointerleave',off);
+}
+bindHold('btnUp',v=>touch.up=v);
+bindHold('btnDn',v=>touch.dn=v);
+bindHold('btnTh',v=>touch.th=v);
+
+const thrSlider=document.getElementById('thr');
+function syncThr(){ throttle=parseInt(thrSlider.value,10)/100; document.getElementById('thrVal').textContent=Math.round(throttle*100)+'%'; }
+thrSlider.addEventListener('input',syncThr); syncThr();
+
+const btnAssist=document.getElementById('btnAssist');
+function toggleAssist(){assist=!assist; btnAssist.textContent='辅助稳定：'+(assist?'开':'关'); btnAssist.classList.toggle('act',assist);}
+btnAssist.addEventListener('pointerdown',e=>{e.preventDefault();toggleAssist();});
+document.getElementById('btnPause').addEventListener('pointerdown',e=>{e.preventDefault(); state==='play'?pause():resume();});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+function readInput(){
+  let thrust = !!(keys[' ']||keys['w']||keys['arrowup']) || touch.th;
+  let boost  = !!(keys['shift']);
+  let up     = !!(keys['a']||keys['arrowleft']) || touch.up;
+  let dn     = !!(keys['d']||keys['arrowright']) || touch.dn;
+  // 手柄
+  if(navigator.getGamepads){
+    const gps=navigator.getGamepads();
+    for(const gp of gps){
+      if(!gp) continue;
+      const ax=gp.axes[0]||0;
+      if(Math.abs(ax)>0.22){ if(ax<0) up=true; else dn=true; }
+      const rt=gp.buttons[7]?gp.buttons[7].value:0;
+      if((gp.buttons[0]&&gp.buttons[0].pressed)||rt>0.35) thrust=true;
+      if(gp.buttons[1]&&gp.buttons[1].pressed) boost=true;
+      const v=(gp.axes[3]||0);
+      if(Math.abs(v)>0.9){ thrSlider.value=Math.round((1-(v+1)/2)*90+10); syncThr(); }
+      break;
+    }
+  }
+  return {thrust,boost,up,dn};
+}
+
+/* ---------------------------- 游戏流程 ---------------------------- */
+const overlay=document.getElementById('overlay'), card=document.getElementById('card');
+function showOverlay(html){overlay.style.display='flex'; card.innerHTML=html;}
+function hideOverlay(){overlay.style.display='none';}
+function toast(text,color){ toasts.push({text:text,color:color||'#5ce1ff',life:1.35}); }
+
+function menu(){
+  state='menu'; buildLevel((Math.random()*1e9)|0); fuel=FUEL_MAX;
+  showOverlay(`
+    <h1>Tesla <b>Roadster</b> · 喷气腾空</h1>
+    <div class="sub">冷气推进器版 Roadster —— 推力矢量控制。<br>
+      按住推进抬升，<b>低头</b>让推力分量把你甩向前方，翻转一圈有额外加分，最后安全降落才能结算。</div>
+    <div class="grid">
+      <div class="cell"><h4>推进 / 抬升</h4><p><kbd>空格</kbd><kbd>W</kbd><kbd>↑</kbd> 或屏幕「推进」键<br>推力由<b>滑块</b>决定：约 <b>36%</b> 恰好抵消重力</p></div>
+      <div class="cell"><h4>姿态控制</h4><p><kbd>←</kbd><kbd>A</kbd> 抬头　<kbd>→</kbd><kbd>D</kbd> 低头<br>只有先改变车身角度，推力才会把你推向想去的方向</p></div>
+      <div class="cell"><h4>前推 / 行驶</h4><p><kbd>Shift</kbd> 前推助推（耗油高）<br>地面时 <kbd>A</kbd>/<kbd>D</kbd> 变为倒车/加速</p></div>
+      <div class="cell"><h4>补给与得分</h4><p>穿越<span style="color:#5ce1ff">光环</span> +150 并补燃料<br>拾取<span style="color:#8affc1">燃料电池</span> +18 燃料</p></div>
+      <div class="cell"><h4>软着陆</h4><p>垂直速度 &lt; 13 m/s、车身近水平<br>盯住 HUD 的<b style="color:#ffc861">离面</b>高度贴地 flare，平台有倍率</p></div>
+      <div class="cell"><h4>任务</h4><p>在 240 m 高的<b style="color:#ff3b4e">无人回收船</b>上降落通关<br>摔毁损失一条生命，共 3 条</p></div>
+    </div>
+    <div class="tip">超过 <b>620 m</b> 空气太稀薄、推力会失效；发射台落地自动加满燃料。<br>
+      支持键盘 / 触屏虚拟按键 / Xbox-PS 手柄　·　<kbd>P</kbd> 暂停　<kbd>R</kbd> 重开　<kbd>T</kbd> 辅助稳定</div>
+    <button class="btn" id="btnStart">启 动 推 进 器</button>
+  `);
+  document.getElementById('btnStart').onclick=startGame;
+}
+function startGame(){ initAudio(); buildLevel((Math.random()*1e9)|0); fuel=FUEL_MAX; state='play'; hideOverlay(); combo=0; }
+function pause(){ state='pause';
+  showOverlay(`<h1>已暂停</h1><div class="sub">推进器怠速中…</div>
+   <div class="stats"><div class="stat"><span>得分</span><b>${Math.round(score)}</b></div>
+   <div class="stat"><span>最高</span><b>${Math.round(bestAltM)} m</b></div>
+   <div class="stat"><span>燃料</span><b>${Math.round(fuel)}%</b></div></div>
+   <button class="btn" id="btnRes">继续</button><button class="btn alt" id="btnMenu">回主界面</button>`);
+  document.getElementById('btnRes').onclick=resume;
+  document.getElementById('btnMenu').onclick=menu;
+}
+function resume(){ if(state==='pause'){state='play'; hideOverlay();} }
+
+function crash(){
+  if(!car.alive) return;
+  car.alive=false; state='dead'; deadTimer=1.5; shake=18;
+  setThrSound(false,0);
+  emit(70,car.x,car.y,car.vx*0.25,car.vy*0.25,1.1,7,['#fff8e0','#ffb545','#ff6a3d','#ff3b4e','#6a7f9e'],340);
+  noiseBurst(0.9,1800,60,0.75);
+  score-=150; if(score<0)score=0; lives--;
+  toast('推 进 器 失 效','#ff3b4e');
+}
+function doLanding(s){
+  const altM=flight.maxAlt/PPM;
+  let mult=s.mult||1, perfect=false;
+  if(Math.abs(car.vy)<45 && Math.abs(normAngle(car.a))<0.11 && Math.abs(car.vx)<45){perfect=true; mult*=2;}
+  const base=Math.round(140+altM*2.2+fuel*2+combo*40);
+  const gain=Math.round(base*mult);
+  score+=gain;
+  if(s.kind==='ship'){
+    state='win'; setThrSound(false,0);
+    showOverlay(`<h1>着 舰 成 功 🏁</h1>
+      <div class="sub">Roadster 稳稳落在海上无人回收船上 —— Elon 会满意的。</div>
+      <div class="stats"><div class="stat"><span>总分</span><b>${Math.round(score)}</b></div>
+      <div class="stat"><span>最高飞行</span><b>${Math.round(bestAltM)} m</b></div>
+      <div class="stat"><span>剩余燃料</span><b>${Math.round(fuel)}%</b></div></div>
+      <div class="tip">本局：${ringDone()} 个光环 · ${Math.round(altM)} m 最高飞行高度</div>
+      <button class="btn" id="btnAgain">再 飞 一 次</button>`);
+    document.getElementById('btnAgain').onclick=startGame; return;
+  }
+  toast((perfect?'完 美 着 陆':'软 着 陆')+' +'+gain+(mult>1?'  ×'+mult:''), perfect?'#8affc1':'#5ce1ff');
+  tone(perfect?520:420, perfect?880:600, 0.22,'triangle',0.2);
+  noiseBurst(0.22,700,120,0.4);
+  flight={air:0,maxAlt:0,rot:0,flips:0,startY:car.y};
+  combo=0;
+}
+function ringDone(){ let n=0; for(const r of rings) if(r.used)n++; return n; }
+
+function gameOver(){
+  state='over';
+  showOverlay(`<h1 style="color:#ff3b4e">任 务 失 败</h1>
+    <div class="sub">三条命都用完了 —— 这台 Roadster 得回厂重造。</div>
+    <div class="stats"><div class="stat"><span>总分</span><b>${Math.round(score)}</b></div>
+    <div class="stat"><span>最高飞行</span><b>${Math.round(bestAltM)} m</b></div>
+    <div class="stat"><span>光环</span><b>${ringDone()} / ${rings.length}</b></div></div>
+    <div class="tip">提示：先把机身抬到约 <b>60% 推力</b>稳定悬停，再一点点低头把水平速度拉起来，落地前记得抬头把垂速压到 13 m/s 以下。</div>
+    <button class="btn" id="btnAgain2">再 来 一 局</button><button class="btn alt" id="btnMenu2">主界面</button>`);
+  document.getElementById('btnAgain2').onclick=startGame;
+  document.getElementById('btnMenu2').onclick=menu;
+}
+
+/* ---------------------------- 物理更新 ---------------------------- */
+function physics(dt, inp){
+  if(!car.alive) return;
+  const alt=-car.y;
+  // 空气阻力随高度衰减
+  const dens=Math.exp(-Math.max(0,alt)/3000);
+  const k=(0.010+0.28*dens);
+
+  let thrusting=false, boosting=false;
+  if(inp.thrust && fuel>0){ thrusting=true; }
+  if(inp.boost  && fuel>0){ boosting=true; }
+
+  // 临近空间：空气稀薄到推进器推力失效，形成约 740 m 的软天花板
+  const over=alt-5200;
+  if(over>0) car.vy+=Math.min(1200, over*0.55)*dt;
+
+  if(thrusting){
+    const ux=Math.sin(car.a), uy=-Math.cos(car.a);
+    const acc=THRUST_MAX*throttle;
+    car.vx+=ux*acc*dt; car.vy+=uy*acc*dt;
+    fuel-=BURN_THR*throttle*dt;
+    // 尾焰
+    const c=Math.cos(car.a), s=Math.sin(car.a);
+    for(const nz of [[-40,13],[8,13]]){
+      const wx=car.x+nz[0]*c-nz[1]*s, wy=car.y+nz[0]*s+nz[1]*c;
+      const sp=(260+520*throttle)*(0.6+Math.random()*0.8);
+      particles.push({x:wx,y:wy,vx:-ux*sp+car.vx*0.4+(Math.random()-0.5)*70,
+        vy:-uy*sp+car.vy*0.4+(Math.random()-0.5)*70,
+        life:0.30+Math.random()*0.22,max:0.5,size:5+Math.random()*6*throttle,
+        c:FLAME[(Math.random()*FLAME.length)|0]});
+    }
+  }
+  if(boosting){
+    car.vx+=Math.cos(car.a)*BOOST_ACC*dt; car.vy+=Math.sin(car.a)*BOOST_ACC*dt;
+    fuel-=BURN_BST*dt;
+    const c=Math.cos(car.a), s=Math.sin(car.a);
+    const wx=car.x-62*c, wy=car.y-62*s;
+    particles.push({x:wx,y:wy,vx:-Math.cos(car.a)*(300+Math.random()*260)+car.vx*0.4,
+      vy:-Math.sin(car.a)*(300+Math.random()*260)+car.vy*0.4,
+      life:0.22,max:0.35,size:6,c:'#9fe8ff'});
+  }
+  if(fuel<=0){ fuel=0; thrusting=false; boosting=false; }
+
+  // 俯仰扭矩
+  let tq=0;
+  if(inp.dn) tq+=1;
+  if(inp.up) tq-=1;
+  if(tq!==0){ car.av+=TORQUE*tq*dt; }
+  else {
+    if(assist && !car.grounded){
+      // 辅助稳定：缓慢回正并抑制旋转
+      const na=normAngle(car.a);
+      car.av-=na*2.4*dt; car.av*=1-2.0*dt;
+    } else car.av*=1-0.7*dt;
+  }
+  car.av=clamp(car.av,-MAX_AV,MAX_AV);
+  const da=car.av*dt; car.a+=da;
+  flight.rot+=da;
+  if(!car.grounded){
+    while(flight.rot> TAU-0.0001){ flight.rot-=TAU; doFlip(); }
+    while(flight.rot<-TAU+0.0001){ flight.rot+=TAU; doFlip(); }
+  }
+
+  car.vy+=GRAV*dt;
+  car.vx-=car.vx*k*dt; car.vy-=car.vy*k*dt;
+
+  const sp=Math.hypot(car.vx,car.vy);
+  if(sp>MAX_SPD){ car.vx*=MAX_SPD/sp; car.vy*=MAX_SPD/sp; }
+
+  car.x+=car.vx*dt; car.y+=car.vy*dt;
+
+  // 世界边界
+  if(car.x<WORLD_L){car.x=WORLD_L; car.vx=Math.abs(car.vx)*0.35;}
+  if(car.x>WORLD_R){car.x=WORLD_R; car.vx=-Math.abs(car.vx)*0.35;}
+
+  car.grounded=false;
+  resolve();
+
+  // 高度记录计分
+  if(!car.grounded && car.vy<0){
+    const am=(-car.y)/PPM;
+    if(am>altAward){ score+=(am-altAward)*1.2; altAward=am; }
+    if(am>bestAltM) bestAltM=am;
+    if(am>300&&!msgs.space){ msgs.space=true; toast('进 入 临 近 空 间','#ffc861'); tone(300,900,0.5,'sine',0.16); }
+    if(am>620&&!msgs.ceil){ msgs.ceil=true; toast('推 力 达 到 极 限','#ff3b4e'); }
+  }
+  flight.maxAlt=Math.max(flight.maxAlt,-car.y);
+  if(!car.grounded) flight.air+=dt; else { flight.rot=0; }
+
+  // 发射台自动加满燃料
+  if(car.grounded && car.y>-40 && Math.abs(car.x-80)<260){
+    if(fuel<FUEL_MAX){ fuel=Math.min(FUEL_MAX,fuel+26*dt); }
+  }
+  setThrSound(thrusting||boosting, thrusting?throttle:0.5);
+
+  // 起飞时的尘土
+  if(thrusting && car.grounded && Math.random()<0.6)
+    emit(2,car.x,car.y+16,car.vx*0.3,-40,0.5,5,DUST,120);
+}
+function doFlip(){
+  if(flight.air<0.55) return;
+  combo=Math.min(8,combo+1); comboT=4.0;
+  const g=250; score+=g;
+  toast('翻 滚 ×'+combo+'  +'+g,'#ffc861');
+  tone(600,1100,0.14,'square',0.16);
+}
+
+function resolve(){
+  for(let iter=0;iter<2;iter++){
+    const pts=carPoints();
+    let hit=null, hitS=null;
+    for(const s of solids){
+      const r=satPolyRect(pts, solidRect(s));
+      if(r && (!hit||r.overlap>hit.overlap)){ hit=r; hitS=s; }
+    }
+    if(!hit) break;
+    car.x+=hit.nx*hit.overlap; car.y+=hit.ny*hit.overlap;
+    const vn=car.vx*hit.nx+car.vy*hit.ny;
+    const impact=Math.hypot(car.vx,car.vy);
+    const upFacing=-hit.ny;                       // >0 表示支撑面在车下方
+    const angOK=Math.abs(normAngle(car.a))<LAND_ANG;
+    const soft=impact<CRASH_V;
+
+    if(!soft || (upFacing<0.45 && impact>110)){ crash(); return; }
+
+    if(vn<0){
+      const REST=0.16;
+      car.vx-=(1+REST)*vn*hit.nx; car.vy-=(1+REST)*vn*hit.ny;
+    }
+    // 切向摩擦
+    const tx=-hit.ny, ty=hit.nx;
+    const vt=car.vx*tx+car.vy*ty, FR=0.55;
+    car.vx-=vt*FR*tx; car.vy-=vt*FR*ty;
+    car.av*=0.45;
+
+    if(upFacing>0.6){
+      car.grounded=true;
+      const canLand = Math.abs(car.vy)<LAND_VY && Math.abs(car.vx)<LAND_VX && angOK;
+      if(canLand && hitS.mult>0 && flight.air>0.8){
+        doLanding(hitS);
+        car.vx*=0.3; car.vy=0; car.av*=0.2; car.a*=0.3;
+      } else if(canLand){
+        car.a*=0.5; car.av=0;
+      }
+    } else {
+      car.vx*=0.7;
+    }
+  }
+}
+
+/* ---------------------------- 拾取 / 任务 ---------------------------- */
+function checkPickups(){
+  for(const p of pickups){
+    if(p.used) continue;
+    if(Math.hypot(p.x-car.x,p.y-car.y)<44){
+      p.used=true; fuel=Math.min(FUEL_MAX,fuel+18); score+=60;
+      toast('燃料电池 +18','#8affc1'); tone(720,980,0.14,'sine',0.18);
+      emit(18,p.x,p.y,0,-30,0.6,4,['#8affc1','#5ce1ff','#ffffff'],140);
+    }
+  }
+  for(const r of rings){
+    if(r.used) continue;
+    if(Math.hypot(r.x-car.x,r.y-car.y)<r.r*0.72){
+      r.used=true; fuel=Math.min(FUEL_MAX,fuel+10); score+=150;
+      toast('光环 +150','#5ce1ff'); tone(880,1400,0.16,'triangle',0.2);
+      emit(30,r.x,r.y,0,0,0.7,4,['#5ce1ff','#ffffff','#9ad9ff'],180);
+    }
+  }
+}
+
+/* ---------------------------- 渲染 ---------------------------- */
+function w2s(x,y){ return {x:(x-cam.x)*scale+W/2, y:(y-cam.y)*scale+H/2}; }
+
+function drawSky(){
+  const altM=Math.max(0,-cam.y)/PPM;
+  const t=clamp(altM/600,0,1);
+  const top =[Math.round(lerp(16,0,t)),Math.round(lerp(30,2,t)),Math.round(lerp(62,10,t))];
+  const bot =[Math.round(lerp(30,6,t)),Math.round(lerp(58,16,t)),Math.round(lerp(104,38,t))];
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'rgb('+top.join(',')+')');
+  g.addColorStop(1,'rgb('+bot.join(',')+')');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // 星空
+  const sa=clamp((altM-40)/220,0,1);
+  if(sa>0.01){
+    ctx.save();
+    const ox=(-cam.x*0.04)%W, oy=(-cam.y*0.04)%H;
+    for(const s of stars){
+      let x=s.x*W+ox, y=s.y*H+oy;
+      if(x<0)x+=W; if(y<0)y+=H;
+      const tw=0.55+0.45*Math.sin(performance.now()/700+s.tw);
+      ctx.globalAlpha=sa*tw*0.9;
+      ctx.fillStyle='#fff';
+      ctx.fillRect(x,y,s.r,s.r);
+    }
+    ctx.restore();
+  }
+  // 大地曲线（高空）
+  if(altM>180){
+    const p=clamp((altM-180)/400,0,1);
+    ctx.save(); ctx.globalAlpha=p*0.5;
+    const gy=H*1.35 - p*H*0.25;
+    const grd=ctx.createLinearGradient(0,gy-H*0.5,0,gy);
+    grd.addColorStop(0,'rgba(90,180,255,0.55)'); grd.addColorStop(1,'rgba(20,60,120,0)');
+    ctx.beginPath(); ctx.ellipse(W/2,gy,W*1.4,H*0.62,0,0,TAU); ctx.fillStyle=grd; ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawParallax(){
+  // 远山（视差 0.35）
+  ctx.save();
+  ctx.translate(W/2,H/2);
+  ctx.translate(cam.x*(1-0.35)*scale, cam.y*(1-0.35)*scale);
+  ctx.scale(scale,scale);
+  const baseY=0;
+  ctx.beginPath(); ctx.moveTo(-9000,baseY);
+  for(let x=-9000;x<17000;x+=200){
+    const h=200+Math.sin(x*0.0016)*130+Math.sin(x*0.0041+2)*70;
+    ctx.lineTo(x,baseY-h-140);
+  }
+  ctx.lineTo(17000,baseY); ctx.closePath();
+  ctx.fillStyle='rgba(22,38,70,.9)'; ctx.fill();
+  ctx.restore();
+}
+
+function drawGround(){
+  ctx.fillStyle='#0b1020';
+  ctx.fillRect(WORLD_L,0,WORLD_R-WORLD_L+2000,2600);
+  // 网格线
+  ctx.strokeStyle='rgba(92,225,255,.10)'; ctx.lineWidth=1/scale;
+  ctx.beginPath();
+  for(let x=Math.floor(WORLD_L/200)*200;x<WORLD_R+2000;x+=200){ ctx.moveTo(x,0); ctx.lineTo(x,900); }
+  ctx.stroke();
+  // 地表
+  const g=ctx.createLinearGradient(0,-6,0,120);
+  g.addColorStop(0,'#2c3350'); g.addColorStop(1,'#131a2e');
+  ctx.fillStyle=g; ctx.fillRect(WORLD_L,-6,WORLD_R-WORLD_L+2000,10);
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(WORLD_L,0); ctx.lineTo(WORLD_R+2000,0); ctx.stroke();
+}
+
+function drawSolid(s){
+  const r=solidRect(s);
+  if(s.kind==='base'){
+    ctx.fillStyle='rgba(255,255,255,.04)'; ctx.fillRect(r.x,r.top-1,r.w,r.h);
+    ctx.strokeStyle='rgba(92,225,255,.55)'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(r.x,r.top); ctx.lineTo(r.x+r.w,r.top); ctx.stroke();
+    // 斑马线
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x,r.top-14,r.w,14); ctx.clip();
+    for(let x=r.x;x<r.x+r.w;x+=26){ ctx.fillStyle='rgba(255,59,78,.35)';
+      ctx.beginPath(); ctx.moveTo(x,r.top); ctx.lineTo(x+13,r.top); ctx.lineTo(x-1,r.top-14); ctx.lineTo(x-14,r.top-14); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  } else if(s.kind==='pad'){
+    const g=ctx.createLinearGradient(0,r.top,0,r.top+r.h);
+    g.addColorStop(0,'#8affc1'); g.addColorStop(1,'#1b6d52');
+    ctx.fillStyle=g; ctx.fillRect(r.x,r.top,r.w,r.h);
+    ctx.strokeStyle='rgba(138,255,193,.85)'; ctx.lineWidth=2;
+    ctx.strokeRect(r.x,r.top,r.w,r.h);
+    for(let x=r.x+10;x<r.x+r.w-6;x+=22){
+      ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillRect(x,r.top+5,10,3);
+    }
+  } else if(s.kind==='ship'){
+    ctx.fillStyle='#16203a'; ctx.fillRect(r.x,r.top,r.w,r.h);
+    ctx.fillStyle='#243560'; ctx.fillRect(r.x,r.top+r.h,r.w-40,16);
+    ctx.strokeStyle='#ff3b4e'; ctx.lineWidth=3;
+    ctx.strokeRect(r.x,r.top,r.w,r.h);
+    ctx.save();
+    ctx.fillStyle='rgba(255,59,78,.85)'; ctx.font='700 15px monospace'; ctx.textAlign='center';
+    ctx.fillText('X', r.x+r.w/2-70, r.top-8);
+    ctx.fillText('TESLA', r.x+r.w/2, r.top-8);
+    ctx.restore();
+    // 甲板灯
+    for(let x=r.x+12;x<r.x+r.w-8;x+=34){
+      ctx.fillStyle='rgba(92,225,255,.9)';
+      ctx.beginPath(); ctx.arc(x,r.top-3,2.4,0,TAU); ctx.fill();
+    }
+  } else {
+    // 楼 / 山
+    const g=ctx.createLinearGradient(0,r.top,0,r.top+r.h);
+    g.addColorStop(0,'#1a2440'); g.addColorStop(1,'#0a0f1e');
+    ctx.fillStyle=g; ctx.fillRect(r.x,r.top,r.w,r.h);
+    ctx.strokeStyle='rgba(120,170,240,.22)'; ctx.lineWidth=1.5; ctx.strokeRect(r.x,r.top,r.w,r.h);
+    // 窗户
+    if(s.kind==='bldg'){
+      ctx.fillStyle='rgba(255,200,120,.16)';
+      for(let wy=r.top+18;wy<r.top+r.h-10;wy+=24){
+        for(let wx=r.x+9;wx<r.x+r.w-12;wx+=20){
+          if(((wx*13+wy*7)>>>0)%5<3) ctx.fillRect(wx,wy,9,11);
+        }
+      }
+      // 楼顶红灯
+      ctx.fillStyle='rgba(255,59,78,'+(0.4+0.6*Math.abs(Math.sin(performance.now()/600+r.x)))+')';
+      ctx.beginPath(); ctx.arc(r.x+r.w/2,r.top-4,3,0,TAU); ctx.fill();
+    }
+  }
+}
+
+function drawRings(){
+  const now=performance.now()/1000;
+  for(const r of rings){
+    ctx.save();
+    ctx.translate(r.x,r.y);
+    const pulse=0.5+0.5*Math.sin(now*2.2+r.pulse);
+    if(r.used){
+      ctx.strokeStyle='rgba(120,160,220,.22)'; ctx.lineWidth=6;
+    } else {
+      ctx.shadowBlur=26; ctx.shadowColor='rgba(92,225,255,.9)';
+      ctx.strokeStyle='rgba(92,225,255,'+(0.55+0.45*pulse)+')'; ctx.lineWidth=8+2*pulse;
+    }
+    ctx.beginPath(); ctx.arc(0,0,r.r,0,TAU); ctx.stroke();
+    ctx.shadowBlur=0;
+    if(!r.used){
+      ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,r.r-7,0,TAU); ctx.stroke();
+      for(let i=0;i<8;i++){
+        const a=i/8*TAU+now*0.5;
+        ctx.fillStyle='rgba(92,225,255,.7)';
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*(r.r+10),Math.sin(a)*(r.r+10),2.6,0,TAU); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function drawPickups(){
+  const now=performance.now()/1000;
+  for(const p of pickups){
+    if(p.used) continue;
+    const bob=Math.sin(now*2+p.bob)*6;
+    ctx.save(); ctx.translate(p.x,p.y+bob);
+    ctx.shadowBlur=20; ctx.shadowColor='rgba(138,255,193,.8)';
+    ctx.fillStyle='#0d2419'; ctx.strokeStyle='#8affc1'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.roundRect? ctx.roundRect(-15,-22,30,44,6) : ctx.rect(-15,-22,30,44);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#8affc1'; ctx.shadowBlur=0;
+    ctx.fillRect(-4,-26,8,5);
+    ctx.fillRect(-9,-8,18,4); ctx.fillRect(-9,2,18,4); ctx.fillRect(-9,12,18,4);
+    // 闪电
+    ctx.fillStyle='#0d2419';
+    ctx.beginPath(); ctx.moveTo(2,-4); ctx.lineTo(-5,5); ctx.lineTo(0,5); ctx.lineTo(-2,15);
+    ctx.lineTo(6,4); ctx.lineTo(1,4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawCar(){
+  ctx.save();
+  ctx.translate(car.x,car.y); ctx.rotate(car.a);
+  // 阴影/气流
+  ctx.globalAlpha=0.28; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(0,22,66,10,0,0,TAU); ctx.fill(); ctx.globalAlpha=1;
+
+  // 轮子
+  for(const wx of [-36,32]){
+    ctx.beginPath(); ctx.arc(wx,4,13,0,TAU);
+    ctx.fillStyle='#0a0d16'; ctx.fill();
+    ctx.strokeStyle='#3a4664'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(wx,4,5.5,0,TAU); ctx.fillStyle='#5b6a8c'; ctx.fill();
+  }
+  // 车身
+  const g=ctx.createLinearGradient(0,-20,0,14);
+  g.addColorStop(0,'#ff5f6d'); g.addColorStop(0.45,'#d91b32'); g.addColorStop(1,'#7a0d1c');
+  ctx.beginPath();
+  const body=[[-60,-4],[-58,-14],[-40,-17],[-14,-18],[10,-18],[32,-16],[50,-12],[58,-5],[60,3],[52,10],[34,12],[-34,12],[-52,10]];
+  ctx.moveTo(body[0][0],body[0][1]);
+  for(let i=1;i<body.length;i++) ctx.lineTo(body[i][0],body[i][1]);
+  ctx.closePath();
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.4; ctx.stroke();
+  // 座舱玻璃
+  ctx.beginPath();
+  ctx.moveTo(-16,-15); ctx.lineTo(-2,-27); ctx.lineTo(20,-26); ctx.lineTo(32,-15); ctx.closePath();
+  ctx.fillStyle='rgba(120,215,255,.55)'; ctx.fill();
+  ctx.strokeStyle='rgba(200,240,255,.6)'; ctx.lineWidth=1.2; ctx.stroke();
+  // 侧身亮条
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(-54,2); ctx.lineTo(50,2); ctx.stroke();
+  // 尾翼
+  ctx.fillStyle='#2b3552';
+  ctx.beginPath(); ctx.moveTo(-62,-6); ctx.lineTo(-46,-20); ctx.lineTo(-36,-19); ctx.lineTo(-54,-4); ctx.closePath(); ctx.fill();
+  // 前大灯
+  const lg=ctx.createRadialGradient(58,-6,1,58,-6,16);
+  lg.addColorStop(0,'rgba(255,255,255,.95)'); lg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(58,-6,16,0,TAU); ctx.fill();
+  // 推进器喷口
+  for(const nz of [[-40,12],[8,12]]){
+    ctx.fillStyle='#1b2338';
+    ctx.beginPath(); ctx.roundRect? ctx.roundRect(nz[0]-8,nz[1]-4,16,11,3): ctx.rect(nz[0]-8,nz[1]-4,16,11);
+    ctx.fill(); ctx.strokeStyle='#4a5878'; ctx.lineWidth=1.2; ctx.stroke();
+  }
+  ctx.fillStyle='#1b2338';
+  ctx.beginPath(); ctx.rect(-66,-4,8,12); ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles(){
+  for(const p of particles){
+    const a=clamp(p.life/p.max,0,1);
+    ctx.globalAlpha=a;
+    ctx.fillStyle=p.c;
+    const s=p.size*(0.4+a*0.8);
+    ctx.beginPath(); ctx.arc(p.x,p.y,s,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawIndicator(){
+  // 屏幕外目标指示：无人回收船 + 最近未吃到的环
+  const targets=[];
+  targets.push({x:ship.x+ship.w/2,y:ship.top,label:'回收船',color:'#ff3b4e'});
+  let best=null,bd=Infinity;
+  for(const r of rings){ if(r.used)continue; const d=Math.hypot(r.x-car.x,r.y-car.y);
+    if(d<bd){bd=d;best=r;} }
+  if(best) targets.push({x:best.x,y:best.y,label:'光环',color:'#5ce1ff'});
+  ctx.save();
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  for(const t of targets){
+    const p=w2s(t.x,t.y);
+    const m=54;
+    if(p.x>m&&p.x<W-m&&p.y>m&&p.y<H-m) continue;
+    const cx=W/2, cy=H/2;
+    let dx=p.x-cx, dy=p.y-cy;
+    const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+    const rx=W/2-m, ry=H/2-m;
+    const tmin=Math.min(rx/Math.abs(dx||1e-6), ry/Math.abs(dy||1e-6));
+    const px=cx+dx*tmin, py=cy+dy*tmin;
+    ctx.save(); ctx.translate(px,py); ctx.rotate(Math.atan2(dy,dx));
+    ctx.fillStyle=t.color; ctx.globalAlpha=0.9;
+    ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(-9,-9); ctx.lineTo(-4,0); ctx.lineTo(-9,9); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha=0.85; ctx.fillStyle=t.color; ctx.font='700 11px monospace'; ctx.textAlign='center';
+    ctx.fillText(t.label+' '+Math.round(Math.hypot(t.x-car.x,t.y-car.y)/PPM)+'m', px, py+22);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+
+function drawToasts(dt){
+  ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.textAlign='center';
+  let y=H*0.20;
+  for(let i=toasts.length-1;i>=0;i--){
+    const t=toasts[i]; t.life-=dt;
+    if(t.life<=0){ toasts.splice(i,1); continue; }
+    const a=clamp(t.life/0.5,0,1);
+    ctx.globalAlpha=a;
+    ctx.font='800 22px "PingFang SC",system-ui,sans-serif';
+    ctx.lineWidth=5; ctx.strokeStyle='rgba(0,0,0,.65)'; ctx.strokeText(t.text,W/2,y);
+    ctx.fillStyle=t.color; ctx.fillText(t.text,W/2,y);
+    y+=30;
+  }
+  ctx.globalAlpha=1; ctx.restore();
+}
+
+function render(dt){
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  drawSky();
+  drawParallax();
+
+  // ---- 世界层
+  ctx.save();
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.translate(W/2,H/2);
+  if(shake>0) ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);
+  ctx.scale(scale,scale);
+  ctx.translate(-cam.x,-cam.y);
+
+  drawGround();
+  for(const s of solids) drawSolid(s);
+  drawRings();
+  drawPickups();
+  drawParticles();
+  if(car.alive) drawCar();
+
+  ctx.restore();
+
+  drawIndicator();
+  drawToasts(dt);
+  if(shake>0) shake=Math.max(0,shake-dt*40);
+}
+
+/* ---------------------------- HUD ---------------------------- */
+/* 雷达高度：正下方最近落面的间隙（米），降落全靠它 */
+function radarAlt(){
+  let top=null;
+  for(const s of solids){
+    if(car.x<s.x-72 || car.x>s.x+s.w+72) continue;
+    if(s.top<=car.y+10) continue;
+    if(top===null||s.top<top) top=s.top;
+  }
+  if(top===null) top=0;                       // 兜底：地面
+  return (top-(car.y+15))/PPM;                // 车底到落面的距离
+}
+
+const el=id=>document.getElementById(id);
+const hAlt=el('hAlt'),hSpd=el('hSpd'),hVs=el('hVs'),hAng=el('hAng'),hScore=el('hScore'),
+      hRing=el('hRing'),hLives=el('hLives'),hGoal=el('hGoal'),altBar=el('altBar'),hRad=el('hRad'),
+      fuelBar=el('fuelBar').firstElementChild, fuelTxt=el('thrVal2'), hintTxt=el('hintTxt');
+let hudT=0;
+function updateHUD(dt){
+  hudT-=dt; if(hudT>0) return; hudT=0.06;
+  const altM=Math.max(0,-car.y)/PPM;
+  hAlt.textContent=altM.toFixed(0)+' m';
+  const ra=radarAlt();
+  hRad.textContent=(ra>0.4?ra.toFixed(0)+' m':'接地');
+  hRad.style.color = (!car.grounded&&ra<8&&Math.abs(car.vy)>60)?'#ff3b4e':'#fff';
+  hSpd.textContent=(Math.hypot(car.vx,car.vy)/PPM*3.6).toFixed(0)+' km/h';
+  const vs=car.vy/PPM;
+  hVs.textContent=(vs>=0?'▼ ':'▲ ')+Math.abs(vs).toFixed(1)+' m/s';
+  hVs.style.color = Math.abs(vs)>13 ? '#ff3b4e' : '#fff';
+  hAng.textContent=(-car.a*180/Math.PI).toFixed(0)+'°';
+  altBar.style.width=clamp(altM/400*100,0,100)+'%';
+  hScore.textContent=Math.round(score);
+  hRing.textContent=ringDone()+' / '+rings.length;
+  hLives.textContent=lives>0?'♥'.repeat(lives):'—';
+  const dx=(ship.x+ship.w/2-car.x)/PPM;
+  hGoal.textContent='回收船 '+Math.abs(dx).toFixed(0)+' m '+(dx>0?'→':'←');
+  const fp=fuel/FUEL_MAX*100;
+  fuelBar.style.width=fp+'%';
+  el('fuelBar').classList.toggle('warn',fp<28);
+  fuelTxt.textContent=Math.round(fuel)+'%';
+  fuelTxt.style.color = fp<28?'#ff3b4e':'#fff';
+  hintTxt.textContent = car.grounded
+    ? '地面：A/D 行驶 · 空格起飞 · Shift 助推'
+    : '空中：←→俯仰 · 空格推进 · Shift前推';
+}
+
+/* 无人回收船漂移；甲板随动带着停在上面的车一起漂移 */
+function moveShip(dt,rate){
+  if(!ship||!ship.moving) return;
+  ship.t+=dt*rate;
+  const nx=ship.cx+Math.sin(ship.t*0.42)*150;
+  ship.dx=nx-ship.x; ship.x=nx;
+  if(Math.abs(ship.dx)>0.001 && car.alive){
+    const nearDeck=Math.abs(car.y-(ship.top-15))<46;
+    const overDeck=car.x>ship.x-74 && car.x<ship.x+ship.w+74;
+    if(car.grounded && nearDeck && overDeck) car.x+=ship.dx;
+  }
+}
+
+/* ---------------------------- 主循环 ---------------------------- */
+let last=performance.now(), acc=0;
+function frame(now){
+  let dt=(now-last)/1000; last=now;
+  if(dt>0.1) dt=0.1;
+
+  if(state==='play'){
+    const inp=readInput();
+    const STEP=1/180; acc+=dt;
+    let guard=0;
+    while(acc>=STEP && guard<40){ physics(STEP,inp); acc-=STEP; guard++; if(state!=='play'){acc=0;break;} }
+    if(state==='play') checkPickups(); updateParticles(dt);
+    if(comboT>0){ comboT-=dt; if(comboT<=0) combo=0; }
+    moveShip(dt, 0.42);
+  } else if(state==='dead'){
+    updateParticles(dt); deadTimer-=dt;
+    if(deadTimer<=0){ if(lives>0){ resetCar(true); fuel=FUEL_MAX; state='play'; acc=0; } else gameOver(); }
+  } else {
+    updateParticles(dt);
+    moveShip(dt, 0.20);
+  }
+
+  // 相机
+  const targetScale=clamp(1-clamp(Math.max(0,-car.y)/2600,0,1)*0.52,0.46,1);
+  scale=lerp(scale,targetScale,1-Math.pow(0.001,dt));
+  const tx=car.x+car.vx*0.30, ty=car.y-70+clamp(car.vy*0.25,-160,240);
+  cam.x=lerp(cam.x,tx,1-Math.pow(0.0015,dt));
+  cam.y=lerp(cam.y,ty,1-Math.pow(0.0015,dt));
+
+  render(dt);
+  updateHUD(dt);
+  requestAnimationFrame(frame);
+}
+
+/* 调试钩子：供调参与自动化测试使用 */
+window.__RJ={car:car, get fuel(){return fuel}, set fuel(v){fuel=v},
+             get state(){return state}, set state(v){state=v}, get score(){return score},
+             ship:()=>ship, solids:()=>solids, restart:startGame};
+
+document.getElementById('restoreExample').onclick=()=>{
+  Object.keys(keys).forEach(k=>delete keys[k]);
+  touch.th=false; touch.up=false; touch.dn=false;
+  document.querySelectorAll(".cbtn.on").forEach(el=>el.classList.remove("on"));
+  thrSlider.value=70; syncThr(); if(!assist) toggleAssist();
+  setThrSound(false,0); toasts=[]; acc=0; menu();
+};
+/* ---------------------------- 启动 ---------------------------- */
+buildLevel((Math.random()*1e9)|0);
+menu();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
