@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS commute_settings (id INTEGER PRIMARY KEY CHECK (id = 1), document TEXT NOT NULL);
