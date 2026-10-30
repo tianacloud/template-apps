@@ -2757,7 +2757,19 @@
       });
       document.body.appendChild(wrap);
 
+      const temporaryUrls = [];
       try {
+        // html2canvas cannot send the file cookie on its own cross-origin image
+        // requests. Read authenticated bytes first and render same-origin blobs.
+        await Promise.all(Array.from(wrap.querySelectorAll('img[src]')).map(async image => {
+          if (!image.src.startsWith('https:')) return;
+          const response = await fetch(image.src, { credentials: 'include' });
+          if (!response.ok) throw new Error('无法读取存档图片');
+          const url = URL.createObjectURL(await response.blob());
+          temporaryUrls.push(url);
+          image.src = url;
+          await image.decode();
+        }));
         const canvas = await html2canvas(wrap, {
           scale: 2,
           backgroundColor: '#f0f6fb',
@@ -2790,6 +2802,7 @@
         wrap.remove();
         xAlert('生成存档图失败：' + (e.message || e));
       } finally {
+        temporaryUrls.forEach(url => URL.revokeObjectURL(url));
         btn.disabled = false;
         btn.textContent = '📷 保存到相册（生成存档图）';
       }
