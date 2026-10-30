@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { templateFileMaterials } from "./template-files.mjs";
 import { pathToFileURL } from "node:url";
 
 function relativeFile(value) {
@@ -29,12 +30,13 @@ export function validateTemplateFiles(files, templateName) {
   }
   if (files["showcase/preview.html"].length > 500000) throw new Error("showcase/preview.html must not exceed 500,000 bytes before compression");
   if (typeof metadata.database_required !== "boolean") throw new Error("metadata.json requires database_required");
+  templateFileMaterials(files, metadata);
   const variables = metadata.variables ?? [];
   for (const variable of variables) {
     if (!variable.name || !variable.description?.trim() || !/^__TIANA_[A-Z0-9_]+_[a-f0-9]+__$/.test(variable.placeholder ?? "") || !variable.files?.length)
       throw new Error(`Variable ${variable.name ?? ""} requires a name, random placeholder, description and file locations`);
     for (const name of variable.files) {
-      if (!relativeFile(name) || name === "metadata.json" || !files[name]?.includes(variable.placeholder))
+      if (!relativeFile(name) || name === "metadata.json" || name.startsWith("template-files/") || !files[name]?.includes(variable.placeholder))
         throw new Error(`Variable ${variable.name}: placeholder not found in ${name}`);
     }
     for (const [name, bytes] of Object.entries(files)) {
