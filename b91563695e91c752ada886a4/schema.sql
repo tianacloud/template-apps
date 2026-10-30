@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS grocery_records (id TEXT PRIMARY KEY, data TEXT NOT NULL);
