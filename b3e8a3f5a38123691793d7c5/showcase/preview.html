@@ -1069,6 +1069,9 @@ const demoInitial = document.body.innerHTML;
 let demoAbort;
 function startDemo() {
   demoAbort = new AbortController();
+  const demoTimers = new Set();
+  const schedule = (fn, delay) => { const id = window.setTimeout(() => { demoTimers.delete(id); fn(); }, delay); demoTimers.add(id); return id; };
+  demoAbort.signal.addEventListener('abort', () => { demoTimers.forEach(id => window.clearTimeout(id)); });
   document.getElementById('demo-reset').addEventListener('click', () => {
     demoAbort.abort();
     document.body.innerHTML = demoInitial;
@@ -1139,9 +1142,9 @@ function startDemo() {
   function sfx(kind) {
     if (!state.sound) return;
     if (kind === "click") tone(520, 0.07, "sine", 0.035);
-    else if (kind === "ok") { tone(660, 0.12, "sine", 0.05); setTimeout(function () { tone(880, 0.16, "sine", 0.045); }, 90); }
+    else if (kind === "ok") { tone(660, 0.12, "sine", 0.05); schedule(function () { tone(880, 0.16, "sine", 0.045); }, 90); }
     else if (kind === "bad") tone(180, 0.18, "triangle", 0.04);
-    else if (kind === "win") { tone(523, 0.14, "sine", 0.05); setTimeout(function () { tone(659, 0.14, "sine", 0.05); }, 120); setTimeout(function () { tone(784, 0.24, "sine", 0.05); }, 250); }
+    else if (kind === "win") { tone(523, 0.14, "sine", 0.05); schedule(function () { tone(659, 0.14, "sine", 0.05); }, 120); schedule(function () { tone(784, 0.24, "sine", 0.05); }, 250); }
   }
 
   /* ---------- toast ---------- */
@@ -1152,7 +1155,7 @@ function startDemo() {
     t.textContent = msg;
     t.classList.add("on");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.classList.remove("on"); }, 2400);
+    toastTimer = schedule(function () { t.classList.remove("on"); }, 2400);
   }
 
   /* ---------- modal ---------- */
@@ -1291,6 +1294,7 @@ function startDemo() {
         if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
       });
     }, { rootMargin: "0px 0px -10% 0px", threshold: 0.15 });
+    demoAbort.signal.addEventListener('abort', () => io.disconnect(), {once:true});
     box.querySelectorAll(".tl-node").forEach(function (n) { io.observe(n); });
     renderTlFilter();
   }
@@ -1538,7 +1542,7 @@ function startDemo() {
           var ic = svgIcon(art.icon);
           c.appendChild(ic);
           sfx("click");
-          setTimeout(function () { openDigQ(art, c); }, 180);
+          schedule(function () { openDigQ(art, c); }, 180);
         } else if (cell.k === "s") {
           states.dug = true;
           c.classList.add("empty");
@@ -1674,7 +1678,7 @@ function startDemo() {
           sfx("ok");
           toast("配对成功：" + p.p + " —— " + p.c);
           if (matched === MATCH_PAIRS.length) {
-            setTimeout(function () {
+            schedule(function () {
               finishGame(era, "六位思想家，全部对上了", "百家争鸣不是六个人在吵架，而是六种关于“怎么治国、怎么做人”的答案。考试常考人物与主张的一一对应。");
             }, 520);
           }
@@ -1684,10 +1688,10 @@ function startDemo() {
             var wrongLeft = Array.prototype.filter.call(left.children, function (n) { return n.textContent === sel.p; })[0];
             if (wrongLeft) {
               wrongLeft.classList.add("shake");
-              setTimeout(function () { wrongLeft.classList.remove("shake"); }, 420);
+              schedule(function () { wrongLeft.classList.remove("shake"); }, 420);
             }
           }
-          setTimeout(function () { b.classList.remove("shake"); }, 420);
+          schedule(function () { b.classList.remove("shake"); }, 420);
           sfx("bad");
           toast("不是这位说的。想一想他的关键词：" + sel.e);
         }
@@ -1758,13 +1762,13 @@ function startDemo() {
           next++;
           sfx("ok");
           if (next === SILK_STOPS.length) {
-            setTimeout(function () {
+            schedule(function () {
               finishGame(era, "驼队抵达大秦", "长安 → 河西走廊 → 西域 → 中亚 → 西亚 → 大秦。这条路运走丝绸、漆器，运回良种马、香料与玻璃，也把佛教与艺术带进了中国。");
             }, 620);
           }
         } else {
           g.classList.add("shake");
-          setTimeout(function () { g.classList.remove("shake"); }, 420);
+          schedule(function () { g.classList.remove("shake"); }, 420);
           sfx("bad");
           toast(next === 0 ? "商队还没出发——先点起点长安。" : "方向不对。下一站应该接着上一个站点往西走。");
         }
@@ -2069,6 +2073,7 @@ function startDemo() {
         if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
       });
     }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    demoAbort.signal.addEventListener('abort', () => io.disconnect(), {once:true});
     document.querySelectorAll(".reveal").forEach(function (n) { io.observe(n); });
   }
   function initScroll() {
