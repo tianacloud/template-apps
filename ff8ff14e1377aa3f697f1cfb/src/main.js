@@ -147,6 +147,7 @@ function renderMethods(){
 
 /* 详情 */
 function openDetail(id){
+  clearInterval(breathTimer);
   const m=methods.find(x=>x.id===id);
   let html=`<div class="card"><div class="title">${m.name}</div><div class="subtitle">${m.subtitle}</div>
     <div style="margin-top:8px">${[m.level,m.minutes+'分钟',...m.tags].map(t=>`<span class="t">${t}</span>`).join('')}</div></div>
