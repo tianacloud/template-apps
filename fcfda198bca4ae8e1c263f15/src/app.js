@@ -33,8 +33,10 @@ const typeMap=Object.fromEntries(TYPES.map(t=>[t.k,t]));
 function load(){return {male:{name:'',avatar:''},female:{name:'',avatar:''},anniversary:'',firstMet:'',memories:[]};}
 let state=load(); let revision=0;
 try {const result=await sql('SELECT data, revision FROM diary_state WHERE id = 1');if(!result.rows?.length) throw Error('数据库尚未初始化'); state=JSON.parse(result.rows[0][0].value); revision=Number(result.rows[0][1].value);await hydrate(state);} catch(e) {root.textContent='读取失败，请刷新重试：'+e.message;return;}
+function paths(data){return new Set([data.male?.avatar,data.female?.avatar,...(data.memories||[]).flatMap(m=>m.images||[])].filter(Boolean));}
+let persistedPaths=paths(state);
 let queue=Promise.resolve(); let saveFailed=false; let uploads=0;
-function save(){const value=JSON.stringify(state);queue=queue.then(async()=>{if(saveFailed)return;try{const result=await sql('UPDATE diary_state SET data=?, revision=revision+1 WHERE id=1 AND revision=?',[{type:'text',value},{type:'integer',value:String(revision)}]);if(result.affected_row_count!==1)throw Error('并发修改或保存结果未知');revision++;}catch(e){saveFailed=true;root.style.pointerEvents='none';toast('保存未确认或发生冲突，请重新打开检查');}});}
+function save(){const value=JSON.stringify(state);queue=queue.then(async()=>{if(saveFailed)return;try{const result=await sql('UPDATE diary_state SET data=?, revision=revision+1 WHERE id=1 AND revision=?',[{type:'text',value},{type:'integer',value:String(revision)}]);if(result.affected_row_count!==1)throw Error('并发修改或保存结果未知');revision++;const nextPaths=paths(JSON.parse(value));const removed=[...persistedPaths].filter(path=>!nextPaths.has(path));persistedPaths=nextPaths;for(const path of removed){try{await files.delete(path);const url=urls.get(path);if(url)URL.revokeObjectURL(url);urls.delete(path);}catch(e){toast('记录已保存，但旧照片清理未确认');}}}catch(e){saveFailed=true;root.style.pointerEvents='none';toast('保存未确认或发生冲突，请重新打开检查');}});}
 
 /* ============ 工具 ============ */
 function $(id){return document.getElementById(id);}
@@ -113,10 +115,12 @@ $('nmMale').addEventListener('input',e=>{state.male.name=e.target.value;save();}
 $('nmFemale').addEventListener('input',e=>{state.female.name=e.target.value;save();});
 
 /* ============ 图片压缩 ============ */
-function compressImage(file,maxW,quality,cb){
+function compressImage(file,maxW,quality,cb,onError=()=>toast("图片无法读取")){
   const reader=new FileReader();
+  reader.onerror=onError;
   reader.onload=ev=>{
     const img=new Image();
+    img.onerror=onError;
     img.onload=()=>{
       let {width,height}=img;
       if(width>maxW){height=Math.round(height*maxW/width);width=maxW;}
@@ -164,7 +168,7 @@ $('uploadZone').addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dat
 $('fileInput').addEventListener('change',e=>handleFiles(e.target.files));
 function handleFiles(files){
   [...files].forEach(f=>{
-    uploads++; compressImage(f,1000,0.8,async b64=>{try {pendingImgs.push(await upload(await (await fetch(b64)).blob()));renderPreview();}catch(e){toast('照片上传未确认，请检查后重试');}finally{uploads--;}});
+    uploads++; compressImage(f,1000,0.8,async b64=>{try {pendingImgs.push(await upload(await (await fetch(b64)).blob()));renderPreview();}catch(e){toast('照片上传未确认，请检查后重试');}finally{uploads--;}},()=>{uploads--;toast('图片无法读取');});
   });
 }
 function renderPreview(){
