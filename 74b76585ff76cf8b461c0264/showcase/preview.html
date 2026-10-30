@@ -357,7 +357,7 @@
     .overlay{padding:12px 10px;}
     .bar-row{grid-template-columns:56px 1fr 60px;}
   }
-</style><body><div style="padding:10px;text-align:center;background:#e6f4f0">示例体验 · 关闭或重开后重置 <button type="button" onclick="location.reload()">恢复示例</button></div>
+</style><body><div style="padding:10px;text-align:center;background:#e6f4f0">示例体验 · 关闭或重开后重置 <button id="restoreExample" type="button">恢复示例</button></div>
 
 <header class="topbar">
   <div class="wrap topbar-inner">
@@ -378,8 +378,8 @@
       <details class="menu" id="dataMenu">
         <summary>数据<span style="color:#b3bcc8">▾</span></summary>
         <div class="menu-list">
-          <button id="btnExportJson" type="button">导出 JSON 备份</button>
-          <button id="btnExportCsv" type="button">导出 CSV 表格</button>
+          <button id="btnExportJson" type="button" disabled title="安装后可导出">导出 JSON 备份（安装后可用）</button>
+          <button id="btnExportCsv" type="button" disabled title="安装后可导出">导出 CSV 表格（安装后可用）</button>
           <button id="btnImport" type="button">导入 JSON</button>
           <div class="sep"></div>
           <button id="btnSeed" type="button">载入示例数据</button>
@@ -687,6 +687,7 @@
   </div>
 </div>
 
+<div class="overlay" id="overlayConfirm"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmText"><div class="modal-body" id="confirmText"></div><div class="modal-foot"><button class="btn" id="confirmNo" type="button">取消</button><button class="btn primary" id="confirmYes" type="button">确认</button></div></div></div>
 <div aria-live="polite" id="toast" role="status"></div>
 
 <script>
@@ -1270,10 +1271,10 @@
   }
 
   /* ---------------- delete ---------------- */
-  function delItem(id) {
+  async function delItem(id) {
     var s = findItem(id);
     if (!s) return;
-    if (!window.confirm("删除「" + s.material + " · " + s.colorName + "」？该耗材的使用记录会一并删除，操作不可撤销。")) return;
+    if (!(await confirmExample("删除「" + s.material + " · " + s.colorName + "」？该耗材的使用记录会一并删除。"))) return;
     items = items.filter(function (x) { return x.id !== id; });
     persist();
     hideOverlay("overlayDetail");
@@ -1284,6 +1285,33 @@
   /* ---------------- overlay helpers ---------------- */
   function showOverlay(id) { $(id).classList.add("on"); document.body.style.overflow = "hidden"; }
   function hideOverlay(id) { $(id).classList.remove("on"); document.body.style.overflow = ""; }
+  var confirmResolve = null;
+  function finishConfirm(answer) {
+    hideOverlay("overlayConfirm");
+    if (confirmResolve) { var resolve = confirmResolve; confirmResolve = null; resolve(answer); }
+  }
+  function confirmExample(message) {
+    if (confirmResolve) finishConfirm(false);
+    $("confirmText").textContent = message;
+    showOverlay("overlayConfirm");
+    return new Promise(function (resolve) { confirmResolve = resolve; });
+  }
+  function restoreExample() {
+    finishConfirm(false);
+    closeAll();
+    editingId = null; useId = null; detailId = null;
+    memoryValue = null;
+    items = seedItems();
+    persist();
+    resetFilters();
+    $("dataMenu").removeAttribute("open");
+    $("fileInput").value = "";
+    $("formError").style.display = "none";
+    clearTimeout(toastTimer);
+    $("toast").textContent = "";
+    $("toast").classList.remove("on");
+    renderAll();
+  }
   function closeAll() {
     ["overlaySpool", "overlayUse", "overlayDetail", "overlayHelp"].forEach(function (id) {
       $(id).classList.remove("on");
@@ -1361,8 +1389,8 @@
     reader.readAsText(file, "utf-8");
   }
 
-  function loadSeed() {
-    if (items.length && !window.confirm("载入示例数据会追加 8 条演示耗材，是否继续？")) return;
+  async function loadSeed() {
+    if (items.length && !(await confirmExample("载入示例数据会追加 8 条演示耗材，是否继续？"))) return;
     var seeded = seedItems();
     seeded.forEach(function (s) { items.push(s); });
     persist();
@@ -1370,9 +1398,9 @@
     toast("已载入 " + seeded.length + " 条示例数据");
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (!items.length) { toast("当前没有数据"); return; }
-    if (!window.confirm("清空全部 " + items.length + " 条耗材数据？建议先导出 JSON 备份，此操作不可撤销。")) return;
+    if (!(await confirmExample("清空全部 " + items.length + " 条示例耗材数据？"))) return;
     items = [];
     persist();
     renderAll();
@@ -1392,6 +1420,9 @@
   }
 
   function bindEvents() {
+    $("restoreExample").addEventListener("click", restoreExample);
+    $("confirmYes").addEventListener("click", function () { finishConfirm(true); });
+    $("confirmNo").addEventListener("click", function () { finishConfirm(false); });
     $("btnAdd").addEventListener("click", function () { openSpool(null); });
     $("btnHelp").addEventListener("click", function () { showOverlay("overlayHelp"); });
     $("btnHelp2").addEventListener("click", function () { showOverlay("overlayHelp"); });
@@ -1474,12 +1505,13 @@
 
     document.querySelectorAll(".overlay").forEach(function (ov) {
       ov.addEventListener("mousedown", function (e) {
-        if (e.target === ov) hideOverlay(ov.id);
+        if (e.target === ov && ov.id === "overlayConfirm") finishConfirm(false);
+        else if (e.target === ov) hideOverlay(ov.id);
       });
     });
 
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") closeAll();
+      if (e.key === "Escape") { finishConfirm(false); closeAll(); }
     });
 
     $("dataMenu").addEventListener("click", function (e) {
