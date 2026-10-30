@@ -21531,7 +21531,7 @@
         ov.id = "invite-overlay";
         const panel = el("div", "panel center");
         panel.appendChild(el("h1", "title", "\u9080\u8BF7\u597D\u53CB"));
-        panel.appendChild(el("div", "muted", "\u628A\u4E0B\u9762\u8FD9\u6761\u94FE\u63A5\u53D1\u7ED9\u597D\u53CB\uFF0C\u4EFB\u4F55\u8BBE\u5907\u90FD\u80FD\u76F4\u63A5\u6253\u5F00\u73A9\uFF08\u4E0D\u53D7\u5FAE\u4FE1\u9650\u5236\uFF09\u3002<br>\u597D\u53CB\u8FDB\u6E38\u620F\u540E\u5373\u8BB0\u4E3A\u4F60\u7684\u9080\u8BF7\u3002"));
+        panel.appendChild(el("div", "muted", "\u590D\u5236\u94FE\u63A5\u4EE5\u5206\u4EAB\u6B64\u5E94\u7528\u3002\u8BBF\u95EE\u8005\u9700\u8981\u5177\u5907\u5E94\u7528\u8BBF\u95EE\u6743\u9650\u3002"));
         const codeBox = el("div", "bind-input");
         codeBox.style.cssText = "text-align:center;font-size:26px;letter-spacing:6px;padding:10px;margin:10px auto;max-width:220px;";
         codeBox.textContent = "\u8BFB\u53D6\u4E2D\u2026";
@@ -21565,7 +21565,7 @@
         row.appendChild(closeBtn);
         panel.appendChild(row);
         if (isWechat()) {
-          panel.appendChild(el("div", "muted", "\u5F53\u524D\u5728\u5FAE\u4FE1\u5185\uFF1A\u5C0F\u6E38\u620F\u8BF7\u5728\u5FAE\u4FE1\u300C\u641C\u4E00\u641C\u300A\u4EE5\u5251\u5F00\u5C40\u300B\u300D\u8FDB\u5165\uFF0C\u6216\u76F4\u63A5\u73A9\u7F51\u9875\u7248\u3002"));
+          panel.appendChild(el("div", "muted", "\u8BF7\u4F7F\u7528\u5DF2\u6388\u6743\u7684\u5E94\u7528\u94FE\u63A5\u8BBF\u95EE\u3002"));
         }
         ov.appendChild(panel);
         S.root.appendChild(ov);
@@ -21591,7 +21591,7 @@
       function maybeWechatHint() {
         if (_wxHinted || !isWechat()) return;
         _wxHinted = true;
-        toast("\u5FAE\u4FE1\u5185\u53EF\u76F4\u63A5\u73A9\u7F51\u9875\u7248\uFF1B\u5C0F\u6E38\u620F\u8BF7\u641C\u4E00\u641C\u300C\u4EE5\u5251\u5F00\u5C40\u300D", "#ffcf3f");
+        toast("\u8BF7\u4F7F\u7528\u5DF2\u6388\u6743\u7684\u5E94\u7528\u94FE\u63A5\u8BBF\u95EE\u3002", "#ffcf3f");
       }
       return { isWechat, copyToClipboard, showInviteDialog, maybeWechatHint };
     };
