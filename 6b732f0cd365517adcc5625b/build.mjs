@@ -1,0 +1,1 @@
+import {build} from 'vite'; import {readFile} from 'node:fs/promises'; const s=JSON.parse(await readFile('source.json')); await build(); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',database_instance_id:s.database_instance_id,git_instance_id:s.git_instance_id}));
