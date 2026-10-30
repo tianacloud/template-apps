@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS nutrition_state (app_id TEXT PRIMARY KEY, value TEXT NOT NULL, version INTEGER NOT NULL);
