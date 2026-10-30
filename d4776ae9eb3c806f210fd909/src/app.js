@@ -1,6 +1,6 @@
 import { loadStorage, writeStorage } from './storage.js';
 document.documentElement.dataset.theme="light";
-document.body.innerHTML = "\n<div class=\"app\">\n  <header class=\"topbar\">\n    <div class=\"brand\">\n      <div class=\"logo\">1024</div>\n      <div class=\"brand-txt\">\n        <h1>DevKit 1024</h1>\n        <p>程序员效率工具箱 · 12 款纯前端工具</p>\n      </div>\n    </div>\n    <div class=\"search\">\n      <span class=\"ico\">&#128269;</span>\n      <input aria-label=\"搜索工具\" autocomplete=\"off\" id=\"q\" placeholder=\"搜索工具，如 JSON、正则、Cron…\" type=\"search\">\n      <kbd>&#8984;K</kbd>\n    </div>\n    <div class=\"top-actions\">\n      <button class=\"btn btn-mini\" id=\"helpBtn\" type=\"button\">使用说明</button>\n      <button class=\"btn btn-mini\" id=\"themeBtn\" type=\"button\">&#9788; 深色</button>\n    </div>\n  </header>\n  <div class=\"body\">\n    <nav aria-label=\"工具导航\" class=\"sidebar\" id=\"nav\"></nav>\n    <main class=\"main\" data-mode=\"home\" id=\"main\"></main>\n  </div>\n</div>\n\n<div aria-live=\"polite\" id=\"toast\" role=\"status\"></div>\n\n<div class=\"modal-mask\" id=\"help\">\n  <div class=\"modal\">\n    <h3>使用说明</h3>\n    <div class=\"hint-box\">\n      <p><b>工具计算在浏览器中进行。</b>输入与设置保存在此应用的云数据库中，请勿输入不适合保存的秘密。</p>\n      <p><b>键盘快捷键</b></p>\n      <ul>\n        <li><code>⌘K</code> / <code>Ctrl+K</code>：唤起搜索框</li>\n        <li><code>Enter</code>：在搜索框中打开第一个匹配工具</li>\n        <li><code>Esc</code>：清空搜索 / 关闭弹窗</li>\n      </ul>\n      <p><b>数据保存</b></p>\n      <ul>\n        <li>输入框内容、收藏和主题会自动保存在云端，刷新后可继续使用。</li>\n        <li>点击工具右上角的「☆ 收藏」可把它固定到侧边栏顶部的「常用」分组。</li>\n      </ul>\n      <p><b>关于实现</b></p>\n      <ul>\n        <li>MD5 / SHA-1 / SHA-256 / SHA-512 / HMAC 均为本页纯 JavaScript 实现，未使用 Web Crypto，因此离线环境同样可用。</li>\n        <li>进制换算基于 BigInt，可处理远超 Number 安全范围的超大整数。</li>\n        <li>随机数取自 <code>crypto.getRandomValues</code> 密码学随机源。</li>\n      </ul>\n    </div>\n    <button class=\"btn btn-primary close\" id=\"helpClose\" type=\"button\">知道了</button>\n  </div>\n</div>\n\n";
+document.body.innerHTML = "\n<div class=\"app\">\n  <header class=\"topbar\">\n    <div class=\"brand\">\n      <div class=\"logo\">{ }</div>\n      <div class=\"brand-txt\">\n        <h1>DevKit</h1>\n        <p>程序员效率工具箱 · 12 款纯前端工具</p>\n      </div>\n    </div>\n    <div class=\"search\">\n      <span class=\"ico\">&#128269;</span>\n      <input aria-label=\"搜索工具\" autocomplete=\"off\" id=\"q\" placeholder=\"搜索工具，如 JSON、正则、Cron…\" type=\"search\">\n      <kbd>&#8984;K</kbd>\n    </div>\n    <div class=\"top-actions\">\n      <button class=\"btn btn-mini\" id=\"helpBtn\" type=\"button\">使用说明</button>\n      <button class=\"btn btn-mini\" id=\"themeBtn\" type=\"button\">&#9788; 深色</button>\n    </div>\n  </header>\n  <div class=\"body\">\n    <nav aria-label=\"工具导航\" class=\"sidebar\" id=\"nav\"></nav>\n    <main class=\"main\" data-mode=\"home\" id=\"main\"></main>\n  </div>\n</div>\n\n<div aria-live=\"polite\" id=\"toast\" role=\"status\"></div>\n\n<div class=\"modal-mask\" id=\"help\">\n  <div class=\"modal\">\n    <h3>使用说明</h3>\n    <div class=\"hint-box\">\n      <p><b>工具计算在浏览器中进行。</b>输入与设置保存在此应用的云数据库中，请勿输入不适合保存的秘密。</p>\n      <p><b>键盘快捷键</b></p>\n      <ul>\n        <li><code>⌘K</code> / <code>Ctrl+K</code>：唤起搜索框</li>\n        <li><code>Enter</code>：在搜索框中打开第一个匹配工具</li>\n        <li><code>Esc</code>：清空搜索 / 关闭弹窗</li>\n      </ul>\n      <p><b>数据保存</b></p>\n      <ul>\n        <li>输入框内容、收藏和主题会自动保存在云端，刷新后可继续使用。</li>\n        <li>点击工具右上角的「☆ 收藏」可把它固定到侧边栏顶部的「常用」分组。</li>\n      </ul>\n      <p><b>关于实现</b></p>\n      <ul>\n        <li>MD5 / SHA-1 / SHA-256 / SHA-512 / HMAC 均为本页纯 JavaScript 实现，未使用 Web Crypto，因此离线环境同样可用。</li>\n        <li>进制换算基于 BigInt，可处理远超 Number 安全范围的超大整数。</li>\n        <li>随机数取自 <code>crypto.getRandomValues</code> 密码学随机源。</li>\n      </ul>\n    </div>\n    <button class=\"btn btn-primary close\" id=\"helpClose\" type=\"button\">知道了</button>\n  </div>\n</div>\n\n";
 
 // 本文件由构建脚本自动生成，请勿手工修改
 
@@ -72,7 +72,7 @@ var SHA512_H0 = [
 
 
 /* ============================================================
- * DevKit 1024 · 核心算法层
+ * DevKit · 核心算法层
  * 纯函数实现，无 DOM 依赖，可单独在 Node 中做正确性验证。
  * ============================================================ */
 'use strict';
@@ -1065,7 +1065,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 /* ============================================================
- * DevKit 1024 · 交互层
+ * DevKit · 交互层
  * ============================================================ */
 'use strict';
 
@@ -1354,7 +1354,7 @@ if (typeof module !== 'undefined' && module.exports) {
       }),
       mkBtn('示例', function () {
         input.ta.value = JSON.stringify({
-          project: 'DevKit 1024', version: '1.0.0', stars: 1024,
+          project: 'DevKit', version: '1.0.0', stars: 1234,
           tools: [{ name: 'JSON', hot: true }, { name: 'Cron', hot: false }],
           meta: { author: '开发者', tags: ['dev', 'tool'], released: '2026-01-01' }
         }, null, 2);
@@ -1399,7 +1399,7 @@ if (typeof module !== 'undefined' && module.exports) {
     input.ta.addEventListener('input', debounce(function () { renderIndent(2); }, 400));
     if (!input.ta.value.trim()) {
       input.ta.value = JSON.stringify({
-        project: 'DevKit 1024', version: '1.0.0', stars: 1024,
+        project: 'DevKit', version: '1.0.0', stars: 1234,
         tools: [{ name: 'JSON', hot: true }, { name: 'Cron', hot: false }],
         meta: { author: '开发者', tags: ['dev', 'tool'], released: '2026-01-01' }
       }, null, 2);
@@ -1433,7 +1433,7 @@ if (typeof module !== 'undefined' && module.exports) {
     flagInp.style.maxWidth = '80px';
     var text = mkTextarea({
       label: '待匹配文本', mono: true, rows: 8, key: 'regex.text',
-      value: '订单号 2026-1024 创建于 2026-10-22，联系邮箱 dev@example.com，备用 hi@example.com'
+      value: '订单号 2026-0428 创建于 2026-10-22，联系邮箱 dev@example.com，备用 hi@example.com'
     });
     var preview = el('pre', 'out mono');
     preview.style.minHeight = '150px';
@@ -1648,7 +1648,7 @@ if (typeof module !== 'undefined' && module.exports) {
   function buildEncode(host) {
     var input = mkTextarea({
       label: '原文', mono: true, rows: 8, key: 'encode.in',
-      value: 'Hello 1024 开发者！https://example.com/docs?name=开发者&v=1'
+      value: 'Hello 开发者！https://example.com/docs?name=开发者&v=1'
     });
     var out = mkOut({ label: '转换结果', minHeight: '200px' });
 
@@ -1698,7 +1698,7 @@ if (typeof module !== 'undefined' && module.exports) {
    * ============================================================ */
   function buildHash(host) {
     var input = mkTextarea({
-      label: '原文', mono: true, rows: 7, key: 'hash.in', value: '1024'
+      label: '原文', mono: true, rows: 7, key: 'hash.in', value: '1234'
     });
     var keyInp = mkInput({ mono: true, placeholder: 'HMAC 密钥（留空则计算普通摘要）' });
     var algoSel = mkSelect([
@@ -1734,7 +1734,7 @@ if (typeof module !== 'undefined' && module.exports) {
       el('span', 'field-label', '算法'), algoSel,
       el('span', 'field-label', '输出'), fmtSel,
       mkBtn('计算', run, 'btn-primary'),
-      mkBtn('示例', function () { input.ta.value = '1024 开发者'; run(); }),
+      mkBtn('示例', function () { input.ta.value = '开发者工具'; run(); }),
       mkBtn('清空', function () { input.ta.value = ''; keyInp.value = ''; out.setText(''); })
     ]));
     var kf = el('div', 'field');
@@ -2102,7 +2102,7 @@ if (typeof module !== 'undefined' && module.exports) {
       }),
       mkBtn('示例', function () {
         a.ta.value = '{\n  "name": "devkit",\n  "version": "0.9.0",\n  "tools": 10\n}';
-        b.ta.value = '{\n  "name": "devkit",\n  "version": "1.0.0",\n  "tools": 12,\n  "author": "1024"\n}';
+        b.ta.value = '{\n  "name": "devkit",\n  "version": "1.0.0",\n  "tools": 12,\n  "author": "developer"\n}';
         run();
       }),
       mkBtn('清空', function () { a.ta.value = ''; b.ta.value = ''; view.innerHTML = ''; })]));
@@ -2186,7 +2186,7 @@ if (typeof module !== 'undefined' && module.exports) {
     function fillSample() {
       var h = b64Encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=+$/, '').replace(/\+/g, '-').split('/').join('_');
       var exp = Math.floor(Date.now() / 1000) + 3600 * 24 * 7;
-      var p = b64Encode(JSON.stringify({ sub: '1024', name: '开发者', role: 'admin', iat: Math.floor(Date.now() / 1000), exp: exp })).replace(/=+$/, '').replace(/\+/g, '-').split('/').join('_');
+      var p = b64Encode(JSON.stringify({ sub: 'developer', name: '开发者', role: 'admin', iat: Math.floor(Date.now() / 1000), exp: exp })).replace(/=+$/, '').replace(/\+/g, '-').split('/').join('_');
       input.ta.value = h + '.' + p + '.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
     }
 
@@ -2239,7 +2239,7 @@ if (typeof module !== 'undefined' && module.exports) {
   ];
 
   function buildBase(host) {
-    var inp = mkInput({ mono: true, value: '1024' });
+    var inp = mkInput({ mono: true, value: '1234' });
     var fromSel = mkSelect(BASES, '10');
     var toSel = mkSelect(BASES, '16');
     var out = mkOut({ label: '转换结果', minHeight: '90px' });
@@ -2524,7 +2524,7 @@ if (typeof module !== 'undefined' && module.exports) {
     var wrap = el('div', 'wrap');
 
     var hero = el('div', 'hero');
-    hero.appendChild(el('h2', null, 'DevKit 1024 · 程序员效率工具箱'));
+    hero.appendChild(el('h2', null, 'DevKit · 程序员效率工具箱'));
     hero.appendChild(el('p', null, '12 款开发工具，计算在浏览器中完成；输入与设置保存在云端。'));
     var tags = el('div', 'hero-tags');
     ['JSON', '正则', '哈希', '时间戳', 'Cron', 'Diff', 'JWT', '进制', 'URL', '颜色', '随机', '编码'].forEach(function (t) {
@@ -2563,7 +2563,7 @@ if (typeof module !== 'undefined' && module.exports) {
     wrap.appendChild(grid);
 
     var foot = el('footer', 'foot');
-    foot.appendChild(el('div', null, 'DevKit 1024 · 程序员效率工具箱'));
+    foot.appendChild(el('div', null, 'DevKit · 程序员效率工具箱'));
     foot.appendChild(el('div', null, '按 ⌘K / Ctrl+K 唤起搜索，Esc 返回全部工具'));
     wrap.appendChild(foot);
     main.appendChild(wrap);
@@ -2587,14 +2587,14 @@ if (typeof module !== 'undefined' && module.exports) {
     wrap.appendChild(back);
     main.appendChild(wrap);
     main.scrollTop = 0;
-    document.title = t.name + ' · DevKit 1024';
+    document.title = t.name + ' · DevKit';
   }
 
   function route() {
     var id = currentId();
     if (id) renderTool(id); else renderHome('');
     renderNav();
-    if (!id) document.title = 'DevKit 1024 · 程序员效率工具箱';
+    if (!id) document.title = 'DevKit · 程序员效率工具箱';
   }
 
   /* ---------------- 帮助弹窗 ---------------- */
