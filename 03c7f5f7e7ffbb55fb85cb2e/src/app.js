@@ -88,6 +88,7 @@ async function loadFiles(files) {
   // 真实素材进来，示例自动让位（不然会混进生成结果）
   const hadDemo = state.walls.some((w) => w.kind === 'demo');
   if (hadDemo) { state.walls = []; state.wallIdx = 0; }
+  let loadError = null;
   for (const file of list) {
     try {
       if (isGif(file)) {
@@ -103,14 +104,16 @@ async function loadFiles(files) {
       } else if (isVideo(file)) {
         setHint(`读取「${file.name}」…`);
         const video = await probeVideo(file);
-        const poster = await firstFrame(video, PREVIEW_W, PREVIEW_H);
-        state.walls.push({ name: file.name, kind: 'video', video, poster, plan: null });
+        try {
+          const poster = await firstFrame(video, PREVIEW_W, PREVIEW_H);
+          state.walls.push({ name: file.name, kind: 'video', video, poster, plan: null });
+        } catch (error) { releaseVideo(video); throw error; }
       } else {
         setHint(`「${file.name}」不是 GIF 或视频。`);
         continue;
       }
     } catch (e) {
-      setHint(`「${file.name}」读不了：${e.message}`);
+      loadError = `「${file.name}」读不了：${e.message}`;
     }
   }
   if (state.wallIdx >= state.walls.length) state.wallIdx = 0;
@@ -119,6 +122,7 @@ async function loadFiles(files) {
   startPreview();
   scheduleEstimate();
   syncBuildBtn();
+  if (loadError) setHint(loadError);
 }
 
 function renderWallList() {
