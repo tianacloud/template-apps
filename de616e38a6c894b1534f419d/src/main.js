@@ -5,7 +5,7 @@ document.body.innerHTML="\n<canvas id=\"rain\"></canvas>\n<div class=\"wrap\">\n
 (function(){
 "use strict";
 const SIZE=4;
-let rankings=[], dbFetch, connection, writes=Promise.resolve(), saveFailed=false, revision=0;
+let rankings=[], dbFetch, connection, pendingState=null, saving=false, saveFailed=false, revision=0;
 const loading=document.createElement("div"); loading.style.cssText="position:fixed;inset:0;z-index:100;background:#080b12;display:grid;place-items:center"; loading.textContent="正在读取云端记录…"; document.body.append(loading);
 const NAMES={2:"变量",4:"函数",8:"类",16:"模块",32:"服务",64:"集群",128:"流水线",256:"网关",512:"中台",1024:"上线",2048:"重构"};
 let grid=[],score=0,best=0,over=false,won=false,hist=[],mode="经典",dailySeed=0,soundOn=true,medals={};
@@ -31,18 +31,26 @@ async function load(){
   best=s.best||0; medals=s.medals||{}; soundOn=s.soundOn!==false; rankings=Array.isArray(s.rankings)?s.rankings:[];
 }
 function save(){
-  const data=JSON.stringify({best,medals,soundOn,rankings});
-  writes=writes.then(async()=>{
-    if(saveFailed) return;
-    const result=await execute("UPDATE game_state SET data=?, revision=revision+1 WHERE id=1 AND revision=?",[{type:"text",value:data},{type:"integer",value:String(revision)}]);
-    if(Number(result.affected_row_count) !== 1) throw Error("记录已在其他页面更改，请重新打开应用");
-    revision++;
-  }).catch(()=>{
+  if(saveFailed) return;
+  pendingState=JSON.stringify({best,medals,soundOn,rankings});
+  if(!saving) flush();
+}
+async function flush(){
+  saving=true;
+  try{
+    while(pendingState!==null){
+      const data=pendingState; pendingState=null;
+      const result=await execute("UPDATE game_state SET data=?, revision=revision+1 WHERE id=1 AND revision=?",[{type:"text",value:data},{type:"integer",value:String(revision)}]);
+      if(Number(result.affected_row_count)!==1) throw Error("记录已在其他页面更改");
+      revision++;
+    }
+  }catch(e){
     saveFailed=true;
     const warning=document.createElement("div"); warning.style.cssText="position:fixed;z-index:20;top:0;left:0;right:0;padding:12px;background:#8b1a1a;color:white;text-align:center";
     warning.textContent="记录发生冲突或保存结果未知，请重新打开应用检查云端记录；后续变更不会保存。"; document.body.append(warning);
-  });
+  }finally{saving=false;}
 }
+window.addEventListener("beforeunload",e=>{if(saving || pendingState!==null){e.preventDefault();e.returnValue="";}});
 
 /* ---------- 音效 ---------- */
 let ac=null;
