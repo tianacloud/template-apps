@@ -34,16 +34,16 @@ db.prepare("INSERT INTO nes_save_slots VALUES (?,?,?,?,?,?)").run(
   "test",
   "0".repeat(64),
   1,
-  "snapshot",
-  "data:image/png;base64,",
+  "saves/test-state.gz",
+  "saves/test-image.png",
   "2026-10-13",
 );
 db.prepare("INSERT INTO nes_save_slots VALUES (?,?,?,?,?,?)").run(
   "other",
   "0".repeat(64),
   1,
-  "other-snapshot",
-  "data:image/png;base64,",
+  "saves/other-state.gz",
+  "saves/other-image.png",
   "2026-10-13",
 );
 const bundle = await build({
@@ -71,6 +71,9 @@ const bundle = await build({
 });
 const rom = diagnosticROM();
 const fileSet = new Set(Array.from({ length: 300 }, (_, i) => `roms/${i}.nes`));
+fileSet.add("saves/test-state.gz");
+fileSet.add("saves/test-image.png");
+const fileContents = new Map();
 const calls = [];
 let failDelete = false;
 let failDownload = false;
@@ -110,7 +113,10 @@ const server = createServer(async (req, res) => {
     );
   } else if (req.url.startsWith("/file?")) {
     const path = new URL(req.url, "http://local").searchParams.get("path");
-    if (req.method === "DELETE") {
+    if (req.method === "PUT") {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      fileContents.set(path, Buffer.concat(chunks)); fileSet.add(path); res.end("ok");
+    } else if (req.method === "DELETE") {
       calls.push(path);
       if (failDelete) {
         res.statusCode = 503;
@@ -122,12 +128,13 @@ const server = createServer(async (req, res) => {
     } else if (failDownload) {
       res.statusCode = 503;
       res.end("Unavailable");
-    } else res.end(rom);
+    } else res.end(fileContents.get(path) ?? rom);
   } else {
     res.setHeader("Content-Type", "text/html");
     res.end(`<meta name="viewport" content="width=device-width, initial-scale=1"><div id="app"></div><script>
       window.tiana = {appId:"test", connection:async()=>({sql_api:"hrana-v3",origin:location.origin}),files:{
         get:(path)=>fetch('/file?path='+encodeURIComponent(path)),
+        put:async(path,blob)=>{const r=await fetch('/file?path='+encodeURIComponent(path),{method:'PUT',body:blob});if(!r.ok)throw new Error('upload failed');},
         delete:async(path)=>{const r=await fetch('/file?path='+encodeURIComponent(path),{method:'DELETE'});if(!r.ok)throw Object.assign(new Error(await r.text()),{code:r.status===404?'FILE_NOT_FOUND':'FILE_UNAVAILABLE'});}
       }};const NativeAudio=window.AudioContext;window.AudioContext=class extends NativeAudio{constructor(){super({sampleRate:44100})}};
       </script><script type="module" src="/app.js"></script>`);
@@ -174,6 +181,13 @@ try {
   await row("测试卡带 010").locator(".game").click();
   await waitRows(1);
   assert.equal(count(10), 1);
+  await page.locator('[data-save="1"]').click();
+  await page.waitForFunction(() => document.querySelector("#notice").textContent.includes("已保存"));
+  const saved = db.prepare("SELECT state_path,screenshot_path FROM nes_save_slots WHERE app_id='test' AND rom_hash=?").get(hash(10));
+  assert.ok(fileContents.get(saved.state_path)?.length);
+  assert.ok(fileContents.get(saved.screenshot_path)?.length);
+  await page.locator('[data-load="1"]').click();
+  await page.waitForFunction(() => document.querySelector("#notice").textContent.includes("已读取"));
   await page.reload();
   await waitRows(25);
   assert.equal(count(10), 1);
@@ -184,7 +198,7 @@ try {
   assert.equal(await page.locator("#play-state").textContent(), "已暂停");
   assert.equal(count(10), 1);
   assert.equal(
-    await page.evaluate(() => localStorage.getItem("nes:last-game:test")),
+    db.prepare("SELECT last_game FROM nes_settings WHERE app_id='test'").get()?.last_game,
     hash(10),
   );
   const reopened = await page.context().newPage();
@@ -305,9 +319,9 @@ try {
     .get("0".repeat(64));
   assert.equal(renamed.file_path, "roms/0.nes");
   assert.equal(
-    db.prepare("SELECT state FROM nes_save_slots WHERE app_id='test'").get()
-      .state,
-    "snapshot",
+    db.prepare("SELECT state_path FROM nes_save_slots WHERE app_id='test'").get()
+      .state_path,
+    "saves/test-state.gz",
   );
   await page.reload();
   await waitRows(25);
@@ -340,7 +354,7 @@ try {
     undefined,
   );
   assert.equal(
-    db.prepare("SELECT 1 FROM nes_save_slots WHERE app_id='test'").get(),
+    db.prepare("SELECT 1 FROM nes_save_slots WHERE app_id='test' AND rom_hash=?").get("0".repeat(64)),
     undefined,
   );
   assert.ok(db.prepare("SELECT 1 FROM nes_games WHERE app_id='other'").get());
@@ -353,8 +367,8 @@ try {
   );
   assert.equal(new URL(page.url()).hash, "");
   assert.equal(
-    await page.evaluate(() => localStorage.getItem("nes:last-game:test")),
-    null,
+    db.prepare("SELECT last_game FROM nes_settings WHERE app_id='test'").get()?.last_game,
+    "",
   );
   // Another tab has already removed both the file and rows before this tab confirms.
   await search("001");
@@ -368,10 +382,7 @@ try {
   await waitRows(0);
   await search("");
   await waitRows(25);
-  await page.evaluate(
-    (hash) => localStorage.setItem("nes:last-game:test", hash),
-    hash(2),
-  );
+  db.prepare("UPDATE nes_settings SET last_game=? WHERE app_id='test'").run(hash(2));
   db.prepare("DELETE FROM nes_games WHERE app_id='test' AND rom_hash=?").run(
     hash(2),
   );
@@ -379,17 +390,13 @@ try {
   await waitRows(25);
   await page.waitForFunction(
     () =>
-      document.querySelector("#db-status").textContent === "游戏库已连接" &&
-      localStorage.getItem("nes:last-game:test") === null,
+      document.querySelector("#db-status").textContent === "游戏库已连接",
   );
   assert.equal(
     await page.locator("#game-title").textContent(),
     "选一张卡带，开始吧。",
   );
-  await page.evaluate(
-    (hash) => localStorage.setItem("nes:last-game:test", hash),
-    hash(3),
-  );
+  db.prepare("UPDATE nes_settings SET last_game=? WHERE app_id='test'").run(hash(3));
   failDownload = true;
   await page.goto(url);
   await waitRows(25);
