@@ -1,9 +1,6 @@
 /**
  * .face 二进制打包/解包核心 —— 零依赖 ESM，浏览器与 Node 都能跑。
  *
- * 端口自 watchface-android/core/face/FaceBuilder.java（该实现与本机 Compiler.exe
- * 产物做过逐字节比对）。布局与坑的完整说明见仓库 docs/face格式规范.md。
- *
  * 全部小端序。像素一律 BGRA8888、直通（非预乘）alpha。
  *
  * ┌ 布局（无 AOD）────────────────────────────────────────────┐

@@ -12,7 +12,6 @@
  * 常规 baseline 路径，PC 端产物（Pillow 默认 baseline）已真机验过。
  *
  * 标准量化表与 Huffman 表是**从 libjpeg 的实际输出里解析出来的**（不是手抄规范），
- * 见 tests/jpeg.mjs 里的一致性断言。
  */
 
 const INV_SQRT2 = 1 / Math.SQRT2;

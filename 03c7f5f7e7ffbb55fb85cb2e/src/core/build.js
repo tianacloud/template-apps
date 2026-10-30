@@ -8,7 +8,7 @@
  * 素材有两种来源，都收敛成「n 帧 RGBA + 播放节奏」：
  *   { kind: 'gif',   bytes }           GIF 字节，本模块自己解（可在 Worker 里跑）
  *   { kind: 'frames', frames, periodMs } 已经裁好的 RGBA 帧（视频抽帧走这条，
- *                                      因为 Worker 没有 <video>，抽帧只能在主线程做）
+ *                                      由主线程解码和抽帧）
  */
 import { decodeGif } from './gif.js';
 import { coverRGBA } from './image.js';
@@ -199,7 +199,7 @@ export async function buildFace(cfg) {
   if (!sources.length) throw new Error('没有素材');
   const colors = (LEVELS[level] || LEVELS.balanced).colors;
   const ext = fmt === 'jpg' ? 'jpg' : 'png';
-  // Title / ID 是定长 ASCII 字段，这里统一收口（PC 端同样的规则见 facebin.py 的 _fixed_ascii）
+  // Title / ID 是定长 ASCII 字段，这里统一收口
   const titleField = asciiField(title, 16);
   const idField = String(faceId).replace(/\D/g, '').slice(0, 10) || '1000000001';
 

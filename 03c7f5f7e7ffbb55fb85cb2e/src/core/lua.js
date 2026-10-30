@@ -1,9 +1,7 @@
 /**
  * 生成 main.lua —— 序列帧动画 + 时间/日期叠加 + 点击交互 + 省电钩子。
  *
- * 结构与 watchface-tool/watchface_tool/lua.py 对齐（包括两个省电钩子：
- * pageOnPause/Resume 管切页、ScreenStateChangedCB 管息屏 —— 只用前者会让
- * 动画在 AOD 下继续跑，续航直接崩）。
+ * 两个省电钩子分别处理切页和息屏。
  */
 
 const HEAD = (desc) => `-- 小米手环 11 动态表盘

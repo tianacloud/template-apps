@@ -9,7 +9,6 @@
  * 设计取舍：时分共用同一张 11 图列表，只付一次位图钱；冒号单独一张小图（12×64 ≈ 3 KB），
  * 比再建一张数字列表划算。默认不放全屏黑底 —— AMOLED 黑像素不发光。
  *
- * 端口自 watchface-android/core/face/AodGen.java（与 Python 侧做过 12 例 × 13 字段对拍）。
  */
 
 export const SCREEN_W = 212;
