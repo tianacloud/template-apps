@@ -40,7 +40,7 @@ function genCard(){
   document.getElementById('avatar').textContent=emoji;
   document.getElementById('cname').textContent=name;
   document.getElementById('ctitle').textContent=`${lang} · ${ti}`;
-  document.getElementById('cardno').textContent='NO.1024-'+String(hash(name)%9000+1000);
+  document.getElementById('cardno').textContent='NO.'+String(hash(name)%9000+1000);
   document.getElementById('cstats').innerHTML=`
     <div class="stat"><div class="k">⌨️ 码龄</div><div class="v">${yrs} 年</div></div>
     <div class="stat"><div class="k">💰 身价</div><div class="v" style="color:var(--amber)">${salary}k/月</div></div>
