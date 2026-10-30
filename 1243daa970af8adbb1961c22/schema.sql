@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS study_progress (key TEXT PRIMARY KEY, value TEXT NOT NULL);
