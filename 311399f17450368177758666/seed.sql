@@ -1,0 +1,1 @@
+INSERT OR IGNORE INTO papers (id, data, updated_at) VALUES ('example', '{"id":"example","title":"示例：阅读方法研究","authors":"Lin A","year":2024,"venue":"示例期刊","tags":["方法"],"url":"","status":"reading","rating":4,"notes":{"q":"如何整理阅读笔记？","m":"比较不同记录方式","find":"结构化记录便于回顾","ins":"尝试应用于下一篇文献"},"quotes":"","createdAt":1704067200000,"updatedAt":1704067200000,"sample":true}', 1704067200000);
