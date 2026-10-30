@@ -1833,9 +1833,9 @@ function buildMarkdown(options) {
     lines.push(`## ${col.name}`);
     lines.push('');
     inCol.forEach((t) => {
-      if (!t.title.trim()) return;
-      lines.push(item(t.title, false, t.starred));
-      t.subs.forEach((s) => { if (s.title.trim()) lines.push(item(s.title, s.done, s.starred, '  ')); });
+      if (!t.title.trim() && !(t.images || []).length && !(t.subs || []).length) return;
+      lines.push(item(t.title || "（图片或子任务）", false, t.starred));
+      t.subs.forEach((s) => { if (s.title.trim() || (s.images || []).length) lines.push(item(s.title || "（图片）", s.done, s.starred, '  ')); });
     });
     lines.push('');
     wrote = true;
@@ -1846,9 +1846,9 @@ function buildMarkdown(options) {
     lines.push('## 本周已完成');
     lines.push('');
     doneThisWeek.forEach((t) => {
-      if (!t.title.trim()) return;
-      lines.push(item(t.title, true, t.starred));
-      t.subs.forEach((s) => { if (s.title.trim()) lines.push(item(s.title, s.done, s.starred, '  ')); });
+      if (!t.title.trim() && !(t.images || []).length && !(t.subs || []).length) return;
+      lines.push(item(t.title || "（图片或子任务）", true, t.starred));
+      t.subs.forEach((s) => { if (s.title.trim() || (s.images || []).length) lines.push(item(s.title || "（图片）", s.done, s.starred, '  ')); });
     });
     lines.push('');
     wrote = true;
@@ -1858,9 +1858,9 @@ function buildMarkdown(options) {
     lines.push('## 已归档');
     lines.push('');
     myHist.forEach((h) => {
-      if (!h.title.trim()) return;
-      lines.push(item(h.title, true, h.starred));
-      (h.subs || []).forEach((s) => { if (s.title.trim()) lines.push(item(s.title, true, s.starred, '  ')); });
+      if (!h.title.trim() && !(h.images || []).length && !(h.subs || []).length) return;
+      lines.push(item(h.title || "（图片或子任务）", true, h.starred));
+      (h.subs || []).forEach((s) => { if (s.title.trim() || (s.images || []).length) lines.push(item(s.title || "（图片）", true, s.starred, '  ')); });
     });
     lines.push('');
     wrote = true;
@@ -1898,12 +1898,12 @@ async function buildMarkdownFull() {
   };
   const dumpTasks = async (list, checked) => {
     for (const t of list) {
-      if (!t.title.trim()) continue;
-      lines.push(item(t.title, checked, t.starred));
+      if (!t.title.trim() && !(t.images || []).length && !(t.subs || []).length) continue;
+      lines.push(item(t.title || "（图片或子任务）", checked, t.starred));
       await imageLines(t, '  ');
       for (const s of t.subs) {
-        if (!s.title.trim()) continue;
-        lines.push(item(s.title, checked ? true : s.done, s.starred, '  '));
+        if (!s.title.trim() && !(s.images || []).length) continue;
+        lines.push(item(s.title || "（图片）", checked ? true : s.done, s.starred, '  '));
         await imageLines(s, '    ');
       }
     }
@@ -1933,12 +1933,12 @@ async function buildMarkdownFull() {
     lines.push('## 已归档');
     lines.push('');
     for (const h of myHist) {
-      if (!h.title.trim()) continue;
-      lines.push(item(h.title, true, h.starred));
+      if (!h.title.trim() && !(h.images || []).length && !(h.subs || []).length) continue;
+      lines.push(item(h.title || "（图片或子任务）", true, h.starred));
       await imageLines(h, '  ');
       for (const s of (h.subs || [])) {
-        if (!s.title.trim()) continue;
-        lines.push(item(s.title, true, s.starred, '  '));
+        if (!s.title.trim() && !(s.images || []).length) continue;
+        lines.push(item(s.title || "（图片）", true, s.starred, '  '));
         await imageLines(s, '    ');
       }
     }
