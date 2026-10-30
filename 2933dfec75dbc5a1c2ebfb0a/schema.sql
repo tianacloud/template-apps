@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS rest_journal (key TEXT PRIMARY KEY, value TEXT NOT NULL);
