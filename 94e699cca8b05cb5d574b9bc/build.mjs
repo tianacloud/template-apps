@@ -10,7 +10,7 @@ for (const [file,prefix] of [['app.html','main'],['zhuoji-tutorial.html','tutori
  let matches=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
  for (const m of matches.reverse()) {
   let js=m[2]; if(!js.trim()) continue; js=js.replaceAll("localStorage", "window.__gymjStore"); js="window.__gymjStore=window.parent.__gymjStore;window.__gymjAsset=window.parent.__gymjAsset;\n"+js;
-  if(file==='app.html') js=js.replace('if(fr&&!fr.getAttribute("src")&&fr.getAttribute("data-src"))fr.setAttribute("src",fr.getAttribute("data-src"));','if(fr&&!fr.dataset.loaded&&fr.getAttribute("data-src")){fr.dataset.loaded="1";fetch(new URL(fr.getAttribute("data-src"),document.baseURI)).then(r=>r.text()).then(t=>{fr.srcdoc=t.replace(/<head([^>]*)>/i,`<head$1><base href="${document.baseURI}">`)});}');
+  if(file==='app.html') js=js.replace('if(fr&&!fr.getAttribute("src")&&fr.getAttribute("data-src"))fr.setAttribute("src",fr.getAttribute("data-src"));',`if(fr&&!fr.dataset.loaded&&fr.getAttribute("data-src")){fr.dataset.loaded="1";fetch(new URL(fr.getAttribute("data-src"),window.parent.__gymjBase)).then(r=>r.text()).then(t=>{fr.srcdoc=t.replaceAll('src="assets/','src="'+new URL('assets/',window.parent.__gymjBase).href)});}`);
   let name=`${prefix}-${n++}.js`; await writeFile('dist/assets/'+name,js);
   html=html.slice(0,m.index)+`<script src="assets/${name}"></script>`+html.slice(m.index+m[0].length);
  }

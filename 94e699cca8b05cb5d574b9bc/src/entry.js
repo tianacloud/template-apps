@@ -22,9 +22,9 @@ export async function mount(root, context) {
     const store={getItem(key){return data.has(String(key))?data.get(String(key)):null},setItem(key,value){key=String(key);value=String(value);data.set(key,value);if(!transient.test(key))save('INSERT INTO training_state(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',[key,value])},removeItem(key){key=String(key);data.delete(key);if(!transient.test(key))save('DELETE FROM training_state WHERE key=?',[key])},key(index){return [...data.keys()][index]??null},get length(){return data.size}};
     const urls={}; await Promise.all(ASSET_NAMES.map(async name=>{urls[name]=await context.files.getUrl('template-assets/img/'+name)}));
     window.__gymjStore=store; window.__gymjAsset=name=>urls[name]||'';
-    const base=new URL('../',import.meta.url); const res=await fetch(new URL('app.html',base));if(!res.ok)throw Error('应用页面加载失败');
+    const base=new URL('../',import.meta.url); window.__gymjBase=base.href; const res=await fetch(new URL('app.html',base));if(!res.ok)throw Error('应用页面加载失败');
     const html=await res.text();root.replaceChildren();const f=document.createElement('iframe');f.title='捉鸡麻将复盘训练工具';f.allow='fullscreen';f.allowFullscreen=true;Object.assign(f.style,{position:'fixed',inset:'0',width:'100%',height:'100%',border:'0'});root.append(f);
-    f.srcdoc=html.replace(/<head([^>]*)>/i,`<head$1><base href="${base.href}">`);
-    return ()=>{f.remove();delete window.__gymjStore;delete window.__gymjAsset};
+    f.srcdoc=html.replaceAll('src="assets/', 'src="'+new URL('assets/',base).href);
+    return ()=>{f.remove();delete window.__gymjStore;delete window.__gymjAsset;delete window.__gymjBase};
   } catch(e) {root.textContent='无法读取训练数据或素材：'+e.message+'。请检查连接后重新打开。';}
 }
