@@ -1,0 +1,120 @@
+const style=document.createElement('style');style.textContent="\n  :root{\n    --bg:#fff;--bg2:#F6F8FA;--ink:#16181D;--ink2:#5A6069;--ink3:#98A0AB;\n    --line:#EAECF0;--brand:#0E9F6E;--brand2:#0B8A5F;--brandbg:#EAF7F1;\n    --D:#E4572E;--I:#F2B705;--S:#3AA6A6;--C:#4C6EF5;\n    --r:14px;--sh:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);\n  }\n  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}\n  body{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;\n    background:var(--bg2);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased}\n  .wrap{max-width:840px;margin:0 auto;padding:0 16px 56px}\n\n  .nav{background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);\n    position:sticky;top:0;z-index:30}\n  .nav-in{max-width:840px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:9px}\n  .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand2));\n    color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center}\n  .nav b{font-size:15.5px}\n  .nav .tag{font-size:11.5px;font-weight:700;color:var(--brand2);background:var(--brandbg);\n    border:1px solid #CDEBDD;padding:2px 9px;border-radius:999px}\n  .nav .s{font-size:12.5px;color:var(--ink3);margin-left:auto}\n\n  .card{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);\n    padding:22px 24px;margin-top:16px}\n  .card h2{font-size:18px;font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:8px}\n  .card h2 .n{width:24px;height:24px;border-radius:7px;background:var(--brandbg);color:var(--brand2);\n    font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n  .card .sub{font-size:13px;color:var(--ink3);margin-bottom:15px}\n\n  /* Hero */\n  .hero{text-align:center;padding:30px 22px}\n  .hero .badge{display:inline-block;background:var(--brandbg);color:var(--brand2);font-size:12px;font-weight:700;\n    padding:3px 12px;border-radius:999px;margin-bottom:13px}\n  .hero h1{font-size:25px;font-weight:800;line-height:1.4;letter-spacing:-.01em}\n  .hero .lead{color:var(--ink2);font-size:15px;margin-top:10px;max-width:560px;margin-left:auto;margin-right:auto}\n  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px}\n  .stat{background:var(--bg2);border-radius:11px;padding:14px 8px}\n  .stat .v{font-size:24px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--brand2)}\n  .stat .k{font-size:12px;color:var(--ink3);margin-top:3px}\n\n  /* 能力卡 */\n  .caps{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:4px}\n  .cap{background:var(--bg2);border-radius:12px;padding:15px}\n  .cap .ic{font-size:20px}\n  .cap b{display:block;font-size:14px;margin:7px 0 4px}\n  .cap p{font-size:12.5px;color:var(--ink2);line-height:1.55}\n\n  /* 使用说明 */\n  .how{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:4px}\n  .how .step{display:flex;gap:12px;align-items:flex-start}\n  .how .num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));\n    color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}\n  .how .body b{font-size:14px}\n  .how .body p{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.55}\n\n  /* 体验区 */\n  .exp{background:linear-gradient(180deg,#fff,#FAFFFD);border:1px solid #CDEBDD}\n  .exp .badge{display:inline-block;background:var(--brandbg);color:var(--brand2);font-size:12px;font-weight:700;\n    padding:3px 12px;border-radius:999px;margin-bottom:10px}\n  .exp h2{justify-content:center}\n  .exp .sub{text-align:center}\n  /* 体验首页 */\n  .e-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:6px 0 16px}\n  .e-step{background:var(--bg2);border-radius:10px;padding:12px 10px;text-align:center}\n  .e-step i{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;\n    background:var(--brand);color:#fff;font-size:11.5px;font-weight:700;font-style:normal}\n  .e-step p{font-size:12.5px;color:var(--ink2);margin-top:5px;line-height:1.5}\n  .btn{display:block;width:100%;border:none;border-radius:11px;padding:14px;font-size:15.5px;font-weight:700;\n    color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand2));cursor:pointer;font-family:inherit;\n    box-shadow:0 4px 14px rgba(14,159,110,.26);transition:.15s}\n  .btn:active{transform:scale(.985)}\n  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}\n  /* 答题 */\n  .prog-top{display:flex;align-items:center;gap:11px;margin-bottom:2px}\n  .prog{flex:1;height:6px;background:var(--line);border-radius:99px;overflow:hidden}\n  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));width:0;transition:.32s}\n  .prog-t{font-size:12.5px;color:var(--ink3);white-space:nowrap;font-variant-numeric:tabular-nums}\n  .qtitle{font-size:12.5px;color:var(--brand2);font-weight:700;margin:14px 0 5px}\n  .qtext{font-size:17.5px;font-weight:700;line-height:1.5}\n  .qhint{font-size:13px;color:var(--ink3);margin:4px 0 14px}\n  .opts{display:flex;flex-direction:column;gap:9px}\n  .opt{display:flex;align-items:flex-start;gap:11px;border:1px solid var(--line);border-radius:11px;padding:13px 15px;\n    background:#fff;cursor:pointer;transition:.14s;text-align:left;font-family:inherit;font-size:14.5px;color:var(--ink)}\n  .opt:hover{border-color:var(--brand2);background:#FAFFFD}\n  .opt.on{border-color:var(--brand);background:var(--brandbg);box-shadow:0 0 0 3px rgba(14,159,110,.1)}\n  .opt .k{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--bg2);color:var(--ink2);\n    font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}\n  .opt.on .k{background:var(--brand);color:#fff}\n  /* 报告 */\n  .rh{text-align:center;margin-bottom:6px}\n  .rh h3{font-size:21px;font-weight:800}\n  .rh p{font-size:13.5px;color:var(--ink2);margin-top:5px}\n  .bars{margin-top:6px}\n  .bar{margin-bottom:13px}\n  .bar .lb{display:flex;align-items:center;gap:7px;font-size:13.5px;margin-bottom:5px}\n  .bar .dot{width:9px;height:9px;border-radius:50%}\n  .bar .nm{font-weight:700}\n  .bar .pc{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}\n  .track{height:11px;background:var(--bg2);border-radius:99px;overflow:hidden}\n  .track i{display:block;height:100%;border-radius:99px;width:0;transition:.85s cubic-bezier(.22,.8,.3,1)}\n  .tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;justify-content:center}\n  .tag{font-size:12px;padding:3px 11px;border-radius:999px;background:var(--bg2);color:var(--ink2)}\n  .sec{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}\n  .sec h4{font-size:15px;font-weight:800;margin-bottom:7px}\n  .sec p{font-size:14px;color:var(--ink2)}\n  .kv{display:grid;grid-template-columns:84px 1fr;gap:7px 12px;font-size:14px;margin-top:6px}\n  .kv dt{color:var(--ink3);font-weight:600}\n  .kv dd{color:var(--ink2)}\n  .note{background:var(--bg2);border-radius:10px;padding:13px 15px;font-size:12.5px;color:var(--ink3);line-height:1.65;margin-top:16px}\n  .radar-box{text-align:center;margin-top:4px}\n  svg{max-width:100%;height:auto}\n  .exp-note{font-size:12px;color:var(--ink3);text-align:center;margin-top:14px}\n\n  /* 安全 */\n  .safe{background:var(--bg2);border-radius:11px;padding:14px 16px;margin-top:6px;font-size:13px;color:var(--ink2);line-height:1.7}\n  .safe b{color:var(--ink)}\n\n  .ft{text-align:center;font-size:12px;color:var(--ink3);margin-top:24px;line-height:1.6}\n\n  @media (max-width:600px){\n    .stats{grid-template-columns:repeat(2,1fr)}\n    .caps{grid-template-columns:1fr}\n    .how{grid-template-columns:1fr}\n    .e-steps{grid-template-columns:1fr}\n    .card{padding:18px 17px}\n    .hero h1{font-size:21px}\n  }\n";document.head.appendChild(style);
+document.getElementById('app').innerHTML="\n\n<div class=\"nav\"><div class=\"nav-in\">\n  <div class=\"logo\">测</div><b>人才测评站</b>\n  <span class=\"tag\">DISC 行为风格</span>\n  <span class=\"s\">公开体验版</span>\n</div></div>\n\n<div class=\"wrap\">\n\n  <!-- Hero -->\n  <div class=\"card hero\">\n    <span class=\"badge\">作品类型 · 网页应用</span>\n    <h1>人才测评站<br>让每一个人，都看清自己</h1>\n    <p class=\"lead\">通过十道情境题，了解自己的 DISC 行为风格，并查看本地生成的图形化报告。</p>\n    <div class=\"stats\">\n      <div class=\"stat\"><div class=\"v\">10</div><div class=\"k\">体验题目</div></div>\n      <div class=\"stat\"><div class=\"v\">4</div><div class=\"k\">行为维度</div></div>\n      <div class=\"stat\"><div class=\"v\">本地</div><div class=\"k\">本地作答</div></div>\n      <div class=\"stat\"><div class=\"v\">图形</div><div class=\"k\">图形报告</div></div>\n    </div>\n  </div>\n\n  <!-- 能力 -->\n  <div class=\"card\">\n    <h2><span class=\"n\">01</span>它解决了什么</h2>\n    <div class=\"sub\">通过情境题和图形报告，探索自己的行为偏好</div>\n    <div class=\"caps\">\n      <div class=\"cap\"><div class=\"ic\">📋</div><b>情境答题</b><p>十道单选情境题，选择最符合自己的一项。</p></div>\n      <div class=\"cap\"><div class=\"ic\">📲</div><b>本地作答</b><p>无需填写个人资料，作答过程保留在当前页面。</p></div>\n      <div class=\"cap\"><div class=\"ic\">📊</div><b>图形报告</b><p>即时显示四维得分、雷达图和沟通建议。</p></div>\n    </div>\n  </div>\n\n  <!-- 使用说明 -->\n  <div class=\"card\">\n    <h2><span class=\"n\">02</span>怎么用 · 四步</h2>\n    <div class=\"sub\">界面与使用说明清晰，四步即可上手</div>\n    <div class=\"how\">\n      <div class=\"step\"><div class=\"num\">1</div><div class=\"body\"><b>开始体验</b><p>打开体验卷，开始十道情境选择题。</p></div></div>\n      <div class=\"step\"><div class=\"num\">2</div><div class=\"body\"><b>选择答案</b><p>每题选择最符合自己的一项，自动进入下一题。</p></div></div>\n      <div class=\"step\"><div class=\"num\">3</div><div class=\"body\"><b>完成答题</b><p>完成十题后，在浏览器中计算得分。</p></div></div>\n      <div class=\"step\"><div class=\"num\">4</div><div class=\"body\"><b>看报告</b><p>答完即时查看图形化个人报告。</p></div></div>\n    </div>\n  </div>\n\n  <!-- 免登录体验 -->\n  <div class=\"card exp\" id=\"exp\">\n    <span class=\"badge\">免登录体验</span>\n    <h2>先尝一口：DISC 行为风格体验卷</h2>\n    <div class=\"sub\">无需注册，10 道题约 1 分钟，浏览器本地算分，结果不上传不留存</div>\n\n    <!-- 体验首页 -->\n    <div id=\"e-home\">\n      <div class=\"e-steps\">\n        <div class=\"e-step\"><i>1</i><p>10 道题<br>约 1 分钟</p></div>\n        <div class=\"e-step\"><i>2</i><p>自动算分<br>无需等待</p></div>\n        <div class=\"e-step\"><i>3</i><p>生成报告<br>图形化解读</p></div>\n      </div>\n      <button class=\"btn\" onclick=\"startExp()\">开始体验 →</button>\n      <div class=\"exp-note\">这是精简体验卷，不包含组卷、团体报告与 PDF 导出。</div>\n    </div>\n\n    <!-- 答题 -->\n    <div id=\"e-quiz\" style=\"display:none\">\n      <div class=\"prog-top\">\n        <div class=\"prog\"><i id=\"epb\"></i></div>\n        <div class=\"prog-t\" id=\"ept\">1 / 10</div>\n      </div>\n      <div class=\"qtitle\" id=\"eqt\"></div>\n      <div class=\"qtext\" id=\"eqx\"></div>\n      <div class=\"qhint\">选择最符合你的一项</div>\n      <div class=\"opts\" id=\"eqa\"></div>\n    </div>\n\n    <!-- 报告 -->\n    <div id=\"e-report\" style=\"display:none\">\n      <div class=\"rh\">\n        <span class=\"badge\" style=\"margin-bottom:8px\">你的 DISC 报告</span>\n        <h3 id=\"er-title\"></h3>\n        <p id=\"er-sub\"></p>\n        <div class=\"radar-box\"><div id=\"er-radar\"></div></div>\n        <div class=\"tags\" id=\"er-tags\"></div>\n      </div>\n      <div class=\"sec\" style=\"margin-top:16px;padding-top:16px\">\n        <h4>四维得分</h4>\n        <div class=\"bars\" id=\"er-bars\"></div>\n      </div>\n      <div class=\"sec\">\n        <h4>你的行为底色</h4>\n        <p id=\"er-sum\"></p>\n      </div>\n      <div class=\"sec\">\n        <h4>优势与提醒</h4>\n        <dl class=\"kv\" id=\"er-kv\"></dl>\n      </div>\n      <div class=\"sec\">\n        <h4>沟通建议</h4>\n        <p id=\"er-tip\"></p>\n      </div>\n      <div class=\"note\">\n        本体验结果由浏览器本地计算生成，不上传、不留存任何数据。本体验不包含组卷、团体报告与 PDF 导出。\n      </div>\n      <button class=\"btn ghost\" onclick=\"homeExp()\" style=\"margin-top:14px\">再测一次</button>\n    </div>\n  </div>\n\n  <!-- 数据安全 -->\n  <div class=\"card\">\n    <h2><span class=\"n\">03</span>数据安全是怎么做的</h2>\n    <div class=\"sub\">作答仅在当前页面内处理</div>\n    <div class=\"safe\">\n      <b>① 无数据库：</b>本体验不读取或保存测评数据库。<br>\n      <b>② 本地计算：</b>体验卷评分全程在浏览器本地完成，结果不出本机。<br>\n      <b>③ 不留存：</b>刷新或关闭页面后，作答结果会清空。<br>\n      <b>④ 体验范围：</b>本页面仅提供十题体验卷。\n    </div>\n  </div>\n\n  <div class=\"ft\">\n    人才测评站 · DISC 行为风格（网页应用）<br>\n    本页为公开体验版，所有测评数据均在本地处理，不上传不留存。\n  </div>\n\n</div>\n\n";
+
+// ===== 体验题库（10 题 DISC 四维迫选，用于体验）=====
+var EQ = [
+  {q:"面对一项新任务，你的第一反应通常是", o:[["先把它推进起来，边做边调整","D"],["先聊聊，看看能拉谁一起干","I"],["先确认步骤和风险，想清楚再动","S"],["先查资料和标准，搞清规则再开始","C"]]},
+  {q:"开会讨论时，你更像哪一种人", o:[["直说结论，推动尽快拍板","D"],["活跃气氛，愿意多表达想法","I"],["多听少说，照顾大家的意见","S"],["追问细节，指出逻辑和数据漏洞","C"]]},
+  {q:"遇到突发状况，你会", o:[["马上接管，快速给出方向","D"],["安抚大家情绪，先稳住场面","I"],["按流程一步步处理，稳字当头","S"],["先复盘原因，找出根因再解决","C"]]},
+  {q:"你更希望别人怎么评价你", o:[["有魄力、能扛事","D"],["有感染力、好相处","I"],["可靠、踏实","S"],["专业、严谨","C"]]},
+  {q:"一天的工作节奏，你偏好", o:[["目标驱动，打完卡就推进下一个","D"],["随时交流，边聊边产出","I"],["按部就班，稳定输出","S"],["留足时间检查，确保零差错","C"]]},
+  {q:"当别人不同意你的看法", o:[["坚持立场，用结果说话","D"],["先认同再说服，保持关系","I"],["退一步想想，避免正面冲突","S"],["摆事实讲证据，重新论证","C"]]},
+  {q:"你做决定时更看重", o:[["效率与结果","D"],["大家的感受与认同","I"],["稳妥与可执行","S"],["准确与合规","C"]]},
+  {q:"形容自己的口头禅，最接近的是", o:[["别废话，干就完了","D"],["这个有意思，咱们试试","I"],["不急，慢慢来","S"],["依据是什么？","C"]]},
+  {q:"压力大的时候，你容易", o:[["变得更强势，催进度","D"],["变得更话多，找人倾诉","I"],["变得更沉默，自己扛着","S"],["变得更较真，反复核对","C"]]},
+  {q:"理想中的工作伙伴是", o:[["能独当一面、敢拍板的人","D"],["有热情、能带动气氛的人","I"],["稳定可靠、说到做到的人","S"],["细致严谨、有章法的人","C"]]}
+];
+var EDIM = {
+  D:{n:"支配型 D", color:"#E4572E", full:"#E4572E",
+     sum:"你习惯先看目标，再看路径。遇到事情倾向于快速定方向、马上推进，不喜欢长时间悬而未决。",
+     good:"敢决断、抗压强、推进力足", risk:"容易忽略他人感受，节奏偏快",
+     tip:"沟通时先给结论再讲理由；把「为什么这样做」补上，团队跟得上你的速度。"},
+  I:{n:"影响型 I", color:"#F2B705", full:"#E0A800",
+     sum:"你擅长把人聚起来。表达欲强、有感染力，能在陌生环境里快速打开局面。",
+     good:"善于表达、感染力强、人脉开", risk:"细节跟进容易松，承诺可能超前",
+     tip:"重要事项落成文字清单；答应之前先核一遍自己的排期。"},
+  S:{n:"稳健型 S", color:"#3AA6A6", full:"#2E8B8B",
+     sum:"你是团队里最稳的那块基石。做事有章法，答应的事一定做到，情绪也少有大起大落。",
+     good:"可靠、耐心、善于倾听", risk:"变化来时需要更长适应期",
+     tip:"遇到突发变动，先给自己十分钟梳理；有不同意见尽早说，别攒到最后。"},
+  C:{n:"谨慎型 C", color:"#4C6EF5", full:"#3B5BDB",
+     sum:"你对准确率有天然的要求。凡事讲依据、重流程，是团队里最不容易出错的那道关。",
+     good:"严谨、逻辑强、质量高", risk:"容易因追求完美拖慢进度",
+     tip:"给任务设一个「够好」的标准；八十分该交就交，剩下的在迭代里补。"}
+};
+var eCur=0, eAns=[], reportTimer=null;
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function showExp(p){
+  ['home','quiz','report'].forEach(function(k){
+    document.getElementById('e-'+k).style.display = (k===p?'':'none');
+  });
+  window.scrollTo({top:document.getElementById('exp').offsetTop-70,behavior:'smooth'});
+}
+function startExp(){clearTimeout(reportTimer);eCur=0;eAns=[];showExp('quiz');renderExp();}
+function homeExp(){clearTimeout(reportTimer);eCur=0;eAns=[];showExp('home');}
+function renderExp(){
+  var q=EQ[eCur];
+  document.getElementById('eqt').textContent='第 '+(eCur+1)+' 题 / 共 '+EQ.length+' 题';
+  document.getElementById('eqx').textContent=q.q;
+  document.getElementById('ept').textContent=(eCur+1)+' / '+EQ.length;
+  document.getElementById('epb').style.width=(eCur/EQ.length*100)+'%';
+  var box=document.getElementById('eqa');box.innerHTML='';
+  var keys=['A','B','C','D'];
+  q.o.forEach(function(item,i){
+    var b=document.createElement('button');b.className='opt';b.type='button';
+    b.innerHTML='<span class="k">'+keys[i]+'</span><span>'+esc(item[0])+'</span>';
+    b.onclick=function(){pickExp(item[1]);};
+    box.appendChild(b);
+  });
+}
+function pickExp(dim){
+  eAns.push(dim);
+  if(eCur<EQ.length-1){eCur++;renderExp();}
+  else{document.getElementById('epb').style.width='100%';document.querySelectorAll('#eqa button').forEach(function(b){b.disabled=true;});reportTimer=setTimeout(reportExp,220);}
+}
+function scoreExp(){var s={D:0,I:0,S:0,C:0};eAns.forEach(function(d){s[d]++;});return s;}
+function reportExp(){
+  showExp('report');
+  var s=scoreExp(),total=EQ.length;
+  var arr=['D','I','S','C'].map(function(k){return {k:k,v:s[k]};}).sort(function(a,b){return b.v-a.v;});
+  var top=arr[0],second=arr[1];
+  var pct=function(v){return Math.round(v/total*100);};
+  document.getElementById('er-title').textContent=EDIM[top.k].n;
+  document.getElementById('er-sub').textContent='你的主导风格是'+EDIM[top.k].n.split(' ')[0]+'，辅助风格为'+EDIM[second.k].n.split(' ')[0]+'。';
+  var bars=document.getElementById('er-bars');bars.innerHTML='';
+  ['D','I','S','C'].forEach(function(k){
+    var row=document.createElement('div');row.className='bar';
+    row.innerHTML='<div class="lb"><span class="dot" style="background:'+EDIM[k].color+'"></span>'+
+      '<span class="nm">'+k+'　'+esc(EDIM[k].n.split(' ')[1]||EDIM[k].n)+'</span>'+
+      '<span class="pc">'+s[k]+' 项 · '+pct(s[k])+'%</span></div>'+
+      '<div class="track"><i data-w="'+pct(s[k])+'" style="background:'+EDIM[k].color+'"></i></div>';
+    bars.appendChild(row);
+  });
+  setTimeout(function(){document.querySelectorAll('#er-bars .track i').forEach(function(el){el.style.width=el.dataset.w+'%';});},60);
+  erRadar(s,pct);
+  var tg=document.getElementById('er-tags');tg.innerHTML='';
+  [top.k,second.k,'报告由本地计算'].forEach(function(t,i){
+    var sp=document.createElement('span');sp.className='tag';
+    if(i===0){sp.style.background=EDIM[top.k].color;sp.style.color='#fff';sp.textContent='主导 · '+t;}
+    else if(i===1){sp.style.background=EDIM[second.k].color;sp.style.color='#fff';sp.textContent='辅助 · '+t;}
+    else sp.textContent=t;
+    tg.appendChild(sp);
+  });
+  document.getElementById('er-sum').textContent=EDIM[top.k].sum+' '+EDIM[second.k].sum;
+  var kv=document.getElementById('er-kv');kv.innerHTML='';
+  [['核心优势',EDIM[top.k].good],['潜在盲区',EDIM[top.k].risk],['辅助特质',EDIM[second.k].good]].forEach(function(p){
+    kv.innerHTML+='<dt>'+p[0]+'</dt><dd>'+esc(p[1])+'</dd>';
+  });
+  document.getElementById('er-tip').textContent=EDIM[top.k].tip+' '+EDIM[second.k].tip;
+}
+function erRadar(s,pct){
+  var cx=130,cy=125,R=88,labels=['D','I','S','C'],vals=[pct(s.D),pct(s.I),pct(s.S),pct(s.C)];
+  var maxv=Math.max(40,Math.max.apply(null,vals));
+  var pt=function(i,r){var a=-Math.PI/2+i*Math.PI/2;return [cx+Math.cos(a)*r,cy+Math.sin(a)*r];};
+  var sv='<svg viewBox="0 0 260 250" width="260" height="250" xmlns="http://www.w3.org/2000/svg">';
+  [0.25,0.5,0.75,1].forEach(function(f){
+    var ps=[];for(var i=0;i<4;i++){var p=pt(i,R*f);ps.push(p[0]+','+p[1]);}
+    sv+='<polygon points="'+ps.join(' ')+'" fill="none" stroke="#EAECF0" stroke-width="1"/>';
+  });
+  for(var i=0;i<4;i++){var p=pt(i,R);sv+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#EAECF0" stroke-width="1"/>';}
+  var dpts=[];for(var j=0;j<4;j++){var pj=pt(j,R*Math.min(1,vals[j]/maxv));dpts.push(pj[0]+','+pj[1]);}
+  sv+='<polygon points="'+dpts.join(' ')+'" fill="rgba(14,159,110,.15)" stroke="#0E9F6E" stroke-width="2.2" stroke-linejoin="round"/>';
+  for(var k=0;k<4;k++){var pk=pt(k,R*Math.min(1,vals[k]/maxv));sv+='<circle cx="'+pk[0]+'" cy="'+pk[1]+'" r="4" fill="'+EDIM[labels[k]].color+'"/>';}
+  for(var m=0;m<4;m++){var pm=pt(m,R+18);
+    sv+='<text x="'+pm[0]+'" y="'+pm[1]+'" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="'+EDIM[labels[m]].color+'">'+labels[m]+'</text>';
+    sv+='<text x="'+pm[0]+'" y="'+(pm[1]+13)+'" text-anchor="middle" font-size="10.5" fill="#98A0AB">'+vals[m]+'%</text>';}
+  sv+='</svg>';
+  document.getElementById('er-radar').innerHTML=sv;
+}
+
+Object.assign(window,{startExp,homeExp});
