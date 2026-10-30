@@ -1,0 +1,1 @@
+import {build} from 'vite';import {readFile} from 'node:fs/promises';const c=process.argv[2];if(!/^[0-9a-f]{40}$/.test(c||''))throw Error('完整提交号必填');const s=JSON.parse(await readFile('source.json'));await build();console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',database_instance_id:s.database_instance_id,git_instance_id:s.git_instance_id}));
