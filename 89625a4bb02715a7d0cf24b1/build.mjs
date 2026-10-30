@@ -1,0 +1,2 @@
+import {build} from 'esbuild'; import {mkdir,cp,readFile} from 'node:fs/promises';
+await mkdir('dist/assets',{recursive:true}); await build({entryPoints:['src/main.js'],bundle:true,format:'esm',outfile:'dist/assets/app.js',loader:{'.html':'text','.css':'text'},define:{'process.env.NODE_ENV':'"production"'}}); await cp('public/icon.png','dist/icon.png'); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({...JSON.parse(await readFile('source.json','utf8')),entry:'assets/app.js'}));
