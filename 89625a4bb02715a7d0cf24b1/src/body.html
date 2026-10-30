@@ -1,0 +1,144 @@
+
+
+<header class="hd">
+  <div class="hd-in">
+    <div>
+      <h1>写作进度与完本体检工作台</h1>
+      <p class="sub">为网文作者打造：记录每部作品的字数进度与完本倒计时，并按「完本体检 → 拆书蒸馏 → 经验吸纳 → 榨干判定 → 移库归档」的链路跟踪每本书的沉淀状态。数据保存在应用数据库中，随时增删改。</p>
+    </div>
+    <button class="btn primary" id="btnAdd" style="background:#fff; color:var(--brandink); box-shadow:0 2px 10px rgba(0,0,0,.18)">＋ 新增作品</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="kpis">
+    <div class="kpi"><b id="kpiActive">—</b><span>连载中作品</span></div>
+    <div class="kpi"><b id="kpiWords">—</b><span>累计总字数</span></div>
+    <div class="kpi"><b id="kpiDone">—</b><span>已完本作品</span></div>
+    <div class="kpi"><b id="kpiArchived">—</b><span>已移库归档</span></div>
+  </section>
+
+  <section class="legend">
+    <span class="lg-t">完本链路</span>
+    <div class="lg-list" id="legendList"></div>
+  </section>
+
+  <section id="listWrap">
+    <div class="skel" id="skel">
+      <div class="sk"><i></i></div><div class="sk"><i></i></div><div class="sk"><i></i></div>
+    </div>
+    <div class="loading-tip" hidden id="loadingTip">加载中…</div>
+    <div class="grid" hidden id="bookList"></div>
+    <div class="empty" hidden id="emptyState">
+      <div class="be">📖</div>
+      <b>还没有作品记录</b>
+      <p>点「新增作品」把在写的书录进来，字数进度和完本倒计时会自动算好。</p>
+      <button class="btn primary" id="emptyAdd">＋ 新增第一部作品</button>
+    </div>
+    <div class="errbox" hidden id="errState">数据加载失败，请稍后刷新重试。</div>
+  </section>
+
+  <section class="help">
+    <h2>使用说明</h2>
+    <ol>
+      <li><strong>新增作品：</strong>填写名称、平台、目标字数与当前字数，日均更新用于估算完本倒计时。</li>
+      <li><strong>每日更新：</strong>在作品卡片点「更新进度」，改当前字数即可，进度条与倒计时实时重算。</li>
+      <li><strong>完本后：</strong>把「链路状态」往后拨——待完本体检 → 已完本体检 → 已拆书蒸馏 → 经验已吸纳 → 待榨干判定 → 已移库归档，每本书的沉淀进度一目了然。</li>
+    </ol>
+  </section>
+
+</main>
+
+<!-- 新增作品弹窗 -->
+<div class="mask" hidden id="addMask">
+  <div aria-modal="true" class="dlg" role="dialog">
+    <div class="dlg-h"><b>＋ 新增作品</b><button aria-label="关闭" class="x" id="addClose">✕</button></div>
+    <form class="dlg-b" id="addForm" novalidate>
+      <label>作品名称<i>*</i>
+        <input maxlength="30" name="name" placeholder="给你的作品取个名字" required type="text">
+      </label>
+      <div class="row2">
+        <label>平台<i>*</i>
+          <select name="platform" required><option value>请选择</option></select>
+        </label>
+        <label>开书日期
+          <input name="start" type="date">
+        </label>
+      </div>
+      <div class="row3">
+        <label>目标字数<i>*</i>
+          <input min="1" name="target" placeholder="如 1500000" required step="1" type="number">
+        </label>
+        <label>当前字数
+          <input min="0" name="current" placeholder="如 486000" step="1" type="number">
+        </label>
+        <label>日均更新（字）
+          <input min="0" name="daily" placeholder="如 6000" step="100" type="number">
+        </label>
+      </div>
+      <label>链路状态<i>*</i>
+        <select name="stage" required><option value>请选择</option></select>
+      </label>
+      <label>备注
+        <input maxlength="60" name="note" placeholder="可选，如：冲榜中 / 准备完结" type="text">
+      </label>
+    </form>
+    <div class="dlg-f">
+      <span class="tip" id="addTip">填写内容会自动存草稿，提交成功后清零</span>
+      <button class="btn primary" form="addForm" id="addSubmit" type="submit">保存作品</button>
+    </div>
+  </div>
+</div>
+
+<!-- 更新进度弹窗 -->
+<div class="mask" hidden id="editMask">
+  <div aria-modal="true" class="dlg" role="dialog">
+    <div class="dlg-h"><b id="editTitle">更新进度</b><button aria-label="关闭" class="x" id="editClose">✕</button></div>
+    <div class="dlg-b">
+      <p class="edit-meta" id="editMeta"></p>
+      <label style="margin-top:12px">当前字数<i>*</i>
+        <input id="editCurrent" min="0" step="1" type="number">
+      </label>
+      <label>链路状态
+        <select id="editStage"><option value>请选择</option></select>
+      </label>
+      <label>备注
+        <input id="editNote" maxlength="60" type="text">
+      </label>
+    </div>
+    <div class="dlg-f">
+      <button class="btn danger" id="editDelete">删除作品</button>
+      <span class="sp"></span>
+      <button class="btn primary" id="editSave">保存更新</button>
+    </div>
+  </div>
+</div>
+
+<!-- 作品卡片模板：静态存在于 HTML 中，渲染时克隆填充 -->
+<template id="bookTpl">
+  <article class="book">
+    <div class="book-top">
+      <div class="book-name"></div>
+      <span class="badge b-plat book-platform"></span>
+      <span class="badge b-stage book-stage"></span>
+    </div>
+    <div class="book-meta">
+      <span class="book-date"></span>
+      <span class="book-progress-text"></span>
+    </div>
+    <div class="book-progress">
+      <div class="bp-row"><b></b><span class="pct"></span></div>
+      <div class="bar"><i></i></div>
+    </div>
+    <div class="book-eta"></div>
+    <div class="book-note"></div>
+    <div class="book-ops">
+      <button class="btn ghost" data-act="edit" type="button">✏️ 更新进度</button>
+      <button class="btn ghost" data-act="del" type="button">🗑 删除</button>
+    </div>
+  </article>
+</template>
+
+<div class="toast" id="toast"></div>
+
