@@ -4032,7 +4032,7 @@ window.__QR_SRC = '';
       '</div>' +
       '<div class="block">' +
         '<span class="block-title serif">六 维 灵 脉</span>' +
-        '<span class="block-body">每维两问定基，可疑的角再追 2~3 问。图上的分数已含追脉成绩。</span>' +
+        '<span class="block-body">每维两问定基，可疑的角再追 2~3 问。如进行了追脉，图上的分数会包含追脉成绩。</span>' +
         '<div class="radar-wrap"><canvas id="radarCv" class="radar-cv"></canvas></div>' +
         '<div class="dm-list">' + dmHtml + '</div>' +
       '</div>' +
