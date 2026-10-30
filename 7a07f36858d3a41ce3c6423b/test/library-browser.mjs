@@ -130,6 +130,7 @@ const server = createServer(async (req, res) => {
       res.end("Unavailable");
     } else res.end(fileContents.get(path) ?? rom);
   } else {
+    res.setHeader("Content-Security-Policy", "connect-src 'self'");
     res.setHeader("Content-Type", "text/html");
     res.end(`<meta name="viewport" content="width=device-width, initial-scale=1"><div id="app"></div><script>
       window.tiana = {appId:"test", connection:async()=>({sql_api:"hrana-v3",origin:location.origin}),files:{

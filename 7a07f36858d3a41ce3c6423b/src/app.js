@@ -457,7 +457,9 @@ $("slots").onclick = (event) => {
       const prefix = `saves/${current.rom_hash}/${slot}-${crypto.randomUUID()}`;
       const statePath = `${prefix}.json.gz`, screenshotPath = `${prefix}.png`;
       const stateBytes = Uint8Array.from(atob(state), c => c.charCodeAt(0));
-      const screenshot = await (await fetch(emulator.screenshot().src)).blob();
+      const imageData = emulator.screenshot().src.split(",", 2)[1];
+      const imageBytes = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+      const screenshot = new Blob([imageBytes], {type: "image/png"});
       await files.put(statePath, new Blob([stateBytes], {type: "application/gzip"}));
       await files.put(screenshotPath, screenshot);
       await storage.save(current.rom_hash, slot, statePath, screenshotPath, new Date().toISOString());
