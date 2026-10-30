@@ -1,0 +1,75 @@
+import LunarLib from 'lunar-javascript';
+const {Solar,Lunar,LunarMonth}=LunarLib;
+export function uid(){const values=new Uint32Array(4);globalThis.crypto.getRandomValues(values);return Array.from(values,n=>n.toString(16).padStart(8,'0')).join('');}
+export const pad=n=>String(n).padStart(2,'0');
+export const dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+export function dateOf(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s||''))throw Error('日期格式须为年-月-日');const[y,m,d]=s.split('-').map(Number),v=new Date(y,m-1,d,12);if(v.getFullYear()!==y||v.getMonth()!==m-1||v.getDate()!==d||y<1901||y>2099)throw Error('请选择1901–2099年内有效日期');return v;}
+export const today=()=>dateKey(new Date());
+export const addDays=(s,n)=>{const d=dateOf(s);d.setDate(d.getDate()+n);return dateKey(d);};
+export const distance=(a,b)=>{const x=dateOf(a),y=dateOf(b);return Math.round((Date.UTC(y.getFullYear(),y.getMonth(),y.getDate())-Date.UTC(x.getFullYear(),x.getMonth(),x.getDate()))/86400000);};
+export function shiftMonth(s,n){const d=dateOf(s),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return dateKey(d);}
+export function calendarInfo(s){const d=dateOf(s),l=Solar.fromYmd(d.getFullYear(),d.getMonth()+1,d.getDate()).getLunar();return {lunar:l.getMonthInChinese()+'月'+l.getDayInChinese(),year:l.getYear(),month:l.getMonth(),day:l.getDay(),term:l.getJieQi(),festivals:[...l.getFestivals(),...l.getSolar().getFestivals()],yi:l.getDayYi(),ji:l.getDayJi(),ganZhi:l.getYearInGanZhi()+'年 '+l.getMonthInGanZhi()+'月 '+l.getDayInGanZhi()+'日'};}
+const solarFestivals={'元旦':[1,1],'情人节':[2,14],'妇女节':[3,8],'劳动节':[5,1],'儿童节':[6,1],'国庆节':[10,1],'圣诞节':[12,25]};
+const lunarFestivals={'春节':[1,1],'元宵节':[1,15],'端午节':[5,5],'七夕':[7,7],'中秋节':[8,15],'重阳节':[9,9],'腊八节':[12,8],'除夕':[12,30]};
+export function lunarYearEnd(year){const month=LunarMonth.fromYm(year,12);if(!month)throw Error('农历年份无效');return Lunar.fromYmd(year,12,month.getDayCount()).getSolar().toYmd();}
+export function festivalDate(name,year){if(name==='除夕')return lunarYearEnd(year-1);const v=solarFestivals[name];if(v)return `${year}-${pad(v[0])}-${pad(v[1])}`;const l=lunarFestivals[name];if(l)return Lunar.fromYmd(year,...l).getSolar().toYmd();return null;}
+export function nextOccurrence(e,from=today()){
+ const anchor=dateOf(e.date),duration=e.duration||1,start=addDays(from,-duration+1);if(e.repeat==='none'||!e.repeat)return e.date;
+ if(e.repeat==='lunar'){const l=e.lunar||calendarInfo(e.date);for(let y=Math.max(l.year,dateOf(start).getFullYear()-1);y<=2099;y++){let v;try{v=l.lastDay?lunarYearEnd(y):Lunar.fromYmd(y,l.month,l.day).getSolar().toYmd();}catch{if(l.day===30)try{v=Lunar.fromYmd(y,l.month,29).getSolar().toYmd();}catch{continue;}else continue;}if(v>='1901-01-01'&&v<='2099-12-31'&&v>=e.date&&v>=start)return v;}return null;}
+ const days=e.weekdays?.length?e.weekdays:[anchor.getDay()],interval=e.interval||1;
+ for(let s=start<e.date?e.date:start,i=0;i<3660&&s<='2099-12-31';i++,s=addDays(s,1)){
+  const d=dateOf(s),diff=distance(e.date,s);let match=false;
+  if(e.repeat==='daily')match=diff%interval===0;
+  if(e.repeat==='weekly'){const week=d0=>addDays(dateKey(d0),-(d0.getDay()+6)%7);const elapsed=distance(week(anchor),week(d))/7;match=days.includes(d.getDay())&&elapsed%interval===0;}
+  if(e.repeat==='monthly'){const elapsed=(d.getFullYear()-anchor.getFullYear())*12+d.getMonth()-anchor.getMonth();match=elapsed%interval===0&&d.getDate()===Math.min(e.monthDay||anchor.getDate(),new Date(d.getFullYear(),d.getMonth()+1,0).getDate());}
+  if(e.repeat==='yearly')match=(d.getFullYear()-anchor.getFullYear())%interval===0&&d.getMonth()===anchor.getMonth()&&d.getDate()===Math.min(anchor.getDate(),new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+  if(match)return s;
+ }return null;
+}
+export function eventStatus(e,from=today()){const next=nextOccurrence(e,from);if(!next)return {next:null,days:null,label:'暂无下一次'};const days=distance(from,next),end=addDays(next,(e.duration||1)-1);return {next,days,end,label:next<=from&&end>=from?'进行中':days<0?'已过 '+Math.abs(days)+' 天':days===0?'就是今天':'还有 '+days+' 天'};}
+export function validateEvent(e){if(!e.title?.trim()||e.title.length>120)throw Error('事件名称1–120字');dateOf(e.date);if(e.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time))throw Error('时间不正确');if(!['none','daily','weekly','monthly','yearly','lunar'].includes(e.repeat))throw Error('不支持的重复类型');if(e.monthDay!=null&&(!Number.isInteger(e.monthDay)||e.monthDay<1||e.monthDay>31))throw Error('月重复目标日1–31');if(!Number.isInteger(e.duration)||e.duration<1||e.duration>366)throw Error('持续天数1–366');if(!Number.isInteger(e.prep)||e.prep<0||e.prep>365)throw Error('提前准备0–365天');return e;}
+function cn(v){if(/^\d+$/.test(v))return Number(v);const chars='零一二三四五六七八九',t=v.replaceAll('两','二');if(t.includes('十')){const[a,b]=t.split('十');return (a?chars.indexOf(a):1)*10+(b?chars.indexOf(b):0);}return chars.indexOf(t);}
+export function parseEvent(text,base=today()){
+ let rest=text.trim(),date=null,time='',repeat='none',weekdays=[],lunar=null,monthDay=null,matched=[];const b=dateOf(base),take=(re,fn)=>{const m=rest.match(re);if(!m)return false;fn(m);matched.push(m[0]);rest=rest.replace(m[0],' ');return true;};
+ take(/(上午|早上|中午|下午|傍晚|晚上)?\s*([零一二三四五六七八九十两\d]{1,3})(?:[:：](\d{1,2})|点(?:(半)|([零一二三四五六七八九十\d]{1,3})分?)?)/,m=>{let h=cn(m[2]),mi=m[3]?+m[3]:m[4]?30:m[5]?cn(m[5]):0;if(['下午','傍晚','晚上'].includes(m[1])&&h<12)h+=12;if(m[1]==='中午'&&h<11)h+=12;if(h>23||mi>59||h<0||mi<0)throw Error('未能识别时间，请手动选择');time=pad(h)+':'+pad(mi);});
+ if(!take(/(\d{4})[年/-](\d{1,2})[月/-](\d{1,2})[日号]?/,m=>date=`${m[1]}-${pad(+m[2])}-${pad(+m[3])}`)){
+  take(/(每年|今年|明年|后年|去年)?\s*(\d{1,2})月(\d{1,2})[日号]?/,m=>{const offset=({'今年':0,'明年':1,'后年':2,'去年':-1})[m[1]]??0;date=`${b.getFullYear()+offset}-${pad(+m[2])}-${pad(+m[3])}`;if(m[1]==='每年')repeat='yearly';if(date<base&&(!m[1]||m[1]==='每年'))date=shiftMonth(date,12);});
+ }
+ take(/(每|下下|下|本|这)?(?:周|星期)([一二三四五六日天](?:[、,，和及 ]*[一二三四五六日天])*)/,m=>{weekdays=[...m[2]].filter(c=>'一二三四五六日天'.includes(c)).map(c=>'日一二三四五六'.indexOf(c==='天'?'日':c));const current=b.getDay(),offsets=weekdays.map(day=>{let offset=(day+6)%7-(current+6)%7;if(m[1]==='下')offset+=7;else if(m[1]==='下下')offset+=14;else if(offset<0)offset+=7;return offset;});date=addDays(base,Math.min(...offsets));if(m[1]==='每')repeat='weekly';});
+ take(/每月\s*([一二三四五六七八九十两\d]{1,3})[日号]/,m=>{const day=cn(m[1]);if(day<1||day>31)throw Error('每月日期1–31');monthDay=day;date=dateKey(new Date(b.getFullYear(),b.getMonth(),Math.min(day,new Date(b.getFullYear(),b.getMonth()+1,0).getDate()),12));if(date<base){const next=shiftMonth(base.slice(0,7)+'-01',1),d=dateOf(next);date=dateKey(new Date(d.getFullYear(),d.getMonth(),Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()),12));}repeat='monthly';});
+ take(/([一二三四五六七八九十两\d]{1,3})(天|日|周|星期|个月|月|年)后/,m=>{const n=cn(m[1]);date=['月','个月','年'].includes(m[2])?shiftMonth(base,n*(m[2]==='年'?12:1)):addDays(base,n*(['周','星期'].includes(m[2])?7:1));});
+ take(/大后天|后天|明天|今天|前天|昨天/,m=>{date=addDays(base,({'大后天':3,'后天':2,'明天':1,'今天':0,'前天':-2,'昨天':-1})[m[0]]);});
+ if(!date){for(const [alias,name]of Object.entries({'过年':'春节','中秋':'中秋节','十一':'国庆节',...Object.fromEntries([...Object.keys(solarFestivals),...Object.keys(lunarFestivals)].map(n=>[n,n]))}).sort((a,b)=>b[0].length-a[0].length)){if(rest.includes(alias)){let year=b.getFullYear()+(rest.includes('明年')?1:rest.includes('后年')?2:0);date=festivalDate(name,year);if(date<base&&!/(今年|明年|后年)/.test(rest))date=festivalDate(name,year+1);if(rest.includes('每年'))repeat=name in lunarFestivals?'lunar':'yearly';rest=rest.replace(alias,'').replace(/今年|明年|后年|每年/g,'');if(name in lunarFestivals){lunar=calendarInfo(date);if(name==='除夕')lunar.lastDay=true;}if(!rest.trim())rest=name;matched.push(alias);break;}}}
+ if(!date&&rest.includes('每天')){date=base;repeat='daily';rest=rest.replace('每天','');matched.push('每天');}
+ if(!date)throw Error('未识别到日期，请使用“明天下午3点 面试”或手动录入');dateOf(date);let category='生活',prep=0;for(const [re,c,p]of [[/面试|考试|考研|答辩/,'学习',14],[/旅行|出差|航班|旅游/,'出行',7],[/生日|纪念日/,'纪念',3],[/还款|缴费|账单/,'账单',3],[/发布|上线|交付|会议/,'工作',5]])if(re.test(text)){category=c;prep=p;break;}
+ const title=rest.replace(/^[\s,，。:：]+|[\s,，。]+$/g,'').trim()||text.trim();return validateEvent({id:uid(),title,date,time,repeat,interval:1,weekdays,lunar,monthDay,duration:1,prep,category,note:'',pinned:false,archived:false,parsed:matched.join('、')});
+}
+export function orderEvents(events,base=today()){const rank=e=>{const s=eventStatus(e,base);return s.next&&e.duration>1&&s.next<=base&&s.end>=base?0:s.days===null?Infinity:Math.abs(s.days);};return [...events].sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))||(rank(a)-rank(b)||0));}
+export function streak(h,base=today()){const logs=new Set(h.checkins||[]);let count=0;if(h.frequency==='weekly'){const d=dateOf(base),monday=addDays(base,-((d.getDay()+6)%7));for(let w=0;w<520;w++){const start=addDays(monday,-7*w);let n=0;for(let i=0;i<7;i++)if(logs.has(addDays(start,i)))n++;if(n<(h.target||1))break;count++;}return count;}
+ for(let s=base,i=0;i<3660;i++,s=addDays(s,-1)){if(h.frequency==='weekdays'&&[0,6].includes(dateOf(s).getDay()))continue;if(!logs.has(s))break;count++;}return count;}
+export function cents(text){if(!/^\d+(?:\.\d{1,2})?$/.test(String(text)))throw Error('金额须为正数且最多两位小数');const[a,b='']=String(text).split('.'),n=Number(a)*100+Number((b+'00').slice(0,2));if(!Number.isSafeInteger(n)||n<=0||n>1e12)throw Error('金额超出范围');return n;}
+export function blankWorkspace(){return {id:'workspace',title:'个人时间工作区',revision:0,events:[],habits:[],notes:[],todos:[],shopping:[],ledger:[],timers:[],settings:{quote:true,almanac:true,menu:true}};}
+export function sampleWorkspace(base=today()){const w=blankWorkspace();w.revision=1;w.events=[{id:'event-sample',title:'周末出发去看海',date:addDays(base,6),time:'09:00',category:'出行',duration:2,prep:3,repeat:'none',interval:1,weekdays:[],pinned:true,archived:false,note:'订好往返车票，带上相机。'}];w.habits=[{id:'habit-sample',name:'读书二十分钟',frequency:'daily',target:1,checkins:[addDays(base,-2),addDays(base,-1)]}];w.notes=[{id:'note-sample',title:'留给自己的片刻',text:'把重要的事放进日历，也给休息留一格。',date:base}];w.todos=[{id:'todo-sample',text:'整理本周笔记',done:false}];w.shopping=[{id:'shopping-sample',text:'燕麦与牛奶',done:false}];w.ledger=[{id:'ledger-sample',date:base,kind:'expense',category:'餐饮',amount:2850,note:'合成示例 · 午餐'}];return w;}
+const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+function textField(value,max,label,required=false){if(typeof value!=='string'||value.length>max||(required&&!value.trim()))throw Error(label+'无效');}
+function safeId(id){if(typeof id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(id))throw Error('记录ID必须为1–80位字母、数字、下划线或连字符');}
+function integerField(value,min,max,label){if(!Number.isSafeInteger(value)||value<min||value>max)throw Error(label+'无效');}
+export function validateWorkspace(w){
+ if(!record(w)||w.id!=='workspace')throw Error('备份不属于时间工作区');
+ textField(w.title,120,'工作区名称',true);integerField(w.revision??0,0,Number.MAX_SAFE_INTEGER,'记录版本');
+ if(!record(w.settings)||['quote','almanac','menu'].some(k=>typeof w.settings[k]!=='boolean'))throw Error('展示设置无效');
+ if(['festivalSuggestions','runningTimerWidget','notesModule','todoModule','shoppingModule','ledgerModule'].some(k=>w.settings[k]!==undefined&&typeof w.settings[k]!=='boolean'))throw Error('模块展示设置无效');
+ const ids=new Set();for(const k of ['events','habits','notes','todos','shopping','ledger','timers']){
+  if(!Array.isArray(w[k])||w[k].length>10000)throw Error('备份列表无效或超过10000条');
+  for(const entry of w[k]){if(!record(entry))throw Error(k+'中有无效记录');safeId(entry.id);if(ids.has(entry.id))throw Error('备份中有重复ID：'+entry.id);ids.add(entry.id);}
+ }
+ for(const e of w.events){validateEvent(e);if(e.appearanceEmoji!==undefined&&(typeof e.appearanceEmoji!=='string'||e.appearanceEmoji.length>16||!(/^[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F\u200D]+$/u).test(e.appearanceEmoji)))throw Error('日程图标无效');if(e.appearanceColor!==undefined&&!['blue','violet','pink','rose','amber','green','teal','slate'].includes(e.appearanceColor))throw Error('日程颜色无效');if(e.reminderDays!==undefined&&(!Array.isArray(e.reminderDays)||new Set(e.reminderDays).size!==e.reminderDays.length||e.reminderDays.some(d=>![1,3,7,14,30].includes(d))))throw Error('行动提醒无效');textField(e.title,120,'日程名称',true);textField(e.time,5,'日程时间');textField(e.note,5000,'日程备注');if(!['生活','工作','学习','出行','纪念','账单'].includes(e.category)||typeof e.pinned!=='boolean'||typeof e.archived!=='boolean')throw Error('日程分类或状态无效');integerField(e.interval,1,12,'重复间隔');if(!Array.isArray(e.weekdays)||e.weekdays.length>7||new Set(e.weekdays).size!==e.weekdays.length||e.weekdays.some(v=>!Number.isInteger(v)||v<0||v>6))throw Error('重复星期无效');if(e.lunar!=null){const l=e.lunar;if(record(l)&&l.lastDay!==undefined&&typeof l.lastDay!=='boolean')throw Error('农历月末标记无效');if(record(l)&&l.lastDay===true&&(l.month!==12||lunarYearEnd(l.year)!==e.date))throw Error('农历岁末与起点不一致');if(!record(l)||!Number.isInteger(l.year)||l.year<1900||l.year>2100||!Number.isInteger(l.month)||l.month===0||Math.abs(l.month)>12||!Number.isInteger(l.day)||l.day<1||l.day>30)throw Error('农历重复日期无效');try{if(Lunar.fromYmd(l.year,l.month,l.day).getSolar().toYmd()!==e.date)throw Error();}catch{throw Error('农历日期与日程起点不一致');}}}
+ for(const h of w.habits){textField(h.name,80,'习惯名称',true);if(!['daily','weekdays','weekly'].includes(h.frequency)||!Array.isArray(h.checkins)||h.checkins.length>10000||new Set(h.checkins).size!==h.checkins.length)throw Error('习惯打卡无效');integerField(h.target,1,7,'每周目标');h.checkins.forEach(dateOf);}
+ for(const n of w.notes){textField(n.title,120,'便签标题',true);textField(n.text,10000,'便签内容');dateOf(n.date);if(n.updatedAtMs!==undefined)integerField(n.updatedAtMs,Date.UTC(1901,0,1),Date.UTC(2100,0,1)-1,'便签更新时间');if(n.favorite!==undefined&&typeof n.favorite!=='boolean')throw Error('便签收藏状态无效');}
+ for(const n of [...w.todos,...w.shopping]){textField(n.text,300,'清单内容',true);if(typeof n.done!=='boolean')throw Error('清单完成状态无效');}
+ for(const l of w.ledger){dateOf(l.date);integerField(l.amount,1,1e12,'账目金额');if(!['income','expense'].includes(l.kind))throw Error('收支类型无效');textField(l.category,40,'账目分类',true);textField(l.note,300,'账目备注');}
+ for(const t of w.timers){textField(t.name,80,'计时名称',true);integerField(t.duration,60000,86400000,'计时长度');if(t.duration%60000!==0)throw Error('计时长度须为整分钟');integerField(t.remaining,0,t.duration,'剩余时间');integerField(t.endsAt,0,253402300799999,'计时截止时刻');if(typeof t.running!=='boolean'||(t.running&&t.endsAt===0))throw Error('计时状态无效');}
+ return w;
+}
+export function readWorkspaceBackup(text){const data=JSON.parse(text);if(!record(data)||data.format!=='timecraft-v1')throw Error('备份格式不支持');validateWorkspace(data.workspace);return structuredClone(data.workspace);}
+export function replaceWorkspace(current,imported){validateWorkspace(imported);return {...structuredClone(imported),id:'workspace',revision:current.revision};}
