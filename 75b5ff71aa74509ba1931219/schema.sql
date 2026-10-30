@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS box_parameters (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL);
