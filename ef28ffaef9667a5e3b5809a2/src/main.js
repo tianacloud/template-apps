@@ -171,7 +171,7 @@ function statsOf(list){
   const hourHist = new Array(24).fill(0);
   const dowHist = new Array(7).fill(0);
   const heat = Array.from({ length: 7 }, () => new Array(24).fill(0));
-  const byDate = {}, byAuthor = {}, extMap = {}, dirMap = {};
+  const byDate = Object.create(null), byAuthor = Object.create(null), extMap = Object.create(null), dirMap = Object.create(null);
   let churn = 0, addAll = 0, delAll = 0, msgLen = 0, conv = 0, emoji = 0;
   let fix = 0, feat = 0, refactor = 0, chore = 0, other = 0;
 
@@ -297,7 +297,7 @@ function buildReport(commits, meta){
   if (!prepared.length) return null;
   const st = statsOf(prepared);
 
-  const byAuthor = {};
+  const byAuthor = Object.create(null);
   prepared.forEach(c => {
     const a = byAuthor[c.author] || (byAuthor[c.author] = {
       name: c.author, n: 0, churn: 0, night: 0, weekend: 0, dates: {}
@@ -334,7 +334,7 @@ function buildCompare(commits, meta){
   const prepared = prepareCommits(commits);
   if (!prepared.length) return null;
 
-  const groups = {};
+  const groups = Object.create(null);
   prepared.forEach(c => { (groups[c.author] = groups[c.author] || []).push(c); });
 
   const members = Object.keys(groups).map(name => {
@@ -367,7 +367,7 @@ function buildCompare(commits, meta){
     { t: '全勤奖', d: '活跃天数', m: 'activeDays', dir: 'high', fmt: v => '活跃 ' + v + ' 天' }
   ];
   const awards = [];
-  const winCount = {};
+  const winCount = Object.create(null);
   awardDefs.forEach(def => {
     const arr = members.filter(m => def.min === undefined || m[def.m] >= def.min);
     if (!arr.length) return;
