@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+<title>风的观测 · 物理仿真演示</title>
+<style>
+  :root{
+    --ink:#16202b; --ink2:#4a5b6d; --ink3:#8496a8; --line:#dde5ee;
+    --bg:#eef3f8; --card:#fff;
+    --blue:#1f6fbf; --blue-d:#134d87; --blue-l:#e8f1fa;
+    --red:#c0392b; --green:#1f8a4c; --orange:#c8781a; --teal:#0e8f8f; --purple:#6d4bb8;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-size:14.5px;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 16px 64px;}
+
+  /* ---------- 页头 ---------- */
+  header.hero{background:linear-gradient(140deg,#fff,#eaf2fa 60%,#f4f8fc);
+    border:1px solid var(--line);border-radius:14px;padding:26px 26px;margin-bottom:14px;
+    box-shadow:0 6px 22px rgba(20,40,70,.06);}
+  .tag{display:inline-block;font:600 11.5px/1 var(--mono);letter-spacing:.1em;color:var(--blue);
+    background:var(--blue-l);padding:5px 11px;border-radius:4px;margin-bottom:10px;}
+  header.hero h1{margin:0 0 8px;font-size:25px;font-weight:700;letter-spacing:-.01em;}
+  header.hero p{margin:0;color:var(--ink2);font-size:14px;max-width:800px;}
+
+  nav.nav{display:flex;gap:7px;overflow-x:auto;padding:8px 2px 12px;-webkit-overflow-scrolling:touch;}
+  nav.nav::-webkit-scrollbar{display:none;}
+  nav.nav a{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--ink2);text-decoration:none;
+    background:#fff;border:1px solid var(--line);border-radius:99px;padding:5px 13px;}
+  nav.nav a:hover{color:var(--blue);border-color:var(--blue);background:var(--blue-l);}
+
+  /* ---------- 卡片 ---------- */
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px;margin-bottom:15px;box-shadow:0 4px 18px rgba(20,40,70,.05);scroll-margin-top:12px;}
+  h2{font-size:18px;margin:0 0 12px;display:flex;align-items:center;gap:10px;font-weight:700;}
+  h2 .n{width:27px;height:27px;flex:0 0 27px;border-radius:6px;background:var(--blue);color:#fff;
+    font:700 13px/27px var(--mono);text-align:center;}
+  h3{font-size:14.5px;margin:16px 0 8px;font-weight:700;}
+  p.mut{color:var(--ink2);font-size:13.5px;margin:0 0 10px;}
+  b.k{color:var(--ink);}
+
+  /* ---------- 题目 ---------- */
+  .qbox{background:#fdfbf4;border:1px solid #e6d9a8;border-radius:10px;padding:14px 16px;font-size:13.5px;}
+  .qrow{display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+  .qrow:last-child{margin-bottom:0;}
+  .qrow b{flex:0 0 96px;color:#8a6d1f;font-weight:600;}
+  .qrow span{flex:1;min-width:0;}
+  .hl{background:linear-gradient(transparent 60%,#ffe9a8 60%);font-weight:700;}
+
+  .grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start;}
+
+  /* ---------- 仿真画布 ---------- */
+  .sim{position:relative;border-radius:12px;overflow:hidden;border:1px solid #cdd9e6;
+    background:#dfeaf4;touch-action:none;user-select:none;}
+  .sim canvas{display:block;width:100%;height:100%;}
+  .sim.cloth{aspect-ratio:3/2;cursor:grab;}
+  .sim.cloth.drag{cursor:grabbing;}
+  .sim.cfd{aspect-ratio:10/7;background:#0d1620;border-color:#1d2c3c;}
+  .hint{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);
+    background:rgba(15,35,60,.82);color:#fff;font-size:11.5px;padding:4px 12px;border-radius:99px;
+    white-space:nowrap;pointer-events:none;}
+  .simtag{position:absolute;left:10px;top:9px;background:rgba(255,255,255,.9);border:1px solid #cdd9e6;
+    border-radius:7px;padding:5px 10px;font:600 11.5px/1.5 var(--mono);color:var(--ink2);pointer-events:none;}
+
+  /* ---------- 控件 ---------- */
+  .ctrl{display:flex;flex-direction:column;gap:14px;}
+  .fld{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:#fbfdff;}
+  .fld > .lb{font:700 12px/1 var(--mono);letter-spacing:.06em;color:var(--ink3);margin-bottom:8px;}
+  .srow{display:flex;align-items:center;gap:10px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:99px;
+    background:linear-gradient(90deg,#cfdcea,#1f6fbf);outline:none;min-width:0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+    background:#fff;border:3px solid var(--blue);cursor:pointer;box-shadow:0 1px 5px rgba(31,111,191,.4);}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--blue);cursor:pointer;}
+  .val{flex:0 0 92px;text-align:right;font:700 13px/1.4 var(--mono);color:var(--blue);}
+  .btns{display:flex;flex-wrap:wrap;gap:6px;}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border-radius:8px;
+    padding:7px 11px;border:1px solid var(--line);background:#fff;color:var(--ink);transition:.15s;}
+  button:hover{border-color:var(--blue);color:var(--blue);}
+  button.act{background:var(--blue);color:#fff;border-color:var(--blue);}
+  button.gh.act{background:var(--blue-l);color:var(--blue);border-color:var(--blue);}
+
+  /* ---------- 数据面板 ---------- */
+  .data{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fbfdff;}
+  .data .r{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;font-size:13px;
+    border-bottom:1px solid var(--line);}
+  .data .r:last-child{border-bottom:0;}
+  .data .r .k{color:var(--ink2);}
+  .data .r .v{font:700 13px/1.5 var(--mono);text-align:right;}
+  .v.ok{color:var(--green);} .v.bad{color:var(--red);} .v.bl{color:var(--blue);}
+
+  /* ---------- 步骤 / 说明 ---------- */
+  .steps{display:flex;flex-direction:column;gap:8px;}
+  .step{display:flex;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:#fbfdff;font-size:13.5px;}
+  .step .i{width:22px;height:22px;flex:0 0 22px;border-radius:5px;background:#eaeff5;color:var(--ink2);
+    font:700 11.5px/22px var(--mono);text-align:center;}
+  .step.on{background:#fff6e8;border-color:#edcf9a;} .step.on .i{background:var(--orange);color:#fff;}
+  .step.fin{background:#eefaf2;border-color:#b5e0c6;} .step.fin .i{background:var(--green);color:#fff;}
+
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .cpt{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff;}
+  .cpt .h{padding:9px 13px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;
+    background:#f6f9fc;border-bottom:1px solid var(--line);}
+  .cpt .h em{font:700 11px/1 var(--mono);color:var(--ink3);font-style:normal;margin-left:auto;}
+  .cpt .b{padding:10px 13px;font-size:13px;color:var(--ink2);}
+  .cpt .b ul{margin:0;padding-left:16px;} .cpt .b li{margin-bottom:4px;}
+  .cpt .b .this{margin-top:8px;padding:7px 10px;border-radius:7px;background:var(--blue-l);
+    color:var(--blue-d);font-weight:600;font-size:12.5px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;}
+  th{background:#f4f8fc;font:600 12.5px/1.4 var(--mono);color:var(--ink2);}
+  td.n{text-align:center;font-weight:700;font-family:var(--mono);}
+  tr.on td{background:#fff6e8;}
+
+  /* ---------- CFD 说明 ---------- */
+  .cmp2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .prb{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+  .prb .h{padding:8px 12px;font:700 13px/1.4 inherit;border-bottom:1px solid var(--line);}
+  .prb.ok .h{background:#eefaf2;color:#166b3c;} .prb.bad .h{background:#fdf0ee;color:#a32d20;}
+  .prb .b{padding:10px 12px;font-size:12.5px;color:var(--ink2);}
+  .bar{display:flex;align-items:center;gap:9px;font-size:12px;margin-bottom:8px;}
+  .bar .l{flex:0 0 62px;color:var(--ink2);}
+  .bar .t{flex:1;height:11px;background:#edf1f6;border-radius:99px;overflow:hidden;}
+  .bar .f{height:100%;border-radius:99px;transition:width .3s;}
+  .bar .n{flex:0 0 74px;text-align:right;font:700 12px/1 var(--mono);}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px 15px;font-size:12px;color:var(--ink2);margin-top:10px;}
+  .legend i{display:inline-block;width:12px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+
+  .note{background:#f4f8fc;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:12.5px;color:var(--ink2);margin-top:10px;}
+  .note b{color:var(--ink);}
+  .warn{background:#fdf0ee;border:1px solid #f0c4bc;border-radius:10px;padding:11px 13px;font-size:12.5px;color:#8a3a2c;margin-top:10px;}
+  .tpl{background:#16202b;color:#dfe7f0;border-radius:10px;padding:13px 15px;font-size:13px;margin-top:10px;}
+  .tpl .t{color:#ffd88a;font:700 12px/1.6 var(--mono);margin-bottom:6px;}
+  .tpl .s{color:#ffd88a;font-weight:700;}
+
+  .ans{border-left:3px solid var(--blue);background:#f6fafd;border-radius:0 10px 10px 0;padding:11px 14px;margin-bottom:10px;}
+  .ans .t{font:700 12px/1.6 var(--mono);color:var(--blue);}
+  .ans .v{font-size:18px;font-weight:700;} .ans .v em{font-style:normal;color:var(--red);}
+  .ans .w{font-size:13px;color:var(--ink2);}
+
+  .foot{text-align:center;color:var(--ink3);font-size:12px;margin-top:22px;}
+
+  @media (max-width:900px){.grid2{grid-template-columns:1fr;} .three{grid-template-columns:1fr;}}
+  @media (max-width:560px){
+    .wrap{padding:14px 12px 50px;}
+    section.card{padding:15px;border-radius:12px;}
+    header.hero{padding:19px 16px;} header.hero h1{font-size:20px;}
+    h2{font-size:16.5px;} h2 .n{width:25px;height:25px;flex:0 0 25px;font:700 12px/25px var(--mono);}
+    .sim.cloth{aspect-ratio:4/3;} .sim.cfd{aspect-ratio:10/7;}
+    .qrow b{flex:0 0 100%;} .qrow span{flex:1 1 100%;}
+    .cmp2{grid-template-columns:1fr;}
+    .val{flex:0 0 80px;font-size:12px;}
+    .bar .l{flex:0 0 52px;} .bar .n{flex:0 0 66px;}
+    /* 窄屏导航改成换行，避免横向滚动条 */
+    nav.nav{flex-wrap:wrap;overflow-x:visible;} nav.nav a{flex:0 1 auto;}
+    /* 窄屏下"风旗表现"一列会被挤成每行两三个字：
+       改成卡片式——每行一张小卡，字段名在左、值在右，彻底摆脱窄列。*/
+    #lvTable{display:block;border:0;}
+    #lvTable thead{display:none;}
+    #lvTable tbody{display:block;}
+    #lvTable tr{display:block;border:1px solid var(--line);border-radius:10px;
+      margin-bottom:9px;padding:9px 11px;background:#fff;}
+    #lvTable tr.on{background:#fff6e8;border-color:#f0c88a;}
+    #lvTable td{display:block;border:0;padding:2px 0;font-size:12.5px;text-align:left!important;}
+    #lvTable td::before{content:attr(data-k)'：';color:var(--ink2);font-weight:600;font-size:11.5px;}
+    #lvTable td:first-child{font:700 13px/1.5 var(--mono);color:var(--ink);padding-bottom:4px;}
+    #lvTable td:first-child::before{content:'';}
+    #lvTable td:last-child{color:var(--red);font-weight:700;}
+    #lvTable td:last-child::before{content:'';}
+    #lvTable td:last-child:empty{display:none;}
+  }
+</style>
+</head>
+<body>
+<div style="padding:8px 16px;background:#e8f1fa;color:#134d87;display:flex;align-items:center;justify-content:space-between;gap:12px">示例体验 · 状态仅保存在当前页面 <button id="resetExample" type="button">恢复示例</button></div>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag"><!--pnid:8ciCUQpflfkTpVL38DWqHl-->小学科学 · 综合探究题 · 物理仿真</span>
+    <h1><!--pnid:VoHDDejskg9fsGgBLy8NSk-->用风旗观测风 —— 真实物理仿真演示</h1>
+    <p><!--pnid:aQRwQD1dhU3bCEuzI34fNk-->旗子按<b class="k"><!--pnid:EuWo6JwXoGjHWYccbjn1rN-->质点-弹簧布料模型</b><!--pnid:hDk3IwbBgQhKEAIFvyVHJv-->逐帧解算（气动力 + 重力 + 约束），屋檐绕流用<b class="k"><!--pnid:CQsnI9GmeRzmGT4OmI4fCL-->格子玻尔兹曼方法</b><!--pnid:RR04aN7ehksNeTlw83gOtU-->实时求解流场。画面里看到的一切，都是算出来的，不是画出来的。</p>
+  </header>
+
+  <nav class="nav">
+    <a href="#q"><!--pnid:kT7KWdX6AjBPnA1qoJfqqn-->题目</a><a href="#who"><!--pnid:uu7CErjDCLzLIHrS2Gzmfq-->观测三要素</a><a href="#sim1"><!--pnid:ex1OqzYcFOBP4kLVb01wDU-->仿真①：风旗动力学</a>
+    <a href="#dir"><!--pnid:VFdf0zxXdPEzAFi9uSmFgb-->风向判定</a><a href="#sim2"><!--pnid:4QzUH7NYBHIVdytlQRHQgd-->仿真②：屋檐绕流 CFD</a><a href="#ans"><!--pnid:e6o3YgLoD45xngUPCG12H8-->答案</a>
+  </nav>
+
+  <!--pnid:Jst97pSnclXqfhAxran4Yc--><!-- ============ 题目 ============ -->
+  <section class="card" id="q">
+    <h2><span class="n"><!--pnid:YXjqEhMrhNhuu1JzhdRQje-->题</span><!--pnid:pNlZBlnB2j2RaJtzVdARpO-->题目原文</h2>
+    <div class="qbox">
+      <div class="qrow"><b><!--pnid:U52RYkYeNWw3DlqJUTLaKT-->情境</b><span><!--pnid:UC36Dk64kY64GAJDSLg6XZ-->小明在室外空旷处用风旗观测风，记录如下：</span></div>
+      <div class="qrow"><b><!--pnid:Lp3gZ9kEA2k1cu1T7XmtSm-->风旗状态</b><span class="hl"><!--pnid:p8GF8QQtxwGMa2SmcdhrgU-->完全展开并快速飘动</span></div>
+      <div class="qrow"><b><!--pnid:7Kbs2A43phtgLkq8l2JwmZ-->风旗飘动方向</b><span class="hl"><!--pnid:X4bgmtoxQFCDcTUEKMf6DA-->西北方向</span></div>
+      <div class="qrow"><b><!--pnid:voqsRXCvLPAgrKjNHFVEJT-->测量地点</b><span><!--pnid:yhiev8GBljaxLy2HgFn52L-->学校操场（四周无遮挡）</span></div>
+    </div>
+    <div class="qbox" style="margin-top:9px; background:#fff; border-color:var(--line)">
+      <div class="qrow"><b><!--pnid:pQtQEYIvhALDkJxP0V8EY5-->11.</b><span><!--pnid:TZVsBGJdKB9EG6jB1KwhfQ-->此时的风速等级对应（选填"0""1"或"2"）级风，属于（选填"无风""微风"或"大风"）。</span></div>
+      <div class="qrow"><b><!--pnid:MEeNNSnHeAgkNkM9CSChGT-->12.</b><span><!--pnid:iYEq4mZvwShyS4I5TwceVn-->结合风旗飘动方向，判断此时的风向是（选填"东南"或"西北"）。</span></div>
+      <div class="qrow"><b><!--pnid:8E3I1cI9v6eWCmJtJHalTb-->13.</b><span><!--pnid:FsuTrg6MIYQJWagwCfvxbB-->如果小明在屋檐下测量风，结果会准确吗？为什么？</span></div>
+    </div>
+  </section>
+
+  <!--pnid:q1Y261HYEIWAJHWHzmH7mc--><!-- ============ 三要素 ============ -->
+  <section class="card" id="who">
+    <h2><span class="n"><!--pnid:U2ZhmVYnUGg5lmxJMyyk6I-->要</span><!--pnid:h8Q2YLX5wQt52VmiHXWK0F-->观测的三要素</h2>
+    <p class="mut"><!--pnid:2N26nFLv23WYPZ83iuj4DQ-->测量前先说清 <b class="k"><!--pnid:tFH5XqycCeQPR2O9fUHpIa-->谁测</b><!--pnid:YPDAPQYz6TFEEPb13yhgLm-->、<b class="k"><!--pnid:YhaibeHIX3ILp57KEbnLKd-->在哪测</b><!--pnid:zYBTpXBBkuwzhqZNbbcRzd-->、<b class="k"><!--pnid:NivBvjghtDWhcrPr9Rgvqr-->用什么测</b><!--pnid:IcI4kWibgJIwY6oaWVA57z-->。第 13 题考的正是"地点"这一条。</p>
+    <div class="three">
+      <div class="cpt">
+        <div class="h"><!--pnid:mHL07HjuQScqKRaIUCZF5V-->👦 观测者 <em><!--pnid:zuuOITmo9uAaql7wWxuk7e-->WHO</em></div>
+        <div class="b"><ul>
+          <li><!--pnid:FHIIDnGlHAhAH4uLjabzrY-->本题观测者是<b class="k"><!--pnid:unSXeIJlfB7HyQQI0CyfsL-->小明</b><!--pnid:eiyCxfTIlMy1SY6MXfHuzH-->。</li>
+          <li><!--pnid:2tfgAQOCXDhk0Slm9Akoky-->任务：看旗面飘动程度判风力、看旗子飘向判风向，如实记录。</li>
+          <li><!--pnid:y23aMbITyMQ3PlEMB8wdAp-->要站开、别挡住风；观察一小段时间取稳定状态。</li>
+        </ul><div class="this"><!--pnid:tVDDW65kNEkmUzhKDCdiCF-->本题：小明记录"完全展开快速飘动、飘向西北"</div></div>
+      </div>
+      <div class="cpt">
+        <div class="h"><!--pnid:Jibi5zxDRPCnt49GcgwQC3-->📍 观测地点 <em><!--pnid:UMRITu39rRtvTNuICAhG4k-->WHERE</em></div>
+        <div class="b"><ul>
+          <li><!--pnid:qWyJB8KNsfCh6zzvomyS26-->本题是<b class="k"><!--pnid:FuTy7wqVmYgi3q64AvLD2b-->学校操场</b><!--pnid:IcicF2iikd5gKYZTe6w4Co-->，题目特意写明"四周无遮挡"。</li>
+          <li><!--pnid:XxEdUd2AozoxnUjeGbHB6P-->风遇到房屋会被<b class="k"><!--pnid:Zc15YEdqeRY10eIjfd3qlG-->挡住、绕开、打转</b><!--pnid:9fT75I0ic7ByQHrqIxTYcD-->，测到的就不是真实的风。</li>
+          <li><!--pnid:7sxFm9Ews2FKLj8J6MoaK0-->不合格：屋檐下、墙角、树下、楼间窄缝、阳台。</li>
+        </ul><div class="this"><!--pnid:iSoDnT30bW3HtLDqNh3g0c-->操场 ✓ 合格；屋檐下 ✗ 不合格（第 13 题）</div></div>
+      </div>
+      <div class="cpt">
+        <div class="h"><!--pnid:dEN5tGIOdb3wvaU6Twm6xr-->🚩 测量仪器 <em><!--pnid:Zb48jpk3hAyINC34UcTYXp-->TOOL</em></div>
+        <div class="b"><ul>
+          <li><!--pnid:evkbtuy1dx1WG6STtJavGL-->本题仪器是<b class="k"><!--pnid:5zBwsdjVtdVxyx3Y3emZxs-->风旗</b><!--pnid:iMGDnPXQfeEhGIxSFnaGFg-->：旗杆 + 轻薄旗面。</li>
+          <li><!--pnid:kV4QPykufwgL3Pu4VAcCpE-->测风力：看旗面<b class="k"><!--pnid:emj92eTJvqepSmo55PQpQo-->展开／飘动程度</b><!--pnid:YpWiP9zYYyWrskuVwpPQro-->。</li>
+          <li><!--pnid:oy28l9CTKM7L1DgZBqAdEV-->测风向：看旗面<b class="k"><!--pnid:vxZ784k1z80UzI3GDA8mf6-->飘去的方向</b><!--pnid:ecrsOoyQXpcooxYbnEuSC5-->，再反推风来的方向。</li>
+          <li><!--pnid:U27rg4r7IXcVFUyelkM7bR-->简易仪器，只能分等级，读不出精确风速。</li>
+        </ul><div class="this"><!--pnid:wOR9l3eP8EL6qRJEmuhssR-->风力看"飘的程度"，风向看"飘的方向"</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!--pnid:4WrKbY7PlbqzXrSuTezHE3--><!-- ============ 仿真① ============ -->
+  <section class="card" id="sim1">
+    <h2><span class="n"><!--pnid:TvuIrNx3BPzHZuplaw31tU-->①</span><!--pnid:szCtEJaOFUQCKravdRjOcQ-->风旗动力学仿真（第 11、12 题）</h2>
+    <p class="mut"><!--pnid:RIh8pdNy4415ug28yT6Uxd-->
+      旗面被离散成 <b class="k"><!--pnid:zLCVmHcmc6b9h0DAwt3rji-->15×10 质点网格</b><!--pnid:6AFmNROinAzMUF6xPW8txL-->，用 Verlet 积分 + 约束松弛求解；气动力按
+      <b class="k"><!--pnid:vuWxO1yXMjvFFaUbgiD4lk-->F = ½·ρ·C<sub><!--pnid:0oKF9gZM3ZjzYT8rJhNbfn-->d</sub><!--pnid:8i2aIw3KhJm7Kd6JhR0rHb-->·A·(v·n)|v·n|</b><!--pnid:Cb1fkL09WPnuS7U1KWFUDZ--> 施加在每片布面上，同时受重力。
+      参数取真值：空气密度 ρ = 1.225 kg/m³，旗面面密度 0.18 kg/m²，旗面 0.9 m × 0.6 m。
+    </p>
+    <div class="grid2">
+      <div>
+        <div class="sim cloth" id="clothStage">
+          <canvas id="cvCloth"></canvas>
+          <div class="simtag" id="clothTag"><!--pnid:STdLfhVMVbmx5cV4KqxLb7-->v = 2.6 m/s · 2 级</div>
+          <div class="hint"><!--pnid:wVfw2nDS7w0aKD5uXVFlmZ-->👆 拖动画面可改变风向</div>
+        </div>
+      </div>
+      <div class="ctrl">
+        <div class="fld">
+          <div class="lb"><!--pnid:m8zLaJYMInCibpUjiW2EnL-->真实风速（蒲福风级）</div>
+          <div class="srow">
+            <input aria-label="风速" id="spdRange" max="2" min="0" step="1" type="range" value="2">
+            <div class="val" id="spdVal"><!--pnid:1ncN1yUga2MoLKennpYpHC-->2.6 m/s</div>
+          </div>
+          <div class="btns" style="margin-top:8px">
+            <button class="gh" data-lv="0"><!--pnid:OlZp6esdO3D0llmsFS25WU-->0 级 无风</button>
+            <button class="gh" data-lv="1"><!--pnid:O7oRF0tc2ButsIET4YTXHG-->1 级 微风</button>
+            <button class="gh" data-lv="2"><!--pnid:T9RyUhgtr31nJrPSS4VI9I-->2 级 大风</button>
+          </div>
+        </div>
+        <div class="fld">
+          <div class="lb"><!--pnid:E1rVlRqL8set3wPcz1cylE-->风向（风吹去的方向）</div>
+          <div class="btns" id="dirBtns">
+            <button class="gh" data-d="315"><!--pnid:6dzcuL3XAZDXuicgLC48ek-->西北</button>
+            <button class="gh" data-d="0"><!--pnid:FvDii5zyXoA29iHh78tNdZ-->北</button>
+            <button class="gh" data-d="45"><!--pnid:pA1fLJhUDLif057nIQPKTE-->东北</button>
+            <button class="gh" data-d="90"><!--pnid:HTCuzS5a2QjcMwfEKQDfpk-->东</button>
+            <button class="gh" data-d="135"><!--pnid:GxKtX9ITQb71AqKhCRWtCQ-->东南</button>
+            <button class="gh" data-d="180"><!--pnid:vQZmML33x5rGteJNqBM5kv-->南</button>
+            <button class="gh" data-d="225"><!--pnid:5dPgpxNHcYZkyDwfqQujSf-->西南</button>
+            <button class="gh" data-d="270"><!--pnid:K68Zj2dVgrel7QOpdv3LYN-->西</button>
+          </div>
+        </div>
+        <div class="data">
+          <div class="r"><span class="k"><!--pnid:VmXTbGdcSD3wk6loMvhoR1-->真实风速</span><span class="v bl" id="oSpd"><!--pnid:8ypWumBVbnUeplmS73hdEB-->2.6 m/s</span></div>
+          <div class="r"><span class="k"><!--pnid:bOjnbLYPCunHZiPrKaR9ld-->蒲福等级</span><span class="v" id="oLv"><!--pnid:afkivXwS0G3mcuugjBwd6y-->2 级 · 大风</span></div>
+          <div class="r"><span class="k"><!--pnid:O2idDSsLM03M3dEeX2kDUo-->旗面状态</span><span class="v" id="oState"><!--pnid:V3n12N2Lvv3ow0xC7euyuK-->完全展开、快速飘动</span></div>
+          <div class="r"><span class="k"><!--pnid:zZ3pFqCU2PnT0syRvBS5tF-->旗子飘向</span><span class="v" id="oTo"><!--pnid:giv9mBdvD4brwmqQdjj36Z-->西北</span></div>
+          <div class="r"><span class="k"><!--pnid:w4vdwlFmqYJWTab6gCzJ4O-->风来自</span><span class="v" id="oFrom"><!--pnid:npRAD8rek1YtScILsDVqBd-->东南</span></div>
+          <div class="r"><span class="k"><!--pnid:QbBvBQu966sJZq8D1Bc95V-->判定风向</span><span class="v ok" id="oWind"><!--pnid:bco3SHI1ddlGl01XR0qKNd-->东南风</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3><!--pnid:zK2Gl2rjCSrs6BfuaACxTD-->风力等级对照（蒲福风级 · 简化三级）</h3>
+    <table id="lvTable">
+      <thead><tr><th style="width:70px"><!--pnid:ZxIMWjqCytJi0Y9p1QEkZ7-->等级</th><th style="width:90px"><!--pnid:zIMk0ZNoASCm5AoTWAdsZo-->名称</th><th style="width:110px"><!--pnid:AQPvUQIzxgYMG0wqsu8xag-->风速范围</th><th><!--pnid:ZlCif8z5hgt4Ayl8pojXyb-->风旗表现</th><th style="width:90px"><!--pnid:BZ8Tlk9tM2fXNC3EoY2Ebs-->本题</th></tr></thead>
+      <tbody>
+        <tr data-lv="0"><td class="n"><!--pnid:T3haoQ6xO76hu6LPBuZF3R-->0 级</td><td data-k="名称"><!--pnid:IEjtMlygsL6QJyGprHm83U-->无风</td><td data-k="风速范围"><!--pnid:ToIiaEdbQSlyzRQpU0K1bf-->&lt; 0.3 m/s</td><td data-k="风旗表现"><!--pnid:XRJ6ooZEKhkVagN3SXx1aj-->旗面垂下，几乎不动</td><td></td></tr>
+        <tr data-lv="1"><td class="n"><!--pnid:KLyd2q8XTupdnSz5WgKqtK-->1 级</td><td data-k="名称"><!--pnid:P9gPF0NIEQK5iYX5o0qqRO-->微风</td><td data-k="风速范围"><!--pnid:a47ycSYoUiakBOyCxvA07G-->0.3 – 1.5 m/s</td><td data-k="风旗表现"><!--pnid:uxKZVBCifgW3pnCqhPrdXj-->旗面部分展开，轻轻飘动</td><td></td></tr>
+        <tr data-lv="2"><td class="n"><!--pnid:tNis3IGhxfpmOTUYFYSmZ3-->2 级</td><td data-k="名称"><!--pnid:eQRFsoejUUn54DcrfzP14M-->大风</td><td data-k="风速范围"><!--pnid:mBk6YJcs15Z6JYePy5LVnL-->1.6 – 3.3 m/s</td><td data-k="风旗表现"><!--pnid:A37r3Cz4Sanl2XvnSxUwsd-->旗面完全展开并快速飘动</td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="note"><!--pnid:DdrSuQ4rc4zuOUzbaRHRYo-->💡 仿真中旗子的姿态由<b><!--pnid:tlPlOOWRPFveNytprZXEoL-->气动力与重力的比值</b><!--pnid:MvkUe1P91UJ8KFW0OXAWED-->决定：2.6 m/s 时气动力约为重力的 <b><!--pnid:XseaW8brsewZ2GRm11JdM7-->3.8 倍</b><!--pnid:PfijdqDV6LpB137YPdXy5b-->，旗子被吹起约 70°；1.4 m/s 时两者相当，旗子只能飘起一点点并大幅晃动；0.15 m/s 时气动力只有重力的 1%，旗子自然垂下。</div>
+  </section>
+
+  <!--pnid:dyDGmAkVgoANhTXM9KVnzu--><!-- ============ 风向 ============ -->
+  <section class="card" id="dir">
+    <h2><span class="n"><!--pnid:9MJMDVHTK1HoMvjvVHRJ0B-->判</span><!--pnid:Syvp07wbrqND2gOFaa25Jn-->风向判定（第 12 题）</h2>
+    <div class="steps">
+      <div class="step on"><div class="i"><!--pnid:V6ITeuHPqSLIfbIEWeq64s-->1</div><div><!--pnid:TBIzVUBNIslRmfEW0YspyJ-->风向的定义：<b class="k"><!--pnid:cpF092h4NHeXhPRCyAYZ8G-->风吹来的方向</b><!--pnid:Gfle2WB69mr7DOO1tKSDGI-->。</div></div>
+      <div class="step on"><div class="i"><!--pnid:IyJhbxYqD3u3wZhuOT2zh4-->2</div><div><!--pnid:VfuPZsjEoHx7PtRk8Oopv6-->仿真里旗子被吹得朝<b class="k"><!--pnid:7ElZB3cEPprOvCxlCIQ1Ji-->西北</b><!--pnid:zaUOJiWEdBhszL7W0I0TUo-->展开，说明风是从东南推过来的。</div></div>
+      <div class="step fin"><div class="i"><!--pnid:xcTMy3nLdoWHpU9maSSkbw-->3</div><div><!--pnid:i1CDVDEOpVpq50NtRZPzZL-->所以风向是 <b class="k"><!--pnid:MFRxGyt1C5hVmC4XUvVehf-->东南风</b><!--pnid:VfLlJf1abhT6MvAc6ANcUJ-->。</div></div>
+    </div>
+    <div class="note"><!--pnid:BYR8XgzYXSZRX81pHiUM1Q-->一句话：<b><!--pnid:Kk4MEJw05ucnmCs6imPIdG-->旗子跑向哪，风就从相反方向来。</b><!--pnid:cYlKuZrKkHSRPCYN0twVzT-->选"西北"就是把"旗飘的方向"当成了风向——这是本题最大的坑。</div>
+  </section>
+
+  <!--pnid:BJiUK8PJo9SZ48yNh9NoJa--><!-- ============ 仿真② CFD ============ -->
+  <section class="card" id="sim2">
+    <h2><span class="n" style="background:var(--red)"><!--pnid:TrMsK9FBSCe8PuQpGjLVLV-->②</span><!--pnid:OtEbplhDvWKmMiP3YXNHJt-->屋檐绕流 CFD 仿真（第 13 题）</h2>
+    <p class="mut"><!--pnid:eIM00VljzamVzja5zvtvxW-->
+      用<b class="k"><!--pnid:72zuzyZzEeKgDeuddfxDdv-->格子玻尔兹曼方法（LBM D2Q9）</b><!--pnid:i6MieAflNUczUmwWT0rNFN-->在 <b class="k"><!--pnid:MXts5CqkfZvX7nFDb9Ja2b-->200×140</b><!--pnid:XG7ffPpvSyzXoQ8wXFzxtQ--> 网格上实时求解流场，房屋为固体边界（反弹格式）。
+      分离、回流涡、卡门涡街都是方程自己解出来的。来流设为 2 级大风（2.6 m/s）。
+    </p>
+    <div class="sim cfd" id="cfdStage">
+      <canvas id="cvCfd"></canvas>
+      <div class="simtag" id="cfdTag" style="background:rgba(10,20,32,.82); color:#9fc4e8; border-color:#24384c"><!--pnid:KaN0xbttKczw7c0mE5IzdQ-->t = 0 步 · Re ≈ 300</div>
+    </div>
+    <div class="btns" style="margin-top:10px">
+      <button class="act" id="bPlay"><!--pnid:n30hwLdIhKGzwtPbJA8iCZ-->⏸ 暂停</button>
+      <button class="gh act" id="bSpeed"><!--pnid:qZzS6P0BmKUgkWHjmrZdUu-->速度场</button>
+      <button class="gh" id="bVort"><!--pnid:JLfNTcWwbxlH1VUx4aD1e8-->涡度场</button>
+      <button class="gh act" id="bTrace"><!--pnid:GSDMD4UPV7BzjrM4otRsc0-->示踪粒子</button>
+    </div>
+    <div class="legend">
+      <span><i style="background:#1b3a6b"></i><!--pnid:fHcI0q86hQBfvPylKdgT3C-->风速低（风影区）</span>
+      <span><i style="background:#2f8fd6"></i><!--pnid:LvJtRcfQ3zJxiUvHN0e2rn-->接近来流</span>
+      <span><i style="background:#f2c14e"></i><!--pnid:BI94RnuYwBIAWC3bjkuSrG-->加速区</span>
+      <span><i style="background:#e8503a"></i><!--pnid:290OyZIhqbFdp28KppioAi-->高速区</span>
+      <span><i style="background:#7a6a58"></i><!--pnid:xfDNenqyfLIc1En2MHGMdI-->房屋（固体）</span>
+    </div>
+
+    <h3><!--pnid:SXb1rYhgKad6w0Wr8pRXXP-->两个测点的实测对比</h3>
+    <div class="cmp2">
+      <div class="prb ok">
+        <div class="h"><!--pnid:ncmpB5o3KgJOO2l9Cl02D9-->📍 A 点：操场空旷处</div>
+        <div class="b">
+          <div class="bar"><span class="l"><!--pnid:35rqXhSAwXWvGBK0CUXtYy-->风速</span><span class="t"><span class="f" id="barA" style="width:100%; background:linear-gradient(90deg,#7cc49a,#1f8a4c)"></span></span><span class="n" id="nA"><!--pnid:d50rCxJaOyF0aB1pZiURIu-->2.60 m/s</span></div><!--pnid:Qyra7hofjaqnSRZP37QADK-->
+          旗面：<b id="fA"><!--pnid:rAOWmSw58WlkdxZguTDSOA-->完全展开、快速飘动</b><br><!--pnid:zyvMWX8SDb5wnFZOQ8wVD1-->
+          读数：<b class="v ok" id="rA"><!--pnid:LPRqEn0ymvI0BTVHnJR3HK-->2 级 · 东南风</b><!--pnid:f8sCxSQpDn5FDJTqbaSrUp-->　✅ 与真实一致
+        </div>
+      </div>
+      <div class="prb bad">
+        <div class="h"><!--pnid:BnkXBARNbRmXtroesemUMh-->🏠 B 点：屋檐下</div>
+        <div class="b">
+          <div class="bar"><span class="l"><!--pnid:VQe1WcRSzovUsgS2KhjRyN-->风速</span><span class="t"><span class="f" id="barB" style="width:30%; background:linear-gradient(90deg,#eb9b8a,#c0392b)"></span></span><span class="n" id="nB"><!--pnid:jDvyL96R8jGn1beE1MhURs-->0.14 m/s</span></div><!--pnid:onyuGaMFKW1zSKEFFjAzjq-->
+          旗面：<b id="fB"><!--pnid:mnOZbho4vEp5rSK2hOB0Bo-->旗面垂下，几乎不动</b><br><!--pnid:Z1mnJo8ArM69R11hljLxG8-->
+          读数：<b class="v bad" id="rB"><!--pnid:7KKtxVLegsVtxL39gKrXg1-->0 级 · 读不出风向</b><!--pnid:zAuTihrNcFgRsBw5wr6Bcv-->　❌ 与真实不符
+        </div>
+      </div>
+    </div>
+
+    <h3><!--pnid:FmQNNAAVj6xkck4AzDB8ak-->流场结构：为什么会不准</h3>
+    <div class="steps">
+      <div class="step on"><div class="i"><!--pnid:IE87rdu5PiNJW2Mlqz3WUJ-->1</div><div><b class="k"><!--pnid:akvEXP4zPskXzGrBYA64Gr-->驻点</b><!--pnid:EKwP2YTooNOLTc4IZJYfTe-->：气流正面撞到墙壁速度归零、压力升高——屋檐把风"截"住了，檐下成了风影区，风速只剩来流的<b class="k"><!--pnid:lAKe8Pdq0JiScs0qY0VrrG-->百分之几</b><!--pnid:ZZuPnophtf52j1Dwk0r7ub-->。</div></div>
+      <div class="step on"><div class="i"><!--pnid:FlOi5KyLadKjZqded1iBmQ-->2</div><div><b class="k"><!--pnid:uZliAFcXuuprjFDfQoHjdx-->分离</b><!--pnid:ruMsPlDl6hsk8lvBmJbqjM-->：气流在屋檐边缘脱离壁面，屋顶上方被挤压而<b class="k"><!--pnid:2nLSGAwWhuxvsekpdCS9vs-->加速</b><!--pnid:YOLRzW1LZvBLMB3pzGQ90W-->，檐下却被甩在主流之外。</div></div>
+      <div class="step on"><div class="i"><!--pnid:x52byzga3pBsJX33AwlxaL-->3</div><div><b class="k"><!--pnid:Clxq8fGPhRpbrNmTRrN8sQ-->回流涡</b><!--pnid:o8uiUzOk6nZwcqjUFOrsjT-->：檐下卷出一个缓慢的反向涡——贴近地面处气流<b class="k"><!--pnid:oO7V25wVvHIw6QAVocpCzn-->逆着来流</b><!--pnid:kcRwHGQkb9vT7KitIcFGWq-->往回走（仿真里 ux &lt; 0）；而在旗子所在的 1.4 m 高度，风速只剩来流的 <b class="k"><!--pnid:prQqbvy7u2nK3OtPfcYK1i-->3%</b><!--pnid:sOUaFQQTOy0h9wiWIToA1m-->，旗子根本飘不起来。</div></div>
+      <div class="step fin"><div class="i"><!--pnid:tLrd75XUMQCmECgxgr5oEx-->4</div><div><b class="k"><!--pnid:p0EdzWuB1uYtvuVcBV7ZgH-->结论</b><!--pnid:W5YfjxntY3i8NJTgTWmCTT-->：檐下<b class="k"><!--pnid:dRtzisgw4m6UVHTENJmnMD-->风力被严重低估</b><!--pnid:cmrTdK6XbHdhbvLDRkx5XB-->（2 级读成 0 级），风向也<b class="k"><!--pnid:GD45dMbWoKqqOK8aV9lVgh-->读不出来甚至读反</b><!--pnid:dbo93f9ocGZxtLJGxgTA0x-->，所以不准确。</div></div>
+    </div>
+
+    <div class="tpl">
+      <div class="t"><!--pnid:T0NF7rfDuGm2xZiCt1JAOP-->📝 第 13 题 · 满分答法</div>
+      <div><span class="s"><!--pnid:rtbCVCh21jtBh3a9JLRMZ9-->① 结论：</span><!--pnid:00S9jMo1kDpMXOUIeVMQnZ-->不准确（不可以）。<br>
+      <span class="s"><!--pnid:VtKwavjcnB5AMaYN0zIROo-->② 原因：</span><!--pnid:wXR2TGFjETMwQajr8iNXi4-->屋檐挡住风，檐下形成风影区和回流涡——风速只剩来流的百分之几，近地面气流甚至倒着走，风旗不能真实反映室外的风力大小和风向。<br>
+      <span class="s"><!--pnid:gDIeZUeXuqLHBOgHh3yJuP-->③ 做法：</span><!--pnid:IwYYyphfScLBwCx20ReF1G-->应在室外空旷、四周无遮挡的地方测量。</div>
+    </div>
+    <div class="warn"><!--pnid:xbXIVyMdmspO9Xs67ix2pJ-->⚠️ 丢分点：只写"不准确"不写原因；或只说"地方不好"，没落到"风力变小、风向变乱"上。</div>
+    <div class="note"><!--pnid:kK0X35aYVQANzwmxBClfyN-->🔬 说明：本仿真雷诺数 Re≈285（层流分离），真实大气 Re 可达 10⁵ 量级（湍流）。但遮挡造成的<b><!--pnid:Kjp9bpQ81UiZ6KijmCBvP4-->减速与回流结构由几何决定</b><!--pnid:6MwLvqSoYaUewFRgvjZ3xz-->，结论一致。</div>
+  </section>
+
+  <!--pnid:YI3FyCLPkeKgaaWoxmu2t1--><!-- ============ 答案 ============ -->
+  <section class="card" id="ans">
+    <h2><span class="n" style="background:var(--green)"><!--pnid:k885sjga931u2RT25G58xI-->✓</span><!--pnid:qiI0JjKXoStKWQmyGJyYme-->答案汇总</h2>
+    <div class="ans"><div class="t"><!--pnid:IyZvUgojIeNLGbvaO7NLJR-->第 11 题</div><div class="v"><!--pnid:bd2yicUhvXV9UnpXCoaXCj-->2 级风，属于 <em><!--pnid:hrXue8Ple0A9ITDABfyLbz-->大风</em></div>
+      <div class="w"><!--pnid:s07SUY2zpxruPVXcvRRwuF-->"完全展开并快速飘动"对应 2 级（1.6–3.3 m/s）。仿真中该风速下气动力约为重力的 3.8 倍，旗面被吹起约 70°并快速抖动（实测飘动幅度约 50°/s）。</div></div>
+    <div class="ans"><div class="t"><!--pnid:HDCQJnjMQymkxfyHLkUoDv-->第 12 题</div><div class="v"><!--pnid:RKf3S71J18LsQIPZMB6Cv2-->风向是 <em><!--pnid:NgGu9sjBJ65k7adHvAR4Z7-->东南</em><!--pnid:bEzbMSiI9f73vRUxIOeghr-->（东南风）</div>
+      <div class="w"><!--pnid:Lu5h1VK8DPm3hnrqcQ8ioh-->风向是风吹来的方向。旗子飘向西北 → 风从东南来 → 东南风。</div></div>
+    <div class="ans" style="border-left-color:var(--red)"><div class="t" style="color:var(--red)"><!--pnid:jgSnK6h1SwoNMaPtaH95IL-->第 13 题</div>
+      <div class="v" style="color:var(--red)"><!--pnid:hvnmSBbOjGdpVLOT4wYWtr-->不准确</div>
+      <div class="w"><!--pnid:muRGpOEMfxphxrFaZQuYhx-->屋檐遮挡使檐下风速只剩来流的百分之几（2 级读成 0 级），近地面还会出现反向回流涡；风力读数严重偏小、风向读不出来甚至读反。应在空旷无遮挡处测量。</div></div>
+  </section>
+
+  <div class="foot"><!--pnid:iDsOehGIcV8X2vYbXeIcys-->物理仿真演示 · 布料用 Verlet 积分求解，流场用 LBM D2Q9 求解</div>
+</div>
+
+<script>
+/* ==================== 常量与工具 ==================== */
+const PI = Math.PI, SIN = Math.sin, COS = Math.cos, SQRT = Math.sqrt;
+const clamp = (v,a,b) => v<a ? a : (v>b ? b : v);
+const norm360 = a => ((a % 360) + 360) % 360;
+const angDiff = (a,b) => norm360(a - b + 180) - 180;
+const DIRS8 = [
+  {a:0,n:"北"},{a:45,n:"东北"},{a:90,n:"东"},{a:135,n:"东南"},
+  {a:180,n:"南"},{a:225,n:"西南"},{a:270,n:"西"},{a:315,n:"西北"}
+];
+function nearestDir(a){
+  a = norm360(a); let best = DIRS8[0], bd = 1e9;
+  for(const d of DIRS8){ const t = Math.abs(norm360(d.a - a + 180) - 180); if(t < bd){ bd = t; best = d; } }
+  return best;
+}
+const opposite = a => norm360(a + 180);
+
+/* 蒲福风级（简化三级）对应的真实风速 */
+const BEAUFORT = [
+  { lv:0, name:"无风", v:0.15, range:"< 0.3 m/s",   desc:"旗面垂下，几乎不动" },
+  { lv:1, name:"微风", v:1.40, range:"0.3 – 1.5 m/s", desc:"部分展开，轻轻飘动" },
+  { lv:2, name:"大风", v:2.60, range:"1.6 – 3.3 m/s", desc:"完全展开并快速飘动" }
+];
+/* 由旗面实际姿态反推它表现出来的等级 —— 读数是量出来的，不是写死的。
+   判据用两个量：展开角（旗子被吹起多高）+ 飘动速率（抖得多快）。
+   实测：2.6 m/s ≈ −19°/59°·s⁻¹，1.4 m/s ≈ −65°/43°·s⁻¹，0.15 m/s ≈ −72°/1.5°·s⁻¹。
+   只用角度判会把"垂着晃"和"垂着不动"混在一起，所以必须带上飘动速率。*/
+function gradeFromFlag(tiltDeg, actDegPerSec){
+  if(tiltDeg > -38) return 2;                       // 完全展开
+  if(tiltDeg < -68 && actDegPerSec < 9) return 0;   // 垂下且几乎不动
+  return 1;                                         // 被吹得晃，但展不开
+}
+/* ==================== 布料：3D 质点-弹簧 + Verlet ==================== */
+class Cloth{
+  /* nx: 展开方向质点数, ny: 沿杆方向质点数, L: 旗长(m), H: 旗高(m) */
+  constructor(nx, ny, L, H){
+    this.nx = nx; this.ny = ny;
+    this.dx = L/(nx-1); this.dy = H/(ny-1);
+    const N = nx*ny;
+    this.N = N;
+    this.p  = new Float32Array(N*3);      // 当前位置
+    this.o  = new Float32Array(N*3);      // 上一步位置（Verlet）
+    this.fix= new Uint8Array(N);          // 固定标记
+    /* 约束：[ia, ib, restLength, stiffness]
+       静止长度必须按"布平面展开"的名义几何来算 —— 若按初始下垂姿态算，
+       约束会把布永久锁死在对折状态，布面积坍缩、风再也吹不动它。*/
+    this.c = [];
+    const dx = this.dx, dy = this.dy, dg = SQRT(dx*dx + dy*dy);
+    const add = (i,j,s,r)=> this.c.push({i, j, r, s});
+    const id = (i,j)=> j*nx + i;
+    this.id = id;
+    for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){
+      if(i+1<nx) add(id(i,j), id(i+1,j), 1.00, dx);          // 结构：经向（几乎不可伸长）
+      if(j+1<ny) add(id(i,j), id(i,j+1), 1.00, dy);          // 结构：纬向
+      if(i+1<nx && j+1<ny){                                   // 剪切：对角（保持布面积）
+        add(id(i,j), id(i+1,j+1), 0.85, dg);
+        add(id(i+1,j), id(i,j+1), 0.85, dg);
+      }
+      if(i+2<nx) add(id(i,j), id(i+2,j), 0.22, 2*dx);         // 弯曲：很软（布几乎不抗弯）
+      if(j+2<ny) add(id(i,j), id(i,j+2), 0.22, 2*dy);
+    }
+    /* 固定边：i = 0 一列固定在旗杆上 */
+    for(let j=0;j<ny;j++) this.fix[id(0,j)] = 1;
+    this.sigma = 0.18;                    // 面密度 kg/m²
+    this.damp = 0.996;                     // 速度阻尼（每步）
+    this.mv = this.sigma * this.dx * this.dy;   // 每质点质量
+  }
+
+  /* 初始化：固定边沿旗杆竖直，展开方向以自然张角垂下并带真实褶皱。
+     注意：真实旗帜下垂时是有褶皱的布面，不是数学上完全折叠的一条直线——
+     只有保留褶皱，面法向才不退化，风才"抓得住"旗面（这也是旗子能被吹起来的原因）。*/
+  reset(topZ, azDeg, offsetX){
+    const {nx,ny,dx,dy,p,o,id} = this;
+    const TILT0 = 18*PI/180;                       // 布料挺度造成的自然张角
+    const az = (azDeg === undefined ? 315 : azDeg) * PI/180;
+    const ox = offsetX || 0;                       // 旗面整体挪到旗杆外侧，避免穿模
+    const ux = SIN(az)*SIN(TILT0), uy = COS(az)*SIN(TILT0), uz = -COS(TILT0);
+    const rx = COS(az), ry = -SIN(az);             // 水平面内垂直于展开方向
+    const AMP = 0.05;                              // 褶皱振幅(m)
+    for(let j=0;j<ny;j++){
+      for(let i=0;i<nx;i++){
+        const k = id(i,j)*3, s = i*dx, t = i/(nx-1);
+        const w = AMP * SIN(t*PI*2.5 + j*0.55) * (0.30 + 0.70*t);
+        p[k]   = ox + ux*s + rx*w;
+        p[k+1] = uy*s + ry*w;
+        p[k+2] = topZ - j*dy + uz*s;
+        o[k]=p[k]; o[k+1]=p[k+1]; o[k+2]=p[k+2];
+      }
+    }
+    /* 静止长度已在构造函数里按平面展开几何给定，这里不再重算 */
+  }
+
+  /* 一步物理推进。
+     wind : 平均风矢量 (m/s)
+     turb : {t:秒, i:湍流强度} —— 近地风永远是阵性的，湍涡随平均风向下游对流
+            （Taylor 冻结假设）。没有它，旗面一旦与风平行气动力就归零、再也飘不起来。*/
+  step(dt, wind, turb){
+    const {p,o,c,N,fix,mv} = this;
+    const RHO = 1.225, CD = 1.60;         // 空气密度 / 阻力系数（柔性织物）
+    const G = -9.8;
+    const acc = this._acc || (this._acc = new Float32Array(N*3));
+    acc.fill(0);
+    for(let k=0;k<N;k++) acc[k*3+2] += G;
+
+    /* 平均风的单位向量：u 顺风，v 水平横向 */
+    const wm = SQRT(wind.x*wind.x + wind.y*wind.y + wind.z*wind.z);
+    const ux = wm > 1e-6 ? wind.x/wm : 0, uy = wm > 1e-6 ? wind.y/wm : 0;
+    const vxu = -uy, vyu = ux;            // 水平横向单位向量
+    const TI = turb ? turb.i : 0, TT = turb ? turb.t : 0;
+
+    /* --- 气动力：逐片布面计算 --- */
+    const {nx,ny,id} = this;
+    for(let j=0;j<ny-1;j++){
+      for(let i=0;i<nx-1;i++){
+        const a = id(i,j)*3, b = id(i+1,j)*3, d = id(i+1,j+1)*3, e = id(i,j+1)*3;
+        /* 两个边向量 -> 面法向与面积 */
+        const e1x=p[b]-p[a], e1y=p[b+1]-p[a+1], e1z=p[b+2]-p[a+2];
+        const e2x=p[e]-p[a], e2y=p[e+1]-p[a+1], e2z=p[e+2]-p[a+2];
+        let nxv = e1y*e2z - e1z*e2y;
+        let nyv = e1z*e2x - e1x*e2z;
+        let nzv = e1x*e2y - e1y*e2x;
+        const nl = SQRT(nxv*nxv + nyv*nyv + nzv*nzv);
+        if(nl < 1e-9) continue;
+        const area = nl;                  // 四边形面元面积 = |e1 × e2|
+        nxv/=nl; nyv/=nl; nzv/=nl;
+        const keys=[a,b,d,e];
+
+        /* 局部风 = 平均风 + 随位置/时间变化的湍流脉动 */
+        let wx = wind.x, wy = wind.y, wz = wind.z;
+        if(TI > 0 && wm > 1e-6){
+          const cxp = (p[a]+p[b]+p[d]+p[e])*0.25;
+          const cyp = (p[a+1]+p[b+1]+p[d+1]+p[e+1])*0.25;
+          const s = cxp*ux + cyp*uy;                       // 顺风坐标
+          /* 三个尺度的涡，都按 Taylor 冻结假设以平均风速向下游对流：
+             ph = K·(s − w·t)。K 越小 = 涡越大。
+             大尺度阵风(λ≈9m)整块旗面几乎同向受力；小尺度涡(λ≈1.5m)制造旗面波浪。*/
+          const I = TI*wm;
+          /* 时间频率 = 涡随平均风对流(K·w) + 小尺度湍流自身的演变(Ω0)。
+             只有前者的话，微风时大涡通过周期长达 9 s，旗子会像钟摆一样慢慢晃。*/
+          const O0 = 3.8;
+          const p1 = 0.70*s - (0.70*wm + O0)*TT;
+          const p2 = 2.00*s - (2.00*wm + O0*1.45)*TT;
+          const p3 = 4.20*s - (4.20*wm + O0*2.10)*TT;
+          const gu = I*(0.55*SIN(p1) + 0.28*SIN(p2+1.1) + 0.14*SIN(p3+2.7));
+          const gv = I*(0.40*SIN(p1*1.3+0.7) + 0.30*SIN(p2*1.6+2.1) + 0.18*SIN(p3*1.2+0.4));
+          const gz = I*(0.26*SIN(p1*1.1+1.9) + 0.18*SIN(p2*1.4+0.3));
+          wx += ux*gu + vxu*gv; wy += uy*gu + vyu*gv; wz += gz;
+        }
+        /* 面中心速度（Verlet 差分） */
+        let pvx=0, pvy=0, pvz=0;
+        for(const kk of keys){ pvx += (p[kk]-o[kk])/dt; pvy += (p[kk+1]-o[kk+1])/dt; pvz += (p[kk+2]-o[kk+2])/dt; }
+        pvx/=4; pvy/=4; pvz/=4;
+        /* 相对风速在法向的分量 */
+        const rx = wx - pvx, ry = wy - pvy, rz = wz - pvz;
+        const vn = rx*nxv + ry*nyv + rz*nzv;
+        const f = 0.5*RHO*CD*area*vn*Math.abs(vn);   // ∝ v²，方向沿 ±n
+        const fx = f*nxv/4, fy = f*nyv/4, fz = f*nzv/4;
+        for(const kk of keys){ acc[kk]+=fx/mv; acc[kk+1]+=fy/mv; acc[kk+2]+=fz/mv; }
+      }
+    }
+
+    /* --- Verlet 积分 --- */
+    const damp = this.damp;
+    for(let k=0;k<N;k++){
+      const i3 = k*3;
+      if(fix[k]){ o[i3]=p[i3]; o[i3+1]=p[i3+1]; o[i3+2]=p[i3+2]; continue; }
+      for(let m=0;m<3;m++){
+        const cur = p[i3+m];
+        p[i3+m] = cur + (cur - o[i3+m])*damp + acc[i3+m]*dt*dt;
+        o[i3+m] = cur;
+      }
+    }
+
+    /* --- 约束松弛 --- */
+    for(let it=0; it<4; it++){
+      for(let ci=0; ci<c.length; ci++){
+        const cc = c[ci];
+        const a = cc.i*3, b = cc.j*3;
+        const dx = p[b]-p[a], dy = p[b+1]-p[a+1], dz = p[b+2]-p[a+2];
+        const d = SQRT(dx*dx+dy*dy+dz*dz);
+        if(d < 1e-9) continue;
+        const diff = (d - cc.r)/d * cc.s;
+        const fa = fix[cc.i] ? 0 : 0.5, fb = fix[cc.j] ? 0 : 0.5;
+        const tot = fa + fb; if(tot === 0) continue;
+        const wa = fa/tot, wb = fb/tot;
+        if(wa){ p[a]   += dx*diff*wa; p[a+1] += dy*diff*wa; p[a+2] += dz*diff*wa; }
+        if(wb){ p[b]   -= dx*diff*wb; p[b+1] -= dy*diff*wb; p[b+2] -= dz*diff*wb; }
+      }
+    }
+  }
+
+  /* 旗面姿态：末端中心相对固定边中心的方向 -> 展开角(度, 0=水平, -90=垂直向下) 与方位角 */
+  attitude(){
+    const {nx,ny,id,p} = this;
+    const jm = (ny-1)>>1;
+    const a = id(0,jm)*3, b = id(nx-1,jm)*3;
+    const vx = p[b]-p[a], vy = p[b+1]-p[a+1], vz = p[b+2]-p[a+2];
+    const len = SQRT(vx*vx+vy*vy+vz*vz) || 1e-9;
+    const tilt = Math.asin(clamp(vz/len,-1,1)) * 180/PI;   // 与水平面夹角
+    const az = norm360(Math.atan2(vx, vy) * 180/PI);       // 水平朝向（北=0）
+    return { tilt, az, len };
+  }
+}
+/* ==================== 主场景：渲染与交互 ==================== */
+(function(){
+  const stage = document.getElementById('clothStage');
+  const cv    = document.getElementById('cvCloth');
+  if(!stage || !cv) return;
+
+  const EL = 34*PI/180, SEL = SIN(EL), CEL = COS(EL);   // 俯角
+  const POLE_H = 2.2, TOP_Z = 2.15;                      // 旗杆高、挂旗点(m)
+  const POLE_R = 0.032;                                  // 旗杆半径(m)，旗面挂在杆外侧
+  const cloth = new Cloth(15, 10, 0.9, 0.6);
+  cloth.reset(TOP_Z, 315, -POLE_R*2.2);
+  window.__sim = { cloth, get az(){ return S.az; }, get spd(){ return S.spd; }, att:()=>cloth.attitude() };
+
+  const S = { spd: 2.6, lv: 2, tAz: 315, az: 315 };      // tAz: 目标(风吹去), az: 当前
+  let T = 0; const turb = { t: 0, i: 0.45 };             // 湍流强度 45%（近地阵风）
+  let rawTilt = -80, actRaw = 0;                          // 未平滑姿态（用于算飘动速率）
+  let W = 0, H = 0, cx = 0, cy = 0, SC = 100, ctx = null, dpr = 1;
+
+  function fit(){
+    const r = stage.getBoundingClientRect();
+    if(!r.width) return;
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+    W = r.width; H = r.height;
+    SC = H*0.30;                       // px / m
+    cx = W*0.5; cy = H*0.80;           // 地面基准点在下方
+    ctx = cv.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  /* 世界 (X东, Y北, Z上) -> 屏幕 */
+  function pr(X,Y,Z){
+    return [cx + SC*X, cy - SC*(Y*SEL + Z*CEL)];
+  }
+
+  /* ---- 风粒子 ---- */
+  const parts = [];
+  function spawn(p, anywhere){
+    p.x = -2.6 + Math.random()*5.2;
+    p.y = anywhere ? (-2.0 + Math.random()*4.5) : -2.6;
+    p.z = 0.12 + Math.random()*2.5;
+    if(anywhere){ /* 逆向来流时从另一侧进入 */ }
+  }
+  function syncParts(){
+    const want = Math.round(18 + S.spd*46);
+    while(parts.length < want){ const p={}; spawn(p,true); parts.push(p); }
+    while(parts.length > want) parts.pop();
+  }
+
+  /* ---- 绘制 ---- */
+  function draw(){
+    if(!ctx) return;
+    /* 天空 */
+    const sky = ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#c3d8ec'); sky.addColorStop(0.62,'#e2edf5'); sky.addColorStop(1,'#eef4f7');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+
+    /* 地面（一块四边形，带网格） */
+    const g = [[-3.0,-2.2],[3.0,-2.2],[3.0,3.4],[-3.0,3.4]];
+    ctx.beginPath();
+    g.forEach((q,i)=>{ const s = pr(q[0],q[1],0); i? ctx.lineTo(s[0],s[1]) : ctx.moveTo(s[0],s[1]); });
+    ctx.closePath();
+    ctx.fillStyle = '#93ab6d'; ctx.fill();
+    ctx.save(); ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,.075)'; ctx.lineWidth = 1;
+    for(let gx=-3; gx<=3; gx+=0.5){ const a=pr(gx,-2.2,0), b=pr(gx,3.4,0); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+    for(let gy=-2; gy<=3.4; gy+=0.5){ const a=pr(-3,gy,0), b=pr(3,gy,0); ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }
+    ctx.restore();
+
+    /* 地面上的风向指示箭头（水平投影） */
+    const wr = vecAz(S.az), wf = vecAz(opposite(S.az));
+    const ar0 = pr(wf.x*1.9, wf.y*1.9, 0.01), ar1 = pr(wr.x*1.55, wr.y*1.55, 0.01);
+    ctx.strokeStyle = 'rgba(24,86,158,.9)'; ctx.lineWidth = 3; ctx.setLineDash([8,5]);
+    ctx.beginPath(); ctx.moveTo(ar0[0],ar0[1]); ctx.lineTo(ar1[0],ar1[1]); ctx.stroke(); ctx.setLineDash([]);
+    /* 箭头头部 */
+    const aA = Math.atan2(ar1[1]-ar0[1], ar1[0]-ar0[0]);
+    ctx.fillStyle = 'rgba(24,86,158,.95)';
+    ctx.beginPath();
+    ctx.moveTo(ar1[0],ar1[1]);
+    ctx.lineTo(ar1[0]-11*COS(aA-0.4), ar1[1]-11*SIN(aA-0.4));
+    ctx.lineTo(ar1[0]-11*COS(aA+0.4), ar1[1]-11*SIN(aA+0.4));
+    ctx.closePath(); ctx.fill();
+    const lb0 = pr(wf.x*2.25, wf.y*2.25, 0.01);
+    ctx.fillStyle = 'rgba(20,60,100,.9)'; ctx.font = '600 11px ui-monospace,monospace'; ctx.textAlign='center';
+    ctx.fillText('风来自' + nearestDir(opposite(S.az)).n, lb0[0], lb0[1]);
+
+    /* 影子 */
+    ctx.fillStyle = 'rgba(40,55,35,.16)';
+    const sh0 = pr(0,0,0), sh1 = pr(0.75,0.30,0);
+    ctx.beginPath(); ctx.ellipse((sh0[0]+sh1[0])/2,(sh0[1]+sh1[1])/2, SC*0.55, SC*0.16, 0, 0, 2*PI); ctx.fill();
+
+    /* 小明 */
+    const manX = 0.62, manY = -0.30;
+    const m0 = pr(manX,manY,0), m1 = pr(manX,manY,1.62);
+    ctx.strokeStyle='#3d4b5c'; ctx.lineWidth = SC*0.075; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(m0[0],m0[1]); ctx.lineTo(m1[0],m1[1]); ctx.stroke();          // 身体
+    ctx.lineWidth = SC*0.055;
+    ctx.beginPath(); ctx.moveTo(m1[0],m1[1]); ctx.lineTo(...pr(manX+0.34,manY+0.10,1.30)); ctx.stroke();  // 手臂指向旗
+    ctx.fillStyle='#e8b98d';
+    ctx.beginPath(); ctx.arc(m1[0], m1[1]-SC*0.10, SC*0.105, 0, 2*PI); ctx.fill();            // 头
+    ctx.font='600 11px sans-serif'; ctx.fillStyle='#33465a'; ctx.textAlign='center';
+    ctx.fillText('小明', m0[0], m0[1]+14);
+
+    /* 旗杆 */
+    const p0 = pr(0,0,0), p1 = pr(0,0,POLE_H);
+    const pg = ctx.createLinearGradient(p0[0]-4,0,p0[0]+4,0);
+    pg.addColorStop(0,'#7c848e'); pg.addColorStop(.4,'#c3cad2'); pg.addColorStop(1,'#6d757f');
+    ctx.strokeStyle = pg; ctx.lineWidth = SC*0.055; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke();
+    ctx.fillStyle='#98a0aa';
+    ctx.beginPath(); ctx.arc(p1[0],p1[1], SC*0.045, 0, 2*PI); ctx.fill();
+
+    /* 风粒子（背景层） */
+    drawParticles(0.55);
+
+    /* 布料：按深度排序绘制 */
+    const {nx,ny,p,id} = cloth;
+    const LIGHT = [-0.42,-0.48,0.77];
+    const quads = [];
+    for(let j=0;j<ny-1;j++) for(let i=0;i<nx-1;i++){
+      const a=id(i,j), b=id(i+1,j), c=id(i+1,j+1), d=id(i,j+1);
+      const A=[p[a*3],p[a*3+1],p[a*3+2]], B=[p[b*3],p[b*3+1],p[b*3+2]];
+      const C=[p[c*3],p[c*3+1],p[c*3+2]], D=[p[d*3],p[d*3+1],p[d*3+2]];
+      /* 法向 */
+      const e1=[B[0]-A[0],B[1]-A[1],B[2]-A[2]], e2=[D[0]-A[0],D[1]-A[1],D[2]-A[2]];
+      let n=[e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]];
+      const nl = SQRT(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]) || 1;
+      n=[n[0]/nl,n[1]/nl,n[2]/nl];
+      const dep = (A[1]+B[1]+C[1]+D[1])/4;
+      quads.push({A,B,C,D,n,dep,i,j});
+    }
+    quads.sort((u,v)=> v.dep - u.dep);     // 远的先画（Y 大 = 远）
+    for(const q of quads){
+      const nd = q.n[0]*LIGHT[0] + q.n[1]*LIGHT[1] + q.n[2]*LIGHT[2];
+      const front = nd >= 0;
+      const s = front ? (0.46 + 0.54*nd) : (0.46 + 0.54*(-nd))*0.78;
+      const R = Math.round(206*s), G = Math.round(52*s), Bc = Math.round(42*s);
+      const sa = pr(...q.A), sb = pr(...q.B), sc2 = pr(...q.C), sd = pr(...q.D);
+      ctx.beginPath();
+      ctx.moveTo(sa[0],sa[1]); ctx.lineTo(sb[0],sb[1]); ctx.lineTo(sc2[0],sc2[1]); ctx.lineTo(sd[0],sd[1]);
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${R},${G},${Bc})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${Math.round(R*0.82)},${Math.round(G*0.7)},${Math.round(Bc*0.7)},.5)`;
+      ctx.lineWidth = 0.6; ctx.stroke();
+    }
+
+    /* 风粒子（前景层） */
+    drawParticles(0.85);
+
+    /* 罗盘 */
+    drawCompass();
+  }
+
+  function drawParticles(alphaScale){
+    ctx.lineCap = 'round';
+    const wr = vecAz(S.az);
+    for(const pt of parts){
+      const s0 = pr(pt.x, pt.y, pt.z);
+      const s1 = pr(pt.x - wr.x*0.30*S.spd, pt.y - wr.y*0.30*S.spd, pt.z);
+      ctx.strokeStyle = `rgba(255,255,255,${(0.10 + 0.20*Math.min(S.spd/2.6,1))*alphaScale})`;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(s0[0],s0[1]); ctx.lineTo(s1[0],s1[1]); ctx.stroke();
+    }
+  }
+
+  function drawCompass(){
+    const R = Math.min(38, W*0.11), cxp = W - R - 14, cyp = R + 14;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cxp,cyp,R,0,2*PI);
+    ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
+    ctx.strokeStyle = '#c3d0de'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = '#5a6b7d'; ctx.font = '700 10px ui-monospace,monospace'; ctx.textAlign='center';
+    ctx.fillText('北', cxp, cyp - R + 13);
+    ctx.fillText('南', cxp, cyp + R - 5);
+    ctx.fillText('西', cxp - R + 8, cyp + 4);
+    ctx.fillText('东', cxp + R - 8, cyp + 4);
+    /* 风：来向 -> 去向 */
+    const f = vecAz(opposite(S.az)), t = vecAz(S.az);
+    const x1 = cxp + f.x*R*0.62, y1 = cyp - f.y*R*0.62;
+    const x2 = cxp + t.x*R*0.46, y2 = cyp - t.y*R*0.46;
+    ctx.strokeStyle = '#1f6fbf'; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    const A2 = Math.atan2(y2-y1, x2-x1);
+    ctx.fillStyle = '#1f6fbf'; ctx.beginPath();
+    ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-7*COS(A2-0.42), y2-7*SIN(A2-0.42));
+    ctx.lineTo(x2-7*COS(A2+0.42), y2-7*SIN(A2+0.42));
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(x1,y1,3.4,0,2*PI); ctx.fillStyle='#c0392b'; ctx.fill();
+    ctx.restore();
+  }
+
+  const vecAz = a => ({ x: SIN(a*PI/180), y: COS(a*PI/180) });
+
+  /* ---- 循环 ---- */
+  let last = performance.now(), tick = 0;
+  function loop(now){
+    const dt = Math.min((now-last)/1000, 0.033); last = now;
+    /* 风向平滑跟随（旗子是被风"吹"过去的，有惯性） */
+    S.az = norm360(S.az + angDiff(S.tAz, S.az) * (1 - Math.pow(0.14, dt)));
+    const wr = vecAz(S.az);
+    const wind = { x: wr.x*S.spd, y: wr.y*S.spd, z: 0 };
+
+    /* 大气湍流：近地风的阵性 + 随平均风向下游对流的涡 */
+    T += dt;
+    const sub = 3, h = dt/sub;
+    for(let k=0;k<sub;k++){ turb.t = T + k*h; cloth.step(h, wind, turb); }
+
+    /* 粒子推进 */
+    for(const pt of parts){
+      pt.x += wr.x*S.spd*dt; pt.y += wr.y*S.spd*dt;
+      pt.z += (Math.random()-0.5)*0.004;
+      if(pt.x > 2.8 || pt.x < -2.8 || pt.y > 2.8 || pt.y < -2.8){
+        /* 从上风侧重新进入 */
+        pt.x = -wr.x*2.7 + (Math.random()-0.5)*4.4;
+        pt.y = -wr.y*2.7 + (Math.random()-0.5)*4.4;
+        pt.z = 0.12 + Math.random()*2.5;
+      }
+    }
+
+    /* 飘动速率必须用未平滑的姿态逐帧算 —— 平滑后再求差分会把抖动抹掉十几倍 */
+    const atNow = cloth.attitude();
+    actRaw += (Math.abs(atNow.tilt - rawTilt) / Math.max(dt, 1e-3) - actRaw) * 0.08;
+    rawTilt = atNow.tilt;
+
+    draw();
+    if(++tick % 8 === 0) updateReadout();
+    requestAnimationFrame(loop);
+  }
+
+  const oSpd=document.getElementById('oSpd'), oLv=document.getElementById('oLv'),
+        oState=document.getElementById('oState'), oTo=document.getElementById('oTo'),
+        oFrom=document.getElementById('oFrom'), oWind=document.getElementById('oWind'),
+        clothTag=document.getElementById('clothTag'), spdVal=document.getElementById('spdVal');
+  let tiltS = -80, azS = 315;                              // 平滑后的展开角与方位
+  function updateReadout(){
+    const at = cloth.attitude();
+    tiltS += (at.tilt - tiltS) * 0.07;                     // 指数平滑
+    azS   = norm360(azS + angDiff(at.az, azS) * 0.07);
+    const g = gradeFromFlag(tiltS, actRaw);
+    const open = actRaw > 4;                               // 旗子是否已被吹动起来
+    oSpd.textContent = S.spd.toFixed(2) + ' m/s';
+    oLv.textContent  = S.spd < 0.3 ? '0 级 · 无风' : (S.spd < 1.6 ? '1 级 · 微风' : '2 级 · 大风');
+    oState.textContent = BEAUFORT[g].desc + (g!==S.lv ? '（仿真中）' : '');
+    const to = nearestDir(azS).n;
+    oTo.textContent   = open ? to : '—（旗子垂着）';
+    oFrom.textContent = open ? nearestDir(opposite(azS)).n : '—';
+    oWind.textContent = open ? (nearestDir(opposite(azS)).n + '风') : '无风，无法判断';
+    clothTag.textContent = 'v = ' + S.spd.toFixed(2) + ' m/s · ' + g + ' 级 · 展开 '
+                           + Math.round(90 + tiltS) + '° · 飘动 ' + actRaw.toFixed(0) + '°/s';
+    /* 表格高亮：按仿真判定的等级 */
+    document.querySelectorAll('#lvTable tbody tr').forEach(tr=>{
+      const on = +tr.dataset.lv === g;
+      tr.classList.toggle('on', on);
+      tr.lastElementChild.textContent = on ? '← 仿真判定' : '';
+    });
+  }
+
+  /* ---- 交互 ---- */
+  const rg = document.getElementById('spdRange');
+  function setLv(lv){
+    S.lv = lv; S.spd = BEAUFORT[lv].v;
+    spdVal.textContent = S.spd.toFixed(2) + ' m/s';
+    document.querySelectorAll('[data-lv]').forEach(b=>{
+      if(b.tagName === 'BUTTON') b.classList.toggle('act', +b.dataset.lv === lv);
+    });
+    syncParts(); updateReadout();
+  }
+  rg.addEventListener('input', e=> setLv(+e.target.value));
+  document.querySelectorAll('button[data-lv]').forEach(b=>
+    b.addEventListener('click', ()=>{ rg.value = b.dataset.lv; setLv(+b.dataset.lv); }));
+
+  function setAz(a, sync){
+    S.tAz = norm360(a);
+    if(sync !== false){
+      document.querySelectorAll('#dirBtns button').forEach(b=>
+        b.classList.toggle('act', norm360(+b.dataset.d) === norm360(a)));
+    }
+  }
+  document.querySelectorAll('#dirBtns button').forEach(b=>
+    b.addEventListener('click', ()=> setAz(+b.dataset.d, true)));
+
+  /* 拖动改风向：屏幕点 -> 水平面方位 */
+  let drag = false;
+  function azAt(ev){
+    const r = stage.getBoundingClientRect();
+    const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+    const X = (sx - cx)/SC;
+    const Y = -(sy - cy)/(SC*SEL);
+    return norm360(Math.atan2(X, Y)*180/PI);
+  }
+  stage.addEventListener('pointerdown', ev=>{
+    drag = true; stage.classList.add('drag');
+    try{ stage.setPointerCapture(ev.pointerId); }catch(e){}
+    setAz(azAt(ev), true); ev.preventDefault();
+  });
+  stage.addEventListener('pointermove', ev=>{ if(drag) setAz(nearestDir(azAt(ev)).a, true); });
+  const stop = ()=>{ if(drag){ drag=false; stage.classList.remove('drag'); setAz(S.tAz, true); } };
+  stage.addEventListener('pointerup', stop);
+  stage.addEventListener('pointercancel', stop);
+  window.addEventListener('pointerup', stop);
+
+  new ResizeObserver(()=>fit()).observe(stage);
+  window.addEventListener('resize', fit);
+  document.getElementById('resetExample').addEventListener('click', ()=>{
+    Object.assign(S, {spd:2.6, lv:2, tAz:315, az:315});
+    T=0; turb.t=0; rawTilt=-80; actRaw=0; tiltS=-80; azS=315; tick=0;
+    cloth.reset(TOP_Z,315,-POLE_R*2.2); parts.length=0;
+    rg.value=2; drag=false; stage.classList.remove('drag'); setLv(2); setAz(315,true);
+  });
+  fit(); syncParts(); setLv(2); setAz(315, true);
+  requestAnimationFrame(loop);
+})();
+
+/* ==================== LBM D2Q9 流场求解器 ==================== */
+(function(){
+  const stage = document.getElementById('cfdStage');
+  const cv    = document.getElementById('cvCfd');
+  if(!stage || !cv) return;
+
+  const NX = 200, NY = 140;                 // 格子数（域高取足，避免房屋阻塞比过大）
+  const U0 = 0.095;                         // 来流（格子单位，Ma≈0.16）
+  const TAU = 0.54, OMEGA = 1/TAU;          // BGK 松弛（ν=(τ−½)/3，再小就发散了）
+  const N = NX*NY;
+  /* D2Q9：格子 y 向下为正 */
+  const ex = [0, 1, 0,-1, 0, 1,-1,-1, 1];
+  const ey = [0, 0,-1, 0, 1,-1,-1, 1, 1];
+  const w9 = [4/9, 1/9,1/9,1/9,1/9, 1/36,1/36,1/36,1/36];
+  const op = [0, 3, 4, 1, 2, 7, 8, 5, 6];
+
+  /* 几何（格子坐标） */
+  const GND = NY - 2;                       // 地面
+  const WX0 = 84, WX1 = 150, WTOP = 98;     // 墙
+  const EX0 = 70, EX1 = 158, EY0 = 94, EY1 = 98;   // 屋檐板（左侧挑出到 70）
+  /* 屋顶（实心三角）：顶点 (RX_MID, RY_TOP)，底边两端 (EX0-6, EY0)、(EX1+6, EY0) */
+  const RY_TOP = EY0 - 16, RX_MID = (EX0 + EX1)/2;
+  const solid = new Uint8Array(N);
+  for(let y=0;y<NY;y++) for(let x=0;x<NX;x++){
+    const i = y*NX + x;
+    if(y >= GND) solid[i] = 1;                                          // 地面
+    if(x >= WX0 && x < WX1 && y >= WTOP && y < GND) solid[i] = 1;       // 墙
+    if(x >= EX0 && x < EX1 && y >= EY0 && y < EY1) solid[i] = 1;        // 屋檐板
+    /* 屋顶实体：气流只能从屋檐下方钻进檐下、或从屋顶上方翻过去，
+       檐下因此成为一个真正的凹腔（分离 + 回流），而不是被风直接吹透。*/
+    if(y >= RY_TOP && y < EY0){
+      const t = (y - RY_TOP)/(EY0 - RY_TOP);
+      const xl = RX_MID + (EX0 - 6 - RX_MID)*t, xr = RX_MID + (EX1 + 6 - RX_MID)*t;
+      if(x >= xl && x <= xr) solid[i] = 1;
+    }
+  }
+
+  let f = new Float32Array(N*9), f2 = new Float32Array(N*9);
+  const rho = new Float32Array(N), ux = new Float32Array(N), uy = new Float32Array(N);
+
+  function feq(k, r, u, v){
+    const cu = 3*(ex[k]*u + ey[k]*v);
+    const uu = 1.5*(u*u + v*v);
+    return w9[k]*r*(1 + cu + 0.5*cu*cu - uu);
+  }
+  function init(){
+    for(let i=0;i<N;i++){
+      if(solid[i]) continue;
+      for(let k=0;k<9;k++) f[i*9+k] = feq(k, 1, U0, 0);
+    }
+  }
+  init();
+
+  function step(){
+    /* --- 碰撞（BGK，就地） --- */
+    for(let i=0;i<N;i++){
+      if(solid[i]) continue;
+      const b = i*9;
+      let r = 0, mx = 0, my = 0;
+      for(let k=0;k<9;k++) r += f[b+k];
+      for(let k=1;k<9;k++){ mx += ex[k]*f[b+k]; my += ey[k]*f[b+k]; }
+      const u = r > 1e-6 ? mx/r : 0, v = r > 1e-6 ? my/r : 0;
+      rho[i] = r; ux[i] = u; uy[i] = v;
+      const w0 = 1 - OMEGA;
+      for(let k=0;k<9;k++) f[b+k] = w0*f[b+k] + OMEGA*feq(k, r, u, v);
+    }
+    /* --- 迁移（pull 格式）+ 壁面反弹 --- */
+    for(let y=0;y<NY;y++){
+      for(let x=0;x<NX;x++){
+        const i = y*NX + x, b = i*9;
+        if(solid[i]) continue;
+        for(let k=0;k<9;k++){
+          const sx = x - ex[k], sy = y - ey[k];
+          if(sx < 0 || sx >= NX || sy < 0 || sy >= NY){ f2[b+k] = f[b+op[k]]; continue; }
+          const si = sy*NX + sx;
+          f2[b+k] = solid[si] ? f[b+op[k]] : f[si*9+k];
+        }
+      }
+    }
+    const tmp = f; f = f2; f2 = tmp;
+    /* --- 边界条件 --- */
+    for(let y=0;y<NY;y++){
+      /* 入口（左）：给定来流 */
+      let i = y*NX, b = i*9;
+      for(let k=0;k<9;k++) f[b+k] = feq(k, 1, U0, 0);
+      /* 出口（右）：零梯度 */
+      i = y*NX + NX-1; b = i*9;
+      const i2 = (y*NX + NX-2)*9;
+      for(let k=0;k<9;k++) f[b+k] = f[i2+k];
+      /* 上边界：远场来流 */
+      i = y*NX; void i;
+    }
+    for(let x=0;x<NX;x++){
+      const i = 0*NX + x, b = i*9;
+      if(solid[i]) continue;
+      for(let k=0;k<9;k++) f[b+k] = feq(k, 1, U0, 0);
+    }
+  }
+
+  /* ---- 绘制 ---- */
+  const off = document.createElement('canvas');
+  off.width = NX; off.height = NY;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(NX, NY);
+  let ctx = null, W = 0, H = 0, dpr = 1;
+  function fit(){
+    const r = stage.getBoundingClientRect();
+    if(!r.width) return;
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+    W = r.width; H = r.height;
+    ctx = cv.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  /* 速度大小 -> 颜色 */
+  const RAMP = [
+    [0.00, 18, 36, 61], [0.25, 27, 58,107], [0.55, 47,143,214],
+    [0.85, 124,196,232], [1.15, 242,193, 78], [1.50, 232, 80, 58]
+  ];
+  function ramp(t, out){
+    t = clamp(t, 0, 1.5);
+    for(let i=0;i<RAMP.length-1;i++){
+      const a = RAMP[i], b = RAMP[i+1];
+      if(t <= b[0]){
+        const u = (t - a[0])/(b[0]-a[0]);
+        out[0] = a[1] + (b[1]-a[1])*u;
+        out[1] = a[2] + (b[2]-a[2])*u;
+        out[2] = a[3] + (b[3]-a[3])*u;
+        return;
+      }
+    }
+    const l = RAMP[RAMP.length-1]; out[0]=l[1]; out[1]=l[2]; out[2]=l[3];
+  }
+  const vor = new Float32Array(N);
+  function calcVort(){
+    for(let y=1;y<NY-1;y++) for(let x=1;x<NX-1;x++){
+      const i = y*NX + x;
+      if(solid[i]){ vor[i] = 0; continue; }
+      const dvydx = (uy[i+1] - uy[i-1])*0.5;
+      const duxdy = (ux[i+NX] - ux[i-NX])*0.5;
+      vor[i] = dvydx - duxdy;
+    }
+  }
+  let mode = 'speed', showTrace = true, playing = true, T = 0;
+  const rgb3 = [0,0,0];
+  function drawField(){
+    if(mode === 'vort') calcVort();
+    const d = img.data;
+    for(let i=0;i<N;i++){
+      const o = i*4;
+      if(solid[i]){ d[o]=122; d[o+1]=106; d[o+2]=88; d[o+3]=255; continue; }
+      if(mode === 'speed'){
+        const s = SQRT(ux[i]*ux[i] + uy[i]*uy[i]) / U0;
+        ramp(s, rgb3);
+      }else{
+        const t = vor[i]*260;                      // 涡度着色
+        const m = clamp(Math.abs(t), 0, 1);
+        if(t >= 0){ rgb3[0] = 40+215*m; rgb3[1] = 90+70*(1-m); rgb3[2] = 120+10*(1-m); }
+        else      { rgb3[0] = 40+60*(1-m);  rgb3[1] = 100+120*m; rgb3[2] = 150+95*m; }
+      }
+      d[o] = rgb3[0]; d[o+1] = rgb3[1]; d[o+2] = rgb3[2]; d[o+3] = 255;
+    }
+    octx.putImageData(img, 0, 0);
+    ctx.drawImage(off, 0, 0, W, H);
+  }
+
+  /* 示踪粒子 */
+  const TP = [];
+  for(let i=0;i<300;i++) TP.push({x: Math.random()*NX, y: 6 + Math.random()*(GND-14), px:0, py:0, life: Math.random()*4});
+  function sampleU(x, y){
+    const xi = clamp(Math.floor(x), 0, NX-1), yi = clamp(Math.floor(y), 0, NY-1);
+    const i = yi*NX + xi;
+    if(solid[i]) return [0,0];
+    return [ux[i], uy[i]];
+  }
+  function drawTrace(){
+    ctx.lineCap = 'round';
+    for(const p of TP){
+      const u = sampleU(p.x, p.y);
+      p.px = p.x; p.py = p.y;
+      p.x += u[0]*1.35; p.y += u[1]*1.35;
+      p.life -= 0.016;
+      const out = p.x > NX-2 || p.x < 1 || p.y < 1 || p.y > GND-1 || p.life <= 0;
+      if(out){ p.x = 1 + Math.random()*8; p.y = 6 + Math.random()*(GND-14); p.life = 2 + Math.random()*4; continue; }
+      const a = clamp(0.15 + SQRT(u[0]*u[0]+u[1]*u[1])/U0*0.55, 0, .9);
+      ctx.strokeStyle = `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(p.px*W/NX, p.py*H/NY);
+      ctx.lineTo(p.x*W/NX,  p.y*H/NY);
+      ctx.stroke();
+    }
+  }
+
+  /* 房屋与测点标注 */
+  function drawOverlay(){
+    const sx = W/NX, sy = H/NY;
+    const R = (x,y,w,h)=>ctx.fillRect(x*sx, y*sy, w*sx, h*sy);
+    ctx.fillStyle = '#6d5c4a';
+    R(WX0, WTOP, WX1-WX0, GND-WTOP);            // 墙
+    R(EX0, EY0, EX1-EX0, EY1-EY0);              // 屋檐板
+    ctx.fillStyle = '#8a3f33';
+    ctx.beginPath();                             // 屋顶（与求解器里的实体几何一致）
+    ctx.moveTo((EX0-6)*sx, EY0*sy);
+    ctx.lineTo((EX1+6)*sx, EY0*sy);
+    ctx.lineTo(RX_MID*sx, RY_TOP*sy);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.16)';
+    R(WX0+8, WTOP+10, 26, 18);                   // 窗
+    R(WX0+52, GND-30, 34, 30);                   // 门
+
+    /* 测点 */
+    /* 两个测点必须在同一高度（≈1.8 m，真实测风高度），否则比的是边界层而不是屋檐；
+       也不能贴地，否则两点都落在地面边界层里、A 就读不到真实风速了。*/
+    const GY = 110;
+    /* 探针标签上显示的实时风速（由 updateRead 写入） */
+    let lastVa = 2.6, lastVb = 0.14;
+    const A = {x:24, gy:GY, s:{x:24, y:GY}, name:'A', col:'#7cc49a',
+               reader:()=>lastVa, dir:()=>[emA.ux, emA.uy]};
+    const B = {x:77, gy:GY, s:{x:77, y:GY}, name:'B', col:'#e8927c',
+               reader:()=>lastVb, dir:()=>[emB.ux, emB.uy], note:'风速太低 · 方向紊乱'};
+    probe(A); probe(B);
+    function probe(P){
+      /* 支架：从地面到测点的竖直细线（虚线，避免被误读成箭头） */
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.4; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(P.x*sx, GND*sy); ctx.lineTo(P.x*sx, P.gy*sy); ctx.stroke();
+      ctx.restore();
+      /* 风向箭头：长度按风速归一，但设下限，太慢时也能看出方向。
+         必须用同一长度尺度画 x/y 两个分量，否则箭头方向会被画布比例拉歪
+         （sx = W/NX 与 sy = H/NY 一般不相等）。*/
+      const u = P.dir();                               // 用平滑后的方向，避免箭头乱抖
+      const mag = SQRT(u[0]*u[0] + u[1]*u[1]);
+      /* 箭头长度：随流速单调变化，但设一个可见下限 ——
+         檐下流速只有来流的 3%，若按比例画箭头就短到看不见了。*/
+      const L = 18 + 34*Math.pow(clamp(mag/U0, 0, 1), 0.45);   // 18–52 px
+      const uxh = mag > 1e-6 ? u[0]/mag : 1, uyh = mag > 1e-6 ? u[1]/mag : 0;
+      const x0 = P.s.x*sx, y0 = P.s.y*sy;
+      const x1 = x0 + uxh*L, y1 = y0 + uyh*L;
+      ctx.strokeStyle = P.col; ctx.lineWidth = 2.6; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+      const aa = Math.atan2(y1-y0, x1-x0);
+      ctx.fillStyle = P.col; ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1-8*COS(aa-0.42), y1-8*SIN(aa-0.42));
+      ctx.lineTo(x1-8*COS(aa+0.42), y1-8*SIN(aa+0.42));
+      ctx.closePath(); ctx.fill();
+      /* 测点圆标 + 名称 + 实时风速 */
+      ctx.beginPath(); ctx.arc(P.x*sx, P.gy*sy, 9, 0, 2*PI);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = P.col; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = P.col; ctx.font = '700 11px ui-monospace,monospace'; ctx.textAlign='center';
+      ctx.fillText(P.name, P.x*sx, P.gy*sy + 4);
+      const shown = (P.reader ? P.reader() : mag/U0*2.6);
+      ctx.textAlign = 'left';
+      ctx.font = '700 11px ui-monospace,monospace';
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillText(shown.toFixed(2)+' m/s', P.x*sx + 13, P.gy*sy - 4);
+      ctx.fillStyle = P.col;
+      ctx.fillText(shown.toFixed(2)+' m/s', P.x*sx + 12, P.gy*sy - 5);
+      /* 物理量太小、方向已经读不出来时，补一句文字说明。
+         画在数值标签下方、并加一条引线指向测点，避免与标签/箭头叠在一起。*/
+      if(P.note){
+        ctx.font = '700 10.5px ui-monospace,monospace';
+        const tx = P.x*sx + 12, ty = P.gy*sy + 22;
+        ctx.strokeStyle = 'rgba(255,205,191,.55)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(P.x*sx + 10, P.gy*sy + 2);
+        ctx.lineTo(tx - 2, ty - 9);
+        ctx.stroke();
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.fillText(P.note, tx+1, ty+1);
+        ctx.fillStyle = '#ffcdbf'; ctx.fillText(P.note, tx, ty);
+      }
+    }
+    /* 标注 */
+    ctx.font = '600 11px ui-monospace,monospace'; ctx.textAlign='left';
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.fillText('来流 2.6 m/s →', 8*sx, 16*sy);
+    ctx.fillStyle = '#ffd88a';
+    ctx.fillText('驻点', (WX0+4)*sx, (GND-26)*sy);
+    ctx.fillStyle = '#8fd0f0';
+    ctx.fillText('绕流加速', (EX1-46)*sx, (EY0-20)*sy);
+    ctx.fillStyle = '#9fe0d8';
+    ctx.fillText('檐下回流涡', 12*sx, (GND-10)*sy);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#c9b6f0';
+    ctx.fillText('尾流涡街', (NX-8)*sx, (GND-14)*sy);
+  }
+
+  /* 读数 */
+  const nA=document.getElementById('nA'), nB=document.getElementById('nB'),
+        fA=document.getElementById('fA'), fB=document.getElementById('fB'),
+        rA=document.getElementById('rA'), rB=document.getElementById('rB'),
+        barA=document.getElementById('barA'), barB=document.getElementById('barB'),
+        cfdTag=document.getElementById('cfdTag');
+    const V_REAL = 2.6;
+    const emA = {s:1, ux:1, uy:0}, emB = {s:0.3, ux:-1, uy:0};
+    /* 标定：开阔测点 A 读到的就是题设的 2.6 m/s。两点用同一把尺子换算，
+       真正由 CFD 算出来的是 A、B 的比值（≈ 1 : 0.06）。*/
+    let refA = 0;
+  /* 沿水平方向取一小段平均。不跨高度采样 —— 跨高度会把主流的竖直剪切
+     平均进来，凭空造出一个"向上/向下"的假分量。*/
+  function meanAround(cx0, cy0){
+    let sx=0, sy=0, n=0;
+    for(let d=-4; d<=4; d+=2){
+      const x = cx0 + d, y = cy0;
+      if(x<0||x>=NX||y<0||y>=NY) continue;
+      const i = y*NX+x; if(solid[i]) continue;
+      sx += ux[i]; sy += uy[i]; n++;
+    }
+    return n ? [sx/n, sy/n] : [0,0];
+  }
+  function updateRead(){
+    const a = meanAround(24, 110), b = meanAround(77, 110);
+    const sa = SQRT(a[0]*a[0]+a[1]*a[1])/U0, sb = SQRT(b[0]*b[0]+b[1]*b[1])/U0;
+    emA.s += (sa-emA.s)*0.2; emA.ux += (a[0]/U0-emA.ux)*0.2; emA.uy += (a[1]/U0-emA.uy)*0.2;
+    emB.s += (sb-emB.s)*0.2; emB.ux += (b[0]/U0-emB.ux)*0.2; emB.uy += (b[1]/U0-emB.uy)*0.2;
+    if(!refA && T > 900) refA = emA.s;                   // 流场发展起来后定标一次
+    const k0 = (refA || emA.s), k = V_REAL / k0;
+    const va = emA.s*k, vb = emB.s*k;
+    lastVa = va; lastVb = vb;
+    nA.textContent = va.toFixed(2)+' m/s'; nB.textContent = vb.toFixed(2)+' m/s';
+    barA.style.width = clamp(emA.s/k0*100,0,100)+'%';
+    barB.style.width = clamp(emB.s/k0*100,0,100)+'%';
+    const ga = va < 0.3 ? 0 : (va < 1.6 ? 1 : 2);
+    const gb = vb < 0.3 ? 0 : (vb < 1.6 ? 1 : 2);
+    fA.textContent = BEAUFORT[ga].desc;
+    fB.textContent = BEAUFORT[gb].desc;
+    /* 画面 +x 方向 = 真实的"吹向西北" */
+    rA.textContent = ga + ' 级 · ' + (emA.ux > 0.1 ? '东南风' : '—');
+    rB.textContent = gb + ' 级 · ' + (emB.ux < -0.01 ? '风向指反' : (vb < 0.3 ? '旗子垂下，读不出风向' : '风向紊乱'));
+    cfdTag.textContent = 't = ' + T + ' 步 · Re ≈ ' + Math.round(U0*(GND-WTOP)/((TAU-0.5)/3));
+  }
+
+  /* 主循环 */
+  let last = performance.now(), tick = 0, warm = 0;
+  function loop(now){
+    requestAnimationFrame(loop);
+    const dt = (now - last); last = now;
+    if(dt > 60) return;                        // 切后台时不追赶
+    if(!ctx) return;
+    if(playing){
+      const steps = warm < 240 ? 4 : 2;        // 前期多跑几步，让流场尽快发展
+      warm += steps;
+      for(let s=0;s<steps;s++){ step(); T++; }
+    }
+    drawField();
+    if(showTrace) drawTrace();
+    drawOverlay();
+    if(++tick % 10 === 0) updateRead();
+  }
+
+  /* 交互 */
+  new ResizeObserver(()=>fit()).observe(stage);
+  window.addEventListener('resize', fit);
+  const bPlay=document.getElementById('bPlay'), bSpeed=document.getElementById('bSpeed'),
+        bVort=document.getElementById('bVort'), bTrace=document.getElementById('bTrace');
+  bPlay.addEventListener('click', ()=>{
+    playing = !playing;
+    bPlay.textContent = playing ? '⏸ 暂停' : '▶ 继续';
+    bPlay.classList.toggle('act', playing);
+  });
+  bSpeed.addEventListener('click', ()=>{ mode='speed'; bSpeed.classList.add('act'); bVort.classList.remove('act'); });
+  bVort .addEventListener('click', ()=>{ mode='vort';  bVort.classList.add('act');  bSpeed.classList.remove('act'); });
+  bTrace.addEventListener('click', ()=>{ showTrace = !showTrace; bTrace.classList.toggle('act', showTrace); });
+
+  document.getElementById('resetExample').addEventListener('click', ()=>{
+    f.fill(0); f2.fill(0); rho.fill(0); ux.fill(0); uy.fill(0); init();
+    mode='speed'; showTrace=true; playing=true; T=0; warm=0; tick=0; refA=0;
+    Object.assign(emA,{s:1,ux:1,uy:0}); Object.assign(emB,{s:0.3,ux:-1,uy:0});
+    for(const p of TP) Object.assign(p,{x:Math.random()*NX,y:6+Math.random()*(GND-14),px:0,py:0,life:Math.random()*4});
+    bPlay.textContent='⏸ 暂停'; bPlay.classList.add('act'); bSpeed.classList.add('act');
+    bVort.classList.remove('act'); bTrace.classList.add('act');
+  });
+  fit(); requestAnimationFrame(loop);
+})();
+/* ==================== 界面 ==================== */
+(function(){
+  const links = [...document.querySelectorAll('nav.nav a')];
+  document.getElementById('resetExample').addEventListener('click', ()=>{ links.forEach(x=>x.style.background=''); window.scrollTo(0,0); });
+  links.forEach(a=>a.addEventListener('click', ()=>{
+    links.forEach(x=>x.style.background='');
+    a.style.background = 'var(--blue-l)';
+  }));
+})();
+</script>
+</body>
+</html>
