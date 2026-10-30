@@ -1,0 +1,15 @@
+import { readFile, mkdir, cp, writeFile, rm } from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('完整源码提交号必填');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请先绑定 Git 实例');
+const html=await readFile('app.html','utf8');
+const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body>([\s\S]*?)<script>/)[1];
+let js=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+js=js.replace(/"assets\/([^"]+\.jpg)"/g, (_, name) => `assetUrls[${JSON.stringify(name)}]`);
+const qr=(await readFile('assets/qrcode.min.js','utf8')).replace('if(this._android&&this._android<=2.1)', 'if(window._android&&window._android<=2.1)');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await cp('assets','dist/assets',{recursive:true}); await cp('icon.png','dist/icon.png');
+await writeFile('dist/assets/app.js',`const assetUrls={};\ntry {\n  const names=["baijuyi.jpg", "dufu.jpg", "dumu.jpg", "fanli.jpg", "guanzhong.jpg", "hanxin.jpg", "jixiaolan.jpg", "laozi.jpg", "libai.jpg", "lihe.jpg", "linzexu.jpg", "liqingzhao.jpg", "liuzongyuan.jpg", "menghaoran.jpg", "mozi.jpg", "shangyang.jpg", "simaqian.jpg", "sushu.jpg", "tangyin.jpg", "taoyuanming.jpg", "wanganshi.jpg", "wangwei.jpg", "wangyangming.jpg", "weizheng.jpg", "xinqiji.jpg", "xuxiake.jpg", "yaowang.jpg", "yuqian.jpg", "zengguofan.jpg", "zhangjuzheng.jpg", "zhengbanqiao.jpg", "zhuangzi.jpg", "zhugeliang.jpg"];\n  await Promise.all(names.map(async name => { const response=await window.tiana.files.get('template-assets/images/'+name); if(!response.ok) throw Error(name); assetUrls[name]=URL.createObjectURL(await response.blob()); }));\n} catch(error) { document.getElementById('app').textContent='图片加载失败，请刷新重试。'; throw error; }\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${qr}\n${js}`);
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
