@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1" name="viewport">
+<title>打字练习 · 粘贴自己的文本</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e4e7ec; --text:#1f2937; --muted:#8a94a6;
+    --brand:#2563eb; --ok:#15a34a; --bad:#ef4444; --cur:#fde68a; --soft:#eef2f7;
+    --fs:22px; --lh:calc(var(--fs) * 1.95);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:20px 20px 18px}
+  header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:18px;margin:0;letter-spacing:.3px}
+  header .tag{font-size:12px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+  textarea#src{
+    width:100%;min-height:240px;resize:vertical;border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:14px;line-height:1.75;font-family:inherit;color:var(--text);background:#fbfcfe;outline:none;
+  }
+  textarea#src:focus{border-color:#bcd0f7;background:#fff}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .grow{flex:1}
+  button{
+    font:inherit;font-size:14px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;color:var(--text);cursor:pointer;transition:.15s;
+  }
+  button:hover{border-color:#c7d2e5;background:#fafbfd}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  button.primary:hover{background:#1d4fd8}
+  .filebtn{font-size:14px;padding:9px 16px;border-radius:9px;border:1px dashed #c7d2e5;cursor:pointer;color:#475569;background:#fbfcfe}
+  .filebtn input{display:none}
+  label.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#4b5563;cursor:pointer;user-select:none}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.75}
+
+  /* ============ 练习区 ============ */
+  #practice{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 104px)}
+  .stats{display:flex;gap:8px;flex-wrap:wrap}
+  .stat{flex:1;min-width:84px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  .stat b{display:block;font-size:19px;font-weight:700;letter-spacing:.2px}
+  .stat span{font-size:11.5px;color:var(--muted)}
+  .stat.hl b{color:var(--brand)}
+  .pbar{height:5px;background:#e9edf3;border-radius:99px;overflow:hidden}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#60a5fa,#2563eb);transition:width .12s linear}
+
+  #text{
+    position:relative;flex:1 1 auto;min-height:200px;overflow-y:auto;
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px 18px;
+    font-size:var(--fs);line-height:var(--lh);letter-spacing:.4px;
+    font-family:"Microsoft YaHei","PingFang SC",ui-monospace,monospace;
+  }
+  #text::-webkit-scrollbar{width:9px}
+  #text::-webkit-scrollbar-thumb{background:#dbe1ea;border-radius:99px}
+
+  .line{display:flex;align-items:flex-start;border-radius:6px;padding:0 8px 0 0;margin:0 -8px}
+  .line.active{background:#fffbeb;box-shadow:inset 3px 0 0 #f59e0b}
+  .ln{flex:0 0 40px;text-align:right;padding-right:10px;font-size:12px;line-height:var(--lh);
+      color:#c3cad8;user-select:none;font-family:ui-monospace,Consolas,monospace}
+  .line.active .ln{color:#d97706;font-weight:700}
+  .lntext{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}
+
+  .ch{color:#9aa5b6;border-radius:3px;transition:color .06s}
+  .ch.ok{color:var(--ok)}
+  .ch.bad{color:#fff;background:var(--bad);border-radius:3px}
+  .ch.sp{background:var(--soft)}
+  .ch.sp.ok{background:#e6f6ec}
+  .ch.sp.bad{background:var(--bad)}
+  .ch.nl{color:#b8c0ce}
+  .ch.nl i{opacity:.35;font-style:normal;font-size:.62em;letter-spacing:0}
+  .ch.cur{background:var(--cur);box-shadow:inset 0 -2px 0 var(--brand);color:var(--text);border-radius:3px}
+  .ch.cur.bad{background:var(--bad);color:#fff}
+  #text.blind .ch.ok{color:transparent;background:transparent}
+  #text.blind .ch.sp.ok{background:transparent}
+
+  #typebox{
+    flex:0 0 auto;width:100%;height:96px;resize:none;overflow:auto;
+    border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:16px;line-height:1.7;
+    font-family:"Microsoft YaHei","PingFang SC",monospace;background:#fbfcfe;outline:none;color:#334155;
+  }
+  #typebox:focus{border-color:#bcd0f7;background:#fff}
+  .tip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .tip .grow{flex:1}
+  kbd{background:#eef2f7;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;font-size:11.5px;font-family:inherit}
+  .tip button{padding:6px 13px;font-size:13px}
+
+  /* ============ 弹窗 ============ */
+  .modal{position:fixed;inset:0;background:rgba(17,24,39,.42);display:none;align-items:center;justify-content:center;padding:24px;z-index:50}
+  .modal.on{display:flex}
+  .modal .box{background:#fff;border-radius:16px;padding:20px 22px;max-width:780px;width:100%;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(15,23,42,.18)}
+  .modal h2{margin:0 0 4px;font-size:17px}
+  .modal .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .modal .body{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word;
+    background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:14.5px;line-height:1.9}
+  .modal .foot{margin-top:14px;text-align:right}
+  .result{position:fixed;inset:0;background:rgba(17,24,39,.42);display:none;align-items:center;justify-content:center;padding:20px;z-index:55}
+  .result.on{display:flex}
+  .result .box{background:#fff;border-radius:16px;padding:26px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 18px 50px rgba(15,23,42,.18)}
+  .result h2{margin:0 0 4px;font-size:20px}
+  .result .sub2{font-size:13px;color:var(--muted);margin-bottom:18px}
+  .result .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+  .result .grid div{background:#f7f9fc;border-radius:10px;padding:12px 6px}
+  .result .grid b{display:block;font-size:22px;color:var(--brand)}
+  .result .grid span{font-size:11.5px;color:var(--muted)}
+  .result .row{justify-content:center;margin-top:0}
+  #toast{
+    position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(12px);opacity:0;
+    background:#111827;color:#fff;font-size:13px;padding:9px 16px;border-radius:99px;
+    transition:.22s;pointer-events:none;z-index:60;
+  }
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hide{display:none !important}
+
+  /* ============ 移动端适配 ============ */
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 12px}
+    header{gap:6px;margin-bottom:10px}
+    h1{font-size:17px}
+    header .tag{font-size:11.5px;line-height:1.5}
+    .card{padding:12px;border-radius:10px;margin-bottom:10px}
+    textarea#src{min-height:170px;padding:10px;font-size:16px}
+    .row{gap:8px;margin-top:10px}
+    button{padding:10px 14px;font-size:15px}
+    .filebtn{padding:10px 14px;font-size:15px}
+    label.chk{font-size:13px;line-height:1.6;white-space:normal}
+    .hint{font-size:12px;line-height:1.7}
+    #practice{gap:8px;height:calc(100vh - 88px)}
+    .stats{gap:6px}
+    .stat{min-width:70px;padding:6px 9px}
+    .stat b{font-size:16px}
+    .stat span{font-size:10.5px}
+    #text{padding:12px 12px 16px;min-height:160px}
+    .ln{flex:0 0 30px;padding-right:8px;font-size:11px}
+    #typebox{height:88px;padding:10px 12px}
+    .modal .box{width:calc(100% - 20px);padding:16px}
+    .result .grid{grid-template-columns:1fr;gap:8px}
+    .result .grid div{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px}
+    .result .grid b{display:inline;font-size:20px}
+    .result .grid span{font-size:12px}
+    .result .row{flex-direction:column;align-items:stretch}
+    .result .row button{width:100%}
+    .tip{gap:8px;font-size:12px}
+    .tip button{padding:8px 12px;font-size:14px}
+  }
+  @media (max-width:380px){
+    .stat{min-width:0;flex:1 1 30%}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <header>
+    <h1>打字练习</h1>
+    <span class="tag">粘贴任意文本 · 保留原文排版 · 示例体验 · 内容仅保存在本页</span>
+  </header>
+
+  <!-- 第一步：粘贴文本 -->
+  <section class="card" id="setup">
+    <textarea id="src" placeholder="把要练的文本粘贴到这里（法条、手册、邮件、代码都行）……"></textarea>
+    <div class="row">
+      <button class="primary" id="startBtn">开始练习</button>
+      <label class="filebtn">导入文件 (.txt/.md/.csv)
+        <input accept=".txt,.md,.markdown,.csv,.log,text/*" id="file" type="file">
+      </label>
+      <button id="demoBtn">用示例文本试试</button>
+      <span class="grow"></span>
+      <span class="hint" id="cnt" style="margin:0">0 字</span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="chk"><input id="ignoreNL" type="checkbox"> 合并原文换行（PDF/Word 复制来的一行一句，中文自动连排）</label>
+      <label class="chk"><input id="hideTyped" type="checkbox"> 隐藏已打过的字</label>
+    </div>
+    <div class="hint">
+      <b>默认原样保留换行</b>：原文有几行、哪里空行，练习区就照原样显示（左侧带行号），行尾的 <b>↵</b> 就是敲一下回车。
+      练习中随时点右下角「看原文」对照。
+    </div>
+  </section>
+
+  <!-- 第二步：练习 -->
+  <section class="hide" id="practice">
+    <div class="stats">
+      <div class="stat hl"><b id="speed">0</b><span>字 / 分钟</span></div>
+      <div class="stat"><b id="acc">—</b><span>正确率</span></div>
+      <div class="stat"><b id="err">0</b><span>错字</span></div>
+      <div class="stat"><b id="time">0:00</b><span>用时</span></div>
+      <div class="stat"><b id="prog">0%</b><span>进度</span></div>
+      <div class="stat"><b id="lineNow">1<span style="font-size:13px; color:#8a94a6">／<span id="lineAll">1</span></span></b><span>当前行 / 总行</span></div>
+    </div>
+    <div class="pbar"><i id="bar"></i></div>
+    <div id="text"></div>
+    <textarea autocapitalize="off" autocomplete="off" autocorrect="off" id="typebox" placeholder="在这里开始打字……（行尾出现 ↵ 时按一下回车）" spellcheck="false"></textarea>
+    <div class="tip">
+      <span><kbd>Tab</kbd> 重来</span>
+      <span><kbd>Esc</kbd> 换文本</span>
+      <span>字号 <button id="fsMinus" style="padding:2px 9px">A-</button> <button id="fsPlus" style="padding:2px 9px">A+</button></span>
+      <span class="grow"></span>
+      <button id="peekBtn">看原文</button>
+      <button id="againBtn">重新开始</button>
+      <button id="backBtn">换文本</button>
+    </div>
+  </section>
+</div>
+
+<!-- 原文对照 -->
+<div class="modal" id="peek">
+  <div class="box">
+    <h2>原文（未做任何处理）</h2>
+    <div class="sub">只做对照用，不参与打字计数</div>
+    <div class="body" id="peekBody"></div>
+    <div class="foot"><button id="peekClose">关掉</button></div>
+  </div>
+</div>
+
+<!-- 成绩 -->
+<div class="result" id="result">
+  <div class="box">
+    <h2 id="rTitle">打完了 🎉</h2>
+    <div class="sub2" id="rSub">这一遍的成绩</div>
+    <div class="grid">
+      <div><b id="rSpeed">0</b><span>字/分钟</span></div>
+      <div><b id="rAcc">0%</b><span>正确率</span></div>
+      <div><b id="rErr">0</b><span>错字</span></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="rAgain">再来一遍</button>
+      <button id="rBack">换一段文本</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div style="position:fixed;right:10px;bottom:10px;z-index:9999;background:white;padding:8px;border-radius:8px">示例体验 <button onclick="location.reload()">恢复示例</button></div>
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var DEMO = "第一条　为了完善劳动合同制度，明确劳动合同双方当事人的权利和义务，保护劳动者的合法权益，构建和发展和谐稳定的劳动关系，制定本法。\n\n第二条　中华人民共和国境内的企业、个体经济组织、民办非企业单位等组织与劳动者建立劳动关系，订立、履行、变更、解除或者终止劳动合同，适用本法。\n\n第三条　订立劳动合同，应当遵循合法、公平、平等自愿、协商一致、诚实信用的原则。依法订立的劳动合同具有约束力，用人单位与劳动者应当履行劳动合同约定的义务。";
+
+  var S = {
+    target:"", base:[], spans:[], lines:[], lineOf:[],
+    typed:"", prevLen:0, prevCaret:-1, curLine:0,
+    startTime:0, timer:null, done:false, fs:22, masked:0
+  };
+
+  /* ---------------- 小工具 ---------------- */
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("on"); }, 1600);
+  }
+  function isCJK(ch){ return /[\u2e80-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch); }
+
+  // 默认原样保留换行（只清行尾空白）；勾选合并时把硬换行按中英规则合并
+  function normalize(raw){
+    var text = String(raw).replace(/\r\n?/g, "\n");
+    var lines = text.split("\n").map(function(l){ return l.replace(/[ \t]+$/, ""); });
+    if(!$("ignoreNL").checked) return lines.join("\n").replace(/^\n+|\n+$/g, "");
+    var out = lines[0] || "";
+    for(var i = 1; i < lines.length; i++){
+      var prev = out.slice(-1), next = (lines[i] || "").slice(0, 1);
+      var sep = (prev && next && isCJK(prev) && isCJK(next)) ? "" : " ";
+      out += sep + lines[i];
+    }
+    return out.trim();
+  }
+
+  /* ---------------- 按行渲染（带行号，便于对照原文） ---------------- */
+  function build(){
+    var box = $("text");
+    box.innerHTML = "";
+    S.spans = []; S.base = []; S.lines = []; S.lineOf = [];
+    var frag = document.createDocumentFragment();
+    var lineNo = 1, textWrap = null, lineIdx = 0;
+
+    function newLine(){
+      var d = document.createElement("div");
+      d.className = "line";
+      var ln = document.createElement("span");
+      ln.className = "ln";
+      ln.textContent = lineNo++;
+      textWrap = document.createElement("span");
+      textWrap.className = "lntext";
+      d.appendChild(ln); d.appendChild(textWrap);
+      frag.appendChild(d);
+      S.lines.push(d);
+      lineIdx = S.lines.length - 1;
+    }
+    newLine();
+
+    for(var i = 0; i < S.target.length; i++){
+      var ch = S.target.charAt(i);
+      var sp = document.createElement("span");
+      var cls = "ch";
+      if(ch === "\n"){ cls += " nl"; sp.innerHTML = "<i>\u21B5</i>\n"; }
+      else if(ch === " "){ cls += " sp"; sp.textContent = " "; }
+      else if(ch === "\t"){ cls += " sp"; sp.textContent = "\u2192"; }
+      else { sp.textContent = ch; }
+      sp.className = cls;
+      S.base.push(cls);
+      textWrap.appendChild(sp);
+      S.spans.push(sp);
+      S.lineOf.push(lineIdx);
+      if(ch === "\n" && i < S.target.length - 1) newLine();
+    }
+    box.appendChild(frag);
+    $("lineAll").textContent = S.lines.length;
+    box.scrollTop = 0;
+    S.prevLen = 0; S.prevCaret = -1; S.curLine = 0; S.masked = 0;
+    if(S.lines[0]) S.lines[0].classList.add("active");
+  }
+
+  function paint(i){
+    var sp = S.spans[i]; if(!sp) return;
+    var u = S.typed.charAt(i);
+    var cls = S.base[i];
+    if(u === "") cls += " p";
+    else if(u === S.target.charAt(i)) cls += " ok";
+    else cls += " bad";
+    sp.className = cls;
+  }
+
+  function repaint(){
+    var cur = S.typed.length;
+    var lo = Math.min(S.prevLen, cur), hi = Math.max(S.prevLen, cur);
+    for(var i = lo; i < hi; i++) paint(i);
+    if(S.prevCaret >= 0 && S.spans[S.prevCaret]) S.spans[S.prevCaret].classList.remove("cur");
+    if(cur < S.spans.length) S.spans[cur].classList.add("cur");
+    S.prevCaret = cur; S.prevLen = cur;
+
+    var idx = Math.min(cur, S.lineOf.length - 1);
+    var li = (S.lineOf[idx] != null) ? S.lineOf[idx] : S.lines.length - 1;
+    if(li !== S.curLine){
+      if(S.lines[S.curLine]) S.lines[S.curLine].classList.remove("active");
+      if(S.lines[li]) S.lines[li].classList.add("active");
+      S.curLine = li;
+    }
+    $("lineNow").firstChild.nodeValue = String(li + 1);
+    $("text").classList.toggle("blind", $("hideTyped").checked);
+  }
+
+  function scrollCaret(){
+    var box = $("text"), d = S.lines[S.curLine];
+    if(!d) return;
+    var top = d.offsetTop, h = box.clientHeight, H = d.offsetHeight;
+    if(top < box.scrollTop + 10 || top + H > box.scrollTop + h - 10){
+      box.scrollTop = Math.max(0, top - h * 0.42);
+    }
+  }
+
+  /* ---------------- 统计 ---------------- */
+  function counts(){
+    var n = Math.min(S.typed.length, S.target.length), ok = 0, bad = 0;
+    for(var i = 0; i < n; i++){ if(S.typed.charAt(i) === S.target.charAt(i)) ok++; else bad++; }
+    return { n:n, ok:ok, bad:bad };
+  }
+  function cpm(){
+    if(!S.startTime) return 0;
+    var mins = (Date.now() - S.startTime) / 60000;
+    return mins < 0.01 ? 0 : Math.round(counts().ok / mins);
+  }
+  function fmtTime(ms){
+    var s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
+  }
+  function updateStats(){
+    var c = counts();
+    $("speed").textContent = cpm();
+    $("acc").textContent = c.n ? Math.round(c.ok / c.n * 100) + "%" : "—";
+    $("err").textContent = c.bad;
+    $("prog").textContent = S.target.length ? Math.round(S.typed.length / S.target.length * 100) + "%" : "0%";
+    $("bar").style.width = (S.target.length ? S.typed.length / S.target.length * 100 : 0) + "%";
+    $("time").textContent = S.startTime ? fmtTime(Date.now() - S.startTime) : "0:00";
+  }
+
+  /* ---------------- 流程 ---------------- */
+  function startRun(){
+    S.typed = ""; S.done = false; S.startTime = 0;
+    $("typebox").value = "";
+    build(); repaint(); updateStats(); scrollCaret();
+    $("typebox").focus();
+    clearInterval(S.timer);
+    S.timer = setInterval(function(){
+      if(!S.startTime || S.done) return;
+      $("time").textContent = fmtTime(Date.now() - S.startTime);
+      $("speed").textContent = cpm();
+    }, 250);
+  }
+
+  function finish(){
+    S.done = true;
+    clearInterval(S.timer);
+    var c = counts(), total = S.target.length;
+    var mins = Math.max((Date.now() - S.startTime) / 60000, 1 / 600);
+    var acc = total ? Math.round(c.ok / total * 100) : 0;
+    $("rSpeed").textContent = Math.round(c.ok / mins);
+    $("rAcc").textContent = acc + "%";
+    $("rErr").textContent = c.bad;
+    $("rTitle").textContent = c.bad === 0 ? "全对，漂亮 🎉" : "打完了";
+    $("rSub").textContent = "共 " + total + " 字 / " + S.lines.length + " 行 · 用时 " + fmtTime(Date.now() - S.startTime);
+    $("result").classList.add("on");
+  }
+
+  function onInput(e){
+    if(e && e.isComposing) return;
+    if(S.done) return;
+    var v = $("typebox").value;
+    if(v.length > S.target.length) v = v.slice(0, S.target.length);
+    S.typed = v;
+    if(!S.startTime) S.startTime = Date.now();
+    repaint(); scrollCaret(); updateStats();
+    if(S.typed.length >= S.target.length) finish();
+  }
+
+  function beginPractice(){
+    var raw = $("src").value;
+    var t = normalize(raw);
+    if(t.replace(/\s/g, "").length < 5){ toast("先粘一段文本进来吧"); return; }
+    S.target = t;
+
+    $("setup").classList.add("hide");
+    $("practice").classList.remove("hide");
+    startRun();
+  }
+
+  function backToEdit(){
+    clearInterval(S.timer);
+    $("result").classList.remove("on");
+    $("peek").classList.remove("on");
+    $("practice").classList.add("hide");
+    $("setup").classList.remove("hide");
+    $("src").focus();
+  }
+
+  function rebuildInPlace(){
+    if($("practice").classList.contains("hide")) return;
+    S.target = normalize($("src").value);
+    startRun();
+  }
+
+  /* ---------------- 事件 ---------------- */
+  $("src").addEventListener("input", function(){
+    $("cnt").textContent = $("src").value.replace(/\s/g, "").length + " 字";
+  });
+  $("startBtn").addEventListener("click", beginPractice);
+  $("demoBtn").addEventListener("click", function(){
+    $("src").value = DEMO; $("src").dispatchEvent(new Event("input"));
+  });
+  $("file").addEventListener("change", function(ev){
+    var f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ $("src").value = String(r.result || ""); $("src").dispatchEvent(new Event("input")); };
+    r.readAsText(f, "utf-8");
+  });
+  $("ignoreNL").addEventListener("change", rebuildInPlace);
+  $("hideTyped").addEventListener("change", repaint);
+
+  var box = $("typebox");
+  box.addEventListener("input", onInput);
+  box.addEventListener("compositionend", function(){ setTimeout(function(){ onInput(); }, 0); });
+  box.addEventListener("paste", function(e){ e.preventDefault(); toast("自己敲，别粘 🙂"); });
+  box.addEventListener("drop", function(e){ e.preventDefault(); });
+  $("text").addEventListener("click", function(){ box.focus(); });
+
+  $("againBtn").addEventListener("click", startRun);
+  $("backBtn").addEventListener("click", backToEdit);
+  $("peekBtn").addEventListener("click", function(){
+    $("peekBody").textContent = $("src").value || "（没有原文）";
+    $("peek").classList.add("on");
+  });
+  $("peekClose").addEventListener("click", function(){ $("peek").classList.remove("on"); });
+  $("peek").addEventListener("click", function(e){ if(e.target === $("peek")) $("peek").classList.remove("on"); });
+
+  $("rAgain").addEventListener("click", function(){ $("result").classList.remove("on"); startRun(); });
+  $("rBack").addEventListener("click", function(){ $("result").classList.remove("on"); backToEdit(); });
+
+  $("fsPlus").addEventListener("click", function(){
+    S.fs = Math.min(38, S.fs + 2);
+    document.documentElement.style.setProperty("--fs", S.fs + "px");
+  });
+  $("fsMinus").addEventListener("click", function(){
+    S.fs = Math.max(14, S.fs - 2);
+    document.documentElement.style.setProperty("--fs", S.fs + "px");
+  });
+
+  document.addEventListener("keydown", function(e){
+    if($("practice").classList.contains("hide")) return;
+    if(e.key === "Escape"){
+      e.preventDefault();
+      if($("peek").classList.contains("on")){ $("peek").classList.remove("on"); return; }
+      backToEdit(); return;
+    }
+    if(e.key === "Tab" && !e.ctrlKey && !e.metaKey){ e.preventDefault(); startRun(); }
+  });
+
+
+})();
+</script>
+</body>
+</html>
