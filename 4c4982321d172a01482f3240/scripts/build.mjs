@@ -1,0 +1,10 @@
+import {readFile, mkdir, rm, copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2];
+if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw new Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && Object.values(source).some(x=>! /^[A-Za-z0-9_-]{1,128}$/.test(x||'') || x.startsWith('__TIANA_'))) throw new Error('请填写实例 ID');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await build({entryPoints:['client/main.js'],bundle:true,format:'esm',splitting:true,outdir:'dist/assets',entryNames:'app',loader:{'.css':'text'},target:'es2020'});
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
