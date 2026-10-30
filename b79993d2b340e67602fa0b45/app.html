@@ -417,7 +417,8 @@ function calc(){
   var ssYear  = social * 12;
   var sdYear  = special * 12;
   var deduct  = 60000;
-  var taxable = Math.max(0, gross - deduct - ssYear - sdYear);
+  var rawTaxable = gross - deduct - ssYear - sdYear;
+  var taxable = Math.max(0, rawTaxable);
 
   var taxSalary = taxOf(taxable);
   var bSep = bonusSeparate(bonus);
@@ -425,7 +426,7 @@ function calc(){
   /* 方案 A：奖金单独计税 */
   var planA = taxSalary + bSep.tax;
   /* 方案 B：奖金并入综合所得（增量法） */
-  var planB = taxOf(taxable + bonus);
+  var planB = taxOf(Math.max(0, rawTaxable + bonus));
 
   var useSep = planA <= planB;
   var totalTax = Math.min(planA, planB);
@@ -501,7 +502,7 @@ function calc(){
     : "无年终奖，两种方案结果相同。";
   var bInc = planB - taxSalary;
   document.getElementById("bNote").textContent = bonus > 0
-    ? ("奖金并入综合所得后，适用税率从 " + pct(BR[bracketIndex(taxable)].rate) + " 变为 " + pct(BR[bracketIndex(taxable + bonus)].rate) + "；奖金部分带来的增量税额 " + money(bInc) + "。")
+    ? ("奖金并入综合所得后，适用税率从 " + pct(BR[bracketIndex(taxable)].rate) + " 变为 " + pct(BR[bracketIndex(Math.max(0, rawTaxable + bonus))].rate) + "；奖金部分带来的增量税额 " + money(bInc) + "。")
     : "无年终奖，两种方案结果相同。";
 
   document.getElementById("cardA").className = "ab-card" + (bonus > 0 && useSep ? " best" : "");
@@ -707,6 +708,9 @@ document.getElementById("btnSp").addEventListener("click", function(){
 var spcs = document.querySelectorAll(".spc");
 for (var i = 0; i < spcs.length; i++){
   spcs[i].addEventListener("change", function(){
+    if (this.checked && (this === spcs[3] || this === spcs[4])) {
+      spcs[this === spcs[3] ? 4 : 3].checked = false;
+    }
     var sum = 0;
     for (var j = 0; j < spcs.length; j++){
       if (spcs[j].checked) sum += parseInt(spcs[j].getAttribute("data-v"), 10);
