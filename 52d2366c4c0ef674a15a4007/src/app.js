@@ -61,6 +61,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
     var v=taskInput.value.trim();
     if(!v){taskInput.focus();return}
     state.task=v;
+    state.escAt=0;
     state.running=true;
     state.endAt=Date.now()+state.mins*60*1000;
 
@@ -91,14 +92,15 @@ import { createTianaFetch } from '@tianacloud/serverless';
   }
 
   /* ---------- 放弃 ---------- */
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'&&state.running){
-      var now=Date.now();
-      if(now-state.escAt<600){abort();state.escAt=0}else{
-        state.escAt=now;toast('再按一次 ESC 出定');
-      }
+  function requestAbort(){
+    if(!state.running)return;
+    var now=Date.now();
+    if(now-state.escAt<600){abort();state.escAt=0}else{
+      state.escAt=now;toast('再按一次出定');
     }
-  });
+  }
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')requestAbort()});
+  $('#esc').addEventListener('click',function(){if(state.running)abort()});
   function abort(){
     clearInterval(state.timer);state.running=false;
     $('#stage-focus').hidden=true;$('#stage-input').hidden=false;

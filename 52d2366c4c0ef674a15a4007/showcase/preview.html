@@ -99,7 +99,7 @@ input#task::placeholder{color:rgba(242,239,233,.22)}
 .clock b{font-family:var(--mono);font-size:clamp(44px,7vw,78px);font-weight:300;letter-spacing:.01em;
   font-variant-numeric:tabular-nums}
 .zen{margin-top:clamp(14px,3vh,28px);font-family:var(--serif);font-size:clamp(16px,1.7vw,22px);color:var(--mist);letter-spacing:.08em}
-.esc{margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.12em}
+.esc{border:0;background:none;cursor:pointer;margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.12em}
 
 /* ---------- 出关 ---------- */
 #stage-done{display:flex;flex-direction:column;align-items:center;color:var(--ink);position:relative}
@@ -198,7 +198,7 @@ body.done footer{color:rgba(11,11,12,.6)}
         <div class="clock"><small>剩余</small><b id="clock">25:00</b></div>
       </div>
       <div class="zen">想，皆是虚妄；敲，即是道场。</div>
-      <div class="esc" id="esc">双击 ESC 出定</div>
+      <button class="esc" id="esc" type="button">双击 ESC 或点击出定</button>
     </section>
 
     <!-- 出关 -->
@@ -293,6 +293,7 @@ body.done footer{color:rgba(11,11,12,.6)}
     var v=taskInput.value.trim();
     if(!v){taskInput.focus();return}
     state.task=v;
+    state.escAt=0;
     state.running=true;
     state.endAt=Date.now()+state.mins*60*1000;
 
@@ -323,14 +324,15 @@ body.done footer{color:rgba(11,11,12,.6)}
   }
 
   /* ---------- 放弃 ---------- */
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'&&state.running){
-      var now=Date.now();
-      if(now-state.escAt<600){abort();state.escAt=0}else{
-        state.escAt=now;toast('再按一次 ESC 出定');
-      }
+  function requestAbort(){
+    if(!state.running)return;
+    var now=Date.now();
+    if(now-state.escAt<600){abort();state.escAt=0}else{
+      state.escAt=now;toast('再按一次出定');
     }
-  });
+  }
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')requestAbort()});
+  $('#esc').addEventListener('click',function(){if(state.running)abort()});
   function abort(){
     clearInterval(state.timer);state.running=false;
     $('#stage-focus').hidden=true;$('#stage-input').hidden=false;
