@@ -1,0 +1,284 @@
+
+
+<!-- ============ 伪装层（老板键激活） ============ -->
+<div id="disguise"></div>
+<div id="ghost-cursor" title=""><svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 1l9 6-4 .8L9 13l-2 .9-2-5L2 11z" fill="#fff" stroke="#000"/></svg></div>
+
+<!-- ============ 主应用 ============ -->
+<div id="app">
+  <header id="topbar">
+    <span class="brand">数据中台</span>
+    <button class="tab-btn active" data-page="home">概览</button>
+    <button class="tab-btn" data-page="read">资讯</button>
+    <button class="tab-btn" data-page="tools">工具箱</button>
+    <button class="tab-btn" data-page="timer">计时</button>
+    <button class="tab-btn" data-page="settings">设置</button>
+    <span class="spacer"></span>
+    <span class="sub">老板键 <span class="kbd" id="hotkey-hint">`</span></span>
+    <button class="mini" id="btn-theme" title="切换亮暗色">🌙</button>
+  </header>
+
+  <main>
+    <!-- ===== 概览 ===== -->
+    <section class="page active" id="page-home">
+      <div class="grid cols4">
+        <div class="card" style="margin-bottom:0">
+          <div class="sub">当前时间</div>
+          <div class="stat" id="stat-clock">--:--:--</div>
+          <div class="sub" id="stat-date"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="sub">今日摸鱼时长（仅前台计时）</div>
+          <div class="stat" id="stat-slack">00:00:00</div>
+          <div class="sub">切走窗口或伪装时暂停</div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="sub">距下班</div>
+          <div class="stat blur-num" id="stat-offwork">--:--:--</div>
+          <div class="sub" id="stat-weekend"></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="sub">番茄钟</div>
+          <div class="stat" id="stat-pom">25:00</div>
+          <div class="sub" id="stat-pom-phase">就绪</div>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="card">
+        <h2>快捷入口</h2>
+        <div class="grid cols3">
+          <button class="act ghost" onclick="panic('word')">📄 切换到文档伪装</button>
+          <button class="act ghost" onclick="panic('excel')">📊 切换到表格伪装</button>
+          <button class="act ghost" onclick="panic('code')">💻 切换到代码伪装</button>
+          <button class="act ghost" onclick="panic('dash')">📈 切换到看板伪装</button>
+          <button class="act ghost" onclick="switchPage('timer')">⏱ 番茄钟</button>
+          <button class="act ghost" onclick="switchPage('tools')">🧰 工具箱</button>
+        </div>
+        <p class="sub" style="margin-top:12px">
+          提示：按 <span class="kbd" id="hotkey-hint2">`</span> 立即进入伪装页，按 <span class="kbd">Esc</span> 返回本页。
+          开启「鼠标离开自动伪装」后，鼠标移出窗口即自动切换。
+        </p>
+      </div>
+      <div class="grid cols2">
+        <div class="card" style="margin-bottom:0">
+          <h2>近 7 日摸鱼趋势</h2>
+          <div id="week-chart" style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px"></div>
+          <p class="sub" style="margin-top:8px">仅统计本页在前台且未伪装的时间，计时记录保存至应用数据库</p>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <h2>今日一句 <button class="mini" onclick="newQuote()">换一句</button></h2>
+          <p id="daily-quote" style="font-size:14px;line-height:1.8;min-height:72px"></p>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="card">
+        <h2>摸鱼小贴士 <button class="mini" onclick="newTip()">换一条</button></h2>
+        <p id="tip-line" style="font-size:14px;line-height:1.8"></p>
+      </div>
+    </section>
+
+    <!-- ===== 资讯 ===== -->
+    <section class="page" id="page-read">
+      <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <button class="act ghost feed-tab active" data-feed="news">极简新闻</button>
+          <button class="act ghost feed-tab" data-feed="joke">段子</button>
+          <button class="act ghost feed-tab" data-feed="fact">冷知识</button>
+          <button class="act ghost feed-tab" data-feed="history">历史小故事</button>
+          <button class="act ghost feed-tab" data-feed="techdoc">技术文档风趣文</button>
+        </div>
+        <div id="feed-list"></div>
+        <div style="margin-top:14px;text-align:center">
+          <button class="act" onclick="renderFeed(currentFeed,true)">换一批</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 工具箱 ===== -->
+    <section class="page" id="page-tools">
+      <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="act ghost tool-tab active" data-tool="calc">计算器</button>
+          <button class="act ghost tool-tab" data-tool="unit">单位换算</button>
+          <button class="act ghost tool-tab" data-tool="json">JSON 格式化</button>
+          <button class="act ghost tool-tab" data-tool="base64">Base64</button>
+          <button class="act ghost tool-tab" data-tool="pwd">密码生成</button>
+          <button class="act ghost tool-tab" data-tool="ts">时间戳</button>
+        </div>
+      </div>
+      <div class="card">
+        <!-- 计算器 -->
+        <div class="tool-box active" id="tool-calc">
+          <h2>计算器</h2>
+          <input type="text" id="calc-in" placeholder="支持 + - * / ( ) 与 %，如 (12+8)*0.85" style="font-size:16px">
+          <div style="margin:10px 0"><button class="act" onclick="doCalc()">计算</button>
+          <button class="act ghost" onclick="document.getElementById('calc-in').value='';document.getElementById('calc-out').textContent=''">清空</button></div>
+          <div class="out" id="calc-out">结果将显示在这里</div>
+        </div>
+        <!-- 单位换算 -->
+        <div class="tool-box" id="tool-unit">
+          <h2>单位换算</h2>
+          <div class="grid cols3">
+            <select id="unit-cat">
+              <option value="len">长度</option><option value="wt">重量</option><option value="tmp">温度</option>
+            </select>
+            <input type="number" id="unit-in" placeholder="输入数值" step="any">
+            <select id="unit-from"></select>
+          </div>
+          <div style="margin:10px 0"><button class="act" onclick="doUnit()">换算</button></div>
+          <div class="out" id="unit-out"></div>
+        </div>
+        <!-- JSON -->
+        <div class="tool-box" id="tool-json">
+          <h2>JSON 格式化 / 校验</h2>
+          <textarea id="json-in" rows="6" placeholder='粘贴 JSON，如 {"a":1,"b":[2,3]}'></textarea>
+          <div style="margin:10px 0">
+            <button class="act" onclick="doJson(2)">格式化(2空格)</button>
+            <button class="act ghost" onclick="doJson(4)">格式化(4空格)</button>
+            <button class="act ghost" onclick="doJson(0)">压缩</button>
+          </div>
+          <div class="out" id="json-out">—</div>
+        </div>
+        <!-- Base64 -->
+        <div class="tool-box" id="tool-base64">
+          <h2>Base64 编解码</h2>
+          <textarea id="b64-in" rows="5" placeholder="输入文本或 Base64"></textarea>
+          <div style="margin:10px 0">
+            <button class="act" onclick="doB64('enc')">编码</button>
+            <button class="act ghost" onclick="doB64('dec')">解码</button>
+          </div>
+          <div class="out" id="b64-out">—</div>
+        </div>
+        <!-- 密码 -->
+        <div class="tool-box" id="tool-pwd">
+          <h2>随机密码生成</h2>
+          <div class="grid cols2">
+            <label class="row">长度 <input type="number" id="pwd-len" value="16" min="6" max="64" style="width:90px"></label>
+            <label class="row">大写字母 <input type="checkbox" id="pwd-up" checked></label>
+            <label class="row">数字 <input type="checkbox" id="pwd-num" checked></label>
+            <label class="row">符号 <input type="checkbox" id="pwd-sym" checked></label>
+          </div>
+          <div style="margin:10px 0"><button class="act" onclick="doPwd()">生成</button></div>
+          <div class="out" id="pwd-out">—</div>
+        </div>
+        <!-- 时间戳 -->
+        <div class="tool-box" id="tool-ts">
+          <h2>时间戳转换</h2>
+          <div class="grid cols2">
+            <div>
+              <h3>当前时间戳</h3>
+              <div class="out" id="ts-now">—</div>
+              <div style="margin-top:8px"><button class="act ghost" onclick="tsNow()">刷新</button></div>
+              <h3>时间戳 → 日期</h3>
+              <input type="text" id="ts-in" placeholder="秒或毫秒时间戳">
+              <div style="margin:8px 0"><button class="act" onclick="tsToDate()">转换</button></div>
+              <div class="out" id="ts-out">—</div>
+            </div>
+            <div>
+              <h3>日期 → 时间戳</h3>
+              <input type="datetime-local" id="dt-in">
+              <div style="margin:8px 0"><button class="act" onclick="dateToTs()">转换</button></div>
+              <div class="out" id="dt-out">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="sub">以上工具全部真实可用，老板过来时可以直接说「在调试工具 / 查数据」。</p>
+    </section>
+
+    <!-- ===== 计时 ===== -->
+    <section class="page" id="page-timer">
+      <div class="grid cols2">
+        <div class="card">
+          <h2>番茄钟</h2>
+          <div id="pom-phase">专注模式</div>
+          <div id="pom-display">25:00</div>
+          <div style="text-align:center;display:flex;gap:10px;justify-content:center">
+            <button class="act" id="pom-start">开始</button>
+            <button class="act ghost" id="pom-reset">重置</button>
+          </div>
+          <p class="sub" style="margin-top:10px">规则：专注 <span id="hint-work">25</span> 分钟 / 休息 <span id="hint-rest">5</span> 分钟，可在设置中调整。页面切到后台时暂停计时（仅前台计时）。</p>
+        </div>
+        <div class="card">
+          <h2>下班倒计时</h2>
+          <div class="stat" id="offwork-big" style="font-size:44px;text-align:center;margin:16px 0">--:--:--</div>
+          <p class="sub" style="text-align:center">下班时间在「设置」中修改，数字可在设置中一键隐藏（悬停临时可见）。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 设置 ===== -->
+    <section class="page" id="page-settings">
+      <div class="card">
+        <h2>老板键与伪装</h2>
+        <label class="row">老板键（点击输入框后按下想要的单键或组合键）
+          <input type="text" id="set-hotkey" readonly style="width:180px;text-align:center" placeholder="点击录制">
+        </label>
+        <label class="row">鼠标离开窗口自动伪装
+          <span class="switch"><input type="checkbox" id="set-autoleave"><i></i></span>
+        </label>
+        <label class="row">点击页面边缘空白处伪装
+          <span class="switch"><input type="checkbox" id="set-edgeclick"><i></i></span>
+        </label>
+        <label class="row">浏览器标签标题
+          <input type="text" id="set-title" style="width:260px" placeholder="如：项目文档.docx">
+        </label>
+        <label class="row">标签图标
+          <select id="set-favicon" style="width:260px">
+            <option value="doc">📄 Word 文档（蓝）</option>
+            <option value="xls">📊 Excel 表格（绿）</option>
+            <option value="code">💻 代码编辑器（深灰）</option>
+            <option value="sys">🏢 内部系统（灰蓝）</option>
+          </select>
+        </label>
+        <h3>伪装页默认样式</h3>
+        <label class="row">默认伪装页
+          <select id="set-disguise" style="width:260px">
+            <option value="word">📄 空白 Word 文档</option>
+            <option value="excel">📊 Excel 数据表</option>
+            <option value="code">💻 Python 代码编辑器</option>
+            <option value="dash">📈 数据看板</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>计时</h2>
+        <label class="row">下班时间 <input type="time" id="set-offwork" style="width:140px"></label>
+        <label class="row">番茄钟专注时长（分钟）<input type="number" id="set-pom-work" min="1" max="90" style="width:90px"></label>
+        <label class="row">番茄钟休息时长（分钟）<input type="number" id="set-pom-rest" min="1" max="30" style="width:90px"></label>
+        <label class="row">隐藏倒计时数字（悬停可见）<span class="switch"><input type="checkbox" id="set-blur"><i></i></span></label>
+      </div>
+
+      <div class="card">
+        <h2>外观与防检测</h2>
+        <label class="row">暗色模式 <span class="switch"><input type="checkbox" id="set-dark"><i></i></span></label>
+        <label class="row">页面透明度（轻微透出底层窗口）
+          <input type="range" id="set-opacity" min="60" max="100" style="width:200px">
+          <span id="opacity-val" class="sub">100%</span>
+        </label>
+        <label class="row">背景伪装（暗色下更自然）
+          <select id="set-bg" style="width:220px">
+            <option value="none">无</option>
+            <option value="code">代码截图纹理</option>
+            <option value="grid">表格网格纹理</option>
+          </select>
+        </label>
+        <label class="row">防挂机假光标（页面内随机微小移动动画）<span class="switch"><input type="checkbox" id="set-ghost"><i></i></span></label>
+      </div>
+
+      <div class="card">
+        <h2>数据与隐私</h2>
+        <p class="sub" style="line-height:2">
+          · 应用使用数据库保存设置和计时数据。<br>
+          · 设置与计时数据保存在应用数据库中。<br>
+          · 全站无音频组件，任何情况下不会发出声音。
+        </p>
+        <button class="act ghost" onclick="resetAll()">清空全部数据</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast"></div>
+
