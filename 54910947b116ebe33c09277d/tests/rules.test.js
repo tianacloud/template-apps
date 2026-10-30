@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {Round,scene,trajectory,point} from '../src/rules.js';
+test('低力度不耗砖、砸空耗砖、最多三砖',()=>{const g=new Round(),l=scene(1200,800);assert.equal(g.throw(.01,{x:0,y:0},l).dropped,true);assert.equal(g.bricks,0);for(let i=0;i<3;i++)assert.equal(g.throw(1,{x:0,y:0},l).index,-1);assert.equal(g.over,true);assert.throws(()=>g.throw(1,{x:0,y:0},l))});
+test('满力度落点等于瞄准点，只命中一次，重复位置视为砸空',()=>{const g=new Round(),l=scene(1200,800),p=l.pots[0];assert.equal(g.throw(1,p,l).index,0);assert.equal(g.throw(1,p,l).index,-1);assert.equal(g.broken.size,1)});
+test('签卡不重复，概率边界落入对应等级',()=>{for(const [v,tier]of [[.05,0],[.2,1],[.5,2],[.8,3]]){const g=new Round(()=>v);assert.equal(g.draw().tier,tier)}const g=new Round(()=>.05);for(let i=0;i<3;i++)g.draw();assert.equal(new Set(g.draws.map(f=>f.id)).size,3)});
+test('贝塞尔起终点与力度比例',()=>{const l=scene(1200,800),p=trajectory(l.hand,{x:500,y:200},.5);assert.deepEqual(point(p,0),l.hand);assert.deepEqual(point(p,1),p.end);assert.equal(p.end.x,(l.hand.x+500)/2)});
