@@ -134,7 +134,7 @@ function render(){
     const st = STATUS[it.status] || STATUS.unread;
     const tags = (it.tags||[]).map(t=>`<span class="mini-tag">${esc(t)}</span>`).join("");
     const prev = notePreview(it);
-    return `<div class="card" data-id="${it.id}">
+    return `<div class="card" data-id="${esc(it.id)}">
       <div class="c-top">
         <span class="pill ${st.cls}">${st.t}</span>
         ${it.year?`<span class="c-meta"><em>${esc(it.year)}</em></span>`:""}
@@ -297,7 +297,7 @@ async function doImport(file){
     const valid=arr.filter(x=>x && typeof x.title === "string" && x.title.trim());
     if(!valid.length){ toast("备份中没有有效文献"); return; }
     const now=Date.now();
-    const records=valid.map(x=>({...x,id:typeof x.id === "string" && x.id ? x.id : crypto.randomUUID(),updatedAt:Number(x.updatedAt)||now}));
+    const records=valid.map(x=>({id:typeof x.id === "string" && x.id ? x.id : crypto.randomUUID(), title:String(x.title), authors:String(x.authors||""), year:Number(x.year)||"", venue:String(x.venue||""), tags:Array.isArray(x.tags)?x.tags.map(String):[], url:String(x.url||""), status:STATUS[x.status]?x.status:"unread", rating:Math.max(0,Math.min(5,Number(x.rating)||0)), notes:Object.fromEntries(["q","m","find","ins"].map(k=>[k,String(x.notes?.[k]||"")])), quotes:String(x.quotes||""), createdAt:Number(x.createdAt)||now, updatedAt:Number(x.updatedAt)||now}));
     let completed=0;
     const ok=await mutate(async()=>{ for(const item of records){ await saveItem(item); completed++; } });
     if(ok) toast(`导入完成：${completed} 条`);
