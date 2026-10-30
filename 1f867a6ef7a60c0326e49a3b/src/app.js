@@ -383,7 +383,7 @@ function renderToday() {
       <div class="tl-item ${it.cls || ''}">
         <span class="tl-tag ${it.tag}">${it.tagTxt}</span>
         <span class="t">${esc(it.t)}</span>
-        <button class="btn btn-soft btn-mini" data-do="${it.act}" data-id="${it.id}">处理</button>
+        <button class="btn btn-soft btn-mini" data-do="${it.act}" data-id="${esc(it.id)}">处理</button>
       </div>`).join('');
   }
 }
@@ -585,12 +585,12 @@ function renderFinList() {
   if (!list.length) { box.innerHTML = '<div class="fin-empty">该条件下暂无记录</div>'; return; }
   box.innerHTML = list.slice(0, 60).map(r => `
     <div class="fl-row">
-      <span class="fl-date">${r.date.slice(5)}</span>
+      <span class="fl-date">${esc(String(r.date).slice(5))}</span>
       ${r.slot && r.slot !== 'other' ? `<span class="fl-cat" style="background:var(--blue-soft);color:var(--blue)">${SLOT_CN[r.slot] || esc(r.slot)}</span>` : ''}
       <span class="fl-cat" style="background:${r.type === 'expense' ? 'var(--red-soft)' : 'var(--green-soft)'};color:${r.type === 'expense' ? 'var(--red)' : 'var(--green)'}">${esc(r.category)}</span>
       <span class="fl-note">${esc(r.note || '')}</span>
       <span class="fl-amt num ${r.type === 'expense' ? 'money-red' : 'money-green'}">${r.type === 'expense' ? '-' : '+'}${fmtMoney(r.amount)}</span>
-      <button class="sg-del" data-fdel="${r.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+      <button class="sg-del" data-fdel="${esc(r.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
     </div>`).join('');
 }
 /* 时段快捷记录（上午 / 下午 / 晚上） */
@@ -825,7 +825,7 @@ function calGoalOf(date) {
 function calIntakeMeal(date, meal) { return State.calorie.filter(c => c.date === date && c.meal === meal).reduce((s, c) => s + (+c.kcal || 0), 0); }
 function calIntakeTotal(date) { return State.calorie.filter(c => c.date === date).reduce((s, c) => s + (+c.kcal || 0), 0); }
 function calItemHTML(c) {
-  return `<span class="cal-item">${MEAL_CN[c.meal]} · ${esc(c.food)} ×${c.qty}${esc(c.unit || '')} <b class="kl num">${(+c.kcal).toFixed(0)}</b> <button class="ck" data-cdel="${c.id}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button></span>`;
+  return `<span class="cal-item">${MEAL_CN[c.meal]} · ${esc(c.food)} ×${esc(c.qty)}${esc(c.unit || '')} <b class="kl num">${(+c.kcal).toFixed(0)}</b> <button class="ck" data-cdel="${esc(c.id)}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button></span>`;
 }
 function recoHTML(left, goal) {
   if (left >= 800) return `<h4>晚餐建议 · 余量充足</h4><div class="rline">可正常吃：<b>米饭 1 碗（232）＋ 清炒时蔬（60）＋ 鸡胸肉 100g（165）＋ 番茄蛋汤（80）≈ 537 kcal</b>，还能留 <b>${left.toFixed(0) - 537} kcal</b> 给水果或酸奶。</div>`;
@@ -834,7 +834,7 @@ function recoHTML(left, goal) {
   if (left >= 300) return `<h4>晚餐建议 · 简餐</h4><div class="rline">推荐：<b>燕麦粥 1 碗（90）＋ 水煮蛋 1 个（72）＋ 香蕉 1 根（105）≈ 267 kcal</b>；或 <b>豆浆（60）＋ 玉米 1 根（112）＋ 苹果（80）≈ 252 kcal</b>。</div>`;
   if (left >= 150) return `<h4>晚餐建议 · 少量</h4><div class="rline">推荐：<b>无糖酸奶 1 杯（100）＋ 草莓 6 颗（24）≈ 124 kcal</b>；或 <b>苹果 1 个（80）＋ 蛋白 2 个（34）</b>。</div>`;
   if (left >= 0) return `<h4>晚餐建议 · 极少量</h4><div class="rline">剩余额度紧张（<b>${left.toFixed(0)} kcal</b>）：建议 <b>黄瓜 / 小番茄（≈20 kcal）＋ 无糖茶</b>，或只吃 <b>1 个水煮蛋白（17 kcal）</b>。</div>`;
-  return `<h4>已超目标 ${(-left).toFixed(0)} kcal</h4><div class="rline">今晚建议<b>不再进食</b>，多喝水 / 无糖茶；明天早餐保持清淡，或快走 30 分钟（≈消耗 150 kcal）把缺口补回来。</div>`;
+  return `<h4>已超目标 ${(-left).toFixed(0)} kcal</h4><div class="rline">可参考当日记录调整后续饮食；目标和估算仅供参考。</div>`;
 }
 function renderCalSettle() {
   const y = addDays(todayStr(), -1);
@@ -886,7 +886,7 @@ function renderCalTrend() {
 function renderCalFoods() {
   $('#cfList').innerHTML = State.calFood.length ? State.calFood.map(f => `
     <span class="cal-item">${esc(f.name)} ×1${esc(f.unit)} <b class="kl num">${(+f.kcal).toFixed(0)}</b>
-      <button class="ck" data-fdel="${f.id}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button>
+      <button class="ck" data-fdel="${esc(f.id)}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button>
     </span>`).join('') : '<span style="color:var(--ink3);font-size:12px">空 · 可添加食堂菜、外卖单品等高频食物</span>';
 }
 function renderCalorie() {
@@ -1018,15 +1018,15 @@ function renderHabits() {
     const todayVal = habitTodayVal(h);
     const streak = calcStreak(h);
     const actHtml = h.type === 'check'
-      ? `<span class="hcheck ${todayVal === 1 ? 'on' : ''}" data-hc="${h.id}"><svg class="icon"><use href="#i-check"/></svg></span>`
+      ? `<span class="hcheck ${todayVal === 1 ? 'on' : ''}" data-hc="${esc(h.id)}"><svg class="icon"><use href="#i-check"/></svg></span>`
       : h.type === 'count'
         ? `<span class="hcount">
-             <button data-hminus="${h.id}">−</button>
+             <button data-hminus="${esc(h.id)}">−</button>
              <span class="n num">${todayVal || 0}</span><span class="of">/ ${h.goal || '∞'}${esc(h.unit || '')}</span>
-             <button data-hplus="${h.id}">＋</button>
+             <button data-hplus="${esc(h.id)}">＋</button>
            </span>`
         : `<span class="hval">
-             <input type="number" step="0.1" min="0" value="${todayVal != null ? todayVal : ''}" placeholder="—" data-hval="${h.id}"/>
+             <input type="number" step="0.1" min="0" value="${todayVal != null ? todayVal : ''}" placeholder="—" data-hval="${esc(h.id)}"/>
              <span class="unit">${esc(h.unit || '')}${h.goal ? ' / 目标 ' + h.goal : ''}</span>
            </span>`;
     return `
@@ -1035,7 +1035,7 @@ function renderHabits() {
         <span class="habit-name">${esc(h.name)}</span>
         ${streak > 0 ? `<span class="streak">🔥 ${streak} 天</span>` : ''}
         <span class="habit-act">${actHtml}
-          <button class="hmisc del" data-hdel="${h.id}" title="删除习惯"><svg class="icon"><use href="#i-trash"/></svg></button>
+          <button class="hmisc del" data-hdel="${esc(h.id)}" title="删除习惯"><svg class="icon"><use href="#i-trash"/></svg></button>
         </span>
       </div>
       <div class="hmisc">
@@ -1192,10 +1192,10 @@ function renderPlan() {
       <div class="plan-items">
         ${items.length ? items.map(p => `
           <div class="pitem">
-            <span class="ck ${p.done ? 'done' : ''}" data-pck="${p.id}"><svg class="icon" style="width:11px;height:11px"><use href="#i-check"/></svg></span>
+            <span class="ck ${p.done ? 'done' : ''}" data-pck="${esc(p.id)}"><svg class="icon" style="width:11px;height:11px"><use href="#i-check"/></svg></span>
             <span class="tm">${esc(p.time || '')}</span>
             <span class="tx ${p.done ? 'done' : ''}">${esc(p.text)}</span>
-            <button class="x" data-pdel="${p.id}">×</button>
+            <button class="x" data-pdel="${esc(p.id)}">×</button>
           </div>`).join('') : '<div style="font-size:11px;color:var(--ink3);padding:6px 0">空闲</div>'}
       </div>
       <div class="plan-add">
@@ -1215,7 +1215,7 @@ $('#planGrid').addEventListener('click', e => {
     if (p) { p.done = !p.done; saveModule('plan'); renderPlan(); }
   } else if (del) {
     const p = State.plan.find(x => x.id === del.getAttribute('data-pdel'));
-    confirmBox('删除该计划项？', p ? '「' + p.text + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除该计划项？', p ? '「' + esc(p.text) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.plan = State.plan.filter(x => x.id !== del.getAttribute('data-pdel'));
       saveModule('plan'); renderPlan();
     });
@@ -1282,11 +1282,11 @@ function renderSchedule() {
       <h3>${g.title} <span class="cnt">${g.list.length}</span></h3>
       ${g.list.map(s => `
         <div class="sg-row ${g.key === 'over' ? 'over-row' : ''}">
-          <span class="sg-ck ${s.done ? 'done' : ''}" data-sck="${s.id}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
-          <span class="sg-time num">${s.date.slice(5)}${s.time ? ' ' + s.time : ''}</span>
+          <span class="sg-ck ${s.done ? 'done' : ''}" data-sck="${esc(s.id)}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
+          <span class="sg-time num">${esc(String(s.date).slice(5))}${s.time ? ' ' + esc(s.time) : ''}</span>
           <span class="sg-title ${s.done ? 'done' : ''}">${esc(s.title)}</span>
           <span class="prio ${(s.prio || 'P3').toLowerCase()}">${esc(s.prio || 'P3')}</span>
-          <button class="sg-del" data-sdel="${s.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+          <button class="sg-del" data-sdel="${esc(s.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
         </div>`).join('')}
     </div>`;
   }).join('') || '<div class="empty">暂无日程，添加一条试试。</div>';
@@ -1309,7 +1309,7 @@ $('#schedList').addEventListener('click', e => {
   } else if (del) {
     const id = del.getAttribute('data-sdel');
     const s = State.schedule.find(x => x.id === id);
-    confirmBox('删除日程？', s ? '「' + s.title + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除日程？', s ? '「' + esc(s.title) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.schedule = State.schedule.filter(x => x.id !== id);
       saveModule('schedule'); renderAll();
     });
@@ -1333,11 +1333,11 @@ function renderShopping() {
   if (!list.length) { box.innerHTML = '<div class="empty">清单为空。</div>'; return; }
   box.innerHTML = list.map(s => `
     <div class="shp-row">
-      <span class="shp-ck ${s.done ? 'done' : ''}" data-shck="${s.id}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
+      <span class="shp-ck ${s.done ? 'done' : ''}" data-shck="${esc(s.id)}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
       <span class="shp-name ${s.done ? 'done' : ''}">${esc(s.name)}</span>
       <span class="shp-cat">${esc(s.cat)}</span>
       <span class="shp-price num">${s.price != null ? '¥' + Number(s.price).toFixed(2) : ''}</span>
-      <button class="shp-del" data-shdel="${s.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+      <button class="shp-del" data-shdel="${esc(s.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
     </div>`).join('');
 }
 $('#shopForm').addEventListener('submit', e => {
@@ -1359,7 +1359,7 @@ $('#shopList').addEventListener('click', e => {
   } else if (del) {
     const id = del.getAttribute('data-shdel');
     const s = State.shopping.find(x => x.id === id);
-    confirmBox('从清单移除？', s ? '「' + s.name + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('从清单移除？', s ? '「' + esc(s.name) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.shopping = State.shopping.filter(x => x.id !== id);
       saveModule('shopping'); renderAll();
     });
@@ -1399,21 +1399,21 @@ function renderMedia() {
     return;
   }
   wall.innerHTML = State.media.slice().sort((a, b) => (b.year || 0) - (a.year || 0)).map(m => `
-    <div class="cover ${m.type}" data-mopen="${m.id}">
+    <div class="cover ${esc(m.type)}" data-mopen="${esc(m.id)}">
       <div class="ct"><span>${TYPE_CN[m.type]}</span><span>${esc(m.status === 'done' ? '已完成' : STATUS_CN[m.status])}</span></div>
       <div class="title">${esc(m.title)}</div>
-      <div class="meta">${m.year || ''}${m.creator ? ' · ' + esc(m.creator) : ''}</div>
+      <div class="meta">${esc(m.year || '')}${m.creator ? ' · ' + esc(m.creator) : ''}</div>
       <div class="stars">${m.rating ? starRowHTML(m.rating, 9) : ''}</div>
     </div>`).join('');
   list.innerHTML = State.media.map(m => `
     <div class="ml-row">
-      <span class="ml-type ${m.type}">${TYPE_CN[m.type]}</span>
+      <span class="ml-type ${esc(m.type)}">${TYPE_CN[m.type]}</span>
       <span class="ml-title">${esc(m.title)}${m.creator ? ' <span style="color:var(--ink3)">· ' + esc(m.creator) + '</span>' : ''}</span>
       <span class="ml-status">${STATUS_CN[m.status] || ''}</span>
       <span class="ml-stars">${m.rating ? starRowHTML(m.rating, 11) : ''}</span>
       <span class="ml-ops">
-        <button class="sg-del" data-medit="${m.id}" title="编辑"><svg class="icon" style="width:15px;height:15px"><use href="#i-edit"/></svg></button>
-        <button class="sg-del" data-mdel="${m.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+        <button class="sg-del" data-medit="${esc(m.id)}" title="编辑"><svg class="icon" style="width:15px;height:15px"><use href="#i-edit"/></svg></button>
+        <button class="sg-del" data-mdel="${esc(m.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
       </span>
     </div>`).join('');
 }
@@ -1453,7 +1453,7 @@ function openMediaDetail(id) {
     <div class="mbody">
       <div style="margin-bottom:12px">${m.rating ? starRowHTML(m.rating, 16) : '<span style="color:var(--ink3)">未评分</span>'}</div>
       ${m.creator ? '<div>作者：' + esc(m.creator) + '</div>' : ''}
-      ${m.year ? '<div>年份：' + m.year + '</div>' : ''}
+      ${m.year ? '<div>年份：' + esc(m.year) + '</div>' : ''}
       <div>状态：${STATUS_CN[m.status] || ''}</div>
       ${m.review ? '<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:10px;font-style:italic">「' + esc(m.review) + '」</div>' : ''}
     </div>
@@ -1464,7 +1464,7 @@ function openMediaDetail(id) {
     </div>`);
   $('#mdClose').onclick = closeModal;
   $('#mdDel').onclick = () => {
-    confirmBox('删除该收藏？', '「' + m.title + '」将被删除。', '删除', 'btn-danger', () => {
+    confirmBox('删除该收藏？', '「' + esc(m.title) + '」将被删除。', '删除', 'btn-danger', () => {
       State.media = State.media.filter(x => x.id !== id);
       saveModule('media'); closeModal(); renderAll();
     });
@@ -1484,7 +1484,7 @@ $('#mediaList').addEventListener('click', e => {
   if (del) {
     const id = del.getAttribute('data-mdel');
     const m = State.media.find(x => x.id === id);
-    confirmBox('删除该收藏？', m ? '「' + m.title + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除该收藏？', m ? '「' + esc(m.title) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.media = State.media.filter(x => x.id !== id);
       saveModule('media'); renderAll();
     });
