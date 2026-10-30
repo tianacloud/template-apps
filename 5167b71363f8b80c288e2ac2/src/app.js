@@ -396,9 +396,9 @@ function timeLabel(ts) {
 function cleanup() {
   /* 保留包含图片或子任务的条目及正在输入中的新条目 */
   state.tasks.forEach((t) => {
-    t.subs = t.subs.filter((s) => s.title.trim() || s.images.length || s.id === pendingId);
+    t.subs = t.subs.filter((s) => s.title.trim() || (s.images || []).length || s.id === pendingId);
   });
-  state.tasks = state.tasks.filter((t) => t.title.trim() || t.images.length || t.subs.length || t.id === pendingId);
+  state.tasks = state.tasks.filter((t) => t.title.trim() || (t.images || []).length || t.subs.length || t.id === pendingId);
 }
 
 /* ---------------- 标题渲染：自动识别链接 / 图片 ---------------- */
