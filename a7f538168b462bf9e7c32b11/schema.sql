@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS meeting_history (id TEXT PRIMARY KEY, title TEXT NOT NULL, saved_at TEXT NOT NULL, data TEXT NOT NULL);
