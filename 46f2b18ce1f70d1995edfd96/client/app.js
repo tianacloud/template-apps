@@ -300,7 +300,7 @@ function renderHeader(){
   const greet = h < 5 ? '夜深了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
   document.getElementById('heroGreet').textContent = `${greet}，${profile.name}`;
 
-  const feeds = records.filter(r => r.type !== 'diaper');
+  const feeds = records.filter(r => (r.type === 'feed' || r.type === 'bottle'));
   const sub = document.getElementById('heroSub');
   if (feeds.length){
     sub.textContent = '距上次喂奶 ' + agoText(Date.now() - feeds[0].at);
@@ -682,7 +682,7 @@ function renderStats(){
     const list = records.filter(r=>dayKey(r.at)===k);
     days.push({
       k, d,
-      feed: list.filter(r=>r.type!=='diaper').length,
+      feed: list.filter(r=>(r.type==='feed' || r.type==='bottle')).length,
       bottle: list.filter(r=>r.type==='bottle').length,
       diaper: list.filter(r=>r.type==='diaper').length,
       ml: list.reduce((s,r)=>s+(r.amount||0),0)
@@ -699,7 +699,7 @@ function renderStats(){
   }).join('');
 
   const t = days[6];
-  const feeds = records.filter(r=>dayKey(r.at)===t.k && r.type!=='diaper');
+  const feeds = records.filter(r=>dayKey(r.at)===t.k && (r.type==='feed' || r.type==='bottle'));
   const todaysCustom = label => records.filter(r=>dayKey(r.at)===t.k && r.type==='custom' && r.label===label);
   const gaps = [];
   for (let i=0;i<feeds.length-1;i++) gaps.push((feeds[i].at - feeds[i+1].at)/60000);
@@ -732,7 +732,7 @@ function renderStats(){
     const avgGap = gapN ? Math.round(gap/gapN) : 0;
     insight = `最近 7 天平均每天喂奶 <b>${avg} 次</b>，今日最多间隔约 <b>${
       gaps.length ? durText(Math.round(Math.max(...gaps))) : '—'}</b>。` +
-      ` 尿布 ${t.diaper} 次，属${t.diaper>=6?'正常范围':'偏少，留意补水'}。`;
+      ` 尿布 ${t.diaper} 次。`;
   }
   document.getElementById('insight').innerHTML = insight;
 }
