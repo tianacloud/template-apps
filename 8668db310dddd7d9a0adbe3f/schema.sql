@@ -1,2 +1,3 @@
 CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, kind TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX IF NOT EXISTS records_kind ON records(kind, created_at);
+CREATE TABLE IF NOT EXISTS form_drafts (user_id TEXT NOT NULL, form_id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(user_id, form_id));

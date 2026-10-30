@@ -36,29 +36,15 @@ function renderSel(sel, opts, placeholder){
   if(cur){ for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===cur){ sel.value=cur; break; } } }
 }
 
-/* ───────── 本页临时表单草稿 ───────── */
-var draftCache = {};
-function cacheKey(formId){ return "sp_cache_"+location.pathname+"::"+formId; }
+/* 未提交表单按当前用户保存在应用数据库中。 */
 function bindFormCache(form, formId){
-  var fields = Array.prototype.filter.call(form.querySelectorAll("[name]"), function(el){
-    return !el.hasAttribute("data-no-cache") && !/(密码|身份证|secret|token|key)/i.test(el.name||"");
-  });
-  function save(){ try{
-    var d={}; fields.forEach(function(el){ d[el.name]= (el.type==="date")?el.value:el.value; });
-    draftCache[cacheKey(formId)] = JSON.stringify(d);
-  }catch(e){} }
-  var tm=null;
-  fields.forEach(function(el){
-    var h=function(){ clearTimeout(tm); tm=setTimeout(save,300); };
-    el.addEventListener("input",h); el.addEventListener("change",h);
-  });
+  var fields=Array.prototype.filter.call(form.querySelectorAll("[name]"),function(el){return !el.hasAttribute("data-no-cache") && !/(密码|身份证|secret|token|key)/i.test(el.name||"");});
+  var timer=null, touched=false, queue=Promise.resolve();
+  function enqueue(fn){ queue=queue.catch(function(){}).then(fn).catch(function(e){console.error("草稿保存失败",e);toast("草稿保存失败，请检查网络");}); }
+  fields.forEach(function(el){function changed(){touched=true; clearTimeout(timer);timer=setTimeout(function(){var d={};fields.forEach(function(x){d[x.name]=x.value;});enqueue(function(){return db.saveDraft(formId,JSON.stringify(d));});},300);}el.addEventListener("input",changed);el.addEventListener("change",changed);});
   return {
-    refill: function(){ try{
-      var raw=draftCache[cacheKey(formId)]; if(!raw) return;
-      var d=JSON.parse(raw);
-      fields.forEach(function(el){ if(d[el.name]!=null && d[el.name]!=="") el.value=d[el.name]; });
-    }catch(e){} },
-    clear: function(){ try{ delete draftCache[cacheKey(formId)]; }catch(e){} }
+    refill:function(){db.loadDraft(formId).then(function(raw){if(!raw||touched)return;var d=JSON.parse(raw);fields.forEach(function(el){if(d[el.name]!=null && d[el.name]!=="")el.value=d[el.name];});}).catch(function(e){console.error("草稿读取失败",e);toast("草稿读取失败，请检查网络");});},
+    clear:function(){clearTimeout(timer);enqueue(function(){return db.clearDraft(formId);});}
   };
 }
 

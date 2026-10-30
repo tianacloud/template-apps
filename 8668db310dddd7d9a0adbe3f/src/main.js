@@ -8,7 +8,12 @@ async function sql(q,vals=[]){const res=await transport(`${conn.origin}/v3/pipel
 const fields={builds:{'构建结果':['成功','失败'],'下载状态':['待下载','已下载','已废弃']},tasks:{'环境类型':['测试','UAT','预生产','生产'],'交付通道':['直连','堡垒机跳板','离线拷贝'],'升级阶段':['待下载','已下载','已上传','升级中','验证通过','已回滚']}};
 const flatten=p=>Object.fromEntries(Object.entries(p).map(([k,v])=>[k,v.text??v.date??v.select??v.url??'']));
 async function all(kind){return (await sql('SELECT id,data FROM records WHERE kind = ? ORDER BY created_at DESC',[kind])).map(x=>({...JSON.parse(x.data),_id:x.id}));}
+const draftUser = window.tiana.user?.id;
+if (!draftUser) throw Error("无法识别当前用户，草稿服务不可用");
 window.__SMART_PAGE__={database:{
+ async loadDraft(formId){const rows=await sql("SELECT data FROM form_drafts WHERE user_id=? AND form_id=?",[draftUser,formId]); return rows[0]?.data ?? null;},
+ async saveDraft(formId,data){await sql("INSERT INTO form_drafts(user_id,form_id,data) VALUES(?,?,?) ON CONFLICT(user_id,form_id) DO UPDATE SET data=excluded.data",[draftUser,formId,data]);},
+ async clearDraft(formId){await sql("DELETE FROM form_drafts WHERE user_id=? AND form_id=?",[draftUser,formId]);},
  async getSchema({databaseId}){return {properties:Object.entries(fields[databaseId]).map(([name,choices])=>({name,type:'select',config:{options:choices.map(text=>({text,id:text}))}}))};},
  async query({databaseId,startCursor,pageSize}){let a=await all(databaseId);const key=databaseId==='builds'?'构建日期':'计划日期';a.sort((a,b)=>(b[key]||'').localeCompare(a[key]||''));const off=Number(startCursor||0), end=off+pageSize;return {results:a.slice(off,end),hasMore:end<a.length,nextCursor:String(end)};},
  async addRecord({databaseId,properties}){await sql('INSERT INTO records(id,kind,data) VALUES(?,?,?)',[crypto.randomUUID(),databaseId,JSON.stringify(flatten(properties))]);},
