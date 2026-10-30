@@ -53131,7 +53131,7 @@ const CONFIG = {
 };
 
 /* 当前难度预设 */
-const DIFF = CONFIG.DIFFICULTY_PRESETS[CONFIG.DIFFICULTY] || CONFIG.DIFFICULTY_PRESETS.high;
+let DIFF = CONFIG.DIFFICULTY_PRESETS[CONFIG.DIFFICULTY] || CONFIG.DIFFICULTY_PRESETS.high;
 
 /* 当前难度（由 DIFFICULTY_PRESETS 派生）。用 let 以便运行时切换难度 */
 let LEVEL_TIME = DIFF.time;
@@ -53142,6 +53142,7 @@ function setDifficulty(d) {
   const preset = CONFIG.DIFFICULTY_PRESETS[d];
   if (!preset) return;
   CONFIG.DIFFICULTY = d;
+  DIFF = preset;
   LEVEL_TIME = preset.time;
   LIVES = preset.lives;
   // 已保存的历史最佳按难度分别记录
@@ -56149,6 +56150,7 @@ function loadSavedDifficulty() {
   if (d && CONFIG.DIFFICULTY_PRESETS[d] && d !== CONFIG.DIFFICULTY) {
     const preset = CONFIG.DIFFICULTY_PRESETS[d];
     CONFIG.DIFFICULTY = d;
+    DIFF = preset;
     LEVEL_TIME = preset.time;
     LIVES = preset.lives;
   }
@@ -56291,7 +56293,7 @@ function fingerResetRun() {
 function fingerAdvance() {
   const g = FINGER_GROUPS[G.fGroup];
   G.fBestRun = Math.max(G.fBestRun, G.fRunLen);
-  if (!G.fPassed.includes(g.id)) G.fPassed.push(g.id);
+  if (G.fStage === 3 && !G.fPassed.includes(g.id)) G.fPassed.push(g.id);
   saveFingerProgress();
 
   if (G.fStage < 3) {
@@ -56301,6 +56303,7 @@ function fingerAdvance() {
     // 本组三阶段全过，解锁下一组
     if (G.fGroup + 1 < FINGER_GROUPS.length) {
       G.fUnlocked = Math.max(G.fUnlocked, G.fGroup + 2);
+      saveFingerProgress();
       panelAction = () => startFingerRound(G.fGroup + 1, 1, false);
       showFingerDone(true);
     } else {
