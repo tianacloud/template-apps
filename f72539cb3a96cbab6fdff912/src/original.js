@@ -4340,7 +4340,7 @@ window.__QR_SRC = '';
         '<div class="p-btn ghost" data-act="back-result">返 回 结 果</div>' +
         '<div class="p-btn main" data-act="save-img">下 载 图 片</div>' +
       '</div>' +
-      '<span class="p-tip">保存后在微信里发给同学，打开就能自己测</span>' +
+      '<span class="p-tip">保存后可分享本次测评结果</span>' +
       '<div class="tail-pad"></div>';
 
     var cv = document.createElement('canvas');
