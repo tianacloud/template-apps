@@ -12,6 +12,17 @@ const audio = await response.arrayBuffer();
 const audioContext = new AudioContext();
 const playing = new Map();
 const generations = new Map();
+window.__audioFiles = files;
+window.__playCustomAudio = async path => {
+  if (!/^user-audio\/[a-f0-9-]+$/.test(path)) throw new Error('音频路径不正确');
+  const response = await files.get(path);
+  if (!response.ok) throw new Error('无法读取音频');
+  const decoded = await audioContext.decodeAudioData(await response.arrayBuffer());
+  await audioContext.resume();
+  playing.get('speech')?.stop();
+  const source = audioContext.createBufferSource(); source.buffer = decoded; source.connect(audioContext.destination);
+  playing.set('speech', source); source.onended = () => { if (playing.get('speech') === source) playing.delete('speech'); }; source.start();
+};
 window.__playLearningAudio = async (name, channel = 'speech') => {
   const item = audioIndex[name];
   if (!item) throw new Error('音频不存在');

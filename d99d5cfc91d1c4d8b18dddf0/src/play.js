@@ -2488,7 +2488,8 @@ function checkBadges(){
 /* ---------------- Toast ---------------- */
 let toastTimer;
 function toast(msg, big){
-  const t=$('#toast'); t.innerHTML=(big?'<span class="tstar">'+starSVG(22)+'</span>':'')+msg;
+  const t=$('#toast'); t.textContent=msg;
+  if(big){ const icon=document.createElement('span'); icon.className='tstar'; icon.innerHTML=starSVG(22); t.prepend(icon); }
   t.className='toast show'+(big?' big':'');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='toast', big?2400:1500);
 }
@@ -3342,17 +3343,18 @@ function allPoems(){
 function playPoemEntry(p){
   const txt=p.lines.map(l=>l[1].replace(/ /g,'')).join('，')+'。';
   if(p.lib){ playFullOrBody('plib_full_' + p.lidx + '.mp3', p.audio, txt); }     // 古诗库：含诗名作者的完整音频
-  else if(p.audio){ try{ if(_audioEl){_audioEl.pause();} const a=new Audio(p.audio); _audioEl=a; const pr=a.play(); if(pr&&pr.catch)pr.catch(()=>speakWeb(txt,'zh-CN')); }catch(e){ speakWeb(txt,'zh-CN'); } }
+  else if(p.audio){ void window.__playCustomAudio(p.audio).catch(()=>speakWeb(txt,'zh-CN')); }
   else if(p.builtin){ playPoem(p.idx, txt); }
   else { speakWeb(txt,'zh-CN'); }
   state.stats.poem=(state.stats.poem||0)+1; save(); checkBadges(); refresh();
 }
+function escapeText(value){ return String(value ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function renderPoems(){
   const pg=$('#poems-grid'); if(!pg) return; pg.innerHTML='';
   allPoems().forEach(p=>{
     const card=document.createElement('div'); card.className='poem-card';
-    let body='<div class="poem-title">'+p.t+'</div><div class="poem-author">'+p.a+'</div><div class="poem-lines">';
-    p.lines.forEach(l=>{ const py=l[0]||''; const tx=l[1]||''; body+='<div class="pline"><span class="py">'+py+'</span><span class="tx">'+tx+'</span></div>'; });
+    let body='<div class="poem-title">'+escapeText(p.t)+'</div><div class="poem-author">'+escapeText(p.a)+'</div><div class="poem-lines">';
+    p.lines.forEach(l=>{ const py=l[0]||''; const tx=l[1]||''; body+='<div class="pline"><span class="py">'+escapeText(py)+'</span><span class="tx">'+escapeText(tx)+'</span></div>'; });
     body+='</div><div class="poem-acts"><button class="read-btn">'+speakerSVG()+'朗读</button><button class="ana-btn">'+bookSVG()+'解析</button></div><div class="poem-ana"></div>';
     card.innerHTML=body;
     card.querySelector('.read-btn').onclick=()=>playPoemEntry(p);
@@ -3384,7 +3386,7 @@ function renderCustList(){
   });
   cust.forEach((p,i)=>{
     const d=document.createElement('div'); d.className='cust-item';
-    d.innerHTML='<span class="ct">'+p.t+'</span><span class="du">'+(p.audio?'有音频':'无音频')+'</span><button class="del" data-type="cust" data-i="'+i+'">删除</button>';
+    d.innerHTML='<span class="ct">'+escapeText(p.t)+'</span><span class="du">'+(p.audio?'有音频':'无音频')+'</span><button class="del" data-type="cust" data-i="'+i+'">删除</button>';
     d.querySelector('.del').onclick=()=>{ state.customPoems.splice(i,1); save(); renderPoems(); renderCustList(); toast('已删除'); };
     wrap.appendChild(d);
   });
@@ -3525,19 +3527,54 @@ $('#bi-reset').onclick=()=>{
 };
 
 /* ---------------- 家长中心 备份 ---------------- */
-$('#export-btn').onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='baobei-backup.json'; a.click();
-  toast('已导出备份');
+function fileAsDataURL(blob){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>reject(r.error); r.readAsDataURL(blob); }); }
+$('#export-btn').onclick=async()=>{
+  try{
+    const backup=JSON.parse(JSON.stringify(state));
+    for(const poem of backup.customPoems || []){
+      if(!poem.audio) continue;
+      if(!/^user-audio\/[a-f0-9-]+$/.test(poem.audio)) throw new Error('音频路径不正确');
+      const response=await window.__audioFiles.get(poem.audio);
+      if(!response.ok) throw new Error('无法读取音频');
+      poem.audio=await fileAsDataURL(new Blob([await response.arrayBuffer()],{type:'audio/octet-stream'}));
+    }
+    const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='baobei-backup.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),60000); toast('已导出备份');
+  }catch(err){ toast('导出失败，请检查音频和网络'); }
 };
-$('#import-input').onchange=e=>{
+$('#import-input').onchange=async e=>{
   const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); state=Object.assign(defaultState(),d);
-    if(!state.stats) state.stats=defaultState().stats; if(!state.badges) state.badges={};
-    save(); applyName(); refresh(); toast('恢复成功！'); }catch(err){ toast('文件格式不对'); } };
-  r.readAsText(f);
   e.target.value='';
+  try{
+    const d=JSON.parse(await f.text());
+    if(!d || typeof d!=='object' || Array.isArray(d)) throw new Error('invalid backup');
+    const allowed=Object.keys(defaultState());
+    if(Object.keys(d).some(k=>!allowed.includes(k))) throw new Error('unknown backup field');
+    if(d.customPoems!==undefined && !Array.isArray(d.customPoems)) throw new Error('invalid poems');
+    const withoutAudio={...d,customPoems:(d.customPoems || []).map(({audio,...p})=>p)};
+    if(/data:[^\s"]*;base64,/i.test(JSON.stringify(withoutAudio))) throw new Error('embedded data');
+    if(d.name!==undefined && typeof d.name!=='string') throw new Error('invalid name');
+    if(d.libPoems!==undefined && (!Array.isArray(d.libPoems) || d.libPoems.some(i=>!Number.isInteger(i) || i<0 || i>=POEM_LIB.length))) throw new Error('invalid library');
+    if(d.builtinOrder!==undefined && d.builtinOrder!==null && (!Array.isArray(d.builtinOrder) || d.builtinOrder.some(i=>!Number.isInteger(i) || i<0 || i>=POEMS.length))) throw new Error('invalid order');
+    for(const key of ['stats','badges','hiddenBuiltin']) if(d[key]!==undefined && (!d[key] || typeof d[key]!=='object' || Array.isArray(d[key]))) throw new Error('invalid state');
+    const poems=[];
+    for(const p of d.customPoems || []){
+      if(!p || typeof p!=='object' || typeof p.t!=='string' || typeof p.a!=='string' || !Array.isArray(p.lines) || p.lines.some(l=>!Array.isArray(l) || l.length!==2 || l.some(v=>typeof v!=='string'))) throw new Error('invalid poem');
+      let audio=null;
+      if(p.audio){
+        if(typeof p.audio!=='string' || !/^data:audio\/[a-z0-9.+-]+;base64,/i.test(p.audio)) throw new Error('unsupported audio');
+        const parts=p.audio.split(',',2); const bytes=Uint8Array.from(atob(parts[1]), c=>c.charCodeAt(0));
+        const blob=new Blob([bytes],{type:parts[0].slice(5,-7)});
+        audio='user-audio/'+crypto.randomUUID();
+        await window.__audioFiles.put(audio,blob);
+      }
+      poems.push({t:p.t,a:p.a,lines:p.lines,audio});
+    }
+    const next=Object.assign(defaultState(),d,{customPoems:poems});
+    if(!next.stats) next.stats=defaultState().stats; if(!next.badges) next.badges={};
+    state=next; save(); applyName(); refresh(); renderPoems(); renderCustList(); renderBuiltinManage(); toast('恢复成功！');
+  }catch(err){ toast('恢复失败，请检查备份格式、音频和网络'); }
 };
 $('#clear-btn').onclick=()=>{
   if(window.confirm('确定要清空所有星星和闯关进度吗？此操作不可恢复。')){
