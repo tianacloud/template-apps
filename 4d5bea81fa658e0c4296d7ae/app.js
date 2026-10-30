@@ -1,0 +1,427 @@
+const style=document.createElement("style");style.textContent="\n  :root{\n    --china:#C0392B; --med:#2980B9; --sa:#E67E22; --ea:#8E44AD; --is:#27AE60;\n    --eu:#34495E; --am:#F1C40F; --af:#A0522D;\n    --ink:#2c2c2c; --muted:#7a7a7a; --line:#d9d9d9; --bg:#f7f5f0; --card:#fff;\n    --c-ok:#2e8b57; --c-main:#2c6fbb; --c-push:#e08a1e; --c-debate:#c0392b; --c-legend:#9b9b9b;\n  }\n  *{box-sizing:border-box;}\n  body{margin:0;font-family:\"PingFang SC\",\"Microsoft YaHei\",\"Noto Sans CJK SC\",sans-serif;background:var(--bg);color:var(--ink);}\n  header{position:sticky;top:0;z-index:30;background:rgba(247,245,240,.97);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 14px;}\n  h1{font-size:18px;margin:0 0 4px;font-weight:700;letter-spacing:.5px;}\n  .sub{font-size:12px;color:var(--muted);margin-bottom:8px;}\n  .filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}\n  .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-right:10px;}\n  #eraBtns{display:inline-flex;flex-wrap:wrap;gap:4px;}\n  .grp .lab{font-size:11px;color:var(--muted);margin-right:2px;}\n  .btn{font-size:12px;padding:4px 10px;border:1px solid var(--line);background:#fff;border-radius:16px;cursor:pointer;transition:.15s;color:var(--ink);}\n  .btn:hover{border-color:#bbb;}\n  .btn.active{background:var(--china);color:#fff;border-color:var(--china);}\n  .tog{font-size:12px;padding:3px 9px;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;}\n  .tog .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}\n  .tog.on{background:#eaf1fb;border-color:#2c6fbb;color:#1c4f8f;font-weight:700;box-shadow:0 0 0 1px #2c6fbb inset;}\n  .legend-conf{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:5px;}\n  .legend-conf span{display:inline-flex;align-items:center;gap:3px;}\n  .legend-conf i{width:10px;height:10px;border-radius:2px;display:inline-block;}\n  .hint{font-size:11px;color:var(--muted);margin-top:5px;}\n  .xstatus{font-size:11px;color:#2c6fbb;margin-top:4px;font-weight:600;}\n\n  .board{max-width:1200px;margin:0 auto;padding:12px 10px 30px;}\n  .hrow{display:grid;grid-template-columns:1fr 84px 1fr;gap:8px;margin-bottom:6px;position:sticky;top:150px;z-index:6;}\n  .hcell{font-weight:700;font-size:14px;text-align:center;padding:6px 0;border-radius:6px;}\n  .hcell.cn{color:#fff;background:var(--china);}\n  .hcell.wd{color:#fff;background:var(--med);}\n  .hcell.mid{background:transparent;color:var(--muted);font-size:11px;font-weight:400;align-self:end;}\n\n  section.era{margin:10px 0 16px;}\n  .era-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.04);}\n  .era-head:hover{border-color:#bbb;}\n  .chev{transition:.2s;font-size:12px;color:var(--muted);width:14px;}\n  section.closed .chev{transform:rotate(-90deg);}\n  section.closed .rows{display:none;}\n  .era-head .cnl{font-weight:700;color:var(--china);font-size:13.5px;}\n  .era-head .wdl{font-weight:700;color:var(--med);font-size:13.5px;}\n  .era-head .rng{font-size:11px;color:var(--muted);}\n  .era-head .sep{color:var(--line);}\n  .era-head .cnt{font-size:11px;color:var(--muted);margin-left:auto;}\n\n  .row{display:grid;grid-template-columns:1fr 84px 1fr;gap:8px;align-items:stretch;margin:0;}\n  .cell{display:flex;flex-direction:column;gap:6px;min-width:0;}\n  .cell .none{flex:1;border:1px dashed transparent;border-radius:6px;min-height:10px;}\n  .mid{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;}\n  .mid .yr{font-size:11.5px;color:var(--ink);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;background:#efece5;border:1px solid var(--line);border-radius:10px;padding:1px 7px;}\n  .mid .tick{flex:1;width:2px;background:linear-gradient(var(--china),var(--med));opacity:.35;margin-top:4px;border-radius:2px;}\n\n  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 9px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:.15s;position:relative;}\n  .card:hover{box-shadow:0 3px 10px rgba(0,0,0,.1);}\n  .card.cn{border-left:4px solid var(--china);}\n  .card.wd{border-left:4px solid var(--med);}\n  .card.dim{opacity:.18;filter:grayscale(.6);}\n  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}\n  .card .ttl{font-size:13px;font-weight:600;line-height:1.35;}\n  .card .yr{font-size:10.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;}\n  .badge{display:inline-block;font-size:10px;color:#fff;border-radius:4px;padding:1px 5px;margin-right:4px;vertical-align:middle;}\n  .conf{font-size:10px;padding:1px 5px;border-radius:4px;color:#fff;white-space:nowrap;}\n  .conf.ok{background:var(--c-ok);} .conf.main{background:var(--c-main);} .conf.push{background:var(--c-push);}\n  .conf.debate{background:var(--c-debate);} .conf.legend{background:var(--c-legend);}\n  .card .desc{font-size:11.5px;color:#444;margin-top:3px;line-height:1.5;}\n  .card .src{font-size:11px;color:var(--muted);margin-top:5px;display:none;border-top:1px dashed var(--line);padding-top:5px;}\n  .card.open .src{display:block;}\n  .theme-tag{display:inline-block;font-size:10px;background:#eee;color:#555;border-radius:4px;padding:1px 6px;margin-right:4px;}\n\n  footer{max-width:1200px;margin:0 auto;padding:14px;font-size:11px;color:var(--muted);line-height:1.7;}\n  footer b{color:var(--ink);}\n  @media(max-width:680px){\n    .hrow,.row{grid-template-columns:1fr 58px 1fr;gap:4px;}\n    .card .ttl{font-size:12px;} .card .desc{font-size:10.5px;} .mid .yr{font-size:8px;padding:1px 1px;}\n    .era-head .cnt{display:none;}\n  }\n";document.head.appendChild(style);document.title="中外历史双轨时间轴（前2070 — 1949）";document.getElementById("app").innerHTML="\n<header>\n  <h1>中外历史双轨时间轴 · 同期对齐版（前 2070 — 1949）</h1>\n  <div class=\"sub\">每行＝同一年份区间的中外对照：左轨中国朝代与里程碑，右轨同期世界文明与事件。点时代标题可折叠聚焦。</div>\n  <div class=\"filters\">\n    <div class=\"grp\"><span class=\"lab\">时代：</span><span id=\"eraBtns\"></span></div>\n    <div class=\"grp\"><span class=\"lab\">折叠：</span><span class=\"btn\" id=\"foldAll\">全部折叠</span><span class=\"btn\" id=\"unfoldAll\">全部展开</span></div>\n    <div class=\"grp\"><span class=\"lab\">世界文明圈：</span><span id=\"regionBtns\"></span></div>\n    <div class=\"grp\"><span class=\"lab\">主题：</span><span id=\"themeBtns\"></span></div>\n    <div class=\"grp\"><span class=\"btn\" id=\"resetFilter\">重置筛选</span></div>\n  </div>\n  <div class=\"xstatus\" id=\"xstatus\"></div>\n  <div class=\"legend-conf\">\n    <span>置信度：</span>\n    <span><i style=\"background:var(--c-ok)\"></i>确证</span>\n    <span><i style=\"background:var(--c-main)\"></i>学界主流</span>\n    <span><i style=\"background:var(--c-push)\"></i>断代推年</span>\n    <span><i style=\"background:var(--c-debate)\"></i>有争议</span>\n    <span><i style=\"background:var(--c-legend)\"></i>传说/半信史</span>\n  </div>\n  <div class=\"hint\">操作：点「时代」只看某段；点分区标题折叠/展开聚焦；<b>文明圈与主题为「正向聚焦」</b>——点某个圈/主题即聚焦它、其余淡化；同维度可多选（＝并集），圈＋主题＝交集（例如点「美洲」再点「科技」＝只看美洲的科技节点）；「中国」列恒显作对照基准；再点已选的按钮即取消聚焦；点「重置筛选」恢复全部；点卡片展开「来源」。</div>\n</header>\n\n<div class=\"board\">\n  <div class=\"hrow\">\n    <div class=\"hcell cn\">中国 · 朝代与里程碑</div>\n    <div class=\"hcell mid\">年份</div>\n    <div class=\"hcell wd\">世界 · 同期文明与事件</div>\n  </div>\n  <div id=\"sections\"></div>\n</div>\n\n<footer>\n  <b>说明与边界：</b>① 时代分区双标——左侧用中国朝代（先秦/秦汉/…），右侧用世界史学分期（上古文明/古典时代/中世纪/近代早期/工业时代），两列不互挂；② 每行左右同属一个<b>年份区间</b>（区间宽随时代密度自适应），同一行即\"大致同期\"，非严格同年；③ 前秦（夏、商早期）年代多来自<b>夏商周断代工程推年</b>，标「推年/传说」；④ 世界侧按<b>七大文化区</b>着色＋文字徽标（地中海近东/南亚/东亚朝日越/伊斯兰/欧洲/美洲/非洲），并补充了<b>美洲（奥尔梅克→玛雅→阿兹特克→印加→美国）</b>与<b>奥斯曼/萨法维/莫卧儿/俄罗斯</b>等更连续的文明主线；⑤ 近代（1840–1949）世界侧按主题聚合（科技/制度/战争）；⑥ 各时代增设<b>科技/艺术/制度/战争/人物</b>五大主题专项节点（带彩色主题标签，可在顶栏「主题」正向聚焦；其中<b>「人物」收录具世界影响力的先贤与巨匠</b>，生年作节点、卒年写入简介）；⑦ 每节点带置信度与来源，具体年代以权威史学/考古结论为准。本轴为<b>教学辅助</b>，非考据定本。\n</footer>\n\n";
+
+/* 字段：[公元年(负=公元前), 轨(cn/wd), 文化区, 徽标, 标题, 描述, 置信, 来源, 主题(仅近现代世界)] */
+const REGIONS = {
+  CN:{label:'中国',color:'var(--china)'},
+  MED:{label:'地中海/近东',color:'var(--med)'},
+  SA:{label:'南亚',color:'var(--sa)'},
+  EA:{label:'东亚(朝日越)',color:'var(--ea)'},
+  IS:{label:'伊斯兰世界',color:'var(--is)'},
+  EU:{label:'欧洲',color:'var(--eu)'},
+  AM:{label:'美洲',color:'var(--am)'},
+  AF:{label:'非洲',color:'var(--af)'}
+};
+const THEMES = {
+  科技:{label:'科技',color:'#2c6fbb'},
+  艺术:{label:'艺术',color:'#8E44AD'},
+  制度:{label:'制度',color:'#27AE60'},
+  战争:{label:'战争',color:'#C0392B'},
+  人物:{label:'人物',color:'#0b7285'}
+};
+const ERAS = [
+  {key:'xq', cn:'先秦',       cnR:'前2070–前221', wd:'上古文明时代', wdR:'前21世纪–前3世纪', gap:300},
+  {key:'qh', cn:'秦汉',       cnR:'前221–219',    wd:'古典时代',     wdR:'前3世纪–2世纪',    gap:90},
+  {key:'wn', cn:'魏晋南北朝', cnR:'220–580',      wd:'古典晚期',     wdR:'3–6世纪',          gap:80},
+  {key:'st', cn:'隋唐',       cnR:'581–907',      wd:'中世纪早期',   wdR:'7–10世纪',         gap:70},
+  {key:'sy', cn:'宋元',       cnR:'908–1367',     wd:'中世纪盛期',   wdR:'10–14世纪',        gap:70},
+  {key:'mq', cn:'明清',       cnR:'1368–1839',    wd:'近代早期',     wdR:'15–19世纪',        gap:45},
+  {key:'jx', cn:'近现代',     cnR:'1840–1949',    wd:'工业时代与现代',wdR:'1840–1949',       gap:12}
+];
+function eraOf(y){
+  if(y<-221)return'xq'; if(y<220)return'qh'; if(y<581)return'wn';
+  if(y<908)return'st'; if(y<1368)return'sy'; if(y<1840)return'mq'; return'jx';
+}
+const NODES = [
+  /* ===== 中国 ===== */
+  [-2070,'cn','CN','','夏朝建立','大禹建国，家天下。二里头（夏中晚期都邑）约前1750才出现，早夏尚处河南龙山—新砦期，无同期文字。','push','夏商周断代工程；王巍《中华文明探源》'],
+  [-1600,'cn','CN','','商朝建立','二里岗文化/郑州商城，青铜礼器成熟；甲骨文尚未出现（约前1300起）。','main','夏商周断代工程；考古所商周考古'],
+  [-1300,'cn','CN','','盘庚迁殷·甲骨文','殷墟甲骨文是目前最早成系统汉字，可证商王世系。','ok','殷墟发掘（1928起）；《史记·殷本纪》互证'],
+  [-1046,'cn','CN','','西周建立·武王伐纣','分封制、宗法礼乐成型；大盂鼎/小盂鼎铭文鼎盛。','push','夏商周断代工程推年；利簋铭文'],
+  [-771,'cn','CN','','犬戎破镐京·西周亡','平王次年东迁，进入东周（春秋战国）。','main','《史记·周本纪》；清华简'],
+  [-770,'cn','CN','','平王东迁·春秋始','诸侯力政，礼崩乐坏；孔子（前551生）倡仁礼。','ok','《春秋》；《史记》'],
+  [-551,'cn','CN','','孔子诞生','儒家创始人，删述六经，影响东亚两千年。','ok','《史记·孔子世家》'],
+  [-475,'cn','CN','','战国始','七雄并立，变法图强；百家争鸣。','main','《史记》；战国年代学界主流'],
+  [-356,'cn','CN','','商鞅变法','奖励耕战、废井田，秦国力骤强，奠定统一基础。','ok','《史记·商君列传》'],
+  [-221,'cn','CN','','秦统一·书同文','嬴政称始皇帝，统一文字度量衡车轨，中央集权确立。','ok','《史记·秦始皇本纪》'],
+  [-214,'cn','CN','','秦修长城·灵渠','北筑长城御匈奴，南凿灵渠通岭南。','ok','《史记》；考古佐证'],
+  [-202,'cn','CN','','西汉建立','刘邦称帝，文景之治后国力鼎盛。','ok','《史记·高祖本纪》'],
+  [-138,'cn','CN','','张骞凿空','通西域，丝绸之路开通，中西交往之始。','ok','《史记·大宛列传》'],
+  [-119,'cn','CN','','卫青霍去病破匈奴','漠北之战，匈奴远遁，河西归汉。','ok','《史记·卫将军骠骑列传》'],
+  [8,'cn','CN','','王莽篡汉·新朝','托古改制失败，绿林赤眉起事。','ok','《汉书·王莽传》'],
+  [25,'cn','CN','','东汉建立·光武中兴','刘秀复汉，柔道治国。','ok','《后汉书·光武帝纪》'],
+  [105,'cn','CN','','蔡伦改进造纸','"蔡侯纸"推动文明传播，四大发明之一。','ok','《后汉书·蔡伦传》'],
+  [184,'cn','CN','','黄巾起义','太平道起事，东汉瓦解，进入三国。','ok','《后汉书》'],
+  [220,'cn','CN','','曹丕代汉·三国始','魏蜀吴鼎立，士族政治兴起。','ok','《三国志》'],
+  [265,'cn','CN','','西晋建立','司马炎代魏，短暂统一。','ok','《晋书》'],
+  [316,'cn','CN','','西晋亡·衣冠南渡','永嘉之乱，北方十六国，东晋偏安江南。','ok','《晋书》；谭其骧历史地图'],
+  [386,'cn','CN','','北魏建立','鲜卑拓跋氏，孝文帝（471起）汉化改革。','ok','《魏书》'],
+  [581,'cn','CN','','隋朝建立','隋文帝开皇之治。','ok','《隋书》'],
+  [589,'cn','CN','','隋灭陈·重统一','结束近300年分裂。','ok','《隋书》'],
+  [605,'cn','CN','','大运河·科举始','贯通南北水道；分科考试选拔官吏。','ok','《隋书》；科举研究','科技'],
+  [618,'cn','CN','','唐朝建立','李渊建国，贞观开元盛世。','ok','《旧唐书》'],
+  [627,'cn','CN','','贞观之治','太宗纳谏，府兵均田，国势强盛。','ok','《贞观政要》'],
+  [690,'cn','CN','','武则天称帝','改国号周，唯一女皇。','ok','《旧唐书·则天本纪》'],
+  [713,'cn','CN','','开元盛世','玄宗前期，盛世顶峰，长安为世界都会。','ok','《旧唐书·玄宗纪》'],
+  [755,'cn','CN','','安史之乱','藩镇割据起点，唐由盛转衰。','ok','《旧唐书·安禄山传》'],
+  [868,'cn','CN','','雕版《金刚经》','现存最早标年雕版印刷品（英藏S.P.2）。','ok','敦煌文献；大英图书馆藏'],
+  [907,'cn','CN','','唐亡·五代始','藩镇割据，中原更迭。','ok','《新五代史》'],
+  [960,'cn','CN','','北宋建立','赵匡胤陈桥兵变，杯酒释兵权。','ok','《宋史》'],
+  [1004,'cn','CN','','澶渊之盟','宋辽和议，百年和平，岁币换安宁。','ok','《宋史·真宗纪》'],
+  [1069,'cn','CN','','王安石变法','熙宁新政，富国强兵，党争激烈。','ok','《宋史·王安石传》'],
+  [1088,'cn','CN','','沈括《梦溪笔谈》','百科式笔记，记载活字、磁偏角等。','ok','《梦溪笔谈》原书'],
+  [1127,'cn','CN','','北宋亡·南宋始','靖康之变，赵构南渡，偏安临安。','ok','《宋史·钦宗纪》'],
+  [1206,'cn','CN','','成吉思汗建蒙古','铁木真统一草原，扩张为横跨欧亚帝国。','ok','《元史》；《蒙古秘史》'],
+  [1271,'cn','CN','','忽必烈改国号元','行汉法，建大都。','ok','《元史·世祖纪》'],
+  [1279,'cn','CN','','崖山·宋亡','元统一全国，首次由游牧民族一统天下。','ok','《宋史》；《元史》'],
+  [1368,'cn','CN','','明朝建立','朱元璋驱元，恢复汉统。','ok','《明史》'],
+  [1405,'cn','CN','','郑和下西洋','七下西洋，宝船远抵非洲东岸。','ok','《明史·郑和传》'],
+  [1421,'cn','CN','','迁都北京','天子守国门，营建紫禁城。','ok','《明史·成祖纪》'],
+  [1567,'cn','CN','','隆庆开关','有限开海，白银流入，江南商品经济勃兴。','ok','《明史·穆宗纪》；经济史'],
+  [1573,'cn','CN','','张居正·一条鞭','清丈田亩、赋役折银，明中后期改革。','ok','《明史·张居正传》'],
+  [1636,'cn','CN','','后金改号清','皇太极称帝，国号大清。','ok','《清史稿》'],
+  [1644,'cn','CN','','清入关·明亡','李自成破京、清军入主，奠定清朝版图。','ok','《清史稿》'],
+  [1662,'cn','CN','','康熙即位','康雍乾盛世开端，统一台湾、定边疆。','ok','《清史稿·圣祖纪》'],
+  [1793,'cn','CN','','马戛尔尼使华','英使来华，礼仪之争，清与工业英国初次碰撞。','ok','《清史稿》；使团纪实'],
+  [1840,'cn','CN','','鸦片战争','英国炮舰打开国门，近代开端。','ok','《南京条约》及近代史'],
+  [1851,'cn','CN','','太平天国','洪秀全起事，席卷江南，清廷元气大伤。','ok','近代史；太平天国文献'],
+  [1861,'cn','CN','','洋务运动','师夷长技，求富求强，近代工业与海军起步。','ok','近代史；曾国藩李鸿章奏议'],
+  [1894,'cn','CN','','甲午战争','北洋水师覆灭，马关条约，民族危机加深。','ok','《马关条约》；近代史'],
+  [1898,'cn','CN','','戊戌变法','百日维新，制度改良失败，共识转向革命。','ok','近代史；康有为奏稿'],
+  [1911,'cn','CN','','辛亥革命','武昌首义，帝制终结。','ok','近代史；辛亥史料'],
+  [1912,'cn','CN','','中华民国建立','亚洲第一个共和国，共和初建。','ok','《中华民国临时约法》'],
+  [1919,'cn','CN','','五四运动','反帝爱国，新文化运动，思想启蒙。','ok','近代史'],
+  [1921,'cn','CN','','中国共产党成立','开天辟地，中国革命新方向。','ok','党史'],
+  [1931,'cn','CN','','九一八事变','日本侵占东北，局部抗战开始。','ok','近代史'],
+  [1937,'cn','CN','','全面抗战','七七事变，八年浴血。','ok','近代史'],
+  [1945,'cn','CN','','抗战胜利','世界反法西斯东方主战场胜利。','ok','近代史'],
+  [1949,'cn','CN','','中华人民共和国成立','中国人民站起来，现代史开端。','ok','《共同纲领》；开国大典'],
+
+  /* ===== 世界 ===== */
+  [-2112,'wd','MED','河','乌尔第三王朝','苏美尔"文艺复兴"，中央集权帝国，约前2004亡于阿摩利人。','main','两河年代学'],
+  [-2055,'wd','MED','埃','埃及中王国统一','蒙图霍特普二世结束第一中间期，重统一埃及，文学黄金时代。','main','埃及学年代；第11王朝'],
+  [-2000,'wd','MED','希','米诺斯原宫期','克里特宫殿初现，欧洲最早高等文明萌芽。','main','爱琴考古'],
+  [-1792,'wd','MED','河','汉谟拉比法典','巴比伦王颁成文法，两河法治高峰。','main','石碑（卢浮宫）'],
+  [-1600,'wd','MED','埃','埃及新王国','图特摩斯/哈特谢普苏特，帝国扩张至近东。','main','埃及新王国年代'],
+  [-1200,'wd','MED','地','青铜时代崩溃','"海上民族"冲击，赫梯、迈锡尼崩溃，大干旱。','main','考古与气候研究'],
+  [-776,'wd','MED','希','奥林匹克始','希腊城邦兴起，荷马史诗传抄。','ok','古希腊史'],
+  [-753,'wd','MED','罗','罗马建城（传说）','罗慕路斯建城传说年，共和国前身。','legend','罗马建城纪年'],
+  [-550,'wd','MED','波','波斯帝国','居鲁士建阿契美尼德，横跨三洲。','main','波斯史；楔形铭文'],
+  [-509,'wd','MED','罗','罗马共和国','元老院与公民，共和制度范本。','ok','罗马史'],
+  [-336,'wd','MED','希','亚历山大东征','希腊化时代，文化远播至印度边界。','ok','普鲁塔克《列传》'],
+  [-264,'wd','MED','罗','布匿战争始','罗马 vs 迦太基，地中海霸权争夺。','ok','波利比乌斯'],
+  [313,'wd','EU','欧','米兰敕令','基督教合法化，欧洲文明转向。','ok','教会史'],
+  [330,'wd','MED','拜','君士坦丁堡','拜占庭帝国中心，千年东罗马。','ok','拜占庭史'],
+  [476,'wd','EU','欧','西罗马灭亡','欧洲进入中世纪，封建割据。','ok','中世纪史'],
+  [320,'wd','SA','印','笈多王朝','印度黄金时代，数学（零、圆周率）与佛教石窟。','main','印度史'],
+  [538,'wd','EA','日','佛教传日','百济献佛经像，日本飞鸟文化；大化改新（645）效唐。','ok','日本书纪'],
+  [622,'wd','IS','阿','伊斯兰教兴起','穆罕默德希吉拉，阿拉伯帝国之源。','ok','伊斯兰史'],
+  [668,'wd','EA','朝','新罗统一','朝鲜半岛首次统一，唐风盛行。','ok','朝鲜史'],
+  [750,'wd','IS','阿','阿拔斯王朝','巴格达智慧宫，伊斯兰黄金时代，保存并发展希腊学术。','ok','伊斯兰文明史'],
+  [800,'wd','EU','欧','查理曼加冕','神圣罗马帝国雏形，加洛林文艺复兴。','ok','中世纪史'],
+  [1054,'wd','EU','欧','东西教会大分裂','天主教与东正教分途。','ok','教会史'],
+  [1096,'wd','EU','欧','十字军东征','东西文明冲突与交融的漫长战争。','ok','十字军史'],
+  [1192,'wd','EA','日','镰仓幕府','武士政权始，幕府体制确立。','ok','日本史'],
+  [1206,'wd','EA','蒙','蒙古西征','成吉思汗帝国横扫欧亚，打通东西方。','ok','《蒙古秘史》；波斯《史集》'],
+  [1258,'wd','IS','阿','巴格达陷落','蒙古灭阿拔斯，伊斯兰黄金时代转折。','ok','中东史'],
+  [1347,'wd','EU','欧','黑死病','鼠疫横扫欧洲，人口锐减，社会剧变。','ok','瘟疫史'],
+  [1453,'wd','IS','奥','奥斯曼灭拜占庭','君士坦丁堡易主，中世纪落幕。','ok','奥斯曼史'],
+  [1467,'wd','EA','日','日本战国','下克上，乱世；后由丰臣/德川统一。','main','日本史'],
+  [1488,'wd','AF','非','绕好望角','迪亚士抵达非洲南端，航路打通前奏。','ok','航海史'],
+  [1492,'wd','EU','欧','哥伦布远航','"发现"新大陆，全球史开端，殖民时代。','ok','大航海史'],
+  [1517,'wd','EU','欧','宗教改革','路德贴论纲，新教分裂，近代欧洲秩序重塑。','ok','宗教改革史'],
+  [1526,'wd','SA','印','莫卧儿帝国','突厥—波斯系王朝，泰姬陵后世建成。','main','印度史'],
+  [1543,'wd','EU','欧','哥白尼日心说','《天体运行论》，科学革命序幕。','ok','科学史','科技'],
+  [1438,'wd','AM','美','印加帝国','安第斯高原帝国，美洲三大文明之一。','main','安第斯考古'],
+  [1603,'wd','EA','日','德川幕府','锁国与和平，江户二百余年。','ok','日本史'],
+  [1640,'wd','EU','欧','英国革命','议会 vs 王权，近代宪政萌芽。','ok','英国史'],
+  [1687,'wd','EU','欧','牛顿《原理》','经典力学奠基，科学范式确立。','ok','科学史','科技'],
+  [1750,'wd','EU','欧','工业革命','英国蒸汽机引领，人类进入机器时代。','ok','经济史','科技'],
+  [1776,'wd','AM','美','美国独立','《独立宣言》，美洲首个现代共和国。','ok','美国史','制度'],
+  [1789,'wd','EU','欧','法国大革命','自由平等博爱，旧制度崩塌。','ok','法国史'],
+
+  /* ===== 近现代世界（主题聚合） ===== */
+  [1840,'wd','EU','欧','科技·蒸汽与铁路','蒸汽船、铁路网扩张，世界市场加速形成。','ok','技术史','科技'],
+  [1859,'wd','EU','欧','科技·进化论','达尔文《物种起源》，颠覆自然观。','ok','科学史','科技'],
+  [1869,'wd','EU','欧','科技·苏伊士运河','欧亚航路缩短，殖民攫取加速。','ok','近代史','科技'],
+  [1903,'wd','AM','美','科技·动力飞行','莱特兄弟首飞，航空时代。','ok','技术史','科技'],
+  [1905,'wd','EU','欧','科技·相对论','爱因斯坦重构时空，现代物理奠基。','ok','科学史','科技'],
+  [1928,'wd','EU','欧','科技·青霉素','弗莱明发现抗生素，医学革命。','ok','医学史','科技'],
+  [1848,'wd','EU','欧','制度·共产党宣言','马克思恩格斯发声，社会主义运动兴起。','ok','思想史','制度'],
+  [1861,'wd','EU','欧','制度·俄国农奴改革','亚历山大二世废奴，近代化起步。','ok','俄国史','制度'],
+  [1868,'wd','EA','日','制度·明治维新','日本脱亚入欧，急速近代化，后成东亚强国。','ok','日本史','制度'],
+  [1917,'wd','EU','欧','制度·俄国革命','十月革命，第一个社会主义国家。','ok','世界史','制度'],
+  [1929,'wd','AM','美','制度·大萧条','全球经济危机，新政与福利国家转向。','ok','经济史','制度'],
+  [1857,'wd','SA','印','殖民·印度大起义','反英起义后英国直接统治，殖民深化。','ok','南亚史','战争'],
+  [1884,'wd','AF','非','殖民·柏林会议','欧洲瓜分非洲，界线任意划定遗患至今。','ok','非洲史','战争'],
+  [1914,'wd','EU','欧','战争·第一次世界大战','帝国主义重划世界，旧帝国瓦解。','ok','世界史','战争'],
+  [1939,'wd','EU','欧','战争·第二次世界大战','法西斯扩张，全球惨烈，联合国诞生前夜。','ok','世界史','战争'],
+  [1947,'wd','SA','印','殖民·印巴分治','英国退出印度，次大陆分治独立。','ok','南亚史','战争'],
+
+  /* ===== 补充①：美洲（奥尔梅克→玛雅→阿兹特克→印加→美国）全程 ===== */
+  [-1200,'wd','AM','美','奥尔梅克文明','中美洲母文化，巨石头像与玉器，玛雅阿兹特克之源（约前1200–前400）。','main','中美洲考古'],
+  [250,'wd','AM','美','玛雅古典期','蒂卡尔、帕伦克等城邦，精确历法与阶梯金字塔（约250–900）。','main','玛雅文明研究'],
+  [850,'wd','AM','美','玛雅古典期衰落','9世纪城邦相继废弃，原因未明（干旱/战乱/生态）。','main','玛雅考古'],
+  [1000,'wd','AM','美','玛雅后古典期','奇琴伊察、玛雅潘等北方中心延续。','main','玛雅文明研究'],
+  [1325,'wd','AM','美','阿兹特克建都','特诺奇蒂特兰建于特斯科科湖岛，后成美洲最大城市。','main','阿兹特克史'],
+  [1428,'wd','AM','美','阿兹特克帝国','三方同盟确立，中美洲霸主（1428–1521）。','main','中美洲史'],
+  [1519,'wd','AM','美','西班牙征服阿兹特克','科尔特斯联合敌族，1521陷落特诺奇蒂特兰。','ok','征服史'],
+  [1533,'wd','AM','美','印加亡于西班牙','皮萨罗俘阿塔瓦尔帕，帝国瓦解（1532–1572抵抗）。','ok','安第斯史'],
+  [1607,'wd','AM','美','英属詹姆斯敦','英国在北美首个永久殖民地，殖民北美之始。','ok','北美殖民史'],
+  [1620,'wd','AM','美','五月花号','清教徒登陆普利茅斯，《五月花公约》自治雏形。','ok','美国史'],
+  [1697,'wd','AM','美','玛雅最后城邦陷落','西班牙征服尤卡坦最后一个独立玛雅城邦塔亚萨尔。','ok','玛雅史'],
+  [1861,'wd','AM','美','美国南北战争','内战（1861–1865），废奴与联邦统一，工业北方胜。','ok','美国史','战争'],
+
+  /* ===== 补充①：奥斯曼/萨法维/莫卧儿/俄罗斯 连续圈 ===== */
+  [1299,'wd','IS','奥','奥斯曼建国','奥斯曼一世立国（1299–1922），从小亚细亚贝伊国崛起。','main','奥斯曼史'],
+  [1520,'wd','IS','奥','苏莱曼大帝','奥斯曼巅峰，地跨三洲，法律与建筑黄金期（1520–1566）。','ok','奥斯曼史'],
+  [1683,'wd','IS','奥','维也纳之围','围攻失败，奥斯曼扩张达极限，由盛转衰。','ok','奥斯曼史'],
+  [1922,'wd','IS','奥','奥斯曼解体','一战后废苏丹，帝国终结，土耳其共和国继起。','ok','近东史'],
+  [1501,'wd','IS','波','萨法维波斯','伊斯玛仪一世建都，定什叶派为国教，波斯复兴（1501–1736）。','main','波斯史'],
+  [1588,'wd','IS','波','阿拔斯大帝','萨法维黄金期，迁都伊斯法罕，丝绸与建筑辉煌。','ok','波斯史'],
+  [1736,'wd','IS','波','萨法维亡','纳迪尔沙终结王朝，波斯陷入动荡。','ok','波斯史'],
+  [1632,'wd','SA','印','泰姬陵始建','莫卧儿沙贾汗为后建，1653竣工，伊斯兰建筑巅峰。','ok','印度史','艺术'],
+  [1857,'wd','SA','印','莫卧儿亡','印度兵变后英国直接统治，莫卧儿帝国终结。','ok','南亚史'],
+  [1547,'wd','EU','俄','俄罗斯沙皇国','伊凡四世（雷帝）加冕，中央集权，扩张西伯利亚。','main','俄国史'],
+  [1721,'wd','EU','俄','俄罗斯帝国','彼得大帝称帝，西化改革，跻身欧洲列强。','ok','俄国史'],
+
+  /* ===== 补充②：科技史专项节点 ===== */
+  [-256,'cn','CN','','都江堰','李冰主持，无坝引水，至今灌溉成都平原，水利典范。','ok','《史记·河渠书》','科技'],
+  [132,'cn','CN','','张衡地动仪','发明候风地动仪，早期地震监测。','main','《后汉书·张衡传》','科技'],
+  [480,'cn','CN','','祖冲之圆周率','算至小数点后七位，领先世界约千年。','main','《隋书·律历志》','科技'],
+  [1040,'cn','CN','','毕昇活字印刷','泥活字印刷术，印刷史革命。','main','沈括《梦溪笔谈》','科技'],
+  [1044,'cn','CN','','火药配方记载','《武经总要》载军用火药方，火器之源。','ok','《武经总要》','科技'],
+  [1119,'cn','CN','','指南针航海','《萍洲可谈》记舟师用罗盘，航海革命。','ok','宋代航海文献','科技'],
+  [1281,'cn','CN','','郭守敬授时历','一年365.2425日，精度领先，沿用三百余年。','ok','《元史·郭守敬传》','科技'],
+  [1578,'cn','CN','','本草纲目','李时珍药物学巨著，分类体系超前。','ok','《本草纲目》','科技'],
+  [1637,'cn','CN','','天工开物','宋应星工艺百科全书，17世纪技术总结。','ok','《天工开物》','科技'],
+  [-250,'wd','MED','希','阿基米德','杠杆、浮力原理，叙拉古保卫战。','main','古希腊科学史','科技'],
+  [150,'wd','MED','希','托勒密地心说','《天文学大成》《地理学》，影响千年的宇宙模型。','main','科学史','科技'],
+  [751,'wd','IS','阿','造纸术西传','怛罗斯之战后造纸术传入撒马尔罕，后至欧洲。','ok','伊斯兰科技史','科技'],
+  [1450,'wd','EU','欧','古登堡印刷','金属活字印刷圣经，知识传播革命。','ok','技术史','科技'],
+  [1609,'wd','EU','欧','伽利略望远镜','天文观测革新，支持日心说。','ok','科学史','科技'],
+  [1628,'wd','EU','欧','哈维血液循环','《心血运动论》，实验生理学奠基。','ok','医学史','科技'],
+  [1769,'wd','EU','欧','瓦特蒸汽机','改良蒸汽机，工业革命核心动力。','ok','技术史','科技'],
+  [1831,'wd','EU','欧','法拉第电磁','电磁感应，电力时代基石。','ok','科学史','科技'],
+
+  /* ===== 补充②：艺术史专项节点 ===== */
+  [353,'cn','CN','','兰亭序','王羲之书，天下第一行书，书法巅峰。','ok','书法史','艺术'],
+  [366,'cn','CN','','敦煌莫高窟','始凿于前秦，石窟壁画雕塑艺术宝库。','ok','敦煌学','艺术'],
+  [740,'cn','CN','','唐诗鼎盛','盛唐诗歌，李杜代表，中华文学高峰。','ok','文学史','艺术'],
+  [1080,'cn','CN','','宋词与文人画','词体勃兴，文人山水花鸟画成熟。','ok','艺术史','艺术'],
+  [1320,'cn','CN','','元曲与青花瓷','元杂剧、青花瓷工艺，市民艺术兴起。','main','艺术史','艺术'],
+  [1500,'cn','CN','','明清园林版画','江南园林、版画年画，工艺美学鼎盛。','main','艺术史','艺术'],
+  [-440,'wd','MED','希','希腊古典雕塑','帕特农神庙与菲迪亚斯雕塑，古典美学典范。','main','艺术史','艺术'],
+  [80,'wd','MED','罗','罗马斗兽场','弗拉维剧场，帝国工程与公共建筑。','main','建筑史','艺术'],
+  [1163,'wd','EU','欧','哥特式教堂','巴黎圣母院始建，中世纪建筑巅峰。','main','建筑史','艺术'],
+  [1500,'wd','EU','欧','文艺复兴艺术','达芬奇、米开朗基罗，人文主义艺术革命。','ok','艺术史','艺术'],
+  [1600,'wd','EU','欧','巴洛克艺术','卡拉瓦乔、贝尼尼，动感与华美。','main','艺术史','艺术'],
+
+  /* ===== 补充②：制度/战争专项（使主题筛选跨时代有效） ===== */
+  [1215,'wd','EU','欧','英国大宪章','限制王权，宪政与法治源头。','ok','英国史','制度'],
+  [1787,'wd','AM','美','美国宪法','三权分立，现代共和宪法范本。','ok','美国史','制度'],
+  [1804,'wd','EU','欧','拿破仑法典','《法国民法典》，大陆法系基石。','ok','法国史','制度'],
+  [1803,'wd','EU','欧','拿破仑战争','席卷欧洲，重塑大陆政治版图（1803–1815）。','ok','欧洲史','战争'],
+  [1853,'wd','EU','欧','克里米亚战争','近代化战争，催生战地护理与现代军医。','ok','欧洲史','战争'],
+
+  /* ===== 世界级人物诞生（生年作节点年，卒年写入简介；主题＝人物，可在顶栏聚焦） ===== */
+  [-551,'cn','CN','','孔子','儒家创始人、《论语》思想源头，前551~前479，享年72岁，塑造东亚两千余年。','ok','《史记·孔子世家》；通史','人物'],
+  [-571,'cn','CN','','老子','道家创始人、《道德经》作者，约前571~前471，享年约100岁（年代有争议）。','push','通史','人物'],
+  [-545,'cn','CN','','孙武','兵家代表、《孙子兵法》作者，约前545~前470，享年约75岁。','push','通史','人物'],
+  [-145,'cn','CN','','司马迁','《史记》作者、纪传体史书奠基，前145~前86，享年59岁。','ok','《史记》；通史','人物'],
+  [-259,'cn','CN','','秦始皇','千古一帝，前259~前210，享年49岁，统一六国、书同文车同轨、立郡县，中央集权帝制影响东亚两千年。','ok','《史记·秦始皇本纪》','人物'],
+  [-156,'cn','CN','','汉武帝','前156~前87，享年69岁，拓疆域、通西域、尊儒术，奠定中华版图。','ok','《汉书》','人物'],
+  [1866,'cn','CN','','孙中山','1866~1925，享年59岁，辛亥革命领袖、亚洲第一个共和国缔造者。','ok','近代史','人物'],
+  [1893,'cn','CN','','毛泽东','1893~1976，享年83岁，中国共产党与新中国的主要缔造者，20世纪最具影响力的世界人物之一。','ok','党史','人物'],
+
+  [-470,'wd','MED','希','苏格拉底','西方哲学奠基者，约前470~前399，享年约71岁（因"蛊惑青年"饮鸩而亡）。','ok','大英百科；通史','人物'],
+  [-428,'wd','MED','希','柏拉图','理念论哲学与《理想国》作者，约前428~前348，享年约80岁。','ok','大英百科；通史','人物'],
+  [-384,'wd','MED','希','亚里士多德','百科全书式学者、逻辑学奠基，前384~前322，享年62岁。','ok','大英百科；通史','人物'],
+  [-563,'wd','SA','印','释迦牟尼','佛教创始人，约前563~前483，享年约80岁，深刻影响亚洲与世界宗教。','main','通史','人物'],
+  [-4,'wd','MED','基','耶稣','基督教创始人，约前4~约30，享年约33岁（受难），塑造西方文明两千年。','main','通史','人物'],
+  [-100,'wd','MED','罗','凯撒','罗马终身独裁官，前100~前44，享年56岁（元老院遇刺）。','ok','罗马史','人物'],
+  [-63,'wd','MED','罗','奥古斯都','罗马帝国开创者，前63~14，享年76岁，开启"罗马和平"。','ok','罗马史','人物'],
+  [570,'wd','IS','伊','穆罕默德','伊斯兰教创始人，570~632，享年62岁，阿拉伯帝国精神源头。','main','通史','人物'],
+  [742,'wd','EU','欧','查理曼','加洛林帝国皇帝、欧洲中世纪统一者，742~814，享年72岁。','ok','欧洲史','人物'],
+  [980,'wd','IS','波','伊本·西纳（阿维森纳）','伊斯兰黄金时代医学与哲学巨匠，980~1037，享年57岁。','ok','科学史','人物'],
+  [1162,'wd','EA','蒙','成吉思汗','蒙古帝国奠基者、横扫欧亚，1162~1227，享年65岁。','ok','世界史','人物'],
+  [1265,'wd','EU','欧','但丁','《神曲》作者、文艺复兴文学先驱，1265~1321，享年56岁。','ok','文学史','人物'],
+  [1451,'wd','EU','西','哥伦布','开辟跨大西洋新航路、连通新旧大陆，1451~1506，享年55岁。','ok','世界史','人物'],
+  [1452,'wd','EU','欧','达·芬奇','文艺复兴全才（绘画·工程·解剖），1452~1519，享年67岁。','ok','艺术史','人物'],
+  [1483,'wd','EU','德','马丁·路德','宗教改革发起者，1483~1546，享年63岁，裂教重塑欧洲。','ok','欧洲史','人物'],
+  [1564,'wd','EU','英','莎士比亚','文学巨匠、英语戏剧巅峰，1564~1616，享年52岁。','ok','文学史','人物'],
+  [1712,'wd','EU','法','卢梭','启蒙思想家、《社会契约论》，1712~1778，享年66岁。','ok','思想史','人物'],
+  [1723,'wd','EU','英','亚当·斯密','现代经济学奠基、《国富论》，1723~1790，享年67岁。','ok','经济史','人物'],
+  [1732,'wd','AM','美','华盛顿','美国国父、首任总统、共和制度象征，1732~1799，享年67岁。','ok','美国史','人物'],
+  [1770,'wd','EU','德','贝多芬','作曲家、交响乐革新者，1770~1827，享年57岁。','ok','艺术史','人物'],
+  [1809,'wd','EU','英','达尔文','进化论创立者、《物种起源》，1809~1882，享年73岁。','ok','科学史','人物'],
+  [1818,'wd','EU','德','马克思','共产主义理论奠基、《资本论》，1818~1883，享年65岁。','ok','思想史','人物'],
+  [1828,'wd','EU','俄','托尔斯泰','现实主义文学巨匠、《战争与和平》，1828~1910，享年82岁。','ok','文学史','人物'],
+  [1847,'wd','AM','美','爱迪生','发明家、电灯与电气时代推手，1847~1931，享年84岁。','ok','科学史','人物'],
+  [1856,'wd','EU','奥','特斯拉','交流电系统奠基者，1856~1943，享年87岁。','ok','科学史','人物'],
+  [1856,'wd','EU','奥','弗洛伊德','精神分析学创立者，1856~1939，享年83岁。','ok','思想史','人物'],
+  [1867,'wd','EU','法','居里夫人','放射性研究先驱、两获诺奖，1867~1934，享年67岁。','ok','科学史','人物'],
+  [1869,'wd','SA','印','甘地','非暴力不合作领袖、印度独立象征，1869~1948，享年79岁。','ok','世界史','人物'],
+  [1870,'wd','EU','俄','列宁','俄国革命领导者、苏维埃奠基，1870~1924，享年54岁。','ok','世界史','人物'],
+  [1879,'wd','EU','德','爱因斯坦','相对论创立者、现代物理学革命，1879~1955，享年76岁。','ok','科学史','人物'],
+  [1882,'wd','AM','美','罗斯福（FDR）','美国第32任总统、新政与二战领袖，1882~1945，享年63岁。','ok','美国史','人物'],
+  [1874,'wd','EU','英','丘吉尔','英国首相、二战同盟国领袖，1874~1965，享年91岁。','ok','世界史','人物'],
+  [1878,'wd','EU','俄','斯大林','苏联领导人、二战与冷战格局塑造者，1878~1953，享年75岁。','ok','世界史','人物'],
+  [1883,'wd','EU','意','墨索里尼','意大利法西斯创始人、轴心国核心，1883~1945，享年62岁。','ok','世界史','人物'],
+  [1889,'wd','EU','德','希特勒','纳粹德国元首、第二次世界大战发动者，1889~1945，享年56岁，导致数千万人丧生、重塑战后世界秩序。','ok','世界史','人物']
+];
+
+/* ============ 渲染 ============ */
+const sectionsEl=document.getElementById('sections');
+let activeEra='all';
+let focusRegions=new Set();   // 默认空＝全显；选中即聚焦
+let focusThemes=new Set();    // 默认空＝全显；选中即聚焦
+const confMap={ok:'确证',main:'学界主流',push:'断代推年',debate:'有争议',legend:'传说/半信史'};
+function fmtYear(y){ return y<0 ? '前'+Math.abs(y) : ''+y; }
+
+function cardHTML(n){
+  const [y,side,reg,badge,title,desc,conf,src,theme]=n;
+  let left='';
+  if(side==='wd'){ const r=REGIONS[reg]; left=`<span class="badge" style="background:${r.color}">${badge}</span>`; }
+  const themeTag=theme?`<span class="theme-tag" style="background:${THEMES[theme]?THEMES[theme].color:'#888'};color:#fff">${theme}</span>`:'';
+  return `<div class="card ${side}" data-side="${side}" data-reg="${reg}" data-theme="${theme||''}">
+      <div class="top"><div class="ttl">${left}${title}</div><div class="yr">${fmtYear(y)}</div></div>
+      <div>${themeTag}<span class="conf ${conf}">${confMap[conf]}</span></div>
+      <div class="desc">${desc}</div>
+      <div class="src"><b>来源：</b>${src}</div>
+    </div>`;
+}
+
+/* 同时代分行：合并两轨按年排序，相邻事件间隔 > gap/2 即新行；同一行即"大致同期" */
+function buildRows(ecn,ewd,er){
+  const thr=er.gap/2;
+  const all=[...ecn.map(n=>({n,side:'cn'})),...ewd.map(n=>({n,side:'wd'}))].sort((a,b)=>a.n[0]-b.n[0]);
+  const rows=[]; let cur=null;
+  all.forEach(it=>{
+    if(!cur || it.n[0]-cur.max>thr || it.n[0]-cur.min>er.gap){ cur={min:it.n[0],max:it.n[0],cn:[],wd:[]}; rows.push(cur); }
+    cur.max=Math.max(cur.max,it.n[0]);
+    cur[it.side].push(it.n);
+  });
+  return rows.map(r=>{
+    const yr = r.min===r.max ? fmtYear(r.min) : fmtYear(r.min)+'–'+fmtYear(r.max);
+    const cnCell = r.cn.length ? r.cn.map(cardHTML).join('') : '<div class="none"></div>';
+    const wdCell = r.wd.length ? r.wd.map(cardHTML).join('') : '<div class="none"></div>';
+    return `<div class="row"><div class="cell">${cnCell}</div><div class="mid"><div class="yr">${yr}</div><div class="tick"></div></div><div class="cell">${wdCell}</div></div>`;
+  }).join('');
+}
+
+function buildSections(){
+  const cn=NODES.filter(n=>n[1]==='cn').sort((a,b)=>a[0]-b[0]);
+  const wd=NODES.filter(n=>n[1]==='wd').sort((a,b)=>a[0]-b[0]);
+  let html='';
+  ERAS.forEach(er=>{
+    const ecn=cn.filter(n=>eraOf(n[0])===er.key);
+    const ewd=wd.filter(n=>eraOf(n[0])===er.key);
+    if(!ecn.length&&!ewd.length)return;
+    html+=`<section class="era" data-era="${er.key}">
+      <div class="era-head">
+        <span class="chev">▼</span>
+        <span class="cnl">中国 · ${er.cn}</span><span class="rng">${er.cnR}</span>
+        <span class="sep">｜</span>
+        <span class="wdl">世界 · ${er.wd}</span><span class="rng">${er.wdR}</span>
+        <span class="cnt">${ecn.length+ewd.length} 事</span>
+      </div>
+      <div class="rows">${buildRows(ecn,ewd,er)}</div>
+    </section>`;
+  });
+  sectionsEl.innerHTML=html;
+  applyFilter();
+}
+
+function applyFilter(){
+  document.querySelectorAll('section.era').forEach(s=>{
+    s.style.display=(activeEra==='all'||s.dataset.era===activeEra)?'':'none';
+  });
+  // 正向聚焦（positive-selection）模型：默认全显；被选中的圈/主题＝聚焦，其余淡化
+  // 同维度多选＝并集；圈 + 主题＝交集（AND）；「中国」列恒常显示，永不被筛选淡化
+  const regActive = focusRegions.size>0;
+  const thActive  = focusThemes.size>0;
+  document.querySelectorAll('.card').forEach(c=>{
+    if(c.dataset.side==='cn'){ c.classList.remove('dim'); return; }
+    const reg=c.dataset.reg, th=c.dataset.theme;
+    const regMatch = !regActive || focusRegions.has(reg);
+    const thMatch  = !thActive  || (th && focusThemes.has(th));
+    c.classList.toggle('dim', !(regMatch && thMatch));
+  });
+  updateStatus(regActive, thActive);
+}
+
+function updateStatus(regActive, thActive){
+  const rs=[...focusRegions].map(k=>REGIONS[k].label);
+  const ts=[...focusThemes].map(k=>THEMES[k].label);
+  let msg;
+  if(!regActive && !thActive){ msg='聚焦：无（全部显示；点文明圈/主题即聚焦该维度）'; }
+  else {
+    const regPart = regActive ? '文明圈['+rs.join('/')+']' : '全部文明圈';
+    const thPart  = thActive  ? '主题['+ts.join('/')+']'  : '';
+    msg='聚焦世界列：'+regPart+(thPart?' × '+thPart:'')+' —— 其余淡化（中国恒显）';
+  }
+  document.getElementById('xstatus').textContent=msg;
+}
+
+/* 时代按钮 */
+const eraBtns=document.getElementById('eraBtns');
+['all',...ERAS.map(e=>e.key)].forEach(k=>{
+  const lab=k==='all'?'全部':ERAS.find(e=>e.key===k).cn;
+  const b=document.createElement('span'); b.className='btn'+(k==='all'?' active':''); b.textContent=lab; b.dataset.k=k;
+  b.onclick=()=>{
+    activeEra=k;
+    document.querySelectorAll('#eraBtns .btn').forEach(x=>x.classList.toggle('active',x.dataset.k===k));
+    if(k!=='all'){ const s=document.querySelector(`section.era[data-era="${k}"]`); if(s) s.classList.remove('closed'); }
+    applyFilter();
+  };
+  eraBtns.appendChild(b);
+});
+
+/* 折叠：点分区标题；卡片：点开来源 */
+document.getElementById('sections').addEventListener('click',e=>{
+  const head=e.target.closest('.era-head');
+  if(head){ head.parentElement.classList.toggle('closed'); return; }
+  const card=e.target.closest('.card');
+  if(card) card.classList.toggle('open');
+});
+document.getElementById('foldAll').onclick=()=>document.querySelectorAll('section.era').forEach(s=>s.classList.add('closed'));
+document.getElementById('unfoldAll').onclick=()=>document.querySelectorAll('section.era').forEach(s=>s.classList.remove('closed'));
+
+/* 文明圈开关 */
+const regionBtns=document.getElementById('regionBtns');
+Object.keys(REGIONS).filter(k=>k!=='CN').forEach(k=>{
+  const r=REGIONS[k];
+  const t=document.createElement('span'); t.className='tog'; t.dataset.k=k; t.title=r.label;
+  t.innerHTML=`<span class="dot" style="background:${r.color}"></span>${r.label}`;
+  t.onclick=()=>{
+    if(focusRegions.has(k)){focusRegions.delete(k); t.classList.remove('on');}
+    else{focusRegions.add(k); t.classList.add('on');}
+    applyFilter();
+  };
+  regionBtns.appendChild(t);
+});
+
+/* 主题开关 */
+const themeBtns=document.getElementById('themeBtns');
+Object.keys(THEMES).forEach(k=>{
+  const t=THEMES[k];
+  const b=document.createElement('span'); b.className='tog'; b.dataset.k=k; b.title=t.label;
+  b.innerHTML=`<span class="dot" style="background:${t.color}"></span>${t.label}`;
+  b.onclick=()=>{
+    if(focusThemes.has(k)){focusThemes.delete(k); b.classList.remove('on');}
+    else{focusThemes.add(k); b.classList.add('on');}
+    applyFilter();
+  };
+  themeBtns.appendChild(b);
+});
+
+/* 重置筛选：清空所有聚焦，恢复全部显示 */
+document.getElementById('resetFilter').onclick=()=>{
+  focusRegions=new Set();
+  focusThemes=new Set();
+  document.querySelectorAll('#regionBtns .tog').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('#themeBtns .tog').forEach(x=>x.classList.remove('on'));
+  applyFilter();
+};
+
+buildSections();
