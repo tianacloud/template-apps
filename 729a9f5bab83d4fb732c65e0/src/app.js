@@ -15,7 +15,8 @@ export async function mount(root, {files}) {
   let queue=Promise.resolve(); function saveMuted(value) {queue=queue.then(()=>sql('INSERT INTO game_settings (id, muted) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET muted=excluded.muted',[{type:'integer',value:value?'1':'0'}])).catch(()=>{warning.textContent='声音设置保存未确认，请重新打开应用检查。';warning.style.display='block';});}
   async function get(path) { const r=await files.get('template-assets/'+path); if(!r.ok) throw Error('素材读取失败：'+path); const u=URL.createObjectURL(await r.blob());urls.push(u);return u; }
   const names=Array.from({length:88},(_,i)=>`font-${String(i).padStart(2,'0')}.woff2`);
-  const loaded=await Promise.all([...names,'backdrop.jpg'].map(get));
+  const loaded=await Promise.all(names.map(path=>files.getUrl('template-assets/'+path)));
+  loaded.push(await get('backdrop.jpg'));
   root.textContent=''; run(root,initialMuted,saveMuted,loaded); document.body.append(warning);
   return ()=>{urls.forEach(URL.revokeObjectURL);warning.remove();};
  } catch(error) {urls.forEach(URL.revokeObjectURL);root.textContent='游戏无法启动：'+error.message;throw error;}
