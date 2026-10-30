@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport">
+<title>赛博营造法式 · 1024 材分营造引擎</title>
+<meta content="以宋《营造法式》材分制模数为规则的程序化生成引擎：确定性种子驱动的赛博朋克霓虹中式街区，可导出矢量夜景与可制版刀线图。" name="description">
+<style>
+:root{
+  --bg:#07080f;
+  --bg2:#0c0e1a;
+  --panel:rgba(16,19,34,.82);
+  --panel-2:rgba(22,26,44,.7);
+  --line:rgba(120,150,220,.16);
+  --line-2:rgba(120,150,220,.30);
+  --txt:#e8ecf8;
+  --txt-dim:#9aa4c4;
+  --txt-faint:#6b74a0;
+  --cyan:#31e6ff;
+  --magenta:#ff3ec8;
+  --gold:#ffd166;
+  --ink:#101426;
+  --mono:ui-monospace,"SFMono-Regular","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --serif:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong",SimSun,"Times New Roman",serif;
+  --sans:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 700px at 78% -10%,rgba(255,62,200,.13),transparent 60%),
+    radial-gradient(1000px 600px at 12% 8%,rgba(49,230,255,.12),transparent 62%),
+    var(--bg);
+  color:var(--txt);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(120,160,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(120,160,255,.045) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(1000px 700px at 50% 30%,#000 20%,transparent 85%);
+}
+.app{position:relative;z-index:1;max-width:1680px;margin:0 auto;padding:22px 22px 40px}
+
+/* ---------- header ---------- */
+.topbar{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.seal{
+  width:52px;height:52px;flex:none;border-radius:10px;position:relative;
+  background:linear-gradient(160deg,#141a33,#0a0d1a);
+  border:1px solid rgba(49,230,255,.4);
+  box-shadow:0 0 22px rgba(49,230,255,.18),inset 0 0 18px rgba(49,230,255,.08);
+  display:grid;place-items:center;font-family:var(--serif);font-size:24px;color:#7ff3ff;letter-spacing:-1px;
+}
+.seal::after{content:"";position:absolute;inset:5px;border:1px solid rgba(255,62,200,.35);border-radius:6px}
+.brand h1{
+  margin:0;font-family:var(--serif);font-size:clamp(20px,2.4vw,29px);font-weight:700;letter-spacing:2px;line-height:1.15;
+  text-shadow:0 0 26px rgba(49,230,255,.28);
+}
+.brand h1 em{font-style:normal;color:var(--magenta);text-shadow:0 0 22px rgba(255,62,200,.5)}
+.brand .sub{margin-top:5px;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim);letter-spacing:.6px}
+.brand .sub b{color:var(--cyan);font-weight:600}
+.topbar .spacer{flex:1}
+.seedbox{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:7px 10px}
+.seedbox label{font-family:var(--mono);font-size:10.5px;color:var(--txt-dim);letter-spacing:1px}
+.seedbox input{
+  width:120px;background:#070a14;border:1px solid var(--line-2);color:var(--cyan);
+  font-family:var(--mono);font-size:14px;padding:6px 8px;border-radius:6px;outline:none;letter-spacing:1px;
+}
+.seedbox input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(49,230,255,.12)}
+
+/* ---------- layout ---------- */
+.main{display:grid;grid-template-columns:288px minmax(0,1fr) 316px;gap:18px;margin-top:18px;align-items:start}
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 18px 40px -28px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;
+}
+.panel + .panel{margin-top:16px}
+.panel-h{
+  display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;letter-spacing:1.6px;color:var(--txt-dim);text-transform:uppercase;
+}
+.panel-h .zh{font-family:var(--serif);font-size:14px;letter-spacing:2px;color:var(--txt);text-transform:none;font-weight:700}
+.panel-h .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);flex:none}
+.panel-b{padding:14px}
+
+/* ---------- controls ---------- */
+.ctl{margin-bottom:15px}
+.ctl:last-child{margin-bottom:0}
+.ctl .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
+.ctl .nm{font-size:12.5px;color:var(--txt);letter-spacing:.4px}
+.ctl .nm small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--txt-faint);letter-spacing:.5px;margin-top:2px}
+.ctl .vl{font-family:var(--mono);font-size:12px;color:var(--cyan);white-space:nowrap}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;outline:none;cursor:pointer;margin:0;
+}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(49,230,255,.55),rgba(255,62,200,.42))}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;margin-top:-5.5px;
+  background:#0b1020;border:2px solid var(--cyan);box-shadow:0 0 12px rgba(49,230,255,.7);transition:transform .12s;
+}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.22)}
+input[type=range]::-moz-range-track{height:3px;border-radius:3px;background:rgba(49,230,255,.5)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#0b1020;border:2px solid var(--cyan);box-shadow:0 0 10px rgba(49,230,255,.6)}
+.seg{display:flex;gap:5px;flex-wrap:wrap}
+.seg button{
+  flex:1 1 auto;min-width:34px;padding:6px 4px;border-radius:7px;cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-2);color:var(--txt-dim);
+  font-family:var(--mono);font-size:11.5px;transition:all .15s;
+}
+.seg button:hover{border-color:rgba(49,230,255,.5);color:var(--txt)}
+.seg button.on{background:linear-gradient(180deg,rgba(49,230,255,.22),rgba(49,230,255,.07));border-color:var(--cyan);color:#bff6ff;box-shadow:0 0 14px rgba(49,230,255,.2) inset}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chips button{
+  padding:7px 6px;border-radius:8px;cursor:pointer;text-align:left;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-2);color:var(--txt-dim);
+  font-size:11.5px;transition:all .15s;font-family:var(--sans);
+}
+.chips button:hover{border-color:rgba(255,62,200,.45);color:var(--txt)}
+.chips button.on{border-color:var(--magenta);color:#ffd7f4;background:linear-gradient(180deg,rgba(255,62,200,.2),rgba(255,62,200,.05))}
+.chips button span{display:block;font-family:var(--mono);font-size:9px;opacity:.65;margin-top:2px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 13px;border-radius:9px;cursor:pointer;font-size:12.5px;letter-spacing:.5px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line-2);color:var(--txt);
+  transition:all .15s;font-family:var(--sans);
+}
+.btn:hover{border-color:var(--cyan);color:#cffaff;box-shadow:0 0 16px -4px rgba(49,230,255,.5)}
+.btn.primary{background:linear-gradient(180deg,rgba(49,230,255,.24),rgba(49,230,255,.08));border-color:rgba(49,230,255,.65);color:#d6fbff}
+.btn.gold{background:linear-gradient(180deg,rgba(255,209,102,.22),rgba(255,209,102,.06));border-color:rgba(255,209,102,.55);color:#ffeec2}
+.btn.mag{background:linear-gradient(180deg,rgba(255,62,200,.22),rgba(255,62,200,.06));border-color:rgba(255,62,200,.55);color:#ffd9f4}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btns .btn{width:100%}
+
+/* ---------- stage ---------- */
+.stage{
+  position:relative;border-radius:16px;overflow:hidden;
+  border:1px solid rgba(120,150,220,.22);
+  box-shadow:0 30px 70px -40px #000,0 0 0 1px rgba(0,0,0,.4) inset;
+  background:#05060c;
+}
+.stage canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.stage .hud{
+  position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 14px;font-family:var(--mono);font-size:10.5px;color:rgba(190,205,235,.72);letter-spacing:.7px;
+  background:linear-gradient(0deg,rgba(4,6,12,.86),transparent);pointer-events:none;
+}
+.stage .hud .r{display:flex;gap:14px;flex-wrap:wrap}
+.stage .badge{
+  position:absolute;top:12px;left:12px;font-family:var(--mono);font-size:10px;letter-spacing:1.4px;
+  color:rgba(49,230,255,.85);border:1px solid rgba(49,230,255,.3);background:rgba(6,10,20,.6);
+  padding:5px 9px;border-radius:6px;pointer-events:none;
+}
+.stage .loading{
+  position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,6,12,.72);
+  font-family:var(--serif);letter-spacing:6px;color:#9ff0ff;font-size:15px;pointer-events:none;opacity:0;transition:opacity .25s;
+}
+.stage .loading.on{opacity:1}
+
+/* ---------- spec table ---------- */
+.spec{width:100%;border-collapse:collapse;font-size:12px}
+.spec caption{
+  caption-side:top;text-align:left;font-family:var(--serif);font-size:12.5px;letter-spacing:1.4px;
+  color:var(--txt-dim);padding:2px 0 8px;
+}
+.spec tr{border-bottom:1px dashed rgba(120,150,220,.13)}
+.spec tr:last-child{border-bottom:0}
+.spec th{
+  text-align:left;font-weight:400;color:var(--txt-dim);padding:6px 0;white-space:nowrap;
+}
+.spec td{text-align:right;font-family:var(--mono);color:var(--txt);padding:6px 0;white-space:nowrap}
+.spec td b{color:var(--cyan);font-weight:600}
+.spec td i{font-style:normal;color:var(--txt-dim);font-size:10px;margin-left:3px}
+.quote{
+  font-family:var(--serif);font-size:12px;line-height:1.85;color:#cbd4ef;
+  border-left:2px solid rgba(255,62,200,.5);padding:2px 0 2px 11px;margin:0;letter-spacing:.4px;
+}
+.quote b{color:var(--gold);font-weight:600}
+.jz{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:5px;margin-top:8px}
+.jz div{
+  font-family:var(--mono);font-size:10px;text-align:center;padding:5px 2px;border-radius:5px;
+  background:rgba(49,230,255,.07);border:1px solid rgba(49,230,255,.16);color:#a9e9ff;
+}
+.jz div span{display:block;color:var(--txt-faint);font-size:8.5px;margin-top:1px}
+
+/* ---------- footer ---------- */
+.foot{
+  margin-top:20px;padding-top:16px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);letter-spacing:.6px;line-height:1.9;
+}
+.foot b{color:var(--txt-dim);font-weight:500}
+.kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line-2);border-radius:4px;color:var(--txt-dim);font-size:10px}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);z-index:99;
+  background:rgba(10,14,26,.95);border:1px solid rgba(49,230,255,.4);color:#cffaff;
+  padding:11px 18px;border-radius:10px;font-size:12.5px;letter-spacing:.5px;
+  box-shadow:0 20px 40px -20px #000,0 0 24px -10px rgba(49,230,255,.6);
+  opacity:0;pointer-events:none;transition:all .28s cubic-bezier(.2,.8,.3,1);
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- modal ---------- */
+.modal{
+  position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:24px;
+  background:rgba(3,4,9,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.modal.on{display:grid}
+.modal .card{
+  width:min(720px,100%);max-height:82vh;overflow:auto;background:var(--bg2);
+  border:1px solid var(--line-2);border-radius:14px;padding:22px 24px;
+  box-shadow:0 40px 90px -40px #000;
+}
+.modal .card h3{margin:0 0 4px;font-family:var(--serif);font-size:19px;letter-spacing:2px}
+.modal .card .lead{margin:0 0 14px;font-family:var(--mono);font-size:11px;color:var(--txt-dim);letter-spacing:.8px}
+.modal .card h4{margin:18px 0 7px;font-family:var(--serif);font-size:14px;letter-spacing:1.5px;color:var(--cyan)}
+.modal .card p,.modal .card li{font-size:13px;line-height:1.95;color:#d3daf0;margin:6px 0}
+.modal .card ul{padding-left:19px;margin:6px 0}
+.modal .card code{font-family:var(--mono);font-size:11.5px;background:rgba(49,230,255,.09);padding:1px 5px;border-radius:4px;color:#9fe9ff}
+.modal .card .close{margin-top:20px;width:100%}
+
+@media (max-width:1240px){
+  .main{grid-template-columns:1fr}
+  .panel.side{max-width:none}
+  .stage{order:-1}
+  .chips{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+@media (max-width:640px){
+  .app{padding:14px 12px 30px}
+  .main{gap:14px}
+  .btns{grid-template-columns:1fr}
+  .seal{width:44px;height:44px;font-size:20px}
+}
+</style>
+</head>
+<body><div style="background:#151b2d;color:#bdefff;text-align:center;padding:5px;font:12px sans-serif">示例体验 · 参数仅保留在本页；安装后可导出文件 <button type="button" onclick="document.getElementById('btn-reset').click()">恢复示例</button></div>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="seal">營</div>
+      <div>
+        <h1>赛博营造法式 <em>·</em> 1024 材分营造引擎</h1>
+        <div class="sub">CYBER YINGZAO FASHI &nbsp;/&nbsp; A <b>1024</b>-SEED PROCEDURAL TIMBER-FRAME GENERATOR</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="seedbox">
+      <label for="seed">SEED</label>
+      <input id="seed" inputmode="numeric" spellcheck="false" type="text" value="1024">
+      <button class="btn primary" id="btn-dice" title="换一个种子（空格键）">▣ 掷签</button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ================= 左：参数 ================= -->
+    <div class="side">
+      <section class="panel">
+        <div class="panel-h"><span class="dot"></span><span class="zh">法式 · 材分制</span><span style="margin-left:auto">MODULUS</span></div>
+        <div class="panel-b">
+          <div class="ctl">
+            <div class="row"><div class="nm">材等<small>材有八等，度屋之大小</small></div><div class="vl" id="v-cai">一等材</div></div>
+            <input id="r-cai" max="8" min="1" step="1" type="range" value="1">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">间广<small>每间之广，以分°计</small></div><div class="vl" id="v-jian">250 分°</div></div>
+            <input id="r-jian" max="320" min="180" step="5" type="range" value="250">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">柱高<small>柱高不越间之广</small></div><div class="vl" id="v-col">85%</div></div>
+            <input id="r-col" max="100" min="55" step="1" type="range" value="85">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">铺作<small>出一跳四铺作，递加</small></div><div class="vl" id="v-pu">六铺作</div></div>
+            <input id="r-pu" max="8" min="4" step="1" type="range" value="6">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">举高<small>前后撩檐枋相距之比</small></div><div class="vl" id="v-ju">1/3</div></div>
+            <input id="r-ju" max="42" min="22" step="1" type="range" value="33">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">举折<small>每架自上递减半为法</small></div></div>
+            <div class="seg" id="seg-smooth">
+              <button class="on" data-v="0">折线 · 举折</button>
+              <button data-v="1">曲线 · 举曲</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><span class="dot" style="background:var(--magenta); box-shadow:0 0 10px var(--magenta)"></span><span class="zh">街市 · 夜景</span><span style="margin-left:auto">NIGHT</span></div>
+        <div class="panel-b">
+          <div class="ctl">
+            <div class="row"><div class="nm">霓虹密度</div><div class="vl" id="v-neon">70%</div></div>
+            <input id="r-neon" max="100" min="0" step="1" type="range" value="70">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">雨</div><div class="vl" id="v-rain">55%</div></div>
+            <input id="r-rain" max="100" min="0" step="1" type="range" value="55">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">雾气</div><div class="vl" id="v-fog">45%</div></div>
+            <input id="r-fog" max="100" min="0" step="1" type="range" value="45">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">地面积水反射</div><div class="vl" id="v-refl">60%</div></div>
+            <input id="r-refl" max="100" min="0" step="1" type="range" value="60">
+          </div>
+          <div class="ctl">
+            <div class="row"><div class="nm">色调</div></div>
+            <div class="chips" id="chips-pal"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= 中：画布 ================= -->
+    <div>
+      <div class="stage">
+        <div class="badge" id="badge">SEED 1024 · 0x400</div>
+        <canvas height="900" id="cv" width="1600"></canvas>
+        <div class="loading" id="loading">營 造 中</div>
+        <div class="hud">
+          <div class="r">
+            <span id="hud-l">— 营造说明 —</span>
+          </div>
+          <div class="r">
+            <span id="hud-r">1600 × 900</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="panel" style="margin-top:16px">
+        <div class="panel-h"><span class="dot"></span><span class="zh">导出</span><span style="margin-left:auto">EXPORT</span></div>
+        <div class="panel-b">
+          <div class="btns">
+            <button class="btn primary" id="btn-png">⤓ PNG 夜景图（2×）</button>
+            <button class="btn mag" id="btn-svg">⤓ SVG 矢量夜景</button>
+            <button class="btn gold" id="btn-die">⤓ 制版刀线 SVG（A3）</button>
+            <button class="btn" id="btn-copy">⧉ 复制营造说明书</button>
+          </div>
+          <div style="margin-top:11px; font-family:var(--mono); font-size:10.5px; color:var(--txt-faint); line-height:1.85">
+            刀线版含：模切刀线（红）· 压痕线（蓝虚）· 3mm 出血（品红）· CMYK 色标 · 四角套准规线 · 版心信息栏
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= 右：营造说明 ================= -->
+    <div class="side">
+      <section class="panel">
+        <div class="panel-h"><span class="dot"></span><span class="zh">营造说明书</span><span style="margin-left:auto">SPEC</span></div>
+        <div class="panel-b">
+          <table class="spec">
+            <caption>材 · 分° · 尺（宋营造尺 1 尺 ≈ 31.2 cm）</caption>
+            <tbody id="spec-body"></tbody>
+          </table>
+          <div style="margin-top:14px">
+            <div style="font-family:var(--mono); font-size:10px; color:var(--txt-dim); letter-spacing:1px; margin-bottom:6px">举折各架降落值 · JU-ZHE</div>
+            <div class="jz" id="jz"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><span class="dot" style="background:var(--gold); box-shadow:0 0 10px var(--gold)"></span><span class="zh">法式原文</span><span style="margin-left:auto">CANON</span></div>
+        <div class="panel-b">
+          <p class="quote" id="quote"></p>
+          <div class="btns" style="margin-top:14px">
+            <button class="btn" id="btn-about">✦ 作品说明</button>
+            <button class="btn" id="btn-reset">↺ 复原初始值</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <footer class="foot">
+    <div>
+      <b>赛博营造法式 · 1024 材分营造引擎</b> &nbsp;— 以宋《营造法式》材分制为生成规则的程序化营造引擎<br>
+      快捷键：<span class="kbd">空格</span> 掷签换种子 &nbsp;·&nbsp; <span class="kbd">S</span> 存 PNG &nbsp;·&nbsp; <span class="kbd">V</span> 存 SVG &nbsp;·&nbsp; <span class="kbd">D</span> 出刀线版
+    </div>
+    <div style="text-align:right">
+      单文件 · 零依赖 · 无外部资源 &nbsp;|&nbsp; 同一 SEED 恒定复现<br>
+      
+    </div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h3>赛博营造法式 · 1024 材分营造引擎</h3>
+    <p class="lead">CYBER YINGZAO FASHI — 以《营造法式》为规则的程序化营造引擎</p>
+
+    <h4>一、它是什么</h4>
+    <p>一个纯前端、零依赖的单文件应用。它不做"国风滤镜"，而是把北宋《营造法式》里真实存在的<b>模数体系</b>——材分八等、分°、铺作出跳、举折之法——直接写成生成规则，用一个种子（默认是 1024）确定性地推演出一整条赛博朋克霓虹夜景下的中式街市。</p>
+
+    <h4>二、生成规则来自真实的法式</h4>
+    <ul>
+      <li><b>材分八等</b>：「凡构屋之制，皆以材为祖。」材广十五分°、厚十分°；一等材广九寸厚六寸，八等材广四寸五分厚三寸。选哪一等，整条街的尺度随之等比缩放。</li>
+      <li><b>间广与柱高</b>：间广以分°计（默认二百五十分°）；「柱高不越间之广」，柱高按比例取间广的若干成。</li>
+      <li><b>铺作出跳</b>：出一跳谓之四铺作，出两跳五铺作……至八铺作。每跳向外三十分°、向高一材一栔（二十一分°），斗、拱、昂、耍头逐层累叠。</li>
+      <li><b>举折之法</b>：「以举高尺丈，每尺折一寸，每架自上递减半为法。」举高取前后撩檐枋相距的三分之一（可调），再自上而下逐架减半降落，归一化后得屋面折线——这正是中国屋顶"反宇向阳"那条凹曲线的数学来源。</li>
+      <li><b>窗棂样式</b>：步步锦、灯笼锦、冰裂纹（递归凸多边形半平面切分生成）。</li>
+    </ul>
+
+    <h4>三、技术要点</h4>
+    <ul>
+      <li><b>确定性生成</b>：mulberry32 伪随机数发生器，一种子一世界，<code>SEED 1024</code> 永远生成同一条街；每个建筑由种子派生子种子，互不干扰。</li>
+      <li><b>双渲染后端</b>：所有几何先编译成一份绘制指令流（DrawList），Canvas 2D 负责实时渲染与"自下而上生长"的营造动画，SVG 后端负责矢量导出——同一份几何，两种输出，像素与矢量严格一致。</li>
+      <li><b>真实湿地面反射</b>：建筑指令流整体做镜像变换重绘，叠加波纹扰动与纵向衰减遮罩。</li>
+      <li><b>刀线制版输出</b>：自动提取每栋楼的立面轮廓多边形，做多边形外扩求交得到 3mm 出血，按 A3 版面（420 × 297 mm）排出模切刀线、压痕线、CMYK 色标、四角套准规线与版心信息栏，输出可直接送厂的 SVG。</li>
+    </ul>
+
+    <h4>四、为什么它是"造物"而不只是一张图</h4>
+    <p>它输出的不是一张截图，而是<b>三样能继续往下走的东西</b>：一张 2× 分辨率的夜景图、一份可无限放大的矢量文件、以及一份能拿去印刷厂做实体包装盒的制版刀线。屏幕上的楼，可以被真正地造出来。</p>
+
+    <h4>五、如何使用</h4>
+    <ul>
+      <li>拖动左侧滑块调整材等、间广、柱高、铺作、举高，右侧"营造说明书"实时给出对应的宋尺换算与各架举折降落值。</li>
+      <li>按 <code>空格</code> 或点"掷签"换种子，整条街重新生成。</li>
+      <li><code>S</code> 存 PNG、<code>V</code> 存 SVG、<code>D</code> 出刀线版。</li>
+    </ul>
+
+    <button class="btn primary close" id="modal-close">知道了，开始营造</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   赛博营造法式 · 1024 材分营造引擎
+   Cyber Yingzao Fashi — procedural generator driven by the Song dynasty
+   "Yingzao Fashi" (Treatise on Architectural Methods) modulus system.
+   Single file, zero dependencies, no external resources.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- 0. utils */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const round2 = v => Math.round(v * 10) / 10;
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+class Rng {
+  constructor(seed) { this.f = mulberry32((seed >>> 0) || 1); }
+  next() { return this.f(); }
+  range(a, b) { return a + (b - a) * this.f(); }
+  int(a, b) { return Math.floor(a + (b - a + 1) * this.f()); }
+  pick(arr) { return arr[Math.floor(this.f() * arr.length) % arr.length]; }
+  chance(p) { return this.f() < p; }
+}
+
+/* ------------------------------------------------- 1. geometry primitives */
+function ptsToPath(pts, close) {
+  if (!pts.length) return "";
+  let d = "M" + round2(pts[0][0]) + " " + round2(pts[0][1]);
+  for (let i = 1; i < pts.length; i++) d += "L" + round2(pts[i][0]) + " " + round2(pts[i][1]);
+  return d + (close ? "Z" : "");
+}
+/** Chaikin-style quadratic smoothing through points (举曲). */
+function smoothPath(pts, close) {
+  if (pts.length < 3) return ptsToPath(pts, close);
+  let d = "M" + round2(pts[0][0]) + " " + round2(pts[0][1]);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += "Q" + round2(pts[i][0]) + " " + round2(pts[i][1]) + " " + round2(mx) + " " + round2(my);
+  }
+  const last = pts[pts.length - 1];
+  d += "L" + round2(last[0]) + " " + round2(last[1]);
+  return d + (close ? "Z" : "");
+}
+function signedArea(pts) {
+  let s = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const p = pts[i], q = pts[(i + 1) % n];
+    s += p[0] * q[1] - q[0] * p[1];
+  }
+  return s / 2;
+}
+function centroid(pts) {
+  let x = 0, y = 0;
+  for (const p of pts) { x += p[0]; y += p[1]; }
+  return [x / pts.length, y / pts.length];
+}
+/** Half-plane clip: keep points where a*x + b*y + c >= 0. */
+function clipHalfPlane(poly, a, b, c) {
+  const out = [];
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const p = poly[i], q = poly[(i + 1) % n];
+    const dp = a * p[0] + b * p[1] + c, dq = a * q[0] + b * q[1] + c;
+    if (dp >= 0) out.push(p);
+    if ((dp >= 0) !== (dq >= 0)) {
+      const t = dp / (dp - dq);
+      out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+    }
+  }
+  return out;
+}
+/** Outward polygon offset (for print bleed), bevel-guarded against runaway miters. */
+function offsetPolygon(poly, d) {
+  const ccw = signedArea(poly) > 0;
+  const n = poly.length, edges = [];
+  for (let i = 0; i < n; i++) {
+    const p = poly[i], q = poly[(i + 1) % n];
+    let ex = q[0] - p[0], ey = q[1] - p[1];
+    const len = Math.hypot(ex, ey) || 1;
+    ex /= len; ey /= len;
+    let nx = -ey, ny = ex;
+    if (ccw) { nx = ey; ny = -ex; }
+    edges.push({ a: [p[0] + nx * d, p[1] + ny * d], b: [q[0] + nx * d, q[1] + ny * d], dir: [ex, ey] });
+  }
+  const out = [];
+  const lim = 4 * d;
+  for (let i = 0; i < n; i++) {
+    const e1 = edges[(i - 1 + n) % n], e2 = edges[i];
+    const v = poly[i];
+    const den = e1.dir[0] * e2.dir[1] - e1.dir[1] * e2.dir[0];
+    let p = null;
+    if (Math.abs(den) > 1e-9) {
+      const t = ((e2.a[0] - e1.a[0]) * e2.dir[1] - (e2.a[1] - e1.a[1]) * e2.dir[0]) / den;
+      p = [e1.a[0] + e1.dir[0] * t, e1.a[1] + e1.dir[1] * t];
+    }
+    if (p && Math.hypot(p[0] - v[0], p[1] - v[1]) <= lim) {
+      out.push(p);                       // miter join
+    } else {
+      out.push(e1.b);                    // bevel join
+      if (Math.hypot(e2.a[0] - e1.b[0], e2.a[1] - e1.b[1]) > 1e-6) out.push(e2.a);
+    }
+  }
+  return out;
+}
+/** Recursively split a convex polygon with random lines -> ice-crack lattice. */
+function crackPolygon(poly, rng, depth, out) {
+  if (depth <= 0 || poly.length < 3) { out.push(poly); return; }
+  const c = centroid(poly);
+  const ang = rng.range(0, Math.PI);
+  const jitter = rng.range(-0.45, 0.45);
+  let a = Math.cos(ang), b = Math.sin(ang);
+  // shift the cutting line off-centre
+  const cOff = -(a * (c[0] + Math.cos(ang + Math.PI / 2) * jitter * 40)) - (b * (c[1] + Math.sin(ang + Math.PI / 2) * jitter * 40));
+  const A = clipHalfPlane(poly, a, b, cOff);
+  const B = clipHalfPlane(poly, -a, -b, -cOff);
+  if (A.length < 3 || B.length < 3) { out.push(poly); return; }
+  crackPolygon(A, rng, depth - 1, out);
+  crackPolygon(B, rng, depth - 1, out);
+}
+
+/* --------------------------------------------------- 2. draw list backend */
+/*
+  A DrawList is a flat stream of drawing ops. Two backends consume it:
+    - drawCanvas() : realtime render + build animation
+    - toSvg()      : vector export  (identical geometry)
+*/
+const DLOP = { PATH: 0, TEXT: 1, GRAD: 2, GROUP: 3 };
+
+class DL {
+  constructor() { this.ops = []; }
+  path(d, o) {
+    this.ops.push({ k: DLOP.PATH, d: d, fill: o && o.fill || null, stroke: o && o.stroke || null,
+      lw: (o && o.lw) || 1, dash: (o && o.dash) || null, alpha: o && o.alpha != null ? o.alpha : 1,
+      glow: (o && o.glow) || null, blur: (o && o.blur) || 12, comp: (o && o.comp) || null,
+      cap: (o && o.cap) || "round", join: (o && o.join) || "round" });
+    return this;
+  }
+  rect(x, y, w, h, o) {
+    return this.path("M" + x + " " + y + "h" + w + "v" + h + "h" + (-w) + "Z", o);
+  }
+  line(x1, y1, x2, y2, o) {
+    return this.path("M" + round2(x1) + " " + round2(y1) + "L" + round2(x2) + " " + round2(y2), o);
+  }
+  circle(x, y, r, o) {
+    return this.path("M" + (x - r) + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0Z", o);
+  }
+  text(str, x, y, o) {
+    this.ops.push({ k: DLOP.TEXT, s: String(str), x: x, y: y, size: (o && o.size) || 14,
+      family: (o && o.family) || "serif", align: (o && o.align) || "center", base: (o && o.base) || "middle",
+      fill: (o && o.fill) || "#fff", alpha: o && o.alpha != null ? o.alpha : 1,
+      glow: (o && o.glow) || null, blur: (o && o.blur) || 10, weight: (o && o.weight) || 400,
+      ls: (o && o.ls) || 0, comp: (o && o.comp) || null, rotate: (o && o.rotate) || 0 });
+    return this;
+  }
+  grad(x, y, w, h, stops, dir) {
+    this.ops.push({ k: DLOP.GRAD, x: x, y: y, w: w, h: h, stops: stops, dir: dir || "v", alpha: 1 });
+    return this;
+  }
+  group(ops, transform, alpha) {
+    this.ops.push({ k: DLOP.GROUP, ops: ops, transform: transform || null, alpha: alpha != null ? alpha : 1, comp: null });
+    return this;
+  }
+}
+
+/* FAST: 动画期间关闭 shadowBlur（辉光是 Canvas 性能杀手），末帧再补画。 */
+let FAST = false;
+
+function drawCanvas(dl, ctx) {
+  function run(ops) {
+    for (const o of ops) {
+      if (o.k === DLOP.GROUP) {
+        ctx.save();
+        ctx.globalAlpha *= o.alpha;
+        if (o.transform && o.transform.ctx) o.transform.ctx(ctx);
+        run(o.ops);
+        ctx.restore();
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha *= o.alpha;
+      if (o.comp) ctx.globalCompositeOperation = o.comp;
+      if (o.k === DLOP.GRAD) {
+        const g = o.dir === "h"
+          ? ctx.createLinearGradient(o.x, o.y, o.x + o.w, o.y)
+          : ctx.createLinearGradient(o.x, o.y, o.x, o.y + o.h);
+        for (const s of o.stops) g.addColorStop(s[0], s[1]);
+        ctx.fillStyle = g;
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.restore(); continue;
+      }
+      if (o.glow && !FAST) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.blur; }
+      if (o.k === DLOP.TEXT) {
+        ctx.font = o.weight + " " + o.size + "px " + o.family;
+        ctx.textAlign = o.align; ctx.textBaseline = o.base;
+        if (o.rotate) { ctx.translate(o.x, o.y); ctx.rotate(o.rotate); ctx.translate(-o.x, -o.y); }
+        if (o.glow && !FAST) { ctx.fillStyle = o.fill; ctx.fillText(o.s, o.x, o.y); }
+        ctx.fillStyle = o.fill;
+        ctx.fillText(o.s, o.x, o.y);
+        ctx.restore(); continue;
+      }
+      const p = (o._p && o._p.svg === o.d) ? o._p : (o._p = Object.assign(new Path2D(o.d), { svg: o.d }));
+      if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(p); }
+      if (o.stroke) {
+        ctx.strokeStyle = o.stroke; ctx.lineWidth = o.lw;
+        ctx.lineCap = o.cap; ctx.lineJoin = o.join;
+        if (o.dash) ctx.setLineDash(o.dash); else ctx.setLineDash([]);
+        ctx.stroke(p);
+        if (o.glow && !FAST) ctx.stroke(p);
+      }
+      ctx.restore();
+    }
+  }
+  run(dl.ops);
+}
+
+function toSvg(dl, w, h) {
+  const filters = new Map();
+  const defs = [];
+  let fid = 0;
+  function filterId(color, blur) {
+    const key = color + "|" + blur;
+    if (filters.has(key)) return filters.get(key);
+    const id = "gl" + (fid++);
+    filters.set(key, id);
+    defs.push('<filter id="' + id + '" x="-60%" y="-60%" width="220%" height="220%">' +
+      '<feGaussianBlur stdDeviation="' + (blur / 2.2).toFixed(2) + '" result="b"/>' +
+      '<feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>');
+    return id;
+  }
+  const body = [];
+  function run(ops, indent) {
+    for (const o of ops) {
+      const at = [];
+      if (o.alpha != null && o.alpha !== 1) at.push('opacity="' + round2(o.alpha) + '"');
+      if (o.comp) at.push('style="mix-blend-mode:screen"');
+      if (o.k === DLOP.GROUP) {
+        const gt = [];
+        if (o.transform && o.transform.svg) gt.push('transform="' + o.transform.svg + '"');
+        body.push(indent + "<g " + gt.concat(at).join(" ") + ">");
+        run(o.ops, indent + "  ");
+        body.push(indent + "</g>");
+        continue;
+      }
+      if (o.glow) at.push('filter="url(#' + filterId(o.glow, o.blur) + ')"');
+      if (o.k === DLOP.GRAD) {
+        const gid = "lg" + (fid++);
+        const vertical = o.dir !== "h";
+        defs.push("<linearGradient id=\"" + gid + "\" x1=\"" + (vertical ? 0 : 0) + "\" y1=\"0\" x2=\"" + (vertical ? 0 : 1) + "\" y2=\"" + (vertical ? 1 : 0) + "\">" +
+          o.stops.map(s => '<stop offset="' + s[0] + '" stop-color="' + s[1] + '"/>').join("") + "</linearGradient>");
+        body.push(indent + "<rect x=\"" + round2(o.x) + "\" y=\"" + round2(o.y) + "\" width=\"" + round2(o.w) + "\" height=\"" + round2(o.h) + "\" fill=\"url(#" + gid + ")\" " + at.join(" ") + "/>");
+        continue;
+      }
+      if (o.k === DLOP.TEXT) {
+        const anchor = o.align === "center" ? "middle" : (o.align === "right" ? "end" : "start");
+        const tf = o.rotate ? ' transform="rotate(' + (o.rotate * 57.2958).toFixed(2) + ' ' + round2(o.x) + ' ' + round2(o.y) + ')"' : "";
+        body.push(indent + "<text x=\"" + round2(o.x) + "\" y=\"" + round2(o.y) + "\"" + tf +
+          ' font-family="' + o.family + '" font-size="' + o.size + '" font-weight="' + o.weight + '"' +
+          ' fill="' + o.fill + '" text-anchor="' + anchor + '" dominant-baseline="' +
+          (o.base === "middle" ? "central" : o.base) + '" ' + at.join(" ") + ">" + esc(o.s) + "</text>");
+        continue;
+      }
+      const sa = [];
+      if (o.fill) sa.push('fill="' + o.fill + '"'); else sa.push('fill="none"');
+      if (o.stroke) {
+        sa.push('stroke="' + o.stroke + '"', 'stroke-width="' + o.lw + '"');
+        if (o.dash) sa.push('stroke-dasharray="' + o.dash.join(" ") + '"');
+        sa.push('stroke-linecap="' + o.cap + '"', 'stroke-linejoin="' + o.join + '"');
+      }
+      body.push(indent + "<path d=\"" + o.d + "\" " + sa.concat(at).join(" ") + "/>");
+    }
+  }
+  run(dl.ops, "  ");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">\n' +
+    "  <defs>\n    " + defs.join("\n    ") + "\n  </defs>\n" +
+    body.join("\n") + "\n</svg>\n";
+}
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ------------------------------------------------- 3. 材分制 / modulus */
+/* 《营造法式》卷四·材：材有八等。广十五分°，厚十分°。 */
+const CAI = [
+  null,
+  { g: 9.00, t: 6.00 }, { g: 8.25, t: 5.50 }, { g: 7.50, t: 5.00 }, { g: 7.20, t: 4.80 },
+  { g: 6.60, t: 4.40 }, { g: 6.00, t: 4.00 }, { g: 5.25, t: 3.50 }, { g: 4.50, t: 3.00 }
+];
+const CAI_NAME = ["", "一等", "二等", "三等", "四等", "五等", "六等", "七等", "八等"];
+const CHI_CM = 31.2;      // 1 宋营造尺 ≈ 31.2 cm
+const CUN_CM = CHI_CM / 10;
+
+/* ------------------------------------------------------ 4. palettes */
+const PALETTES = [
+  { id: "neon", name: "霓虹青 · 品红", en: "NEON CYAN/MAGENTA",
+    sky: ["#04050c", "#0a1030", "#1b0f3c", "#390f3a"],
+    n1: "#2fe9ff", n2: "#ff3ec8", n3: "#ffd166", warm: "#ff9a4d",
+    far: "#0c1226", mid: "#141c38", bldg: "#080b16", line: "#5ceaff" },
+  { id: "zhu", name: "朱砂 · 鎏金", en: "CINNABAR/GOLD",
+    sky: ["#0a0405", "#25070f", "#3d0c14", "#54140f"],
+    n1: "#ff5f3c", n2: "#ffcf5c", n3: "#ff2e5e", warm: "#ffb066",
+    far: "#1a0c10", mid: "#2a1015", bldg: "#12070a", line: "#ffa06a" },
+  { id: "lan", name: "幽蓝 · 月白", en: "INDIGO/MOONWHITE",
+    sky: ["#03050e", "#071229", "#0b2340", "#123a52"],
+    n1: "#7fd7ff", n2: "#c9f0ff", n3: "#4a9fff", warm: "#9fd8ff",
+    far: "#08152b", mid: "#0e2242", bldg: "#050a16", line: "#a8e6ff" },
+  { id: "mo", name: "赛博墨", en: "CYBER INK",
+    sky: ["#050506", "#0d0d10", "#16161b", "#1f1f26"],
+    n1: "#d8ffe8", n2: "#7cf7c0", n3: "#ffffff", warm: "#bfe9d4",
+    far: "#0e0e12", mid: "#17171d", bldg: "#08080b", line: "#8fffd0" }
+];
+
+/* ------------------------------------------------------ 5. word bank */
+const SIGN_WORDS = ["云栈", "算力", "青瓷", "丹炉", "栈溢", "星槎", "霓驿", "墨芯", "蜃楼", "算经",
+  "太极", "天工", "开物", "数术", "钧窑", "广寒", "流觞", "河图", "洛书", "九章",
+  "营造", "材分", "铺作", "举折", "斗拱", "鸱吻", "藻井", "月洞", "听雨", "衔芳",
+  "字节", "芯驿", "递归", "编译", "太极", "玄珠", "镜花", "拾遗", "不夜", "长明"];
+const BANNER_WORDS = ["材分营造", "1024 铺作", "举折之法", "反宇向阳", "不夜天工", "递归营造",
+  "大木作", "小木作", "雕作", "彩画作", "窑作", "砖作"];
+
+/* ================================================================ SCENE */
+const W = 1600, H = 900, GROUND = 636;
+
+let ANIM_P = 1;   // 营造动画进度：逐栋自下而上生长
+
+function buildScene(P, progress) {
+  ANIM_P = (progress == null ? 1 : progress);
+  const pal = PALETTES.find(p => p.id === P.pal) || PALETTES[0];
+  const rng = new Rng(P.seed);
+  const dl = new DL();
+
+  /* --- 材分制派生尺度（单位：分°） --- */
+  const cai = CAI[P.cai];
+  const FEN_CUN = cai.g / 15;              // 一分° = 多少寸
+  const jianFen = P.jian;                  // 间广（分°）
+  const colFen = Math.round(jianFen * P.col / 100);   // 柱高（分°）
+  const tiao = P.pu - 3;                   // 出跳数
+  const douFen = 21 * tiao + 20;           // 铺作层总高（分°）
+  const eaveFen = 30 * tiao + 62;          // 出檐（分°）
+
+  /* --- 生成建筑：三层纵深（远街 / 中景 / 近景） --- */
+  function makeBuilding(r, isMain) {
+    const b = {
+      bays: r.pick([3, 3, 5, 5, 7, 9]),
+      floors: r.pick([1, 2, 2, 3]),
+      roof: r.pick(["xieshan", "xuanshan", "yingshan", "zuanjian", "wudian"]),
+      chongyan: false,
+      pu: clamp(P.pu + r.int(-1, 1), 4, 8),
+      sub: r.int(1, 999999),
+      winType: r.pick(["bubu", "denglong", "binglie"]),
+      sign: r.pick(SIGN_WORDS),
+      banner: r.pick(BANNER_WORDS)
+    };
+    b.chongyan = b.floors >= 2 && r.chance(0.7);
+    // 主楼恒为重檐歇山两层以上（呼应"重檐歇山顶两层亭阁"）
+    if (isMain) {
+      b.roof = "xieshan"; b.chongyan = true;
+      b.floors = Math.max(2, b.floors); b.bays = Math.max(5, b.bays);
+    }
+    return b;
+  }
+  /** 建筑总高（分°）：台基 + 各层柱 + 铺作 + 举高 + 鸱吻余量 */
+  function heightFenOf(b) {
+    const halfSpanFen = b.bays * jianFen / 2;
+    const juFen = 2 * (halfSpanFen + eaveFen) * (P.ju / 100);   // 举高：前后撩檐枋相距之比
+    const dou = 21 * (b.pu - 3) + 20;
+    return 30 + b.floors * colFen + (b.floors - 1) * dou * 0.55 + dou + juFen + 48;
+  }
+  function widthFenOf(b) { return b.bays * jianFen + 2 * eaveFen; }
+
+  const LAYERS = [
+    { baseY: GROUND - 58, hT: 0.150 * H, n: 5, fog: 0.40, refl: 0.30 },
+    { baseY: GROUND - 6, hT: 0.250 * H, n: 4, fog: 0.18, refl: 0.62 },
+    { baseY: GROUND + 34, hT: 0.395 * H, n: 3, fog: 0.04, refl: 1.00 }
+  ];
+
+  const layerR = new Rng(P.seed ^ 0x9e37);
+  const groups = LAYERS.map(function (L, li) {
+    const arr = [];
+    for (let i = 0; i < L.n; i++) arr.push(makeBuilding(layerR, li === 2 && i === Math.floor(L.n / 2)));
+    // 层内比例尺：以该层目标高度定调，同时不至于窄得离谱
+    let tw = 0, mh = 1;
+    for (const b of arr) { tw += widthFenOf(b); mh = Math.max(mh, heightFenOf(b)); }
+    const k = Math.min(L.hT / mh, (W - 60) / tw * 1.35);
+    arr.forEach(function (b, i) {
+      b.k = k;
+      b.baseY = L.baseY;
+      b.w = b.bays * jianFen * k;
+      // 首尾建筑允许出画，填补画面边缘（裁边构图）
+      b.cx = W * 1.28 * ((i + 0.5) / arr.length) - W * 0.14 + layerR.range(-16, 16);
+    });
+    return { L: L, arr: arr, k: k };
+  });
+  const mainBuilding = groups[2].arr[Math.floor(groups[2].arr.length / 2)];
+
+  /* ================= 天空 ================= */
+  dl.grad(0, 0, W, GROUND + 4,
+    [[0, pal.sky[0]], [0.34, pal.sky[1]], [0.68, pal.sky[2]], [1, pal.sky[3]]], "v");
+
+  // 星
+  const starR = new Rng(P.seed ^ 0x5f3a);
+  for (let i = 0; i < 120; i++) {
+    const sx = starR.range(0, W), sy = starR.range(0, GROUND * 0.72);
+    const a = starR.range(0.12, 0.62) * (1 - sy / (GROUND * 0.9));
+    if (a <= 0.02) continue;
+    dl.circle(sx, sy, starR.range(0.5, 1.5), { fill: "#dfeaff", alpha: a });
+  }
+
+  // 月
+  const moonX = 1290, moonY = 168, moonR = 62;
+  dl.circle(moonX, moonY, moonR + 30, { fill: pal.n1, alpha: 0.05 });
+  dl.circle(moonX, moonY, moonR + 14, { fill: pal.n1, alpha: 0.07 });
+  dl.circle(moonX, moonY, moonR, { fill: "#f2f7ff", alpha: 0.9, glow: pal.n1, blur: 44 });
+  dl.circle(moonX - 14, moonY - 10, moonR * 0.52, { fill: pal.sky[1], alpha: 0.16 });
+
+  // 1024 霓虹装置：月洞门造型 + 二进制星阵
+  const devX = 232, devY = 196, devR = 108;
+  dl.circle(devX, devY, devR, { stroke: pal.n2, lw: 2.4, alpha: 0.5, glow: pal.n2, blur: 26 });
+  dl.circle(devX, devY, devR - 13, { stroke: pal.n1, lw: 1.1, alpha: 0.35 });
+  dl.text("1024", devX, devY + 4, {
+    size: 66, family: "monospace", fill: "#ffffff", glow: pal.n1, blur: 30, weight: 700, alpha: 0.96
+  });
+  dl.text("材 分 营 造", devX, devY + 78, {
+    size: 15, family: "serif", fill: pal.n3, glow: pal.n3, blur: 16, alpha: 0.82
+  });
+  // 1024 = 0b10000000000 —— 十一位二进制星阵
+  for (let i = 0; i < 11; i++) {
+    const bx = devX - 100 + i * 20, by = devY - 150;
+    const on = (i === 0);
+    dl.circle(bx, by, on ? 4.2 : 2.2, {
+      fill: on ? pal.n1 : "#8fa4c8", alpha: on ? 0.95 : 0.34,
+      glow: on ? pal.n1 : null, blur: 18
+    });
+  }
+  dl.text("0b10000000000", devX, devY - 172, {
+    size: 11.5, family: "monospace", fill: "#9fb4d8", alpha: 0.72
+  });
+
+  /* ================= 远景楼群 ================= */
+  for (let layer = 0; layer < 3; layer++) {
+    const fr = new Rng(P.seed * 31 + layer * 977);
+    const baseY = GROUND - 6 - layer * 4;
+    const alpha = 0.5 - layer * 0.12;
+    const colr = layer === 0 ? pal.far : (layer === 1 ? pal.mid : pal.bldg);
+    let fx = -40;
+    while (fx < W + 40) {
+      const fw = fr.range(46, 130);
+      const fh = fr.range(90, 300) * (1 - layer * 0.16);
+      const top = baseY - fh;
+      dl.rect(fx, top, fw, fh, { fill: colr, alpha: alpha });
+      dl.rect(fx, top, fw, 2, { stroke: pal.line, lw: 1, alpha: 0.16 + layer * 0.05 });
+      // 远景窗格点阵（仅近两层，密度受控以保证动画帧率）
+      const rows = Math.floor(fh / 22), cols = Math.max(1, Math.floor(fw / 20));
+      for (let r = 0; r < rows; r++) {
+        for (let cc = 0; cc < cols; cc++) {
+          if (layer >= 2 || fr.next() > 0.24) continue;
+          const wx = fx + 6 + cc * 20, wy = top + 9 + r * 22;
+          if (wy > baseY - 8) continue;
+          dl.rect(wx, wy, 4.5, 5.5, {
+            fill: fr.next() > 0.5 ? pal.n1 : pal.n3,
+            alpha: (0.1 + fr.next() * 0.3) * (1 - layer * 0.22)
+          });
+        }
+      }
+      // 顶部天线与航空障碍灯
+      if (fr.chance(0.32)) {
+        const ax = fx + fw / 2;
+        dl.line(ax, top, ax, top - fr.range(14, 46), { stroke: colr, lw: 1.6, alpha: 0.7 });
+        dl.circle(ax, top - 46, 2.6, { fill: pal.n2, alpha: 0.8, glow: pal.n2, blur: 14 });
+      }
+      fx += fw + fr.range(4, 18);
+    }
+  }
+
+/* ================================================================ 单栋 */
+/* 绘制一栋楼的全部构件，返回屋脊高度与立面轮廓（供刀线制版）。 */
+function drawBuilding(sub, b, cfg, br) {
+  {
+    const pal = cfg.pal, P = cfg.P, neonAmt = cfg.neonAmt;
+    const colFen = cfg.colFen, eaveFen = cfg.eaveFen;
+    const lod = cfg.lod == null ? 2 : cfg.lod;      // 0 远街 / 1 中景 / 2 近景
+
+    const k = b.k;                                 // px per 分°
+    const halfW = b.w / 2;
+    const baseTop = b.baseY - 30 * k;              // 台基顶
+    const colH = colFen * k;
+    const douH = (21 * (b.pu - 3) + 20) * k;
+    const eave = eaveFen * k;
+    const floors = b.floors;
+    const yBase = b.baseY;
+    const yRoofBase = baseTop - floors * colH - (floors - 1) * douH * 0.55;
+
+    const bx0 = b.cx - halfW, bx1 = b.cx + halfW;
+
+    /* 台基（须弥座简化） */
+    sub.rect(bx0 - 8 * k, baseTop, b.w + 16 * k, yBase - baseTop, { fill: pal.bldg, alpha: 0.96 });
+    sub.rect(bx0 - 8 * k, baseTop, b.w + 16 * k, yBase - baseTop, { stroke: pal.line, lw: 1, alpha: 0.2 });
+    sub.line(bx0 - 8 * k, baseTop + 6 * k, bx1 + 8 * k, baseTop + 6 * k, { stroke: pal.line, lw: 1, alpha: 0.22 });
+    sub.line(bx0 - 8 * k, yBase - 5 * k, bx1 + 8 * k, yBase - 5 * k, { stroke: pal.line, lw: 1, alpha: 0.16 });
+
+    /* 楼层 */
+    const facadeTop = [];
+    for (let f = 0; f < floors; f++) {
+      const yFloorBase = baseTop - f * (colH + douH * 0.55);
+      const yColTop = yFloorBase - colH;
+      const yDouTop = yColTop - douH;
+
+      // 墙体
+      sub.rect(bx0, yColTop, b.w, colH, { fill: pal.bldg, alpha: 0.98 });
+      sub.rect(bx0, yColTop, b.w, colH, { stroke: pal.line, lw: 1, alpha: 0.14 });
+
+      // 柱（每间一根，柱径 = 一材一栔 = 21 分°）
+      const colW = 21 * k;
+      for (let c = 0; c <= b.bays; c++) {
+        const px = bx0 + (b.w / b.bays) * c;
+        sub.rect(px - colW / 2, yColTop, colW, colH, { fill: "#0e1426", alpha: 0.95 });
+        sub.rect(px - colW / 2, yColTop, colW, colH, { stroke: pal.line, lw: 0.9, alpha: 0.3 });
+        sub.circle(px, yFloorBase - 3 * k, 2.4 * k, { fill: pal.warm, alpha: 0.28 });   // 柱础
+      }
+
+      // 格栅窗（每间一樘）
+      const bayW = b.w / b.bays;
+      for (let c = 0; c < b.bays; c++) {
+        const wx = bx0 + bayW * c + colW * 0.75;
+        const ww = bayW - colW * 1.5;
+        const wh = colH * 0.62;
+        const wy = yColTop + colH * 0.2;
+        if (ww <= 4 || wh <= 4) continue;
+        drawLattice(sub, wx, wy, ww, wh, b.winType, br, pal, k, lod);
+      }
+
+      // 额枋 + 斗拱带
+      sub.rect(bx0 - 4 * k, yColTop - 6 * k, b.w + 8 * k, 6 * k, { fill: "#11172c", alpha: 0.98 });
+      sub.line(bx0 - 4 * k, yColTop - 6 * k, bx1 + 4 * k, yColTop - 6 * k, { stroke: pal.n3, lw: 1.1, alpha: 0.34 });
+
+      // 斗拱：柱头铺作 + 补间铺作
+      const puTiao = Math.max(1, b.pu - 3 - (lod === 0 ? 2 : (lod === 1 ? 1 : 0)));
+      for (let c = 0; c <= b.bays; c++) {
+        const px = bx0 + (b.w / b.bays) * c;
+        drawDougong(sub, px, yColTop - 6 * k, k, puTiao, pal, 1, br);
+        if (c < b.bays && b.pu >= 5 && lod >= 1) {
+          const mx = px + (b.w / b.bays) / 2;
+          drawDougong(sub, mx, yColTop - 6 * k, k, Math.max(1, puTiao - 1), pal, 0.66, br);
+        }
+      }
+
+      // 楼层之间的平坐（腰檐平台）
+      if (f < floors - 1) {
+        const yPing = yDouTop;
+        sub.rect(bx0 - eave * 0.62, yPing - 5 * k, b.w + eave * 1.24, 5 * k, { fill: "#0f1526", alpha: 0.98 });
+        sub.line(bx0 - eave * 0.62, yPing - 5 * k, bx1 + eave * 0.62, yPing - 5 * k, { stroke: pal.n1, lw: 1.2, alpha: 0.4 * (0.4 + neonAmt) });
+      }
+      facadeTop.push(yDouTop);
+    }
+
+    const yEaveLine = facadeTop[facadeTop.length - 1];
+
+    /* ---------- 屋顶 ---------- */
+    const halfSpan = halfW;
+    const ridgeHalf = b.roof === "zuanjian" ? 6 * k : (b.roof === "wudian" ? halfSpan * 0.42 : halfSpan * 0.46);
+    const juH = 2 * (halfSpan + eave) * (P.ju / 100);   // 举高 = 前后撩檐枋相距之比
+    const nJia = clamp(Math.round((halfSpan + eave) / (34 * k)), 4, 9);
+
+    // 举折：raw = 1/2^k，归一化后自上而下递减
+    const raw = [];
+    for (let i = 1; i <= nJia; i++) raw.push(1 / Math.pow(2, i));
+    const rawSum = raw.reduce((a, c) => a + c, 0);
+    const drops = raw.map(v => v / rawSum * juH);
+
+    // 左坡折点（自脊向檐）
+    const leftPts = [], rightPts = [];
+    let yy = yEaveLine - juH, xx = b.cx - ridgeHalf;
+    leftPts.push([xx, yy]);
+    for (let i = 0; i < nJia; i++) {
+      yy += drops[i];
+      const t = (i + 1) / nJia;
+      xx = lerp(b.cx - ridgeHalf, b.cx - halfSpan - eave, t);
+      leftPts.push([xx, yy]);
+    }
+    yy = yEaveLine - juH; xx = b.cx + ridgeHalf;
+    rightPts.push([xx, yy]);
+    for (let i = 0; i < nJia; i++) {
+      yy += drops[i];
+      const t = (i + 1) / nJia;
+      xx = lerp(b.cx + ridgeHalf, b.cx + halfSpan + eave, t);
+      rightPts.push([xx, yy]);
+    }
+    const eaveY = yEaveLine;
+    leftPts[leftPts.length - 1][1] = eaveY;
+    rightPts[rightPts.length - 1][1] = eaveY;
+
+    const roofPts = leftPts.slice().reverse().concat(rightPts);
+    const roofOutline = [[b.cx - halfSpan - eave, eaveY]]
+      .concat(leftPts.slice().reverse())
+      .concat(rightPts)
+      .concat([[b.cx + halfSpan + eave, eaveY], [b.cx + halfSpan + eave, eaveY + 14 * k]]);
+
+    const roofD = (P.smooth ? smoothPath(roofOutline, false) : ptsToPath(roofOutline, false)) +
+      "L" + round2(b.cx - halfSpan - eave) + " " + round2(eaveY + 14 * k) + "Z";
+
+    // 屋面
+    sub.path(roofD, { fill: "#0a0f1e", alpha: 0.99 });
+    sub.path(roofD, { stroke: pal.line, lw: 1.35, alpha: 0.5, glow: pal.n1, blur: 10 });
+
+    // 瓦垄：由脊向檐的放射线
+    const nLong = clamp(Math.round((halfSpan + eave) / (7 * k)), 8, lod === 2 ? 40 : 22);
+    for (let i = 1; i < nLong && lod >= 1; i++) {
+      const t = i / nLong;
+      const sx0 = lerp(b.cx - ridgeHalf, b.cx - halfSpan - eave, t);
+      const sx1 = lerp(b.cx + ridgeHalf, b.cx + halfSpan + eave, t);
+      const sy0 = yEaveLine - juH + 3 * k;
+      const sy1 = eaveY - 2 * k;
+      sub.line(sx0, sy0, sx0 - 2 * k, sy1, { stroke: pal.line, lw: 0.8, alpha: 0.16 });
+      sub.line(sx1, sy0, sx1 + 2 * k, sy1, { stroke: pal.line, lw: 0.8, alpha: 0.16 });
+    }
+
+    // 正脊 + 垂脊 + 鸱吻
+    const ridgeY = yEaveLine - juH;
+    sub.rect(b.cx - ridgeHalf, ridgeY - 9 * k, ridgeHalf * 2, 9 * k, { fill: "#0d1324", alpha: 1 });
+    sub.line(b.cx - ridgeHalf, ridgeY - 9 * k, b.cx + ridgeHalf, ridgeY - 9 * k, { stroke: pal.n3, lw: 1.6, alpha: 0.55, glow: pal.n3, blur: 12 });
+    sub.line(b.cx - ridgeHalf, ridgeY, b.cx + ridgeHalf, ridgeY, { stroke: pal.line, lw: 1, alpha: 0.3 });
+    // 垂脊（沿屋面折线）
+    const chuiL = ptsToPath(leftPts, false), chuiR = ptsToPath(rightPts, false);
+    sub.path(P.smooth ? smoothPath(leftPts, false) : chuiL, { stroke: pal.n1, lw: 2, alpha: 0.42, glow: pal.n1, blur: 12 });
+    sub.path(P.smooth ? smoothPath(rightPts, false) : chuiR, { stroke: pal.n1, lw: 2, alpha: 0.42, glow: pal.n1, blur: 12 });
+    // 鸱吻
+    drawChiwen(sub, b.cx - ridgeHalf, ridgeY - 9 * k, k, -1, pal);
+    drawChiwen(sub, b.cx + ridgeHalf, ridgeY - 9 * k, k, 1, pal);
+
+    // 重檐：下层腰檐
+    if (b.chongyan && floors >= 2) {
+      const yMid = facadeTop[0];
+      const ydH = juH * 0.42;
+      const midL = [[b.cx - halfSpan * 0.86, yMid], [b.cx - halfSpan * 0.42, yMid - ydH]];
+      const midR = [[b.cx + halfSpan * 0.86, yMid], [b.cx + halfSpan * 0.42, yMid - ydH]];
+      const md = "M" + round2(midL[0][0]) + " " + round2(midL[0][1]) +
+        "L" + round2(midL[1][0]) + " " + round2(midL[1][1]) +
+        "L" + round2(midR[1][0]) + " " + round2(midR[1][1]) +
+        "L" + round2(midR[0][0]) + " " + round2(midR[0][1]) + "Z";
+      sub.path(md, { fill: "#080d1a", alpha: 0.98 });
+      sub.path(md, { stroke: pal.n2, lw: 1.3, alpha: 0.4 * (0.35 + neonAmt), glow: pal.n2, blur: 12 });
+      sub.line(midL[0][0], midL[0][1], midL[0][0] - 4 * k, midL[0][1] + 9 * k, { stroke: pal.line, lw: 1.4, alpha: 0.35 });
+      sub.line(midR[0][0], midR[0][1], midR[0][0] + 4 * k, midR[0][1] + 9 * k, { stroke: pal.line, lw: 1.4, alpha: 0.35 });
+    }
+
+    /* ---------- 霓虹 ---------- */
+    if (neonAmt > 0.02) {
+      // 竖招（挑出式）
+      if (lod >= 1 && br.chance(0.55 + neonAmt * 0.4)) {
+        const side = br.chance(0.5) ? -1 : 1;
+        const sx0 = b.cx + side * (halfW + 6 * k);
+        const sy0 = yEaveLine - juH * 0.15;
+        const sw = 26 * k, sh = Math.min(colH * 1.5, 150 * k);
+        const bg = br.chance(0.5) ? pal.n1 : pal.n2;
+        sub.rect(sx0 - sw / 2, sy0, sw, sh, { fill: "#06080f", alpha: 0.92 });
+        sub.rect(sx0 - sw / 2, sy0, sw, sh, { stroke: bg, lw: 1.6, alpha: 0.85, glow: bg, blur: 16 });
+        const chars = b.sign.split("");
+        const fs = Math.min(sw * 0.72, sh / (chars.length + 0.35));
+        chars.forEach((ch, ci) => {
+          sub.text(ch, sx0, sy0 + sh * ((ci + 0.72) / (chars.length + 0.42)), {
+            size: fs, family: "serif", fill: "#ffffff", glow: bg, blur: 18, weight: 700
+          });
+        });
+        sub.line(sx0, sy0, sx0, sy0 - 8 * k, { stroke: bg, lw: 1.4, alpha: 0.7 });
+      }
+      // 横招（挂在楼层间）
+      if (br.chance(0.5 + neonAmt * 0.4)) {
+        const by0 = facadeTop[facadeTop.length - 1] + 14 * k;
+        const bwid = b.w * br.range(0.42, 0.8);
+        const bx2 = b.cx - bwid / 2;
+        const bh = Math.max(16, 26 * k);
+        const bg = br.chance(0.5) ? pal.n3 : pal.n2;
+        sub.rect(bx2, by0, bwid, bh, { fill: "#06080f", alpha: 0.86 });
+        sub.rect(bx2, by0, bwid, bh, { stroke: bg, lw: 1.4, alpha: 0.9, glow: bg, blur: 18 });
+        const txt = b.banner;
+        sub.text(txt, b.cx, by0 + bh / 2, {
+          size: Math.min(bh * 0.66, bwid / (txt.length + 0.6)), family: "serif",
+          fill: "#fff8e6", glow: bg, blur: 20, weight: 700
+        });
+      }
+      // 檐口灯带
+      sub.line(b.cx - halfSpan - eave + 2 * k, eaveY - 1 * k, b.cx + halfSpan + eave - 2 * k, eaveY - 1 * k, {
+        stroke: pal.n1, lw: 2.2, alpha: 0.5 * (0.35 + neonAmt), glow: pal.n1, blur: 16
+      });
+      // 灯笼串
+      if (lod >= 1 && br.chance(0.7)) {
+        const nL = br.int(2, 4);
+        for (let i = 0; i < nL; i++) {
+          const lx = bx0 + b.w * ((i + 0.5) / nL), ly = facadeTop[0] + 22 * k;
+          const lr = Math.max(4, 7 * k);
+          sub.circle(lx, ly, lr, { fill: pal.warm, alpha: 0.85, glow: pal.warm, blur: 22 });
+          sub.circle(lx, ly, lr * 0.5, { fill: "#fff3d0", alpha: 0.9 });
+          sub.line(lx, ly - lr, lx, ly - lr - 10 * k, { stroke: pal.line, lw: 0.8, alpha: 0.4 });
+        }
+      }
+      // 窗内透光
+      const bayW2 = b.w / b.bays;
+      for (let c = 0; c < b.bays; c++) {
+        if (br.next() > 0.55 * neonAmt + 0.2) continue;
+        const wx = bx0 + bayW2 * c + bayW2 * 0.18, ww = bayW2 * 0.64;
+        const wy = facadeTop[0] + colH * 0.28, wh = colH * 0.42;
+        sub.rect(wx, wy, ww, wh, { fill: br.chance(0.6) ? pal.warm : pal.n1, alpha: 0.1 + br.next() * 0.14 });
+      }
+    }
+
+    /* 立面轮廓（供刀线制版） */
+    const fp = [[b.cx - halfSpan - eave * 0.5, yBase]]
+      .concat([[b.cx - halfSpan - eave * 0.5, eaveY]])
+      .concat(leftPts.slice().reverse())
+      .concat(rightPts)
+      .concat([[b.cx + halfSpan + eave * 0.5, eaveY], [b.cx + halfSpan + eave * 0.5, yBase]]);
+
+    return {
+      ridgeY: ridgeY,
+      topY: ridgeY - 46 * k,
+      facade: {
+        poly: fp, name: b.sign, bays: b.bays, floors: floors,
+        folds: [eaveY, ridgeY, yEaveLine, baseTop],
+        roof: b.roof, chongyan: b.chongyan
+      }
+    };
+  }
+}
+
+  /* ================= 主街建筑：三层纵深，自远及近 ================= */
+  const facades = [];
+  const neonAmt = P.neon / 100;
+  const cfg = { pal: pal, colFen: colFen, eaveFen: eaveFen, P: P, neonAmt: neonAmt };
+  const TOTAL_B = groups.reduce(function (a, g) { return a + g.arr.length; }, 0);
+  const refl = P.refl / 100;
+  let gIdx = 0;
+
+  // 街道先铺地，而后楼台立于其上
+  dl.rect(0, GROUND, W, H - GROUND, { fill: "#05070e", alpha: 1 });
+  dl.grad(0, GROUND, W, H - GROUND, [[0, "rgba(10,14,26,1)"], [1, "rgba(3,4,9,1)"]], "v");
+  dl.line(0, GROUND, W, GROUND, { stroke: pal.line, lw: 1.2, alpha: 0.34 });
+
+  groups.forEach(function (g, li) {
+    cfg.lod = li;
+    const layerOps = [];
+    let topMin = g.L.baseY;
+    g.arr.forEach(function (b, bi) {
+      const br = new Rng(P.seed * 7 + b.sub);
+      const sub = new DL();
+      const r = drawBuilding(sub, b, cfg, br);
+      if (li === 2) facades.push(r.facade);
+      if (r.topY < topMin) topMin = r.topY;
+      layerOps.push({ k: DLOP.GROUP, ops: sub.ops, alpha: 1, comp: null,
+        transform: mkTransform(bi + gIdx, TOTAL_B, r.topY, b.baseY, null) });
+    });
+    for (const o of layerOps) dl.ops.push(o);
+
+    // 空气透视：越远越淡
+    if (g.L.fog > 0.01) {
+      const fy = topMin - 12, fh = Math.max(20, g.L.baseY - fy + 8);
+      dl.grad(0, fy, W, fh,
+        [[0, "rgba(130,160,215,0)"], [1, "rgba(130,160,215," + (0.26 * g.L.fog).toFixed(3) + ")"]], "v");
+    }
+    // 湿地面倒影：绕本层基线镜像重绘
+    if (refl > 0.02 && g.L.refl > 0) {
+      dl.group(layerOps, mkTransform2(g.L.baseY), (0.42 * refl + 0.10) * g.L.refl);
+    }
+    gIdx += g.arr.length;
+  });
+
+  // 水面波纹与纵向衰减
+  if (refl > 0.02) {
+    const wr = new Rng(P.seed ^ 0x77aa);
+    for (let i = 0; i < 30; i++) {
+      const wy = GROUND + 4 + i * ((H - GROUND - 8) / 30);
+      const wlen = wr.range(60, 340), wx = wr.range(0, W - wlen);
+      dl.line(wx, wy, wx + wlen, wy, {
+        stroke: pal.n1, lw: wr.range(0.6, 1.8), alpha: (0.03 + wr.next() * 0.07) * refl
+      });
+    }
+    dl.grad(0, GROUND, W, H - GROUND,
+      [[0, "rgba(5,7,14,0.04)"], [0.5, "rgba(5,7,14,0.38)"], [1, "rgba(3,4,9,0.78)"]], "v");
+  }
+
+  /* ================= 雨 ================= */
+  const rainAmt = P.rain / 100;
+  if (rainAmt > 0.02) {
+    const rr = new Rng(P.seed ^ 0x2b1c);
+    const nRain = Math.floor(560 * rainAmt);
+    for (let i = 0; i < nRain; i++) {
+      const rx = rr.range(-40, W + 40), ry = rr.range(-20, GROUND + 30);
+      const rl = rr.range(14, 46) * (0.6 + rainAmt * 0.7);
+      const slant = rr.range(3, 9);
+      dl.line(rx, ry, rx - slant, ry + rl, {
+        stroke: rr.chance(0.22) ? pal.n1 : "#cdd9f2",
+        lw: rr.range(0.5, 1.25), alpha: rr.range(0.06, 0.3) * (0.5 + rainAmt * 0.7)
+      });
+    }
+    // 地面溅水
+    for (let i = 0; i < Math.floor(70 * rainAmt); i++) {
+      const sx = rr.range(0, W), sy = rr.range(GROUND + 2, H - 6);
+      dl.circle(sx, sy, rr.range(1, 2.6), { fill: pal.n1, alpha: rr.range(0.05, 0.2) * rainAmt });
+    }
+  }
+
+  /* ================= 雾 ================= */
+  const fogAmt = P.fog / 100;
+  if (fogAmt > 0.02) {
+    const fr2 = new Rng(P.seed ^ 0x9911);
+    for (let i = 0; i < 7; i++) {
+      const fy = GROUND - 210 + i * 36 + fr2.range(-14, 14);
+      const fh2 = fr2.range(28, 96);
+      dl.grad(0, fy, W, fh2,
+        [[0, "rgba(150,180,230,0)"], [0.5, "rgba(150,180,230," + (0.045 * fogAmt).toFixed(3) + ")"], [1, "rgba(150,180,230,0)"]], "v");
+    }
+    dl.grad(0, GROUND - 120, W, 150,
+      [[0, "rgba(160,190,240,0)"], [1, "rgba(160,190,240," + (0.1 * fogAmt).toFixed(3) + ")"]], "v");
+  }
+
+  /* ================= 飞行器光轨 ================= */
+  const tr = new Rng(P.seed ^ 0x3d3d);
+  const nCraft = 2 + Math.floor(tr.next() * 3);
+  for (let i = 0; i < nCraft; i++) {
+    const cy = tr.range(90, GROUND - 210);
+    const cx1 = tr.range(0, W * 0.5), len = tr.range(140, 420);
+    const col = tr.chance(0.5) ? pal.n1 : pal.n2;
+    dl.line(cx1, cy, cx1 + len, cy + tr.range(-16, 16), { stroke: col, lw: 1.1, alpha: 0.24, glow: col, blur: 14 });
+    dl.circle(cx1 + len, cy + 2, 2.4, { fill: "#fff", alpha: 0.9, glow: col, blur: 16 });
+    dl.circle(cx1, cy, 1.6, { fill: col, alpha: 0.55 });
+  }
+
+  /* ================= 前景装饰 ================= */
+  // 街边光晕
+  const gr2 = new Rng(P.seed ^ 0x5151);
+  for (let i = 0; i < 5; i++) {
+    const lx = gr2.range(60, W - 60);
+    dl.circle(lx, GROUND + 6, gr2.range(40, 96), { fill: pal.n1, alpha: 0.035 * (0.5 + neonAmt) });
+  }
+  /* ================= 元信息 ================= */
+  const caiCun = cai.g, fenCun = FEN_CUN;
+  const jianCun = jianFen * fenCun;
+  const colCun = colFen * fenCun;
+  const douCun = douFen * fenCun;
+  const eaveCun = eaveFen * fenCun;
+  // 举折（以主楼为准）
+  const mainHalfFen = mainBuilding.bays * jianFen / 2;
+  const mainSpanFen = mainHalfFen + eaveFen;                       // 半跨 + 出檐
+  const juFen = 2 * mainSpanFen * (P.ju / 100);
+  const juCun = juFen * fenCun;
+  const nJia = clamp(Math.round(mainSpanFen / 34), 4, 9);
+  const rawJia = [];
+  for (let i = 1; i <= nJia; i++) rawJia.push(1 / Math.pow(2, i));
+  const rawSum = rawJia.reduce((a, c) => a + c, 0);
+  const drops = rawJia.map(v => v / rawSum * juCun);
+  // 街市规模
+  const allB = groups.reduce(function (a, g) { return a.concat(g.arr); }, []);
+  let streetFen = 0;
+  for (const b of allB) streetFen += widthFenOf(b);
+
+  const meta = {
+    seed: P.seed,
+    caiGrade: P.cai,
+    caiName: CAI_NAME[P.cai] + "材",
+    caiG: caiCun, caiT: cai.t,
+    fenCun: fenCun, fenCm: fenCun * CUN_CM,
+    jianFen: jianFen, jianCun: jianCun, jianCm: jianCun * CUN_CM,
+    colCun: colCun, colCm: colCun * CUN_CM,
+    puzuo: P.pu, tiao: tiao,
+    douCun: douCun, douCm: douCun * CUN_CM,
+    eaveCun: eaveCun, eaveCm: eaveCun * CUN_CM,
+    juRatio: P.ju, juCun: juCun, juCm: juCun * CUN_CM,
+    nJia: nJia,
+    drops: drops,
+    buildings: allB.length,
+    totalJian: allB.reduce(function (a, b) { return a + b.bays; }, 0),
+    streetCm: streetFen * fenCun * CUN_CM,
+    pxPerFen: groups[2].k,
+    facades: facades,
+    pal: pal
+  };
+  return { dl: dl, meta: meta };
+}
+
+/* --- 生长遮罩 transform（Canvas 用 clip，SVG 导出恒为完整显示） --- */
+function mkTransform(bi, nB, topY, baseY, progFixed) {
+  return {
+    svg: null,
+    ctx: function (ctx) {
+      const prog = progFixed != null ? progFixed : clamp(ANIM_P * nB - bi, 0, 1);
+      const grow = baseY - (baseY - topY) * prog;
+      ctx.beginPath();
+      ctx.rect(0, grow, W, Math.max(0, baseY - grow));
+      ctx.clip();
+    }
+  };
+}
+function mkTransform2(groundY) {
+  return {
+    svg: "translate(0 " + (2 * groundY) + ") scale(1 -1)",
+    ctx: function (ctx) { ctx.translate(0, 2 * groundY); ctx.scale(1, -1); return null; }
+  };
+}
+
+/* ------------------------------------------------------- 斗拱 · 铺作 */
+function drawDougong(dl, x, yTop, k, tiao, pal, alphaScale, rng) {
+  const u = k;                       // 1 分° = u px
+  const caiH = 15 * u, caiW = 10 * u;
+  const luw = 32 * u, luh = 20 * u;  // 栌斗
+  const a = (alphaScale == null ? 1 : alphaScale);
+
+  // 栌斗
+  dl.rect(x - luw / 2, yTop - luh, luw, luh, { fill: "#131a30", alpha: 0.98 * a });
+  dl.rect(x - luw / 2, yTop - luh, luw, luh, { stroke: pal.line, lw: 0.9, alpha: 0.4 * a });
+  dl.line(x - luw / 2, yTop - luh * 0.42, x + luw / 2, yTop - luh * 0.42, { stroke: pal.line, lw: 0.8, alpha: 0.3 * a });
+
+  let y = yTop - luh;
+  let xo = 0;
+  for (let i = 0; i < tiao; i++) {
+    // 华拱（向外出跳 30 分°，向上 21 分°）
+    const gw = 30 * u * 1.5;
+    const gh = caiH;
+    const gx = x - gw / 2 + xo * 0.0;
+    dl.rect(gx, y - gh, gw, gh, { fill: "#151d33", alpha: 0.96 * a });
+    dl.rect(gx, y - gh, gw, gh, { stroke: pal.n1, lw: 0.9, alpha: 0.32 * a });
+    // 跳头散斗
+    const sw = 16 * u, sh = 10 * u;
+    dl.rect(gx + gw / 2 - sw / 2, y - gh - sh, sw, sh, { fill: "#101728", alpha: 0.98 * a });
+    dl.rect(gx + gw / 2 - sw / 2, y - gh - sh, sw, sh, { stroke: pal.line, lw: 0.8, alpha: 0.34 * a });
+    dl.rect(gx - sw / 2, y - gh - sh, sw, sh, { fill: "#101728", alpha: 0.98 * a });
+    dl.rect(gx - sw / 2, y - gh - sh, sw, sh, { stroke: pal.line, lw: 0.8, alpha: 0.34 * a });
+    // 昂（斜置尖头）
+    if (i === tiao - 1 && tiao >= 2) {
+      const ax = gx + gw / 2;
+      dl.path("M" + round2(ax - 6 * u) + " " + round2(y - gh - sh) +
+        "L" + round2(ax + 22 * u) + " " + round2(y - gh - sh - 9 * u) +
+        "L" + round2(ax + 6 * u) + " " + round2(y - gh - sh - 15 * u) + "Z",
+        { fill: "#182036", alpha: 0.96 * a, stroke: pal.n3, lw: 0.9, alpha2: 0 });
+      dl.path("M" + round2(ax - 6 * u) + " " + round2(y - gh - sh) +
+        "L" + round2(ax + 22 * u) + " " + round2(y - gh - sh - 9 * u) +
+        "L" + round2(ax + 6 * u) + " " + round2(y - gh - sh - 15 * u) + "Z",
+        { stroke: pal.n3, lw: 0.9, alpha: 0.5 * a });
+    }
+    y -= 21 * u;
+    xo += 30 * u * (i % 2 === 0 ? 1 : -1) * 0.001;
+  }
+  // 令拱（横拱）
+  const lw2 = 62 * u;
+  dl.rect(x - lw2 / 2, y - caiH * 0.8, lw2, caiH * 0.8, { fill: "#131a30", alpha: 0.96 * a });
+  dl.rect(x - lw2 / 2, y - caiH * 0.8, lw2, caiH * 0.8, { stroke: pal.line, lw: 0.9, alpha: 0.36 * a });
+  // 耍头
+  dl.path("M" + round2(x - 10 * u) + " " + round2(y - caiH * 0.8) +
+    "L" + round2(x + 14 * u) + " " + round2(y - caiH * 0.8 - 8 * u) +
+    "L" + round2(x + 14 * u) + " " + round2(y - caiH * 0.8) + "Z",
+    { fill: "#1a2340", alpha: 0.95 * a, stroke: pal.line, lw: 0.8, alpha2: 0 });
+  dl.path("M" + round2(x - 10 * u) + " " + round2(y - caiH * 0.8) +
+    "L" + round2(x + 14 * u) + " " + round2(y - caiH * 0.8 - 8 * u) +
+    "L" + round2(x + 14 * u) + " " + round2(y - caiH * 0.8) + "Z",
+    { stroke: pal.line, lw: 0.8, alpha: 0.42 * a });
+}
+
+/* ------------------------------------------------------------ 鸱吻 */
+function drawChiwen(dl, x, y, k, dir, pal) {
+  const w = 15 * k, h = 26 * k;
+  const d = "M" + round2(x) + " " + round2(y) +
+    "C" + round2(x + dir * w * 0.2) + " " + round2(y - h * 0.5) + " " +
+    round2(x + dir * w * 1.1) + " " + round2(y - h * 0.62) + " " +
+    round2(x + dir * w * 0.55) + " " + round2(y - h) +
+    "C" + round2(x + dir * w * 0.9) + " " + round2(y - h * 0.78) + " " +
+    round2(x + dir * w * 0.28) + " " + round2(y - h * 0.72) + " " +
+    round2(x + dir * w * 0.1) + " " + round2(y - h * 0.25) + "Z";
+  dl.path(d, { fill: "#101728", alpha: 1 });
+  dl.path(d, { stroke: pal.n3, lw: 1.1, alpha: 0.5, glow: pal.n3, blur: 12 });
+  dl.circle(x + dir * w * 0.5, y - h * 0.82, 1.7 * k, { fill: pal.n2, alpha: 0.85, glow: pal.n2, blur: 14 });
+}
+
+/* ------------------------------------------------------ 窗棂 lattice */
+function drawLattice(dl, x, y, w, h, type, rng, pal, k, lod) {
+  const LOD = lod == null ? 2 : lod;
+  // 窗框
+  dl.rect(x, y, w, h, { fill: "#070b15", alpha: 0.95 });
+  dl.rect(x, y, w, h, { stroke: pal.line, lw: 1.1, alpha: 0.36 });
+  // 窗芯底色（透光）
+  const glowCol = rng.chance(0.72) ? pal.warm : pal.n1;
+  dl.rect(x + 2, y + 2, w - 4, h - 4, { fill: glowCol, alpha: 0.07 + rng.next() * 0.1 });
+
+  const ix = x + 4, iy = y + 4, iw = w - 8, ih = h - 8;
+  if (iw <= 2 || ih <= 2) return;
+  if (LOD === 0) {   // 远景：只留一横一竖，细节交给空气透视
+    dl.line(ix, iy + ih / 2, ix + iw, iy + ih / 2, { stroke: pal.line, lw: 0.7, alpha: 0.34 });
+    dl.line(ix + iw / 2, iy, ix + iw / 2, iy + ih, { stroke: pal.line, lw: 0.7, alpha: 0.34 });
+    return;
+  }
+  const lw = Math.max(0.55, 0.85 * Math.min(1, k * 8));
+  const lineOpt = { stroke: pal.line, lw: lw, alpha: 0.5 };
+
+  if (type === "binglie") {
+    // 冰裂纹：递归半平面切分
+    const cells = [];
+    crackPolygon([[ix, iy], [ix + iw, iy], [ix + iw, iy + ih], [ix, iy + ih]], rng, 3, cells);
+    for (const c of cells) {
+      if (c.length < 3) continue;
+      dl.path(ptsToPath(c, true), { stroke: pal.line, lw: lw, alpha: 0.42 });
+      dl.path(ptsToPath(c, true), { fill: glowCol, alpha: 0.035 });
+    }
+  } else if (type === "denglong") {
+    // 灯笼锦：网格 + 中心菱形
+    const cols = Math.max(2, Math.round(iw / (32 * k))), rows = Math.max(2, Math.round(ih / (32 * k)));
+    for (let c = 1; c < cols; c++) dl.line(ix + iw * c / cols, iy, ix + iw * c / cols, iy + ih, lineOpt);
+    for (let r = 1; r < rows; r++) dl.line(ix, iy + ih * r / rows, ix + iw, iy + ih * r / rows, lineOpt);
+    const cw = iw / cols, chh = ih / rows;
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const mx = ix + cw * (c + 0.5), my = iy + chh * (r + 0.5);
+        dl.path("M" + round2(mx) + " " + round2(my - chh * 0.3) +
+          "L" + round2(mx + cw * 0.3) + " " + round2(my) +
+          "L" + round2(mx) + " " + round2(my + chh * 0.3) +
+          "L" + round2(mx - cw * 0.3) + " " + round2(my) + "Z",
+          { stroke: pal.line, lw: lw, alpha: 0.4 });
+      }
+    }
+  } else {
+    // 步步锦：井字 + 中心方
+    const cols = Math.max(2, Math.round(iw / (30 * k))), rows = Math.max(2, Math.round(ih / (30 * k)));
+    for (let c = 1; c < cols; c++) dl.line(ix + iw * c / cols, iy, ix + iw * c / cols, iy + ih, lineOpt);
+    for (let r = 1; r < rows; r++) dl.line(ix, iy + ih * r / rows, ix + iw, iy + ih * r / rows, lineOpt);
+    const cw = iw / cols, chh = ih / rows;
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const mx = ix + cw * (c + 0.5), my = iy + chh * (r + 0.5);
+        const q = Math.min(cw, chh) * 0.22;
+        dl.rect(mx - q, my - q, q * 2, q * 2, { stroke: pal.line, lw: lw, alpha: 0.44 });
+      }
+    }
+  }
+}
+
+/* ============================================================ 刀线制版 */
+/*
+  A3 横版 420 × 297 mm。
+  模切刀线：#E4002B 实线；压痕线：#0057B8 虚线；出血：#FF00FF 细实线（外扩 3mm）。
+*/
+function buildDieLine(meta, P) {
+  const PW = 420, PH = 297, MG = 14;
+  const out = [];
+  const esc2 = esc;
+  out.push('<?xml version="1.0" encoding="UTF-8"?>');
+  out.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + PW + 'mm" height="' + PH + 'mm" viewBox="0 0 ' + PW + ' ' + PH + '" version="1.1">');
+  out.push('<title>赛博营造法式 · 立面刀线版 · SEED ' + meta.seed + '</title>');
+  out.push('<desc>模切刀线(红) / 压痕线(蓝虚) / 3mm 出血(品红) / CMYK 色标 / 四角套准规线</desc>');
+
+  // ---- 版面 ----
+  out.push('<rect x="0" y="0" width="' + PW + '" height="' + PH + '" fill="#ffffff"/>');
+  // 版心框
+  out.push('<rect x="' + MG + '" y="' + MG + '" width="' + (PW - 2 * MG) + '" height="' + (PH - 2 * MG) + '" fill="none" stroke="#999999" stroke-width="0.2" stroke-dasharray="2 1.5"/>');
+
+  // ---- 四角套准规线 ----
+  const reg = [[MG, MG], [PW - MG, MG], [MG, PH - MG], [PW - MG, PH - MG]];
+  for (const rc of reg) {
+    out.push('<circle cx="' + rc[0] + '" cy="' + rc[1] + '" r="3.2" fill="none" stroke="#000000" stroke-width="0.22"/>');
+    out.push('<circle cx="' + rc[0] + '" cy="' + rc[1] + '" r="1.2" fill="none" stroke="#000000" stroke-width="0.22"/>');
+    out.push('<line x1="' + (rc[0] - 5) + '" y1="' + rc[1] + '" x2="' + (rc[0] + 5) + '" y2="' + rc[1] + '" stroke="#000000" stroke-width="0.22"/>');
+    out.push('<line x1="' + rc[0] + '" y1="' + (rc[1] - 5) + '" x2="' + rc[0] + '" y2="' + (rc[1] + 5) + '" stroke="#000000" stroke-width="0.22"/>');
+  }
+
+  // ---- CMYK 色标 ----
+  const cmyk = [["C", "#00AEEF"], ["M", "#EC008C"], ["Y", "#FFF200"], ["K", "#231F20"]];
+  cmyk.forEach(function (cc, i) {
+    const bx = PW - MG - 46 + i * 11.5, by = PH - MG - 9;
+    out.push('<rect x="' + bx + '" y="' + by + '" width="10" height="6" fill="' + cc[1] + '"/>');
+    out.push('<rect x="' + bx + '" y="' + by + '" width="10" height="6" fill="none" stroke="#666" stroke-width="0.15"/>');
+    out.push('<text x="' + (bx + 5) + '" y="' + (by - 1.6) + '" font-family="monospace" font-size="2.6" fill="#333" text-anchor="middle">' + cc[0] + '</text>');
+  });
+
+  // ---- 建筑立面排布 ----
+  const facades = meta.facades;
+  const workX = MG + 8, workY = MG + 20;
+  const workW = PW - 2 * MG - 16, workH = PH - 2 * MG - 52;
+  const n = facades.length;
+  const slotW = workW / n;
+  const pad = 4;
+
+  // 各栋包围盒（原图为画布坐标，y 轴向下）
+  const boxes = facades.map(function (f) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of f.poly) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+      if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+    }
+    return { x0: x0, y0: y0, x1: x1, y1: y1, w: x1 - x0, h: y1 - y0 };
+  });
+  // 统一比例尺：最高的栋适配版心高，最宽的栋适配单个槽位宽
+  let maxH = 1, maxW = 1;
+  for (const b of boxes) { maxH = Math.max(maxH, b.h); maxW = Math.max(maxW, b.w); }
+  const sc = Math.min((workH - pad * 2) / maxH, (slotW - pad * 2) / maxW);
+
+  facades.forEach(function (f, i) {
+    const bb = boxes[i];
+    const ox = workX + slotW * i + slotW / 2 - (bb.w * sc) / 2;
+    const oy = workY + workH;                       // 版面底线 = 建筑台基地面
+    const poly = f.poly.map(function (p) {
+      return [ox + (p[0] - bb.x0) * sc, oy - (bb.y1 - p[1]) * sc];
+    });
+    const pw = bb.w * sc, ph2 = bb.h * sc;
+    const bleed = offsetPolygon(poly, 3);
+    const dCut = ptsToPath(poly, true);
+    const dBleed = ptsToPath(bleed, true);
+
+    // 图稿区（淡填充）
+    out.push('<path d="' + dCut + '" fill="#F2F4F8" stroke="none"/>');
+    // 3mm 出血
+    out.push('<path d="' + dBleed + '" fill="none" stroke="#FF00FF" stroke-width="0.25"/>');
+    // 模切刀线
+    out.push('<path d="' + dCut + '" fill="none" stroke="#E4002B" stroke-width="0.5" stroke-linejoin="round"/>');
+    // 压痕线（水平折位，限制在轮廓宽度内）
+    [0.34, 0.62, 0.84].forEach(function (t) {
+      const y = oy - ph2 * (1 - t);
+      out.push('<line x1="' + round2(ox) + '" y1="' + round2(y) + '" x2="' + round2(ox + pw) + '" y2="' + round2(y) + '" stroke="#0057B8" stroke-width="0.3" stroke-dasharray="2 1.2"/>');
+    });
+    // 标注（置于各栋轮廓上方，避让版心信息栏）
+    const ly = Math.max(workY + 2, oy - ph2 - 5.2);
+    out.push('<text x="' + (ox + pw / 2) + '" y="' + round2(ly) + '" font-family="Microsoft YaHei,SimHei,sans-serif" font-size="3.2" fill="#333" text-anchor="middle">' +
+      esc2(f.name) + ' · ' + f.bays + '间 ' + f.floors + '层</text>');
+    out.push('<text x="' + (ox + pw / 2) + '" y="' + round2(ly + 3.6) + '" font-family="monospace" font-size="2.4" fill="#777" text-anchor="middle">' +
+      (f.chongyan ? "重檐" : "单檐") + " " + roofName(f.roof) + '</text>');
+  });
+
+  // ---- 版心信息栏 ----
+  const iy = PH - MG - 30;
+  out.push('<line x1="' + (MG + 8) + '" y1="' + (iy - 4) + '" x2="' + (PW - MG - 8) + '" y2="' + (iy - 4) + '" stroke="#999" stroke-width="0.2"/>');
+  const info = [
+    "品名：赛博营造法式 · 立面模切版",
+    "SEED：" + meta.seed + "  (0x" + meta.seed.toString(16).toUpperCase() + ")",
+    "材等：" + meta.caiName + "  材广 " + meta.caiG.toFixed(2) + " 寸 / 材厚 " + meta.caiT.toFixed(2) + " 寸",
+    "一分°：" + round2(meta.fenCun) + " 寸 ≈ " + round2(meta.fenCm) + " cm",
+    "间广：" + meta.jianFen + " 分° ≈ " + round2(meta.jianCun) + " 寸",
+    "铺作：" + meta.puzuo + " 铺作（" + meta.tiao + " 跳）",
+    "举高：" + round2(meta.juRatio) + "% ≈ " + round2(meta.juCm) + " cm",
+    "栋数：" + meta.buildings + " 栋 / 共 " + meta.totalJian + " 间",
+    "比例 1:" + Math.round(1 / (meta.pxPerFen * meta.fenCm / 10)) + "   单位 mm   出血 3mm   刀线 0.5pt"
+  ];
+  info.forEach(function (t, i) {
+    const col2 = i % 3;
+    const rowI = Math.floor(i / 3);
+    const tx = MG + 8 + col2 * ((PW - 2 * MG - 16) / 3);
+    const ty = iy + rowI * 5.4;
+    out.push('<text x="' + round2(tx) + '" y="' + round2(ty) + '" font-family="Microsoft YaHei,SimHei,sans-serif" font-size="3" fill="#222">' + esc2(t) + '</text>');
+  });
+  out.push('<text x="' + (PW - MG - 8) + '" y="' + (PH - MG - 2.5) + '" font-family="monospace" font-size="2.4" fill="#888" text-anchor="end">CYBER YINGZAO FASHI · DIE-LINE A3 420×297mm · 程序生成</text>');
+
+  out.push('</svg>');
+  return out.join("\n");
+}
+function roofName(r) {
+  return { xieshan: "歇山", xuanshan: "悬山", yingshan: "硬山", zuanjian: "攒尖", wudian: "庑殿" }[r] || "歇山";
+}
+
+/* ============================================================== 说明书 */
+function specText(meta, P) {
+  const L = [];
+  L.push("《赛博营造法式》营造说明书");
+  L.push("SEED " + meta.seed + "   (0x" + meta.seed.toString(16).toUpperCase() + ", 0b" + meta.seed.toString(2) + ")");
+  L.push("────────────────────────");
+  L.push("材　等：" + meta.caiName + "　材广 " + meta.caiG.toFixed(2) + " 寸，材厚 " + meta.caiT.toFixed(2) + " 寸");
+  L.push("一分°：" + round2(meta.fenCun) + " 寸 ≈ " + round2(meta.fenCm) + " cm（材广十五分°、厚十分°）");
+  L.push("间　广：" + meta.jianFen + " 分° ≈ " + round2(meta.jianCun) + " 寸 ≈ " + round2(meta.jianCm) + " cm");
+  L.push("柱　高：" + round2(meta.colCun) + " 寸 ≈ " + round2(meta.colCm) + " cm（柱高不越间之广，" + P.col + "%）");
+  L.push("铺　作：" + meta.puzuo + " 铺作 · 出 " + meta.tiao + " 跳");
+  L.push("斗拱高：" + round2(meta.douCun) + " 寸 ≈ " + round2(meta.douCm) + " cm");
+  L.push("出　檐：" + round2(meta.eaveCun) + " 寸 ≈ " + round2(meta.eaveCm) + " cm");
+  L.push("举　高：" + round2(meta.juCun) + " 寸 ≈ " + round2(meta.juCm) + " cm（撩檐枋相距之 " + P.ju + "%）");
+  L.push("────────────────────────");
+  L.push("举折各架降落值（每架自上递减半为法）：");
+  meta.drops.forEach(function (d, i) {
+    L.push("　第 " + (i + 1) + " 架：" + round2(d) + " 寸 ≈ " + round2(d * CUN_CM) + " cm");
+  });
+  L.push("────────────────────────");
+  L.push("街　市：" + meta.buildings + " 栋，共 " + meta.totalJian + " 间");
+  L.push("总面阔：≈ " + (meta.streetCm / 100).toFixed(2) + " m");
+  L.push("色　调：" + meta.pal.name + " (" + meta.pal.en + ")");
+  L.push("────────────────────────");
+  L.push("凡构屋之制，皆以材为祖。—《营造法式》卷四");
+  return L.join("\n");
+}
+
+/* ============================================================== UI */
+const $ = function (id) { return document.getElementById(id); };
+const cv = $("cv"), ctx = cv.getContext("2d");
+const state = {
+  seed: 1024, cai: 1, jian: 250, col: 85, pu: 6, ju: 33, smooth: 0,
+  neon: 70, rain: 55, fog: 45, refl: 60, pal: "neon"
+};
+const DEFAULTS = JSON.parse(JSON.stringify(state));
+let scene = null, anim = null, animStart = 0;
+
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._t);
+  t._t = setTimeout(function () { t.classList.remove("on"); }, 2200);
+}
+
+/* 重建几何（参数或种子变化时调用一次） */
+function rebuild() {
+  scene = buildScene(state, 1);
+  return scene;
+}
+/* 按当前 ANIM_P 绘制到主画布 */
+function paint() {
+  if (!scene) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#05060c";
+  ctx.fillRect(0, 0, W, H);
+  drawCanvas(scene.dl, ctx);
+  if (!FAST) {  // 扫描线质感（仅屏幕观感，不进矢量导出）
+    ctx.save();
+    ctx.globalAlpha = 0.05; ctx.fillStyle = "#000";
+    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+    ctx.restore();
+  }
+}
+
+/* 营造动画：逐栋自下而上生长，末帧补上辉光 */
+function animate() {
+  if (anim) cancelAnimationFrame(anim);
+  rebuild();
+  updateSpec(scene.meta);
+  $("loading").classList.add("on");
+  FAST = true;
+  animStart = performance.now();
+  const dur = 1250;
+  function step(now) {
+    const t = clamp((now - animStart) / dur, 0, 1);
+    ANIM_P = 1 - Math.pow(1 - t, 3);
+    paint();
+    if (t < 1) anim = requestAnimationFrame(step);
+    else {
+      anim = null;
+      ANIM_P = 1; FAST = false;
+      paint();
+      $("loading").classList.remove("on");
+    }
+  }
+  anim = requestAnimationFrame(step);
+}
+
+function updateSpec(meta) {
+  if (!meta) return;
+  const rows = [
+    ["材等", meta.caiName, meta.caiG.toFixed(2) + " 寸广"],
+    ["材厚", round2(meta.caiT) + " 寸", round2(meta.caiT * CUN_CM) + " cm"],
+    ["一分°", round2(meta.fenCun) + " 寸", round2(meta.fenCm) + " cm"],
+    ["间广", meta.jianFen + " 分°", round2(meta.jianCm) + " cm"],
+    ["柱高", round2(meta.colCun) + " 寸", round2(meta.colCm) + " cm"],
+    ["铺作", meta.puzuo + " 铺作", meta.tiao + " 跳出"],
+    ["斗拱高", round2(meta.douCun) + " 寸", round2(meta.douCm) + " cm"],
+    ["出檐", round2(meta.eaveCun) + " 寸", round2(meta.eaveCm) + " cm"],
+    ["举高", P0() + "%", round2(meta.juCm) + " cm"],
+    ["架数", meta.nJia + " 架", "举折"],
+    ["栋数", meta.buildings + " 栋", meta.totalJian + " 间"],
+    ["总面阔", (meta.streetCm / 100).toFixed(2) + " m", "街市"]
+  ];
+  $("spec-body").innerHTML = rows.map(function (r) {
+    return "<tr><th>" + r[0] + "</th><td><b>" + r[1] + "</b><i>" + r[2] + "</i></td></tr>";
+  }).join("");
+
+  $("jz").innerHTML = meta.drops.map(function (d, i) {
+    return "<div>" + round2(d) + "<span>第" + (i + 1) + "架</span></div>";
+  }).join("");
+
+  $("hud-l").textContent = "SEED " + meta.seed + " · " + meta.caiName + " · " +
+    meta.puzuo + "铺作 · " + meta.buildings + "栋 " + meta.totalJian + "间 · 总面阔 " + (meta.streetCm / 100).toFixed(1) + " m";
+  $("badge").textContent = "SEED " + meta.seed + " · 0x" + meta.seed.toString(16).toUpperCase();
+  $("hud-r").textContent = W + " × " + H + " · 1分° = " + round2(meta.pxPerFen * 100) / 100 + " px";
+
+  const q = [
+    "凡构屋之制，皆以材为祖。材有八等，度屋之大小，因而用之。",
+    "材上加栔者，谓之足材。—— 材广十五分°，厚十分°。",
+    "出一跳谓之四铺作，出两跳谓之五铺作，以至八铺作。",
+    "举折之制：以举高尺丈，每尺折一寸，每架自上递减半为法。",
+    "柱高不越间之广。"
+  ];
+  $("quote").innerHTML = "<b>《营造法式》</b><br>" + q[(meta.seed + state.cai) % q.length];
+}
+function P0() { return state.ju; }
+
+/* ---- controls ---- */
+function bindRange(id, key, fmt) {
+  const el = $(id), out = $("v-" + id.slice(2));
+  function upd() {
+    state[key] = parseFloat(el.value);
+    if (out) out.textContent = fmt(state[key]);
+  }
+  el.addEventListener("input", function () { upd(); schedule(); });
+  upd();
+}
+function schedule() {
+  clearTimeout(schedule._t);
+  schedule._t = setTimeout(function () {
+    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    FAST = false; ANIM_P = 1;
+    rebuild(); paint(); updateSpec(scene.meta);
+  }, 60);
+}
+
+bindRange("r-cai", "cai", function (v) { return CAI_NAME[v] + "材"; });
+bindRange("r-jian", "jian", function (v) { return v + " 分°"; });
+bindRange("r-col", "col", function (v) { return v + "%"; });
+bindRange("r-pu", "pu", function (v) { return ["", "", "", "", "四铺作", "五铺作", "六铺作", "七铺作", "八铺作"][v]; });
+bindRange("r-ju", "ju", function (v) { return "1/" + (100 / v).toFixed(1); });
+bindRange("r-neon", "neon", function (v) { return v + "%"; });
+bindRange("r-rain", "rain", function (v) { return v + "%"; });
+bindRange("r-fog", "fog", function (v) { return v + "%"; });
+bindRange("r-refl", "refl", function (v) { return v + "%"; });
+
+$("seg-smooth").addEventListener("click", function (e) {
+  const b = e.target.closest("button"); if (!b) return;
+  state.smooth = parseInt(b.dataset.v, 10);
+  [].forEach.call(this.querySelectorAll("button"), function (x) { x.classList.toggle("on", x === b); });
+  schedule();
+});
+
+const palWrap = $("chips-pal");
+PALETTES.forEach(function (p) {
+  const b = document.createElement("button");
+  b.innerHTML = p.name + "<span>" + p.en + "</span>";
+  b.classList.toggle("on", p.id === state.pal);
+  b.addEventListener("click", function () {
+    state.pal = p.id;
+    [].forEach.call(palWrap.querySelectorAll("button"), function (x) { x.classList.remove("on"); });
+    b.classList.add("on");
+    animate();
+  });
+  palWrap.appendChild(b);
+});
+
+$("btn-dice").addEventListener("click", function () {
+  const s = 1 + Math.floor(Math.random() * 99999);
+  $("seed").value = s;
+  setSeed(s);
+});
+$("seed").addEventListener("change", function () {
+  const raw = this.value.trim();
+  const s = /^\d+$/.test(raw) ? (parseInt(raw, 10) >>> 0) : hashSeed(raw);
+  setSeed(s);
+});
+function setSeed(s) {
+  state.seed = s >>> 0;
+  $("badge").textContent = "SEED " + state.seed + " · 0x" + state.seed.toString(16).toUpperCase();
+  animate();
+}
+
+/* ---- export ---- */
+function fname(ext) { return "cyber-yingzao-" + state.seed + "." + ext; }
+function download(name, blob) { toast("安装后可导出文件"); return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+}
+$("btn-png").addEventListener("click", function () {
+  const c = document.createElement("canvas");
+  c.width = W * 2; c.height = H * 2;
+  const cx2 = c.getContext("2d");
+  cx2.scale(2, 2);
+  const built = scene || buildScene(state, 1);
+  cx2.fillStyle = "#05060c"; cx2.fillRect(0, 0, W, H);
+  drawCanvas(built.dl, cx2);
+  cx2.save(); cx2.globalAlpha = 0.05; cx2.fillStyle = "#000";
+  for (let y = 0; y < H; y += 3) cx2.fillRect(0, y, W, 1);
+  cx2.restore();
+  c.toBlob(function (b) { download(fname("png"), b); toast("已导出 2× 夜景图 PNG"); }, "image/png");
+});
+$("btn-svg").addEventListener("click", function () {
+  const built = scene || buildScene(state, 1);
+  const svg = toSvg(built.dl, W, H);
+  download(fname("svg"), new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  toast("已导出矢量夜景 SVG（" + (svg.length / 1024).toFixed(0) + " KB）");
+});
+$("btn-die").addEventListener("click", function () {
+  const built = scene || buildScene(state, 1);
+  const svg = buildDieLine(built.meta, state);
+  download("cyber-yingzao-" + state.seed + "-dieline-A3.svg", new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  toast("已导出 A3 制版刀线 SVG");
+});
+$("btn-copy").addEventListener("click", function () {
+  const built = scene || buildScene(state, 1);
+  const txt = specText(built.meta, state);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(function () { toast("营造说明书已复制到剪贴板"); },
+      function () { fallbackCopy(txt); });
+  } else fallbackCopy(txt);
+});
+function fallbackCopy(txt) {
+  const ta = document.createElement("textarea");
+  ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); toast("营造说明书已复制到剪贴板"); }
+  catch (e) { toast("复制失败，请手动选择文本"); }
+  ta.remove();
+}
+
+$("btn-reset").addEventListener("click", function () {
+  Object.assign(state, JSON.parse(JSON.stringify(DEFAULTS)));
+  $("seed").value = state.seed;
+  $("r-cai").value = state.cai; $("r-jian").value = state.jian; $("r-col").value = state.col;
+  $("r-pu").value = state.pu; $("r-ju").value = state.ju;
+  $("r-neon").value = state.neon; $("r-rain").value = state.rain;
+  $("r-fog").value = state.fog; $("r-refl").value = state.refl;
+  ["r-cai", "r-jian", "r-col", "r-pu", "r-ju", "r-neon", "r-rain", "r-fog", "r-refl"].forEach(function (id) {
+    $(id).dispatchEvent(new Event("input"));
+  });
+  [].forEach.call(palWrap.querySelectorAll("button"), function (x, i) { x.classList.toggle("on", PALETTES[i].id === state.pal); });
+  animate();
+  toast("已复原初始值");
+});
+
+$("btn-about").addEventListener("click", function () { $("modal").classList.add("on"); });
+$("modal-close").addEventListener("click", function () { $("modal").classList.remove("on"); });
+$("modal").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("on"); });
+
+document.addEventListener("keydown", function (e) {
+  if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.code === "Space") { e.preventDefault(); $("btn-dice").click(); }
+  else if (e.key === "s" || e.key === "S") $("btn-png").click();
+  else if (e.key === "v" || e.key === "V") $("btn-svg").click();
+  else if (e.key === "d" || e.key === "D") $("btn-die").click();
+  else if (e.key === "Escape") $("modal").classList.remove("on");
+});
+
+/* ---- boot ---- */
+(function boot() {
+  animate();
+})();
+</script>
+</body>
+</html>
