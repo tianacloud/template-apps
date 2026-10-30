@@ -63,8 +63,8 @@ async function loadData(){
 function storageError(){ alert('数据库连接或保存失败，请检查网络后重新打开应用确认数据。'); }
 let breathTimer = null, breathStep = 0, breathCycles = 0, seq = [];
 
-const fmt = d => d.toISOString().slice(0,10);
-const todayStr = fmt(new Date());
+const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today = () => fmt(new Date());
 
 function switchTab(v){
   document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
@@ -114,12 +114,13 @@ function renderStreak(){
   const n=getStreak(checksDone);
   document.getElementById('streakNum').textContent=n;
   const box=document.getElementById('streakBtn');
-  if(checksDone.includes(todayStr)) box.innerHTML='<span class="done">今天已练习 ✓</span>';
+  if(checksDone.includes(today())) box.innerHTML='<span class="done">今天已练习 ✓</span>';
   else box.innerHTML='<button class="do" onclick="doCheckin()">今天练过了</button>';
 }
 async function doCheckin(){
   if(!storageReady){ storageError(); return; }
-  try { if(!checksDone.includes(todayStr)){ await execute('INSERT OR IGNORE INTO checkins(day) VALUES (?)', [todayStr]); checksDone.push(todayStr); } } catch(e) { storageError(); return; }
+  const day=today();
+  try { if(!checksDone.includes(day)){ await execute('INSERT OR IGNORE INTO checkins(day) VALUES (?)', [day]); checksDone.push(day); } } catch(e) { storageError(); return; }
   renderStreak();
   alert('已记下，明天也来一次就更稳了 🌿');
 }
