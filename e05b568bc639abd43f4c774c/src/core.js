@@ -1,0 +1,296 @@
+
+const SECTIONS=[
+ {key:"done",name:"本周完成",dot:"#0d9488"},
+ {key:"doing",name:"进行中",dot:"#d97706"},
+ {key:"risk",name:"风险与阻塞",dot:"#dc2626"},
+ {key:"plan",name:"下周计划",dot:"#2563eb"},
+];
+
+let store={weeks:{}};        // { "2026-W43": { done:[...],doing:[...] ,...} }
+let currentWeekKey="";
+let confirmCb=null;
+
+/* ---------- week helpers ---------- */
+function weekKeyOf(d){
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day);
+  const y=t.getUTCFullYear();
+  const w=Math.ceil((((t-Date.UTC(y,0,1))/86400000)+1)/7);
+  return y+"-W"+String(w).padStart(2,"0");
+}
+function mondayOf(d){const t=new Date(d);const day=(t.getDay()+6)%7;t.setDate(t.getDate()-day);return t}
+function fmt(md){return (md.getMonth()+1)+"/"+md.getDate()}
+function weekRangeText(d){const m=mondayOf(d);const s=new Date(m);s.setDate(s.getDate()+6);return fmt(m)+" – "+fmt(s)}
+function curBase(){const m=mondayOf(new Date());return m}
+let baseDate=curBase();
+
+/* ---------- data ---------- */
+function save(){saveCurrentWeek()}
+function saveCurrentWeek(){persistStore()}
+function weekData(){
+  if(!store.weeks[currentWeekKey])store.weeks[currentWeekKey]={done:[],doing:[],risk:[],plan:[],savedAt:Date.now()};
+  SECTIONS.forEach(s=>{if(!Array.isArray(store.weeks[currentWeekKey][s.key]))store.weeks[currentWeekKey][s.key]=[]});
+  return store.weeks[currentWeekKey];
+}
+function newItem(title="",tag="",prio="中",hours="",note=""){return{id:Date.now()+Math.random().toString(36).slice(2,6),title,tag,prio,hours,note,done:false}}
+
+/* ---------- templates ---------- */
+const TEMPLATES={
+ dev:{done:[["完成支付网关 v2 接口联调","支付","高",6,"3 个接口已上测试环境"],["修复用户中心 OOM 告警","用户中心","低",3,""]],
+      doing:[["开发对账报表导出功能","报表","中",4,"进度 60%"],["接入短信服务商双通道","消息","中",2,""]],
+      risk:[["测试环境数据库连接池耗尽","基础设施","高",0,"需运维协助扩容，阻塞回归测试"]],
+      plan:[["启动灰度发布流程评审","发布","中",""],["重构网关鉴权模块","支付","高",8,""]]},
+ pm:{done:[["完成 Q4 需求池评审","规划","高",4,""]],
+     doing:[["撰写会员体系 PRD v1.2","会员","中",6,"等设计稿"],["跟进竞品定价调研","调研","低",3,""]],
+     risk:[["核心功能依赖第三方 SDK 升级延期","会员","高",0,"供应商承诺本周五给时间表"]],
+     plan:[["组织跨部门需求对齐会","协作","中",2,""],["输出数据看板原型","数据","高",""]]},
+};
+function loadTemplate(name){
+  const t=TEMPLATES[name];const d=weekData();
+  SECTIONS.forEach(s=>d[s.key]=t[s.key].map(a=>newItem(a[0],a[1],a[2],a[3]||"",a[4]||"")));
+  d.done.forEach(i=>i.done=true);   // 本周完成分区默认已完成
+  save();render();toast("已载入模板数据");
+}
+function confirmClear(){askConfirm("确定清空示例/本周所有事项？",()=>{const d=weekData();SECTIONS.forEach(s=>d[s.key]=[]);save();render();toast("已清空")})}
+
+/* ---------- render ---------- */
+function renderView(){
+  document.getElementById("weekRange").textContent=weekRangeText(baseDate);
+  currentWeekKey=weekKeyOf(baseDate);
+  const d=weekData();
+  // stats
+  let total=0,doneN=0,highRisk=0;
+  SECTIONS.forEach(s=>d[s.key].forEach(i=>{total++;if(s.key==="done")doneN++;if(i.prio==="高")highRisk+= (s.key==="risk")?1:0;}));
+  // 本月完成条数：汇总所有周，周一落在当前查看周所在公历月的「本周完成」分区条数
+  let monthDone=0;
+  const curYear=baseDate.getFullYear(),curMonth=baseDate.getMonth();
+  Object.keys(store.weeks).forEach(k=>{
+    const w=store.weeks[k];if(!w||!Array.isArray(w.done))return;
+    const m=mondayFromKey(k);
+    if(m.getFullYear()===curYear&&m.getMonth()===curMonth)monthDone+=w.done.length;
+  });
+  document.getElementById("statsBar").innerHTML=`
+   <div class="stat"><div class="num">${total}</div><div class="lbl">本周事项总数</div></div>
+   <div class="stat"><div class="num">${doneN}</div><div class="lbl">已完成数</div></div>
+   <div class="stat"><div class="num">${highRisk}</div><div class="lbl">高优先级阻塞</div></div>
+   <div class="stat"><div class="num">${monthDone}</div><div class="lbl">本月完成条数</div></div>`;
+  // cards
+  document.getElementById("cards").innerHTML=SECTIONS.map(s=>{
+    const items=d[s.key];
+    const rows=items.length?items.map((it,idx)=>itemHtml(s.key,it,idx,items.length)).join(""):`<div class="empty">暂无事项<br><span style="font-size:12px">在下方输入标题快速添加</span></div>`;
+    return `<div class="card">
+      <div class="card-head"><h2><span class="dot" style="background:${s.dot}"></span>${s.name}<span style="font-size:12px;color:var(--muted);font-weight:400">（${items.length}）</span></h2></div>
+      <div class="card-body" data-sec="${s.key}">${rows}</div>
+      <div class="add-form">
+        <div class="af-row1"><input type="text" placeholder="标题（必填）" id="t-${s.key}" onkeydown="if(event.key==='Enter')addItem('${s.key}')"></div>
+        <div class="af-row2">
+          <input type="text" placeholder="项目标签" id="tag-${s.key}" style="width:100px">
+          <select id="p-${s.key}"><option>高</option><option selected>中</option><option>低</option></select>
+          <input type="number" min="0" step="0.5" placeholder="耗时h" id="h-${s.key}" style="width:74px">
+          <input type="text" placeholder="备注" id="n-${s.key}" style="flex:1;min-width:80px">
+          <button class="btn btn-primary" onclick="addItem('${s.key}')">＋ 添加</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  renderHistory();
+}
+function mondayFromKey(k){
+  const [y,w]=[parseInt(k.slice(0,4)),parseInt(k.slice(6))];
+  const jan4=new Date(y,0,4);
+  const m=mondayOf(jan4);m.setDate(m.getDate()+(w-1)*7);return m;
+}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function itemHtml(sec,it,idx,len){
+  const ph={高:"p-high",中:"p-mid",低:"p-low"}[it.prio]||"p-mid";
+  const doneBox=sec==="done"?`<input type="checkbox" class="done-check" ${it.done?"checked":""} onclick="toggleDone('${sec}',${idx},this)" title="标记完成">`:"";
+  const tags=[it.tag?`<span class="tag">${esc(it.tag)}</span>`:"",`<span class="tag ${ph}">${esc(it.prio)}</span>`,it.hours?`<span class="tag hours">⏱ ${esc(it.hours)}h</span>`:"",it.note?`<span style="font-size:12px;color:var(--muted)">💬 ${esc(it.note)}</span>`:""].join("");
+  return `<div class="item ${sec==='done'&&it.done?'done':''}" draggable="true" ondragstart="dragStart(event,'${sec}',${idx})" ondragover="event.preventDefault()" ondrop="dropTo(event,'${sec}',${idx})">
+    <div class="item-top">${doneBox}<div class="item-title">${esc(it.title)}</div>
+      <div class="item-actions">
+        <button class="icon-btn" title="上移" onclick="move('${sec}',${idx},-1)">▲</button>
+        <button class="icon-btn" title="下移" onclick="move('${sec}',${idx},1)">▼</button>
+        <button class="icon-btn" title="编辑" onclick="editItem('${sec}',${idx})">✎</button>
+        <button class="icon-btn del" title="删除" onclick="delItem('${sec}',${idx})">🗑</button>
+      </div></div>
+    ${tags?`<div class="tags">${tags}</div>`:""}
+  </div>`;
+}
+function toggleDone(sec,idx,el){weekData()[sec][idx].done=el.checked;saveCurrentWeek();render()}
+
+/* ---------- CRUD ---------- */
+function addItem(sec){
+  const t=document.getElementById("t-"+sec).value.trim();
+  if(!t){toast("标题不能为空");document.getElementById("t-"+sec).focus();return}
+  const it=newItem(t,document.getElementById("tag-"+sec).value.trim(),
+    document.getElementById("p-"+sec).value,
+    document.getElementById("h-"+sec).value,
+    document.getElementById("n-"+sec).value.trim());
+  if(Number(it.hours)<0 || !Number.isFinite(Number(it.hours))){toast("耗时须为非负数");return}if(sec==="done")it.done=true;
+  weekData()[sec].push(it);saveCurrentWeek();render();
+}
+function delItem(sec,idx){askConfirm("确定删除该条事项？",()=>{weekData()[sec].splice(idx,1);saveCurrentWeek();render();toast("已删除")})}
+function editView(sec,idx){
+  const d=weekData();const it=d[sec][idx];
+  const body=document.querySelector(`.card-body[data-sec="${sec}"]`);
+  body.innerHTML=`<div class="item edit-form">
+    <div class="af-row1"><input type="text" id="e-title" value="${esc(it.title)}"></div>
+    <div class="af-row2">
+      <input type="text" id="e-tag" value="${esc(it.tag)}" placeholder="项目" style="width:100px">
+      <select id="e-prio">${["高","中","低"].map(p=>`<option ${p===it.prio?"selected":""}>${p}</option>`).join("")}</select>
+      <input type="number" id="e-hours" value="${esc(it.hours||"")}" placeholder="耗时h" style="width:74px">
+      <input type="text" id="e-note" value="${esc(it.note)}" placeholder="备注" style="flex:1;min-width:80px">
+      <button class="btn btn-primary" onclick="saveEdit('${sec}',${idx})">保存</button>
+      <button class="btn btn-ghost" onclick="render()">取消</button>
+    </div></div>`;
+  document.getElementById("e-title").focus();
+}
+function saveEdit(sec,idx){
+  const t=document.getElementById("e-title").value.trim();
+  if(!t){toast("标题不能为空");return}
+  const hours=document.getElementById("e-hours").value;if(Number(hours)<0 || !Number.isFinite(Number(hours))){toast("耗时须为非负数");return}const it=weekData()[sec][idx];
+  it.title=t;it.tag=document.getElementById("e-tag").value.trim();
+  it.prio=document.getElementById("e-prio").value;
+  it.hours=document.getElementById("e-hours").value;
+  it.note=document.getElementById("e-note").value.trim();
+  saveCurrentWeek();render();toast("已保存");
+}
+function move(sec,idx,dir){
+  const arr=weekData()[sec];const j=idx+dir;
+  if(j<0||j>=arr.length)return;
+  [arr[idx],arr[j]]=[arr[j],arr[idx]];saveCurrentWeek();render();
+}
+let dragSec=null,dragIdx=null;
+function dragStart(e,sec,idx){dragSec=sec;dragIdx=idx;e.target.classList.add("dragging")}
+function dropTo(e,sec,idx){
+  if(dragSec!==sec||dragIdx===null)return;
+  const arr=weekData()[sec];const[it]=arr.splice(dragIdx,1);arr.splice(idx,0,it);
+  dragSec=dragIdx=null;saveCurrentWeek();render();
+}
+
+/* ---------- export/copy ---------- */
+function mdText(){
+  const d=weekData();const r=weekRangeText(baseDate);
+  let out=`# 周报 ${r}\n`;
+  const titles={"done":"本周完成","doing":"进行中","risk":"风险与阻塞","plan":"下周计划"};
+  SECTIONS.forEach(s=>{
+    out+=`\n## ${titles[s.key]}\n`;
+    const items=d[s.key];
+    if(!items.length){out+="- （无）\n";return}
+    items.forEach(it=>{
+      let line=`- ${it.done===false&&s.key==='done'?'[ ] ':''}${it.title}`;
+      const extra=[];if(it.tag)extra.push(it.tag);if(it.prio)extra.push(it.prio);
+      if(it.hours)extra.push(it.hours+"h");if(it.note)extra.push(it.note);
+      if(extra.length)line+=`（${extra.join(" · ")}）`;
+      out+=line+"\n";
+    });
+  });
+  return out;
+}
+function plainText(){
+  const d=weekData();const r=weekRangeText(baseDate);
+  const titles={"done":"【本周完成】","doing":"【进行中】","risk":"【风险与阻塞】","plan":"【下周计划】"};
+  let out=`周报 ${r}\n`;
+  SECTIONS.forEach(s=>{
+    out+=`\n${titles[s.key]}\n`;
+    const items=d[s.key];
+    if(!items.length){out+="（无）\n";return}
+    items.forEach((it,i)=>{
+      let line=`${i+1}. ${it.title}`;
+      const extra=[];if(it.tag)extra.push(it.tag);if(it.hours)extra.push(it.hours+"h");if(it.note)extra.push(it.note);
+      if(extra.length)line+=`（${extra.join(" · ")}）`;
+      out+=line+"\n";
+    });
+  });
+  return out;
+}
+function copyText(txt,label){
+  const done=()=>toast(label+"已复制 ✓");
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done))}
+  else fallbackCopy(txt,done);
+}
+function fallbackCopy(txt,done){
+  const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);
+  ta.select();try{if(!document.execCommand("copy"))throw 0;done();ta.remove()}catch(e){ta.style.cssText="position:fixed;inset:20%;width:60%;height:50%;z-index:100";ta.setAttribute("aria-label","手动复制周报");toast("请选择文本手动复制，完成后按 Escape");ta.onkeydown=e=>{if(e.key==="Escape")ta.remove()}}
+}
+function copyMd(){copyText(mdText(),"Markdown 周报")}
+function copyPlain(){copyText(plainText(),"飞书/文档粘贴版")}
+
+function exportJson(){
+  const blob=new Blob([JSON.stringify(store,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="weekly-report-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("已导出 JSON 备份");
+}
+function importJson(e){
+  const f=e.target.files[0];if(!f)return;if(f.size>2000000){toast("备份文件不能超过2MB");e.target.value="";return}
+  const rd=new FileReader();
+  rd.onload=()=>{try{
+    const data=JSON.parse(rd.result);
+    validateBackup(data);
+    store=Object.assign({weeks:{}},data);saveCurrentWeek();
+    render();toast("导入成功");
+  }catch(err){toast("文件格式不正确")}};
+  rd.readAsText(f);e.target.value="";
+}
+
+/* ---------- history drawer ---------- */
+function openDrawer(){document.getElementById("drawer").classList.add("open");renderHistory()}
+function closeDrawer(){document.getElementById("drawer").classList.remove("open")}
+function renderHistoryView(){
+  const q=(document.getElementById("histSearch")?.value||"").trim().toLowerCase();
+  const keys=Object.keys(store.weeks).filter(k=>store.weeks[k]).sort().reverse();
+  const list=keys.map(k=>{
+    const w=store.weeks[k];
+    let total=0,matched=false;
+    SECTIONS.forEach(s=>(w[s.key]||[]).forEach(i=>{total++;if(q&&i.title.toLowerCase().includes(q))matched=true}));
+    if(q&&!matched)return "";
+    const cur=k===currentWeekKey;
+    return `<div class="hist-item ${cur?"current":""}" onclick="openWeek('${k}')">
+      <span class="hist-del icon-btn" onclick="event.stopPropagation();delWeek('${k}')">🗑</span>
+      <div class="hist-week">${k}${cur?"（当前）":""}</div>
+      <div class="hist-meta">${weekRangeText(mondayFromKey(k))} · ${total} 条事项</div>
+    </div>`;
+  }).join("");
+  document.getElementById("histList").innerHTML=list||`<div class="empty">${q?"没有匹配的历史记录":"暂无历史周报"}</div>`;
+}
+function openWeek(k){
+  const m=mondayFromKey(k);baseDate=m;currentWeekKey=k;
+  closeDrawer();render();
+}
+function delWeek(k){askConfirm(`确定删除 ${k} 的历史数据？`,()=>{delete store.weeks[k];saveCurrentWeek();render();toast("已删除")})}
+
+/* ---------- confirm modal ---------- */
+function askConfirm(text,cb){document.getElementById("confirmText").textContent=text;confirmCb=cb;document.getElementById("confirmMask").classList.add("show")}
+function confirmYes(){document.getElementById("confirmMask").classList.remove("show");if(confirmCb)confirmCb();confirmCb=null}
+function confirmNo(){document.getElementById("confirmMask").classList.remove("show");confirmCb=null}
+
+/* ---------- week nav ---------- */
+function shiftWeek(n){baseDate.setDate(baseDate.getDate()+n*7);render()}
+function goToday(){baseDate=curBase();render()}
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+
+function validateBackup(data){
+ if(!data || typeof data!=="object" || !data.weeks || Array.isArray(data.weeks) || typeof data.weeks!=="object")throw 0;
+ if(Object.keys(data.weeks).length>520)throw 0;
+ for(const [key,w] of Object.entries(data.weeks)){
+  if(!/^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/.test(key)||!w||typeof w!=="object"||weekKeyOf(mondayFromKey(key))!==key)throw 0;
+  for(const {key:s} of SECTIONS){if(!Array.isArray(w[s])||w[s].length>1000)throw 0;for(const i of w[s]){
+   if(!i||typeof i.title!=="string"||!i.title.trim()||i.title.length>1000||!["高","中","低"].includes(i.prio))throw 0;
+   if(typeof i.tag!=="string"||typeof i.note!=="string"||i.tag.length>1000||i.note.length>10000||typeof i.done!=="boolean")throw 0;
+   if(!["number","string"].includes(typeof i.hours)||!Number.isFinite(Number(i.hours))||Number(i.hours)<0)throw 0;
+  }}
+ }
+}
+function startUI(){currentWeekKey=weekKeyOf(new Date());if(!Object.keys(store.weeks).length)loadTemplate("dev");else render()}
+
+function render(){renderView();bindUI()}
+function editItem(sec,idx){editView(sec,idx);bindUI()}
+function renderHistory(){renderHistoryView();bindUI()}
