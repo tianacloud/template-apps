@@ -1,0 +1,9 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createDomain, composeCard, dailyQuestionsFor } from '../src/domain.mjs';
+import { needsCare, templateLetter } from '../src/companion.mjs';
+function memory(){let data=null,revision=0;return {async read(){return {revision,data:structuredClone(data)}},async write(next,expected){if(revision!==expected) throw Error('conflict'); data=structuredClone(next);return ++revision}}}
+test('card freezes for the day and survives reopening',async()=>{const storage=memory(),d=await createDomain({storage});await d.updateProfile({birthday:'2000-05-10'});const first=await d.drawCard({answers:{}});await d.setAbout({id:'focus',choice:0});assert.deepEqual(await d.drawCard({answers:{}}),first);assert.deepEqual((await createDomain({storage})).snapshot().todayCard,first);const q=dailyQuestionsFor('2026-10-27');assert.deepEqual(composeCard('2000-05-10','2026-10-27',{}, {},q),composeCard('2000-05-10','2026-10-27',{}, {},q));});
+test('concurrent state writers reject stale revisions',async()=>{const storage=memory(),a=await createDomain({storage}),b=await createDomain({storage});await a.checkin({mood:4,note:'晴天'});await assert.rejects(b.addJoy({text:'小猫'}),/conflict/);const state=(await createDomain({storage})).snapshot();assert.equal(state.streak,1);assert.equal(state.joyCount,0);});
+test('same question repeats answer and discoveries are idempotent',async()=>{const d=await createDomain({storage:memory()});const a=await d.ask({question:'散步吗'}),b=await d.ask({question:'散步吗'});assert.equal(a.answer,b.answer);assert.equal(await d.discover({id:'jar'}),true);assert.equal(await d.discover({id:'jar'}),false);});
+test('fixed care signal and handwritten note',async()=>{const d=await createDomain({storage:memory()});await d.addJoy({text:'热茶'});assert.equal(needsCare('不想活'),true);assert.equal(needsCare('阳光很好'),false);assert.match(templateLetter(d.companionData()),/热茶/);});

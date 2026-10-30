@@ -1,0 +1,3 @@
+const seed=()=>({version:1,profile:{nickname:'',birthday:'2000-05-10'},checkins:{},cards:{},joys:[{id:'00000000-0000-4000-8000-000000000001',text:'午后喝到一杯热茶',date:new Date().toLocaleDateString('en-CA'),at:new Date().toISOString()}],answers:[],quiz:null,about:{},secrets:{},flags:{awoke:new Date().toISOString()},companion:{enabled:null,letters:{}}});
+let data=seed(),revision=1;
+export const storage={async read(){return {revision,data:structuredClone(data)}},async write(next,rev){if(rev!==revision)throw new Error('数据已变化，请刷新');data=structuredClone(next);return ++revision},reset(){data=seed();revision++}};
