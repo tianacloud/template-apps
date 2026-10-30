@@ -8,7 +8,7 @@ export async function mount(root, {files}) {
   const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('./app.css',import.meta.url).href;document.head.appendChild(css);
   root.innerHTML=body;
   if(!window.__ironOffline) {
-    const button=document.createElement('button');button.id='pwaInstallBtn';button.hidden=true;button.textContent='安装到桌面';button.style.cssText='position:fixed;top:70px;left:12px;z-index:9999;padding:11px 16px;border:0;border-radius:9px;background:#16202e;color:white;cursor:pointer';
+    const button=document.createElement('button');button.id='pwaInstallBtn';button.hidden=true;button.textContent='安装到桌面';button.style.cssText='position:absolute;top:70px;left:12px;z-index:9999;padding:11px 16px;border:0;border-radius:9px;background:#16202e;color:white;cursor:pointer';
     button.onclick=()=>location.assign(new URL('./offline.html',import.meta.url).href);document.body.appendChild(button);
   } else {
     const bar=document.createElement('div');bar.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:10px;background:#3b3020;color:white';bar.textContent='离线模式：更改暂存在本机，联网后返回应用同步。';const sync=document.createElement('button');sync.textContent='联网同步';sync.style.marginLeft='12px';sync.onclick=async()=>{const active=await getLocal('active');if(active?.url)location.assign(active.url);};bar.appendChild(sync);
