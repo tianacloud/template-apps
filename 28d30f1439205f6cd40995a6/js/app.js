@@ -870,7 +870,7 @@ function renderCharts() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const rec = h.find((x) => x.date === key);
     days.push({
       label: (d.getMonth() + 1) + '/' + d.getDate(),
@@ -900,7 +900,7 @@ function renderCharts() {
 function renderStreak() {
   const h = D.stats.history || [];
   const byDate = new Map(h.map((r) => [r.date, r]));
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey(new Date());
   const hasToday = (D.stats.waterCups || 0) > 0;
 
   let n = 0;
@@ -908,7 +908,7 @@ function renderStreak() {
   if (!hasToday) cursor.setDate(cursor.getDate() - 1);
 
   while (true) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = localDateKey(cursor);
     const rec = key === todayKey ? { waterCups: D.stats.waterCups } : byDate.get(key);
     if (rec && (rec.waterCups || 0) > 0) { n++; cursor.setDate(cursor.getDate() - 1); }
     else break;

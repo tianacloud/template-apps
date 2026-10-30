@@ -41,6 +41,7 @@ const DEFAULTS = {
 };
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
+const localDateKey = (d) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
 
 /**
  * 深合并：patch 里的值覆盖 base（文件值优先，默认值补缺）
@@ -118,7 +119,7 @@ const store = {
 
   /** 跨天检测：把昨天的记录归档，重置今日计数 */
   rollDay() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey(new Date());
     const s = this.data.stats;
     if (s.date === today) return false;
 
