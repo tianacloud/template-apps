@@ -81,7 +81,7 @@ function tick(){if(screen!=='play'||!game)return;const now=performance.now(),sta
 function clearBoard(){if(screen!=='play')return;game.board.fill(null);renderBoard()}
 function reroll(){if(screen!=='play')return;game.reroll(performance.now());showRequirement(false,true);tone2(340)}
 function bestScore(){return runs.length?Number(runs[0].score)||0:0}
-function refreshBest(){const el=$('best-line');el.replaceChildren();const b=bestScore();if(b>0){const strong=document.createElement('b');strong.textContent=b+' 分';el.append(document.createTextNode('历史最高 '),strong)}else el.textContent='还没有记录，第一单就是你的基准线。'}
+function refreshBest(){const el=$('best-line');el.replaceChildren();const b=bestScore();if(runs.length){const strong=document.createElement('b');strong.textContent=b+' 分';el.append(document.createTextNode('历史最高 '),strong)}else el.textContent='还没有记录，第一单就是你的基准线。'}
 function summaryOf(row){try{return typeof row.summary==='string'?JSON.parse(row.summary):row.summary||{}}catch{return {}}}
 function renderLeaderboard(){
  $('lb-rows').replaceChildren();if(!runs.length){const empty=document.createElement('div');empty.className='lb-row';empty.textContent='还没有记录';$('lb-rows').append(empty);return}

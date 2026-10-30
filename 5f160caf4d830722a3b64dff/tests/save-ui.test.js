@@ -47,3 +47,8 @@ test('a confirmed save with failed leaderboard read offers an in-report read-onl
  const f=fixture(async({args,rows})=>commit(rows,args),({rows,count})=>{if(count===2)throw Error('History read unavailable');return [...rows.values()]});
  try{await f.flush();f.click('#btn-start');f.finish();await f.flush();assert.equal(f.rows.size,1);assert.equal(f.writes,1);const b=f.w.document.querySelector('#btn-reload-result-records');assert.ok(b);assert.equal(b.hidden,false);assert.equal(b.closest('#s-over').hidden,false);assert.equal(f.w.document.querySelector('#btn-again').disabled,false);assert.match(f.w.document.querySelector('#cloud-state').textContent,/记录已保存/);f.click('#btn-reload-result-records');await f.flush();assert.equal(f.writes,1);assert.equal(f.w.document.querySelectorAll('.lb-row.me').length,1);assert.equal(b.hidden,true);assert.equal(f.w.document.querySelector('#cloud-state').hidden,true)}finally{f.close()}
 });
+
+test('zero-score saved history is displayed as a record on the start screen',async()=>{
+ const f=fixture(async()=>{},()=>[{id:'zero',score:0,summary:'{}',created_at:'2026-01-01T00:00:00Z'}]);
+ try{await f.flush();assert.match(f.w.document.querySelector('#best-line').textContent,/历史最高 0 分/)}finally{f.close()}
+});
