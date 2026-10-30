@@ -1,0 +1,10 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const html=await readFile('client/index.html','utf8');
+const body=html.match(/<svg class="icon-sprite"[\s\S]*?<\/main>/)[0];
+const css=await readFile('client/styles.css','utf8');
+const time=await readFile('client/time.js','utf8');
+const cities=await readFile('client/cities.js','utf8');
+const app=await readFile('client/app.js','utf8');
+const reset=`document.getElementById('reset-demo').addEventListener('click',()=>{ state={target:{...DEFAULT_TARGET},home:{...DEFAULT_HOME},theme:'auto',clockFormat:'12h'};previewStorage.clear();document.getElementById('combo-target').value=state.target.title;document.getElementById('combo-home').value=state.home.title;document.querySelectorAll('.combo-list,.combo-empty').forEach(e=>e.hidden=true);document.querySelectorAll('.combo-input').forEach(e=>{e.setAttribute('aria-expanded','false');e.removeAttribute('aria-activedescendant')});applyTheme();applyClockFormat();render();});`;
+const preview=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>时差保安示例</title><style>${css}\n.demo-note{max-width:680px;margin:0 auto 8px;font:12px system-ui;color:var(--mcode-text-muted);display:flex;justify-content:space-between;align-items:center}.demo-note button{font:inherit;color:inherit;background:transparent;border:1px solid var(--mcode-border);border-radius:6px;padding:4px 8px;cursor:pointer}</style></head><body><div class="demo-note"><span>示例体验，数据仅保留在本页</span><button id="reset-demo" type="button">恢复示例</button></div><div id="sync-status" role="status"></div>${body}<script>window.prefStore={async read(){return null},async write(){}};const previewStorage={getItem(){return null},setItem(){},clear(){}};\n${time}\n${cities}\n${app}\n${reset}<\/script></body></html>`;
+await writeFile('showcase/preview.html',preview);
