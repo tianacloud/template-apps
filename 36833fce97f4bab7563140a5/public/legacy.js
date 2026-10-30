@@ -92,7 +92,7 @@ const DEFAULTS = {
       senior: { on: false, name: "", emoji: "🔭" }
     }
   },
-  /* —— 知识库（v4）：月度内容包版本，由每月更新机制追加 —— */
+  /* —— 知识库（v4）：月度内容包版本，由内容精选机制追加 —— */
   libSeen: "",
   /* —— 家长锦囊（v5）：每周一问的自留地，只有家长写、只有家长看，不进孩子的任何统计 —— */
   checkins: []
@@ -2081,7 +2081,7 @@ function previewReport() {
 }
 
 /* ================================================================
-   成长知识库（v1.3）：月度内容包 · 每月 1 日更新一期
+   成长知识库（v1.3）：内容包
    —— 内容为经典或主流共识，均注明来源；新增一期只需在数组头部
       插入 { ver, date, theme, note, items:[...] }，页面自动切换
    ================================================================ */
@@ -2135,8 +2135,8 @@ function renderLibrary() {
   const verTxt = String(cur.ver).replace(/^(\d{4})-(\d{2})$/, "$1 年 $2 月");
   now.innerHTML =
     '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
-      '<span class="lib-ver">📅 本月内容 · ' + verTxt + '</span>' +
-      '<span class="muted">本期主题：' + esc(cur.theme) + ' · 每月 1 日自动更新</span>' +
+      '<span class="lib-ver">📅 精选内容 · ' + verTxt + '</span>' +
+      '<span class="muted">本期主题：' + esc(cur.theme) + '</span>' +
     '</div>' +
     (cur.note ? '<div class="muted" style="margin-bottom:12px;line-height:1.8">' + esc(cur.note) + '</div>' : "") +
     libCardsHTML(cur);
@@ -2146,7 +2146,7 @@ function renderLibrary() {
         '<details class="lib-card" style="padding:0"><summary style="cursor:pointer;padding:14px 18px;font-weight:700;font-size:14.6px;list-style:none">' +
         '🗂️ ' + String(p.ver).replace(/^(\d{4})-(\d{2})$/, "$1 年 $2 月") + ' · ' + esc(p.theme) + '　<span class="muted" style="font-weight:400">点开回看 ›</span></summary>' +
         '<div style="padding:2px 18px 14px">' + libCardsHTML(p) + '</div></details>').join("")
-    : '<div class="muted" style="margin-top:20px">这是第 1 期内容包。之后每月 1 日，平台会自动推送新的一期（教育理念 + 科学知识 + 实操方法）。</div>';
+    : '<div class="muted" style="margin-top:20px">这是目前提供的内容包（教育理念 + 科学知识 + 实操方法）。</div>';
 }
 
 /* ================================================================
