@@ -174,7 +174,7 @@ function lastKey(){return lastResult;}
 $('dlBtn').onclick=()=>{
   const a=$('poster').toDataURL('image/png');
   const link=document.createElement('a');
-  link.download="1024代码人格.png";link.href=a;link.click();toast("海报已下载，去炫耀吧 🎉");
+  link.download="代码人格.png";link.href=a;link.click();toast("海报已下载，去炫耀吧 🎉");
 };
 $('againBtn').onclick=()=>{$('nick').value="";show('home');window.scrollTo(0,0);};
 $('shareBtn').onclick=async()=>{
