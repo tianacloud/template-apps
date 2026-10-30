@@ -70,6 +70,16 @@ function ensureBook(id,cb){
     bookLoadFail(id);
   });
 }
+async function prepareLegacyBooks(data){
+  if(!data || data.wordMigrated) return;
+  await Promise.all(Object.keys(BOOKS).map(async function(id){
+    if(_bookLoaded[id]) return;
+    var response=await files.get(bookFile(id));
+    if(!response.ok) throw new Error("无法读取词库");
+    var words=await response.json(); if(!Array.isArray(words)) throw new Error("词库格式错误");
+    BOOKS[id].words=words; _bookLoaded[id]=true; if(id==="cet4") CET4_WORDS=words;
+  }));
+}
 function curBookId(){return (S&&S.curBook&&BOOKS[S.curBook])?S.curBook:"cet4"}
 function curBook(){return BOOKS[curBookId()]}
 function curWords(){return curBook().words}
@@ -1703,7 +1713,8 @@ function bindEvents(){
   document.getElementById("importFile").onchange=function(e){
     var file=e.target.files[0];if(!file)return;
     var reader=new FileReader();
-    reader.onload=function(){
+    reader.onload=async function(){
+      try { await prepareLegacyBooks(JSON.parse(reader.result)); } catch(e) { alert("导入失败，请检查文件或词库连接。"); return; }
       if(Store.importJSON(reader.result)){
         loadState();renderAll();alert("导入成功！");
       }else{alert("导入失败，文件格式错误。")}
@@ -1767,7 +1778,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 
 // Start after cloud data is available
-try { await initializeStorage(); init(); } catch (e) { root.innerHTML = '<div role="alert" style="padding:24px">无法读取云端学习记录，请检查登录及网络后刷新。</div>'; console.error(e); }
+try { await initializeStorage(); await prepareLegacyBooks(Store.data); init(); } catch (e) { root.innerHTML = '<div role="alert" style="padding:24px">无法读取云端学习记录，请检查登录及网络后刷新。</div>'; console.error(e); }
 // PWA: register service worker for offline use
 
 
