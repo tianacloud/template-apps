@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS game_preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);

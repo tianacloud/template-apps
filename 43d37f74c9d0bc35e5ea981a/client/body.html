@@ -1,0 +1,557 @@
+
+<canvas id="game"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hp-bar-wrap">
+    <div class="hp-bar" id="hp-bar"></div>
+    <div class="hp-text" id="hp-text">1P 100 / 100</div>
+  </div>
+  <div class="res-bar" id="res-bar"><i></i></div>
+  <div class="xp-bar-wrap">
+    <div class="xp-bar" id="xp-bar"></div>
+  </div>
+  <!-- 1P 等级（双人模式显示在左上，替代右上角 stats 里的等级） -->
+  <div id="level1-info">Lv.1</div>
+  <!-- 2P 信息块：右上角（与 1P 左上对称），血条经验条颜色与 1P 相同 -->
+  <div id="p2-hud" style="display:none">
+    <div class="hp-bar-wrap" id="hp2-wrap">
+      <div class="hp-bar" id="hp2-bar"></div>
+      <div class="hp-text" id="hp2-text">2P 100 / 100</div>
+    </div>
+    <div class="res-bar" id="res2-bar"><i></i></div>
+    <div class="xp-bar-wrap" id="xp2-wrap">
+      <div class="xp-bar" id="xp2-bar"></div>
+    </div>
+    <div id="level2-info">Lv.1</div>
+    <!-- ⚖️ AI 让经验提示（仅 AI 组队 + AI 经验领先时显示） -->
+    <div id="p2-yield">🤝 让经验给 1P</div>
+  </div>
+  <!-- 3P 信息块：挂在 2P 正下方（三人模式） -->
+  <div id="p3-hud" style="display:none">
+    <div class="hp-bar-wrap" id="hp3-wrap">
+      <div class="hp-bar" id="hp3-bar"></div>
+      <div class="hp-text" id="hp3-text">3P 100 / 100</div>
+    </div>
+    <div class="res-bar" id="res3-bar"><i></i></div>
+    <div class="xp-bar-wrap" id="xp3-wrap">
+      <div class="xp-bar" id="xp3-bar"></div>
+    </div>
+    <div id="level3-info">Lv.1</div>
+    <div id="p3-yield">🤝 让经验中</div>
+  </div>
+</div>
+
+<div id="stats">
+  <div id="wave-info">第 1 波</div>
+  <div id="stat-sub-row">
+    <div id="timer-info">00:00</div>
+    <div id="level-info">Lv.1</div>
+  </div>
+</div>
+<div id="horde-info" style="display:none"></div>
+
+<div id="game-btns">
+  <button id="pause-btn" onclick="togglePause()" aria-label="暂停" title="暂停">⏸</button>
+  <button id="g-sound-btn" class="js-sound-btn" onclick="SND.toggle(); updateSoundBtn()" aria-label="音效" title="音效">🔊</button>
+  <button id="g-music-btn" class="js-music-btn" onclick="Music.toggle(); updateMusicBtn()" aria-label="音乐" title="音乐">🎵</button>
+  <button id="g-settings-btn" onclick="openSettings()" aria-label="设置" title="设置">⚙️</button>
+  <button id="fs-btn" onclick="toggleFullscreen()" aria-label="全屏" title="全屏">⛶</button>
+</div>
+
+<button id="pause-home-btn" onclick="backToMenu()">🏠 返回主页</button>
+
+<div id="pause-stats"></div>
+
+<div id="boss-bar-wrap">
+  <div id="boss-name"></div>
+  <div id="boss-bar-shield-bg"><div id="boss-bar-shield"></div></div>
+  <div id="boss-bar-bg"><div id="boss-bar"></div></div>
+</div>
+
+<div id="skill-bar"></div>
+<div id="skill-bar2" style="display:none"></div>
+<div id="skill-label1" class="skill-label">1P 技能</div>
+<div id="skill-label2" class="skill-label">2P 技能</div>
+<div id="skill-label3" class="skill-label">3P 技能</div>
+<div id="skill-bar3" style="display:none"></div>
+<div id="coop-toast" style="display:none"></div>
+<div id="touch-layer">
+  <div class="tpad" id="pad-move"><div class="knob"></div><div class="cap">移动</div></div>
+  <div class="tpad" id="pad-aim"><div class="knob"></div><div class="cap">瞄准</div></div>
+</div>
+<button id="pad-skill">技能</button>
+<div id="rotate-hint"><span><span class="rh-ic">📱</span>请横屏游玩<br><small style="color:#9cf">把手机转成横放，触控双摇杆更好操作</small></span></div>
+<!-- 📖 剧情模式对话层 -->
+<div id="net-badge"></div>
+<div id="tut-banner" style="display:none">
+  <div id="tut-text"></div>
+  <button id="tut-next-btn" onclick="tutNextSkill()" style="display:none">下一个 →</button>
+  <button id="tut-quit-btn" onclick="quitTutorial()">跳过教程</button>
+</div>
+<div id="tut-hero-pick">
+  <h2>📘 角色教程</h2>
+  <div class="tut-sub">选一个角色开始：先按远程/近战练<b>基础玩法</b>，再逐个<b>试它的技能</b>，最后看<b>技能图鉴</b></div>
+  <div id="tut-pick-grid"></div>
+  <button id="tut-pick-back" onclick="tutPickBack()">返回</button>
+</div>
+<div id="tut-guide">
+  <div id="tut-guide-body"></div>
+  <button id="tut-guide-done" onclick="finishTutorial(false)">✅ 学会啦 · 完成教程</button>
+</div>
+
+<!-- Level up -->
+<div id="levelup">
+  <h2 id="lv-title">升级！</h2>
+  <p>选择一个技能</p>
+  <div id="choices"></div>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen">
+  <h1>弹幕幸存者</h1>
+  <div class="subtitle">在弹幕中存活，击败3个Boss即可获胜</div>
+  <div class="icon-row">
+    <button id="sound-btn" class="js-sound-btn" onclick="SND.toggle(); updateSoundBtn()" aria-label="音效" title="音效">🔊</button>
+    <button id="music-btn" class="js-music-btn" onclick="Music.toggle(); updateMusicBtn()" aria-label="音乐" title="音乐">🎵</button>
+    <button id="settings-btn" onclick="openSettings()" aria-label="设置" title="设置">⚙️</button>
+  </div>
+  <div class="controls">
+    <span>WASD</span> 或 <span>🎮 手柄左摇杆</span>（360° 全方位）移动 &nbsp;|&nbsp; <span>鼠标</span> 瞄准方向（自动射击）<br>
+    每10波出现Boss &nbsp;|&nbsp; 击杀敌人掉落经验 &nbsp;|&nbsp; 升级选择技能<br>
+    <span>剑士</span>（可选角色）近身挥砍大剑：能斩伤敌人，也能<span>斩掉敌方弹幕</span>；两角色各有一套专属技能
+  </div>
+  <div class="btn-row row-main">
+    <button onclick="startWithMenuMode()">开始游戏</button>
+    <button onclick="openModeSelect()">🎮 模式选择</button>
+  </div>
+  <div class="btn-row row-toggle">
+    <button class="codex" id="btn-codex" onclick="openHeroCodex()">📖 角色</button>
+    <button class="credits" id="btn-credits" onclick="openCredits()">🎬 制作人员</button>
+    <button class="world" id="btn-world" onclick="toggleWorld()">🌍 世界：世界1</button>
+  </div>
+  <div class="controls" style="margin-top:14px"><span>⚙️ 设置</span> 里可调音量/音乐/按键/跳波/成就/手柄检测</div>
+</div>
+
+<!-- 🎮 模式选择面板（整合：挑战/无尽/尸潮开关 + 单人/双人/三人/与AI组队/对战/局域网联机入口） -->
+<div id="mode-select">
+  <h2>🎮 模式选择</h2>
+  <div class="ms-sub">先选一个模式（高亮＝当前模式），再点「开始游戏」以该模式开局；挑战 / 无尽 / 尸潮开关可叠加在任意模式上（尸潮＝无技能卡割草；对战不刷怪，尸潮自动不生效）</div>
+  <div class="ms-grid">
+    <button class="ms-card sel" data-mode="solo" id="btn-solo" onclick="selectMode('solo')">🎯 单人模式<small>一个人闯关</small></button>
+    <button class="ms-card" data-mode="coop" id="btn-coop" disabled onclick="selectMode('coop')">👥 双人模式<small>键鼠 + 手柄（未检测到手柄）</small></button>
+    <button class="ms-card" data-mode="trio" id="btn-trio" disabled onclick="selectMode('trio')">👥 三人模式<small>键鼠 + 手柄 + AI</small></button>
+    <button class="ms-card" data-mode="ai2p" id="btn-ai2p" onclick="selectMode('ai2p')">🤖 与 AI 组队<small>AI 当 2P</small></button>
+    <button class="ms-card pvp" data-mode="pvp-ai" id="btn-pvp-ai" onclick="selectMode('pvp-ai')">⚔️ 对战 · 打 AI<small>1v1 单挑</small></button>
+    <button class="ms-card pvp" data-mode="pvp" id="btn-pvp" disabled onclick="selectMode('pvp')">⚔️ 对战 · 双人同屏<small>需手柄</small></button>
+    <button class="ms-card" data-mode="net" id="btn-net" onclick="selectMode('net')">🌐 双人联机<small>同一网络跨设备同玩</small></button>
+  </div>
+  <div class="ms-toggles">
+    <button class="challenge" id="btn-challenge" onclick="toggleChallenge()">⚔ 挑战模式：关</button>
+    <button class="endless" id="btn-endless" onclick="toggleEndless()">♾ 无尽模式：关</button>
+    <button class="horde" id="btn-horde" onclick="toggleHorde()" title="无技能卡 · 割草战斗：升级自动习得、怪潮密度拉满、连杀加伤">🧟 尸潮模式：关</button>
+  </div>
+  <button class="start-btn" onclick="closeModeSelect()">确定</button>
+</div>
+
+<!-- 🗡 开局角色选择（每局开始前弹面板选，不再在主界面提前定；双人模式 1P/2P 同时各选一个） -->
+<div id="hero-pick">
+  <h2 id="hp-title">选择你的角色</h2>
+  <div class="hp-sub" id="hp-sub">点一下卡片就开始</div>
+  <div class="hp-sides">
+    <div class="hp-side p1" id="hp-side-1">
+      <div class="hp-side-title" id="hp-t1">1P</div>
+      <div class="hero-cards">
+        <div class="hero-card" id="hc1-gunner" onclick="pickHeroSide(0,'gunner')">
+          <div class="hc-icon">🏹</div>
+          <div class="hc-name">射手</div>
+        </div>
+        <div class="hero-card" id="hc1-swordsman" onclick="pickHeroSide(0,'swordsman')">
+          <div class="hc-icon">🗡</div>
+          <div class="hc-name">剑士</div>
+        </div>
+        <div class="hero-card" id="hc1-laser" onclick="pickHeroSide(0,'laser')">
+          <div class="hc-icon">🔆</div>
+          <div class="hc-name">激光</div>
+        </div>
+        <div class="hero-card" id="hc1-bomber" onclick="pickHeroSide(0,'bomber')">
+          <div class="hc-icon">💣</div>
+          <div class="hc-name">爆破</div>
+        </div>
+        <div class="hero-card" id="hc1-tornado" onclick="pickHeroSide(0,'tornado')">
+          <div class="hc-icon">🌀</div>
+          <div class="hc-name">龙卷风</div>
+        </div>
+        <div class="hero-card" id="hc1-venom" onclick="pickHeroSide(0,'venom')">
+          <div class="hc-icon">🧪</div>
+          <div class="hc-name">毒液</div>
+        </div>
+        <div class="hero-card" id="hc1-general" onclick="pickHeroSide(0,'general')">
+          <div class="hc-icon">⚔️</div>
+          <div class="hc-name">将军</div>
+        </div>
+        <div class="hero-card" id="hc1-mage" onclick="pickHeroSide(0,'mage')">
+          <div class="hc-icon">🔮</div>
+          <div class="hc-name">魔法师</div>
+        </div>
+        <div class="hero-card" id="hc1-vampire" onclick="pickHeroSide(0,'vampire')">
+          <div class="hc-icon">🦇</div>
+          <div class="hc-name">吸血鬼</div>
+        </div>
+        <div class="hero-card" id="hc1-stone" onclick="pickHeroSide(0,'stone')">
+          <div class="hc-icon">🪨</div>
+          <div class="hc-name">投石</div>
+        </div>
+        <div class="hero-card" id="hc1-rookie" onclick="pickHeroSide(0,'rookie')">
+          <div class="hc-icon">🐣</div>
+          <div class="hc-name">菜鸟</div>
+        </div>
+        <div class="hero-card" id="hc1-engineer" onclick="pickHeroSide(0,'engineer')">
+          <div class="hc-icon">⚙️</div>
+          <div class="hc-name">工程师</div>
+        </div>
+        <div class="hero-card" id="hc1-boomerang" onclick="pickHeroSide(0,'boomerang')">
+          <div class="hc-icon">🪃</div>
+          <div class="hc-name">回旋镖</div>
+        </div>
+        <div class="hero-card" id="hc1-dogmilk" onclick="pickHeroSide(0,'dogmilk')">
+          <div class="hc-icon">🐶</div>
+          <div class="hc-name">野生狗奶</div>
+        </div>
+        <div class="hero-card" id="hc1-cardmaster" onclick="pickHeroSide(0,'cardmaster')">
+          <div class="hc-icon">🃏</div>
+          <div class="hc-name">卡牌大师</div>
+        </div>
+        <div class="hero-card" id="hc1-ketchup" onclick="pickHeroSide(0,'ketchup')">
+          <div class="hc-icon">🍅</div>
+          <div class="hc-name">番茄酱之神</div>
+        </div>
+        <div class="hero-card" id="hc1-knight" onclick="pickHeroSide(0,'knight')">
+          <div class="hc-icon">🛡️</div>
+          <div class="hc-name">骑士</div>
+        </div>
+        <div class="hero-card" id="hc1-bard" onclick="pickHeroSide(0,'bard')">
+          <div class="hc-icon">🎻</div>
+          <div class="hc-name">吟游诗人</div>
+        </div>
+        <div class="hero-card" id="hc1-spring" onclick="pickHeroSide(0,'spring')">
+          <div class="hc-icon">🥊</div>
+          <div class="hc-name">弹簧</div>
+        </div>
+      </div>
+    </div>
+    <div class="hp-side p2" id="hp-side-2">
+      <div class="hp-side-title" id="hp-t2">2P</div>
+      <div class="hero-cards">
+        <div class="hero-card" id="hc2-gunner" onclick="pickHeroSide(1,'gunner')">
+          <div class="hc-icon">🏹</div>
+          <div class="hc-name">射手</div>
+        </div>
+        <div class="hero-card" id="hc2-swordsman" onclick="pickHeroSide(1,'swordsman')">
+          <div class="hc-icon">🗡</div>
+          <div class="hc-name">剑士</div>
+        </div>
+        <div class="hero-card" id="hc2-laser" onclick="pickHeroSide(1,'laser')">
+          <div class="hc-icon">🔆</div>
+          <div class="hc-name">激光</div>
+        </div>
+        <div class="hero-card" id="hc2-bomber" onclick="pickHeroSide(1,'bomber')">
+          <div class="hc-icon">💣</div>
+          <div class="hc-name">爆破</div>
+        </div>
+        <div class="hero-card" id="hc2-tornado" onclick="pickHeroSide(1,'tornado')">
+          <div class="hc-icon">🌀</div>
+          <div class="hc-name">龙卷风</div>
+        </div>
+        <div class="hero-card" id="hc2-venom" onclick="pickHeroSide(1,'venom')">
+          <div class="hc-icon">🧪</div>
+          <div class="hc-name">毒液</div>
+        </div>
+        <div class="hero-card" id="hc2-general" onclick="pickHeroSide(1,'general')">
+          <div class="hc-icon">⚔️</div>
+          <div class="hc-name">将军</div>
+        </div>
+        <div class="hero-card" id="hc2-mage" onclick="pickHeroSide(1,'mage')">
+          <div class="hc-icon">🔮</div>
+          <div class="hc-name">魔法师</div>
+        </div>
+        <div class="hero-card" id="hc2-vampire" onclick="pickHeroSide(1,'vampire')">
+          <div class="hc-icon">🦇</div>
+          <div class="hc-name">吸血鬼</div>
+        </div>
+        <div class="hero-card" id="hc2-stone" onclick="pickHeroSide(1,'stone')">
+          <div class="hc-icon">🪨</div>
+          <div class="hc-name">投石</div>
+        </div>
+        <div class="hero-card" id="hc2-rookie" onclick="pickHeroSide(1,'rookie')">
+          <div class="hc-icon">🐣</div>
+          <div class="hc-name">菜鸟</div>
+        </div>
+        <div class="hero-card" id="hc2-engineer" onclick="pickHeroSide(1,'engineer')">
+          <div class="hc-icon">⚙️</div>
+          <div class="hc-name">工程师</div>
+        </div>
+        <div class="hero-card" id="hc2-boomerang" onclick="pickHeroSide(1,'boomerang')">
+          <div class="hc-icon">🪃</div>
+          <div class="hc-name">回旋镖</div>
+        </div>
+        <div class="hero-card" id="hc2-dogmilk" onclick="pickHeroSide(1,'dogmilk')">
+          <div class="hc-icon">🐶</div>
+          <div class="hc-name">野生狗奶</div>
+        </div>
+        <div class="hero-card" id="hc2-cardmaster" onclick="pickHeroSide(1,'cardmaster')">
+          <div class="hc-icon">🃏</div>
+          <div class="hc-name">卡牌大师</div>
+        </div>
+        <div class="hero-card" id="hc2-ketchup" onclick="pickHeroSide(1,'ketchup')">
+          <div class="hc-icon">🍅</div>
+          <div class="hc-name">番茄酱之神</div>
+        </div>
+        <div class="hero-card" id="hc2-knight" onclick="pickHeroSide(1,'knight')">
+          <div class="hc-icon">🛡️</div>
+          <div class="hc-name">骑士</div>
+        </div>
+        <div class="hero-card" id="hc2-bard" onclick="pickHeroSide(1,'bard')">
+          <div class="hc-icon">🎻</div>
+          <div class="hc-name">吟游诗人</div>
+        </div>
+        <div class="hero-card" id="hc2-spring" onclick="pickHeroSide(1,'spring')">
+          <div class="hc-icon">🥊</div>
+          <div class="hc-name">弹簧</div>
+        </div>
+      </div>
+    </div>
+    <div class="hp-side p3" id="hp-side-3" style="display:none">
+      <div class="hp-side-title" id="hp-t3">3P · AI 队友</div>
+      <div class="hero-cards">
+        <div class="hero-card" id="hc3-gunner" onclick="pickHeroSide(2,'gunner')">
+          <div class="hc-icon">🏹</div>
+          <div class="hc-name">射手</div>
+        </div>
+        <div class="hero-card" id="hc3-swordsman" onclick="pickHeroSide(2,'swordsman')">
+          <div class="hc-icon">🗡</div>
+          <div class="hc-name">剑士</div>
+        </div>
+        <div class="hero-card" id="hc3-laser" onclick="pickHeroSide(2,'laser')">
+          <div class="hc-icon">🔆</div>
+          <div class="hc-name">激光</div>
+        </div>
+        <div class="hero-card" id="hc3-bomber" onclick="pickHeroSide(2,'bomber')">
+          <div class="hc-icon">💣</div>
+          <div class="hc-name">爆破</div>
+        </div>
+        <div class="hero-card" id="hc3-tornado" onclick="pickHeroSide(2,'tornado')">
+          <div class="hc-icon">🌀</div>
+          <div class="hc-name">龙卷风</div>
+        </div>
+        <div class="hero-card" id="hc3-venom" onclick="pickHeroSide(2,'venom')">
+          <div class="hc-icon">🧪</div>
+          <div class="hc-name">毒液</div>
+        </div>
+        <div class="hero-card" id="hc3-general" onclick="pickHeroSide(2,'general')">
+          <div class="hc-icon">⚔️</div>
+          <div class="hc-name">将军</div>
+        </div>
+        <div class="hero-card" id="hc3-mage" onclick="pickHeroSide(2,'mage')">
+          <div class="hc-icon">🔮</div>
+          <div class="hc-name">魔法师</div>
+        </div>
+        <div class="hero-card" id="hc3-vampire" onclick="pickHeroSide(2,'vampire')">
+          <div class="hc-icon">🦇</div>
+          <div class="hc-name">吸血鬼</div>
+        </div>
+        <div class="hero-card" id="hc3-stone" onclick="pickHeroSide(2,'stone')">
+          <div class="hc-icon">🪨</div>
+          <div class="hc-name">投石</div>
+        </div>
+        <div class="hero-card" id="hc3-rookie" onclick="pickHeroSide(2,'rookie')">
+          <div class="hc-icon">🐣</div>
+          <div class="hc-name">菜鸟</div>
+        </div>
+        <div class="hero-card" id="hc3-engineer" onclick="pickHeroSide(2,'engineer')">
+          <div class="hc-icon">⚙️</div>
+          <div class="hc-name">工程师</div>
+        </div>
+        <div class="hero-card" id="hc3-boomerang" onclick="pickHeroSide(2,'boomerang')">
+          <div class="hc-icon">🪃</div>
+          <div class="hc-name">回旋镖</div>
+        </div>
+        <div class="hero-card" id="hc3-dogmilk" onclick="pickHeroSide(2,'dogmilk')">
+          <div class="hc-icon">🐶</div>
+          <div class="hc-name">野生狗奶</div>
+        </div>
+        <div class="hero-card" id="hc3-cardmaster" onclick="pickHeroSide(2,'cardmaster')">
+          <div class="hc-icon">🃏</div>
+          <div class="hc-name">卡牌大师</div>
+        </div>
+        <div class="hero-card" id="hc3-ketchup" onclick="pickHeroSide(2,'ketchup')">
+          <div class="hc-icon">🍅</div>
+          <div class="hc-name">番茄酱之神</div>
+        </div>
+        <div class="hero-card" id="hc3-knight" onclick="pickHeroSide(2,'knight')">
+          <div class="hc-icon">🛡️</div>
+          <div class="hc-name">骑士</div>
+        </div>
+        <div class="hero-card" id="hc3-bard" onclick="pickHeroSide(2,'bard')">
+          <div class="hc-icon">🎻</div>
+          <div class="hc-name">吟游诗人</div>
+        </div>
+        <div class="hero-card" id="hc3-spring" onclick="pickHeroSide(2,'spring')">
+          <div class="hc-icon">🥊</div>
+          <div class="hc-name">弹簧</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button id="hp-go" class="hidden" onclick="confirmHeroPick()">开战！</button>
+  <div class="hp-tip">📖 卡片只看图标+名字 —— 角色详细介绍回主界面点「📖 角色」查看</div>
+</div>
+
+<!-- 📖 角色图鉴（主界面「📖 角色」按钮打开 · 12 名角色的介绍只在这里看：选角面板不再写介绍） -->
+<div id="hero-codex">
+  <h2>📖 角色图鉴</h2>
+  <div class="cdx-sub">共 <span id="cdx-count">19</span> 名角色 · 点左边的名字看介绍（此面板只在主界面能打开）</div>
+  <div class="cdx-body">
+    <div class="cdx-list" id="cdx-list"></div>
+    <div class="cdx-info" id="cdx-info"></div>
+  </div>
+  <button id="cdx-close" onclick="closeHeroCodex()">返回主界面</button>
+</div>
+
+<!-- 🎬 制作人员（主界面「🎬 制作人员」小按钮打开 · 角色外观墙 + 已删角色纪念像 + 制作名单；只在主界面能打开） -->
+<div id="credits">
+  <h2>🎬 制作人员</h2>
+  <div class="cr-sub">一群人的名字，和一群角色的样子</div>
+  <div class="cr-scroll">
+    <div class="cr-sec">🖼 角色外观墙（当前 <span id="cr-count">19</span> 名角色 · 画法同游戏内实装）</div>
+    <div class="cr-grid" id="cr-grid"></div>
+    <div class="cr-sec">🥎 纪念像（已删除的角色）</div>
+    <div class="cr-grid" id="cr-mem"></div>
+    <div class="cr-note" id="cr-mem-note"></div>
+    <div class="cr-sec">📜 制作名单</div>
+    <div class="cr-list" id="cr-list"></div>
+  </div>
+  <button id="cr-close" onclick="closeCredits()">返回主界面</button>
+</div>
+
+<!-- Challenge -->
+<div id="challenge-panel" class="hidden">
+  <h2>⚔ 挑战模式</h2>
+  <div class="ch-sub">本次挑战的随机词条（1 增益 + 2 减益）</div>
+  <div id="challenge-mods"></div>
+  <div id="ch-note" class="hidden"></div>
+  <div id="gift-pick-wrap" class="hidden"></div>
+  <button id="challenge-go" onclick="resumeChallenge()">开战！</button>
+</div>
+
+<!-- 🌐 联机（WebRTC 直连 + 可选视频镜像，无需服务器：复制一段连接码给对方即可） -->
+<div id="net-panel" class="hidden">
+  <h2>🌐 双人联机（同一网络跨设备）</h2>
+  <div id="net-status" class="nb">未连接</div>
+  <div class="hint nb" id="net-hint">
+    两边用<b>同一个 game.html 网页</b>（手机和电脑都行，用浏览器打开同一份文件）。中间只交换两段"连接码"，适用于同一网络的设备。<br>
+    <span style="color:#7cf">推荐做法</span>：房主点「复制邀请链接」发给对方，对方点开链接即自动填好邀请码。<br>
+    <span style="color:#9ab">电脑当房主 → 只有电脑显示游戏，手机当 2P 触屏手柄；手机当房主 → 双方都显示（镜像）。</span>
+  </div>
+  <div class="nb" id="net-host-box">
+    <div class="st">① 我开房（1P · 电脑）</div>
+    <div class="row">
+      <button onclick="netCreateOffer()">生成邀请码</button>
+      <button onclick="netCopy('net-offer')">复制邀请码</button>
+      <button onclick="netCopyLink()">复制邀请链接</button>
+    </div>
+    <textarea id="net-offer" readonly placeholder="点「生成邀请码」后这里会出现一段码"></textarea>
+    <div class="st">③ 把对方回传的应答码粘回来</div>
+    <textarea id="net-answer" placeholder="粘贴对方给你的应答码"></textarea>
+    <div class="row"><button onclick="netAcceptAnswer()">完成连接</button></div>
+  </div>
+  <div class="sep nb">—— 或者 ——</div>
+  <div class="nb" id="net-join-box">
+    <div class="st">② 我加入（2P · 手机）</div>
+    <textarea id="net-invite" placeholder="粘贴对方给你的邀请码（直接点带码的邀请链接会自动填好）"></textarea>
+    <div class="row"><button onclick="netJoin()">生成应答码</button></div>
+    <textarea id="net-ans-out" readonly placeholder="生成后把这段应答码回传给房主"></textarea>
+    <div class="row"><button onclick="netCopy('net-ans-out')">复制应答码</button></div>
+  </div>
+  <div class="row"><label style="color:#9ab;font-size:13px"><input type="checkbox" id="net-stun" disabled> 同一网络直连</label></div>
+  <div class="row" id="net-start-row" style="display:none; justify-content:center; margin-top:10px">
+    <button class="start-btn" style="font-size:16px; padding:12px 26px" onclick="netStartGame()">▶ 开始游戏（双人）</button>
+  </div>
+  <div class="row"><button class="close-btn" onclick="closeNetPanel()">关闭</button></div>
+</div>
+<video id="net-video" playsinline webkit-playsinline style="display:none; pointer-events:none; position:fixed; inset:0; width:100%; height:100%; object-fit:contain; background:#000; z-index:57;"></video>
+
+<!-- Settings -->
+<div id="settings-panel" class="hidden">
+  <h2>⚙️ 设置</h2>
+  <div class="set-row"><span>音量</span>
+    <input type="range" id="vol-slider" min="0" max="100" value="40" oninput="applyVolume(this.value)">
+    <span id="vol-val">40</span>
+  </div>
+  <div class="set-row"><span>背景音乐</span><button id="set-music-btn" onclick="toggleMusicSetting()">🎵 开</button></div>
+  <div class="set-row"><span>成就系统</span><button id="set-ach-btn" onclick="toggleAchSetting()">🏆 开</button></div>
+  <div class="set-row"><span>显示伤害数值</span><button id="set-dmg-btn" onclick="toggleDamageSetting()">🔴 关</button></div>
+  <div class="set-row"><span>视角</span><button id="set-view-btn" onclick="toggleViewMode()">👁️ 正常</button></div>
+  <div class="set-row"><span>设备类型</span>
+    <span class="dev-toggle">
+      <button id="set-dev-phone" onclick="setDeviceMode('phone')">📱 手机</button>
+      <button id="set-dev-pc" onclick="setDeviceMode('computer')">💻 电脑</button>
+    </span>
+  </div>
+  <div class="set-row"><span>按键设置</span><button onclick="openKeybinds()">🎮 自定义按键</button></div>
+  <div class="set-row"><span>新手教程</span><button onclick="startTutorial()">📘 进入教程</button></div>
+  <div class="set-title">🎮 手柄检测（双人模式用）</div>
+  <div class="set-row" style="display:block; text-align:left">
+    <div id="gp-test" style="color:#aaa; font-size:13px; line-height:1.7">未检测到手柄——插上后按任意键</div>
+  </div>
+  <div class="set-title">跳波（直接跳到目标波次，自动模拟升级）</div>
+  <div class="set-jumps">
+    <button onclick="settingsJump(5)">第5波</button>
+    <button onclick="settingsJump(10)">第10波</button>
+    <button onclick="settingsJump(20)">第20波</button>
+    <button onclick="settingsJump(30)">第30波</button>
+    <button onclick="settingsJumpLaserBoss()" style="background:#8ecbff" title="自动开启无尽模式并跳到第 40 波（棱光穹主只在无尽模式出现）">🔷 棱光穹主</button>
+    <button onclick="settingsJumpBladeBoss()" style="background:#ffd166" title="自动开启无尽模式并跳到第 50 波（斩铁剑皇只在无尽模式出现）">⚔️ 斩铁剑皇</button>
+    <button onclick="settingsJumpRamBoss()" style="background:#b06bff;color:#fff" title="自动开启无尽模式 + 切到世界2 并跳到第 40 波（碎撞巨像只在世界2无尽模式出现）">💥 碎撞巨像</button>
+    <button onclick="settingsJumpSourceBoss()" style="background:#3fbf6a;color:#fff" title="自动开启无尽模式 + 切到世界3 并跳到第 40 波（万秽之源只在世界3无尽模式出现）">🌿 万秽之源</button>
+    <button onclick="closeSettings(); debugWrathStage()">🔥 小怪之怒</button>
+  </div>
+  <button class="close-btn" onclick="closeSettings()">关闭</button>
+</div>
+
+<!-- Keybinds（按键设置） -->
+<div id="keybind-panel" class="hidden">
+  <h2>🎮 按键设置</h2>
+  <div class="kb-hint">点击操作槽位 → 在<b style="color:#4cf">键盘</b>按一键、<b style="color:#f84">手柄按键</b>或<b style="color:#f84">摇杆往方向推</b>即完成绑定（ESC 取消）</div>
+  <div class="kb-cols">
+    <div class="kb-col">
+      <div class="kb-title">1P 移动</div>
+      <div class="kb-row"><span>向上</span><button id="kb-p1-up" onclick="kbListen('p1','up')"></button></div>
+      <div class="kb-row"><span>向下</span><button id="kb-p1-down" onclick="kbListen('p1','down')"></button></div>
+      <div class="kb-row"><span>向左</span><button id="kb-p1-left" onclick="kbListen('p1','left')"></button></div>
+      <div class="kb-row"><span>向右</span><button id="kb-p1-right" onclick="kbListen('p1','right')"></button></div>
+    </div>
+    <div class="kb-col">
+      <div class="kb-title">2P 光标（瞄准方向）</div>
+      <div class="kb-row"><span>向上</span><button id="kb-p2-curUp" onclick="kbListen('p2','curUp')"></button></div>
+      <div class="kb-row"><span>向下</span><button id="kb-p2-curDown" onclick="kbListen('p2','curDown')"></button></div>
+      <div class="kb-row"><span>向左</span><button id="kb-p2-curLeft" onclick="kbListen('p2','curLeft')"></button></div>
+      <div class="kb-row"><span>向右</span><button id="kb-p2-curRight" onclick="kbListen('p2','curRight')"></button></div>
+    </div>
+    <div class="kb-col">
+      <div class="kb-title">2P 移动（十字键）</div>
+      <div class="kb-row"><span>向上</span><button id="kb-p2-mvUp" onclick="kbListen('p2','mvUp')"></button></div>
+      <div class="kb-row"><span>向下</span><button id="kb-p2-mvDown" onclick="kbListen('p2','mvDown')"></button></div>
+      <div class="kb-row"><span>向左</span><button id="kb-p2-mvLeft" onclick="kbListen('p2','mvLeft')"></button></div>
+      <div class="kb-row"><span>向右</span><button id="kb-p2-mvRight" onclick="kbListen('p2','mvRight')"></button></div>
+    </div>
+  </div>
+  <div style="display:flex; gap:12px; justify-content:center">
+    <button class="close-btn" onclick="kbReset()">恢复默认</button>
+    <button class="close-btn" onclick="closeKeybinds()">返回设置</button>
+  </div>
+</div>
+
+<!-- Game over / win -->
+<div id="overlay" class="hidden"></div>
+
