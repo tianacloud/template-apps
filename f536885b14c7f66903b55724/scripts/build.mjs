@@ -1,0 +1,11 @@
+import {build} from 'vite';
+import {readFile,stat,writeFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit??'')) throw new Error('A full source commit is required');
+const source=JSON.parse(await readFile('source.json','utf8'));
+await build({configFile:false,build:{outDir:'dist',emptyOutDir:true,lib:{entry:'src/app.js',formats:['es'],fileName:()=> 'assets/app.js'},rollupOptions:{output:{assetFileNames:'assets/[name][extname]'}}}});
+await stat('dist/assets/app.js');
+const css=await readFile('dist/assets/f536885b14c7f66903b55724.css','utf8');
+const js=await readFile('dist/assets/app.js','utf8');
+await writeFile('dist/assets/app.js', 'const style=document.createElement(\"style\");style.textContent='+JSON.stringify(css)+';document.head.appendChild(style);\n'+js);
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,source_commit:commit}));
