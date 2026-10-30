@@ -1,0 +1,1767 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b5cff">
+<meta name="description" content="程序员计算器网页版：位宽 / 符号 / 二进制 / 八进制 / 十进制 / 十六进制 / 单双精度浮点联动转换，点格子翻位，支持物理键盘。">
+<title>程序员计算器 · 位宽与进制联动转换</title>
+<style>
+/* Noto Sans Mono -- font supplied with this template. */
+@font-face {
+  font-family: 'Noto Sans Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(__FONT_URL__) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+/* ============================================================================
+ * 程序员计算器 · 网页版样式
+ * 桌面（≥900px）双栏：左为主操作区，右为键盘；窄屏单栏，键盘变为底部抽屉，
+ * 与 App 的交互模型保持一致（点数值行 → 出键盘）。
+ * ========================================================================== */
+
+:root {
+  --bg: #eef1f8;
+  --panel: #ffffff;
+  --ink: #1b1f2a;
+  --ink-2: #3c4459;
+  --muted: #9aa1b2;
+  --muted-2: #a8aebc;
+  --line: #eef0f6;
+  --primary: #2b5cff;
+  --primary-soft: #eaf0ff;
+  --key: #f4f6fb;
+  --key-fn: #e9edf8;
+  --key-op: #e6ecff;
+  --warn-bg: #fff5e9;
+  --warn-ink: #b9761d;
+  --radius: 18px;
+  --mono: "Noto Sans Mono", Menlo, Consolas, "Courier New", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  /* 数值字号分档（按最长一行反推，长数值自动降档，保证不溢出） */
+  --f-lg: 30px;
+  --f-md: 25px;
+  --f-sm: 21px;
+  --f-xs: 17.5px;
+  --f-xxs: 15px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image: linear-gradient(180deg, #e9edf7 0%, #f4f6fb 340px, #f4f6fb 100%);
+  min-height: 100vh;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 26px 20px 60px;
+}
+
+/* ============================== 顶栏 ============================== */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #2b5cff 0%, #6f92ff 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.5px;
+  box-shadow: 0 8px 20px rgba(43, 92, 255, 0.3);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.brand .sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.acts { display: flex; gap: 8px; flex: none; }
+
+.act {
+  appearance: none;
+  border: 1px solid #dfe4f2;
+  background: #fff;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.act:hover { border-color: var(--primary); color: var(--primary); }
+.act:active { box-shadow: inset 0 1px 3px rgba(24, 36, 72, 0.12); }
+
+.act svg { display: block; }
+
+/* ============================== 栅格 ============================== */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 344px;
+  gap: 18px;
+  align-items: start;
+}
+
+.col-main { min-width: 0; }
+.col-kb { position: sticky; top: 20px; min-width: 0; }
+
+/* ============================== 面板 ============================== */
+
+.panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 18px rgba(24, 36, 72, 0.05);
+}
+
+.panel:last-child { margin-bottom: 0; }
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-2);
+  letter-spacing: 0.6px;
+}
+
+.panel-meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================== 位宽 chips ============================== */
+
+.chips { display: flex; gap: 8px; margin-bottom: 8px; }
+.chips:last-of-type { margin-bottom: 0; }
+
+.chip {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  text-align: center;
+  border-radius: 11px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6377;
+  background: var(--key);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.chip:hover { background: #e9edf8; }
+
+.chip-on {
+  color: #fff;
+  background: var(--primary);
+  box-shadow: 0 6px 16px rgba(43, 92, 255, 0.28);
+}
+
+.chip-on:hover { background: #2450e6; }
+
+.range {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed #e7eaf4;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* ============================== 数值视图 ============================== */
+
+.views { padding: 8px 12px 12px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.row + .row { border-top: 1px solid var(--line); }
+.row:hover { background: #f7f9ff; }
+.row:hover + .row { border-top-color: transparent; }
+
+.row-label { width: 92px; flex: none; }
+
+.row-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.row-desc {
+  font-size: 11px;
+  color: var(--muted-2);
+  margin-top: 1px;
+}
+
+.row-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-family: var(--mono);
+}
+
+.val-line {
+  display: block;
+  white-space: nowrap;
+  line-height: 1.42;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.row-value.s-lg .val-line { font-size: var(--f-lg); }
+.row-value.s-md .val-line { font-size: var(--f-md); }
+.row-value.s-sm .val-line { font-size: var(--f-sm); }
+.row-value.s-xs .val-line { font-size: var(--f-xs); }
+.row-value.s-xxs .val-line { font-size: var(--f-xxs); }
+
+.row-on { background: #f0f5ff; }
+.row-on + .row { border-top-color: transparent; }
+
+.row-editing { box-shadow: inset 3px 0 0 var(--primary); }
+
+.row-off .row-name,
+.row-off .row-desc,
+.row-off .val-line { color: #c6cbd7; }
+
+.caret {
+  color: var(--primary);
+  font-weight: 400;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* 默认留一点透明度，让「可复制」这件事被发现；悬停/聚焦时完全显示。
+   0.35 是在白底上量的，但编辑中的行带浅蓝底 + 左侧蓝条，同值下图标几乎不可见，
+   因此编辑态单独给足存在感（用户实测反馈过「图标没有显示」）。 */
+.copy {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.row:hover .copy, .copy:focus-visible { opacity: 1; }
+.row-editing .copy { opacity: 0.85; }
+.copy:hover { color: var(--primary); background: var(--primary-soft); }
+
+.hint {
+  margin: 10px 4px 2px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 12px;
+}
+
+/* ============================== 位视图 ============================== */
+
+.bitgrid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bit {
+  height: 40px;
+  border-radius: 10px;
+  background: var(--key);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.bit:hover { background: #e6ebf9; }
+
+.bit-on {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.bit-on:hover { background: #2450e6; }
+
+/* ============================== 页脚 ============================== */
+
+.foot {
+  margin: 14px 6px 0;
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--muted-2);
+}
+
+.foot kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: #fff;
+  border: 1px solid #dfe4f2;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--ink-2);
+}
+
+/* ============================== 键盘 ============================== */
+
+.kb {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(24, 36, 72, 0.1);
+}
+
+.kb.hidden { display: none; }
+
+.kb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kb-type {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #8a91a3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-done {
+  appearance: none;
+  border: 0;
+  flex: none;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 7px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.kb-done:hover { background: #dde7ff; }
+
+.kb-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.kb-row:last-child { margin-bottom: 0; }
+
+.key {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--key);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s, transform 0.05s;
+}
+
+.key:hover { background: #e9edf8; }
+.key:active { background: #dfe5f5; transform: translateY(1px); }
+
+.key-fn { background: var(--key-fn); color: #47506b; font-size: 16px; }
+.key-fn:hover { background: #dfe5f2; }
+
+.key-op { background: var(--key-op); color: var(--primary); font-size: 16px; }
+.key-op:hover { background: #d9e3ff; }
+
+.key-blank { background: transparent; pointer-events: none; }
+
+.kb-empty {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 26px 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.9;
+  box-shadow: 0 2px 18px rgba(24, 36, 72, 0.05);
+}
+
+.kb-empty.hidden { display: none; }
+.kb-empty b { color: var(--ink-2); }
+
+/* ============================== 轻提示 ============================== */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 22px;
+  transform: translateX(-50%) translateY(-14px);
+  background: rgba(27, 31, 42, 0.92);
+  color: #fff;
+  font-size: 12.5px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 60;
+  white-space: nowrap;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================== 窄屏：键盘转底部抽屉 ============================== */
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .col-kb { position: static; }
+
+  .kb {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(24, 36, 72, 0.16);
+    animation: kb-up 0.18s ease-out;
+  }
+
+  @keyframes kb-up {
+    from { transform: translateY(30px); opacity: 0.4; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .key { height: 48px; }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --f-lg: 25px;
+    --f-md: 21px;
+    --f-sm: 18px;
+    --f-xs: 15.5px;
+    --f-xxs: 13.5px;
+  }
+
+  .wrap { padding: 18px 14px 56px; }
+  .panel { padding: 15px 14px; }
+  .views { padding: 6px 6px 10px; }
+  .row { padding: 10px 6px; gap: 8px; }
+  .row-label { width: 76px; }
+  .bit { height: 34px; font-size: 14px; }
+  .bitgrid { gap: 4px; }
+  .key { height: 46px; font-size: 17px; }
+  .row-value { overflow-wrap: break-word; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+  .kb { animation: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">&lt;/&gt;</div>
+      <div>
+        <h1>程序员计算器</h1>
+        <p class="sub">位宽 · 符号 · 六种进制联动转换</p>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="act" id="btn-share" type="button" title="复制当前数值的分享链接">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+          <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+        </svg>
+        分享链接
+      </button>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <section class="col-main">
+
+      <!-- 位宽 / 符号 -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">位宽 · 符号</span>
+          <span class="panel-meta" id="meta-type">int32</span>
+        </div>
+        <div class="chips" id="chips-signed"></div>
+        <div class="chips" id="chips-unsigned"></div>
+        <div class="range" id="range-text"></div>
+      </div>
+
+      <!-- 六种数值视图 -->
+      <div class="panel views" id="views"></div>
+
+      <!-- 位视图 -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">位视图</span>
+          <span class="panel-meta">点一下可翻转</span>
+        </div>
+        <div class="bitgrid" id="bitgrid"></div>
+      </div>
+
+      <p class="foot">
+        点击任意数值行进入编辑，行尾图标复制该行；位格子可直接翻转 ·
+        BIN / OCT / HEX 为补码位模式，FLOAT / DBL 按 IEEE754 解释当前位模式 ·
+        物理键盘：<kbd>0-9</kbd> <kbd>A-F</kbd> 输入，<kbd>Backspace</kbd> 退格，
+        <kbd>Delete</kbd> 清空，<kbd>Enter</kbd> 完成，<kbd>↑</kbd><kbd>↓</kbd> 切换行
+      </p>
+    </section>
+
+    <aside class="col-kb">
+      <div class="kb hidden" id="kb">
+        <div class="kb-bar">
+          <span class="kb-type" id="kb-type"></span>
+          <button class="kb-done" id="kb-done" type="button">完成</button>
+        </div>
+        <div id="kb-keys"></div>
+      </div>
+      <div class="kb-empty" id="kb-empty">
+        点击左侧<b>任意一行数值</b>开始输入<br>
+        也支持<b>物理键盘</b>直接敲
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>/* ============================================================================
+ * 程序员计算器 · 核心转换引擎
+ * ----------------------------------------------------------------------------
+ * 设计要点
+ *  1. 内部统一用「64 位无符号位模式」{hi, lo} 表示（各 32 位）。
+ *     width(8/16/32/64) 与 signed 只决定「如何解释」，不改变存储本身，
+ *     因此切换位宽时低位数据可无损保留。
+ *  2. 全程不依赖 BigInt / 任何第三方库，兼容低版本小程序基础库与浏览器。
+ *  3. 显示口径与主流程序员计算器一致：
+ *       BIN / OCT / HEX  → 补码位模式，按位宽定长显示
+ *       DEC              → 数值（有符号类型显示负号）
+ *       FLOAT / DOUBLE   → 把当前位模式按 IEEE754 单/双精度解释
+ * ========================================================================== */
+
+var POW32 = 4294967296;
+var MASK32 = 4294967295;
+
+/* ----------------------------- U64 基础运算 ----------------------------- */
+
+function u64(hi, lo) {
+  return { hi: hi >>> 0, lo: lo >>> 0 };
+}
+function U0() {
+  return { hi: 0, lo: 0 };
+}
+function isZero(u) {
+  return u.hi === 0 && u.lo === 0;
+}
+function eq(a, b) {
+  return a.hi === b.hi && a.lo === b.lo;
+}
+function clone(u) {
+  return { hi: u.hi, lo: u.lo };
+}
+
+/** 由非负 Number 构造（调用方需保证 < 2^53） */
+function fromNumber(n) {
+  n = Math.floor(n);
+  if (!isFinite(n) || n <= 0) return U0();
+  if (n < POW32) return u64(0, n);
+  var hi = Math.floor(n / POW32);
+  return u64(hi, n - hi * POW32);
+}
+
+/** 转回 Number（超出 2^53 会损失精度，仅供内部小数值场景） */
+function toNumber(u) {
+  return u.hi * POW32 + u.lo;
+}
+
+function bitAnd(a, b) {
+  return u64(a.hi & b.hi, a.lo & b.lo);
+}
+function bitOr(a, b) {
+  return u64(a.hi | b.hi, a.lo | b.lo);
+}
+function bitXor(a, b) {
+  return u64(a.hi ^ b.hi, a.lo ^ b.lo);
+}
+function bitNot(a) {
+  return u64(~a.hi, ~a.lo);
+}
+function add(a, b) {
+  var lo = a.lo + b.lo;
+  var carry = lo >= POW32 ? 1 : 0;
+  return u64(a.hi + b.hi + carry, carry ? lo - POW32 : lo);
+}
+/** 二进制补码取负 */
+function negate(a) {
+  return add(bitNot(a), u64(0, 1));
+}
+function shl(a, n) {
+  n = n & 63;
+  if (n === 0) return clone(a);
+  if (n < 32) return u64((a.hi << n) | (a.lo >>> (32 - n)), a.lo << n);
+  return u64(a.lo << (n - 32), 0);
+}
+function shr(a, n) {
+  n = n & 63;
+  if (n === 0) return clone(a);
+  if (n < 32) return u64(a.hi >>> n, (a.lo >>> n) | (a.hi << (32 - n)));
+  return u64(0, a.hi >>> (n - 32));
+}
+
+function getBit(u, i) {
+  if (i < 0 || i > 63) return 0;
+  if (i < 32) return (u.lo >>> i) & 1;
+  return (u.hi >>> (i - 32)) & 1;
+}
+function setBit(u, i, v) {
+  if (i < 0 || i > 63) return u;
+  var r = clone(u);
+  if (i < 32) {
+    r.lo = v ? (r.lo | (1 << i)) >>> 0 : (r.lo & ~(1 << i)) >>> 0;
+  } else {
+    r.hi = v ? (r.hi | (1 << (i - 32))) >>> 0 : (r.hi & ~(1 << (i - 32))) >>> 0;
+  }
+  return r;
+}
+function toggleBit(u, i) {
+  return setBit(u, i, getBit(u, i) ? 0 : 1);
+}
+
+/** 按位宽截断（保留低位） */
+function maskBits(u, width) {
+  if (width >= 64) return clone(u);
+  if (width <= 0) return U0();
+  if (width < 32) {
+    var m = ((1 << width) >>> 0) - 1;
+    return u64(0, (u.lo & m) >>> 0);
+  }
+  if (width === 32) return u64(0, u.lo);
+  var mh = ((1 << (width - 32)) >>> 0) - 1;
+  return u64((u.hi & mh) >>> 0, u.lo);
+}
+
+/* ------------------------------- 字符串输出 ------------------------------- */
+
+function padLeft(s, n, c) {
+  c = c === undefined ? '0' : c;
+  s = String(s);
+  while (s.length < n) s = c + s;
+  if (s.length > n) s = s.slice(s.length - n);
+  return s;
+}
+
+function toBin64(u) {
+  return padLeft(u.hi.toString(2), 32) + padLeft(u.lo.toString(2), 32);
+}
+function toHex64(u) {
+  return padLeft(u.hi.toString(16), 8) + padLeft(u.lo.toString(16), 8);
+}
+function toOct64(u) {
+  var bin = toBin64(u);
+  var pad = (3 - (bin.length % 3)) % 3;
+  if (pad) bin = padLeft(bin, bin.length + pad);
+  var out = '';
+  for (var i = 0; i < bin.length; i += 3) out += parseInt(bin.substr(i, 3), 2);
+  return out;
+}
+/** 十进制：base-65536 分片长除法，精确无误差 */
+function toDec64(u) {
+  var p = [u.hi >>> 16, u.hi & 65535, u.lo >>> 16, u.lo & 65535];
+  if (!p[0] && !p[1] && !p[2] && !p[3]) return '0';
+  var out = '';
+  while (p[0] || p[1] || p[2] || p[3]) {
+    var rem = 0;
+    for (var i = 0; i < 4; i++) {
+      var cur = rem * 65536 + p[i];
+      p[i] = Math.floor(cur / 10);
+      rem = cur % 10;
+    }
+    out = rem + out;
+  }
+  return out;
+}
+
+/* ------------------------------- 字符串解析 ------------------------------- */
+
+function digitValue(ch) {
+  var c = ch.charCodeAt(0);
+  if (c >= 48 && c <= 57) return c - 48;
+  if (c >= 97 && c <= 102) return c - 87;
+  if (c >= 65 && c <= 70) return c - 55;
+  return -1;
+}
+
+/** 2 / 8 / 16 进制解析，超过 64 位的高位被丢弃 */
+function parseRadixStr(str, radix) {
+  var bits = radix === 16 ? 4 : radix === 8 ? 3 : 1;
+  var u = U0();
+  var overflow = false;
+  for (var i = 0; i < str.length; i++) {
+    var d = digitValue(str.charAt(i));
+    if (d < 0 || d >= radix) continue;
+    var top = shr(u, 64 - bits);
+    if (top.hi !== 0 || top.lo !== 0) overflow = true;
+    u = bitOr(shl(u, bits), u64(0, d));
+  }
+  return { u: u, overflow: overflow };
+}
+
+/** 十进制解析（base-65536 累乘 10），溢出位被丢弃 */
+function parseDecStr(str) {
+  var p = [0, 0, 0, 0];
+  var overflow = false;
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    if (c < 48 || c > 57) continue;
+    var carry = c - 48;
+    for (var j = 3; j >= 0; j--) {
+      var cur = p[j] * 10 + carry;
+      p[j] = cur & 65535;
+      carry = cur >>> 16;
+    }
+    if (carry) overflow = true;
+  }
+  return {
+    u: u64(((p[0] << 16) | p[1]) >>> 0, ((p[2] << 16) | p[3]) >>> 0),
+    overflow: overflow
+  };
+}
+
+/* -------------------------------- 浮点数 -------------------------------- */
+
+/** IEEE754 浮点 → 位模式；float32 会自动做精度收敛与溢出（Infinity）处理 */
+function floatToBits(f, bytes) {
+  var buf = new ArrayBuffer(bytes);
+  var dv = new DataView(buf);
+  if (bytes === 4) {
+    dv.setFloat32(0, f, false);
+    return u64(0, dv.getUint32(0, false));
+  }
+  dv.setFloat64(0, f, false);
+  return u64(dv.getUint32(0, false), dv.getUint32(4, false));
+}
+
+/** 位模式 → IEEE754 浮点 */
+function bitsToFloat(u, bytes) {
+  var buf = new ArrayBuffer(bytes);
+  var dv = new DataView(buf);
+  if (bytes === 4) {
+    dv.setUint32(0, u.lo, false);
+    return dv.getFloat32(0, false);
+  }
+  dv.setUint32(0, u.hi, false);
+  dv.setUint32(4, u.lo, false);
+  return dv.getFloat64(0, false);
+}
+
+/** 浮点显示：单精度自适应取 7~9 位有效数字，保证「最短且可无损往返」 */
+function formatFloatValue(f, single) {
+  if (f !== f) return 'NaN';
+  if (f === Infinity) return 'Infinity';
+  if (f === -Infinity) return '-Infinity';
+  if (f === 0) return 1 / f === -Infinity ? '-0' : '0';
+  if (!single) return String(f);
+  // 7 位足够大多数值；对 1234567.5 这类值需 8~9 位才能往返
+  var target = floatToBits(f, 4);
+  for (var p = 7; p <= 9; p++) {
+    var v = Number(f.toPrecision(p));
+    if (eq(floatToBits(v, 4), target)) return String(v);
+  }
+  return String(Number(f.toPrecision(9)));
+}
+
+function parseFloatLoose(s) {
+  s = String(s).trim();
+  if (!s || s === '-' || s === '+' || s === '.' || s === '-.' || s === '+.') return 0;
+  var f = parseFloat(s);
+  if (f !== f) return 0;
+  return f;
+}
+
+/* ------------------------------- 位宽与类型 ------------------------------- */
+
+var WIDTH_INFO = {
+  8: { hex: 2, oct: 3, bits: 8 },
+  16: { hex: 4, oct: 6, bits: 16 },
+  32: { hex: 8, oct: 11, bits: 32 },
+  64: { hex: 16, oct: 22, bits: 64 }
+};
+
+var TYPES = [
+  { key: 'int8', label: 'int8', width: 8, signed: true },
+  { key: 'int16', label: 'int16', width: 16, signed: true },
+  { key: 'int32', label: 'int32', width: 32, signed: true },
+  { key: 'int64', label: 'int64', width: 64, signed: true },
+  { key: 'uint8', label: 'uint8', width: 8, signed: false },
+  { key: 'uint16', label: 'uint16', width: 16, signed: false },
+  { key: 'uint32', label: 'uint32', width: 32, signed: false },
+  { key: 'uint64', label: 'uint64', width: 64, signed: false }
+];
+
+function typeInfo(key) {
+  for (var i = 0; i < TYPES.length; i++) {
+    if (TYPES[i].key === key) return TYPES[i];
+  }
+  return { key: key, label: key, width: 64, signed: true };
+}
+
+/* ------------------------------- 数值解释 ------------------------------- */
+
+/**
+ * 有符号解释：返回 { negative, magnitude }
+ * magnitude 始终是「绝对值」的位模式，便于配合 toDec64 输出负号
+ */
+function signedView(u, width, signed) {
+  var m = maskBits(u, width);
+  if (!signed) return { negative: false, magnitude: m };
+  if (getBit(m, width - 1) === 0) return { negative: false, magnitude: m };
+  return { negative: true, magnitude: maskBits(negate(m), width) };
+}
+
+var U64_MAX = u64(MASK32, MASK32); // 2^64 - 1
+
+/** 数值范围（用于界面提示 / 超范围截断判断） */
+function rangeOf(width, signed) {
+  if (signed) {
+    var half = shl(u64(0, 1), width - 1); // 2^(width-1)
+    return {
+      min: '-' + toDec64(half),
+      // 2^64 模运算下 half - 1 == half + (2^64-1)
+      max: toDec64(add(half, U64_MAX))
+    };
+  }
+  return {
+    min: '0',
+    max: toDec64(maskBits(U64_MAX, width))
+  };
+}
+
+/* ------------------------------- 对外格式化 ------------------------------- */
+
+function formatBin(u, width) {
+  var s = toBin64(maskBits(u, width)).slice(-width);
+  return s.replace(/(.{4})(?=.)/g, '$1 ');
+}
+function formatHex(u, width) {
+  var m = maskBits(u, width);
+  return toHex64(m).slice(-WIDTH_INFO[width].hex).toUpperCase();
+}
+function formatOct(u, width) {
+  var m = maskBits(u, width);
+  return toOct64(m).slice(-WIDTH_INFO[width].oct);
+}
+function formatDec(u, width, signed) {
+  var v = signedView(u, width, signed);
+  return (v.negative ? '-' : '') + toDec64(v.magnitude);
+}
+
+/** 一次算出六种显示视图；不支持的视图返回 null */
+function formatAll(bits, width, signed) {
+  var m = maskBits(bits, width);
+  return {
+    BIN: formatBin(m, width),
+    OCT: formatOct(m, width),
+    DEC: formatDec(m, width, signed),
+    HEX: formatHex(m, width),
+    FLOAT: width === 32 ? formatFloatValue(bitsToFloat(m, 4), true) : null,
+    DOUBLE: width === 64 ? formatFloatValue(bitsToFloat(m, 8), false) : null
+  };
+}
+
+/** 去掉前导零，至少保留一位 */
+function trimZero(s) {
+  var t = s.replace(/^0+(?=.)/, '');
+  return t === '' ? '0' : t;
+}
+
+/** 二进制每 4 位插一个空格，便于阅读 */
+function groupBin(s) {
+  return String(s).replace(/(.{4})(?=.)/g, '$1 ');
+}
+
+/** 按文本长度给字号分档，避免长数值溢出 */
+function sizeOf(text) {
+  var n = String(text).length;
+  if (n > 33) return 'xxs';
+  if (n > 20) return 'xs';
+  if (n > 14) return 'sm';
+  if (n > 10) return 'md';
+  return 'lg';
+}
+
+/** 进入编辑态时，某个类型对应的初始输入串 */
+function editBuffer(type, bits, width, signed) {
+  var m = maskBits(bits, width);
+  switch (type) {
+    case 'BIN':
+      return trimZero(toBin64(m).slice(-width));
+    case 'OCT':
+      return trimZero(toOct64(m).slice(-WIDTH_INFO[width].oct));
+    case 'HEX':
+      return trimZero(toHex64(m).slice(-WIDTH_INFO[width].hex)).toUpperCase();
+    case 'FLOAT':
+      return formatFloatValue(bitsToFloat(maskBits(bits, 32), 4), true);
+    case 'DOUBLE':
+      return formatFloatValue(bitsToFloat(maskBits(bits, 64), 8), false);
+    default:
+      return formatDec(m, width, signed);
+  }
+}
+
+/**
+ * 把编辑缓冲区解析成位模式
+ * @returns {{bits:Object, truncated:boolean}}
+ */
+function parseInput(type, buffer, width, signed) {
+  var str = String(buffer === undefined || buffer === null ? '' : buffer).trim();
+  var truncated = false;
+  var bits;
+
+  if (type === 'FLOAT') {
+    return { bits: floatToBits(parseFloatLoose(str), 4), truncated: false };
+  }
+  if (type === 'DOUBLE') {
+    return { bits: floatToBits(parseFloatLoose(str), 8), truncated: false };
+  }
+  if (type === 'DEC') {
+    var neg = str.charAt(0) === '-';
+    var r = parseDecStr(neg ? str.slice(1) : str);
+    bits = neg && signed ? negate(r.u) : r.u;
+    truncated = r.overflow;
+    if (!truncated) {
+      if (signed) {
+        // 判断绝对值是否超出 [-2^(w-1), 2^(w-1)-1]
+        var limit = shl(u64(0, 1), width - 1); // 2^(w-1)
+        var abs = neg ? maskBits(negate(bits), 64) : r.u;
+        var maxAbs = neg ? limit : maskBits(add(limit, u64(MASK32, MASK32)), 64);
+        truncated = abs.hi > maxAbs.hi || (abs.hi === maxAbs.hi && abs.lo > maxAbs.lo);
+      } else {
+        truncated = !eq(maskBits(r.u, width), r.u);
+      }
+    }
+    return { bits: maskBits(bits, width), truncated: truncated };
+  }
+
+  var radix = type === 'BIN' ? 2 : type === 'OCT' ? 8 : 16;
+  var p = parseRadixStr(str, radix);
+  truncated = p.overflow || !eq(maskBits(p.u, width), p.u);
+  return { bits: maskBits(p.u, width), truncated: truncated };
+}
+
+/* ------------------------------- 单目位运算 ------------------------------- */
+
+/** 按位取反（限定位宽内） */
+function notBits(bits, width) {
+  return maskBits(bitNot(bits), width);
+}
+/** 左移 1 位 */
+function shiftLeft1(bits, width) {
+  return maskBits(shl(maskBits(bits, width), 1), width);
+}
+/** 右移 1 位：有符号且有符号位时做算术右移（符号位补 1），否则逻辑右移 */
+function shiftRight1(bits, width, signed) {
+  var m = maskBits(bits, width);
+  var r = shr(m, 1);
+  if (signed && getBit(m, width - 1) === 1) {
+    r = bitOr(r, shl(u64(0, 1), width - 1));
+  }
+  return maskBits(r, width);
+}
+
+/** 当前输入类型允许的键盘按键
+ *  kind: digit 数字 | fn 功能（删除/清空/变号） | op 位运算 | blank 占位
+ */
+function keyboardOf(type, signed) {
+  var K = function (label, value, kind, w) {
+    return { label: label, value: value === undefined ? label : value, kind: kind || 'digit', w: w || 1 };
+  };
+  var BACK = K('⌫', 'back', 'fn');
+  var AC = K('AC', 'clear', 'fn');
+  var SIGN = signed ? K('±', 'sign', 'fn') : K('', '', 'blank');
+  var NOT = K('NOT', 'not', 'op');
+  var SHL = K('<<', 'shl', 'op');
+  var SHR = K('>>', 'shr', 'op');
+
+  if (type === 'BIN') {
+    return [
+      [K('0'), K('1'), BACK, AC],
+      [NOT, SHL, SHR, SIGN]
+    ];
+  }
+  if (type === 'OCT') {
+    return [
+      [K('0'), K('1'), K('2'), K('3')],
+      [K('4'), K('5'), K('6'), K('7')],
+      [NOT, SHL, SHR, SIGN],
+      [K('⌫', 'back', 'fn', 2), K('AC', 'clear', 'fn', 2)]
+    ];
+  }
+  if (type === 'DEC') {
+    return [
+      [K('7'), K('8'), K('9'), BACK],
+      [K('4'), K('5'), K('6'), AC],
+      [K('1'), K('2'), K('3'), SIGN],
+      [K('0'), NOT, SHL, SHR]
+    ];
+  }
+  if (type === 'FLOAT' || type === 'DOUBLE') {
+    return [
+      [K('7'), K('8'), K('9'), BACK],
+      [K('4'), K('5'), K('6'), AC],
+      [K('1'), K('2'), K('3'), SIGN],
+      [K('0', '0', 'digit', 2), K('.', '.', 'sym'), K('e', 'e', 'sym')]
+    ];
+  }
+  // HEX：16 个数字 + 6 个功能键，恰好铺满 4×6
+  return [
+    [K('D'), K('E'), K('F'), BACK],
+    [K('A'), K('B'), K('C'), AC],
+    [K('7'), K('8'), K('9'), SIGN],
+    [K('4'), K('5'), K('6'), NOT],
+    [K('1'), K('2'), K('3'), SHL],
+    [K('0', '0', 'digit', 2), K('>>', 'shr', 'op', 2)]
+  ];
+}
+
+/** 追加一个按键到输入缓冲区 */
+function applyKey(type, buffer, value) {
+  buffer = String(buffer === undefined || buffer === null ? '' : buffer);
+  if (value === 'clear') return '';
+  if (value === 'back') return buffer.slice(0, -1);
+  if (value === 'sign') {
+    // 已有指数部分时，切换的是指数的符号（便于输入 1e-5）
+    var eIdx = buffer.search(/[eE]/);
+    if (eIdx >= 0) {
+      var after = buffer.slice(eIdx + 1);
+      var head = buffer.slice(0, eIdx + 1);
+      if (after.charAt(0) === '-') return head + after.slice(1);
+      if (after.charAt(0) === '+') return head + after.slice(1);
+      return head + '-' + after;
+    }
+    return buffer.charAt(0) === '-' ? buffer.slice(1) : '-' + buffer;
+  }
+  if (value === '.' && buffer.indexOf('.') >= 0) return buffer;
+  if (value === 'e' && /[eE]/.test(buffer)) return buffer;
+  if (buffer === '0' && value !== '.' && value !== 'e') return value;
+  return buffer + value;
+}
+
+/* -------------------------------- UMD 导出 -------------------------------- */
+
+var API = {
+  // 基础
+  u64: u64,
+  fromNumber: fromNumber,
+  toNumber: toNumber,
+  bitAnd: bitAnd,
+  bitOr: bitOr,
+  bitXor: bitXor,
+  bitNot: bitNot,
+  add: add,
+  negate: negate,
+  shl: shl,
+  shr: shr,
+  getBit: getBit,
+  setBit: setBit,
+  toggleBit: toggleBit,
+  maskBits: maskBits,
+  eq: eq,
+  isZero: isZero,
+  // 字符串
+  toBin64: toBin64,
+  toHex64: toHex64,
+  toOct64: toOct64,
+  toDec64: toDec64,
+  parseDecStr: parseDecStr,
+  parseRadixStr: parseRadixStr,
+  // 浮点
+  floatToBits: floatToBits,
+  bitsToFloat: bitsToFloat,
+  formatFloatValue: formatFloatValue,
+  // 业务
+  WIDTH_INFO: WIDTH_INFO,
+  TYPES: TYPES,
+  typeInfo: typeInfo,
+  signedView: signedView,
+  rangeOf: rangeOf,
+  notBits: notBits,
+  shiftLeft1: shiftLeft1,
+  shiftRight1: shiftRight1,
+  formatBin: formatBin,
+  formatHex: formatHex,
+  formatOct: formatOct,
+  formatDec: formatDec,
+  formatAll: formatAll,
+  editBuffer: editBuffer,
+  parseInput: parseInput,
+  keyboardOf: keyboardOf,
+  applyKey: applyKey,
+  groupBin: groupBin,
+  sizeOf: sizeOf,
+  trimZero: trimZero
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  // 小程序 / Node
+  module.exports = API;
+} else if (typeof window !== 'undefined') {
+  // 浏览器（preview/index.html 直接 <script> 引入）
+  window.PCCore = API;
+}
+</script>
+<script>/* ============================================================================
+ * 程序员计算器 · 网页版页面逻辑
+ * ----------------------------------------------------------------------------
+ * 与 pages/index/index.vue（uni-app 安卓版）保持同一套状态机：
+ *   state = { width, signed, inputType, editing, buffer, bits, truncated,
+ *             hasValue, fresh }
+ * 交互模型也一致：点数值行进入编辑 → 键盘弹出；NOT / << / >> 直接作用于位模式；
+ * 位格子可翻转；clear 或退格删空 → 回到「启动留空」而不是显示 0。
+ *
+ * 网页版新增三件事：
+ *   1. 物理键盘映射（只在编辑态生效；未编辑时敲有效字符会自动进入编辑）
+ *   2. 每行行尾复制按钮（替代 App 的长按）
+ *   3. URL hash 分享：#int32:00000000ffffffff —— 位宽/符号/位模式一键还原
+ *
+ * 渲染策略：容器 innerHTML 整体重建 + 事件委托（监听只绑一次）。
+ * 视觉上等价于 Vue 的整树 diff，且不需要任何框架。
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  var C = window.PCCore;
+
+  /* 位宽 / 符号选项：分「有符号」「无符号」两行展示 */
+  var SIGNED_CHIPS = [
+    { key: 'int8', label: 'int8', width: 8, signed: true },
+    { key: 'int16', label: 'int16', width: 16, signed: true },
+    { key: 'int32', label: 'int32', width: 32, signed: true },
+    { key: 'int64', label: 'int64', width: 64, signed: true }
+  ];
+  var UNSIGNED_CHIPS = [
+    { key: 'uint8', label: 'uint8', width: 8, signed: false },
+    { key: 'uint16', label: 'uint16', width: 16, signed: false },
+    { key: 'uint32', label: 'uint32', width: 32, signed: false },
+    { key: 'uint64', label: 'uint64', width: 64, signed: false }
+  ];
+
+  /* 六种视图：need 表示该视图只在特定位宽下成立 */
+  var VIEWS = [
+    { key: 'BIN', name: 'BIN', desc: '二进制' },
+    { key: 'OCT', name: 'OCT', desc: '八进制' },
+    { key: 'DEC', name: 'DEC', desc: '十进制' },
+    { key: 'HEX', name: 'HEX', desc: '十六进制' },
+    { key: 'FLOAT', name: 'FLOAT', desc: 'IEEE754 单精度', need: 32 },
+    { key: 'DOUBLE', name: 'DBL', desc: 'IEEE754 双精度', need: 64 }
+  ];
+
+  var COPY_SVG =
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="9" y="9" width="12" height="12" rx="2"/>' +
+    '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+  /**
+   * 二进制按 16 位折行 —— 32 位两行、64 位四行、16 位及以下一行。
+   * 输入既可能是带分组空格的换算结果，也可能是裸二进制编辑缓冲区，
+   * 因此必须先去掉空格再分组，否则分组会被空格搅碎。
+   */
+  function splitBin(str) {
+    var digits = String(str).replace(/\s/g, '');
+    var nibbles = [];
+    for (var i = 0; i < digits.length; i += 4) nibbles.push(digits.slice(i, i + 4));
+    var out = [];
+    for (var j = 0; j < nibbles.length; j += 4) out.push(nibbles.slice(j, j + 4).join(' '));
+    return out.length ? out : [''];
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* ------------------------------- 状态 ------------------------------- */
+
+  var state = {
+    width: 32,
+    signed: true,
+    inputType: 'DEC',
+    editing: false,
+    // 启动留空：不预置数值，等用户敲键或点位格子才有内容
+    buffer: '',
+    bits: C.parseInput('DEC', '0', 32, true).bits,
+    truncated: false,
+    // hasValue：区分「从未输入」与「输入了 0」—— 两者位模式相同，只能靠标志位
+    hasValue: false,
+    // fresh：刚进入编辑态、尚未输入。第一次敲数字键直接覆盖，不接在旧值后面
+    fresh: true
+  };
+
+  var els = {};
+  var lastKeySig = '';
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ------------------------------- 渲染 ------------------------------- */
+
+  function render() {
+    var s = state;
+    var bits = C.maskBits(s.bits, s.width);
+    var all = C.formatAll(bits, s.width, s.signed);
+
+    /* --- 位宽 chips --- */
+    var mark = function (list) {
+      return list.map(function (c) {
+        var on = c.width === s.width && c.signed === s.signed;
+        return '<div class="chip' + (on ? ' chip-on' : '') + '" data-key="' + c.key + '"' +
+          ' role="button" tabindex="0">' + esc(c.label) + '</div>';
+      }).join('');
+    };
+    els.chipsSigned.innerHTML = mark(SIGNED_CHIPS);
+    els.chipsUnsigned.innerHTML = mark(UNSIGNED_CHIPS);
+
+    /* --- 六种数值视图 --- */
+    var rowsHtml = VIEWS.map(function (v) {
+      var disabled = v.need !== undefined && v.need !== s.width;
+      // 从未输入过 → 数值留空；禁用行显示「—」，表达「此位宽下不成立」
+      var blank = !s.hasValue && !disabled;
+      var text = disabled ? '—' : (blank ? '' : String(all[v.key]));
+      var isEditing = s.inputType === v.key && s.editing;
+      // 编辑态显示输入缓冲区，否则显示换算结果
+      var shown = isEditing ? s.buffer : text;
+      var lines = v.key === 'BIN' ? splitBin(shown) : [shown];
+      // 字号按「最长的一行」定，而不是整串长度（BIN 折行后才能放大字号）
+      var longest = lines.reduce(function (a, b) { return b.length > a.length ? b : a; }, '');
+      var size = C.sizeOf(longest);
+      var cls = 'row';
+      if (s.inputType === v.key) cls += ' row-on';
+      if (disabled) cls += ' row-off';
+      if (isEditing) cls += ' row-editing';
+
+      var linesHtml = lines.map(function (ln, idx) {
+        // 光标必须放在最后一个 val-line 内部、紧跟文字 —— val-line 是 display:block，
+        // caret 若拼在所有行外面会掉到下一行（曾踩中：与 App 的差异就在这）。
+        var caret = (isEditing && idx === lines.length - 1)
+          ? '<span class="caret">|</span>' : '';
+        return '<span class="val-line">' + esc(ln) + caret + '</span>';
+      }).join('');
+
+      return '<div class="' + cls + '" data-key="' + v.key + '" role="button" tabindex="0">' +
+        '<div class="row-label">' +
+        '<div class="row-name">' + esc(v.name) + '</div>' +
+        '<div class="row-desc">' + esc(v.desc) + '</div>' +
+        '</div>' +
+        '<div class="row-value s-' + size + '">' + linesHtml + '</div>' +
+        '<button class="copy" type="button" data-copy="' + v.key + '" ' +
+        'title="复制 ' + esc(v.key) + '" aria-label="复制 ' + esc(v.key) + '">' +
+        COPY_SVG + '</button>' +
+        '</div>';
+    }).join('');
+
+    var hint = s.truncated
+      ? '<div class="hint">超出位宽，已截断为低位</div>'
+      : '';
+    els.views.innerHTML = rowsHtml + hint;
+
+    /* --- 位视图 --- */
+    var bitHtml = '';
+    for (var i = s.width - 1; i >= 0; i--) {
+      var on = C.getBit(bits, i) === 1;
+      bitHtml += '<div class="bit' + (on ? ' bit-on' : '') + '" data-i="' + i + '"' +
+        ' role="button" tabindex="0" aria-label="第 ' + i + ' 位">' + (on ? 1 : 0) + '</div>';
+    }
+    els.bitgrid.innerHTML = bitHtml;
+
+    /* --- 键盘 --- */
+    var kbSig = s.editing ? (s.inputType + '|' + s.signed) : '';
+    if (kbSig !== lastKeySig) {
+      if (s.editing) {
+        els.kbKeys.innerHTML = C.keyboardOf(s.inputType, s.signed).map(function (row) {
+          return '<div class="kb-row">' + row.map(function (k) {
+            return '<div class="key key-' + k.kind + '" data-v="' + esc(k.value) +
+              '" style="flex:' + (k.w || 1) + '" role="button">' + esc(k.label) + '</div>';
+          }).join('') + '</div>';
+        }).join('');
+      } else {
+        els.kbKeys.innerHTML = '';
+      }
+      lastKeySig = kbSig;
+    }
+    els.kb.classList.toggle('hidden', !s.editing);
+    els.kbEmpty.classList.toggle('hidden', !!s.editing);
+    els.kbType.textContent = s.editing
+      ? s.inputType + ' 输入中 · ' + (s.signed ? 'int' : 'uint') + s.width
+      : '';
+
+    /* --- 头部信息 --- */
+    var range = C.rangeOf(s.width, s.signed);
+    els.metaType.textContent = (s.signed ? 'int' : 'uint') + s.width;
+    els.rangeText.textContent = '范围 ' + range.min + ' ~ ' + range.max;
+
+    writeHash();
+  }
+
+  /* ---------------------------- 交互事件 ---------------------------- */
+
+  /** 切换位宽 / 符号 */
+  function onSelectWidth(key) {
+    var info = C.typeInfo(key);
+    var s = state;
+    s.width = info.width;
+    s.signed = info.signed;
+    s.bits = C.maskBits(s.bits, s.width);
+    s.truncated = false;
+    // FLOAT 只在 32 位成立、DOUBLE 只在 64 位成立；位宽不匹配时退回 HEX 视图
+    if ((s.inputType === 'FLOAT' && s.width !== 32) ||
+        (s.inputType === 'DOUBLE' && s.width !== 64)) {
+      s.inputType = 'HEX';
+    }
+    if (s.editing) {
+      // 还没输入过就保持空白，别把位模式补出来的 0 塞进输入框
+      s.buffer = s.hasValue ? C.editBuffer(s.inputType, s.bits, s.width, s.signed) : '';
+      s.fresh = true;
+    }
+    render();
+  }
+
+  /** 点击某一类型 —— 自动对齐位宽并进入编辑 */
+  function onSelectView(key) {
+    var view = null;
+    for (var i = 0; i < VIEWS.length; i++) {
+      if (VIEWS[i].key === key) view = VIEWS[i];
+    }
+    var s = state;
+    if (!view || (s.inputType === key && s.editing)) return;
+    if (view.need !== undefined && view.need !== s.width) {
+      s.width = view.need;
+      s.bits = C.maskBits(s.bits, s.width);
+    }
+    s.inputType = key;
+    s.editing = true;
+    s.buffer = s.hasValue ? C.editBuffer(key, s.bits, s.width, s.signed) : '';
+    s.truncated = false;
+    s.fresh = true;
+    render();
+  }
+
+  /** 输入键盘 */
+  function onKey(value) {
+    if (!value) return;
+    var s = state;
+
+    // 单目位运算：NOT / 左移 1 / 右移 1（直接作用于当前位模式）
+    if (value === 'not' || value === 'shl' || value === 'shr') {
+      if (value === 'not') s.bits = C.notBits(s.bits, s.width);
+      else if (value === 'shl') s.bits = C.shiftLeft1(s.bits, s.width);
+      else s.bits = C.shiftRight1(s.bits, s.width, s.signed);
+      s.truncated = false;
+      s.fresh = false;
+      s.hasValue = true;
+      if (s.editing) s.buffer = C.editBuffer(s.inputType, s.bits, s.width, s.signed);
+      render();
+      return;
+    }
+
+    var isDigit = value !== 'clear' && value !== 'back' && value !== 'sign';
+    var base = s.buffer;
+    if (s.fresh && isDigit) base = '';
+    s.fresh = false;
+    s.buffer = C.applyKey(s.inputType, base, value);
+    var r = C.parseInput(s.inputType, s.buffer, s.width, s.signed);
+    s.bits = r.bits;
+    s.truncated = r.truncated;
+    // clear、或退格删到空 → 回到「留空」状态，而不是显示 0
+    s.hasValue = s.buffer !== '';
+    render();
+  }
+
+  /** 点击位格子翻转 */
+  function onToggleBit(i) {
+    var s = state;
+    s.bits = C.maskBits(C.toggleBit(s.bits, i), s.width);
+    s.truncated = false;
+    s.fresh = false;
+    s.hasValue = true;
+    if (s.editing) s.buffer = C.editBuffer(s.inputType, s.bits, s.width, s.signed);
+    render();
+  }
+
+  /** 结束编辑 */
+  function onDone() {
+    state.editing = false;
+    render();
+  }
+
+  /* ---------------------------- 复制 / 分享 ---------------------------- */
+
+  var toastTimer = null;
+
+  function showToast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      els.toast.classList.remove('show');
+    }, 1600);
+  }
+
+  function copyText(text, msg) {
+    var done = function () { showToast(msg); };
+    var fail = function () { showToast('复制失败，请手动选择'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text, done, fail); });
+    } else {
+      legacyCopy(text, done, fail);
+    }
+  }
+
+  /** file:// 或旧浏览器里 navigator.clipboard 可能不可用，退回 execCommand */
+  function legacyCopy(text, done, fail) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) done(); else fail();
+  }
+
+  /** 复制某一行的显示值（BIN 去掉分组空格，方便直接粘贴使用） */
+  function copyRow(key) {
+    var view = null;
+    for (var i = 0; i < VIEWS.length; i++) {
+      if (VIEWS[i].key === key) view = VIEWS[i];
+    }
+    var s = state;
+    if (!view) return;
+    if (view.need !== undefined && view.need !== s.width) return; // 禁用行没有内容
+    if (!s.hasValue) return;                                     // 留空行没有内容
+    var all = C.formatAll(C.maskBits(s.bits, s.width), s.width, s.signed);
+    var text = String(all[view.key]);
+    if (view.key === 'BIN') text = text.replace(/\s/g, '');
+    copyText(text, '已复制 ' + view.key);
+  }
+
+  /** 复制当前数值的分享链接 */
+  function shareLink() {
+    var url = location.href.split('#')[0] + hashString();
+    copyText(url, '分享链接已复制');
+  }
+
+  /* ---------------------------- URL hash ---------------------------- */
+
+  function hashString() {
+    if (!state.hasValue) return '#';
+    var m = C.maskBits(state.bits, state.width);
+    // 只留位宽对应的十六进制位数：读回时反正会按位宽掩码，高位补零纯属噪音
+    var digits = C.toHex64(m).slice(-C.WIDTH_INFO[state.width].hex).toLowerCase();
+    return '#' + (state.signed ? 'int' : 'uint') + state.width + ':' + digits;
+  }
+
+  function writeHash() {
+    var h = hashString();
+    if (location.hash === h) return;
+    // 还没输入过就别往干净 URL 上挂 #，保持地址栏清爽
+    if (h === '#' && (location.hash === '' || location.hash === '#')) return;
+    try {
+      history.replaceState(null, '', h);
+    } catch (e) {
+      /* file:// 下个别浏览器禁止 replaceState，忽略即可 —— 不影响使用 */
+    }
+  }
+
+  /** 从 hash 还原状态；返回是否成功解析 */
+  function readHash() {
+    var m = /^#(int|uint)(8|16|32|64):([0-9a-fA-F]{1,16})$/.exec(location.hash || '');
+    if (!m) return false;
+    var signed = m[1] === 'int';
+    var width = parseInt(m[2], 10);
+    var r = C.parseRadixStr(m[3], 16);
+    state.width = width;
+    state.signed = signed;
+    state.bits = C.maskBits(r.u, width);
+    state.inputType = 'DEC';
+    state.editing = false;
+    state.buffer = '';
+    state.truncated = false;
+    state.hasValue = true;
+    state.fresh = true;
+    return true;
+  }
+
+  /* ---------------------------- 物理键盘 ---------------------------- */
+
+  /** 物理按键 → 虚拟键值；返回 null 表示该键在当前类型下无意义 */
+  function physicalKeyToValue(type, signed, k) {
+    if (k === 'Backspace') return 'back';
+    if (k === 'Delete') return 'clear';
+    if (/^[0-9]$/.test(k)) {
+      if (type === 'BIN') return k === '0' || k === '1' ? k : null;
+      if (type === 'OCT') return k <= '7' ? k : null;
+      return k; // DEC / HEX / FLOAT / DOUBLE
+    }
+    if (/^[a-fA-F]$/.test(k)) {
+      // 只有 HEX 接受字母；FLOAT/DOUBLE 的 e 单独处理
+      if (type === 'HEX') return k.toUpperCase();
+      if ((type === 'FLOAT' || type === 'DOUBLE') && (k === 'e' || k === 'E')) return 'e';
+      return null;
+    }
+    if (k === '.') return type === 'FLOAT' || type === 'DOUBLE' ? '.' : null;
+    // ± 只对「能表示负号」的类型开放：DEC 与浮点。
+    // BIN/OCT/HEX 的 ± 在补码位模式下没有意义（虚拟键盘保留该键只为与 App 一致）。
+    if (k === '-' && signed && (type === 'DEC' || type === 'FLOAT' || type === 'DOUBLE')) {
+      return 'sign';
+    }
+    return null;
+  }
+
+  function onKeyDown(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key;
+
+    if (k === 'Escape') {
+      if (state.editing) { onDone(); e.preventDefault(); }
+      return;
+    }
+    if (k === 'Enter') {
+      if (state.editing) { onDone(); e.preventDefault(); }
+      return;
+    }
+    if (k === 'ArrowUp' || k === 'ArrowDown') {
+      e.preventDefault();
+      moveActiveRow(k === 'ArrowUp' ? -1 : 1);
+      return;
+    }
+
+    var value = physicalKeyToValue(state.inputType, state.signed, k);
+    if (value === null) return;
+    e.preventDefault();
+    // 未编辑时敲有效字符 → 自动进入编辑态（fresh 会保证该字符覆盖旧值）
+    if (!state.editing) onSelectView(state.inputType);
+    onKey(value);
+  }
+
+  /** ↑/↓ 在六种视图间循环（会自动对齐位宽，与点击行一致） */
+  function moveActiveRow(dir) {
+    var idx = 0;
+    for (var i = 0; i < VIEWS.length; i++) {
+      if (VIEWS[i].key === state.inputType) idx = i;
+    }
+    for (var step = 0; step < VIEWS.length; step++) {
+      idx = (idx + dir + VIEWS.length) % VIEWS.length;
+      if (state.inputType !== VIEWS[idx].key) {
+        onSelectView(VIEWS[idx].key);
+        return;
+      }
+    }
+  }
+
+  /* ---------------------------- 事件绑定 ---------------------------- */
+
+  function closestAttr(target, selector, attr) {
+    var node = target && target.closest ? target.closest(selector) : null;
+    return node ? node.getAttribute(attr) : null;
+  }
+
+  function init() {
+    els.chipsSigned = $('chips-signed');
+    els.chipsUnsigned = $('chips-unsigned');
+    els.metaType = $('meta-type');
+    els.rangeText = $('range-text');
+    els.views = $('views');
+    els.bitgrid = $('bitgrid');
+    els.kb = $('kb');
+    els.kbEmpty = $('kb-empty');
+    els.kbType = $('kb-type');
+    els.kbKeys = $('kb-keys');
+    els.kbDone = $('kb-done');
+    els.btnShare = $('btn-share');
+    els.toast = $('toast');
+
+    /* 位宽 chips：两行共用一套逻辑 */
+    var onChipClick = function (e) {
+      var key = closestAttr(e.target, '.chip', 'data-key');
+      if (key) onSelectWidth(key);
+    };
+    els.chipsSigned.addEventListener('click', onChipClick);
+    els.chipsUnsigned.addEventListener('click', onChipClick);
+
+    /* 数值视图：点行进入编辑；点行尾图标复制 */
+    els.views.addEventListener('click', function (e) {
+      var copyKey = closestAttr(e.target, '.copy', 'data-copy');
+      if (copyKey) { copyRow(copyKey); return; }
+      var rowKey = closestAttr(e.target, '.row', 'data-key');
+      if (rowKey) onSelectView(rowKey);
+    });
+
+    /* 位格子 */
+    els.bitgrid.addEventListener('click', function (e) {
+      var i = closestAttr(e.target, '.bit', 'data-i');
+      if (i !== null) onToggleBit(parseInt(i, 10));
+    });
+
+    /* 键盘 */
+    els.kb.addEventListener('click', function (e) {
+      var v = closestAttr(e.target, '.key', 'data-v');
+      if (v !== null) onKey(v);
+    });
+    els.kbDone.addEventListener('click', onDone);
+
+    /* 分享 */
+    els.btnShare.addEventListener('click', shareLink);
+
+    /* 物理键盘 */
+    document.addEventListener('keydown', onKeyDown);
+
+    /* 外部修改 hash（例如粘贴别人的链接）→ 还原 */
+    window.addEventListener('hashchange', function () {
+      if (readHash()) render();
+    });
+
+    readHash();
+    render();
+  }
+
+  /* 暴露给无头浏览器测试与调试 */
+  window.PCWeb = {
+    state: state,
+    render: render,
+    onSelectWidth: onSelectWidth,
+    onSelectView: onSelectView,
+    onKey: onKey,
+    onToggleBit: onToggleBit,
+    onDone: onDone,
+    copyRow: copyRow,
+    physicalKeyToValue: physicalKeyToValue,
+    hashString: hashString
+  };
+
+  init();
+})();
+</script>
+</body>
+</html>
