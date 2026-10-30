@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS ad_patients (id TEXT PRIMARY KEY, title TEXT NOT NULL, document TEXT NOT NULL CHECK(json_valid(document)), case_no TEXT GENERATED ALWAYS AS (json_extract(document,'$.caseNo')) STORED UNIQUE, revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>0), updated_at TEXT NOT NULL);
