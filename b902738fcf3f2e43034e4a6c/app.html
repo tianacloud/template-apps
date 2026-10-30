@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>融雪待办 · 让每天的任务更清楚</title>
+<style>
+  :root {
+    --bg: #f0f7ff;
+    --bg-grad-1: #e0f2fe;
+    --bg-grad-2: #f0f9ff;
+    --card: #ffffff;
+    --text: #0f2c4c;
+    --text-2: #5b7899;
+    --text-3: #93a8c4;
+    --primary: #0ea5e9;
+    --primary-deep: #0284c7;
+    --primary-soft: #e0f2fe;
+    --line: #dbe9f7;
+    --red: #f43f5e;
+    --red-soft: #ffe4e6;
+    --amber: #f59e0b;
+    --amber-soft: #fef3c7;
+    --green: #10b981;
+    --green-soft: #d1fae5;
+    --violet: #8b5cf6;
+    --violet-soft: #ede9fe;
+    --shadow: 0 10px 40px rgba(14, 165, 233, .10);
+    --shadow-lg: 0 20px 60px rgba(14, 165, 233, .16);
+    --radius: 18px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, var(--bg-grad-1), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #e0e7ff, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 16px 60px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  /* ===== 顶部 ===== */
+  header {
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    padding: 26px 28px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.8);
+  }
+  header::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(14,165,233,.07), rgba(139,92,246,.05) 60%, transparent);
+    pointer-events: none;
+  }
+  .logo {
+    width: 58px; height: 58px; border-radius: 18px; flex: none;
+    background: linear-gradient(135deg, #38bdf8, #6366f1);
+    display: grid; place-items: center;
+    box-shadow: 0 8px 24px rgba(56,189,248,.35);
+    position: relative; z-index: 1;
+  }
+  .logo svg { width: 32px; height: 32px; }
+  .head-text { flex: 1; position: relative; z-index: 1; min-width: 0; }
+  .head-text h1 { font-size: 24px; letter-spacing: .5px; }
+  .head-text h1 span {
+    background: linear-gradient(90deg, #0ea5e9, #8b5cf6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .head-text p { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+  .ring { flex: none; position: relative; z-index: 1; width: 76px; height: 76px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .track { stroke: var(--primary-soft); }
+  .ring .bar { stroke: url(#ringGrad); stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1); }
+  .ring .pct {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 15px; font-weight: 700; color: var(--primary-deep);
+  }
+
+  /* ===== 统计条 ===== */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .stat {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    border: 1px solid rgba(255,255,255,.9);
+  }
+  .stat .ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex: none; }
+  .stat .num { font-size: 20px; font-weight: 800; line-height: 1.1; }
+  .stat .lbl { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .ic.blue { background: var(--primary-soft); }
+  .ic.green { background: var(--green-soft); }
+  .ic.violet { background: var(--violet-soft); }
+
+  /* ===== 添加区 ===== */
+  .composer {
+    margin-top: 16px; background: var(--card); border-radius: 24px;
+    box-shadow: var(--shadow); padding: 20px; border: 1px solid rgba(255,255,255,.9);
+  }
+  .composer .row1 { display: flex; gap: 10px; }
+  .composer input[type="text"] {
+    flex: 1; border: 2px solid var(--line); border-radius: 14px; padding: 13px 16px;
+    font-size: 15px; color: var(--text); background: #f8fbff; outline: none;
+    transition: border-color .2s, box-shadow .2s; font-family: inherit; min-width: 0;
+  }
+  .composer input[type="text"]:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(14,165,233,.12); background: #fff; }
+  .composer input[type="date"] {
+    border: 2px solid var(--line); border-radius: 14px; padding: 13px 12px;
+    font-size: 14px; color: var(--text-2); background: #f8fbff; outline: none;
+    font-family: inherit; cursor: pointer; transition: border-color .2s; max-width: 150px;
+  }
+  .composer input[type="date"]:focus { border-color: var(--primary); }
+  .btn-add {
+    border: none; border-radius: 14px; padding: 0 22px; cursor: pointer;
+    background: linear-gradient(135deg, #38bdf8, #6366f1); color: #fff;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    box-shadow: 0 6px 18px rgba(56,189,248,.35);
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn-add:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(56,189,248,.45); }
+  .btn-add:active { transform: translateY(0); }
+  .composer .row2 { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    border: 2px solid var(--line); background: #f8fbff; color: var(--text-2);
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    transition: all .18s; font-family: inherit; display: flex; align-items: center; gap: 5px;
+  }
+  .chip:hover { border-color: var(--primary); color: var(--primary-deep); }
+  .chip.on { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-deep); font-weight: 600; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chip[data-p="high"].on { border-color: var(--red); background: var(--red-soft); color: #be123c; }
+  .chip[data-p="mid"].on { border-color: var(--amber); background: var(--amber-soft); color: #b45309; }
+  .chip[data-p="low"].on { border-color: var(--green); background: var(--green-soft); color: #047857; }
+  .row2 .spacer { flex: 1; }
+
+  /* ===== 筛选 ===== */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin: 20px 4px 12px; flex-wrap: wrap; }
+  .toolbar .t { font-size: 13px; color: var(--text-3); margin-right: 2px; }
+  .fbtn {
+    border: none; background: transparent; color: var(--text-2); font-size: 14px;
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; font-family: inherit;
+    transition: all .18s; font-weight: 500;
+  }
+  .fbtn:hover { background: rgba(14,165,233,.08); color: var(--primary-deep); }
+  .fbtn.on { background: var(--text); color: #fff; font-weight: 600; }
+  .toolbar .right { margin-left: auto; display: flex; gap: 4px; }
+  .link-btn {
+    border: none; background: transparent; color: var(--text-3); font-size: 12.5px;
+    cursor: pointer; font-family: inherit; padding: 6px 10px; border-radius: 8px; transition: all .15s;
+  }
+  .link-btn:hover { color: var(--red); background: var(--red-soft); }
+
+  /* ===== 任务列表 ===== */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 15px 16px; display: flex; align-items: flex-start; gap: 13px;
+    border: 1px solid rgba(255,255,255,.9);
+    animation: pop .3s cubic-bezier(.34,1.56,.64,1);
+    transition: transform .18s, box-shadow .18s, opacity .25s;
+    position: relative;
+  }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  .task:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .task.removing { opacity: 0; transform: translateX(24px); }
+  .task.done { opacity: .62; }
+  .task.done .name { text-decoration: line-through; color: var(--text-3); }
+  .check {
+    width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--line);
+    background: #fff; cursor: pointer; flex: none; margin-top: 1px;
+    display: grid; place-items: center; transition: all .18s;
+  }
+  .check:hover { border-color: var(--primary); }
+  .check svg { width: 13px; height: 13px; opacity: 0; transform: scale(.5); transition: all .18s; }
+  .task.done .check { background: linear-gradient(135deg, #34d399, #10b981); border-color: transparent; }
+  .task.done .check svg { opacity: 1; transform: scale(1); }
+  .task .body { flex: 1; min-width: 0; }
+  .task .name { font-size: 15px; font-weight: 600; word-break: break-all; line-height: 1.45; }
+  .task .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; align-items: center; }
+  .tag {
+    font-size: 11.5px; padding: 3px 9px; border-radius: 999px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tag.cat { background: var(--primary-soft); color: var(--primary-deep); }
+  .tag.p-high { background: var(--red-soft); color: #be123c; }
+  .tag.p-mid { background: var(--amber-soft); color: #b45309; }
+  .tag.p-low { background: var(--green-soft); color: #047857; }
+  .tag.due { background: #f1f5f9; color: var(--text-2); }
+  .tag.due.over { background: var(--red-soft); color: #be123c; }
+  .tag.due.today { background: var(--amber-soft); color: #b45309; }
+  .task .acts { display: flex; gap: 2px; flex: none; opacity: 0; transition: opacity .18s; }
+  .task:hover .acts { opacity: 1; }
+  .icon-btn {
+    border: none; background: transparent; width: 32px; height: 32px; border-radius: 10px;
+    cursor: pointer; color: var(--text-3); display: grid; place-items: center; transition: all .15s;
+  }
+  .icon-btn:hover { background: var(--primary-soft); color: var(--primary-deep); }
+  .icon-btn.del:hover { background: var(--red-soft); color: var(--red); }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  /* 编辑态 */
+  .task .edit-input {
+    width: 100%; border: 2px solid var(--primary); border-radius: 10px;
+    padding: 8px 12px; font-size: 15px; font-family: inherit; outline: none; color: var(--text);
+  }
+
+  /* ===== 空状态 ===== */
+  .empty {
+    text-align: center; padding: 56px 20px; color: var(--text-3);
+    background: var(--card); border-radius: 24px; box-shadow: var(--shadow);
+    border: 2px dashed var(--line);
+  }
+  .empty .emo { font-size: 46px; margin-bottom: 12px; }
+  .empty .t1 { font-size: 16px; font-weight: 700; color: var(--text-2); }
+  .empty .t2 { font-size: 13px; margin-top: 6px; }
+
+  /* ===== 底部 ===== */
+  footer { text-align: center; margin-top: 28px; color: var(--text-3); font-size: 12px; line-height: 1.8; }
+  footer b { color: var(--primary-deep); }
+
+  /* ===== 彩带 ===== */
+  .confetti { position: fixed; top: -12px; width: 9px; height: 14px; border-radius: 2px; z-index: 99; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .8; } }
+
+  /* ===== 提示 ===== */
+  .toast {
+    position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: #fff; font-size: 13.5px; padding: 11px 20px;
+    border-radius: 999px; box-shadow: 0 12px 32px rgba(15,44,76,.3);
+    opacity: 0; transition: all .3s; z-index: 100; pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 560px) {
+    body { padding: 14px 10px 40px; }
+    header { padding: 20px; gap: 14px; border-radius: 20px; }
+    .head-text h1 { font-size: 19px; }
+    .head-text p { display: none; }
+    .ring { width: 62px; height: 62px; }
+    .composer .row1 { flex-wrap: wrap; }
+    .composer input[type="date"] { max-width: none; flex: 1; }
+    .btn-add { flex: 1; justify-content: center; padding: 13px; }
+    .task .acts { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11l3 3L22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+    </div>
+    <div class="head-text">
+      <h1>融雪<span>待办</span></h1>
+      <p id="todayLine">今天也要清清楚楚 💧</p>
+    </div>
+    <div class="ring" title="今日完成度">
+      <svg width="76" height="76">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#818cf8"/>
+          </linearGradient>
+        </defs>
+        <circle class="track" cx="38" cy="38" r="32" fill="none" stroke-width="8"/>
+        <circle class="bar" id="ringBar" cx="38" cy="38" r="32" fill="none" stroke-width="8" stroke-dasharray="201" stroke-dashoffset="201"/>
+      </svg>
+      <div class="pct" id="ringPct">0%</div>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="ic blue">📋</div><div><div class="num" id="stTotal">0</div><div class="lbl">全部任务</div></div></div>
+    <div class="stat"><div class="ic green">✅</div><div><div class="num" id="stDone">0</div><div class="lbl">已完成</div></div></div>
+    <div class="stat"><div class="ic violet">⏳</div><div><div class="num" id="stTodo">0</div><div class="lbl">进行中</div></div></div>
+  </div>
+
+  <div class="composer">
+    <div class="row1">
+      <input type="text" id="inpName" placeholder="想做点什么？回车快速添加 ✓" maxlength="80">
+      <input type="date" id="inpDate" title="截止日期（可选）">
+      <button class="btn-add" id="btnAdd">＋ 添加</button>
+    </div>
+    <div class="row2">
+      <span style="font-size:12.5px;color:var(--text-3)">优先级</span>
+      <button class="chip on" data-p="mid"><span class="dot" style="background:var(--amber)"></span>中</button>
+      <button class="chip" data-p="high"><span class="dot" style="background:var(--red)"></span>高</button>
+      <button class="chip" data-p="low"><span class="dot" style="background:var(--green)"></span>低</button>
+      <span class="spacer"></span>
+      <span style="font-size:12.5px;color:var(--text-3)">分类</span>
+      <button class="chip on" data-c="工作">💼 工作</button>
+      <button class="chip" data-c="学习">📚 学习</button>
+      <button class="chip" data-c="生活">🌿 生活</button>
+      <button class="chip" data-c="其他">✨ 其他</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="t">筛选</span>
+    <button class="fbtn on" data-f="all">全部</button>
+    <button class="fbtn" data-f="active">进行中</button>
+    <button class="fbtn" data-f="done">已完成</button>
+    <div class="right">
+      <button class="link-btn" id="btnClearDone">清除已完成</button>
+      <button class="link-btn" id="btnClearAll">清空全部</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>
+    任务数据保存在云端 · <b>融雪待办</b>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var db, ready = false, lastSaved = "", pending = Promise.resolve();
+  var tasks = [];
+  var filter = "all";
+  var selP = "mid", selC = "工作";
+  var listEl = document.getElementById("list");
+  var inpName = document.getElementById("inpName");
+  var inpDate = document.getElementById("inpDate");
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+
+  /* ---------- 存储 ---------- */
+  async function execute(sql, args) {
+    var response = await db.fetch(db.origin + "/v3/pipeline", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({requests:[{type:"execute",stmt:{sql:sql,args:args || [],want_rows:true}},{type:"close"}]})});
+    if (!response.ok) throw new Error("数据库连接失败");
+    var body = await response.json(), result = body.results && body.results[0];
+    if (!result || result.type !== "ok" || result.response.type !== "execute") throw new Error("数据库操作失败");
+    return result.response.result;
+  }
+  async function load() {
+    if (!window.tiana || !window.tiana.auth || typeof window.tiana.auth.getAccessToken !== "function") throw new Error("账号连接不可用");
+    var connection = await window.tiana.connection();
+    if (connection.sql_api !== "hrana-v3") throw new Error("不支持的数据库协议");
+    db = {origin:connection.origin, fetch:createTianaFetch({origin:connection.origin,auth:window.tiana.auth,requestBodyMode:"buffered"})};
+    var result = await execute("SELECT tasks FROM todo_state WHERE id = 1");
+    tasks = result.rows.length ? JSON.parse(result.rows[0][0].value) : [];
+    lastSaved = JSON.stringify(tasks); ready = true;
+  }
+  function save() {
+    if (!ready) return;
+    var value = JSON.stringify(tasks);
+    if (value === lastSaved) return;
+    lastSaved = value;
+    pending = pending.then(function () { return execute("INSERT INTO todo_state (id, tasks) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET tasks = excluded.tasks", [{type:"text",value:value}]); }).catch(function () {
+      ready = false; document.querySelector('.wrap').inert = true;
+      toast("保存结果未知，请刷新后核对任务"); throw new Error("保存结果未知");
+    });
+    pending.catch(function () {});
+  }
+
+  /* ---------- 工具 ---------- */
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2200);
+  }
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function fmtDate(s) {
+    if (!s) return "";
+    var parts = s.split("-");
+    return parts[1] + "月" + parts[2] + "日";
+  }
+  function dueInfo(s) {
+    if (!s) return null;
+    var t = todayStr();
+    if (s < t) return { cls: "over", txt: "已逾期 · " + fmtDate(s) };
+    if (s === t) return { cls: "today", txt: "今天截止" };
+    return { cls: "", txt: fmtDate(s) + " 截止" };
+  }
+  var P_MAP = { high: { cls: "p-high", txt: "高优先级" }, mid: { cls: "p-mid", txt: "中优先级" }, low: { cls: "p-low", txt: "低优先级" } };
+
+  /* ---------- 渲染 ---------- */
+  function stats() {
+    var total = tasks.length, done = tasks.filter(function (t) { return t.done; }).length;
+    document.getElementById("stTotal").textContent = total;
+    document.getElementById("stDone").textContent = done;
+    document.getElementById("stTodo").textContent = total - done;
+    var pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById("ringPct").textContent = pct + "%";
+    var C = 2 * Math.PI * 32;
+    document.getElementById("ringBar").style.strokeDashoffset = String(C - C * pct / 100);
+  }
+
+  function visible() {
+    return tasks.filter(function (t) {
+      if (filter === "active") return !t.done;
+      if (filter === "done") return t.done;
+      return true;
+    }).sort(function (a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      var pw = { high: 0, mid: 1, low: 2 };
+      if (pw[a.p] !== pw[b.p]) return pw[a.p] - pw[b.p];
+      if (a.due !== b.due) return (a.due || "9999") < (b.due || "9999") ? -1 : 1;
+      return b.ct - a.ct;
+    });
+  }
+
+  function render() {
+    var arr = visible();
+    if (!arr.length) {
+      var msg = filter === "done" ? ["🎉", "还没有完成的任务", "去完成一条看看吧"] :
+                filter === "active" ? ["☕", "太棒了，全部完成", "所有任务都已清空"] :
+                ["🧊", "清单空空如也", "在上方输入框添加第一条任务吧"];
+      listEl.innerHTML = '<div class="empty"><div class="emo">' + msg[0] + '</div><div class="t1">' + msg[1] + '</div><div class="t2">' + msg[2] + '</div></div>';
+    } else {
+      listEl.innerHTML = arr.map(function (t) {
+        var p = P_MAP[t.p] || P_MAP.mid;
+        var d = dueInfo(t.due);
+        return '<div class="task' + (t.done ? " done" : "") + '" data-id="' + t.id + '">' +
+          '<div class="check" data-act="toggle" title="' + (t.done ? "标记为进行中" : "标记为已完成") + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
+          '</div>' +
+          '<div class="body">' +
+            '<div class="name">' + esc(t.name) + '</div>' +
+            '<div class="meta">' +
+              '<span class="tag ' + p.cls + '">' + p.txt + '</span>' +
+              '<span class="tag cat">' + esc(t.c) + '</span>' +
+              (d ? '<span class="tag due ' + d.cls + '">📅 ' + d.txt + '</span>' : "") +
+            '</div>' +
+          '</div>' +
+          '<div class="acts">' +
+            '<button class="icon-btn" data-act="edit" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+            '<button class="icon-btn del" data-act="del" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+    }
+    stats();
+    save();
+  }
+
+  /* ---------- 操作 ---------- */
+  function add() {
+    var name = inpName.value.trim();
+    if (!name) { inpName.focus(); toast("先输入任务内容哦 ✍️"); return; }
+    tasks.push({ id: uid(), name: name, p: selP, c: selC, due: inpDate.value || "", done: false, ct: Date.now() });
+    inpName.value = ""; inpDate.value = "";
+    inpName.focus();
+    render();
+    toast("已添加 ✓");
+  }
+
+  function remove(id) {
+    var el = listEl.querySelector('.task[data-id="' + id + '"]');
+    var i = tasks.findIndex(function (t) { return t.id === id; });
+    if (i < 0) return;
+    if (el) {
+      el.classList.add("removing");
+      setTimeout(function () { tasks.splice(i, 1); render(); }, 220);
+    } else { tasks.splice(i, 1); render(); }
+    toast("已删除 🗑️");
+  }
+
+  function edit(id) {
+    var t = tasks.find(function (x) { return x.id === id; });
+    if (!t) return;
+    var el = listEl.querySelector('.task[data-id="' + id + '"] .name');
+    if (!el) return;
+    var input = document.createElement("input");
+    input.className = "edit-input";
+    input.value = t.name;
+    input.maxLength = 80;
+    el.replaceWith(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    var finished = false;
+    function commit(ok) {
+      if (finished) return;
+      finished = true;
+      var v = input.value.trim();
+      if (ok && v) { t.name = v; }
+      render();
+    }
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); commit(true); }
+      if (e.key === "Escape") commit(false);
+    });
+    input.addEventListener("blur", function () { commit(true); });
+  }
+
+  function confetti() {
+    var colors = ["#38bdf8", "#818cf8", "#f43f5e", "#fbbf24", "#34d399", "#a78bfa"];
+    for (var i = 0; i < 36; i++) {
+      (function (i) {
+        var c = document.createElement("div");
+        c.className = "confetti";
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.background = colors[i % colors.length];
+        c.style.animationDuration = (1.2 + Math.random() * 1.4) + "s";
+        c.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+        document.body.appendChild(c);
+        setTimeout(function () { c.remove(); }, 2800);
+      })(i);
+    }
+  }
+
+  /* ---------- 事件 ---------- */
+  document.getElementById("btnAdd").addEventListener("click", add);
+  inpName.addEventListener("keydown", function (e) { if (e.key === "Enter") add(); });
+
+  document.querySelectorAll(".chip[data-p]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".chip[data-p]").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on"); selP = b.dataset.p;
+    });
+  });
+  document.querySelectorAll(".chip[data-c]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".chip[data-c]").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on"); selC = b.dataset.c;
+    });
+  });
+
+  document.querySelectorAll(".fbtn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".fbtn").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on"); filter = b.dataset.f; render();
+    });
+  });
+
+  listEl.addEventListener("click", function (e) {
+    var actEl = e.target.closest("[data-act]");
+    if (!actEl) return;
+    var id = actEl.closest(".task").dataset.id;
+    var act = actEl.dataset.act;
+    if (act === "toggle") {
+      var t = tasks.find(function (x) { return x.id === id; });
+      if (t) {
+        t.done = !t.done;
+        if (t.done) {
+          var rest = tasks.filter(function (x) { return !x.done; }).length;
+          if (!rest && tasks.length >= 3) confetti();
+          toast("又搞定一条，真棒 ⭐");
+        }
+        render();
+      }
+    } else if (act === "del") { remove(id); }
+    else if (act === "edit") { edit(id); }
+  });
+
+  document.getElementById("btnClearDone").addEventListener("click", function () {
+    var n = tasks.filter(function (t) { return t.done; }).length;
+    if (!n) { toast("没有已完成的任务"); return; }
+    tasks = tasks.filter(function (t) { return !t.done; });
+    render(); toast("已清除 " + n + " 条完成 🧹");
+  });
+  document.getElementById("btnClearAll").addEventListener("click", function () {
+    if (!tasks.length) { toast("清单已经是空的"); return; }
+    if (confirm("确定清空全部任务吗？此操作不可恢复。")) {
+      tasks = []; render(); toast("已清空 🧊");
+    }
+  });
+
+  /* ---------- 初始化 ---------- */
+  var weekMap = ["日", "一", "二", "三", "四", "五", "六"];
+  var now = new Date();
+  document.getElementById("todayLine").textContent =
+    now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日 · 星期" + weekMap[now.getDay()];
+
+  document.querySelector('.wrap').inert = true;
+  load().then(function () { document.querySelector('.wrap').inert = false; render(); }).catch(function () { toast("无法读取任务，请刷新后重试"); });
+})();
+</script>
+</body>
+</html>

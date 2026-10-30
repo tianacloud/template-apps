@@ -1,0 +1,13 @@
+import {build} from "esbuild";
+import {readFile, writeFile, mkdir, copyFile, rm} from "node:fs/promises";
+const html=await readFile("app.html","utf8");
+const style=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body>([\s\S]*?)<script>/)[1];
+const js=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+await rm("dist",{recursive:true,force:true}); await mkdir("dist/assets",{recursive:true});
+const entry=`import {createTianaFetch} from "@tianacloud/serverless";
+document.title="融雪待办 · 让每天的任务更清楚";\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${js}`;
+await build({stdin:{contents:entry,resolveDir:process.cwd(),sourcefile:"app.js"},bundle:true,format:"iife",platform:"browser",outfile:"dist/assets/app.js"});
+await copyFile("public/icon.png","dist/icon.png");
+const source=JSON.parse(await readFile("source.json","utf8"));
+console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",...source}));
