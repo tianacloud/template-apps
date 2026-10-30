@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS namesmith_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
