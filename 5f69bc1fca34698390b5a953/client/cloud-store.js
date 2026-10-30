@@ -19,7 +19,7 @@ export async function openLedgerStore() {
   if(!data || typeof data!=='object' || Array.isArray(data)) throw new Error('账本数据格式异常，请联系管理员恢复。');
   const status=document.createElement('div');
   status.setAttribute('role','status');
-  Object.assign(status.style,{position:'fixed',right:'12px',bottom:'12px',zIndex:'99999',background:'#fff',color:'#555',padding:'6px 10px',borderRadius:'8px',boxShadow:'0 1px 8px #0003',fontSize:'12px'});
+  Object.assign(status.style,{position:'fixed',right:'12px',top:'12px',pointerEvents:'none',zIndex:'99999',background:'#fff',color:'#555',padding:'6px 10px',borderRadius:'8px',boxShadow:'0 1px 8px #0003',fontSize:'12px'});
   document.body.appendChild(status);
   const show=t=>status.textContent=t;
   const block=message=>{failed=true;show(message);const layer=document.createElement('div');Object.assign(layer.style,{position:'fixed',inset:'0',zIndex:'99998',background:'#ffffffdd',display:'grid',placeItems:'center',padding:'24px',textAlign:'center'});layer.textContent=message+' 请刷新后检查数据，必要时从备份恢复。';document.body.appendChild(layer);};
