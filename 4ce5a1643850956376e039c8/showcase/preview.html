@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>离线家常菜单 · 搜索 + 随机抽菜</title>
+<style>
+  :root{
+    --bg:#fffaf3;--card:#ffffff;--ink:#2c2620;--muted:#8a7e70;
+    --line:#efe4d4;--accent:#e8662a;--accent-soft:#fbe6d8;--green:#3f9d57;
+    --shadow:0 6px 20px rgba(184,124,60,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  header{background:linear-gradient(135deg,#ff8a4c,#e8662a);color:#fff;padding:22px 18px 18px;box-shadow:var(--shadow)}
+  header h1{margin:0;font-size:22px;letter-spacing:1px}
+  header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:960px;margin:0 auto;padding:0 14px 60px}
+  .toolbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 10px;border-bottom:1px solid var(--line)}
+  .search{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .search input{flex:1;min-width:200px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);outline:none}
+  .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .btn{border:none;cursor:pointer;border-radius:12px;font-size:15px;padding:11px 16px;font-weight:600;transition:.15s;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--muted);padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;transition:.15s}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .count{margin:10px 2px 0;font-size:13px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:14px}
+  .dish{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:.15s;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+  .dish:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .dish .name{font-size:16px;font-weight:700}
+  .dish .tag{align-self:flex-start;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+  .dish .meta{font-size:12px;color:var(--muted);margin-top:auto}
+  .overlay{position:fixed;inset:0;background:rgba(40,30,20,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .overlay.show{display:flex}
+  .sheet{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .sheet-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;border-radius:18px 18px 0 0}
+  .sheet-head h2{margin:0;font-size:20px}
+  .sheet-head .close{border:none;background:var(--accent-soft);color:var(--accent);width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer}
+  .sheet-body{padding:18px 20px 24px}
+  .badge{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-bottom:12px}
+  .sec-title{font-weight:700;margin:16px 0 8px;color:var(--accent);font-size:15px}
+  .ing{display:flex;flex-wrap:wrap;gap:6px}
+  .ing span{background:#f6efe4;color:#6b5d4a;padding:4px 10px;border-radius:8px;font-size:13px}
+  .steps{margin:0;padding-left:0;list-style:none;counter-reset:s}
+  .steps li{counter-increment:s;position:relative;padding:8px 0 8px 34px;border-bottom:1px dashed var(--line);font-size:14.5px}
+  .steps li:last-child{border-bottom:none}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .tips{background:#f3f9f1;border-left:4px solid var(--green);padding:10px 12px;border-radius:8px;font-size:13.5px;color:#3a5a40;margin-top:14px}
+  #lucky.overlay{background:rgba(40,30,20,.6)}
+  .lucky-box{text-align:center;padding:8px}
+  .lucky-box .spin{font-size:64px;line-height:1;margin:6px 0 4px;transition:.2s}
+  .lucky-box h2{margin:6px 0 2px;font-size:26px}
+  .lucky-box .tag2{color:var(--accent);font-size:13px}
+  .lucky-box .spin-go{animation:spin .08s linear infinite}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  .lucky-actions{display:flex;gap:10px;justify-content:center;margin-top:18px}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+</style>
+</head>
+<body><div style="text-align:center;background:#fbe6d8;color:#8a4b2d;font-size:12px;padding:4px">示例体验 · 数据仅保留在本页 <button id="reset-preview" type="button">恢复示例</button></div>
+<header>
+  <h1>🍳 离线家常菜单</h1>
+  <p>搜索菜名 / 食材 · 查看做法 · 一键随机抽菜决定吃什么 · 菜谱随应用安装</p>
+</header>
+<div class="wrap">
+  <div class="toolbar">
+    <div class="search">
+      <input id="q" type="text" placeholder="搜索菜名或食材，如：番茄、鸡翅、排骨、清淡…">
+      <button class="btn btn-primary">🎲 不知道吃什么？抽一道</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="count" id="count"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<div class="overlay" id="detail">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="d-name"></h2><button class="close">×</button></div>
+    <div class="sheet-body" id="d-body"></div>
+  </div>
+</div>
+<div class="overlay" id="lucky">
+  <div class="sheet" style="max-width:420px">
+    <div class="sheet-body lucky-box">
+      <div class="spin" id="lucky-icon">🍽️</div>
+      <div class="tag2" id="lucky-tag">命运正在搅拌锅中…</div>
+      <h2 id="lucky-name">？？？</h2>
+      <div id="lucky-meta" style="color:var(--muted);font-size:13px"></div>
+      <div class="lucky-actions">
+        <button class="btn btn-ghost">🔁 换一道</button>
+        <button class="btn btn-primary" id="lucky-view" style="display:none">查看做法</button>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>共 <span id="total"></span> 道家常菜 · 数据来源于公网家常菜谱，随应用安装。</footer>
+<script>
+/* ===== 离线菜谱数据（来自公网家常菜谱，已本地缓存） ===== */
+const DISHES = [
+/* ---------------- 素菜 80 ---------------- */
+{name:"手撕包菜",cat:"素菜",time:"约12分钟",level:"简单",ing:["包菜半个","蒜","干辣椒","生抽1.5勺","香醋半勺","盐"],steps:["包菜用手撕成片，洗净沥干。","热油多放一点，爆香蒜、干辣椒。","大火下包菜快速爆炒至变软。","加生抽、香醋、盐，翻炒几十秒出锅。"],tips:"手撕比刀切更入味，大火快炒保脆嫩。"},
+{name:"酸辣土豆丝",cat:"素菜",time:"约15分钟",level:"简单",ing:["土豆2个","干辣椒","蒜","香醋2勺","生抽1勺","盐"],steps:["土豆去皮切细丝，泡水洗去淀粉沥干。","热油爆香干辣椒、蒜末。","下土豆丝大火快炒至断生。","沿锅边淋醋，加生抽盐，翻炒均匀出锅。"],tips:"临出锅淋醋更酸脆。"},
+{name:"清炒西兰花",cat:"素菜",time:"约10分钟",level:"简单",ing:["西兰花1颗","蒜","盐","蚝油"],steps:["西兰花切小朵，水开加盐和油焯1分钟捞出。","热油爆香蒜末，下西兰花。","加少许盐、蚝油翻匀出锅。"],tips:"焯水加盐和油颜色更翠绿。"},
+{name:"蒜蓉油麦菜",cat:"素菜",time:"约8分钟",level:"简单",ing:["油麦菜2把","大量蒜末","盐","生抽"],steps:["热油爆香一半蒜末，下油麦菜大火快炒。","菜叶变软，放盐生抽，撒剩下一半蒜末翻两下出锅。"],tips:"蒜分两次放，蒜香更浓。"},
+{name:"干煸豆角",cat:"素菜",time:"约18分钟",level:"中等",ing:["豆角450g","干辣椒","花椒","蒜末","生抽","盐"],steps:["豆角掰段，多放油煎到表皮起皱盛出。","倒出多余油，爆香辣椒花椒蒜。","放回豆角，加生抽盐翻炒均匀。"],tips:"煎到起皱才够干香，注意防溅油。"},
+{name:"地三鲜",cat:"素菜",time:"约25分钟",level:"中等",ing:["土豆1个","茄子1根","青椒1个","蒜","生抽2勺","盐","糖","淀粉水"],steps:["土豆茄子切块，分别过油炸软捞出。","底油爆香蒜末，下青椒翻炒。","倒入土豆茄子，加生抽盐糖快速翻拌。","淋淀粉水勾薄芡出锅。"],tips:"茄子土豆先炸软成品更糯香。"},
+{name:"西红柿炒鸡蛋",cat:"素菜",time:"约12分钟",level:"简单",ing:["番茄2个","鸡蛋3个","盐","糖","葱花"],steps:["鸡蛋打散加少许盐，炒熟盛出。","番茄切块下锅炒出汁，加少许糖。","倒入鸡蛋，加盐翻匀，撒葱花出锅。"],tips:"加一点糖中和酸味更鲜甜。"},
+{name:"蒜蓉娃娃菜",cat:"素菜",time:"约15分钟",level:"简单",ing:["娃娃菜2颗","大量蒜末","生抽","蚝油","粉丝(可选)","葱花"],steps:["娃娃菜切瓣铺盘（可垫泡软粉丝）。","蒜末炒香加生抽蚝油调成蒜蓉酱。","淋在娃娃菜上，上锅蒸8分钟。","出锅撒葱花淋热油。"],tips:"蒜要多才香，蒸的时间别太长。"},
+{name:"凉拌黄瓜",cat:"素菜",time:"约10分钟",level:"简单",ing:["黄瓜2根","蒜","生抽","香醋","盐","糖","香油","辣椒油"],steps:["黄瓜拍裂切段，加少许盐腌5分钟倒掉水。","蒜切末，加生抽、香醋、糖、香油、辣椒油调汁。","淋在黄瓜上拌匀，冷藏更爽口。"],tips:"拍裂比切更入味，腌一下更脆。"},
+{name:"清炒茼蒿",cat:"素菜",time:"约8分钟",level:"简单",ing:["茼蒿一把","蒜","盐"],steps:["热油爆蒜，大火下茼蒿快炒。","变软加盐直接出锅。"],tips:"茼蒿易熟，下锅到出锅要快。"},
+{name:"香菇青菜",cat:"素菜",time:"约12分钟",level:"简单",ing:["上海青一把","干香菇6朵","蒜","蚝油","盐"],steps:["青菜焯水摆盘。","香菇泡发切片炒香，放蚝油少许水。","勾芡浇在青菜上面。"],tips:"香菇泡发的水可留着提鲜。"},
+{name:"酸辣藕片",cat:"素菜",time:"约12分钟",level:"简单",ing:["莲藕1节","干辣椒","蒜","香醋","生抽","盐"],steps:["藕切片泡水，开水焯1分钟捞出。","爆香辣椒蒜，下藕片。","淋醋大火快炒，加盐生抽调味。"],tips:"藕片焯水更脆，白醋保白。"},
+{name:"韭菜炒鸡蛋",cat:"素菜",time:"约10分钟",level:"简单",ing:["韭菜一把","鸡蛋3个","盐"],steps:["韭菜洗净切段，鸡蛋打散炒熟备用。","热油下韭菜翻炒几下。","加鸡蛋、盐快速翻匀出锅。"],tips:"韭菜易熟，下锅到出锅要快。"},
+{name:"炒西葫芦",cat:"素菜",time:"约10分钟",level:"简单",ing:["西葫芦1根","蒜","盐","生抽"],steps:["西葫芦切片，热油爆蒜。","下锅大火翻炒，变软调味出锅。"],tips:"切片薄厚均匀更易熟。"},
+{name:"松仁玉米",cat:"素菜",time:"约12分钟",level:"简单",ing:["玉米粒","熟松仁","豌豆","盐","白糖"],steps:["玉米粒和豌豆提前煮熟控干。","锅中热油，下玉米粒豌豆，加盐、糖翻炒。","倒入松仁翻匀即可。"],tips:"松仁最后放保持酥香。"},
+{name:"凉拌虫草花",cat:"素菜",time:"约12分钟",level:"简单",ing:["虫草花","香菜","木耳","生抽","盐","香油","陈醋","熟芝麻"],steps:["木耳泡发焯熟，虫草花洗净焯水2分钟过凉。","香菜切碎。","所有材料加生抽、盐、香油、陈醋、芝麻拌匀。"],tips:"虫草花焯水不要太久。"},
+{name:"素咖喱土豆",cat:"素菜",time:"约25分钟",level:"简单",ing:["土豆","胡萝卜","豌豆","素咖喱块","盐"],steps:["土豆胡萝卜去皮切块，豌豆煮熟。","加水下土豆胡萝卜炖八分熟。","下素咖喱块和豌豆炖熟，加盐调味。"],tips:"咖喱块最后放，搅匀防糊底。"},
+{name:"辣椒炒平菇",cat:"素菜",time:"约12分钟",level:"简单",ing:["平菇","青红椒","姜","盐","生抽","水淀粉"],steps:["平菇撕条焯水捞出过凉。","青红椒改刀。","热油爆香姜，下平菇青红椒，加盐生抽，淋水淀粉炒匀。"],tips:"平菇焯水去土腥味。"},
+{name:"酱焖豆腐",cat:"素菜",time:"约15分钟",level:"简单",ing:["豆腐","黄豆酱2勺","青椒","十三香","生抽","水淀粉"],steps:["豆腐切块焯水2分钟捞出。","热油加黄豆酱青椒爆香，倒入豆腐。","加十三香、半碗水、生抽，水淀粉勾芡。"],tips:"黄豆酱咸，少放盐。"},
+{name:"甘蓝炒粉",cat:"素菜",time:"约15分钟",level:"简单",ing:["甘蓝","粉丝","姜","素蚝油","生抽","熟芝麻"],steps:["甘蓝切丝，粉条泡软煮熟。","热油爆香姜，下甘蓝煸炒。","加素蚝油生抽，倒入粉条炒匀，撒芝麻。"],tips:"粉条提前煮软不易坨。"},
+{name:"西兰花木耳",cat:"素菜",time:"约12分钟",level:"简单",ing:["西兰花","木耳","胡萝卜","姜","盐"],steps:["木耳泡发，胡萝卜切片。","西兰花盐水泡后焯水1分钟，加木耳胡萝卜焯水。","热油爆香姜，下所有食材加盐炒匀。"],tips:"木耳泡发要彻底。"},
+{name:"山药玉米炖",cat:"素菜",time:"约30分钟",level:"简单",ing:["山药","胡萝卜","玉米","盐"],steps:["山药胡萝卜去皮切块，玉米切段。","起锅多加水，水开下所有食材。","加少许盐炖熟即可。"],tips:"山药去皮戴手套防痒。"},
+{name:"炝拌土豆丝",cat:"素菜",time:"约12分钟",level:"简单",ing:["土豆丝","香菜","干辣椒","香醋","盐","植物油"],steps:["土豆切丝冲洗，焯水过凉装盘。","加香菜、香醋、盐、干辣椒。","淋热油拌匀即可。"],tips:"焯水后用冷水冲更脆。"},
+{name:"素鱼香茄子",cat:"素菜",time:"约20分钟",level:"简单",ing:["茄子","香菜","生抽","老抽","白糖","香醋","淀粉"],steps:["茄子去皮切段蒸熟。","调素鱼香汁：老抽、生抽、糖、醋、淀粉、半碗水。","汁熬浓稠，下茄子翻炒均匀。"],tips:"蒸茄子比油炸清爽。"},
+{name:"油淋秋葵",cat:"素菜",time:"约12分钟",level:"简单",ing:["秋葵","姜","辣椒","生抽","芝麻"],steps:["秋葵加盐加油焯水2分钟过凉摆盘。","另起锅热油，下姜丝辣椒，倒生抽。","趁热淋在秋葵上，撒芝麻。"],tips:"秋葵整根焯水不切，避免黏液流失。"},
+{name:"腰果西芹",cat:"素菜",time:"约12分钟",level:"简单",ing:["西芹","腰果","红椒","盐"],steps:["西芹切块焯水2分钟过凉。","热锅冷油下腰果小火煸香，下西芹。","加盐炒熟，下红椒炒匀。"],tips:"腰果小火煸防糊。"},
+{name:"豆豉油麦菜",cat:"素菜",time:"约10分钟",level:"简单",ing:["油麦菜","豆豉酱","生抽"],steps:["油麦菜沥干切段。","热油下豆豉酱略煸，下油麦菜和生抽煸炒出锅。"],tips:"豆豉本身咸，少放盐。"},
+{name:"红烧冬瓜",cat:"素菜",time:"约20分钟",level:"简单",ing:["冬瓜","小米辣","生抽","白糖","盐","熟芝麻"],steps:["冬瓜去皮切块，小米辣切段。","锅中小火熬糖色，下冬瓜煸炒上色。","加小米辣、生抽、盐、水，中火炖熟，撒芝麻。"],tips:"糖色别熬过头发苦。"},
+{name:"杂菌扒油菜",cat:"素菜",time:"约18分钟",level:"中等",ing:["油菜","白玉菇","虫草花","姜","盐","生抽","水淀粉"],steps:["油菜加盐加油焯水摆盘。","菌菇焯水2分钟。","热油爆香姜，下菌菇，加盐生抽，水淀粉勾芡浇上。"],tips:"油菜焯水保翠绿。"},
+{name:"干锅豆干",cat:"素菜",time:"约15分钟",level:"中等",ing:["豆干","青椒","熟芝麻","豆瓣酱","麻椒","生抽","糖"],steps:["豆干切片，青椒切块。","热油下豆瓣酱麻椒炒香。","下豆干青椒煸炒，加生抽糖，撒芝麻。"],tips:"豆干煸香更入味。"},
+{name:"清炒菠菜",cat:"素菜",time:"约8分钟",level:"简单",ing:["菠菜","蒜","盐"],steps:["菠菜洗净，热油爆蒜。","下菠菜大火快炒，加盐出锅。"],tips:"菠菜含草酸，建议先焯水。"},
+{name:"凉拌木耳",cat:"素菜",time:"约12分钟",level:"简单",ing:["木耳","蒜","生抽","香醋","盐","香油","香菜","辣椒油"],steps:["木耳泡发焯熟过凉。","蒜切末，加生抽、醋、盐、香油、辣椒油调汁。","拌入木耳和香菜。"],tips:"木耳泡发不超过4小时更安全。"},
+{name:"蒜蓉生菜",cat:"素菜",time:"约10分钟",level:"简单",ing:["生菜","大量蒜末","盐","蚝油"],steps:["热油爆香蒜末，下生菜大火快炒。","加盐蚝油翻匀出锅。"],tips:"生菜快炒保持脆嫩。"},
+{name:"醋溜白菜",cat:"素菜",time:"约12分钟",level:"简单",ing:["大白菜","干辣椒","蒜","香醋","生抽","盐","糖","淀粉水"],steps:["白菜帮切片，叶撕块。","热油爆香辣椒蒜，下白菜翻炒。","加醋、生抽、盐、糖，淋淀粉水勾芡。"],tips:"先炒帮后放叶，口感一致。"},
+{name:"油焖香菇",cat:"素菜",time:"约18分钟",level:"简单",ing:["干香菇","生抽","老抽","糖","盐"],steps:["香菇泡发去蒂，表面划十字。","热油下香菇煸炒，加生抽老抽糖。","加水焖煮至入味收汁。"],tips:"泡香菇的水留着更鲜。"},
+{name:"清炒芦笋",cat:"素菜",time:"约12分钟",level:"简单",ing:["芦笋","蒜","盐","橄榄油"],steps:["芦笋切段焯水1分钟。","热油爆蒜，下芦笋加盐快炒。"],tips:"芦笋焯水去涩更脆嫩。"},
+{name:"蚝油生菜",cat:"素菜",time:"约10分钟",level:"简单",ing:["生菜","蚝油","蒜","盐"],steps:["生菜洗净，热油爆蒜。","下生菜炒软，加蚝油盐翻匀。"],tips:"蚝油提鲜，无需过多调料。"},
+{name:"凉拌海带丝",cat:"素菜",time:"约12分钟",level:"简单",ing:["海带丝","蒜","生抽","香醋","盐","辣椒油","白芝麻"],steps:["海带丝洗净焯熟过凉。","蒜末加生抽、醋、盐、辣椒油调汁。","拌入海带丝，撒白芝麻。"],tips:"海带焯水去腥去咸。"},
+{name:"雪菜毛豆",cat:"素菜",time:"约12分钟",level:"简单",ing:["雪菜","毛豆","蒜","糖","生抽"],steps:["毛豆焯水，雪菜切末。","热油爆蒜，下雪菜毛豆翻炒。","加糖生抽调味出锅。"],tips:"雪菜本身咸，少放盐。"},
+{name:"清炒荷兰豆",cat:"素菜",time:"约10分钟",level:"简单",ing:["荷兰豆","蒜","盐"],steps:["荷兰豆去筋，热油爆蒜。","下荷兰豆大火快炒，加盐出锅。"],tips:"荷兰豆要炒熟防中毒。"},
+{name:"蒜蓉粉丝蒸金针菇",cat:"素菜",time:"约18分钟",level:"简单",ing:["金针菇","粉丝","蒜","生抽","蚝油","小米辣"],steps:["粉丝泡软铺底，金针菇切去根铺上。","蒜末炒香加生抽蚝油成蒜蓉酱淋上。","上锅蒸8分钟，撒小米辣淋热油。"],tips:"金针菇撕散易入味。"},
+{name:"红烧茄子",cat:"素菜",time:"约20分钟",level:"中等",ing:["茄子","蒜","生抽","老抽","糖","盐","淀粉水"],steps:["茄子切块裹薄淀粉，煎/炸软盛出。","底油爆蒜，加生抽老抽糖和水。","下茄子烧入味，淋淀粉水收汁。"],tips:"裹淀粉煎省油不吸油。"},
+{name:"鱼香杏鲍菇",cat:"素菜",time:"约18分钟",level:"中等",ing:["杏鲍菇","胡萝卜","木耳","泡椒","蒜","生抽","醋","糖","淀粉"],steps:["杏鲍菇撕条，配菜切丝。","调鱼香汁：生抽、醋、糖、淀粉、水。","热油炒香泡椒蒜，下菇与配菜，淋汁翻匀。"],tips:"杏鲍菇手撕比切更有口感。"},
+{name:"凉拌腐竹",cat:"素菜",time:"约12分钟",level:"简单",ing:["腐竹","蒜","生抽","香醋","盐","香油","香菜","辣椒油"],steps:["腐竹泡软焯熟过凉切段。","蒜末加调料调汁拌匀。"],tips:"腐竹温水泡发更快。"},
+{name:"葱烧豆腐",cat:"素菜",time:"约15分钟",level:"简单",ing:["豆腐","大葱","生抽","老抽","盐","糖"],steps:["豆腐切块煎至金黄。","大葱切段爆香，加生抽老抽糖和水。","下豆腐烧入味收汁。"],tips:"大葱多放才香。"},
+{name:"家常烧豆腐",cat:"素菜",time:"约15分钟",level:"简单",ing:["豆腐","青椒","木耳","蒜","生抽","盐","淀粉水"],steps:["豆腐切块煎一下。","爆香蒜，下青椒木耳翻炒。","加豆腐、生抽、水，勾芡收汁。"],tips:"煎一下豆腐不易碎。"},
+{name:"凉拌皮蛋豆腐",cat:"素菜",time:"约12分钟",level:"简单",ing:["内酯豆腐","皮蛋","生抽","香醋","蒜","香油","葱花"],steps:["豆腐扣盘，皮蛋切瓣摆放。","蒜末加生抽醋香油调汁淋上，撒葱花。"],tips:"内酯豆腐倒扣轻拍底部易脱模。"},
+{name:"拔丝地瓜",cat:"素菜",time:"约25分钟",level:"中等",ing:["地瓜","白糖","油","芝麻"],steps:["地瓜去皮切滚刀块，炸至金黄。","锅中小火熬糖至琥珀色起丝。","倒入地瓜快速翻裹，撒芝麻，配凉水上桌。"],tips:"熬糖全程小火，见焦糖色立刻下料。"},
+{name:"干锅花菜",cat:"素菜",time:"约18分钟",level:"中等",ing:["花菜","青椒","红椒","豆瓣酱","蒜","生抽"],steps:["花菜掰小朵焯水。","热油下豆瓣酱蒜炒香，下花菜青红椒。","加生抽煸炒干香出锅。"],tips:"花菜先焯更易熟。"},
+{name:"蒜蓉蒸丝瓜",cat:"素菜",time:"约15分钟",level:"简单",ing:["丝瓜","蒜","生抽","蚝油","粉丝(可选)"],steps:["丝瓜切段铺盘（垫粉丝）。","蒜末炒香加生抽蚝油淋上。","蒸8分钟出锅。"],tips:"丝瓜清甜，蒜蓉提味。"},
+{name:"清炒小白菜",cat:"素菜",time:"约8分钟",level:"简单",ing:["小白菜","蒜","盐"],steps:["小白菜洗净，热油爆蒜。","大火快炒加盐出锅。"],tips:"小白菜水分多，快炒不出水。"},
+{name:"凉拌苦瓜",cat:"素菜",time:"约12分钟",level:"简单",ing:["苦瓜","蒜","生抽","香醋","盐","香油","辣椒油"],steps:["苦瓜切片焯水过凉。","蒜末加调料调汁拌匀。"],tips:"焯水去苦味，冰镇更爽脆。"},
+{name:"红烧萝卜",cat:"素菜",time:"约20分钟",level:"简单",ing:["白萝卜","生抽","老抽","糖","盐"],steps:["萝卜切块，热油略煎。","加生抽老抽糖和水炖煮至软烂收汁。"],tips:"萝卜炖软才入味回甘。"},
+{name:"蚝油杏鲍菇",cat:"素菜",time:"约12分钟",level:"简单",ing:["杏鲍菇","蚝油","蒜","生抽","盐"],steps:["杏鲍菇切片，热油煎香。","加蒜、蚝油生抽翻炒入味。"],tips:"煎出焦边更香。"},
+{name:"素炒三丝",cat:"素菜",time:"约12分钟",level:"简单",ing:["胡萝卜","黄瓜","木耳","蒜","盐"],steps:["胡萝卜黄瓜切丝，木耳泡发切丝。","热油爆蒜，下三丝翻炒。","加盐调味出锅。"],tips:"三丝粗细均匀更美观。"},
+{name:"西芹百合",cat:"素菜",time:"约12分钟",level:"简单",ing:["西芹","鲜百合","盐","枸杞"],steps:["西芹切块焯水，百合洗净。","热油下西芹百合快炒，加盐枸杞出锅。"],tips:"百合最后放保持清甜。"},
+{name:"清炒芥蓝",cat:"素菜",time:"约10分钟",level:"简单",ing:["芥蓝","蒜","盐","蚝油"],steps:["芥蓝洗净，热油爆蒜。","下芥蓝大火快炒，加盐蚝油。"],tips:"芥蓝梗斜切易熟。"},
+{name:"凉拌西红柿",cat:"素菜",time:"约8分钟",level:"简单",ing:["西红柿","白糖","少许盐"],steps:["西红柿切片装盘。","撒白糖和少许盐即可。"],tips:"少许盐提甜味。"},
+{name:"香菇炒油菜",cat:"素菜",time:"约12分钟",level:"简单",ing:["油菜","鲜香菇","蒜","蚝油","盐"],steps:["香菇切片，油菜洗净。","热油爆蒜，下香菇炒香，加油菜。","加盐蚝油翻匀。"],tips:"鲜香菇比干香菇更嫩。"},
+{name:"香煎豆腐",cat:"素菜",time:"约12分钟",level:"简单",ing:["老豆腐","盐","生抽","孜然/辣椒面","葱花"],steps:["豆腐切厚片，热油煎至两面金黄。","撒盐、生抽、孜然辣椒面，撒葱花。"],tips:"老豆腐煎着不易碎。"},
+{name:"糖醋藕片",cat:"素菜",time:"约15分钟",level:"简单",ing:["莲藕","番茄酱/糖醋汁","白醋","糖","盐"],steps:["藕切片焯水。","调糖醋汁下锅熬浓，下藕片翻裹。","撒白芝麻。"],tips:"糖醋汁比例糖醋1:1。"},
+{name:"凉拌莴笋",cat:"素菜",time:"约12分钟",level:"简单",ing:["莴笋","蒜","盐","香醋","香油","辣椒油"],steps:["莴笋切丝加盐腌10分钟挤水。","加蒜末、醋、香油、辣椒油拌匀。"],tips:"腌一下更脆爽。"},
+{name:"干煸杏鲍菇",cat:"素菜",time:"约15分钟",level:"中等",ing:["杏鲍菇","干辣椒","花椒","蒜","生抽","盐"],steps:["杏鲍菇撕条，干煸至微黄出水收干。","爆香辣椒花椒蒜，回锅加生抽盐。"],tips:"干煸出水再收干更香。"},
+{name:"清炒山药",cat:"素菜",time:"约12分钟",level:"简单",ing:["山药","木耳","胡萝卜","盐","蒜"],steps:["山药去皮切片泡盐水，配菜切片。","热油爆蒜，下所有食材快炒加盐。"],tips:"山药切后泡盐水防氧化。"},
+{name:"红烧腐竹",cat:"素菜",time:"约20分钟",level:"简单",ing:["腐竹","木耳","胡萝卜","生抽","老抽","糖","盐"],steps:["腐竹泡软切段，配菜切片。","热油下配菜，加腐竹和调料水烧入味。"],tips:"腐竹泡发要软透。"},
+{name:"凉拌金针菇",cat:"素菜",time:"约12分钟",level:"简单",ing:["金针菇","蒜","生抽","香醋","盐","香油","小米辣"],steps:["金针菇切去根焯熟过凉。","蒜末加调料拌匀淋上。"],tips:"金针菇焯水去腥。"},
+{name:"葱油芋艿",cat:"素菜",time:"约20分钟",level:"简单",ing:["小芋艿","葱","生抽","盐","糖"],steps:["芋艿蒸熟去皮。","葱熬葱油，加生抽盐糖成汁。","淋在芋艿上。"],tips:"芋艿蒸熟比煮更粉糯。"},
+{name:"清炒茭白",cat:"素菜",time:"约12分钟",level:"简单",ing:["茭白","青椒","蒜","盐"],steps:["茭白青椒切丝，热油爆蒜。","下茭白青椒快炒加盐。"],tips:"茭白切丝易熟清甜。"},
+{name:"酱爆茄子",cat:"素菜",time:"约18分钟",level:"中等",ing:["茄子","豆瓣酱","蒜","生抽","糖","青椒"],steps:["茄子切块煎软。","爆香豆瓣酱蒜，下茄子青椒。","加生抽糖烧入味。"],tips:"豆瓣酱咸，少放盐。"},
+{name:"蒜蓉蒸茄子",cat:"素菜",time:"约15分钟",level:"简单",ing:["茄子","蒜","生抽","蚝油","香油","葱花"],steps:["茄子整条蒸软切条。","蒜末炒香加生抽蚝油淋上，撒葱花。"],tips:"蒸软再切更入味。"},
+{name:"干锅千页豆腐",cat:"素菜",time:"约18分钟",level:"中等",ing:["千页豆腐","青红椒","洋葱","豆瓣酱","蒜"],steps:["千页豆腐切片煎香。","爆香豆瓣酱蒜，下配菜和豆腐煸炒。"],tips:"千页豆腐煎一下更Q。"},
+{name:"凉拌西兰花",cat:"素菜",time:"约12分钟",level:"简单",ing:["西兰花","蒜","生抽","香醋","盐","香油"],steps:["西兰花焯水过凉。","蒜末加调料拌匀淋上。"],tips:"焯水过凉保持翠绿脆嫩。"},
+{name:"木耳炒白菜",cat:"素菜",time:"约12分钟",level:"简单",ing:["白菜","木耳","蒜","盐","生抽"],steps:["白菜切片，木耳泡发。","热油爆蒜，下白菜木耳翻炒。","加盐生抽出锅。"],tips:"木耳提前泡发。"},
+{name:"凉拌紫甘蓝",cat:"素菜",time:"约12分钟",level:"简单",ing:["紫甘蓝","蒜","香醋","盐","香油","糖"],steps:["紫甘蓝切丝，加盐稍腌。","加蒜末、醋、糖、香油拌匀。"],tips:"紫甘蓝生吃营养好。"},
+{name:"香菇烧豆腐",cat:"素菜",time:"约18分钟",level:"简单",ing:["豆腐","香菇","生抽","老抽","盐","蒜"],steps:["豆腐煎金黄，香菇切片炒香。","加豆腐、调料和水烧入味收汁。"],tips:"香菇提鲜，少放味精。"},
+{name:"番茄烩豆腐",cat:"素菜",time:"约15分钟",level:"简单",ing:["豆腐","番茄","生抽","盐","糖","葱花"],steps:["番茄切块炒出汁，加少许水。","下豆腐块烧入味，加盐糖。","撒葱花。"],tips:"番茄炒出沙汤更浓。"},
+{name:"凉拌豆角",cat:"素菜",time:"约12分钟",level:"简单",ing:["豆角","蒜","生抽","香醋","盐","香油","辣椒油"],steps:["豆角切段煮熟过凉（务必熟透）。","蒜末加调料拌匀。"],tips:"豆角必须煮熟防中毒。"},
+{name:"蚝油双菇",cat:"素菜",time:"约15分钟",level:"简单",ing:["香菇","平菇","蚝油","蒜","盐"],steps:["双菇切片焯水。","热油爆蒜，下双菇加蚝油盐炒匀。"],tips:"双菇鲜味足。"},
+{name:"清炒黄豆芽",cat:"素菜",time:"约10分钟",level:"简单",ing:["黄豆芽","蒜","生抽","盐","醋"],steps:["豆芽洗净，热油爆蒜。","下豆芽大火快炒，加生抽盐、少许醋出锅。"],tips:"加少许醋去豆腥。"},
+{name:"凉拌蕨根粉",cat:"素菜",time:"约12分钟",level:"简单",ing:["蕨根粉","蒜","生抽","香醋","盐","辣椒油","香菜"],steps:["蕨根粉煮熟过凉。","蒜末调料拌匀淋上，撒香菜。"],tips:"蕨根粉Q弹，凉拌开胃。"},
+
+/* ---------------- 荤菜 48（猪肉仅8道） ---------------- */
+{name:"辣子鸡",cat:"荤菜",time:"约30分钟",level:"中等",ing:["鸡腿肉500g","干辣椒","花椒","料酒","盐","淀粉","白芝麻"],steps:["鸡腿剁小块，加盐料酒淀粉抓匀。","油温六成炸至金黄捞出，升高油温复炸。","锅留底油小火炒香干辣椒花椒，倒入鸡块翻炒，撒芝麻。"],tips:"复炸更酥脆，辣椒别炒糊。"},
+{name:"宫保鸡丁",cat:"荤菜",time:"约25分钟",level:"中等",ing:["鸡腿肉350g","花生米","干辣椒","葱姜蒜","生抽","醋","糖","淀粉","料酒"],steps:["鸡肉切丁，料酒淀粉抓匀。","调碗汁：生抽、醋、糖、淀粉、清水。","鸡丁滑炒变色盛出，炒香干辣椒葱姜蒜。","倒鸡丁淋碗汁，放花生米翻匀。"],tips:"花生米起锅前放保持酥脆。"},
+{name:"可乐鸡翅",cat:"荤菜",time:"约30分钟",level:"简单",ing:["鸡翅中12个","可乐一罐","生抽2勺","姜","料酒"],steps:["鸡翅划刀焯水。","煎两面微黄，加生抽料酒。","倒可乐没过，中小火焖15分钟，大火收汁。"],tips:"收汁不停翻动颜色更亮。"},
+{name:"卤鸡腿",cat:"荤菜",time:"约50分钟",level:"简单",ing:["鸡腿4个","八角","桂皮","香叶","葱姜","生抽3勺","老抽1勺","料酒","冰糖"],steps:["鸡腿焯水洗净。","加水放香料调料，放鸡腿小火卤35分钟。","关火泡20分钟更入味。"],tips:"卤完泡一下更入味。"},
+{name:"白切鸡",cat:"荤菜",time:"约40分钟",level:"中等",ing:["三黄鸡","姜","葱","料酒","生抽","香油","白糖"],steps:["鸡洗净冷水下锅加姜葱料酒。","小火浸煮15-20分钟，关火焖10分钟。","捞起泡冰水10分钟，切块。","蘸料：姜泥+生抽+香油+糖。"],tips:"浸煮别大开滚，皮才嫩。"},
+{name:"香菇滑鸡",cat:"荤菜",time:"约30分钟",level:"简单",ing:["鸡腿肉","干香菇","盐","生抽","蚝油","淀粉","葱花"],steps:["鸡肉切块，加盐生抽蚝油淀粉油抓匀。","香菇泡发切片铺底，鸡肉摆上。","水开蒸15分钟，撒葱花。"],tips:"蒸菜不油腻，老少皆宜。"},
+{name:"红烧鸡块",cat:"荤菜",time:"约35分钟",level:"中等",ing:["鸡块","冰糖","姜蒜","生抽","老抽","料酒"],steps:["鸡块焯水沥干。","炒糖色下鸡块翻炒上色。","加姜蒜生抽老抽料酒热水，小火焖20分钟。","大火收汁。"],tips:"炒糖色注意火候。"},
+{name:"口水鸡",cat:"荤菜",time:"约40分钟",level:"中等",ing:["鸡腿","姜","蒜","辣椒粉","花椒粉","白芝麻","生抽","醋","糖","鸡汤","香油"],steps:["鸡腿煮熟泡冰水变脆，切块。","调汁：蒜末+辣椒粉+花椒粉+芝麻+生抽+醋+糖+鸡汤+香油。","淋在鸡上，撒香菜花生碎。"],tips:"冰水浸泡皮脆肉嫩。"},
+{name:"三杯鸡",cat:"荤菜",time:"约30分钟",level:"中等",ing:["鸡腿2支","姜片","蒜","米酒","酱油","麻油","九层塔","冰糖"],steps:["鸡腿切块炒至表面焦。","另锅麻油爆香蒜姜，放回鸡块加所有调料小火焖收汁。","加九层塔拌匀。"],tips:"三杯=米酒酱油麻油。"},
+{name:"土豆炖鸡",cat:"荤菜",time:"约40分钟",level:"简单",ing:["鸡肉","土豆","干辣椒","姜","生抽","老抽","啤酒"],steps:["鸡肉焯水，热油爆香姜干辣椒。","下鸡炒香，加生抽老抽。","倒啤酒没过，加土豆焖15分钟收汁。"],tips:"用啤酒炖更香。"},
+{name:"盐焗鸡",cat:"荤菜",time:"约90分钟",level:"中等",ing:["整鸡","盐","米酒","姜","葱","粗盐","花椒八角"],steps:["鸡抹米酒盐腌30分钟，塞姜葱锡纸包。","砂锅炒粗盐至黄，埋鸡焗1小时。"],tips:"家庭可改用盐焗粉更简单。"},
+{name:"鸡公煲",cat:"荤菜",time:"约40分钟",level:"中等",ing:["童子鸡","郫县豆瓣酱","姜","干辣椒","花椒","生抽","料酒","葱"],steps:["鸡切块。","锅下豆瓣酱煸炒，加姜辣椒花椒。","倒鸡块翻炒，加料酒生抽水煮熟收汁，撒葱。"],tips:"麻辣鲜香，下饭神器。"},
+{name:"小炒黄牛肉",cat:"荤菜",time:"约15分钟",level:"中等",ing:["牛里脊350g","小米辣","杭椒","姜蒜","生抽","蚝油","淀粉","料酒"],steps:["牛肉逆纹切片，加料酒生抽淀粉油抓匀腌10分钟。","热油大火滑炒变色盛出。","爆香姜蒜辣椒，回锅加蚝油生抽快炒。"],tips:"牛肉逆纹切才嫩，久炒必柴。"},
+{name:"黑椒牛柳",cat:"荤菜",time:"约20分钟",level:"中等",ing:["牛里脊350g","洋葱","彩椒","黑胡椒","生抽","蚝油","淀粉"],steps:["牛柳切条，生抽淀粉油腌。","滑炒变色盛出。","炒香洋葱彩椒，回锅加黑椒蚝油翻匀。"],tips:"黑胡椒现磨更香。"},
+{name:"萝卜炖牛腩",cat:"荤菜",time:"约90分钟",level:"简单",ing:["牛腩600g","白萝卜","葱姜八角","生抽","老抽","料酒","盐"],steps:["牛腩焯水，炒香葱姜八角下牛腩。","加调料热水小火炖60分钟。","萝卜切块再炖30分钟，加盐。"],tips:"牛腩炖久才软烂。"},
+{name:"番茄炖牛腩",cat:"荤菜",time:"约100分钟",level:"简单",ing:["牛腩","番茄","葱姜","八角","盐","糖"],steps:["牛腩焯水。","番茄炒出沙下牛腩翻炒，加热水。","小火炖90分钟，加盐糖。"],tips:"番茄炒出沙汤更浓。"},
+{name:"红烧牛肉",cat:"荤菜",time:"约100分钟",level:"中等",ing:["牛肉","冰糖","葱姜","八角","桂皮","香叶","干辣椒","生抽","老抽","料酒"],steps:["牛肉焯水，冰糖炒糖色下牛肉。","加香料调料热水，小火炖1.5小时。","大火收汁。"],tips:"炖肉一定加热水。"},
+{name:"卤牛肉",cat:"荤菜",time:"约120分钟",level:"简单",ing:["牛腱子","八角","桂皮","香叶","花椒","干辣椒","葱姜","生抽","老抽","料酒","冰糖","盐"],steps:["牛腱焯水扎紧。","卤汤煮开下牛肉小火卤1.5小时。","关火浸泡2小时，切片。"],tips:"卤完浸泡更入味，可作老卤。"},
+{name:"水煮牛肉",cat:"荤菜",time:"约30分钟",level:"中等",ing:["牛肉片","豆芽","青菜","豆瓣酱","干辣椒","花椒","葱姜蒜","淀粉"],steps:["牛肉加淀粉生抽料酒腌。","配菜焯水铺碗底。","炒香豆瓣酱姜蒜加水煮沸，下牛肉煮30秒连汤倒入。","撒花椒辣椒泼热油。"],tips:"牛肉片别煮久，嫩滑关键。"},
+{name:"孜然牛肉",cat:"荤菜",time:"约20分钟",level:"中等",ing:["牛肉","孜然粉","辣椒面","葱蒜","生抽","料酒","淀粉"],steps:["牛肉切丁腌10分钟，炸20秒微黄。","留底油炒香葱蒜辣椒面，倒牛肉撒孜然芝麻。"],tips:"孜然最后放防挥发。"},
+{name:"芹菜炒牛肉",cat:"荤菜",time:"约15分钟",level:"简单",ing:["牛肉","芹菜","生抽","盐","淀粉","蒜"],steps:["牛肉腌好滑炒。","芹菜焯水，合炒加盐生抽。"],tips:"芹菜焯水去涩。"},
+{name:"牛肉炒青椒",cat:"荤菜",time:"约15分钟",level:"简单",ing:["牛肉片","青椒","蒜","生抽","黑胡椒","淀粉"],steps:["牛肉腌好炒8分熟盛出。","爆香蒜青椒，回锅淋生抽蚝油翻匀。"],tips:"青椒断生即可。"},
+{name:"洋葱孜然牛肉",cat:"荤菜",time:"约20分钟",level:"中等",ing:["牛肉片","洋葱","小米辣","孜然粉","蚝油","生抽","淀粉"],steps:["牛肉腌15分钟炒8分熟。","炒香洋葱小米辣，回锅加辣椒面孜然翻匀。"],tips:"洋葱炒香更甜。"},
+{name:"芦笋炒牛肉",cat:"荤菜",time:"约15分钟",level:"简单",ing:["牛肉条","芦笋","蒜","生抽","蚝油","黑胡椒"],steps:["芦笋焯水，牛肉煎变色。","爆香蒜混合，加生抽蚝油黑胡椒。"],tips:"芦笋低脂蛋白好搭配。"},
+{name:"酸菜鱼",cat:"荤菜",time:"约40分钟",level:"中等",ing:["草鱼/黑鱼","酸菜","泡椒","姜蒜","料酒","盐","白胡椒粉","蛋清","淀粉"],steps:["鱼片用盐蛋清淀粉抓匀。","炒香酸菜泡椒姜蒜，加水煮汤。","先煮鱼骨，再下鱼片煮30秒，泼热油。"],tips:"鱼片别煮久，嫩滑关键。"},
+{name:"红烧鱼块",cat:"荤菜",time:"约25分钟",level:"中等",ing:["草鱼肉","葱姜蒜","干辣椒","生抽","老抽","料酒","糖"],steps:["鱼块抹盐腌10分钟，煎两面金黄。","爆香葱姜蒜辣椒，烹料酒加调料热水。","中小火焖12分钟收汁。"],tips:"煎鱼不频繁翻动防破皮。"},
+{name:"香煎黄花鱼",cat:"荤菜",time:"约20分钟",level:"简单",ing:["黄花鱼","盐","料酒","姜","葱"],steps:["鱼处理干净抹盐料酒腌20分钟。","厨房纸吸干水分。","热油中小火煎两面金黄。"],tips:"吸干水分防溅油。"},
+{name:"清蒸鲈鱼",cat:"荤菜",time:"约20分钟",level:"简单",ing:["鲈鱼","葱姜丝","蒸鱼豉油","料酒","盐"],steps:["鱼划刀铺姜葱，水开蒸8分钟。","倒掉腥水，铺新葱姜丝。","淋蒸鱼豉油，浇热油激香。"],tips:"蒸后倒掉腥水更鲜。"},
+{name:"红烧鲫鱼",cat:"荤菜",time:"约25分钟",level:"中等",ing:["鲫鱼","葱姜蒜","豆瓣酱","生抽","老抽","糖"],steps:["鱼煎两面金黄。","爆香葱姜蒜豆瓣酱，加调料开水。","放鱼中小火焖10分钟收汁。"],tips:"煎鱼不破皮秘诀：不频繁翻。"},
+{name:"糖醋鱼块",cat:"荤菜",time:"约30分钟",level:"中等",ing:["草鱼中段","菠萝/青红椒","番茄酱","白醋","糖","淀粉"],steps:["鱼块裹淀粉炸至金黄。","糖醋汁（番茄酱+醋+糖+淀粉水）熬浓。","下鱼块配菜快速翻裹。"],tips:"糖醋汁比例可调。"},
+{name:"奶白鱼汤",cat:"荤菜",time:"约30分钟",level:"简单",ing:["鲫鱼","豆腐","姜","盐","白胡椒"],steps:["鱼煎两面金黄。","加开水大火煮10分钟，过滤鱼渣。","放豆腐再煮5分钟，加盐白胡椒。"],tips:"加开水大火滚煮汤才白。"},
+{name:"蒜蓉粉丝蒸扇贝",cat:"荤菜",time:"约20分钟",level:"中等",ing:["扇贝10只","龙口粉丝","大蒜","小米辣","生抽","蚝油","糖"],steps:["粉丝泡软剪短，扇贝刷净去沙包。","蒜分生熟炒金银蒜加调料。","壳铺粉丝放贝肉盖蒜蓉，蒸6分钟淋热油。"],tips:"金银蒜（生熟混合）更香。"},
+{name:"白灼基围虾",cat:"荤菜",time:"约10分钟",level:"简单",ing:["基围虾","姜","葱","料酒","蒜","香醋","生抽"],steps:["虾剪须挑线，水加姜葱料酒烧开。","下虾煮2分钟变红捞出过冰水。","蘸料：蒜末+醋+生抽。"],tips:"过冰水肉质更Q弹。"},
+{name:"油焖大虾",cat:"荤菜",time:"约20分钟",level:"中等",ing:["大虾","姜蒜","番茄酱","生抽","蚝油","糖","料酒"],steps:["虾剪须开背挑线，煎红挤虾油。","爆香姜蒜番茄酱，加调料水。","回锅焖3分钟收汁撒葱。"],tips:"按压虾头出红油更香。"},
+{name:"剁椒鱼头",cat:"荤菜",time:"约30分钟",level:"中等",ing:["胖头鱼鱼头","剁椒","蒜","豆豉","紫苏"],steps:["鱼头剖开抹料酒姜片腌20分钟。","剁椒蒜末豆豉炒香铺鱼头。","蒸12分钟淋热油。"],tips:"垫粉吸汤更入味。"},
+{name:"鸡蛋豆腐蒸虾仁",cat:"荤菜",time:"约20分钟",level:"简单",ing:["内酯豆腐","鸡蛋","虾仁","蒸鱼豉油","香油"],steps:["豆腐扣盘，鸡蛋打散浇上，铺虾仁。","蒸10分钟，淋蒸鱼豉油香油。"],tips:"清淡嫩滑，老少皆宜。"},
+{name:"虾仁炒蛋",cat:"荤菜",time:"约15分钟",level:"简单",ing:["虾仁","鸡蛋","盐","料酒","白胡椒","葱"],steps:["虾仁开背去线，盐料酒白胡椒腌5分钟。","蛋打散，虾仁滑炒变色盛出。","小火推炒蛋液，八成熟加虾仁。"],tips:"虾仁腌一下去腥更嫩。"},
+{name:"葱爆羊肉",cat:"荤菜",time:"约15分钟",level:"简单",ing:["羊肉卷","大葱","生抽","料酒","白糖","白胡椒"],steps:["大葱切斜段。","大火热油下羊肉快炒变色，放葱段。","烹料酒加生抽糖白胡椒猛翻出锅。"],tips:"火候要快，羊肉才嫩。"},
+{name:"孜然羊肉",cat:"荤菜",time:"约20分钟",level:"中等",ing:["羊肉","孜然粉","辣椒面","洋葱","生抽","料酒","淀粉"],steps:["羊肉切片腌，滑炒变色。","爆香洋葱，回锅加孜然辣椒面翻匀。"],tips:"孜然羊肉经典搭配洋葱。"},
+{name:"萝卜炖羊肉",cat:"荤菜",time:"约90分钟",level:"简单",ing:["羊肉","白萝卜","姜","料酒","盐","白胡椒"],steps:["羊肉焯水，加姜料酒炖60分钟。","萝卜切块再炖30分钟，加盐白胡椒。"],tips:"羊肉加白萝卜去膻。"},
+{name:"红烧肉",cat:"荤菜",time:"约70分钟",level:"中等",ing:["五花肉500g","冰糖","生抽","老抽","料酒","八角","桂皮","姜","盐"],steps:["五花肉焯水。","炒糖色下肉翻炒上色。","加香料调料热水炖40-50分钟收汁。"],tips:"加热水肉不柴，炒糖色别糊。"},
+{name:"糖醋里脊",cat:"荤菜",time:"约35分钟",level:"中等",ing:["猪里脊","淀粉","面粉","鸡蛋","番茄酱","白糖","香醋","生抽"],steps:["里脊切条腌裹糊，炸至金黄复炸。","糖醋汁熬浓，下里脊翻裹。"],tips:"复炸是酥脆关键。"},
+{name:"回锅肉",cat:"荤菜",time:"约30分钟",level:"中等",ing:["五花肉","青蒜苗","豆瓣酱","甜面酱","生抽","糖"],steps:["五花肉煮八分熟切片。","干锅煸出油，下豆瓣酱炒红油。","加甜面酱生抽糖、青蒜苗快炒。"],tips:"肉煸出油才香不腻。"},
+{name:"梅菜扣肉",cat:"荤菜",time:"约100分钟",level:"中等",ing:["五花肉","干梅菜","生抽","老抽","料酒","糖","葱姜"],steps:["五花肉煮熟抹老抽，煎皮金黄切片。","梅菜炒香铺肉上，淋调料蒸70分钟倒扣。"],tips:"蒸久才软烂入味。"},
+{name:"鱼香肉丝",cat:"荤菜",time:"约25分钟",level:"中等",ing:["猪里脊","木耳","胡萝卜","笋","泡椒","豆瓣酱","生抽","醋","糖","淀粉"],steps:["肉切丝腌，配菜切丝。","调鱼香汁。","炒香豆瓣泡椒，下配菜肉丝淋汁收汁。"],tips:"鱼香汁酸甜适口。"},
+{name:"青椒炒肉丝",cat:"荤菜",time:"约20分钟",level:"简单",ing:["猪瘦肉","青椒","姜蒜","生抽","淀粉","盐","糖"],steps:["肉切丝腌，青椒切丝。","滑炒肉丝盛出，爆香姜蒜下青椒。","回锅加生抽盐糖翻匀。"],tips:"肉丝先滑后回锅更嫩。"},
+{name:"土豆烧排骨",cat:"荤菜",time:"约70分钟",level:"中等",ing:["肋排","土豆","冰糖","生抽","老抽","料酒","八角"],steps:["排骨焯水炒糖色，加调料热水焖40分钟。","土豆滚刀块再焖15分钟收汁。"],tips:"土豆后放防煮化。"},
+{name:"红烧排骨",cat:"荤菜",time:"约60分钟",level:"中等",ing:["肋排","冰糖","生抽","老抽","料酒","八角","葱姜"],steps:["排骨焯水炒糖色，加香料调料开水。","小火炖45分钟收汁。"],tips:"加热水炖更软烂。"},
+
+/* ---------------- 汤 18 ---------------- */
+{name:"番茄鸡蛋汤",cat:"汤",time:"约15分钟",level:"简单",ing:["番茄2个","鸡蛋2个","葱","盐","香油"],steps:["番茄炒出汁加水烧开。","淋蛋液成蛋花，加盐撒葱滴香油。"],tips:"番茄炒出沙汤更浓。"},
+{name:"紫菜蛋花汤",cat:"汤",time:"约10分钟",level:"简单",ing:["紫菜","鸡蛋","虾皮","葱","盐","香油","白胡椒"],steps:["紫菜撕碎入碗加虾皮葱花。","水开淋蛋液成蛋花，冲入碗中。"],tips:"热汤冲紫菜更鲜。"},
+{name:"萝卜丝鲫鱼汤",cat:"汤",time:"约30分钟",level:"简单",ing:["鲫鱼","白萝卜","姜","盐"],steps:["鱼煎两面金黄冲开水煮白。","放萝卜丝煮软，加盐。"],tips:"开水大火煮汤才白。"},
+{name:"丝瓜鸡蛋汤",cat:"汤",time:"约15分钟",level:"简单",ing:["丝瓜","鸡蛋","盐"],steps:["鸡蛋煎好盛出，炒丝瓜加水。","倒入煎蛋煮开加盐。"],tips:"丝瓜清甜解暑。"},
+{name:"豆腐菌菇汤",cat:"汤",time:"约20分钟",level:"简单",ing:["嫩豆腐","金针菇","香菇","盐","白胡椒"],steps:["菌菇煮5分钟，放豆腐。","加盐白胡椒。"],tips:"菌菇提鲜。"},
+{name:"菠菜鸡蛋汤",cat:"汤",time:"约12分钟",level:"简单",ing:["菠菜","鸡蛋","盐"],steps:["水开下菠菜，淋蛋花加盐。"],tips:"菠菜先焯水去草酸。"},
+{name:"山药鸡汤",cat:"汤",time:"约70分钟",level:"简单",ing:["半只鸡","铁棍山药","姜","盐"],steps:["鸡肉焯水炖40分钟，放山药再炖20分钟。"],tips:"山药补脾。"},
+{name:"酸辣汤",cat:"汤",time:"约20分钟",level:"中等",ing:["豆腐","木耳","胡萝卜","鸡蛋","香醋","生抽","胡椒粉","淀粉水"],steps:["配菜切丝下锅煮，调味。","淋淀粉水勾芡，淋蛋液，多放胡椒醋。"],tips:"酸辣开胃。"},
+{name:"蔬菜菌菇汤",cat:"汤",time:"约25分钟",level:"简单",ing:["香菇","小青菜","滑子菇","盐","油"],steps:["香菇煎金黄，加水滑子菇。","下青菜炖熟调味。"],tips:"素汤清润。"},
+{name:"虫草花鸡汤",cat:"汤",time:"约60分钟",level:"简单",ing:["鸡块","虫草花","红枣","枸杞","姜","盐"],steps:["鸡块焯水炖40分钟，加虫草花红枣枸杞再炖10分钟。"],tips:"滋补不腻。"},
+{name:"牛肉萝卜汤",cat:"汤",time:"约90分钟",level:"简单",ing:["牛肉","白萝卜","姜","盐","白胡椒","枸杞"],steps:["牛肉焯水炖1小时，放萝卜再炖30分钟。"],tips:"萝卜清甜解腻。"},
+{name:"排骨莲藕汤",cat:"汤",time:"约90分钟",level:"简单",ing:["排骨","莲藕","姜","盐"],steps:["排骨焯水炖1小时，莲藕块再炖30分钟。"],tips:"莲藕粉糯。"},
+{name:"番茄牛腩汤",cat:"汤",time:"约100分钟",level:"简单",ing:["牛腩","番茄","姜","盐","糖"],steps:["牛腩焯水炖，番茄炒沙下锅炖90分钟。"],tips:"酸甜暖胃。"},
+{name:"海带豆腐汤",cat:"汤",time:"约20分钟",level:"简单",ing:["海带","豆腐","姜","盐","白胡椒"],steps:["海带豆腐加水煮开，调味。"],tips:"补碘清淡。"},
+{name:"萝卜羊肉汤",cat:"汤",time:"约90分钟",level:"简单",ing:["羊肉","白萝卜","姜","料酒","盐","白胡椒"],steps:["羊肉焯水炖60分钟，萝卜再炖30分钟。"],tips:"羊肉白萝卜去膻。"},
+{name:"玉米胡萝卜汤",cat:"汤",time:"约30分钟",level:"简单",ing:["玉米","胡萝卜","姜","盐"],steps:["食材切块加水炖熟调味。"],tips:"清甜老少宜。"},
+{name:"西湖牛肉羹",cat:"汤",time:"约25分钟",level:"中等",ing:["牛肉末","豆腐","香菇","鸡蛋","香菜","盐","淀粉水"],steps:["牛肉末豆腐香菇煮开，勾芡。","淋蛋液撒香菜。"],tips:"滑嫩羹汤。"},
+{name:"冬瓜薏米汤",cat:"汤",time:"约40分钟",level:"简单",ing:["冬瓜","薏米","姜","盐"],steps:["薏米泡发，加水煮30分钟，放冬瓜再煮10分钟。"],tips:"祛湿消肿。"},
+
+/* ---------------- 主食 15 ---------------- */
+{name:"蛋炒饭",cat:"主食",time:"约15分钟",level:"简单",ing:["隔夜米饭","鸡蛋","火腿丁","青豆","胡萝卜丁","葱","盐","生抽"],steps:["蛋打散米饭抓散。","炒蛋盛出，炒配菜，下米饭压散。","加蛋盐生抽撒葱。"],tips:"隔夜米饭粒粒分明。"},
+{name:"葱油拌面",cat:"主食",time:"约15分钟",level:"简单",ing:["面条","葱","生抽","老抽","盐","糖","油"],steps:["面条煮熟过凉。","葱熬葱油加调料成酱。","拌面撒葱酥。"],tips:"葱油多熬拌啥都香。"},
+{name:"西红柿打卤面",cat:"主食",time:"约20分钟",level:"简单",ing:["西红柿","鸡蛋","木耳","面条","生抽","盐","糖","淀粉水"],steps:["面条煮熟。","番茄炒汁加木耳水，淋蛋花勾芡成卤。","浇面撒葱。"],tips:"卤要勾芡才浓稠。"},
+{name:"韭菜鸡蛋饺子",cat:"主食",time:"约40分钟",level:"中等",ing:["韭菜","鸡蛋","面粉","盐","香油","姜"],steps:["韭菜切碎拌炒熟鸡蛋，加盐香油。","和面擀皮包馅煮熟。"],tips:"韭菜不出水要现包现调。"},
+{name:"鲜肉馄饨",cat:"主食",time:"约40分钟",level:"中等",ing:["猪肉馅","馄饨皮","虾皮","紫菜","生抽","香油","葱"],steps:["肉馅加调料，包入馄饨皮。","煮好盛入调好底料的碗。"],tips:"皮薄馅鲜。"},
+{name:"阳春面",cat:"主食",time:"约12分钟",level:"简单",ing:["面条","葱","生抽","香油","盐","高汤/开水"],steps:["碗里放生抽香油葱，冲入热汤。","下面煮熟捞入。"],tips:"清汤素面，葱香关键。"},
+{name:"炸酱面",cat:"主食",time:"约25分钟",level:"中等",ing:["面条","五花肉丁","黄豆酱","甜面酱","黄瓜丝","萝卜丝"],steps:["肉丁炒香，下混合酱小火熬。","面煮熟，铺菜码拌酱。"],tips:"酱小火熬出香。"},
+{name:"小米粥",cat:"主食",time:"约30分钟",level:"简单",ing:["小米","水"],steps:["小米洗净加水大火煮开转小火熬粘稠。"],tips:"小火慢熬出米油。"},
+{name:"八宝粥",cat:"主食",time:"约60分钟",level:"简单",ing:["糯米","红豆","绿豆","花生","莲子","红枣","桂圆","冰糖"],steps:["杂粮泡发，加水熬至软烂，加冰糖。"],tips:"提前泡发更易烂。"},
+{name:"南瓜粥",cat:"主食",time:"约30分钟",level:"简单",ing:["南瓜","大米","水"],steps:["南瓜切块与米同煮烂，搅碎。"],tips:"香甜养胃。"},
+{name:"炒面",cat:"主食",time:"约20分钟",level:"简单",ing:["面条","鸡蛋","青菜","酱油","盐"],steps:["面煮熟过凉，炒蛋青菜，下面翻炒调味。"],tips:"面过凉不坨。"},
+{name:"凉皮",cat:"主食",time:"约60分钟",level:"中等",ing:["面粉","黄瓜丝","豆芽","蒜","生抽","香醋","辣椒油","芝麻酱"],steps:["洗面筋蒸面皮，切条。","加菜码和调料拌匀。"],tips:"劲道关键在洗面。"},
+{name:"葱油饼",cat:"主食",time:"约30分钟",level:"中等",ing:["面粉","葱","盐","油"],steps:["和面醒发，抹油撒葱盐卷起擀饼。","煎至两面金黄。"],tips:"多层关键在卷层抹油。"},
+{name:"疙瘩汤",cat:"主食",time:"约20分钟",level:"简单",ing:["面粉","鸡蛋","番茄","青菜","盐"],steps:["面粉滴水搅成小疙瘩。","番茄炒汁加水，下疙瘩煮，淋蛋花。"],tips:"疙瘩大小均匀。"},
+{name:"炒河粉",cat:"主食",time:"约20分钟",level:"简单",ing:["河粉","牛肉/鸡蛋","豆芽","葱","生抽","老抽"],steps:["河粉炒散，加蛋/肉和豆芽。","加调料炒匀。"],tips:"大火快炒防粘。"}
+];
+
+const CATS = ["全部","荤菜","素菜","汤","主食"];
+let curCat = "全部";
+let lastLucky = null;
+
+function render(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const grid = document.getElementById('grid');
+  const list = DISHES.filter(d=>{
+    if(curCat!=="全部" && d.cat!==curCat) return false;
+    if(!q) return true;
+    const hay = (d.name + " " + d.cat + " " + d.ing.join(" ")).toLowerCase();
+    return hay.includes(q);
+  });
+  document.getElementById('count').textContent = `共找到 ${list.length} 道菜`;
+  document.getElementById('total').textContent = DISHES.length;
+  if(list.length===0){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">没有匹配的菜，换个关键词试试～</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(d=>`
+    <div class="dish">
+      <span class="tag">${d.cat}</span>
+      <span class="name">${d.name}</span>
+      <span class="meta">⏱ ${d.time} · ${d.level}</span>
+    </div>`).join("");
+}
+function buildChips(){
+  document.getElementById('chips').innerHTML = CATS.map(c=>
+    `<span class="chip ${c===curCat?'active':''}">${c}</span>`).join("");
+}
+function setCat(c){curCat=c;buildChips();render();}
+function openDetail(name){
+  const d = DISHES.find(x=>x.name===name);
+  if(!d) return;
+  document.getElementById('d-name').textContent = d.name;
+  document.getElementById('d-body').innerHTML = `
+    <span class="badge">${d.cat} · 耗时 ${d.time} · 难度 ${d.level}</span>
+    <div class="sec-title">🧺 所需食材</div>
+    <div class="ing">${d.ing.map(i=>`<span>${i}</span>`).join("")}</div>
+    <div class="sec-title">👩‍🍳 做法步骤</div>
+    <ol class="steps">${d.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+    ${d.tips?`<div class="tips">💡 小贴士：${d.tips}</div>`:""}
+  `;
+  document.getElementById('detail').classList.add('show');
+}
+function closeDetail(){document.getElementById('detail').classList.remove('show');}
+let spinTimer=null;
+function luckyStart(){ luckyAgain(); document.getElementById('lucky').classList.add('show'); }
+function luckyAgain(){
+  const icon = document.getElementById('lucky-icon');
+  const nameEl = document.getElementById('lucky-name');
+  const tagEl = document.getElementById('lucky-tag');
+  const metaEl = document.getElementById('lucky-meta');
+  const viewBtn = document.getElementById('lucky-view');
+  viewBtn.style.display='none';
+  metaEl.textContent='';
+  icon.classList.add('spin-go');
+  tagEl.textContent='命运正在搅拌锅中…';
+  nameEl.textContent='？？？';
+  const pool = DISHES;
+  let i=0;
+  clearInterval(spinTimer);
+  spinTimer = setInterval(()=>{
+    const r = pool[Math.floor(Math.random()*pool.length)];
+    nameEl.textContent = r.name;
+    i++;
+    if(i>16){
+      clearInterval(spinTimer);
+      icon.classList.remove('spin-go');
+      const pick = pool[Math.floor(Math.random()*pool.length)];
+      lastLucky = pick;
+      nameEl.textContent = pick.name;
+      tagEl.textContent = `抽中分类：${pick.cat}`;
+      metaEl.textContent = `⏱ ${pick.time} · 难度 ${pick.level}`;
+      viewBtn.style.display='inline-block';
+    }
+  },70);
+}
+function luckyView(){ closeLucky(); if(lastLucky) openDetail(lastLucky.name); }
+function closeLucky(){document.getElementById('lucky').classList.remove('show');}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeDetail();closeLucky();} });
+buildChips();
+render();
+
+
+
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('chips').addEventListener('click',e=>{const chip=e.target.closest('.chip');if(chip)setCat(chip.textContent)});
+document.getElementById('grid').addEventListener('click',e=>{const dish=e.target.closest('.dish');if(dish)openDetail(dish.querySelector('.name').textContent)});
+document.querySelector('.btn-primary').addEventListener('click',luckyStart);
+document.querySelector('#detail .close').addEventListener('click',closeDetail);
+document.getElementById('detail').addEventListener('click',e=>{if(e.target.id==='detail')closeDetail()});
+document.getElementById('lucky').addEventListener('click',e=>{if(e.target.id==='lucky')closeLucky()});
+document.querySelector('#lucky .btn-ghost').addEventListener('click',luckyAgain);
+document.getElementById('lucky-view').addEventListener('click',luckyView);
+document.getElementById("reset-preview").addEventListener("click",()=>{document.getElementById("q").value="";curCat="全部";clearInterval(spinTimer);spinTimer=null;lastLucky=null;document.getElementById("lucky-icon").classList.remove("spin-go");document.getElementById("lucky-view").style.display="none";document.getElementById("lucky-name").textContent="？？？";document.getElementById("lucky-tag").textContent="命运正在搅拌锅中…";document.getElementById("lucky-meta").textContent="";closeDetail();closeLucky();buildChips();render()});</script></body></html>
