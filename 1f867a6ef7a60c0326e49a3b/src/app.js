@@ -410,7 +410,7 @@ function quickCheckin(hid) {
       <h3>打卡 · ${esc(h.name)}</h3>
       <div class="mbody">${h.type === 'count' ? '今日已完成次数' : '今日数值（单位 ' + esc(h.unit || '') + '）'}：</div>
       <div style="margin-top:14px">
-        <input type="number" id="qcVal" min="0" step="${h.type === 'count' ? 1 : 0.1}" style="font-size:22px;text-align:center;padding:10px 4px" value="${h.type === 'count' ? (habitTodayVal(h) || 0) : (habitTodayVal(h) || '')}"/>
+        <input type="number" id="qcVal" min="0" step="${h.type === 'count' ? 1 : 0.1}" style="font-size:22px;text-align:center;padding:10px 4px" value="${esc(h.type === 'count' ? (habitTodayVal(h) || 0) : (habitTodayVal(h) || ''))}"/>
       </div>
       <div class="mfoot">
         <button class="btn btn-soft" id="qcCancel">取消</button>
@@ -1022,12 +1022,12 @@ function renderHabits() {
       : h.type === 'count'
         ? `<span class="hcount">
              <button data-hminus="${esc(h.id)}">−</button>
-             <span class="n num">${todayVal || 0}</span><span class="of">/ ${h.goal || '∞'}${esc(h.unit || '')}</span>
+             <span class="n num">${esc(todayVal || 0)}</span><span class="of">/ ${esc(h.goal || '∞')}${esc(h.unit || '')}</span>
              <button data-hplus="${esc(h.id)}">＋</button>
            </span>`
         : `<span class="hval">
-             <input type="number" step="0.1" min="0" value="${todayVal != null ? todayVal : ''}" placeholder="—" data-hval="${esc(h.id)}"/>
-             <span class="unit">${esc(h.unit || '')}${h.goal ? ' / 目标 ' + h.goal : ''}</span>
+             <input type="number" step="0.1" min="0" value="${esc(todayVal != null ? todayVal : '')}" placeholder="—" data-hval="${esc(h.id)}"/>
+             <span class="unit">${esc(h.unit || '')}${h.goal ? ' / 目标 ' + esc(h.goal) : ''}</span>
            </span>`;
     return `
     <div class="habit-row">
@@ -1285,7 +1285,7 @@ function renderSchedule() {
           <span class="sg-ck ${s.done ? 'done' : ''}" data-sck="${esc(s.id)}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
           <span class="sg-time num">${esc(String(s.date).slice(5))}${s.time ? ' ' + esc(s.time) : ''}</span>
           <span class="sg-title ${s.done ? 'done' : ''}">${esc(s.title)}</span>
-          <span class="prio ${(s.prio || 'P3').toLowerCase()}">${esc(s.prio || 'P3')}</span>
+          <span class="prio ${esc(String(s.prio || 'P3').toLowerCase())}">${esc(s.prio || 'P3')}</span>
           <button class="sg-del" data-sdel="${esc(s.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
         </div>`).join('')}
     </div>`;
