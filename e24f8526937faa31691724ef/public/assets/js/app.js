@@ -653,10 +653,10 @@
     }
 
     /* ============================================================
-       3) 角色图（优先使用AI生成图，全局复用同一张）
+       3) 角色图（优先使用已选预设）
        ============================================================ */
     function getCharImage() {
-      // 优先使用AI生成的角色图片（base64存在localStorage）
+      // 优先使用已选的角色图片
       try {
         const b64 = localStorage.getItem(LS_CHAR_IMAGE);
         if (b64) return b64.startsWith('./assets/assets/img/') ? imageUrl(b64.slice('./assets/assets/img/'.length)) : b64;
