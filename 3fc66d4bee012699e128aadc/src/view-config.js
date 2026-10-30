@@ -400,7 +400,6 @@ var Config = function() {
       }
     },
     {
-      // 6.15 熙宁变法（文档 10-19 新增）：12 回合对方摊牌一次
       id: "xining",
       name: "\u7199\u5B81\u53D8\u6CD5",
       victory: "\u5BCC\u56FD\u5F3A\u5175",
