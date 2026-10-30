@@ -239,7 +239,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
     if (!list.length) { el.innerHTML = ''; }
     else {
       el.innerHTML = list.map(x =>
-        '<li class="task-item ' + (x.done ? 'done' : '') + '" data-id="' + x.id + '">' +
+        '<li class="task-item ' + (x.done ? 'done' : '') + '" data-id="' + esc(x.id) + '">' +
         '<button class="cb ' + (x.done ? 'on' : '') + '" data-act="toggle" aria-label="勾选"></button>' +
         '<span class="task-text">' + esc(x.text) + '</span>' +
         '<span class="tag">' + esc(x.subject) + '</span>' +
@@ -460,7 +460,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
 
     if (!list.length) { $('missList').innerHTML = ''; return; }
     $('missList').innerHTML = list.map(m =>
-      '<li class="miss-item ' + (m.reviewed ? 'reviewed' : '') + '" data-id="' + m.id + '">' +
+      '<li class="miss-item ' + (m.reviewed ? 'reviewed' : '') + '" data-id="' + esc(m.id) + '">' +
       '<div class="miss-main">' +
       '<div class="miss-top">' +
       '<span class="badge sub">' + esc(m.subject) + '</span>' +
@@ -527,7 +527,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
     // 训练
     const ws = S.workouts.slice().sort((a, b2) => b2.date.localeCompare(a.date) || b2.id.localeCompare(a.id)).slice(0, 8);
     $('workList').innerHTML = ws.length ? ws.map(x =>
-      '<li class="work-item" data-id="' + x.id + '">' +
+      '<li class="work-item" data-id="' + esc(x.id) + '">' +
       '<span class="d">' + md(x.date) + '</span>' +
       '<span class="v">' + esc(x.type) +
       (x.floors ? ' · <b>' + x.floors + '</b> 层' : '') +
@@ -811,7 +811,16 @@ import { createTianaFetch } from '@tianacloud/serverless';
         try {
           const p = JSON.parse(r.result);
           const object = x => x && typeof x === 'object' && !Array.isArray(x);
-          if (!object(p) || !object(p.settings) || !object(p.days) || !Object.values(p.days).every(object) || !['tasks','mistakes','workouts'].every(k => Array.isArray(p[k]) && p[k].every(object))) throw new Error('bad');
+          const finite = x => x == null || (typeof x === 'number' && Number.isFinite(x));
+          const day = x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x);
+          const text = x => typeof x === 'string';
+          const validId = x => text(x) && /^[a-zA-Z0-9_-]{1,64}$/.test(x);
+          const validSettings = object(p?.settings) && text(p.settings.examName) && day(p.settings.examDate) && day(p.settings.startDate) && ['height','qGoal','proteinLow','proteinHigh','sleepGoal'].every(k => finite(p.settings[k]));
+          const validDays = object(p?.days) && Object.entries(p.days).every(([k,v]) => day(k) && object(v) && ['min','q','sessions','sleep','weight','protein','kcal','sys','dia','hr'].every(n => finite(v[n])));
+          const validTasks = Array.isArray(p?.tasks) && p.tasks.every(x => object(x) && validId(x.id) && day(x.date) && text(x.text) && text(x.subject) && typeof x.done === 'boolean');
+          const validMistakes = Array.isArray(p?.mistakes) && p.mistakes.every(x => object(x) && validId(x.id) && day(x.date) && text(x.text) && text(x.note) && text(x.subject) && text(x.cause) && typeof x.reviewed === 'boolean');
+          const validWorkouts = Array.isArray(p?.workouts) && p.workouts.every(x => object(x) && validId(x.id) && day(x.date) && text(x.type) && ['floors','min','hr'].every(k => finite(x[k])));
+          if (!object(p) || !validSettings || !validDays || !validTasks || !validMistakes || !validWorkouts) throw new Error('bad');
           S = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), p);
           S.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULTS.settings)), p.settings);
           save(); renderAll(); renderSettings();
