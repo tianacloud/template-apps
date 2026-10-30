@@ -10,7 +10,11 @@ export async function uploadPhotos(photos) {
   for (const photo of photos) {
     if (photo.path) continue;
     if (photo.uploadID) throw new Error('照片上传结果待确认，请稍后重新打开应用核对。');
-    const blob = await (await fetch(photo.dataUrl)).blob();
+    const match = /^data:([^;,]+);base64,(.*)$/s.exec(photo.dataUrl);
+    if (!match) throw new Error('照片格式无法读取，请重新选择。');
+    const binary = atob(match[2]);
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    const blob = new Blob([bytes], { type: match[1] });
     const path = `photos/${photo.id}.jpg`;
     await files.put(path, blob, { onPrepared: receipt => { photo.uploadID = receipt.id; } });
     photo.path = path;

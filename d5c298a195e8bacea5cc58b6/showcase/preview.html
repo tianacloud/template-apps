@@ -4741,10 +4741,12 @@ async function xu(e) {
   for (const t of e) {
     if (t.path) continue;
     if (t.uploadID) throw new Error("照片上传结果待确认，请稍后重新打开应用核对。");
-    const n = await (await fetch(t.dataUrl)).blob(), s = `photos/${t.id}.jpg`;
-    await us.put(s, n, { onPrepared: (r) => {
-      t.uploadID = r.id;
-    } }), t.path = s, t.dataUrl = await us.getUrl(s);
+    const n = /^data:([^;,]+);base64,(.*)$/s.exec(t.dataUrl);
+    if (!n) throw new Error("照片格式无法读取，请重新选择。");
+    const s = atob(n[2]), r = Uint8Array.from(s, (l) => l.charCodeAt(0)), o = new Blob([r], { type: n[1] }), i = `photos/${t.id}.jpg`;
+    await us.put(i, o, { onPrepared: (l) => {
+      t.uploadID = l.id;
+    } }), t.path = i, t.dataUrl = await us.getUrl(i);
   }
 }
 const G = /* @__PURE__ */ Kn({ ready: !1, error: "", totalCoins: 0, tasks: [], diaries: [], rewards: [] });
