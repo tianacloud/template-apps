@@ -138,7 +138,7 @@ function renderFloor(){const rs=state.rooms;
       <span><i class="dot" style="background:var(--soft)"></i>软装</span>
       <span>颜色深浅 = 完成度（越绿越接近完工）</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:18px">
+    <div class="floor-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px">
       <div style="background:linear-gradient(135deg,#f7f9ff,#eef2ff);border-radius:16px;padding:10px;display:flex;align-items:center;justify-content:center;overflow:auto">
         ${viewMode==='3d'?isoSVG():planSVG()}
       </div>
