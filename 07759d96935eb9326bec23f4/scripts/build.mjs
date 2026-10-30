@@ -1,0 +1,14 @@
+import { readFile, mkdir, writeFile, copyFile, rm } from 'node:fs/promises';
+const commit=process.argv[2];
+if(!/^[a-f0-9]{40}$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const html=await readFile('index.html','utf8');
+const style=html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script\b/i)?.[1];
+const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>\s*<\/body>/i)?.[1];
+if(!style||!body||!script) throw Error('页面结构缺失');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`const style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n${script}\n`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
