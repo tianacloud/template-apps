@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS timealign_plan (id INTEGER PRIMARY KEY CHECK (id = 1), plan TEXT NOT NULL);
