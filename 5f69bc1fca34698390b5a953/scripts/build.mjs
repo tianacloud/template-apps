@@ -1,0 +1,13 @@
+import {readFile,mkdir,rm,copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && [source.git_instance_id,source.database_instance_id].some(id=>!/^[A-Za-z0-9_-]{1,128}$/.test(id)||id.startsWith('__TIANA_'))) throw Error('请填写 Git 和 SQLite 实例 ID');
+const [markup,css,...scripts]=await Promise.all(['markup.html','styles.css','script0.js','script1.js','script2.js'].map(f=>readFile('client/'+f,'utf8')));
+const setup=`import {openLedgerStore} from './client/cloud-store.js';\ndocument.title='打工人小账本';const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.getElementById('app').innerHTML=${JSON.stringify(markup)};\n(async()=>{try{const ledgerStorage=await openLedgerStore();\n`;
+const tail=`\n}catch(error){document.getElementById('app').textContent='无法打开账本：'+error.message;}})();`;
+await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});
+await build({stdin:{contents:setup+scripts.join('\n;\n')+tail,resolveDir:process.cwd(),loader:'js'},bundle:true,format:'iife',platform:'browser',outfile:'dist/assets/app.js'});
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
