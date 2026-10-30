@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS practice_records (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS workbench_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
