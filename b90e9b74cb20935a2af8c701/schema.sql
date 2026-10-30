@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS avatar_favorites (key TEXT PRIMARY KEY);
