@@ -5,9 +5,12 @@ const urls=[];
 try {
 async function asset(path){const response=await files.get('template-assets/'+path);if(!response.ok)throw new Error('素材读取失败');const url=URL.createObjectURL(await response.blob());urls.push(url);return url;}
 window.__GATE_SRC=await asset('gate.jpg');
-const fontUrl=await asset('bei.woff');
-const style=document.createElement('style');style.textContent=styles.replace('__BEI_FONT__',fontUrl);document.head.appendChild(style);
-root.innerHTML='<div id="app"></div>';const app=root.querySelector('#app');app.innerHTML='<div class="scr-open" id="p-gate"></div><div class="scr-gate hide" id="p-home"></div><div class="scr-roster hide" id="p-roster"></div><div class="scr-quiz hide" id="p-quiz"></div><div class="scr-quiz hide" id="p-bridge"></div><div class="scr-res hide" id="p-result"></div><div class="scr-board hide" id="p-board"></div><div class="scr-poster hide" id="p-poster"></div>';
+const fontResponse=await files.get('template-assets/bei.woff');
+if(!fontResponse.ok)throw new Error('字体读取失败');
+const font=new FontFace('BeiTi',await fontResponse.arrayBuffer());
+document.fonts.add(await font.load());
+const style=document.createElement('style');style.textContent=styles.replace(/@font-face\s*\{[^{}]*__BEI_FONT__[^{}]*\}/,'');document.head.appendChild(style);
+const app=root;app.innerHTML='<div class="scr-open" id="p-gate"></div><div class="scr-gate hide" id="p-home"></div><div class="scr-roster hide" id="p-roster"></div><div class="scr-quiz hide" id="p-quiz"></div><div class="scr-quiz hide" id="p-bridge"></div><div class="scr-res hide" id="p-result"></div><div class="scr-board hide" id="p-board"></div><div class="scr-poster hide" id="p-poster"></div>';
 const R='celingbei_roster_v1', B='celingbei_records_v2', C='celingbei_current_v1';
 let selected='';
 let cache={[R]:[],[B]:{},[C]:selected}, queue=Promise.resolve(), failed=false;
@@ -42,6 +45,6 @@ try {
  await import('./original.js');
 } catch(error) {app.innerHTML='<p style="padding:2em">数据连接未就绪，请刷新后重试。</p>';console.error(error);}
 
-return () => { style.remove(); urls.forEach(URL.revokeObjectURL); root.innerHTML=''; };
+return () => { style.remove(); document.fonts.delete(font); urls.forEach(URL.revokeObjectURL); root.innerHTML=''; };
 } catch(error) { urls.forEach(URL.revokeObjectURL); root.textContent='素材或数据加载失败，请刷新后重试。'; console.error(error); }
 }
