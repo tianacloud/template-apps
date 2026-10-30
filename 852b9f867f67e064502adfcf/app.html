@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="你是历史上的哪位人物。千载之下，总有一人与你共此魂魄。">
+<title>你是历史上的哪位人物</title>
+<script src="assets/qrcode.min.js"></script>
+<style>
+  :root{
+    /* 东方传统玉版宣与矿物色彩系统 */
+    --paper-light:#fcf9f2;
+    --paper:#f5eee2;
+    --paper-dark:#ede3d1;
+    --card-surface:#fdfbf7;
+    
+    /* 墨色系统 */
+    --ink-jiao:#1d1813;      /* 焦墨：至深凝重 */
+    --ink-nong:#362f26;      /* 浓墨：温润主文 */
+    --ink-dan:#756957;       /* 淡墨：幽淡注解 */
+    --ink-qing:#af9f8b;      /* 清墨：极轻虚线 */
+    
+    /* 金石朱砂与玄金 */
+    --cinnabar:#9e2721;      /* 纯正古法矿物朱砂 */
+    --cinnabar-dark:#7c1a15; /* 沉淀朱砂 */
+    --cinnabar-light:#bd362f;
+    --cinnabar-soft:rgba(158,39,33,0.08);
+    
+    --gold-silk:#c9a565;     /* 澄金游丝 */
+    --gold-dark:#886322;     /* 古铜玄金 */
+    --line-subtle:#e5dcce;   /* 宣纸折痕线 */
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;min-height:100dvh}
+  
+  body{
+    background: radial-gradient(circle at 50% 32%, var(--paper-light) 0%, var(--paper) 65%, var(--paper-dark) 100%);
+    color: var(--ink-nong);
+    font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+    line-height: 1.75;
+    overflow-x: hidden;
+    position: relative;
+    touch-action: manipulation;
+  }
+
+  /* 极为细腻高雅的宣纸纤维肌理 */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.42;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)'/%3E%3C/svg%3E");
+  }
+
+  #app{
+    position:relative; z-index:1; max-width:480px; margin:0 auto; min-height:100dvh;
+    display:flex; flex-direction:column;
+  }
+
+  .kai{
+    font-family: "Kaiti SC", "STKaiti", "KaiTi", "DFKai-SB", "BiauKai", serif;
+  }
+
+  /* ============ 通用动画 ============ */
+  .page{display:none; flex:1; flex-direction:column; padding:24px 22px 42px; animation:pageFadeIn .5s cubic-bezier(0.16, 1, 0.3, 1) both}
+  .page.on{display:flex}
+  @keyframes pageFadeIn{
+    from{opacity:0; transform:translateY(14px)}
+    to{opacity:1; transform:none}
+  }
+  @keyframes inkBloom{
+    from{opacity:0; transform:scale(0.92); filter:blur(6px)}
+    to{opacity:1; transform:scale(1); filter:blur(0)}
+  }
+  @keyframes gentlePulse{
+    0%,100%{box-shadow:0 6px 18px rgba(124,26,21,.24), inset 0 1px 0 rgba(255,255,255,.25)}
+    50%{box-shadow:0 8px 26px rgba(124,26,21,.38), inset 0 1px 0 rgba(255,255,255,.35)}
+  }
+
+  /* 传统朱砂方印 */
+  .seal{
+    display:inline-flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--cinnabar-light), var(--cinnabar));
+    color:#fdfaf5; text-align:center; border-radius:3px;
+    box-shadow:1.5px 2px 7px rgba(124,26,21,.28), inset 0 0 0 1px rgba(255,255,255,.2);
+    position:relative; text-shadow:0 1px 1px rgba(0,0,0,.25);
+    letter-spacing:1px;
+  }
+
+  /* ================================================================
+     封面：现代东方极简高雅构图
+     ================================================================ */
+  #page-cover{
+    justify-content:space-between; align-items:center; text-align:center;
+    padding-top:12vh; padding-bottom:12vh;
+  }
+
+  .cover-header{
+    width:100%; display:flex; justify-content:center; align-items:center;
+  }
+  .brand-title{
+    font-size:12.5px;
+    letter-spacing:12px;
+    text-indent:12px;
+    color:var(--ink-dan);
+    font-weight:400;
+    opacity:0.85;
+    position:relative;
+  }
+  .brand-title::after{
+    content:""; position:absolute; bottom:-8px; left:50%; transform:translateX(-50%);
+    width:16px; height:1px; background:var(--gold-silk); opacity:0.6;
+  }
+
+  .cover-hero{
+    position:relative; width:100%; margin:auto 0; padding:26px 0;
+  }
+  .ink-halo{
+    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+    width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle, rgba(45,36,26,0.06) 0%, rgba(70,55,40,0.025) 48%, transparent 72%);
+    filter:blur(22px); pointer-events:none; z-index:0;
+  }
+  .cover-title-box{
+    position:relative; z-index:1; display:inline-block;
+    animation:inkBloom 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .cover-title{
+    font-size:46px;
+    line-height:1.36;
+    letter-spacing:7px;
+    text-indent:7px;
+    color:var(--ink-jiao);
+    font-weight:normal;
+    text-shadow:0 2px 12px rgba(45,36,26,0.05);
+  }
+  .hero-stamp{
+    position:absolute; right:-28px; bottom:6px;
+    width:20px; height:34px;
+    background:var(--cinnabar); color:#fff;
+    font-size:10px; line-height:1.15;
+    padding:3px 2px; border-radius:2px;
+    box-shadow:1px 2px 6px rgba(124,26,21,0.3);
+    transform:rotate(2deg); opacity:0.88;
+    letter-spacing:1px;
+  }
+
+  .cover-statement{
+    position:relative; z-index:1; margin-top:28px;
+  }
+  .statement-lead{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    font-size:13px; color:var(--ink-dan); letter-spacing:8px; text-indent:8px;
+    margin-bottom:12px;
+  }
+  .statement-line{
+    width:36px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--gold-silk), transparent);
+    opacity:0.65;
+  }
+  .statement-soul{
+    font-size:21px;
+    letter-spacing:8px;
+    text-indent:8px;
+    color:var(--cinnabar);
+    line-height:1.55;
+    text-shadow:0 1px 2px rgba(158,39,33,0.12);
+  }
+
+  .cover-action{
+    width:100%; display:flex; justify-content:center;
+  }
+  .btn-seal-start{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:218px; padding:15px 0;
+    background:linear-gradient(180deg, #a32b24 0%, #821c17 100%);
+    color:#fdfaf5; border:1px solid rgba(201,165,101,0.55);
+    border-radius:4px; cursor:pointer;
+    font-size:19px; letter-spacing:10px; text-indent:10px;
+    box-shadow:0 6px 18px rgba(130,28,23,0.25), inset 0 1px 0 rgba(255,255,255,0.25);
+    position:relative; transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);
+    animation:gentlePulse 3.8s ease-in-out infinite;
+  }
+  .btn-seal-start::before{
+    content:""; position:absolute; inset:2.5px;
+    border:1px solid rgba(255,238,198,0.32);
+    border-radius:2px; pointer-events:none;
+  }
+  .btn-seal-start:hover{
+    transform:translateY(-1px);
+    box-shadow:0 8px 24px rgba(130,28,23,0.35);
+  }
+  .btn-seal-start:active{
+    transform:scale(0.97) translateY(1px);
+  }
+
+  /* ============ 答题页面 ============ */
+  #page-quiz{padding-top:26px}
+  .quiz-top{display:flex; align-items:center; justify-content:space-between; padding-bottom:12px}
+  .quiz-count{
+    font-size:13.5px; color:var(--ink-dan); letter-spacing:4px; text-indent:2px;
+  }
+  .quiz-seal{
+    width:36px; height:36px; font-size:14px; transform:rotate(-3deg);
+  }
+  .progress-wrap{
+    height:2px; background:var(--line-subtle); border-radius:1px;
+    overflow:hidden; margin-bottom:30px; position:relative;
+  }
+  .progress-bar{
+    display:block; height:100%;
+    background:linear-gradient(90deg, var(--gold-silk), var(--cinnabar));
+    width:0; transition:width .35s ease;
+  }
+
+  .q-card{
+    background:rgba(253,251,247,0.85);
+    border:1px solid rgba(215,200,180,0.65);
+    border-radius:6px;
+    padding:22px 20px; margin-bottom:24px;
+    box-shadow:0 4px 16px rgba(60,45,30,0.04);
+  }
+  .q-title{
+    font-size:21.5px; line-height:1.68; color:var(--ink-jiao);
+    min-height:72px; display:flex; align-items:center;
+  }
+
+  .opts{display:flex; flex-direction:column; gap:12px}
+  .opt{
+    display:flex; gap:14px; align-items:flex-start; text-align:left;
+    background:rgba(253,251,247,0.92);
+    border:1px solid rgba(220,208,190,0.85);
+    border-radius:6px;
+    padding:15px 18px; cursor:pointer; font-family:inherit; font-size:16px;
+    color:var(--ink-nong);
+    transition:all .18s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:0 2px 6px rgba(60,45,30,0.03);
+  }
+  .opt:hover{
+    background:#ffffff; border-color:var(--gold-silk);
+    transform:translateY(-1px);
+  }
+  .opt:active{transform:scale(.985)}
+  .opt .tag{
+    flex:none; width:28px; height:28px; margin-top:2px; border-radius:3px;
+    background:rgba(158,39,33,0.06);
+    border:1px solid rgba(158,39,33,0.45);
+    color:var(--cinnabar);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:bold;
+  }
+  .opt.picked{
+    border-color:var(--cinnabar); background:#fcf3ed;
+    box-shadow:0 4px 16px rgba(158,39,33,0.15); transform:scale(1.008);
+  }
+  .opt.picked .tag{
+    background:var(--cinnabar); color:#fdfaf5; border-color:var(--cinnabar);
+  }
+
+  /* ================================================================
+     结果页面：东方雅卷与极高美感排版
+     ================================================================ */
+  #page-result{padding-bottom:44px}
+  
+  .r-head{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    padding:12px 0 6px; color:var(--gold-dark); font-size:13.5px;
+    letter-spacing:8px; text-indent:8px;
+  }
+  .r-head-line{
+    flex:1; height:1px;
+    background:linear-gradient(90deg, transparent, var(--gold-silk), transparent);
+    opacity:0.6;
+  }
+
+  /* 画像立轴小品 */
+  .portrait-wrap{
+    margin:18px auto 0; width:min(80%, 310px); position:relative;
+    padding:10px;
+    background:#fdfaf5;
+    border:1px solid #c8b79b;
+    border-radius:4px;
+    box-shadow:0 12px 30px rgba(50,38,25,0.15), 0 2px 6px rgba(50,38,25,0.05);
+    animation:inkBloom .85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .portrait-wrap::before{
+    content:""; position:absolute; inset:4px;
+    border:1px solid rgba(158,39,33,0.2); border-radius:2px; pointer-events:none;
+  }
+  .portrait-wrap img{
+    display:block; width:100%; border-radius:2px; aspect-ratio:2/3;
+    object-fit:cover; object-position:50% 22%; background:#e8dfcc;
+  }
+  .portrait-wrap .seal{
+    position:absolute; right:16px; bottom:16px; width:38px; height:38px; font-size:12px;
+    transform:rotate(-4deg); z-index:3;
+  }
+
+  /* 人物名与核心身份气场 */
+  .r-name-wrap{text-align:center; margin-top:22px}
+  .r-name{
+    font-size:46px; letter-spacing:10px; text-indent:10px; line-height:1.2;
+    color:var(--ink-jiao); font-weight:normal;
+  }
+  .r-tags-row{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-top:10px; color:var(--ink-nong); font-size:14px; letter-spacing:2px; flex-wrap:wrap;
+  }
+  .r-badge{
+    display:inline-block; padding:2px 10px; border-radius:3px;
+    border:1px solid rgba(201,165,101,0.55); background:rgba(201,165,101,0.12);
+    font-size:12.5px; color:var(--gold-dark);
+  }
+  .r-tags-row .dot{width:3px; height:3px; background:var(--ink-dan); border-radius:50%}
+
+  /* 气质契合度：融入印签风貌，气韵自然 */
+  .r-score-card{
+    display:flex; align-items:center; justify-content:center; gap:12px;
+    margin:18px auto 0; padding:6px 20px;
+    background:rgba(201,165,101,0.09); border:1px solid rgba(201,165,101,0.35);
+    border-radius:30px; width:fit-content;
+  }
+  .r-score-card .label{
+    font-size:12.5px; letter-spacing:4px; text-indent:4px; color:var(--ink-dan);
+  }
+  .r-score-card .val{
+    font-size:24px; color:var(--cinnabar); font-weight:bold; letter-spacing:1px;
+  }
+
+  /* 人物解读：宋版朱批暖宣笺纸 */
+  .fuyu-card{
+    margin:22px 0 0;
+    background:linear-gradient(180deg, #f7f0e3 0%, #f3ebdc 100%);
+    border:1px solid rgba(185,150,85,0.48);
+    border-left:4px solid var(--cinnabar);
+    border-radius:4px; padding:18px 20px;
+    box-shadow:0 4px 16px rgba(60,45,30,0.05);
+    position:relative;
+  }
+  .fuyu-header{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:var(--cinnabar); letter-spacing:2px;
+    margin-bottom:12px;
+  }
+  .fuyu-header-tag{
+    background:var(--cinnabar); color:#fffcf7; font-size:12px; padding:2px 8px;
+    border-radius:2px; letter-spacing:2px; font-weight:normal;
+  }
+  .fuyu-header-sub{
+    font-size:12px; color:var(--gold-dark); letter-spacing:2px;
+  }
+  .fuyu-header::after{
+    content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(185,150,85,0.4), transparent);
+  }
+  .fuyu-text{
+    font-family:Kaiti SC, STKaiti, KaiTi, "楷体", serif;
+    font-size:16.5px; line-height:2.05; color:var(--ink-nong); text-align:justify;
+    letter-spacing:0.5px;
+  }
+  .fuyu-text b{color:var(--cinnabar); font-weight:600}
+
+  /* 古卷绝句诗签 */
+  .quote-card{
+    margin:20px 0 0;
+    background:radial-gradient(ellipse at center, rgba(201,165,101,0.1) 0%, transparent 80%);
+    border-top:1px dashed var(--line-subtle); border-bottom:1px dashed var(--line-subtle);
+    padding:18px 16px; text-align:center;
+  }
+  .quote-verse{
+    font-size:19.5px; letter-spacing:4px; line-height:1.75;
+    color:var(--ink-jiao);
+  }
+  .quote-src{
+    font-size:12.5px; color:var(--ink-dan); letter-spacing:3px;
+    margin-top:8px;
+  }
+
+  /* 魂魄相似者 */
+  .r-dots{
+    display:flex; align-items:center; gap:12px; margin:26px 0 14px;
+    color:var(--gold-dark); font-size:13px; letter-spacing:5px; text-indent:5px;
+  }
+  .r-dots::before,.r-dots::after{content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--line-subtle),transparent)}
+
+  .top3{display:flex; flex-direction:column; gap:10px}
+  .t3row{
+    display:flex; align-items:center; gap:12px;
+    background:#fcfaf5; border:1px solid var(--line-subtle); border-radius:4px;
+    padding:9px 14px;
+  }
+  .t3row .rank{
+    flex:none; width:24px; height:24px; border-radius:3px;
+    background:rgba(158,39,33,0.08); border:1px solid var(--cinnabar);
+    color:var(--cinnabar); font-size:12.5px; display:flex; align-items:center; justify-content:center;
+  }
+  .t3row .who{flex:none; width:66px; font-size:15.5px; letter-spacing:2px}
+  .t3row .bar{flex:1; height:7px; background:#e8dfcc; border-radius:4px; overflow:hidden}
+  .t3row .bar i{
+    display:block; height:100%; width:0; border-radius:4px;
+    background:linear-gradient(90deg, var(--gold-silk), var(--cinnabar));
+    transition:width 1s cubic-bezier(.2,.8,.2,1);
+  }
+  .t3row .pct{
+    flex:none; width:44px; text-align:right; font-size:13.5px;
+    color:var(--cinnabar);
+  }
+  .t3row.first{border-color:rgba(158,39,33,0.3); background:#fcf5ee}
+  .t3row.first .who{font-size:16px; font-weight:bold; color:var(--cinnabar-dark)}
+
+  /* 平生典故略影 */
+  .arc-note{
+    margin-top:18px; padding:12px 16px;
+    background:#fcfaf5; border:1px solid var(--line-subtle); border-radius:4px;
+    display:flex; gap:12px; align-items:center; font-size:13.5px;
+  }
+  .arc-note .k{flex:none; color:var(--gold-dark); letter-spacing:2px}
+  .arc-note .v{color:var(--ink-dan)}
+
+  /* 底部操作与裂变按钮区 */
+  .r-actions-wrap{margin-top:26px; display:flex; flex-direction:column; gap:12px}
+  .btn-save-main{
+    width:100%; padding:15px 0; border-radius:4px; font-family:inherit; font-size:16px;
+    letter-spacing:4px; text-indent:4px; cursor:pointer;
+    background:linear-gradient(180deg, #a32b24 0%, #821c17 100%);
+    color:#fdfaf5; border:none;
+    box-shadow:0 6px 18px rgba(130,28,23,0.25);
+    transition:all .18s ease;
+  }
+  .btn-save-main:hover{transform:translateY(-1px); box-shadow:0 8px 24px rgba(130,28,23,0.35)}
+  .btn-save-main:active{transform:scale(0.98)}
+  .r-btns-subrow{display:flex; gap:12px}
+  .btn-share-sub{
+    flex:1; padding:12px 0; border-radius:4px; font-family:inherit; font-size:14.5px;
+    letter-spacing:3px; text-indent:3px; cursor:pointer;
+    background:#fcfaf5; color:var(--ink-nong); border:1px solid var(--gold-silk);
+    transition:all .18s ease;
+  }
+  .btn-share-sub:hover{background:#ffffff; border-color:var(--cinnabar)}
+  .btn-share-sub:active{transform:scale(0.98)}
+
+  /* 基础按钮保留兼容 */
+  .btn{
+    padding:14px 0; border-radius:4px; font-family:inherit; font-size:15.5px;
+    letter-spacing:5px; text-indent:5px; cursor:pointer; transition:transform .15s ease;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-main{
+    background:linear-gradient(180deg, #a32b24 0%, #821c17 100%);
+    color:#fdfaf5; border:none;
+    box-shadow:0 6px 16px rgba(130,28,23,0.24);
+  }
+  .btn-ghost{
+    background:#fcfaf5; color:var(--ink-nong); border:1px solid var(--gold-silk);
+  }
+
+  .footer{margin-top:28px; text-align:center; color:var(--ink-qing); font-size:12px; letter-spacing:3px}
+
+  .toast{
+    position:fixed; left:50%; bottom:12vh; transform:translateX(-50%) translateY(20px);
+    background:rgba(30,25,20,0.92); color:#fcfaf5; font-size:14px; letter-spacing:1px;
+    padding:10px 22px; border-radius:4px; opacity:0; pointer-events:none;
+    transition:all .26s ease; z-index:99;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%)}
+
+  /* 好友邀请横幅（裂变场景：当通过好友分享链接打开时展示） */
+  .friend-invite-banner{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin:0 auto 16px; padding:7px 16px; width:fit-content;
+    background:rgba(158,39,33,0.06);
+    border:1px solid rgba(158,39,33,0.32);
+    border-radius:24px;
+    color:var(--cinnabar); font-size:13px; letter-spacing:1px;
+    animation:inkBloom .6s ease both;
+  }
+  .friend-invite-banner .invite-icon{font-size:11px; opacity:0.8}
+  .friend-invite-banner b{color:var(--cinnabar-dark); font-weight:bold}
+
+  /* 海报全屏预览与长按保存弹窗 */
+  .poster-modal{
+    position:fixed; inset:0; z-index:999;
+    background:rgba(18,14,10,0.88); backdrop-filter:blur(6px);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:16px; box-sizing:border-box; opacity:0; transition:opacity .25s ease;
+  }
+  .poster-modal.show{display:flex; opacity:1}
+  .poster-modal-inner{
+    position:relative; width:min(92vw, 380px); max-height:92vh;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .poster-img{
+    width:100%; max-height:78vh; object-fit:contain; border-radius:4px;
+    box-shadow:0 14px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .poster-tip{
+    margin-top:14px; font-size:13.5px; color:#fdfaf5; letter-spacing:2px;
+    background:rgba(158,39,33,0.92); padding:7px 20px; border-radius:24px;
+    box-shadow:0 4px 14px rgba(158,39,33,0.4);
+    animation:gentlePulse 2.8s infinite;
+  }
+  .poster-close-btn{
+    margin-top:10px; font-size:13px; color:#d5c5a8; cursor:pointer;
+    letter-spacing:2px; padding:6px 14px;
+    border-bottom:1px solid rgba(213,197,168,0.4);
+  }
+
+  /* 微信分享指引蒙层 */
+  .wechat-mask{
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(12,10,8,0.92); backdrop-filter:blur(4px);
+    display:none; flex-direction:column; align-items:flex-end;
+    padding:16px 24px 0 0; box-sizing:border-box; cursor:pointer;
+  }
+  .wechat-mask.show{display:flex}
+  .wechat-arrow{
+    width:64px; height:64px; margin-right:8px;
+    animation:bounceArrow 1.5s ease-in-out infinite;
+  }
+  @keyframes bounceArrow{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-8px)}
+  }
+  .wechat-share-text{
+    color:#fdfaf5; font-size:16px; line-height:1.8;
+    letter-spacing:2px; text-align:right; margin-top:12px; margin-right:8px;
+  }
+  .wechat-share-text b{color:#dfb064; font-weight:normal}
+  .wechat-share-close{
+    align-self:center; margin-top:60px; font-size:13.5px; color:#c8b79b;
+    border:1px solid rgba(200,183,155,0.4); border-radius:20px; padding:6px 20px;
+    letter-spacing:2px;
+  }
+
+  @media (max-width:390px){
+    .cover-title{font-size:38px}
+    .statement-soul{font-size:18.5px}
+    .q-title{font-size:20px}
+    .r-name{font-size:42px}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ==================== 封面 ==================== -->
+  <section class="page on" id="page-cover">
+    
+    <div class="cover-header">
+      <div class="brand-title kai">未 尽 之 录</div>
+    </div>
+
+    <!-- 好友邀请横幅（裂变场景：当通过好友分享链接打开时展示） -->
+    <div class="friend-invite-banner kai" id="friend-banner" style="display:none">
+      <span class="invite-icon">❖</span>
+      <span class="invite-text" id="invite-friend-text"></span>
+      <span class="invite-icon">❖</span>
+    </div>
+
+    <div class="cover-hero">
+      <div class="ink-halo"></div>
+      <div class="cover-title-box">
+        <h1 class="cover-title">你是历史上<br>的哪位人物</h1>
+        <div class="hero-stamp kai">问魂</div>
+      </div>
+
+      <div class="cover-statement">
+        <div class="statement-lead">
+          <span class="statement-line"></span>
+          <span>千 载 之 下</span>
+          <span class="statement-line"></span>
+        </div>
+        <div class="statement-soul kai">总 有 一 人 与 你 共 此 魂 魄</div>
+      </div>
+    </div>
+
+    <div class="cover-action">
+      <button class="btn-seal-start kai" id="btn-start">开 始 鉴 定</button>
+    </div>
+
+  </section>
+
+  <!-- ==================== 答题 ==================== -->
+  <section class="page" id="page-quiz">
+    <div class="quiz-top">
+      <div class="quiz-count kai" id="q-count">第一问 · 共二十二问</div>
+      <div class="seal kai quiz-seal" id="q-seal">壹</div>
+    </div>
+    
+    <div class="progress-wrap"><i class="progress-bar" id="q-bar"></i></div>
+    
+    <div class="q-card">
+      <div class="q-title kai" id="q-title"></div>
+    </div>
+    
+    <div class="opts" id="q-opts"></div>
+  </section>
+
+  <!-- ==================== 结果 ==================== -->
+  <section class="page" id="page-result">
+    <div class="r-head kai">
+      <span class="r-head-line"></span>
+      <span>鉴 定 完 毕 · 魂 魄 归 位</span>
+      <span class="r-head-line"></span>
+    </div>
+
+    <!-- 画像立轴小品装裱 -->
+    <div class="portrait-wrap">
+      <img id="r-img" alt="" src="">
+      <div class="seal kai">千年<br>人格</div>
+    </div>
+
+    <!-- 姓名与称号 -->
+    <div class="r-name-wrap">
+      <div class="r-name" id="r-name"></div>
+      <div class="r-tags-row" id="r-tags-row"></div>
+    </div>
+
+    <!-- 气质契合度印签 -->
+    <div class="r-score-card">
+      <span class="label kai">气 质 契 合 度</span>
+      <span class="val kai" id="r-pct-num">0%</span>
+    </div>
+
+    <!-- 人物解读 -->
+    <div class="fuyu-card">
+      <div class="fuyu-header kai">
+        <span class="fuyu-header-tag">人物解读</span>
+      </div>
+      <div class="fuyu-text" id="r-fuyu"></div>
+    </div>
+
+    <!-- 诗句名言 -->
+    <div class="quote-card">
+      <div class="quote-verse kai" id="r-quote"></div>
+      <div class="quote-src kai" id="r-quote-src"></div>
+    </div>
+
+    <!-- 魂魄相似者 -->
+    <div class="r-dots kai">魂 魄 相 似 者</div>
+    <div class="top3" id="r-top3"></div>
+
+    <!-- 平生典故 -->
+    <div class="arc-note">
+      <span class="k kai">平生沧桑</span>
+      <span class="v" id="r-arc"></span>
+    </div>
+
+    <!-- 裂变与操作按钮区 -->
+    <div class="r-actions-wrap">
+      <button class="btn-save-main kai" id="btn-save">
+        <span>生成专属海报</span>
+      </button>
+      <div class="r-btns-subrow">
+        <button class="btn-share-sub kai" id="btn-share">邀好友同测</button>
+        <button class="btn-share-sub kai" id="btn-again">再测一次</button>
+      </div>
+    </div>
+
+    <div class="footer kai">千年人格鉴定 · 岁序甲辰</div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+<canvas id="share-canvas" style="display:none"></canvas>
+
+<!-- 海报长按保存弹窗（解决微信无法直接下载痛点） -->
+<div class="poster-modal" id="poster-modal">
+  <div class="poster-modal-inner">
+    <img id="poster-modal-img" class="poster-img" alt="测试结果海报" src="">
+    <div class="poster-tip kai">👆 长按上方海报 · 发送给好友或存到相册</div>
+    <div class="poster-close-btn kai" id="btn-close-poster">✕ 关 闭 预 览</div>
+  </div>
+</div>
+
+<!-- 微信右上角分享指引遮罩 -->
+<div class="wechat-mask" id="wechat-mask">
+  <svg class="wechat-arrow" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 80 C 40 40, 70 30, 85 15" stroke="#dfb064" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 4"/>
+    <polygon points="85,15 70,22 80,32" fill="#dfb064"/>
+  </svg>
+  <div class="wechat-share-text kai">
+    邀三五好友，共鉴千年魂魄<br>
+    点击右上角 <b>「 ··· 」</b><br>
+    发送给朋友 或 分享到朋友圈
+  </div>
+  <div class="wechat-share-close kai">我知道了</div>
+</div>
+
+<script>
+/* ================================================================
+   数据区：人物库（33位） / 题库（22道）
+   计分规则：每个选项有 1 位主人物（+3），主人物的 2 位气质同伴各 +1
+   ================================================================ */
+
+const FIGURES = {
+  libai:{name:"李白",dyn:"唐",title:"诗仙",cat:"狂放的浪漫主义者",
+    quote:"天生我材必有用，千金散尽还复来",qsrc:"《将进酒》",
+    fuyu:"天生的<b>精神离职第一人</b>。世界的规则说明书你压根没翻过，因为你一直忙着手搓自己的版本。平时看似摸鱼摸到外太空，关键时刻全场都得看你绝杀。别人上班带电脑，你上班像带了二两白酒——尴尬留给生活，帅气全归自己。",
+    arc:"力士脱靴 · 天子呼来不上船",img:"assets/libai.jpg"},
+  sushu:{name:"苏轼",dyn:"北宋",title:"千古文人天花板",cat:"打不死的乐天派",
+    quote:"竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生",qsrc:"《定风波》",
+    fuyu:"生活把你按在地上摩擦，你还能顺手捡起地上的野菜<b>研究个新吃法</b>。你不是没有心事，而是胃口和心胸都比常人大上三号。认清现实后你既不发疯也不内耗，反手把水逆熬成了段子。只要今天这顿饭吃得香，明天天塌下来也算个屁。",
+    arc:"一贬再贬 · 发明了东坡肉",img:"assets/sushu.jpg"},
+  wanganshi:{name:"王安石",dyn:"北宋",title:"拗相公",cat:"九头牛拉不回的改革家",
+    quote:"不畏浮云遮望眼，自缘身在最高层",qsrc:"《登飞来峰》",
+    fuyu:"骨灰级<b>死磕型狠人</b>，认准的死理九头牛都拽不回来。你最烦别人说「差不多得了」或者「以前都这样」，听到这种话血压瞬间拉满。哪怕全世界都觉得你轴，你也非要按最优解推到底。你字典里从来没有算了，只有「再改一版」。",
+    arc:"一场变法 · 吵醒半个大宋",img:"assets/wanganshi.jpg"},
+  zhugeliang:{name:"诸葛亮",dyn:"三国",title:"卧龙",cat:"鞠躬尽瘁的操盘手",
+    quote:"淡泊以明志，宁静以致远",qsrc:"《诫子书》",
+    fuyu:"天生的主心骨，也是<b>顶级的操心命</b>。团队里只要有你在，其他人连脑子都敢不带。你习惯把最难啃的骨头全揽在自己身上，口头禅是「放着我来」，背后是凌晨两点还在复盘的表格。靠谱是你的超能力，但求求你，偶尔也给自己留半格电。",
+    arc:"隆中对策 · 出师两表",img:"assets/zhugeliang.jpg"},
+  taoyuanming:{name:"陶渊明",dyn:"东晋",title:"五柳先生",cat:"认证躺平学家",
+    quote:"采菊东篱下，悠然见南山",qsrc:"《饮酒》",
+    fuyu:"反内卷界的<b>认证级祖师爷</b>。别人在焦虑职场晋升和向上管理，你只在乎今天晚风舒不舒服、阳台的花开得好不好。你的撤退从不是认输，而是懒得陪无聊的人演戏。在人人争当主角的世界里，你理直气壮地把自己活成了一个不用打卡的闲人。",
+    arc:"不为五斗米折腰 · 回家种豆",img:"assets/taoyuanming.jpg"},
+  weizheng:{name:"魏征",dyn:"唐",title:"千古诤臣",cat:"不怕得罪人的硬骨头",
+    quote:"兼听则明，偏信则暗",qsrc:"《谏太宗十思疏》",
+    fuyu:"行走的测谎仪兼<b>毒舌直球选手</b>。你从来学不会在场面上堆笑脸，碰见不讲道理的破事，憋三秒都算你输。平时说话像抹了芥末，能一句话把天聊死；但深交的人都知道，你嘴有多硬，心就有多真。假客气免谈，能留在你身边的都是过命交情。",
+    arc:"一生谏言二百余次 · 太宗又爱又怕",img:"assets/weizheng.jpg"},
+  zhangjuzheng:{name:"张居正",dyn:"明",title:"救时宰相",cat:"明知不可为而为之的强人",
+    quote:"苟利社稷，生死以之",qsrc:"语出《左传》· 毕生自勉",
+    fuyu:"天生的破局狠人，<b>眼里容不得半点假把式</b>。你不在乎虚情假意的合群，只关心方案能不能落地、烂摊子谁来收拾。别人还在甩锅推诿，你已经咬牙把重担扛上了肩。要么不做，要做就做绝。这份魄力注定让你有点孤独，但破局者从来不需要掌声。",
+    arc:"一条鞭法 · 考成法 · 大明续命五十年",img:"assets/zhangjuzheng.jpg"},
+  liqingzhao:{name:"李清照",dyn:"宋",title:"千古第一才女",cat:"孤傲的顶配灵魂",
+    quote:"生当作人杰，死亦为鬼雄",qsrc:"《夏日绝句》",
+    fuyu:"骨子里自带<b>顶配的傲气与才情</b>。你审美极高，对敷衍和将就零容忍。能和你玩到一起的人少之又少，因为你的精神门槛实在太高。平时看似清冷疏离，狠起来喝酒敢连干三碗，怼人能把对方扎成筛子。爱就爱到极致，走就绝不回头。",
+    arc:"赌书泼茶 · 晚舟失渡",img:"assets/liqingzhao.jpg"},
+  zhuangzi:{name:"庄子",dyn:"战国",title:"道家宗师",cat:"精神世界的自由人",
+    quote:"相濡以沫，不如相忘于江湖",qsrc:"《大宗师》",
+    fuyu:"精神世界大得像宇宙黑洞，现实里却<b>清醒得像个局外人</b>。别人为了蝇头小利抢破头，你在一旁吃着西瓜看戏，甚至觉得有点荒唐。世俗的条条框框根本腌不透你，一片晚霞就能让你开心大半天。肉身困在工位，灵魂早去银河系摸鱼了。",
+    arc:"濮水垂钓 · 庄周梦蝶",img:"assets/zhuangzi.jpg"},
+  fanli:{name:"范蠡",dyn:"春秋",title:"商圣陶朱公",cat:"人间清醒的进退大师",
+    quote:"居家则致千金，居官则至卿相，此布衣之极也",qsrc:"《史记》",
+    fuyu:"全场最通透的<b>搞钱宗师与退场大师</b>。别人还在跟无谓的情绪拉扯，你早就把人性和趋势盘得明明白白。你既能在顺风时一波吃尽所有红利，也能在危险来临前拍拍屁股光速离场。绝不吃回头草，更不在山顶站岗。低调发财，深藏功与名。",
+    arc:"助越灭吴 · 三散家财",img:"assets/fanli.jpg"},
+  xinqiji:{name:"辛弃疾",dyn:"南宋",title:"词中之龙",cat:"热血难凉的行动派",
+    quote:"醉里挑灯看剑，梦回吹角连营",qsrc:"《破阵子》",
+    fuyu:"外表沉稳能扛事，胸口永远藏着一把<b>没拔鞘的唐刀</b>。你嘴上常念叨「算了不折腾了」，可真碰到底线或不公，第一个拍桌子站出来的保准还是你。被生活泼了无数次冷水，少年气却一分没丢。骨子里那种随时准备拼一把的热血，谁也浇不灭。",
+    arc:"五十骑闯五万人大营 · 生擒叛徒",img:"assets/xinqiji.jpg"},
+  hanxin:{name:"韩信",dyn:"西汉",title:"兵仙",cat:"能屈能伸的战术大师",
+    quote:"韩信将兵，多多益善",qsrc:"《史记·淮阴侯列传》",
+    fuyu:"顶级战术大师兼<b>绝地逆袭选手</b>。在没有绝对胜算之前，你能把身段放得比谁都低；别人以为你怂，其实你只是在冷静算筹码。你从来不在垃圾情绪上浪费子弹，所有委屈都是你攒下的弹药。一旦等到那个风口，一击必杀，全场都得看你表演。",
+    arc:"胯下之辱 · 明修栈道暗度陈仓",img:"assets/hanxin.jpg"},
+  yuqian:{name:"于谦",dyn:"明",title:"救时宰相",cat:"关键时刻站出来的人",
+    quote:"粉骨碎身浑不怕，要留清白在人间",qsrc:"《石灰吟》",
+    fuyu:"平日里低调得像背景板，可<b>大难临头所有人都得靠你</b>。别人遇事第一反应是后撤，你的本能反应是逆行顶上去。你很少说场面上的漂亮话，但只要你往前面一站，整条防线就塌不了。你可以被生活的重锤砸中，但绝对不会往后退半步。",
+    arc:"北京保卫战 · 一身系一国",img:"assets/yuqian.jpg"},
+  guanzhong:{name:"管仲",dyn:"春秋",title:"华夏第一相",cat:"务实的顶级操盘手",
+    quote:"仓廪实而知礼节，衣食足而知荣辱",qsrc:"《管子》",
+    fuyu:"极度务实的<b>现实操盘手兼算账大师</b>。你从不跟人聊虚头巴脑的大道理，上来第一句话准是「规则怎么定、账本怎么分」。你深知人性的弱点，所以从不用道德绑架别人，而是直接把机制理顺。跟你合作最让人踏实，因为你的靠谱全是有据可查的。",
+    arc:"尊王攘夷 · 盐铁兴齐",img:"assets/guanzhong.jpg"},
+  yaowang:{name:"孙思邈",dyn:"唐",title:"药王",cat:"济世的仁心医者",
+    quote:"人命至重，有贵千金",qsrc:"《千金要方》",
+    fuyu:"朋友圈里的人形急诊室与<b>靠谱老大哥</b>。你最大的软肋就是心太软，见不得身边任何人遭罪。哪怕自己累得快要散架，朋友发来一声叹气，你还是会忍不住爬起来帮忙。你总想做替别人遮风挡雨的伞，但也请记得，偶尔也心疼心疼淋雨的自己。",
+    arc:"一部千金方 · 治病不论贵贱",img:"assets/yaowang.jpg"},
+  laozi:{name:"老子",dyn:"春秋",title:"道家始祖",cat:"以退为进的智者",
+    quote:"上善若水，水善利万物而不争",qsrc:"《道德经》",
+    fuyu:"满级的水系防御大师，<b>以退为进的天花板</b>。别人急着跳脚争高下，你微微一笑往后退一步，直接把赛道让给他。你不是认怂，而是早看穿了用力过猛必遭反噬。你后退的速度，往往比别人死命冲锋还要快。不争不抢，却能把对手生生耗到没脾气。",
+    arc:"骑青牛出函谷关 · 留五千言而去",img:"assets/laozi.jpg"},
+  mozi:{name:"墨子",dyn:"战国",title:"墨家巨子",cat:"自带工具箱的实干家",
+    quote:"兼相爱，交相利",qsrc:"《墨子》",
+    fuyu:"自带工具箱的<b>硬核实干派</b>。你最烦那种只提问题不给方案的空谈客，碰见毛病你袖子一挽直接上手修。你的浪漫不是写抒情诗，是把每个零件拧到位、把每个漏洞堵严实。脚踩泥巴但心系天下，你用双手改变现实的狠劲，比一万句口号都好使。",
+    arc:"止楚攻宋 · 和平主义硬核派",img:"assets/mozi.jpg"},
+  shangyang:{name:"商鞅",dyn:"战国",title:"变法鼻祖",cat:"对自己更狠的铁腕者",
+    quote:"治世不一道，便国不法古",qsrc:"《商君书》",
+    fuyu:"制度狂人兼<b>自律天花板</b>。你骨子里流淌着对效率和秩序的极致执念，最恨拖泥带水和灰色地带。你立下的规矩连自己都毫不留情地执行，狠起来连自己都害怕。别人或许会被你的铁面吓退，但他们不得不服，只有你才能彻底砸碎死水、杀出一条血路。",
+    arc:"徙木立信 · 秦国由此崛起",img:"assets/shangyang.jpg"},
+  dufu:{name:"杜甫",dyn:"唐",title:"诗圣",cat:"心系苍生的深情者",
+    quote:"安得广厦千万间，大庇天下寒士俱欢颜",qsrc:"《茅屋为秋风所破歌》",
+    fuyu:"冷硬世界里<b>最柔软的一颗良心</b>。你的共情天线实在开得太满，看到流浪的小动物、听到朋友的一句叹息，心都会跟着揪紧。哪怕自己生活还过得一地鸡毛，你依然总想着替别人撑把伞。你承受的心碎比常人多，但你骨子里的真诚，千金不换。",
+    arc:"茅屋被秋风所破 · 仍想大庇天下",img:"assets/dufu.jpg"},
+  baijuyi:{name:"白居易",dyn:"唐",title:"诗魔",cat:"接地气的顶流",
+    quote:"同是天涯沦落人，相逢何必曾相识",qsrc:"《琵琶行》",
+    fuyu:"高情商天花板与<b>人间清醒的社交顶流</b>。你写字不爱拽生僻词，说话从不摆架子，上能应对各种大场面，下能跟楼下保安大爷聊得火热。你深知让人舒服是最高级的智慧。跟你相处完全没有压迫感，像春日午后的一碗温茶，越品越觉得熨帖踏实。",
+    arc:"写诗先念给老太太听 · 听不懂就改",img:"assets/baijuyi.jpg"},
+  liuzongyuan:{name:"柳宗元",dyn:"唐",title:"唐宋八大家",cat:"孤独美学大师",
+    quote:"孤舟蓑笠翁，独钓寒江雪",qsrc:"《江雪》",
+    fuyu:"当代高级独行侠，<b>精神洁癖十级学者</b>。闹哄哄的无效社交只会迅速抽干你的电量，唯有一人独处的清冷才能让你满血复活。你从不害怕落单，甚至极其享受这种万籁俱寂的清静。你的世界门槛很高，不需要廉价的观众，孤独早被你活成了一身帅气的风骨。",
+    arc:"《江雪》藏头「千万孤独」· 永州八记",img:"assets/liuzongyuan.jpg"},
+  wangwei:{name:"王维",dyn:"唐",title:"诗佛",cat:"自带滤镜的安静美学家",
+    quote:"行到水穷处，坐看云起时",qsrc:"《终南别业》",
+    fuyu:"自带主动降噪耳机的<b>生活美学大师</b>。肉身困在打卡的早高峰，心神早已飘到了终南山的松林间。你天生拥有在兵荒马乱里发现微小美好的雷达，再平常的日子也能被你过出诗意。世界再喧嚣，只要戴上耳机闭上眼，你心里自有一片云淡风轻的明月泉石。",
+    arc:"半官半隐 · 诗中有画画中有诗",img:"assets/wangwei.jpg"},
+  menghaoran:{name:"孟浩然",dyn:"唐",title:"田园诗宗",cat:"理直气壮的闲适派",
+    quote:"春眠不觉晓，处处闻啼鸟",qsrc:"《春晓》",
+    fuyu:"极致松弛感宗师，<b>理直气壮的慢节奏代表</b>。别人都在争分夺秒抢跑道，你打了个哈欠翻身继续睡。你从不跟自己的生物钟拧着来，天大的事也得等把觉睡足再说。偶尔错过了所谓的世俗班车，你也只是笑笑：春天的花都看饱了，晚点到站又有什么大不了。",
+    arc:"皇帝来访 · 躲床底错失功名",img:"assets/menghaoran.jpg"},
+  dumu:{name:"杜牧",dyn:"唐",title:"小杜",cat:"风流有分寸的深情种",
+    quote:"南朝四百八十寺，多少楼台烟雨中",qsrc:"《江南春》",
+    fuyu:"审美拉满的浪漫主义者，<b>当代体面星人</b>。你对世间一切好看的事物毫无抵抗力，追求细节、讲究质感，连发条动态都要反复调光影。别人以为你玩世不恭，其实你心里比谁都长情，只是习惯用潇洒掩盖遗憾。散场时绝不纠缠，留下的永远是一个利落的背影。",
+    arc:"《阿房宫赋》· 敲响盛世警钟",img:"assets/dumu.jpg"},
+  lihe:{name:"李贺",dyn:"唐",title:"诗鬼",cat:"黑洞级脑洞拥有者",
+    quote:"雄鸡一声天下白",qsrc:"《致酒行》",
+    fuyu:"脑洞大过银河系的<b>野生鬼才</b>。你的大脑随时都在进行高能核聚变，别人看天是蓝的，你眼里能看到星辰崩塌与千军万马。经常在深夜突然灵感爆棚，抓着手机疯狂记备忘录。虽然偶尔身体脆皮得像个玻璃杯，但你灵魂里迸出的火花，足够把黑夜烧穿一个洞。",
+    arc:"骑驴觅句 · 锦囊收诗 · 二十七岁而逝",img:"assets/lihe.jpg"},
+  tangyin:{name:"唐寅",dyn:"明",title:"江南第一才子",cat:"不羁的才华本华",
+    quote:"别人笑我太疯癫，我笑他人看不穿",qsrc:"《桃花庵歌》",
+    fuyu:"在生活废墟上<b>潇洒起舞的才华本华</b>。命运冷不丁给你泼上一盆冷水，你抹了把脸，反手就能拿它当颜料画出一幅绝景。你习惯用自嘲化解尴尬，用玩笑掩盖傲骨。别人笑你太疯癫，你只是看透了世俗的虚伪与无聊。只要画笔还在手里，你就永远是不服输的赢家。",
+    arc:"科场案断送仕途 · 卖画活成传奇",img:"assets/tangyin.jpg"},
+  xuxiake:{name:"徐霞客",dyn:"明",title:"千古奇人",cat:"用脚投票的旅行家",
+    quote:"大丈夫当朝碧海而暮苍梧",qsrc:"《徐霞客游记》",
+    fuyu:"灵魂永远在路上的<b>重度探索狂</b>。小小的工位永远困不住你的野心，你的假期雷达永远锁定在地图未标明的地方。别人隔着屏幕看世界，你偏要亲自用双脚去丈量山海。哪怕路上风餐露宿、被现实折腾得够呛，只要站在山巅吹过那一阵风，你就觉得万事皆值。",
+    arc:"三十余年徒步半个中国 · 纠正长江源头",img:"assets/xuxiake.jpg"},
+  zhengbanqiao:{name:"郑板桥",dyn:"清",title:"扬州八怪",cat:"难得糊涂的清醒怪咖",
+    quote:"咬定青山不放松，立根原在破岩中",qsrc:"《竹石》",
+    fuyu:"表面装疯卖傻、<b>内里门清的反骨宗师</b>。你把「难得糊涂」当成社交防弹衣，谁要是真把你当软柿子捏，你反手就能给他上一课。平日里嬉皮笑脸不着调，可一旦被触碰底线，你硬得就像岩石缝里的那竿青竹：狂风暴雨尽管招呼，折断算我输，低头绝无可能！",
+    arc:"一生只画兰竹石 · 难得糊涂",img:"assets/zhengbanqiao.jpg"},
+  jixiaolan:{name:"纪晓岚",dyn:"清",title:"文达公",cat:"嘴上功夫十级学者",
+    quote:"浮沉宦海如鸥鸟，生死书丛似蠹鱼",qsrc:"自挽联",
+    fuyu:"移动的嘴炮军火库与<b>满级接梗王</b>。你一张嘴能把死人说活、把杠精噎死，全程脸上还挂着人畜无害的和善微笑。幽默不是你的轻浮，而是你看透人间荒唐后的顶级防御。在错综复杂的社交场里，你总能用最轻松的姿态全身而退，把尴尬巧妙地踢给别人。",
+    arc:"主编《四库全书》· 铁齿铜牙",img:"assets/jixiaolan.jpg"},
+  wangyangming:{name:"王阳明",dyn:"明",title:"心学宗师",cat:"知行合一的行动哲学家",
+    quote:"此心光明，亦复何言",qsrc:"临终遗言",
+    fuyu:"当代内耗粉碎机与<b>硬核执行力战神</b>。别人还在纠结「万一失败怎么办」，你早就干完第一轮开始复盘修正了。你深信所有的焦虑都在行动面前不堪一击，就算跌进人生的龙场绝境，你也能就地破局悟道。知行合一，只要你心里的那团火不灭，谁也别想压垮你。",
+    arc:"龙场悟道 · 文能讲学武能平叛",img:"assets/wangyangming.jpg"},
+  linzexu:{name:"林则徐",dyn:"清",title:"民族英雄",cat:"有容乃大的担当者",
+    quote:"苟利国家生死以，岂因祸福避趋之",qsrc:"《赴戍登程口占示家人》",
+    fuyu:"一身正气的破壁者与<b>硬核担当大师</b>。在原则和大是大非面前，哪怕顶着天大的阻力，你也绝不往后退缩半寸。你既有容纳万物的开阔胸怀，又有敢于直面未知变局的超凡勇气。遇到大难题别人习惯关起门来躲避，而你永远是那个第一个推开大门迎击风浪的脊梁。",
+    arc:"虎门销烟 · 开眼看世界第一人",img:"assets/linzexu.jpg"},
+  zengguofan:{name:"曾国藩",dyn:"清",title:"晚清中兴名臣",cat:"笨功夫大师",
+    quote:"结硬寨，打呆仗",qsrc:"湘军战法",
+    fuyu:"相信长期主义与<b>复利奇迹的死磕战神</b>。你从来不迷信天上掉馅饼的聪明捷径，只信结硬寨、打呆仗的笨功夫。别人三天打鱼两天晒网，你靠着日复一日的死磕，硬生生把平平无奇的开局熬成了神仙局面。你的脱颖而出不是偶然爆发，而是一万次耐住寂寞的必然。",
+    arc:"十年七迁 · 日课十二条坚持三十年",img:"assets/zengguofan.jpg"},
+  simaqian:{name:"司马迁",dyn:"西汉",title:"太史公",cat:"忍常人不能忍的记录者",
+    quote:"人固有一死，或重于泰山，或轻于鸿毛",qsrc:"《报任安书》",
+    fuyu:"能将万吨委屈炼成<b>精神燃料的绝世狠人</b>。命运曾给你最无情的一记重锤，但你没有溺毙在抱怨与哀叹里，而是默默吞下所有剧痛，把残局熬成了留给千秋万代的光芒。别人以为你低下了头，其实你正用最平静的笔触写下最硬的誓言。你的隐忍，胜过所有喧嚣。",
+    arc:"忍辱著史 · 究天人之际通古今之变",img:"assets/simaqian.jpg"},
+};
+
+/* 气质同伴：选项归主时，同伴各得 1 分 */
+const BUDDIES = {
+  libai:["tangyin","lihe"], tangyin:["libai","dumu"], dumu:["tangyin","jixiaolan"],
+  lihe:["liqingzhao","zhengbanqiao"], zhengbanqiao:["lihe","jixiaolan"],
+  liqingzhao:["dufu","lihe"], dufu:["baijuyi","liuzongyuan"], baijuyi:["sushu","dufu"],
+  sushu:["baijuyi","menghaoran"], menghaoran:["taoyuanming","sushu"], taoyuanming:["menghaoran","laozi"],
+  laozi:["zhuangzi","wangwei"], zhuangzi:["laozi","taoyuanming"], wangwei:["liuzongyuan","laozi"],
+  liuzongyuan:["wangwei","dumu"],
+  zhangjuzheng:["wanganshi","shangyang"], wanganshi:["zhangjuzheng","shangyang"], shangyang:["wanganshi","zhangjuzheng"],
+  zengguofan:["wangyangming","zhangjuzheng"], wangyangming:["zhugeliang","zengguofan"],
+  zhugeliang:["wangyangming","guanzhong"], guanzhong:["zhugeliang","fanli"], fanli:["guanzhong","zengguofan"],
+  linzexu:["yuqian","weizheng"], yuqian:["weizheng","linzexu"], weizheng:["yuqian","linzexu"],
+  xinqiji:["hanxin","xuxiake"], hanxin:["xinqiji","simaqian"], simaqian:["hanxin","dufu"],
+  yaowang:["mozi","baijuyi"], mozi:["yaowang","xuxiake"], jixiaolan:["sushu","zhengbanqiao"],
+  xuxiake:["hanxin","xinqiji"],
+};
+
+/* 22 道题：每题 4 选项，t=文案，o=主人物 */
+const QUESTIONS = [
+  {q:"周一早上，闹钟响了。你的第一反应是？",opts:[
+    {t:"弹射起床，今天的日程昨晚就排好了",o:"zhangjuzheng"},
+    {t:"再睡五分钟，梦里啥都有",o:"menghaoran"},
+    {t:"闹钟没响我就醒了，生物钟比闹钟准",o:"zengguofan"},
+    {t:"醒了，但先躺着写写画画，起什么急",o:"zhengbanqiao"}]},
+  {q:"晚上十一点，领导发消息：方案再改一版。你会？",opts:[
+    {t:"秒回收到，明早提前到岗",o:"zengguofan"},
+    {t:"装睡，天塌下来明早再说",o:"taoyuanming"},
+    {t:"回一句：这版就是最优解，明天当面聊",o:"weizheng"},
+    {t:"已读，默默截图存档，心里记一笔",o:"simaqian"}]},
+  {q:"聚会上，你通常是哪一个？",opts:[
+    {t:"全场焦点，段子不断，酒杯不空",o:"libai"},
+    {t:"照顾角落里没人搭话的那位",o:"yaowang"},
+    {t:"冷眼观全场，偶尔一句话噎死全场",o:"jixiaolan"},
+    {t:"吃。一直在吃，走时还要打包",o:"sushu"}]},
+  {q:"周五晚上，你的安排是？",opts:[
+    {t:"组局！不醉不归",o:"tangyin"},
+    {t:"宅家、外卖、沙发，三件套",o:"taoyuanming"},
+    {t:"搞副业搞钱，学习使我快乐",o:"fanli"},
+    {t:"约会，眼缘对了什么都对",o:"dumu"}]},
+  {q:"排队被人插队，你会？",opts:[
+    {t:"当场指出，声音洪亮，不怕尴尬",o:"weizheng"},
+    {t:"心里骂了一百句，嘴上算了",o:"liuzongyuan"},
+    {t:"无所谓，不差这几分钟",o:"laozi"},
+    {t:"开个玩笑，让对方笑着退回去",o:"baijuyi"}]},
+  {q:"年终奖到账，你会？",opts:[
+    {t:"捐一点，给老家孩子买些书",o:"linzexu"},
+    {t:"请兄弟们搓一顿，再添件装备",o:"xinqiji"},
+    {t:"报个课，投资自己最划算",o:"wangyangming"},
+    {t:"订机票！明天就出发",o:"xuxiake"}]},
+  {q:"你的朋友圈画风是？",opts:[
+    {t:"风景九宫格，构图讲究",o:"wangwei"},
+    {t:"疯言疯语，想到啥发啥",o:"libai"},
+    {t:"转发深度长文，附三行锐评",o:"wanganshi"},
+    {t:"半年可见，总共十条",o:"zhuangzi"}]},
+  {q:"遇到杠精，你会？",opts:[
+    {t:"杠回去，不赢不下桌",o:"jixiaolan"},
+    {t:"懒得理，夏虫不可语冰",o:"zhuangzi"},
+    {t:"甩数据讲逻辑，一条条碾过去",o:"guanzhong"},
+    {t:"一句诗怼回去，对方查完字典才发现被骂了",o:"lihe"}]},
+  {q:"理想假期是？",opts:[
+    {t:"深山民宿，断网三天",o:"wangwei"},
+    {t:"没有攻略，走到哪算哪",o:"xuxiake"},
+    {t:"家里躺平，外卖自由",o:"taoyuanming"},
+    {t:"带全家出游，我负责全部行程",o:"zhugeliang"}]},
+  {q:"项目黄了或被裁员，你的第一反应？",opts:[
+    {t:"回顾全程，哪里出的错，写个复盘",o:"simaqian"},
+    {t:"难过三天，写篇小作文发出去",o:"liqingzhao"},
+    {t:"正好！此处不留爷，自有留爷处",o:"tangyin"},
+    {t:"不服，拉个新群，明天就东山再起",o:"wanganshi"}]},
+  {q:"暗恋一个人，你的表现是？",opts:[
+    {t:"直球，先表白再说，成不成都痛快",o:"xinqiji"},
+    {t:"写下来，写成谁也看不懂的诗",o:"lihe"},
+    {t:"不说，默默对TA好，十年如一日",o:"yuqian"},
+    {t:"患得患失，深夜反复翻聊天记录",o:"dufu"}]},
+  {q:"你的购物风格是？",opts:[
+    {t:"要买就买最好的，眼都不眨",o:"liqingzhao"},
+    {t:"性价比之王，货比三十家",o:"fanli"},
+    {t:"冲动消费，快乐至上",o:"tangyin"},
+    {t:"极简主义，只买刚需",o:"mozi"}]},
+  {q:"关于自律，你是？",opts:[
+    {t:"每天打卡，雷打不动",o:"zengguofan"},
+    {t:"自律？随缘吧",o:"menghaoran"},
+    {t:"不搞形式，心里有数就行",o:"wangyangming"},
+    {t:"卷！对自己越狠越上头",o:"shangyang"}]},
+  {q:"深夜emo的时候，你会？",opts:[
+    {t:"写日记，仅自己可见",o:"liuzongyuan"},
+    {t:"出门夜宵摊，一醉解千愁",o:"dumu"},
+    {t:"打电话给朋友，哭诉两小时",o:"sushu"},
+    {t:"emo能解决问题吗？睡觉",o:"shangyang"}]},
+  {q:"和朋友出门旅行，你负责？",opts:[
+    {t:"攻略精确到小时",o:"zhugeliang"},
+    {t:"认路，野路子也敢开",o:"xuxiake"},
+    {t:"管账，回来一算不多不少",o:"fanli"},
+    {t:"活跃气氛，全程包袱不断",o:"jixiaolan"}]},
+  {q:"搬去一座新城市，第一件事？",opts:[
+    {t:"三天混成熟人，楼下大爷都认识我",o:"baijuyi"},
+    {t:"一个人溜达，把城市当迷宫逛",o:"laozi"},
+    {t:"先查地方志，这地界出过什么大事",o:"simaqian"},
+    {t:"直奔菜市场，烟火气最治愈",o:"yaowang"}]},
+  {q:"打开你的手机相册，mostly？",opts:[
+    {t:"风景和天空，张张能当壁纸",o:"wangwei"},
+    {t:"自己画的画和涂鸦",o:"zhengbanqiao"},
+    {t:"学习截图，收藏了就等于学了",o:"wangyangming"},
+    {t:"相册空空，拍照不如用眼看",o:"zhuangzi"}]},
+  {q:"看到不公平的事，你会？",opts:[
+    {t:"站出来发声，不管对方是谁",o:"yuqian"},
+    {t:"帮弱者出头，能帮一把是一把",o:"mozi"},
+    {t:"转身离开，不与烂事纠缠",o:"laozi"},
+    {t:"记下来，等一个翻盘的时机",o:"hanxin"}]},
+  {q:"你的理财风格是？",opts:[
+    {t:"稳健分散，绝不梭哈",o:"guanzhong"},
+    {t:"大胆，看准了就重仓",o:"fanli"},
+    {t:"花掉！钱是拿来换体验的",o:"dumu"},
+    {t:"理财是什么，快乐最值钱",o:"menghaoran"}]},
+  {q:"朋友找你借钱，你会？",opts:[
+    {t:"救急不救穷，规矩先讲清",o:"guanzhong"},
+    {t:"直接给，就没打算要回来",o:"mozi"},
+    {t:"打借条走流程，亲兄弟明算账",o:"zhangjuzheng"},
+    {t:"二话不说转过去，哥们随便用",o:"xinqiji"}]},
+  {q:"别人眼中 vs 真实的你？",opts:[
+    {t:"看着老实，其实主意最正",o:"zhugeliang"},
+    {t:"看着疯，其实最清醒",o:"lihe"},
+    {t:"看着凶，其实心最软",o:"yuqian"},
+    {t:"看着咸鱼，其实在憋大招",o:"hanxin"}]},
+  {q:"如果给自己写一句墓志铭？",opts:[
+    {t:"他挡住过一些风雨",o:"linzexu"},
+    {t:"他活得尽兴",o:"libai"},
+    {t:"他真心爱过这个世界",o:"dufu"},
+    {t:"他终于自由了",o:"zhuangzi"}]},
+];
+
+/* ================== 逻辑区 ================== */
+const $=id=>document.getElementById(id);
+const CN_NUM=["零","一","二","三","四","五","六","七","八","九","十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","二十一","二十二"];
+const CN_SEAL=["壹","贰","叁","肆","伍","陆","柒","捌","玖","拾","拾壹","拾贰","拾叁","拾肆","拾伍","拾陆","拾柒","拾捌","拾玖","贰拾","贰拾壹","贰拾贰"];
+const TAGS=["甲","乙","丙","丁"];
+
+/* 预计算：每人理论上限分（用于百分比） */
+const MAXPTS={};
+for(const pid in FIGURES) MAXPTS[pid]=0;
+QUESTIONS.forEach(item=>{
+  item.opts.forEach(op=>{
+    MAXPTS[op.o]=(MAXPTS[op.o]||0)+3;
+    (BUDDIES[op.o]||[]).forEach(b=>{MAXPTS[b]=(MAXPTS[b]||0)+1;});
+  });
+});
+
+let cur=0, scores=null, lastResult=null;
+
+function show(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  $(id).classList.add("on");
+  window.scrollTo(0,0);
+}
+
+function startQuiz(){
+  cur=0; scores={};
+  for(const pid in FIGURES) scores[pid]=Math.random()*0.5; // 微小随机数打破平局
+  show("page-quiz"); renderQ();
+}
+
+function renderQ(){
+  const item=QUESTIONS[cur];
+  $("q-count").textContent="第"+CN_NUM[cur+1]+"问 · 共二十二问";
+  $("q-seal").textContent=CN_SEAL[cur];
+  $("q-bar").style.width=(cur/QUESTIONS.length*100)+"%";
+  $("q-title").textContent=item.q;
+  const box=$("q-opts"); box.innerHTML="";
+  item.opts.forEach((op,i)=>{
+    const b=document.createElement("button");
+    b.className="opt";
+    b.innerHTML='<span class="tag kai">'+TAGS[i]+'</span><span>'+op.t+'</span>';
+    b.onclick=()=>pick(op,b);
+    box.appendChild(b);
+  });
+  const t=$("q-title"); t.style.animation="none"; void t.offsetWidth; t.style.animation="pageFadeIn .36s ease both";
+}
+
+function pick(op,btn){
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=null);
+  btn.classList.add("picked");
+  scores[op.o]=(scores[op.o]||0)+3;
+  (BUDDIES[op.o]||[]).forEach(b=>{scores[b]=(scores[b]||0)+1;});
+  setTimeout(()=>{
+    cur++;
+    if(cur<QUESTIONS.length) renderQ();
+    else finish();
+  },230);
+}
+
+function finish(){
+  /* 严格按每个人实际匹配百分比降序排序，消灭排名与百分比倒挂 Bug */
+  const rank = Object.entries(scores).map(([pid, sc]) => {
+    const pct = Math.max(28, Math.min(99, Math.round(sc / MAXPTS[pid] * 100)));
+    return { pid, sc, pct, fig: FIGURES[pid] };
+  }).sort((a, b) => b.pct - a.pct || b.sc - a.sc);
+
+  const top = rank[0];
+  const topId = top.pid;
+  const fig = top.fig;
+  const finalPct = top.pct;
+  lastResult = { topId, fig, rank, topPct: finalPct };
+
+  /* 画像 */
+  $("r-img").src = fig.img;
+  $("r-img").alt = fig.name;
+  $("r-name").textContent = fig.name;
+  
+  /* 身份与朝代称号 */
+  $("r-tags-row").innerHTML =
+    '<span class="r-badge kai">' + fig.dyn + '</span><span class="dot"></span>' +
+    '<span class="r-badge kai">' + fig.title + '</span><span class="dot"></span>' +
+    '<span>' + fig.cat + '</span>';
+
+  /* 赋语 */
+  $("r-fuyu").innerHTML = fig.fuyu;
+  
+  /* 金句 */
+  $("r-quote").textContent = "「 " + fig.quote + " 」";
+  $("r-quote-src").textContent = "—— " + fig.qsrc;
+  
+  /* 平生事略 */
+  $("r-arc").textContent = fig.arc;
+
+  /* Top3 匹配条：严格使用已排序结果，保证百分比单调递减 */
+  const t3 = $("r-top3");
+  t3.innerHTML = "";
+  rank.slice(0, 3).forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "t3row" + (i === 0 ? " first" : "");
+    row.innerHTML =
+      '<span class="rank kai">' + ["壹", "贰", "叁"][i] + '</span>' +
+      '<span class="who kai">' + item.fig.name + '</span>' +
+      '<span class="bar"><i></i></span><span class="pct">' + item.pct + '%</span>';
+    t3.appendChild(row);
+    requestAnimationFrame(() => setTimeout(() => {
+      row.querySelector("i").style.width = item.pct + "%";
+    }, 80 + i * 160));
+  });
+
+  /* 动态更新页面标题，用于微信分享卡片抓取 */
+  document.title = "我的历史人物测试结果是" + fig.name + "，你也来试试吧！";
+
+  show("page-result");
+
+  /* 主匹配度数字滚动：必须与壹的契合度百分比 100% 绝对一致 */
+  animNum($("r-pct-num"), finalPct);
+}
+
+function animNum(el,target){
+  const t0=performance.now(), dur=1100;
+  (function step(t){
+    const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*e)+"%";
+    if(p<1) requestAnimationFrame(step);
+  })(t0);
+}
+
+/* ============ 裂变与链接生成 ============ */
+function getQuizShareUrl(figKey){
+  let loc = window.location;
+  let base = "./";
+  if(loc && loc.origin && loc.origin !== "null" && !loc.origin.startsWith("file") && !loc.origin.includes("127.0.0.1") && !loc.origin.includes("localhost")){
+    base = loc.origin + loc.pathname;
+  }
+  base = base.split("?")[0].split("#")[0];
+  return base + "#?from=" + encodeURIComponent(figKey) + "&ref=share";
+}
+
+/* 动态生成二维码 Image 对象 */
+function generateQrImage(text, size=240){
+  return new Promise((resolve, reject)=>{
+    try{
+      const holder = document.createElement("div");
+      holder.style.position="fixed";
+      holder.style.left="-9999px";
+      holder.style.top="-9999px";
+      document.body.appendChild(holder);
+      new QRCode(holder, {
+        text: text,
+        width: size,
+        height: size,
+        colorDark: "#18130e",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      setTimeout(()=>{
+        const cv = holder.querySelector("canvas");
+        const img = holder.querySelector("img");
+        if(cv && cv.width > 0){
+          const res = new Image();
+          res.onload = () => { holder.remove(); resolve(res); };
+          res.src = cv.toDataURL("image/png");
+        } else if(img && img.src && img.src.length > 50){
+          const res = new Image();
+          res.onload = () => { holder.remove(); resolve(res); };
+          res.src = img.src;
+        } else {
+          holder.remove();
+          reject(new Error("QR generation timeout"));
+        }
+      }, 60);
+    }catch(e){
+      reject(e);
+    }
+  });
+}
+
+/* ============ 结果卡保存（宋韵典雅画卷 + 动态测试直达码） ============ */
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* 33位历史人物经典传世名句绝美国风双行对仗表（消灭孤字悬挂与不对齐） */
+const PRESET_QUOTE_LINES = {
+  "李白": ["天生我材必有用", "千金散尽还复来"],
+  "苏轼": ["竹杖芒鞋轻胜马", "一蓑烟雨任平生"],
+  "王安石": ["不畏浮云遮望眼", "自缘身在最高层"],
+  "诸葛亮": ["淡泊以明志", "宁静以致远"],
+  "陶渊明": ["采菊东篱下", "悠然见南山"],
+  "魏征": ["兼听则明", "偏信则暗"],
+  "张居正": ["苟利社稷", "生死以之"],
+  "李清照": ["生当作人杰", "死亦为鬼雄"],
+  "庄子": ["相濡以沫", "不如相忘于江湖"],
+  "范蠡": ["居家则致千金", "居官则至卿相"],
+  "辛弃疾": ["醉里挑灯看剑", "梦回吹角连营"],
+  "韩信": ["韩信将兵", "多多益善"],
+  "于谦": ["粉骨碎身浑不怕", "要留清白在人间"],
+  "管仲": ["仓廪实而知礼节", "衣食足而知荣辱"],
+  "孙思邈": ["人命至重", "有贵千金"],
+  "老子": ["上善若水", "水善利万物而不争"],
+  "墨子": ["兼相爱", "交相利"],
+  "商鞅": ["治世不一道", "便国不法古"],
+  "杜甫": ["安得广厦千万间", "大庇天下寒士俱欢颜"],
+  "白居易": ["同是天涯沦落人", "相逢何必曾相识"],
+  "柳宗元": ["孤舟蓑笠翁", "独钓寒江雪"],
+  "王维": ["行到水穷处", "坐看云起时"],
+  "孟浩然": ["春眠不觉晓", "处处闻啼鸟"],
+  "杜牧": ["南朝四百八十寺", "多少楼台烟雨中"],
+  "李贺": ["少年心事当拿云", "雄鸡一声天下白"],
+  "唐寅": ["别人笑我太疯癫", "我笑他人看不穿"],
+  "徐霞客": ["大丈夫当朝碧海", "而暮苍梧游四方"],
+  "郑板桥": ["咬定青山不放松", "立根原在破岩中"],
+  "纪晓岚": ["浮沉宦海如鸥鸟", "生死书丛似蠹鱼"],
+  "王阳明": ["此心光明", "亦复何言"],
+  "林则徐": ["苟利国家生死以", "岂因祸福避趋之"],
+  "曾国藩": ["结硬寨", "打呆仗"],
+  "司马迁": ["人固有一死", "或重于泰山或轻于鸿毛"]
+};
+
+function getQuoteTwoLines(figQuote, figName){
+  if(PRESET_QUOTE_LINES[figName]) return PRESET_QUOTE_LINES[figName];
+  const parts = figQuote.split(/[,，;；]/).filter(Boolean);
+  if(parts.length >= 2){
+    return [parts[0].trim(), parts.slice(1).join("，").trim()];
+  }
+  if(figQuote.length > 8){
+    const mid = Math.ceil(figQuote.length / 2);
+    return [figQuote.slice(0, mid), figQuote.slice(mid)];
+  }
+  return [figQuote, ""];
+}
+
+/* 中文标点避头尾法则与防孤字折行算法 */
+function wrapTextKinsoku(ctx, text, maxW){
+  const kinsokuHead = "，。！？；：、）》』」”’";
+  const lines = [];
+  let currentLine = "";
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    const testLine = currentLine + ch;
+    if(ctx.measureText(testLine).width > maxW){
+      if(kinsokuHead.includes(ch) && currentLine.length > 1){
+        const last = currentLine.slice(-1);
+        lines.push(currentLine.slice(0, -1));
+        currentLine = last + ch;
+      } else {
+        lines.push(currentLine);
+        currentLine = ch;
+      }
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if(currentLine) lines.push(currentLine);
+  if(lines.length >= 2){
+    const lastIdx = lines.length - 1;
+    if(lines[lastIdx].length === 1 && lines[lastIdx - 1].length > 4){
+      const prev = lines[lastIdx - 1];
+      lines[lastIdx - 1] = prev.slice(0, -1);
+      lines[lastIdx] = prev.slice(-1) + lines[lastIdx];
+    }
+  }
+  return lines;
+}
+
+async function saveCard(){
+  if(!lastResult) return;
+  const {fig,rank,topId}=lastResult;
+  toast("正在装裱生成专属海报...");
+  try{
+    const loadImg=src=>new Promise((ok,no)=>{
+      const im=new Image(); im.onload=()=>ok(im); im.onerror=no; im.src=src;
+    });
+
+    const shareUrl = getQuizShareUrl(topId);
+
+    /* 加载人物肖像，并动态生成本次测试直达二维码（扫码即开测） */
+    const img = await loadImg(fig.img);
+    let quizQrImg = null;
+    try{ quizQrImg = await generateQrImage(shareUrl, 240); }catch(_){}
+
+    /* 黄金比例画幅：750 x 1334（标准手机全屏 9:16，无缝贴合相册与朋友圈分享） */
+    const W=750, H=1334, cv=$("share-canvas");
+    cv.width=W; cv.height=H;
+    const c=cv.getContext("2d");
+    
+    /* 1. 宣纸温润底色与微弱水墨光晕渐变 */
+    const bgGrad=c.createLinearGradient(0,0,0,H);
+    bgGrad.addColorStop(0,"#fbf8f2");
+    bgGrad.addColorStop(0.5,"#f6efe2");
+    bgGrad.addColorStop(1,"#ece2cf");
+    c.fillStyle=bgGrad; c.fillRect(0,0,W,H);
+
+    const radGrad=c.createRadialGradient(W/2,360,60,W/2,360,460);
+    radGrad.addColorStop(0,"rgba(255,255,255,0.4)");
+    radGrad.addColorStop(1,"rgba(215,185,145,0)");
+    c.fillStyle=radGrad; c.fillRect(0,0,W,H);
+
+    /* 2. 外周双层宫廷古籍善本装潢边框 */
+    c.strokeStyle="rgba(180,142,75,0.38)"; c.lineWidth=1.5; c.strokeRect(20,20,W-40,H-40);
+    c.strokeStyle="rgba(158,39,33,0.22)"; c.lineWidth=1; c.strokeRect(26,26,W-52,H-52);
+
+    /* 四角宋式回纹花角装饰 */
+    const drawCorner=(x, y, dx, dy)=>{
+      c.save(); c.strokeStyle="rgba(180,142,75,0.55)"; c.lineWidth=1.2;
+      c.beginPath();
+      c.moveTo(x, y + dy*14); c.lineTo(x, y); c.lineTo(x + dx*14, y);
+      c.stroke();
+      c.fillStyle="#9e2721";
+      c.fillRect(x + dx*3 - (dx<0?3:0), y + dy*3 - (dy<0?3:0), 3, 3);
+      c.restore();
+    };
+    drawCorner(28, 28, 1, 1);
+    drawCorner(W-28, 28, -1, 1);
+    drawCorner(28, H-28, 1, -1);
+    drawCorner(W-28, H-28, -1, -1);
+
+    /* 3. 画像：宋画斗方镜心装裱（高度让位给下方结论区） */
+    const pw = W - 80; // 670
+    const ph = 380;
+    const px = 40, py = 40;
+
+    c.save(); c.beginPath(); c.rect(px, py, pw, ph); c.clip();
+    const ir=img.width/img.height, tr=pw/ph;
+    let sw=img.width, sh=img.height, sx=0, sy=0;
+    if(ir>tr){sw=img.height*tr; sx=(img.width-sw)/2;}
+    else {sh=img.width/tr; sy=(img.height-sh)*0.18;} /* 竖版图裁切偏向上部，保住头部不削顶 */
+    c.drawImage(img,sx,sy,sw,sh,px,py,pw,ph);
+
+    /* 画像底部微弱水墨渐变融合 */
+    const imgFade=c.createLinearGradient(0, py+ph-70, 0, py+ph);
+    imgFade.addColorStop(0,"rgba(0,0,0,0)");
+    imgFade.addColorStop(1,"rgba(246,239,226,0.45)");
+    c.fillStyle=imgFade; c.fillRect(px, py+ph-70, pw, 70);
+    c.restore();
+
+    /* 画像双重绫边装裱框 */
+    c.strokeStyle="#cfc0a8"; c.lineWidth=2; c.strokeRect(px, py, pw, ph);
+    c.strokeStyle="rgba(195,160,100,0.45)"; c.lineWidth=1; c.strokeRect(px+5, py+5, pw-10, ph-10);
+
+    /* 朱砂大印（画幅右下角金石印鉴） */
+    c.save(); c.translate(px + pw - 48, py + ph - 48); c.rotate(-3.5*Math.PI/180);
+    c.fillStyle="#9e2721"; c.fillRect(-32,-32,64,64);
+    c.strokeStyle="rgba(240,215,165,0.7)"; c.lineWidth=1.2; c.strokeRect(-29,-29,58,58);
+    c.fillStyle="#fefcf8"; c.font="bold 21px Kaiti SC, STKaiti, KaiTi, serif"; c.textAlign="center";
+    c.fillText("千年", 0, -5); c.fillText("人格", 0, 19); c.restore();
+
+    /* 4. 测试结果结论区（传播核心，三眼必见）：眉头点明“我的结果” + 大字人名 + 大号契合度横幅 */
+    /* 行距节奏：画像→眉头48px，眉头→人名76px，人名→朝代40px，朝代→横幅36px，横幅→诗句52px */
+    const nameY = 544;
+    c.textAlign="center";
+    c.fillStyle="#7b5d28"; c.font="19px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillText("· 千 年 人 格 鉴 定 · 我 的 测 试 结 果 ·", W/2, nameY - 76);
+
+    /* 大字人名：一眼看清测出的是谁 */
+    c.fillStyle="#18130e";
+    c.font="bold 58px Source Han Serif SC, Noto Serif SC, Songti SC, serif";
+    const spacedName = fig.name.split("").join(" ");
+    c.fillText(spacedName, W/2, nameY);
+
+    /* 朝代与头衔标签 */
+    c.font="18px Kaiti SC, STKaiti, KaiTi, serif"; c.fillStyle="#7b5d28";
+    c.fillText("〔 " + fig.dyn + " · " + fig.title + " ｜ " + fig.cat + " 〕", W/2, nameY + 36);
+
+    /* 契合度认证大横幅：大号百分比，转发时别人一眼看到结论 */
+    const pct = lastResult.topPct || rank[0].pct;
+    const mbW = 500, mbH = 66, mbY = nameY + 72;
+    c.fillStyle="rgba(158,39,33,0.07)";
+    c.fillRect(W/2 - mbW/2, mbY, mbW, mbH);
+    c.strokeStyle="rgba(158,39,33,0.45)"; c.lineWidth=1.5;
+    c.strokeRect(W/2 - mbW/2, mbY, mbW, mbH);
+    c.strokeStyle="rgba(158,39,33,0.2)"; c.lineWidth=1;
+    c.strokeRect(W/2 - mbW/2 + 4, mbY + 4, mbW - 8, mbH - 8);
+
+    /* 横幅内容整体居中：小字前缀 + 大号百分比 + 收尾 */
+    c.textAlign="left";
+    const pre = "灵魂共鸣 · 契合度 ";
+    const num = pct + "%";
+    const suf = "";
+    c.font="22px Kaiti SC, STKaiti, KaiTi, serif";
+    const w1 = c.measureText(pre).width, w3 = c.measureText(suf).width;
+    c.font="bold 40px Source Han Serif SC, Noto Serif SC, Songti SC, serif";
+    const w2 = c.measureText(num).width;
+    let tx = W/2 - (w1 + w2 + w3)/2;
+    c.fillStyle="#4a3527"; c.font="22px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillText(pre, tx, mbY + 43); tx += w1;
+    c.fillStyle="#9e2721"; c.font="bold 40px Source Han Serif SC, Noto Serif SC, Songti SC, serif";
+    c.fillText(num, tx, mbY + 48); tx += w2;
+    c.font="22px Kaiti SC, STKaiti, KaiTi, serif";
+    if(suf) c.fillText(suf, tx, mbY + 43);
+
+    /* 5. 传世名句（统一单行通排：长短句一行放下，短句自动拉开字距，引号与字同行对齐） */
+    const verse = fig.quote;
+    const verseY = 734;
+    c.textAlign="center";
+    const formatVerse = str => (str.length <= 8 ? str.split("").join(" ") : str);
+    c.font=(verse.length > 18 ? 22 : 25) + "px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillStyle="#32271d";
+    c.fillText("「 " + formatVerse(verse) + " 」", W/2, verseY);
+
+    /* 出处小款 */
+    const qsrcClean = (fig.qsrc || "").replace(/[《》]/g, "");
+    c.font="14.5px Kaiti SC, STKaiti, KaiTi, serif"; c.fillStyle="#8c775d";
+    c.fillText("—— " + fig.name + (qsrcClean ? "《" + qsrcClean + "》" : ""), W/2, verseY + 38);
+
+    /* 6. 文人尺牍评语笺纸卡（人物解读） */
+    const cw = W - 80; // 670
+    const ch = 206;
+    const cx = 40, cy = 808;
+
+    /* 笺纸暖象牙底托（融入整体宣纸温润色，消除死白） */
+    c.fillStyle="rgba(245,239,227,0.95)"; c.fillRect(cx, cy, cw, ch);
+    c.strokeStyle="rgba(185,150,85,0.65)"; c.lineWidth=1; c.strokeRect(cx, cy, cw, ch);
+    c.strokeStyle="rgba(222,204,178,0.55)"; c.lineWidth=0.8; c.strokeRect(cx+4, cy+4, cw-8, ch-8);
+
+    /* 典雅折角内饰 */
+    const drawCardCorner=(x, y, dx, dy)=>{
+      c.save(); c.strokeStyle="rgba(185,150,85,0.7)"; c.lineWidth=1;
+      c.beginPath();
+      c.moveTo(x, y + dy*7); c.lineTo(x, y); c.lineTo(x + dx*7, y);
+      c.stroke(); c.restore();
+    };
+    drawCardCorner(cx+6, cy+6, 1, 1);
+    drawCardCorner(cx+cw-6, cy+6, -1, 1);
+    drawCardCorner(cx+6, cy+ch-6, 1, -1);
+    drawCardCorner(cx+cw-6, cy+ch-6, -1, -1);
+
+    /* 「人物解读」朱砂小印章（左上角） */
+    const sealW = 76, sealH = 24;
+    const sealX = cx + 22, sealY = cy + 15;
+    c.fillStyle="#9e2721"; c.fillRect(sealX, sealY, sealW, sealH);
+    c.strokeStyle="rgba(245,235,220,0.85)"; c.lineWidth=1; c.strokeRect(sealX+1, sealY+1, sealW-2, sealH-2);
+    c.fillStyle="#fffcf7"; c.font="bold 13px Kaiti SC, STKaiti, KaiTi, serif"; c.textAlign="center";
+    c.fillText("人物解读", sealX + sealW/2, sealY + sealH/2 + 4.5);
+
+    /* 雅致金引线（直拉至卡片右边缘，留白透气） */
+    c.strokeStyle="rgba(215,185,145,0.75)"; c.lineWidth=1;
+    c.beginPath();
+    c.moveTo(sealX + sealW + 14, sealY + sealH/2);
+    c.lineTo(cx + cw - 22, sealY + sealH/2);
+    c.stroke();
+
+    /* 解读正文：避头尾折行，楷体书写，首句朱砂提亮，行间呼吸自然 */
+    c.font="17.5px Kaiti SC, STKaiti, KaiTi, serif";
+    const plainFuyu = fig.fuyu.replace(/<[^>]+>/g,"");
+    const firstPeriod = plainFuyu.indexOf("。") + 1 || plainFuyu.length;
+    const fuyuLines = wrapTextKinsoku(c, plainFuyu, cw - 50);
+    const startFY = cy + 54;
+    const lineH = 30;
+    let curCharIdx = 0;
+    fuyuLines.slice(0, 5).forEach((ln, i)=>{
+      const lineY = startFY + i * lineH;
+      let lineX = cx + 25;
+      for(let j = 0; j < ln.length; j++){
+        const ch = ln[j];
+        c.fillStyle = (curCharIdx < firstPeriod) ? "#9e2721" : "#261e16";
+        c.fillText(ch, lineX, lineY);
+        lineX += c.measureText(ch).width;
+        curCharIdx++;
+      }
+    });
+
+    /* 7. 底部题跋卡（题跋名帖装帧） */
+    const bw = W - 80; // 670
+    const bh = 224;
+    const bx = 40, by = 1032;
+
+    /* 底托沉降暖雅古色 */
+    c.fillStyle="rgba(238,230,216,0.76)"; c.fillRect(bx, by, bw, bh);
+    c.strokeStyle="rgba(185,150,85,0.48)"; c.lineWidth=1; c.strokeRect(bx, by, bw, bh);
+
+    /* 题跋四角折线内饰 */
+    const drawColophonCorner=(x, y, dx, dy)=>{
+      c.save(); c.strokeStyle="rgba(185,150,85,0.6)"; c.lineWidth=1;
+      c.beginPath();
+      c.moveTo(x, y + dy*8); c.lineTo(x, y); c.lineTo(x + dx*8, y);
+      c.stroke(); c.restore();
+    };
+    drawColophonCorner(bx+6, by+6, 1, 1);
+    drawColophonCorner(bx+bw-6, by+6, -1, 1);
+    drawColophonCorner(bx+6, by+bh-6, 1, -1);
+    drawColophonCorner(bx+bw-6, by+bh-6, -1, -1);
+
+    /* 右侧：测试直达二维码（放大居中，引导文案全部移左） */
+    const qrSize = 156;
+    const qx = bx + bw - qrSize - 26;
+    const qy = by + (bh - qrSize) / 2;
+
+    /* 纯白玉底框与四角朱砂角线 */
+    c.fillStyle="#ffffff"; c.fillRect(qx - 6, qy - 6, qrSize + 12, qrSize + 12);
+    c.strokeStyle="rgba(185,150,85,0.6)"; c.lineWidth=1; c.strokeRect(qx - 6, qy - 6, qrSize + 12, qrSize + 12);
+
+    /* 四个朱砂小角花 */
+    c.fillStyle="#9e2721";
+    c.fillRect(qx - 6, qy - 6, 4, 4);
+    c.fillRect(qx + qrSize + 2, qy - 6, 4, 4);
+    c.fillRect(qx - 6, qy + qrSize + 2, 4, 4);
+    c.fillRect(qx + qrSize + 2, qy + qrSize + 2, 4, 4);
+
+    if(quizQrImg){
+      c.drawImage(quizQrImg, qx, qy, qrSize, qrSize);
+    } else {
+      c.fillStyle="#261e16"; c.font="13px Kaiti SC, STKaiti, KaiTi, serif"; c.textAlign="center";
+      c.fillText("打开链接即可开测", qx + qrSize/2, qy + qrSize/2 - 8);
+      c.font="12px monospace";
+      c.fillText(location.origin.replace(/^https?:\/\//,""), qx + qrSize/2, qy + qrSize/2 + 14);
+      c.textAlign="left";
+    }
+
+    /* 左侧：鉴定器名号 + 行动号召（契合度结论已在海报上方，不重复） */
+    c.textAlign="left";
+    const lx = bx + 24;
+
+    /* 第1行：鉴定器名号 */
+    c.fillStyle="#18130e";
+    c.font="bold 22px Source Han Serif SC, Noto Serif SC, Songti SC, serif";
+    c.fillText("千 年 人 格 鉴 定", lx, by + 52);
+
+    /* 第2行：行动号召 */
+    c.fillStyle="#5c4728";
+    c.font="16px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillText("跨越两千年时空，测测你的本命是谁？", lx, by + 96);
+
+    /* 第3行：开测引导（朱砂重点） */
+    c.fillStyle="#9e2721";
+    c.font="bold 21px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillText("扫码立即开测", lx, by + 146);
+
+    /* 第4行：补充语（与上一行同级醒目） */
+    c.fillStyle="#9e2721";
+    c.font="bold 20px Kaiti SC, STKaiti, KaiTi, serif";
+    c.fillText("看看你和哪位人物魂魄相合", lx, by + 180);
+
+    const url=cv.toDataURL("image/png");
+    const shareTitle = "我的历史人物测试结果是" + fig.name + "，你也来试试吧！";
+
+    /* 桌面端静默下载（统一采用更具社交分享与互动感的标题） */
+    try{
+      const a=document.createElement("a");
+      a.href=url; a.download=shareTitle + ".png"; a.click();
+    }catch(_){}
+
+    /* 弹窗展示海报，支持手机长按保存/转发 */
+    $("poster-modal-img").src = url;
+    $("poster-modal-img").alt = shareTitle;
+    $("poster-modal").classList.add("show");
+    toast("海报已生成，长按即可发送好友或朋友圈");
+  }catch(e){
+    console.error(e);
+    toast("生成海报遇到问题，可直接截屏分享");
+  }
+}
+
+/* ============ 分享处理（微信内唤起右上角指引，外部复制链接） ============ */
+function handleShare(){
+  if(!lastResult) return;
+  const {fig, topId} = lastResult;
+  const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+  if(isWeChat){
+    $("wechat-mask").classList.add("show");
+  } else {
+    const url = getQuizShareUrl(topId);
+    const copyText = "我的历史人物测试结果是" + fig.name + "，你也来试试吧！\n" + url;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(copyText).then(()=>{
+        toast("专属测试链接已复制，快发给好友吧！");
+      }).catch(()=>{
+        prompt("请复制测试邀请发送给好友：", copyText);
+      });
+    } else {
+      prompt("请复制测试邀请发送给好友：", copyText);
+    }
+  }
+}
+
+/* ============ 好友来源检查（裂变场景感知） ============ */
+function checkReferral(){
+  try{
+    const sp = new URLSearchParams(window.location.hash.startsWith("#?") ? window.location.hash.slice(2) : window.location.search);
+    const fromFigKey = sp.get("from");
+    if(fromFigKey && FIGURES[fromFigKey]){
+      const friendFig = FIGURES[fromFigKey];
+      const banner = $("friend-banner");
+      const text = $("invite-friend-text");
+      if(banner && text){
+        text.innerHTML = "好友测出与<b>「" + friendFig.name + "」</b>灵魂共鸣 · 测测你的本命是谁";
+        banner.style.display = "flex";
+      }
+    }
+  }catch(e){}
+}
+
+/* ============ 绑定 ============ */
+$("btn-start").onclick=startQuiz;
+$("btn-again").onclick=()=>{show("page-cover");};
+$("btn-save").onclick=saveCard;
+$("btn-share").onclick=handleShare;
+$("btn-close-poster").onclick=()=>{$("poster-modal").classList.remove("show");};
+$("poster-modal").onclick=(e)=>{if(e.target===$("poster-modal")) $("poster-modal").classList.remove("show");};
+$("wechat-mask").onclick=()=>{$("wechat-mask").classList.remove("show");};
+
+checkReferral();
+</script>
+</body>
+</html>
