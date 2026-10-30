@@ -1,0 +1,221 @@
+
+  :root{
+    --dim:#11161d; --teal:#2dd4bf; --amber:#fbbf24; --violet:#f472b6;
+    --red:#f87171; --green:#4ade80; --muted:#8b97a7;
+    --cArt:#93c5fd; --cAdj:#86efac; --cAdv:#fdba74; --cPrep:#67e8f9; --cConj:#c4b5fd; --cCoord:#818cf8; --cPart:#fcd34d;
+    --bg:#0d1117; --card:#161b22; --line:#232a33; --text:#e6edf3;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Sarasa Gothic SC","Microsoft YaHei",system-ui,sans-serif;
+    padding:20px;max-width:920px;margin:0 auto;line-height:1.6;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;margin-bottom:16px;
+    padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;
+    background:#0d1117;border:1px solid var(--line);border-radius:999px;
+    line-height:1.3;white-space:nowrap;color:var(--text);transition:border-color .15s;}
+  .legend span:hover{border-color:#3a4452;}
+  .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none;}
+  .inputwrap{position:relative;background:var(--card);border-radius:10px;}
+  textarea{width:100%;min-height:120px;background:transparent;color:var(--text);position:relative;z-index:2;
+    border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;line-height:1.55;
+    overflow-wrap:break-word;resize:vertical;font-family:inherit;}
+  /* 输入框实时拼写检查：textarea 本身不能上色，底下垫一层同排版透明镜像，错词画红波浪线。
+     外层=裁剪窗（overflow:hidden），内层=内容层（padding+排版）；滚动补偿用 transform 位移内层，
+     不依赖 overflow:hidden 的 scrollTop（该值在部分状态会失灵差出半行 → 波浪线漂到行隙穿模）。
+     宽度不写死，由 JS 按 clientWidth 实时对齐（含滚动条宽度补偿），换行位置才与输入框一致 */
+  #inputMirror{position:absolute;left:0;top:0;height:100%;z-index:1;overflow:hidden;
+    pointer-events:none;border:1px solid transparent;border-radius:10px;}
+  #inputMirrorInner{padding:12px;font-size:15px;line-height:1.55;font-family:inherit;
+    color:transparent;white-space:pre-wrap;overflow-wrap:break-word;}
+  #inputMirrorInner b{font-weight:inherit;text-decoration:underline wavy #ff0000;
+    text-decoration-thickness:1.5px;text-underline-offset:4px;}
+  #inputMirrorInner b.contr{   /* 口语缩写：已识别，不是拼错 → 青色虚线区分于红波浪线 */
+    text-decoration:underline dashed #4fd1c5;text-decoration-thickness:1.5px;text-underline-offset:4px;cursor:help;}
+  .bar{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap;}
+  .bsep{width:1px;height:22px;background:var(--line);margin:0 6px;flex:none;}   /* 分组分隔线 */
+  button{background:var(--teal);color:#06231f;border:none;border-radius:9px;
+    padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;}
+  button.ghost{background:var(--card);color:var(--text);border:1px solid var(--line);font-weight:500;}
+  button:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.35);}
+  button:active{transform:translateY(1px);box-shadow:none;}
+  #go{padding:9px 20px;font-size:15px;}   /* 主按钮略大，保持视觉焦点 */
+  .hint{color:var(--muted);font-size:12px;}
+  #status{margin-left:auto;}   /* 状态提示推到最右 */
+  .filebtn{display:inline-flex;align-items:center;background:var(--card);color:var(--text);
+    border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:14px;
+    font-weight:500;cursor:pointer;line-height:1.4;white-space:nowrap;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;}
+  .filebtn:hover{border-color:var(--teal);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.35);}
+  .filebtn input{display:none;}
+  /* 功能按钮各自上色（写在 .ghost / .filebtn 之后以覆盖其无色底）；主按钮「一键拆解」保留实色青作视觉焦点 */
+  button.tone-amber,.filebtn.tone-amber{background:rgba(251,191,36,.13);color:var(--amber);border:1px solid rgba(251,191,36,.42);}
+  button.tone-amber:hover,.filebtn.tone-amber:hover{border-color:var(--amber);background:rgba(251,191,36,.2);}
+  button.tone-cyan,.filebtn.tone-cyan{background:rgba(103,232,249,.12);color:var(--cPrep);border:1px solid rgba(103,232,249,.4);}
+  button.tone-cyan:hover,.filebtn.tone-cyan:hover{border-color:var(--cPrep);background:rgba(103,232,249,.19);}
+  button.tone-green{background:rgba(134,239,172,.12);color:var(--cAdj);border:1px solid rgba(134,239,172,.4);}
+  button.tone-green:hover{border-color:var(--cAdj);background:rgba(134,239,172,.19);}
+  button.tone-teal{background:rgba(45,212,191,.12);color:var(--teal);border:1px solid rgba(45,212,191,.42);}
+  button.tone-teal:hover{border-color:var(--teal);background:rgba(45,212,191,.2);}
+  button.tone-violet{background:rgba(196,181,253,.13);color:#c4b5fd;border:1px solid rgba(196,181,253,.42);}
+  button.tone-violet:hover{border-color:#c4b5fd;background:rgba(196,181,253,.2);}
+  button.tone-pink{background:rgba(244,114,182,.13);color:#f472b6;border:1px solid rgba(244,114,182,.42);}
+  button.tone-pink:hover{border-color:#f472b6;background:rgba(244,114,182,.2);}
+  button.tone-amber,button.tone-cyan,button.tone-green,button.tone-teal,button.tone-violet,button.tone-pink{font-weight:600;}
+  #out{margin-top:18px;}
+  .sent{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px;margin-bottom:16px;}
+  .rendered{font-size:18px;line-height:1.9;word-break:break-word;}
+  .rendered .w{display:inline-block;cursor:pointer;border-radius:5px;padding:1px 3px;
+    text-align:center;vertical-align:top;}
+  .rendered .w:hover{outline:1px solid var(--muted);}
+  .rendered .w .en{display:block;}
+  .rendered .w .gl{display:block;font-size:11px;color:var(--muted);line-height:1.2;}
+  .rendered .w sup.idx{font-size:9px;font-weight:700;vertical-align:super;margin-left:1px;}
+  .subj{color:var(--teal);border-bottom:2px solid var(--teal);}
+  .verb{color:var(--amber);border-bottom:2px solid var(--amber);}
+  .verb2{color:var(--amber);border-bottom:2px dashed var(--amber);}
+  .obj{color:var(--violet);border-bottom:2px solid var(--violet);}
+  .extra{color:var(--muted);}
+  .w.art{color:var(--cArt);} .w.adj{color:var(--cAdj);} .w.adv{color:var(--cAdv);}
+  .w.prep{color:var(--cPrep);} .w.conj{color:var(--cConj);} .w.coord{color:var(--cCoord);} .w.part{color:var(--cPart);}
+  .w .stag{color:inherit;opacity:.85;}
+  /* 挂件标签显隐：框级 .pendoff（全局按钮 / 各框内按钮都通过它控制，两级可互相覆盖） */
+  .sent{position:relative;}
+  .sent.pendoff .stag{display:none;}
+  .sent.pendoff .w.art,.sent.pendoff .w.adj,.sent.pendoff .w.adv,.sent.pendoff .w.prep,
+  .sent.pendoff .w.conj,.sent.pendoff .w.coord,.sent.pendoff .w.part{color:var(--muted) !important;}
+  .pendbtn{position:absolute;top:10px;right:12px;z-index:2;padding:2px 10px;font-size:11px;
+    font-weight:700;background:rgba(134,239,172,.1);color:var(--cAdj);
+    border:1px solid rgba(134,239,172,.35);border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .pendbtn:hover{border-color:var(--cAdj);background:rgba(134,239,172,.18);}
+  .ovbtn.pendbtn-inline{position:static;margin-left:0;}
+  .ovbtn:first-of-type{margin-left:auto;}   /* 只有第一个按钮吃掉剩余空间：整组按钮推到右侧聚在一起，不再各自散开 */
+  .overview{border-color:var(--teal);box-shadow:0 0 0 1px rgba(45,212,191,.28);}
+  .overview .ovhead{font-size:14px;color:var(--teal);margin-bottom:10px;
+    display:flex;align-items:center;gap:10px;}
+  .overview .ovhead b{color:var(--teal);font-size:15px;}
+  .ovbtn{margin-left:0;background:rgba(45,212,191,.12);color:var(--teal);
+    border:1px solid rgba(45,212,191,.42);border-radius:7px;padding:5px 11px;
+    font-size:12px;font-weight:600;cursor:pointer;flex:0 0 auto;}
+  .ovbtn:hover{border-color:var(--teal);background:rgba(45,212,191,.2);}
+  .ovbtn.seg-off{background:rgba(255,255,255,.05);color:var(--muted);border-color:var(--line);}   /* 英文意群关：按钮置灰，状态一目了然 */
+  .overview-rendered{max-height:340px;overflow:auto;padding-right:6px;}
+  .overview .seg{padding-right:2px;}
+  .ovsep{color:var(--muted);margin:0 7px;font-weight:700;user-select:none;}
+  .sent.troff .wzh{display:none;}     /* 该处翻译关闭：拆解行只留英文 + 主谓宾成分标签，词义小字隐藏 */
+  .overview.troff .gzh{display:none;} /* 概览翻译关闭：意群块下面的块中文也一起藏，只留英文意群 + ｜，便于背诵 */
+  /* 内置拼写检查：词库查不到的词画红波浪线（自研查表，毫秒级，替代 v8.31 关掉的浏览器拼写检查） */
+  .rendered .w.misspell .en{text-decoration:underline wavy #ff0000;text-underline-offset:4px;text-decoration-thickness:1.5px;}
+  .gen .gw.msp{text-decoration:underline wavy #ff0000;text-underline-offset:4px;text-decoration-thickness:1.5px;}
+  sup.expm{font-size:.66em;color:var(--muted);font-weight:400;margin-left:2px;white-space:nowrap;letter-spacing:0;}   /* 口语缩写还原标记 gonna(=going to) */
+  i.msw{text-decoration:underline wavy #ff0000;text-underline-offset:4px;text-decoration-thickness:1.5px;}
+  .cn{margin-top:10px;padding:8px 10px;background:rgba(45,212,191,.08);
+    border-left:3px solid var(--teal);border-radius:0 8px 8px 0;font-size:14px;}
+  .cn b{color:var(--teal);}
+  .cn.off{background:rgba(255,255,255,.025);border-left-color:var(--line);}
+  .cn .toff{color:var(--muted);font-size:12px;}
+  .trsw{display:inline-block;margin-right:8px;padding:1px 9px;font-size:11px;font-weight:700;
+    background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.42);
+    border-radius:6px;cursor:pointer;vertical-align:middle;line-height:1.6;}
+  .trsw:hover{border-color:var(--amber);background:rgba(251,191,36,.2);}
+  .trmode{display:inline-block;margin-right:8px;padding:1px 8px;font-size:11px;font-weight:700;
+    background:var(--card);color:var(--muted);border:1px solid var(--line);border-radius:6px;
+    cursor:pointer;vertical-align:middle;line-height:1.6;}
+  .trmode:hover{color:var(--teal);border-color:var(--teal);}
+  .trgsv{display:inline-block;margin-right:8px;padding:1px 8px;font-size:11px;font-weight:700;
+    background:var(--card);color:var(--muted);border:1px solid var(--line);border-radius:6px;
+    cursor:pointer;vertical-align:middle;line-height:1.6;}
+  .trgsv:hover{color:var(--violet);border-color:var(--violet);}
+  /* 意群翻译：按语义块断句，块间 ｜ 分隔，块内随主谓宾/介词/并列分色，便于朗读停顿 */
+  .grp{display:inline-block;vertical-align:top;text-align:center;line-height:1.5;}
+  .grp .gen{display:block;color:var(--fg);font-size:14px;}
+  .grp .gzh{display:block;color:var(--fg);font-size:14px;font-weight:600;margin-top:3px;}
+  .grp-sep{color:var(--muted);margin:0 8px;font-weight:700;user-select:none;vertical-align:middle;}
+  .overview .grp{margin:3px 0;}   /* 概览英文意群块：块间距，行间留点呼吸感 */
+  .lw{display:inline-block;margin:0 6px 1px 0;white-space:nowrap;}
+  .lw i{font-style:normal;opacity:.55;font-weight:600;letter-spacing:.2px;}
+  .lw b{font-weight:600;margin-left:1px;color:var(--text);}
+  .lw .miss{color:var(--muted);text-decoration:underline dotted var(--muted);text-underline-offset:3px;text-decoration-thickness:1.5px;margin-left:1px;cursor:help;}
+  .unk{color:var(--muted);text-decoration:underline dotted var(--muted);text-underline-offset:3px;text-decoration-thickness:1.5px;cursor:help;}   /* 未收录：词库暂无此词，灰点线提示，不误当翻译错误 */
+  .lw-subj i,.lw-subj b{color:var(--teal);}
+  .lw-verb i,.lw-verb b,.lw-verb2 i,.lw-verb2 b{color:var(--amber);}
+  .lw-obj  i,.lw-obj  b{color:var(--violet);}
+  .lw-extra i,.lw-extra b{color:var(--muted);}
+  .lw-extra i{opacity:.5;}
+  .pn{color:var(--muted);margin-right:3px;}
+  .steps{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;
+    display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;}
+  .steps .k{color:var(--muted);white-space:nowrap;}
+  .kstruct{cursor:pointer;}
+  .steps .k.kstruct:hover{color:var(--teal);text-decoration:underline;}
+  .v.trunk.kstruct:hover{box-shadow:0 0 0 2px rgba(45,212,191,.45);}
+  .w.hit{animation:wflash 1.6s ease;}
+  @keyframes wflash{0%,55%{background:rgba(74,222,128,.4);box-shadow:0 0 0 2px var(--green);border-radius:6px;}100%{background:transparent;box-shadow:none;}}
+  /* 右键菜单：把词加入生词本 */
+  .ctxmenu{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);padding:10px;width:240px;}
+  .ctxmenu .ctitle{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--amber);}
+  .ctxmenu input{width:100%;box-sizing:border-box;background:var(--dim);border:1px solid var(--line);
+    color:var(--fg);border-radius:7px;padding:7px 9px;font-size:14px;margin-bottom:8px;}
+  .ctxmenu .crow{display:flex;gap:8px;}
+  .ctxmenu .crow button{flex:1;}
+  /* 我的生词本列表 */
+  #missBody .myword td.en{color:var(--amber);font-weight:600;}
+  #missBody .myword td.zh{color:var(--teal);}
+  #missBody .myword td.ex{color:var(--muted);font-size:13px;}
+  .myword-del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:6px;
+    padding:2px 8px;cursor:pointer;font-size:12px;}
+  .myword-del:hover{color:#f87171;border-color:#f87171;}
+  .steps .v b.subj{color:var(--teal);} .steps .v b.verb{color:var(--amber);}
+  .steps .v b.obj{color:var(--violet);}
+  .trunk{background:rgba(74,222,128,.12);border:1px solid var(--green);
+    border-radius:8px;padding:8px 10px;color:var(--green);font-weight:700;}
+  .gram{margin-top:12px;background:rgba(167,139,250,.07);border:1px solid var(--violet);
+    border-radius:8px;padding:10px 12px;font-size:13.5px;}
+  .gram h4{margin:0 0 6px;font-size:13px;color:var(--violet);}
+  .gram ul{margin:0;padding-left:18px;} .gram li{margin:3px 0;}
+  .gram .plainbox{margin:10px 0 0;background:#0a0e13;border:1px solid var(--line);border-radius:8px;
+    padding:10px 14px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;
+    line-height:1.8;color:#d7e2ee;white-space:pre;overflow-x:auto;}
+  #detail{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:12px 18px;font-size:14px;max-width:90%;box-shadow:0 6px 24px rgba(0,0,0,.4);
+    display:none;}
+  #detail b{font-size:15px;}
+  #dictBtn{background:var(--violet);color:#1a1030;}
+  #dictOverlay,#missOverlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+    z-index:50;align-items:flex-start;justify-content:center;padding:40px 16px;}
+  #dictPanel,#missPanel{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    width:100%;max-width:680px;max-height:82vh;display:flex;flex-direction:column;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  #dictPanel .head,#missPanel .head{display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);}
+  #dictPanel .head h3{margin:0;font-size:16px;color:var(--violet);flex:0 0 auto;}
+  #missPanel .head h3{margin:0;font-size:16px;color:var(--amber);flex:0 0 auto;}
+  #dictPanel .closex,#missPanel .closex{margin-left:auto;background:var(--line);color:var(--text);
+    border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;}
+  #dictSearch{flex:1;background:var(--bg);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-size:14px;}
+  #dictBody,#missBody{overflow:auto;padding:10px 16px 16px;}
+  #dictBody .grp,#missBody .grp{font-size:12px;color:var(--muted);margin:12px 0 6px;
+    border-bottom:1px dashed var(--line);padding-bottom:4px;}
+  #dictBody table,#missBody table{width:100%;border-collapse:collapse;font-size:14px;}
+  #dictBody td,#missBody td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  #dictBody td.en{color:var(--teal);font-weight:600;width:42%;}
+  #dictBody td.cn{color:var(--text);}
+  #dictBody .homo{font-size:10px;margin-left:6px;padding:0 5px;border-radius:5px;
+    background:rgba(251,191,36,.18);color:var(--amber);font-weight:700;}
+  #dictCount{color:var(--muted);font-size:12px;padding:0 16px 10px;}
+  #missCount{color:var(--muted);font-size:12px;padding:0 16px 10px;line-height:1.7;}
+  #missOps{display:flex;gap:8px;padding:0 16px 12px;}
+  #missOps button{background:var(--amber);color:#241a02;border:none;border-radius:8px;
+    padding:7px 14px;cursor:pointer;font-size:13px;font-weight:700;}
+  #missOps button.ghost{background:var(--line);color:var(--text);}
+  #missBody td.en{color:var(--amber);font-weight:600;width:30%;}
+  #missBody td.n{color:var(--muted);text-align:center;width:64px;}
+  #missBody td.ex{color:var(--muted);font-size:13px;}
+  .lw .alt{font-size:10px;color:var(--muted);opacity:.72;margin-left:2px;font-weight:400;}
