@@ -134,7 +134,6 @@ test("backend install builds Web in shared repository and preserves Function rec
   const f = await fixture(t);
   const repo = path.join(f.directory, "repositories/app");
   await mkdir(path.join(repo, "functions/fn-old"), {recursive:true});
-  await writeFile(path.join(repo, "functions/fn-old/go.mod"), "module service\n\ngo 1.26\n");
   await writeFile(path.join(repo, "functions/fn-old/main.go"), "package main\nfunc main() {}\n");
   await writeFile(path.join(repo,"package.json"),JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
   await writeFile(path.join(repo,"package-lock.json"),JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));

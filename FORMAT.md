@@ -89,7 +89,7 @@ seed.sql               # metadata.seeds 存在时收录
 
 上例与原 metadata 的名称、简介、schema/seeds 等字段一起使用。`npm run pack` 在 web_repository 对应子目录执行 npm ci/build 并读取其 dist。源 variables 的路径相对于对应仓库，site_variables 路径相对于前端 dist，必须填写本次构建实际文件名。占位符须以普通字符串保留在编译文件中；打包器检查声明位置。Function/Git 变量为 `FUNCTION_ID:<key>`、`GIT_INSTANCE_ID:<key>`，其余资源变量沿用 WEB_ID、SQLITE_INSTANCE_ID。每个变量使用独立的随机占位符。
 
-`source_dir` 填写服务元信息中保存的仓库内目录，支持 `/` 根目录；每个目录含自身 go.mod。安装保留仓库目录结构，为新服务 ID 关联同一个 source_dir，不改名源码目录。同仓同目录允许多个服务引用。源码 variables 的文件路径相对于原仓库，资源 ID 引用仍按声明替换；数据库 Token 只写入运行参数。
+`source_dir` 填写服务元信息中保存的仓库内目录，支持 `/` 根目录；入口目录包含 package main 的 Go 文件，所属 go.mod 可位于入口目录或仓库内上级目录；多个入口可共享同一模块。安装保留仓库目录结构，为新服务 ID 关联同一个 source_dir，不改名源码目录。同仓同目录允许多个服务引用。源码 variables 的文件路径相对于原仓库，资源 ID 引用仍按声明替换；数据库 Token 只写入运行参数。
 
 `private_database: true` 让 SQLite 仅供函数后端使用，Web 不绑定该数据库。安装创建新实例 Token，只写入函数 database 声明的参数；parameters 只允许作者主动筛选的公开业务初值，不导出在线参数全表。函数可选 cors 使用当前函数 CORS 对象。前端经 `context.functions.fetch` 调用新函数，安装器更新 Web 现有函数列表，并替换 site_variables 中的前端引用。
 
