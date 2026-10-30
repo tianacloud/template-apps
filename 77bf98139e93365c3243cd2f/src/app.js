@@ -1,0 +1,3654 @@
+import { loadSave, queueSave } from './db.js';
+let initialSave;
+try { initialSave = await loadSave(); } catch (error) { document.body.textContent = '存档读取失败，请检查登录及网络后刷新页面。'; throw error; }
+document.title="极速飞车 · 卡通竞速";
+const style=document.createElement("style"); style.textContent="\n/* ===== 极速飞车 · 卡通竞速 UI ===== */\n:root{\n  --orange:#ff6a2b;\n  --orange2:#ff9b3d;\n  --blue:#2bb3ff;\n  --deep:#123a63;\n  --gold:#ffc542;\n  --green:#3ddc84;\n  --red:#ff4d5e;\n  --ink:#1d2b3a;\n  --panel:rgba(255,255,255,.92);\n  --shadow:0 8px 22px rgba(20,45,80,.16);\n}\n*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}\nhtml,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0e2440}\nbody{\n  font-family:\"PingFang SC\",\"Microsoft YaHei\",\"Hiragino Sans GB\",system-ui,-apple-system,sans-serif;\n  color:var(--ink);user-select:none;\n}\n#app{position:fixed;inset:0;overflow:hidden}\n#game{position:absolute;inset:0;width:100%;height:100%;display:block}\n\n.hidden{display:none !important}\n\n/* ---------- 顶栏 ---------- */\n.topbar{\n  position:absolute;top:0;left:0;right:0;height:62px;z-index:30;\n  display:flex;align-items:center;justify-content:space-between;padding:8px 14px;\n  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,0));\n}\n.tb-left{display:flex;align-items:center;gap:8px}\n.avatar{\n  width:38px;height:38px;border-radius:50%;\n  background:linear-gradient(160deg,#ffd15c,#ff8a2b);\n  border:3px solid #fff;box-shadow:0 3px 8px rgba(255,120,40,.45);\n  display:flex;align-items:center;justify-content:center;\n  color:#fff;font-weight:900;font-size:15px;\n}\n.tb-info{min-width:120px}\n.tb-name{font-size:12px;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.45)}\n.expbar{width:120px;height:6px;border-radius:4px;background:rgba(255,255,255,.45);overflow:hidden;margin-top:3px}\n.expbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffe066,#ff9b3d);border-radius:4px;transition:width .3s}\n.tb-right{display:flex;gap:8px}\n.chip{\n  display:flex;align-items:center;gap:4px;height:30px;padding:0 12px;border-radius:16px;\n  background:rgba(255,255,255,.9);font-size:13px;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.15);\n}\n.chip .ic{font-size:12px}\n.chip.gold .ic{color:#ffb400}\n.chip.dia .ic{color:#2bb3ff}\n.chip.win .ic{color:#ff6a2b}\n.topbar.hidden{display:none}\n\n/* ---------- 通用页面 ---------- */\n.screen{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center}\n.page{\n  width:min(1080px,94vw);max-height:88vh;overflow:auto;\n  background:var(--panel);border-radius:22px;padding:20px 22px 16px;box-shadow:var(--shadow);\n}\n.page::-webkit-scrollbar{width:6px}\n.page::-webkit-scrollbar-thumb{background:#c8d6e5;border-radius:3px}\n.page-title{margin:2px 0 12px;font-size:24px;font-weight:900;letter-spacing:1px}\n.page-title small{display:block;font-size:12px;font-weight:600;color:#7d8ea3;margin-top:4px;letter-spacing:0}\n.sub-title{font-size:15px;margin:14px 0 8px;font-weight:800}\n\n/* ---------- 首页 ---------- */\n.home-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding-bottom:70px}\n.logo{text-align:center;line-height:1}\n.logo .l1{font-size:58px;font-weight:900;color:#fff;text-shadow:0 6px 0 #ff6a2b,0 10px 20px rgba(0,0,0,.35);letter-spacing:2px}\n.logo .l2{font-size:58px;font-weight:900;color:#ffd23f;text-shadow:0 6px 0 #2bb3ff,0 10px 20px rgba(0,0,0,.35);letter-spacing:2px}\n.logo-sub{margin-top:12px;font-size:12px;letter-spacing:6px;color:#fff;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,.5)}\n.home-btns{display:flex;flex-direction:column;gap:10px;width:260px}\n.bigbtn{\n  height:50px;border:none;border-radius:26px;cursor:pointer;font-size:16px;font-weight:800;color:#fff;\n  background:linear-gradient(180deg,#ffd15c,#ff8a2b);box-shadow:0 6px 0 #d9621b,0 10px 18px rgba(0,0,0,.25);\n  display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s;\n}\n.bigbtn:active{transform:translateY(3px);box-shadow:0 3px 0 #d9621b}\n.bigbtn.play{background:linear-gradient(180deg,#7ef0b0,#22c55e);box-shadow:0 6px 0 #158b42,0 10px 18px rgba(0,0,0,.25);height:60px;font-size:19px}\n.bigbtn.play:active{box-shadow:0 3px 0 #158b42}\n.bt-ic{font-size:16px}\n.home-tip{margin-top:6px;font-size:13px;color:#fff;background:rgba(0,0,0,.32);padding:6px 14px;border-radius:14px;font-weight:600}\n.home-tip b{color:#ffd23f}\n\n/* ---------- 底部导航 ---------- */\n.bottomnav{\n  position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:30;\n  display:flex;gap:6px;background:rgba(255,255,255,.9);padding:6px;border-radius:20px;box-shadow:var(--shadow)\n}\n.bottomnav button{\n  border:none;background:transparent;cursor:pointer;padding:6px 14px;border-radius:14px;\n  font-size:12px;font-weight:800;color:#6b7c90;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:60px\n}\n.bottomnav button i{font-style:normal;font-size:17px}\n.bottomnav button.active{background:linear-gradient(180deg,#ffd15c,#ff8a2b);color:#fff;box-shadow:0 3px 8px rgba(255,138,43,.4)}\n\n/* ---------- 赛道选择 ---------- */\n.mode-switch{display:flex;gap:8px;margin-bottom:12px}\n.ms{\n  border:2px solid #d8e3ef;background:#fff;border-radius:16px;padding:7px 18px;cursor:pointer;\n  font-size:13px;font-weight:800;color:#6b7c90\n}\n.ms.active{border-color:var(--orange);background:#fff3ea;color:var(--orange)}\n.track-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}\n.track-card{\n  border-radius:16px;overflow:hidden;cursor:pointer;background:#fff;border:3px solid transparent;\n  box-shadow:0 4px 12px rgba(20,45,80,.12);transition:transform .12s\n}\n.track-card:hover{transform:translateY(-3px)}\n.track-card.sel{border-color:var(--orange);box-shadow:0 6px 16px rgba(255,106,43,.35)}\n.tc-img{height:92px;position:relative;overflow:hidden}\n.tc-img canvas{width:100%;height:100%;display:block}\n.tc-body{padding:8px 10px 10px}\n.tc-name{font-size:14px;font-weight:900}\n.tc-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}\n.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;background:#eef4fa;color:#5b7a99}\n.tag.d0{background:#e4f8ea;color:#21935b}\n.tag.d1{background:#fff2df;color:#c9761a}\n.tag.d2{background:#ffe4e8;color:#cf2f47}\n.tc-rec{font-size:11px;color:#8a99ab;margin-top:6px;font-weight:700}\n.page-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed #dde6ef}\n.diff-pick{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#6b7c90}\n.dp,.pp{border:2px solid #d8e3ef;background:#fff;border-radius:12px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:800;color:#6b7c90}\n.dp.active,.pp.active{border-color:var(--blue);background:#e8f6ff;color:#1779bb}\n.startbtn{\n  margin-left:auto;border:none;cursor:pointer;height:44px;padding:0 30px;border-radius:22px;\n  background:linear-gradient(180deg,#ffd15c,#ff8a2b);color:#fff;font-size:15px;font-weight:900;\n  box-shadow:0 5px 0 #d9621b;letter-spacing:1px\n}\n.startbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #d9621b}\n.ghostbtn{\n  border:2px solid #cfdcea;background:#fff;cursor:pointer;height:44px;padding:0 22px;border-radius:22px;\n  color:#6b7c90;font-size:14px;font-weight:800\n}\n\n/* ---------- 车库 ---------- */\n.garage-body{display:grid;grid-template-columns:380px 1fr;gap:16px}\n@media(max-width:820px){.garage-body{grid-template-columns:1fr}}\n.car-preview{background:linear-gradient(180deg,#eaf4ff,#dbeaff);border-radius:18px;padding:12px;text-align:center}\n#carPreview{width:100%;height:auto;display:block}\n.car-name{font-size:18px;font-weight:900;margin-top:6px}\n.car-tier{font-size:12px;color:#7d8ea3;font-weight:700;margin-bottom:8px}\n.stat-bars{text-align:left;padding:0 8px}\n.sb{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;font-weight:800;color:#5b7a99}\n.sb span{width:34px}\n.sb .bar{flex:1;height:9px;background:#d3e2f0;border-radius:5px;overflow:hidden}\n.sb .bar i{display:block;height:100%;background:linear-gradient(90deg,#7ee0ff,#2b8bff);border-radius:5px}\n.sb .bar.g i{background:linear-gradient(90deg,#ffe066,#ff9b3d)}\n.sb em{font-style:normal;width:28px;text-align:right;color:#123a63}\n.car-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start}\n.car-card{\n  border-radius:14px;background:#fff;border:3px solid #e6eef7;cursor:pointer;padding:8px;text-align:center;\n  box-shadow:0 3px 10px rgba(20,45,80,.08);position:relative\n}\n.car-card.sel{border-color:var(--orange);background:#fff6f0}\n.car-card.lock{filter:grayscale(.55);opacity:.85}\n.car-card canvas{width:100%;height:74px;display:block}\n.cc-name{font-size:13px;font-weight:900;margin-top:2px}\n.cc-tier{font-size:11px;color:#8a99ab;font-weight:700}\n.cc-lock{font-size:11px;font-weight:800;color:var(--orange);margin-top:4px}\n.cc-owned{position:absolute;top:6px;right:6px;font-size:10px;background:#e4f8ea;color:#21935b;padding:2px 6px;border-radius:8px;font-weight:800}\n.coin-line{font-size:14px;font-weight:800;color:#5b7a99}\n.coin-line b{color:#ffb400;font-size:17px}\n\n/* ---------- 车库：页签 / 改装 / 皮肤 ---------- */\n.garage-tabs{display:flex;gap:8px;margin-bottom:12px}\n.gt{\n  border:2px solid #d8e3ef;background:#fff;border-radius:16px;padding:7px 18px;cursor:pointer;\n  font-size:13px;font-weight:800;color:#6b7a90\n}\n.gt.active{border-color:var(--orange);background:#fff3ea;color:var(--orange)}\n.garage-right{min-height:200px}\n.part-list{display:flex;flex-direction:column;gap:10px}\n.part-row{background:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 3px 10px rgba(20,45,80,.08)}\n.pr-head{display:flex;align-items:baseline;gap:10px;justify-content:space-between}\n.pr-head b{font-size:15px;font-weight:900;color:#123a63}\n.pr-head span{font-size:12px;font-weight:800;color:var(--orange)}\n.pr-dots{display:flex;gap:5px;margin:8px 0 4px}\n.pr-dots i{width:34px;height:6px;border-radius:3px;background:#dde7f1;display:inline-block}\n.pr-dots i.on{background:linear-gradient(90deg,#ffe066,#ff9b3d)}\n.pr-desc{font-size:12px;color:#8a99ab;font-weight:700}\n.pr-next{font-size:12px;color:#3c4d61;font-weight:700;margin-top:6px}\n.pr-next b{color:var(--orange)}\n.pr-max{font-size:12px;color:#21935b;font-weight:800;margin-top:6px}\n.buybtn{\n  margin-top:8px;border:none;cursor:pointer;border-radius:14px;padding:7px 16px;\n  background:linear-gradient(180deg,#ffd15c,#ff8a2b);color:#fff;font-size:13px;font-weight:900;\n  box-shadow:0 4px 0 #d9621b\n}\n.buybtn:active{transform:translateY(2px);box-shadow:0 2px 0 #d9621b}\n.skin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start}\n.skin-card{\n  border-radius:14px;background:#fff;border:3px solid #e6eef7;cursor:pointer;padding:8px;text-align:center;\n  box-shadow:0 3px 10px rgba(20,45,80,.08);position:relative\n}\n.skin-card.sel{border-color:var(--orange);background:#fff6f0}\n.skin-card.lock{filter:grayscale(.5);opacity:.9}\n.skin-card canvas{width:100%;height:74px;display:block}\n.sc-name{font-size:13px;font-weight:900;margin-top:2px}\n.sc-lock{font-size:11px;font-weight:800;color:var(--orange);margin-top:4px}\n.sc-owned{font-size:11px;font-weight:800;color:#21935b;margin-top:4px}\n.sb em b.add{color:var(--orange);font-size:11px;margin-left:2px}\n\n/* ---------- 双人对战 P2 选车 / 1V1 选车 ---------- */\n.p2-pick,.solo-pick{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:800;color:#6b7a90;flex-wrap:wrap}\n.p2b-btn,.pick-btn{border:2px solid #d8e3ef;background:#fff;border-radius:12px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:800;color:#6b7a90}\n.p2b-btn.active,.pick-btn.active{border-color:#6b46d6;background:#f0eaff;color:#5a34c4}\n.solo-pick .pick-btn.active{border-color:var(--orange);background:#fff3ea;color:var(--orange)}\n.pick-label{display:inline-flex;align-items:center;justify-content:center;min-width:64px;font-weight:900;color:#123a63}\n.team-info{font-size:12px;font-weight:800;color:#5b7a99;background:#eef4fa;border-radius:10px;padding:6px 12px;margin-bottom:10px;display:inline-block}\n.team-info b{color:var(--orange)}\n\n/* ---------- 设置 ---------- */\n.set-list{display:flex;flex-direction:column;gap:2px}\n.set-row{display:flex;align-items:center;gap:14px;padding:11px 4px;border-bottom:1px dashed #e3ebf3;font-size:14px;font-weight:800}\n.set-row>span:first-child{width:100px;color:#5b7a99}\n.seg-ctl{display:flex;gap:6px}\n.seg-ctl button{border:2px solid #d8e3ef;background:#fff;border-radius:12px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:800;color:#6b7c90}\n.seg-ctl button.active{border-color:var(--blue);background:#e8f6ff;color:#1779bb}\n.keyhelp{font-size:12px;color:#7d8ea3;font-weight:600;line-height:1.9}\n.keyhelp b{color:#123a63;background:#eef4fa;padding:1px 6px;border-radius:5px}\n.kh-title{font-weight:900;color:#123a63;margin:6px 0 2px}\n.tag.pt{background:#ede8ff;color:#5a34c4}\n.page-foot .startbtn{margin-left:auto}\n.page-foot .ghostbtn{margin-left:0}\n\n/* ---------- 战绩 ---------- */\n.stat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}\n.sc{background:linear-gradient(180deg,#fff,#f2f7fc);border-radius:14px;padding:12px;text-align:center;box-shadow:0 3px 10px rgba(20,45,80,.08)}\n.sc b{display:block;font-size:24px;font-weight:900;color:var(--orange)}\n.sc span{font-size:12px;color:#7d8ea3;font-weight:700}\n.rec-table{border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 3px 10px rgba(20,45,80,.08)}\n.rt-head{display:grid;grid-template-columns:1.4fr .8fr 1fr 1fr;background:#eef4fa;font-size:12px;font-weight:900;color:#5b7a99;padding:9px 12px}\n.rt-head span{text-align:center}\n.rt-head span:first-child{text-align:left}\n.rt-row{display:grid;grid-template-columns:1.4fr .8fr 1fr 1fr;padding:9px 12px;font-size:13px;font-weight:700;border-top:1px solid #f0f5fa;align-items:center}\n.rt-row span{text-align:center}\n.rt-row span:first-child{text-align:left;display:flex;align-items:center;gap:6px}\n.dot{width:8px;height:8px;border-radius:50%;display:inline-block}\n.no-rec{font-size:12px;color:#a3b1c2}\n\n/* ---------- 对局 HUD（支持分屏） ---------- */\n.race-ui{pointer-events:none}\n.race-ui button{pointer-events:auto}\n.hud-pane{position:absolute;left:0;top:0;width:100%;height:100%}\n#scr-race.split .hud-pane{height:50%}\n#scr-race.split #pane2{top:50%}\n#scr-race.split .hud-tl{top:12px}\n#scr-race.split .hud-bottom{height:112px;padding:0 12px 10px}\n#scr-race.split .ctrlbtn{width:62px;height:62px;border-width:4px}\n#scr-race.split .ctrlbtn.drift{width:70px;height:70px}\n#scr-race.split .ctrlbtn span{font-size:14px}\n#scr-race.split .ctrlbtn small{font-size:9px}\n#scr-race.split .speedo b{font-size:28px}\n#scr-race.split .hud-mid{max-width:250px;padding:6px 10px 8px}\n.hud-tl{position:absolute;top:70px;left:14px;display:flex;gap:10px;align-items:center;\n  background:rgba(255,255,255,.86);border-radius:16px;padding:8px 14px 8px 8px;box-shadow:0 4px 14px rgba(0,0,0,.2)}\n/* 对手状态小窗口 */\n.foe-box{position:absolute;left:14px;top:138px;width:186px;display:flex;flex-direction:column;gap:4px}\n#scr-race.split .foe-box{top:78px;width:170px;left:10px}\n.foe-row{\n  display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.9);border-radius:10px;\n  padding:4px 8px;font-size:11px;font-weight:800;color:#3c4d61;box-shadow:0 3px 8px rgba(0,0,0,.18);\n  animation:foeIn .18s ease\n}\n@keyframes foeIn{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}\n.foe-row .fdot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.8)}\n.foe-row .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:66px}\n.foe-row .ficon{font-size:12px}\n.foe-row .ftime{color:#ff6a2b;font-variant-numeric:tabular-nums}\n.foe-row.mine{background:linear-gradient(90deg,#fff1e2,#ffe6cf);color:#c9491a}\n.foe-row.shield{background:linear-gradient(90deg,#e6f6ff,#d6eeff)}\n.pbadge{font-size:11px;font-weight:900;color:#fff;padding:3px 8px;border-radius:9px;letter-spacing:1px}\n.pbadge.p1b{background:linear-gradient(180deg,#ffd15c,#ff8a2b)}\n.pbadge.p2b{background:linear-gradient(180deg,#a98cff,#6b46d6)}\n.rank-box{display:flex;align-items:baseline;background:linear-gradient(180deg,#ffd15c,#ff8a2b);border-radius:12px;padding:4px 10px;color:#fff}\n.rank-box.p2{background:linear-gradient(180deg,#b79dff,#6b46d6)}\n.rank-box b{font-size:26px;font-weight:900;line-height:1}\n.rank-box span{font-size:13px;font-weight:800}\n.hud-lines{font-size:12px;font-weight:800;color:#3c4d61;line-height:1.55}\n.hud-lines b{color:#123a63;font-size:13px}\n.hud-tr{position:absolute;top:70px;right:14px;background:rgba(255,255,255,.82);border-radius:16px;padding:6px;box-shadow:0 4px 14px rgba(0,0,0,.2)}\n#minimap{width:150px;height:150px;display:block;border-radius:10px;background:#e8f2fb}\n.hud-msg{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:70px;font-weight:900;\n  color:#fff;text-shadow:0 6px 0 #ff6a2b,0 12px 24px rgba(0,0,0,.5);letter-spacing:2px;opacity:0;transition:opacity .15s}\n.hud-msg.show{opacity:1;animation:pop .5s ease}\n@keyframes pop{0%{transform:scale(.4)}60%{transform:scale(1.15)}100%{transform:scale(1)}}\n.hud-flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:#fff}\n.hud-bottom{position:absolute;left:0;right:0;bottom:0;height:150px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 18px}\n.ctrl-left,.ctrl-right{display:flex;gap:10px;align-items:flex-end}\n.ctrlbtn{\n  width:86px;height:86px;border-radius:50%;border:5px solid rgba(255,255,255,.85);cursor:pointer;\n  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#fff;font-weight:900;\n  box-shadow:0 6px 16px rgba(0,0,0,.3);transition:transform .08s\n}\n.ctrlbtn small{font-size:10px;opacity:.85;font-weight:700}\n.ctrlbtn span{font-size:17px}\n.ctrlbtn.drift{background:linear-gradient(180deg,#ffb34d,#ff6a2b);width:96px;height:96px}\n.ctrlbtn.nitro{background:linear-gradient(180deg,#6ad9ff,#1b7fd6)}\n.ctrlbtn.item{background:linear-gradient(180deg,#a98cff,#6b46d6)}\n.ctrlbtn.on{transform:scale(.9);filter:brightness(1.25)}\n.ctrlbtn.empty{opacity:.45}\n.hud-mid{flex:1;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 14px 10px;background:rgba(10,25,45,.34);border-radius:16px;margin-bottom:4px}\n.speedo{display:flex;align-items:baseline;gap:4px;color:#fff;text-shadow:0 3px 8px rgba(0,0,0,.6)}\n.speedo b{font-size:38px;font-weight:900;line-height:1}\n.speedo span{font-size:12px;font-weight:800}\n.gauge{width:100%;display:flex;align-items:center;gap:6px}\n.glabel{font-size:11px;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.6);width:52px;text-align:right}\n.gbar{flex:1;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;border:2px solid rgba(255,255,255,.6)}\n.gbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#7ee0ff,#2b8bff);transition:width .06s}\n.gbar.drift i{background:linear-gradient(90deg,#ffe066,#ff7a2b)}\n.gbar.drift i.lvl1{background:linear-gradient(90deg,#ffffff,#dfe9f5)}\n.gbar.drift i.lvl2{background:linear-gradient(90deg,#7ee0ff,#2b8bff)}\n.gbar.drift i.lvl3{background:linear-gradient(90deg,#ffe066,#ff7a2b);box-shadow:0 0 8px #ffb400}\n.gauge.small .gbar{height:8px}\n.cards{display:flex;gap:3px;width:44px}\n.cards i{width:12px;height:16px;border-radius:3px;background:#2b8bff;box-shadow:0 0 6px #6ad9ff;display:inline-block}\n.cards i.off{background:rgba(255,255,255,.25);box-shadow:none}\n.quit-btn{position:absolute;top:12px;right:14px;z-index:31;border:none;background:rgba(0,0,0,.35);color:#fff;\n  border-radius:12px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer}\n\n/* ---------- 结算 ---------- */\n.result-page{text-align:center;width:min(860px,94vw)}\n.res-title{font-size:30px;font-weight:900;color:var(--orange);letter-spacing:2px;text-shadow:0 3px 0 #ffe0b8}\n.res-sub{font-size:13px;font-weight:800;color:#7d8ea3;margin-top:2px}\n.res-podium{display:flex;justify-content:center;align-items:flex-end;gap:12px;margin:12px 0 16px}\n.pd{width:110px;border-radius:14px;padding:10px 6px;background:#fff;box-shadow:0 4px 12px rgba(20,45,80,.14);position:relative}\n.pd.p1{order:2;height:150px;background:linear-gradient(180deg,#fff6d8,#ffe4a8);border:3px solid var(--gold)}\n.pd.p2{order:1;height:126px}\n.pd.p3{order:3;height:112px}\n.pd .pdRank{font-size:12px;font-weight:900;color:#7d8ea3}\n.pd.p1 .pdRank{color:#c9761a}\n.pd .pdName{font-size:13px;font-weight:900;margin-top:6px}\n.pd .pdTime{font-size:11px;color:#7d8ea3;font-weight:700;margin-top:2px}\n.pd .pdCar{width:64px;height:40px;margin:4px auto 0;display:block}\n.res-table{border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 3px 10px rgba(20,45,80,.08);margin-bottom:12px}\n.rt-head.res{grid-template-columns:.5fr 1fr 1fr .9fr .9fr .5fr .5fr .5fr}\n.rt-row.res{grid-template-columns:.5fr 1fr 1fr .9fr .9fr .5fr .5fr .5fr}\n.rt-row.me{background:#fff6f0}\n.rt-row.me span{color:var(--orange)}\n.rt-row.me2{background:#f3eeff}\n.rt-row.me2 span{color:#5a34c4}\n.res-reward{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}\n.rw{background:linear-gradient(180deg,#fff,#f2f7fc);border-radius:12px;padding:8px 18px;box-shadow:0 3px 10px rgba(20,45,80,.08)}\n.rw span{font-size:11px;color:#7d8ea3;font-weight:700;display:block}\n.rw b{font-size:19px;color:var(--orange);font-weight:900}\n.res-btns{display:flex;justify-content:center;gap:10px}\n.res-btns .startbtn{margin-left:0}\n\n@media(max-width:640px){\n  .logo .l1,.logo .l2{font-size:42px}\n  .hud-mid{max-width:200px}\n  .ctrlbtn{width:70px;height:70px}\n  .ctrlbtn.drift{width:80px;height:80px}\n  #minimap{width:110px;height:110px}\n  .hud-tl{top:64px;left:8px;padding:6px 10px 6px 6px}\n  #scr-race.split .ctrlbtn{width:54px;height:54px;border-width:3px}\n  #scr-race.split .ctrlbtn.drift{width:60px;height:60px}\n  #scr-race.split .ctrlbtn span{font-size:12px}\n  #scr-race.split .hud-mid{max-width:170px}\n  #scr-race.split .speedo b{font-size:22px}\n  #scr-race.split #minimap{width:92px;height:92px}\n}\n\n"; document.head.appendChild(style);
+document.body.innerHTML="\n<div data-page-node-id=\"92tFk9l9xaEvmw941eQlCY\" id=\"app\">\n  <canvas data-page-node-id=\"dYNbgnMFoNFm1HiIO6vhuG\" id=\"game\"></canvas>\n\n  <!--pnid:fAx6OaejCU9TQLkma21qv0--><!-- ============ 通用顶栏 ============ -->\n  <header data-page-node-id=\"IqwYLDTKzNIUKYfNdHLVv9\" class=\"topbar\" id=\"topbar\">\n    <div data-page-node-id=\"occpxN6sAABZhnNKpgHVO3\" class=\"tb-left\">\n      <div data-page-node-id=\"6nE17ZWq9g7EVCtCiRZe1X\" class=\"avatar\" id=\"tbLevel\"><!--pnid:B3ucrCxDJsiwD9VdNvMxqS-->1</div>\n      <div data-page-node-id=\"1ca2XMS9O1tZtodHo4CIn9\" class=\"tb-info\">\n        <div data-page-node-id=\"kDrRTNOLtYsRUEUgqJwUP9\" class=\"tb-name\"><!--pnid:9E75jhTUmNcIpyXp8bWMcH-->车手 · <span data-page-node-id=\"2x3B3CZb5SeT6vTjN8ey3M\" id=\"tbNick\"><!--pnid:4iR3cUZeYLK3mUwNO0FLIG-->新手司机</span></div>\n        <div data-page-node-id=\"tv8CTVJQHqSjABDTH3O70U\" class=\"expbar\"><i data-page-node-id=\"wWR4DHDRr1q122ZrtKlVWY\" id=\"tbExp\"></i></div>\n      </div>\n    </div>\n    <div data-page-node-id=\"6Epq0CARnbjj0vtTbFZbTb\" class=\"tb-right\">\n      <div data-page-node-id=\"jyrT6d0ZLHBaaAAWZaC4uG\" class=\"chip gold\"><span data-page-node-id=\"7yYK81DLriJBS0sO9n2aJN\" class=\"ic\"><!--pnid:TDL5P6OsVgREUhAoTOPUx1-->◉</span><b data-page-node-id=\"Jc3pSbdmsnNJVgMVIXBU1Y\" id=\"tbCoin\"><!--pnid:56JyvewBJOh33ONcIp6h1y-->0</b></div>\n      <div data-page-node-id=\"xHluySSh8xCoaAGa3mwGXQ\" class=\"chip dia\"><span data-page-node-id=\"ZEGXYnVFKtRn7AcNlZKt76\" class=\"ic\"><!--pnid:8pBDUff6le47rBQdLBkPyB-->◆</span><b data-page-node-id=\"4Dn7gcK08EW1ksQcT8rpgP\" id=\"tbDia\"><!--pnid:MrqunD7kgwfdDeAao7fv76-->0</b></div>\n      <div data-page-node-id=\"dvK8kgQhaWaHM0oNnD3Qji\" class=\"chip win\"><span data-page-node-id=\"C8O7WhzqZOLKX1R6o1n11k\" class=\"ic\"><!--pnid:vlKLaTdYOiLctcivaOuuBm-->★</span><b data-page-node-id=\"KiRaaE2NwPTPiSjFNnByjH\" id=\"tbWin\"><!--pnid:GIy84urtHfxeWRP0t3JEyW-->0%</b></div>\n    </div>\n  </header>\n\n  <!--pnid:gRU2AjxzyLgExDpA1ar5JG--><!-- ============ 首页 ============ -->\n  <section data-page-node-id=\"utHq5hOhpaFfNTJyqLydqf\" class=\"screen\" id=\"scr-home\">\n    <div data-page-node-id=\"2wRUpCfjLIWbSI8Tu3S6DB\" class=\"home-wrap\">\n      <div data-page-node-id=\"EBDFyp3TtIsYSDKR4c5q23\" class=\"logo\">\n        <span data-page-node-id=\"EaiP1jIcD7UySG5uNlR9O1\" class=\"l1\"><!--pnid:NBJQNTBWgIPMay2k7ovqFP-->极速</span><span data-page-node-id=\"uSioshYk6xKUChIfIzqiuj\" class=\"l2\"><!--pnid:vvOjQfRiYEph5p4ijDNR8B-->飞车</span>\n        <div data-page-node-id=\"EyBo6HzBB3XtrruS2EMTsf\" class=\"logo-sub\"><!--pnid:Cq2m1oPdrpOJl032PbOCat-->SPEED RACER · 卡通竞速</div>\n      </div>\n      <div data-page-node-id=\"sbyGkslfChQhfg04SaTafj\" class=\"home-btns\">\n        <button data-page-node-id=\"dOyyqFkRHCuS8gw9H5PMyI\" class=\"bigbtn play\" id=\"btnQuickStart\"><span data-page-node-id=\"A6sTsIujDIfpmFJifc108t\" class=\"bt-ic\"><!--pnid:2ISqMzVZLx0sljNlA0wg4k-->▶</span><!--pnid:D7AxhzA7kqlpnk9sM24x5M-->开始游戏</button>\n        <button data-page-node-id=\"UUmsKwwC7rvR1OXqcl82h5\" class=\"bigbtn\" data-go=\"tracks\"><span data-page-node-id=\"ZnUtZDVu72aPDByLXX5lpP\" class=\"bt-ic\"><!--pnid:4PqcBqv9UjmsHAgyOeL0Gi-->🏁</span><!--pnid:t0TB2fgHIPwju0I5uY4jZB-->赛道选择</button>\n        <button data-page-node-id=\"f24DeMmdnrCQXt66z4EL4R\" class=\"bigbtn\" data-go=\"garage\"><span data-page-node-id=\"FDIJt5lTQQ8VRdBTAbsNX8\" class=\"bt-ic\"><!--pnid:ltu42nkrEGi8hq27Hv5RJU-->🚗</span><!--pnid:3xciqfocv5WY90SOVya3z8-->车辆车库</button>\n        <button data-page-node-id=\"9sFcot8pFJYsPTpIT99DKh\" class=\"bigbtn\" data-go=\"settings\"><span data-page-node-id=\"smT8zFXiXcOcVpIYR2DTta\" class=\"bt-ic\"><!--pnid:aTj3BwoxQmPNfFj0Hp2EzU-->⚙</span><!--pnid:ADXJtSXxFMc154LO01JfU3-->游戏设置</button>\n        <button data-page-node-id=\"5P0nH4lbTfo26NpcTpK6e9\" class=\"bigbtn\" data-go=\"stats\"><span data-page-node-id=\"eQSSfM8XrioEUqCyaZYJpM\" class=\"bt-ic\"><!--pnid:lTR6AJgCdScvkACye2nU8U-->📊</span><!--pnid:72NbWpRmhtpM77SOEHV2Ub-->战绩查询</button>\n      </div>\n      <div data-page-node-id=\"CCYxPl95tbkCytsEeO582T\" class=\"home-tip\" id=\"homeTip\"><!--pnid:UdY68IhzLNrIkpDdclxEzz-->当前座驾：<b data-page-node-id=\"9a0KKbo2TduWeltESCWO7k\" id=\"homeCarName\"><!--pnid:fxbcrZ40chtgWYkRGJJWpG-->新手小蓝</b><!--pnid:kKswUG9SU0Sv9S3nfSrsz9--> · 赛道：<b data-page-node-id=\"LHxWewzrwyj0l6Gqr4eLTB\" id=\"homeTrackName\"><!--pnid:ytCnJisJ4DujULA8fKdJ7c-->城镇公路</b></div>\n    </div>\n    <nav data-page-node-id=\"bQlcZfvPgcMzrkbR61FamI\" class=\"bottomnav\">\n      <button data-page-node-id=\"FsJunyl3tSOYagsbzKey3j\" class=\"active\" data-go=\"home\"><i data-page-node-id=\"D6jdxqwb5Chmp124RJkhby\"><!--pnid:OGoyIEY2YXh9REJWuiqLrS-->🏠</i><!--pnid:nn7RjTWbrosipLEQ1iWy9G-->首页</button>\n      <button data-page-node-id=\"TYa3hUQEyY8hLRoiHmmR3t\" data-go=\"tracks\"><i data-page-node-id=\"vGaf0iqiuFha8Jne7ZeA6L\"><!--pnid:Z1uGlcELRrN0zz9Uqn1o65-->🏁</i><!--pnid:Ub0dyRUgumRuJ8gYWbjfdC-->赛道</button>\n      <button data-page-node-id=\"2XyBOTuCPUF2LTqBFQVS4i\" data-go=\"garage\"><i data-page-node-id=\"1SI47iuyNAaJelttXnQf9K\"><!--pnid:CcUiCKwuqtqUxmQKSpe30A-->🚙</i><!--pnid:byCTXUNWLCcliCdCgQs0YY-->车库</button>\n      <button data-page-node-id=\"FPQgxmjDiupfzt2zCWSCO6\" data-go=\"settings\"><i data-page-node-id=\"3BHu0FZvda4INOrHs0nrLD\"><!--pnid:jfBu1QTEID8Gasd3WU8azv-->⚙</i><!--pnid:tqV3Ji2ysv0YGh0MX0taQT-->设置</button>\n      <button data-page-node-id=\"lFWoRMU5Bk73BkIfF9JW7k\" data-go=\"stats\"><i data-page-node-id=\"bnuzi1yJ8CX65fyjGHB6xc\"><!--pnid:FpWu3qgGg5CrkUZRmR7Uhw-->📊</i><!--pnid:Ao4NhhJZ5raN7ZO08sSotS-->战绩</button>\n    </nav>\n  </section>\n\n  <!--pnid:FyyPn0SdKDTz4bYOZEYEcA--><!-- ============ 赛道选择 ============ -->\n  <section data-page-node-id=\"tlZ4lt6cH1vl6pcPF8mMeV\" class=\"screen hidden\" id=\"scr-tracks\">\n    <div data-page-node-id=\"7LBUCebDGa7IebinKvGGus\" class=\"page\">\n      <h2 data-page-node-id=\"0n6AcrXBGXboQDItlNxJvr\" class=\"page-title\"><!--pnid:vNwVeI9IamPL6iAoLEwMyo-->赛道选择<small data-page-node-id=\"9jGYxlqfWZEtGKT9feNy6T\" id=\"trackCount\"><!--pnid:kqqTPacrCGAzkIasSD5VkW-->共 9 条赛道</small></h2>\n      <div data-page-node-id=\"5lkZafYRaRjlqxmmlFyoor\" class=\"mode-switch\">\n        <button data-page-node-id=\"doItIjjtxmTKvRykHrRNBV\" class=\"ms active\" data-mode=\"ai\"><!--pnid:5Gbcrk5Ua5akw7oFK7WYkS-->人机对战</button>\n        <button data-page-node-id=\"NmkZ2Sj4QAXmjKvwUZc6NJ\" class=\"ms\" data-mode=\"duo\"><!--pnid:ltJMwiup7G1VB0mk09Ihv6-->双人对战</button>\n        <button data-page-node-id=\"3OiHTMm6yaVn2bln0kS5aZ\" class=\"ms\" data-mode=\"solo\"><!--pnid:v2CXMRvVkUUCbB0cxceDvH-->单人竞速</button>\n      </div>\n      <div data-page-node-id=\"l8BkRBwyYdnUIdvmoP39eK\" class=\"p2-pick hidden\" id=\"p2Pick\"></div>\n      <div data-page-node-id=\"SVoxRXwAXVAjJwAwxplZDR\" class=\"solo-pick hidden\" id=\"soloPick\"></div>\n      <div data-page-node-id=\"8avmNbJQC8vrAWZFPipLTb\" class=\"team-info\" id=\"teamInfo\"></div>\n      <div data-page-node-id=\"X5E2KMeirbiRjTofpnFZCb\" class=\"track-list\" id=\"trackList\"></div>\n      <div data-page-node-id=\"SCPNfc5tXf2jog8auQdnfL\" class=\"page-foot\">\n        <div data-page-node-id=\"NW0CMXuB3L1nZPltELOc46\" class=\"diff-pick\">\n          <span data-page-node-id=\"FN6IJbcSuCiOvAABupVNgy\"><!--pnid:ITGGmF4vxZdDGohRIqLGkt-->AI 难度</span>\n          <button data-page-node-id=\"XsovnV0kZZ4ldWkdDPaTXZ\" class=\"dp\" data-diff=\"easy\"><!--pnid:oCOGK6eNEHbXHzWwSECn2C-->简单</button>\n          <button data-page-node-id=\"FwJyDCFuPBDo6aIO0Dv6hu\" class=\"dp active\" data-diff=\"normal\"><!--pnid:XZjJzeSWX0ERQE8G3BF4A2-->普通</button>\n          <button data-page-node-id=\"mMghtDJA3qrP7LkUfNtxRO\" class=\"dp\" data-diff=\"hard\"><!--pnid:y8om1x17dbN3GiYN5PL9hi-->困难</button>\n        </div>\n        <div data-page-node-id=\"c65EDn1pfKo9ggXlAaqlRN\" class=\"diff-pick\">\n          <span data-page-node-id=\"wFLnKc3DLPBPBBF4Vl4wRh\"><!--pnid:0ibcHvNuh47xJCyKX4W0Fi-->对局人数</span>\n          <button data-page-node-id=\"9vAeAYlBjDviDIwLzLqh4T\" class=\"pp\" data-p=\"2\"><!--pnid:BG8dNMKl0AyVcXfQw7OIwd-->1V1</button>\n          <button data-page-node-id=\"A4Y2WZyJtIMLsalTbO1F4U\" class=\"pp\" data-p=\"4\"><!--pnid:LD0dQccZRH4z0X2DOL4G6H-->4人</button>\n          <button data-page-node-id=\"ZtYWDC9xMt0e3xq3q9HB60\" class=\"pp active\" data-p=\"6\"><!--pnid:B61DI9r45r1Hgd1MgmPuHK-->6人</button>\n          <button data-page-node-id=\"AAuQeaiFxyXN8oKb5mSjsW\" class=\"pp\" data-p=\"8\"><!--pnid:rMr0CP5tYBe2VNR122VC9I-->8人</button>\n        </div>\n        <button data-page-node-id=\"JH7MX9bnLnFqaFSvn2tdqd\" class=\"startbtn\" id=\"btnStartRace\"><!--pnid:dPOAA9tei3fC07aaVcAzfF-->立即开始</button>\n      </div>\n    </div>\n    <nav data-page-node-id=\"Q0CtzFgCCbHLeJvyHpuwxZ\" class=\"bottomnav\">\n      <button data-page-node-id=\"gI25UMpxJTHCJGupzb9ioQ\" data-go=\"home\"><i data-page-node-id=\"tv2yBh3DZmxAaNxSr7BJJj\"><!--pnid:cFKhN6hRUvTfxcHpkhgJ6K-->🏠</i><!--pnid:E4Ual33czdTnbgYs58u5x7-->首页</button>\n      <button data-page-node-id=\"tf0WQDecZsQbviKZR1TmT0\" class=\"active\" data-go=\"tracks\"><i data-page-node-id=\"Gzfa8bd8wYDJx8D0mW1h8n\"><!--pnid:Wp8TWqHWksFjM4nCSQlHqU-->🏁</i><!--pnid:K2VgJsk17iBy4Efll0lpLZ-->赛道</button>\n      <button data-page-node-id=\"tHyk7J2PrlkkKpIpudMsQv\" data-go=\"garage\"><i data-page-node-id=\"Ug2WUNCnOdyo00y6T1rYgu\"><!--pnid:ucwPie4Gn6KzGimgMLQDl7-->🚙</i><!--pnid:tNvOQ4sxaG68YOCkIbFESG-->车库</button>\n      <button data-page-node-id=\"1Z25qQbFddTbp65X03zDjc\" data-go=\"settings\"><i data-page-node-id=\"9RBgaqdH3I2iLKHz6Cd9bg\"><!--pnid:hdxwyKMrqe7OFoRygwTRKE-->⚙</i><!--pnid:3myKhsqESJKdAf254MvFsU-->设置</button>\n      <button data-page-node-id=\"NQeh2HcbHijBskrhnvNRwk\" data-go=\"stats\"><i data-page-node-id=\"afFZkR4FqTDhK2B7dfpnND\"><!--pnid:DF6ykkgQKtnRijdnzuevZM-->📊</i><!--pnid:WGFovFUKgz4IGMBCOXsSOR-->战绩</button>\n    </nav>\n  </section>\n\n  <!--pnid:GzlWyF9KwyUKzX8J6Iw6TP--><!-- ============ 车库（车辆 / 改装 / 皮肤） ============ -->\n  <section data-page-node-id=\"d6an6IWT6sdNeESLFFxN2p\" class=\"screen hidden\" id=\"scr-garage\">\n    <div data-page-node-id=\"hGCFuvglZTAjscMwyFCz7u\" class=\"page\">\n      <h2 data-page-node-id=\"ya6PTvQleaLRBl6VnHKTlp\" class=\"page-title\"><!--pnid:UaX4VD4K8ZpJXWOrBRopnu-->车辆车库<small data-page-node-id=\"u0CKqC7iXYzOJK6LHteX4U\"><!--pnid:5z9pJUGNfnqUKdfHzLhjn1-->选车 · 改装配件 · 个性涂装</small></h2>\n      <div data-page-node-id=\"ZeDL3NCuHTQpx905eM5UIx\" class=\"garage-tabs\">\n        <button data-page-node-id=\"8cNCcN0FhYzmEtB1GlCjAc\" class=\"gt active\" data-tab=\"cars\"><!--pnid:BzNthM40UxW3soFwHfmGyw-->🚗 车辆</button>\n        <button data-page-node-id=\"f7xnwRACJwbo9o6bSsJRt2\" class=\"gt\" data-tab=\"parts\"><!--pnid:wrgATCNHDE0mPk14C05ZCT-->🔧 改装</button>\n        <button data-page-node-id=\"6PoFbUF26BmdPSeQbaTVsL\" class=\"gt\" data-tab=\"skins\"><!--pnid:NJFjSCsUdV6itlBv8AgZID-->🎨 皮肤</button>\n      </div>\n      <div data-page-node-id=\"qVE98Np6KtGkN47fpSlxg8\" class=\"garage-body\">\n        <div data-page-node-id=\"rwv6R139bhjnvkrYY49nFG\" class=\"car-preview\">\n          <canvas data-page-node-id=\"oDlMNvPkCUAEAuI6xn8BHs\" height=\"240\" id=\"carPreview\" width=\"360\"></canvas>\n          <div data-page-node-id=\"H58IfZaKvo7Ss7woHhIn1b\" class=\"car-name\" id=\"garageCarName\"><!--pnid:DDtBLgQl6LW1jnWipBUvGF-->新手小蓝</div>\n          <div data-page-node-id=\"wGZsDmXIHdNggdvREjF4bM\" class=\"car-tier\" id=\"garageCarTier\"><!--pnid:w73HMPsrCdeThv4gYuS2nw-->新手平民车</div>\n          <div data-page-node-id=\"2UHMOMaRjpdUyIO938PFVi\" class=\"stat-bars\" id=\"garageStats\"></div>\n        </div>\n        <div data-page-node-id=\"cJLWPVLt6gDIRUcFuwYr4K\" class=\"garage-right\">\n          <div data-page-node-id=\"RIR6R6qSiAbrD45n0qnPGT\" class=\"car-grid\" id=\"carGrid\"></div>\n          <div data-page-node-id=\"s58LWmR5b6J1DlkcKVpSu3\" class=\"part-list hidden\" id=\"partList\"></div>\n          <div data-page-node-id=\"R3yqWm8HoyYW9CNJn0V8GT\" class=\"skin-grid hidden\" id=\"skinGrid\"></div>\n        </div>\n      </div>\n      <div data-page-node-id=\"hx6I3WvmIcaScXyHLumE5E\" class=\"page-foot\">\n        <div data-page-node-id=\"dBZdyqoL6rOEoSPjGtGc8m\" class=\"coin-line\"><!--pnid:uq5XAISje03uHVIrzZDUwW-->持有金币：<b data-page-node-id=\"6YtYpyFc7Rav7Q9vFHGtce\" id=\"garageCoin\"><!--pnid:TI3Y0M9TB1JGw2ROpojeBs-->0</b></div>\n        <button data-page-node-id=\"xqtaaAuTeFWeyNoQNC2nV3\" class=\"startbtn\" id=\"btnGarageOk\"><!--pnid:fKOdByXoB1VRXzBVAtjLPj-->装配并使用</button>\n      </div>\n    </div>\n    <nav data-page-node-id=\"kmb2OEroGActPFwSaR1Ai4\" class=\"bottomnav\">\n      <button data-page-node-id=\"tApvukJmPUN9VrCns19PiB\" data-go=\"home\"><i data-page-node-id=\"PSFOi41RZmNzEVc4ygfBzn\"><!--pnid:5NCwhOkhbJMPesgzBvLASG-->🏠</i><!--pnid:SNkxAs4nS9mdBD5aMubgBt-->首页</button>\n      <button data-page-node-id=\"n03kjs5atqrqXUZa8ormAD\" data-go=\"tracks\"><i data-page-node-id=\"B3NLKE4teCE78009wRQmGy\"><!--pnid:1PlUToekX4AR9iCAxPvR69-->🏁</i><!--pnid:oSftUjZB5dHBhmlDgYdwV4-->赛道</button>\n      <button data-page-node-id=\"QGiG6auSdokkxrfROBQBsR\" class=\"active\" data-go=\"garage\"><i data-page-node-id=\"k2bpUskXHUIUgMvf39Wj0F\"><!--pnid:VH3KVAzL0NivMVX1di74Bb-->🚙</i><!--pnid:5aJiCvqRZAYFTzqvCfkK0t-->车库</button>\n      <button data-page-node-id=\"QVBMGWpwl6vfsNJAEvtuLr\" data-go=\"settings\"><i data-page-node-id=\"vNkcJQGgDJAbkxgsKEukTq\"><!--pnid:CcOeMtXOLLdggowaDh7pO0-->⚙</i><!--pnid:ssCI494FNUcFvjH8uEzYJS-->设置</button>\n      <button data-page-node-id=\"1R0KuY1ATs4kzgDkrXbYR5\" data-go=\"stats\"><i data-page-node-id=\"Htwwpvk8GW5C0pf8KAhHcp\"><!--pnid:uJpSEc660yhvUMJaZOZAKM-->📊</i><!--pnid:syoIp0OQev75BeXQtrRyph-->战绩</button>\n    </nav>\n  </section>\n\n  <!--pnid:wALG9g39o0INBFWVihiUGr--><!-- ============ 设置 ============ -->\n  <section data-page-node-id=\"qiZCVQO12lcV5XiidZ72qH\" class=\"screen hidden\" id=\"scr-settings\">\n    <div data-page-node-id=\"9H3Anm29sv59AXpqk2JQ7Q\" class=\"page\">\n      <h2 data-page-node-id=\"1ixDleHjZz4P1U93m8TRFP\" class=\"page-title\"><!--pnid:EAutHVjp5sC95zyrqKCBdd-->游戏设置<small data-page-node-id=\"XeuM96y4i83X145gFjKVt0\"><!--pnid:zcSxVs9RwkWiSXKTfSDnAc-->操作 / 音效 / 画面</small></h2>\n      <div data-page-node-id=\"N6RsLn0EqInVDURfQkdmRW\" class=\"set-list\">\n        <div data-page-node-id=\"UPdvQJr086u813EwNxG6kf\" class=\"set-row\"><span data-page-node-id=\"VHUx7OpoBQMn15H6RzE0Sr\"><!--pnid:qIrM70bTEjcCUa9dlKWY83-->AI 难度</span>\n          <div data-page-node-id=\"9Q1IU5KNtAomgcSxia8cJy\" class=\"seg-ctl\" id=\"setDiff\">\n            <button data-page-node-id=\"jhcplHvXu72nZCjhWShNVm\" data-v=\"easy\"><!--pnid:5C3GdvCon2qQT3QuXrp2aV-->简单</button><button data-page-node-id=\"llHe5mZheRPpbhv5LUh9dT\" class=\"active\" data-v=\"normal\"><!--pnid:7VTQ8rLNWH7YlDzMMak8GW-->普通</button><button data-page-node-id=\"RTfl3zFlJCz60sZtZZevYk\" data-v=\"hard\"><!--pnid:d9BkcKRkGXqxHgVcr67Nrl-->困难</button>\n          </div>\n        </div>\n        <div data-page-node-id=\"aTH9eYCAksBKfpzE9xWBRF\" class=\"set-row\"><span data-page-node-id=\"8zt68vF5c5TDH6kmodE1fS\"><!--pnid:eNScGYOgocU4WWbG2ykRP2-->对局人数</span>\n          <div data-page-node-id=\"cpdffjA6HdEfwOCOIVGsDW\" class=\"seg-ctl\" id=\"setPlayers\">\n            <button data-page-node-id=\"HyCnSEshMmzziNBiapTrR0\" data-v=\"2\"><!--pnid:51lOdcLpSebAHTuZzgmFcF-->1V1</button><button data-page-node-id=\"Ruu6n52tYtW97xF2gUnmmw\" data-v=\"4\"><!--pnid:lE46RbbQy3oHbCRwlKmp3q-->4人</button><button data-page-node-id=\"lU9JaOXHtLRy11o1YS8n0b\" class=\"active\" data-v=\"6\"><!--pnid:cgIagYMcN4P5eT0RUEhyqC-->6人</button><button data-page-node-id=\"MTkM6ruarlEejlmeibkgfb\" data-v=\"8\"><!--pnid:bTNg5e9wZyIwtDB4VMij91-->8人</button>\n          </div>\n        </div>\n        <div data-page-node-id=\"nzqNog76Z2ZSckQ30repr8\" class=\"set-row\"><span data-page-node-id=\"SFRHRA5WTDgSQdOEPc9o8r\"><!--pnid:cBPsY2uZkbK4DxP1zI04VC-->自动前进</span>\n          <div data-page-node-id=\"tEF5IIvXdjQiwutdTh4uop\" class=\"seg-ctl\" id=\"setAuto\"><button data-page-node-id=\"psGwWRsiORdJVxpsXubBPO\" class=\"active\" data-v=\"1\"><!--pnid:3uZQ8yPVcRsROBFALyzdJl-->开启</button><button data-page-node-id=\"LXqgDRal1zlWc2kq3349RD\" data-v=\"0\"><!--pnid:ZnlimlfHrShaQKprrsFXQi-->关闭</button></div>\n        </div>\n        <div data-page-node-id=\"s9Xky5V1NbUK4PVu8dVikc\" class=\"set-row\"><span data-page-node-id=\"IyRam4YJi3DMrCqoNMKVUs\"><!--pnid:NIm89xoO4aLHYpWWKFFlOR-->游戏音效</span>\n          <div data-page-node-id=\"TRh4BZcouODZc7DLH4Eta0\" class=\"seg-ctl\" id=\"setSound\"><button data-page-node-id=\"6Kk1qsUdV4Ivykur1TVQgO\" class=\"active\" data-v=\"1\"><!--pnid:HQXP1mA53JnQ0tVeESePwS-->开启</button><button data-page-node-id=\"7tGNMrmLVob69xshombjG3\" data-v=\"0\"><!--pnid:s5LxKNddZSXhgymAZqTcD4-->关闭</button></div>\n        </div>\n        <div data-page-node-id=\"3r1q1d2eqW7bkS8Jg7sDFc\" class=\"set-row\"><span data-page-node-id=\"UdHYxvSGqX2td3SvjVCkeq\"><!--pnid:vmTQVaVQNoM7TWPBm4f1bT-->镜头远近</span>\n          <div data-page-node-id=\"4AM0qAUpSUJOt93PvvNkar\" class=\"seg-ctl\" id=\"setCam\"></div>\n        </div>\n        <div data-page-node-id=\"D4Nkewk65rzJ2u5t08gHbs\" class=\"set-row\"><span data-page-node-id=\"rMppPY90dOT2P6Z0LVpGak\"><!--pnid:BrvCS4FBXRW8Bbb3Vf6yxM-->可视距离</span>\n          <div data-page-node-id=\"me4sqHh8nxxiyiaqx1cWz7\" class=\"seg-ctl\" id=\"setFar\"></div>\n        </div>\n        <div data-page-node-id=\"NeuPZNd7Gq9ADQj7OOxewL\" class=\"set-row\"><span data-page-node-id=\"MVwt8r2KXAa7SIUFfVVSqO\"><!--pnid:NRpwP8ASZbtNcjypEeY7qZ-->道具频率</span>\n          <div data-page-node-id=\"c9hT6B6dZnWHJLGzNUqIrM\" class=\"seg-ctl\" id=\"setItemRate\"></div>\n        </div>\n        <div data-page-node-id=\"sSxP1ZXXabvyLPXJstBpRq\" class=\"set-row\"><span data-page-node-id=\"u7dlT3N9hoG2SAQ8o9w4d2\"><!--pnid:Z3EOijYN6Eu7Tm61C0xhf6-->转向辅助</span>\n          <div data-page-node-id=\"5IfwJu4OWSEnwbLstk1fm9\" class=\"seg-ctl\" id=\"setAssist\"><button data-page-node-id=\"BVD8jAQSyjth2PGuhtoAF4\" class=\"active\" data-v=\"1\"><!--pnid:bBSiAkIeRCE79snG5XkkIX-->开启</button><button data-page-node-id=\"ENHJ7hyZCb4bT3HbT21Tvk\" data-v=\"0\"><!--pnid:R1L8oZpbDmpGb5yuynaloY-->关闭</button></div>\n        </div>\n        <div data-page-node-id=\"AQQ984wgpHpQPzTPNKos1f\" class=\"set-row\"><span data-page-node-id=\"gGqLLGBOZgUzTqlAnvamrd\"><!--pnid:YDVM74yEBYeNDSz7lsxDzK-->画面质量</span>\n          <div data-page-node-id=\"BimcUrk0DiCRidpyeCVIrn\" class=\"seg-ctl\" id=\"setQuality\"><button data-page-node-id=\"njUNmMt2hlXIRGye4zeCnM\" data-v=\"low\"><!--pnid:DUZtufkk2j8SEPnWQ3OLIc-->流畅</button><button data-page-node-id=\"bG7U51OZvApjO4bYnFHu7d\" class=\"active\" data-v=\"high\"><!--pnid:Ril80AlnRyv1NOvhVUUN5w-->高清</button></div>\n        </div>\n        <div data-page-node-id=\"pLOsX7wbac4yaKHMKLoALe\" class=\"set-row\"><span data-page-node-id=\"TolGxuHj9oKguQqMBfNe0a\"><!--pnid:0TL4q1cbzW12eVEadEBtbq-->操作说明</span>\n          <div data-page-node-id=\"O4xrADN9uDytbDJwOyxqoq\" class=\"keyhelp\">\n            <p data-page-node-id=\"YoS3q02lDhlmhSOiG6GXmY\" class=\"kh-title\"><!--pnid:mt5OnQxWLYFxmZGSS3WiHK-->单人（玩家1）</p>\n            <p data-page-node-id=\"ncQ5pQNSFaEA2rDkRvn6Nx\"><b data-page-node-id=\"5asQqhc0PJsxJ1H3zL4Xoc\"><!--pnid:fONwBAeQurdGxIDz6mhxwj-->A D</b><!--pnid:rR9fW6Z4YEpdGmOHSsQ2Y0--> / <b data-page-node-id=\"muCPqa3MvDx4of1ACmQQmg\"><!--pnid:oPkI7gloeMrUiNPPIcmdiY-->← →</b><!--pnid:PlXB2WBq40TsU0VsuMKPc0--> 转向　<b data-page-node-id=\"VZplnjtklCw5ThVJmcDjSR\"><!--pnid:5dMRYgB9LIYwiprEhuCOZd-->W / ↑</b><!--pnid:CfyxkuCNsUOcqZj7ql7gDB--> 加速　<b data-page-node-id=\"TVmoKMngC5liaqqjXfm7lE\"><!--pnid:zrmkYZoCjCFXQORyxBnsHh-->S / ↓</b><!--pnid:M9IFfYd9Ue4FXb81cNMpRi--> 刹车</p>\n            <p data-page-node-id=\"DEhrwhEPImHm9BHrjxOTMd\"><b data-page-node-id=\"WWsbW72q9o2rIGNOt2mW4Q\"><!--pnid:tAa4cg9hzjWt4AHpED32i1-->左Shift / 空格</b><!--pnid:WMJWqVc0tVK4eUHhf0jBRT--> 漂移（按住蓄力，松开小喷）</p>\n            <p data-page-node-id=\"1aFiNa5w4guDFb3oj7Ha0h\"><b data-page-node-id=\"C7JBBcJacoeLHsPRotVyN4\"><!--pnid:Z8CRvrpRCAHaR0Lw2gV9z9-->J</b><!--pnid:Fo07ryUfUyP9Kyohk0zA1u--> 氮气　<b data-page-node-id=\"PbaeQJ4cTRnBcmEJSbF6IA\"><!--pnid:4rbFM0DQmFq2qZal2sbcv6-->K</b><!--pnid:ZUXytsHzjiOU9m14O1w2t0--> 道具　<b data-page-node-id=\"tNZJEYT5xKPp8YdwYEBrZt\"><!--pnid:Xkqer8QnBJCanu7tY2zAvm-->R</b><!--pnid:wDYqY4VPFr97WhZnY8jCvH--> 重开</p>\n            <p data-page-node-id=\"xwAdz0jDqZVtYWZIQ0yGt9\" class=\"kh-title\"><!--pnid:GKWnLt6UE7YBLUQIDjotpl-->双人对战（分屏）</p>\n            <p data-page-node-id=\"mcboyN9Dps1gMGCFg4zwr8\"><b data-page-node-id=\"t1ZhkaKLPbEVSZIM0AijFE\"><!--pnid:39wRP9mY6y1hDLoQRreBSF-->P1</b><!--pnid:idyQVsrIZ9KCkjO02xb06f-->：<b data-page-node-id=\"zE1CE01xSvQRkePqB9JZQX\"><!--pnid:t9pOpnCs6904NA748g0eZk-->A D</b><!--pnid:cEftQzC9oQNIEQ4Xl13KlQ--> 转向　<b data-page-node-id=\"3AV8JgGnm8hnj8AS16NECN\"><!--pnid:rZloXhVZyf4LqOF8Oji8zV-->W S</b><!--pnid:ZQ0vOpR4mx8ZEcAaLlNSRT--> 油门/刹车　<b data-page-node-id=\"MPbiLwktP8TZQtnhAc8rl9\"><!--pnid:w1CpmyxCaPe3Ih7AmGWQhn-->左Shift</b><!--pnid:1k3ftzelNGJ6q2KwddJvzY--> 漂移　<b data-page-node-id=\"jFzEsdapNcbBuq80Pm8kAS\"><!--pnid:weN0NZKGTsUG5rzadmSepR-->J</b><!--pnid:iajCH9CCO3gfcCWjt8nHqJ--> 氮气　<b data-page-node-id=\"8QgqUC3tV7ofCkGyuDQzBJ\"><!--pnid:wkLuA8qt8MaxYvbbiFVCUO-->K</b><!--pnid:8XKZg1eM4JJsokAaCqaKbf--> 道具</p>\n            <p data-page-node-id=\"AmsH5yE7tb6gNeNw1HTdmV\"><b data-page-node-id=\"3jISrIFFaTXe00xgv4ruLv\"><!--pnid:QZIrR7E29qJ0YpgnApAqFK-->P2</b><!--pnid:yt4YEzCBfVSphiuK8mr3RG-->：<b data-page-node-id=\"YX4e5GfasJ5oHghtbT1W0p\"><!--pnid:2nfw8g6UKo8M5Nfo5mSpBF-->← →</b><!--pnid:eQnQLQMGuRBUZI9u2a0YQ8--> 转向　<b data-page-node-id=\"IvVuwb6JvWKJOynyRKg1vV\"><!--pnid:93pYP8NWo8EggWIi3ULaQU-->↑ ↓</b><!--pnid:CLnCROhXOm8Rn3FiA1acUX--> 油门/刹车　<b data-page-node-id=\"nqnnPMGgE9WnddKSsxFmMh\"><!--pnid:ROrbddv4CYDoup6LTqvPtL-->回车</b><!--pnid:QW6XpEEscKeuyKi4mFX59q--> 漂移　<b data-page-node-id=\"OH1nerbnfvnqNPbySonfbr\"><!--pnid:84ZrDTCH7vFsg5qmKLkIIa-->,</b><!--pnid:AiRiNhbGmhfuDVh1kjZy6r--> 氮气　<b data-page-node-id=\"O5pMgE81BEPQLNFP7Wju8Z\"><!--pnid:4N6DZJTHEM3qAIBInfmmGd-->.</b><!--pnid:Od1lmuG7Rr9A5GuC81DC9e--> 道具</p>\n            <p data-page-node-id=\"j1yrE8aSDs3oRX5DkRZwXp\"><!--pnid:yGR5d8MvaBEaDzTvF4U8Wp-->漂移持续蓄力：一段小喷（白）→ 二段中喷（蓝）→ 三段大喷（金）</p>\n            <p data-page-node-id=\"ecNIwBs1psfKfsx1fzJCA9\"><!--pnid:nWYabP7llDFcZTXt4GWZ4S-->手机端可点击屏幕下方按钮操作</p>\n          </div>\n        </div>\n      </div>\n      <div data-page-node-id=\"x3dIUSMsona5klvpzPI7zX\" class=\"page-foot\">\n        <button data-page-node-id=\"ww4rfQDwX14pIMrvBPMDXb\" class=\"ghostbtn\" id=\"btnReset\"><!--pnid:7242fsCoIiqVYS6wBytiZJ-->清空存档</button>\n        <button data-page-node-id=\"rhOIaQ1laPUgNI9QEGwKtK\" class=\"startbtn\" id=\"btnSetOk\"><!--pnid:DFTKaDNEt8eL5MYl247C5a-->保存设置</button>\n      </div>\n    </div>\n    <nav data-page-node-id=\"YNWu5dQI0SUyB8KwyU3ZL3\" class=\"bottomnav\">\n      <button data-page-node-id=\"eU6bEsld51LfWSODJzEwbP\" data-go=\"home\"><i data-page-node-id=\"JhONFvmaHtShBiXKUe76jO\"><!--pnid:kfCpMnx3CI4aTDowELdf3x-->🏠</i><!--pnid:r78Lr6b3HWRqNz6XzsxfG0-->首页</button>\n      <button data-page-node-id=\"Yymn3awTtPE2r8owE9wTXO\" data-go=\"tracks\"><i data-page-node-id=\"XGlQfFui3ggZKXJNl4XpT8\"><!--pnid:KAlHlFJBlFuRO02ZASvUwP-->🏁</i><!--pnid:obKIZV2i9CNWfthGn2L6rZ-->赛道</button>\n      <button data-page-node-id=\"Ql4rby91XY0yx2VGRqssQR\" data-go=\"garage\"><i data-page-node-id=\"Uxr6dSd2KzMNQrYRWTw707\"><!--pnid:skWnRwrwsSDLktkU89RoaD-->🚙</i><!--pnid:OzNtn0qSQskE310Hlec1x4-->车库</button>\n      <button data-page-node-id=\"Nr4Ks32VHcQ10GPJjMcfpp\" class=\"active\" data-go=\"settings\"><i data-page-node-id=\"93fD3VmGWl3sN6Uii1t7j9\"><!--pnid:UO1deiQmbixFDlpJ91Qs63-->⚙</i><!--pnid:NZf48UOYDBvxOT166XXiPx-->设置</button>\n      <button data-page-node-id=\"3fFf5wJvk0BHiWsyfjIuGx\" data-go=\"stats\"><i data-page-node-id=\"rDwOB3VgXnCVAtKNPtkoYJ\"><!--pnid:LnTMPKiqmQ1rMcMCKHe15r-->📊</i><!--pnid:INJr3IpZx21lXlRr4LpPAE-->战绩</button>\n    </nav>\n  </section>\n\n  <!--pnid:uodb8yCPUJYlunJsV0DmSu--><!-- ============ 战绩 ============ -->\n  <section data-page-node-id=\"f3el8FnbP2IliUSUIrO1IT\" class=\"screen hidden\" id=\"scr-stats\">\n    <div data-page-node-id=\"8RUuAJjzIRzQqJhnuw2UwY\" class=\"page\">\n      <h2 data-page-node-id=\"3Kcv7qpSl8vTHyHGVt74Do\" class=\"page-title\"><!--pnid:0oe1dupUHME7MogcD6XOVq-->战绩查询<small data-page-node-id=\"x0J7kcnoNdazHJfd9jZmAL\"><!--pnid:6WuI4bTabFAgFbjz2nG425-->个人数据 / 赛道纪录</small></h2>\n      <div data-page-node-id=\"EbR7l3ugPS1IuT5Jcz1AXj\" class=\"stat-cards\" id=\"statCards\"></div>\n      <h3 data-page-node-id=\"RaGxcyjCoZ4rytwDyH7FSA\" class=\"sub-title\"><!--pnid:JusUAJq9AM2WNo23k1Ui7h-->赛道最佳纪录</h3>\n      <div data-page-node-id=\"Mrqlas52mtXYJuPNcfXTYD\" class=\"rec-table\">\n        <div data-page-node-id=\"r95gQP6hklk4kRFHk0wpVk\" class=\"rt-head\"><span data-page-node-id=\"nyxHwVNDp66sdCqdHRsQsY\"><!--pnid:CwYWs9uEquelugLScHuaXV-->赛道</span><span data-page-node-id=\"NzZkBset9eFDWVpvJ6JBw3\"><!--pnid:u4AKKo6FjQiw6OPiKR8TFQ-->类型</span><span data-page-node-id=\"5hKbZbcutbp7L9k0GIG0HA\"><!--pnid:NcUZM4c4jzgLuTyYTow07N-->最佳单圈</span><span data-page-node-id=\"ETaFFAOytnnLaKwxei4fXH\"><!--pnid:OMVfE6wKXUJd0jQTEZrMy0-->最佳总时</span></div>\n        <div data-page-node-id=\"VFAyLhtkDL7qBGEhw2NuGs\" id=\"recRows\"></div>\n      </div>\n    </div>\n    <nav data-page-node-id=\"XmpETdgUCa7YqlFDFvH7bT\" class=\"bottomnav\">\n      <button data-page-node-id=\"UP2WxszlxqbZo5lwqzovSS\" data-go=\"home\"><i data-page-node-id=\"Ac1Vv9r5ffn7CQsXCk6tKA\"><!--pnid:czCsUZ3FDxA6qO23D0vXxJ-->🏠</i><!--pnid:ikz8YqcA8sUNkFXcN4TgWb-->首页</button>\n      <button data-page-node-id=\"FxjVFxZjCvrzxIpZU86xFh\" data-go=\"tracks\"><i data-page-node-id=\"0yOaBRg441ZUc4vHOgMkIn\"><!--pnid:d4X4GMQNCxSN5ZmypFg3X4-->🏁</i><!--pnid:EzZWE4COWwrXi6GyFuOUS2-->赛道</button>\n      <button data-page-node-id=\"aXED1Og8o8fFYXK6DLj0vg\" data-go=\"garage\"><i data-page-node-id=\"RsqI9FWSmYXxQZ1qak0X0o\"><!--pnid:c076IdT1mzd3a8VV7ojDI7-->🚙</i><!--pnid:oH9FigbGc3F0Bn2WWPMgsq-->车库</button>\n      <button data-page-node-id=\"2SvXVK3KblsqFxzkLLql85\" data-go=\"settings\"><i data-page-node-id=\"viZjQeQ5cHQgfbUeJfFC0R\"><!--pnid:yIaMA5b60B5zUkjXUbIU9J-->⚙</i><!--pnid:Mep646K8CQMxFVcQPaxUxg-->设置</button>\n      <button data-page-node-id=\"fnfptvencKf3MzyrH6Y27o\" class=\"active\" data-go=\"stats\"><i data-page-node-id=\"tPThtdZxEIeZrlo1Ahifev\"><!--pnid:oAFeJT9cWDxh3sUQLGUeHR-->📊</i><!--pnid:5AwUtLTwwOYXPre7Me4t5I-->战绩</button>\n    </nav>\n  </section>\n\n  <!--pnid:3vcyncYJGmVKsWKqOXGRE9--><!-- ============ 对局 HUD（支持分屏） ============ -->\n  <section data-page-node-id=\"JMRuENhwDHyx9Yxw94wMKB\" class=\"screen hidden race-ui\" id=\"scr-race\">\n    <!--pnid:WgWtRVfgvS7OWJifasvuZN--><!-- 玩家 1 -->\n    <div data-page-node-id=\"k9Wr21C920WUPQMnnCCDcw\" class=\"hud-pane\" id=\"pane1\">\n      <div data-page-node-id=\"Oj20tkbccuXUOkr778Ig2J\" class=\"hud-tl\">\n        <div data-page-node-id=\"76IQnStg3WXxiPEkb1e9kM\" class=\"rank-box p1\"><b data-page-node-id=\"BHGChbQHiBhBYNsOzDpIo0\" id=\"hudRank\"><!--pnid:BC5GQzJ92cgGEtX1w9Ifyy-->1</b><span data-page-node-id=\"AbUw1qTEcJdnFA4ZH4oTWj\" id=\"hudTotal\"><!--pnid:Mr0lfnPBbF87vXVttwNWBK-->/6</span></div>\n        <div data-page-node-id=\"3bM4xfjbNK8g03igfWuOMf\" class=\"hud-lines\">\n          <div data-page-node-id=\"4FUmovSUehjD5nDV2TuttU\"><!--pnid:oiynZ3Aflx03OHh4Qoae2l-->圈数 <b data-page-node-id=\"KQYSdYxpJ11U6KooYUUfDP\" id=\"hudLap\"><!--pnid:R7wKunFanzcpvTQdMRukWX-->1/3</b></div>\n          <div data-page-node-id=\"2lPm27IrIoT8jeHNcxTJ4e\"><!--pnid:ZieCarQzdA8T80hKOx5S3Q-->总时 <b data-page-node-id=\"EOYsV5gTvv2bGxraM5NO04\" id=\"hudTime\"><!--pnid:bG42ENuBQ1EnWjR7aXgOzn-->0:00.00</b></div>\n          <div data-page-node-id=\"d4zH9gae3QRgA7CSQF8Mph\"><!--pnid:MhJo9k1ZeshIpk6AgpmFjm-->本圈 <b data-page-node-id=\"tnhFWsJz8D51nLhMOKL4Jg\" id=\"hudLapTime\"><!--pnid:z7Y6eBpiR2T1STPJmd8XfR-->0:00.00</b></div>\n        </div>\n        <div data-page-node-id=\"bJGTDjGOmSGIT3XYzPjepD\" class=\"pbadge p1b\"><!--pnid:XbOFSkDGnd959wmvlVNwPZ-->P1</div>\n      </div>\n      <div data-page-node-id=\"vBzQfWEw0kUYwghg8RVcgG\" class=\"foe-box\" id=\"foeBox1\"></div>\n      <div data-page-node-id=\"6NT12NNoFiB9B6ifucOZnu\" class=\"hud-bottom\">\n        <div data-page-node-id=\"iYlBsfTx3djgyHTt0CFU1x\" class=\"ctrl-left\">\n          <button data-page-node-id=\"eihrBdywJ5Q6794Dmf5HHr\" class=\"ctrlbtn drift\" id=\"btnDrift\"><span data-page-node-id=\"cUOPWSkXMoYlSJJnvRouFa\"><!--pnid:FA4MHDgRySEath7qdWOg9a-->漂移</span><small data-page-node-id=\"WLhJYRobI7MjgNoyTqGDDa\"><!--pnid:o9bX1VAxwwy0sTnnQVsOT4-->SHIFT</small></button>\n        </div>\n        <div data-page-node-id=\"c631duZBXesc0VcEP2OQRs\" class=\"hud-mid\">\n          <div data-page-node-id=\"VmYMEIPVMaCUpWVAlfTH8K\" class=\"speedo\"><b data-page-node-id=\"oFZZmnBdYhyeRwzIpvlwtk\" id=\"hudSpeed\"><!--pnid:WAHHrbs5KWUvUh0x5ZYkzf-->0</b><span data-page-node-id=\"C3gbUOv6iwmrOOrxFVE7KM\"><!--pnid:KfL5XFQfA4DMYtLqsdfhYO-->km/h</span></div>\n          <div data-page-node-id=\"LT72JNVANBMbervLJuDhoU\" class=\"gauge\">\n            <div data-page-node-id=\"2bmm9ua06QSfnNwJEBFDwZ\" class=\"glabel\"><!--pnid:oVtRBLQ7KGhO2R02TGK47l-->氮气</div>\n            <div data-page-node-id=\"PvQ7B1KBxC0nR4dMEwGJ4m\" class=\"gbar\"><i data-page-node-id=\"SV3X581e2okDXX6hGkTnij\" id=\"nitroFill\"></i></div>\n            <div data-page-node-id=\"yF9qkhYUhJCW8IgCHAfgkk\" class=\"cards\" id=\"nitroCards\"></div>\n          </div>\n          <div data-page-node-id=\"Im6w7P2jX5dIcicZQITUYu\" class=\"gauge small\">\n            <div data-page-node-id=\"0G9yXEbxsMI9totYnn9WbV\" class=\"glabel\"><!--pnid:eYctQeD94v4oLZKzgw1KgC-->漂移充能</div>\n            <div data-page-node-id=\"GWkOlmfnNdXfKfGwZrFIBH\" class=\"gbar drift\"><i data-page-node-id=\"9Iq6JbJveAj4Ugqqn6CjuT\" id=\"driftFill\"></i></div>\n          </div>\n        </div>\n        <div data-page-node-id=\"iFgafjzrsoJuuWih5ZC2to\" class=\"ctrl-right\">\n          <button data-page-node-id=\"XddoAC0Q1jhUdjvk2gXu0o\" class=\"ctrlbtn nitro\" id=\"btnNitro\"><span data-page-node-id=\"HlfLLSraxZRwfP5BDtJxRA\"><!--pnid:3SSZ9vquy0E6AgGavYt3DE-->氮气</span><small data-page-node-id=\"MYC081omUBOdSnYzx11U7o\" id=\"nitroCount\"><!--pnid:4NbDKOX4M7ViMoMRFQ5RdG-->×0</small></button>\n          <button data-page-node-id=\"nWAyvganyAtzq8D9XC37Jn\" class=\"ctrlbtn item\" id=\"btnItem\"><span data-page-node-id=\"8saxVPuZwOD41zv8wrN7DM\" class=\"itemIcon\" id=\"itemIcon\"><!--pnid:XENTIHZE3ZE5OyJtDkkgur-->—</span><small data-page-node-id=\"Dc9NFz26sYPh3mcNlORWJR\"><!--pnid:jh2XDZrVnJvOIJk0tToR7B-->道具</small></button>\n        </div>\n      </div>\n    </div>\n\n    <!--pnid:hLmN9M91RvI3oeXdXutsyJ--><!-- 玩家 2（双人对战时显示） -->\n    <div data-page-node-id=\"fxaLwDkiO8K9JWmEUFmXdZ\" class=\"hud-pane p2 hidden\" id=\"pane2\">\n      <div data-page-node-id=\"KcXvjUkXHKg19kmGZKA5B7\" class=\"hud-tl\">\n        <div data-page-node-id=\"MZEIDIZCu2DypRWkYcyzD8\" class=\"rank-box p2\"><b data-page-node-id=\"gO5tmg5c7KVYpU0Ji6UJKO\" id=\"hud2Rank\"><!--pnid:l1hHnA1Bonk6J6okChOkRE-->1</b><span data-page-node-id=\"jaDTxjvqW5SqYcHM4tnFLG\" id=\"hud2Total\"><!--pnid:39v2RttgnwS5XHIq5L0XBS-->/6</span></div>\n        <div data-page-node-id=\"JkR8AAjFdrM9idWymlqebM\" class=\"hud-lines\">\n          <div data-page-node-id=\"xYhG3S6ZDilsb3Zvxdjmgr\"><!--pnid:kewKrTxGsZ7UfbT5Y6IPpe-->圈数 <b data-page-node-id=\"k9sED945SwegGbq2hlfsmY\" id=\"hud2Lap\"><!--pnid:j8U1jLTaLjNpDJIF530B5q-->1/3</b></div>\n          <div data-page-node-id=\"DMGZJKmLFcmfYFkMyACOQG\"><!--pnid:YUNzB0YMNtvAbL0CV6Ucko-->总时 <b data-page-node-id=\"DwRKSGwgM3QVbzRvGce3Ka\" id=\"hud2Time\"><!--pnid:38IwCLcpvNI4TfeVDjBVFY-->0:00.00</b></div>\n          <div data-page-node-id=\"T1vCSvN61jJ6SUblTnKhEX\"><!--pnid:5VN7oMdj3VZh8bY3g03MXF-->本圈 <b data-page-node-id=\"tOzlzhicV57mX5dAUx7nMc\" id=\"hud2LapTime\"><!--pnid:COc78sWks0JEoVWcUSO3mv-->0:00.00</b></div>\n        </div>\n        <div data-page-node-id=\"7f4V1ERBMyYQhpGuRHPdNt\" class=\"pbadge p2b\"><!--pnid:71xj6oSJDZQgp7j81BMyAO-->P2</div>\n      </div>\n      <div data-page-node-id=\"l4nR7l3HCSC7af44wgMPqW\" class=\"foe-box\" id=\"foeBox2\"></div>\n      <div data-page-node-id=\"REJyZaWuRR3HQ8NdXltJd2\" class=\"hud-bottom\">\n        <div data-page-node-id=\"QOZQ7AUh7VJygdm9pAAtsR\" class=\"ctrl-left\">\n          <button data-page-node-id=\"oFGstzYFvyYjlvtP57CTQK\" class=\"ctrlbtn drift\" id=\"btnDrift2\"><span data-page-node-id=\"91E98Ma73x2sKBQ0lf9Ugz\"><!--pnid:z4UtKEVKhPAuG0Vv6LHvz0-->漂移</span><small data-page-node-id=\"q83km7olYwXNRPBE6wIV82\"><!--pnid:dMRrGxPcEE793yBds0Iky0-->ENTER</small></button>\n        </div>\n        <div data-page-node-id=\"AGBmxZoDIvK1DBrCyBvsAm\" class=\"hud-mid\">\n          <div data-page-node-id=\"FWJGhlnxzOe4cO09WK3Ihi\" class=\"speedo\"><b data-page-node-id=\"bJWbOHYvP5S4e2UNLaFgzj\" id=\"hud2Speed\"><!--pnid:GHsgfUj6bKZzptG46Jvjzf-->0</b><span data-page-node-id=\"XdhFtK1BxLY9Dia90cHPaj\"><!--pnid:Gy4y3HVYvq3jXcpOwAU7di-->km/h</span></div>\n          <div data-page-node-id=\"rDVA49vBfKsU05bqU6FTQa\" class=\"gauge\">\n            <div data-page-node-id=\"IEX63Kxn3QqTzEBm7WTeUM\" class=\"glabel\"><!--pnid:Q5LSLJBrPUBX2B6XMcQDLk-->氮气</div>\n            <div data-page-node-id=\"QLpU4TdO1YI6RNnabbuyKh\" class=\"gbar\"><i data-page-node-id=\"WdHJmEJqqUqEkJSsHomNsY\" id=\"nitro2Fill\"></i></div>\n            <div data-page-node-id=\"1kkMnzlVNJ60ksWEdqloMJ\" class=\"cards\" id=\"nitro2Cards\"></div>\n          </div>\n          <div data-page-node-id=\"LjjD0mf8jTShICC1a37Cig\" class=\"gauge small\">\n            <div data-page-node-id=\"Rk2vR9TFXEjXEYF2GcjQQj\" class=\"glabel\"><!--pnid:IZbWrGyVW0lZHjmsgfqwTu-->漂移充能</div>\n            <div data-page-node-id=\"tUUpaI18ZxfVCYup6g6C3L\" class=\"gbar drift\"><i data-page-node-id=\"B7HxtazyZltMCJ4anQ0iux\" id=\"drift2Fill\"></i></div>\n          </div>\n        </div>\n        <div data-page-node-id=\"dl8uHzEs51qEuAsTGRomW0\" class=\"ctrl-right\">\n          <button data-page-node-id=\"VgheIe7jUOJc7tagyqVqvv\" class=\"ctrlbtn nitro\" id=\"btnNitro2\"><span data-page-node-id=\"HxfZSWjaRAJ4E0CUmltznt\"><!--pnid:zsDeD7hyvuQU1n2MeqpDDb-->氮气</span><small data-page-node-id=\"gUI6aRFvFQrpVxrUWo56LF\" id=\"nitro2Count\"><!--pnid:4bnLgRPjxr600GIbjEjObz-->×0</small></button>\n          <button data-page-node-id=\"W4kdD6ifk4hp6sjstU61lK\" class=\"ctrlbtn item\" id=\"btnItem2\"><span data-page-node-id=\"tAQlhSrSJwJBBV36mfgul5\" class=\"itemIcon\" id=\"item2Icon\"><!--pnid:RKCfO8mKuS13T5fzGrj6x2-->—</span><small data-page-node-id=\"jm4jmj7RC0pMKdaHuMAtkk\"><!--pnid:PurJDfduFLiM1uicK0Ng9v-->道具</small></button>\n        </div>\n      </div>\n    </div>\n\n    <div data-page-node-id=\"3DCbdQ6wNd2YFm6umMIaLw\" class=\"hud-tr\"><canvas data-page-node-id=\"daC0qqGV6CMDmYepggBwB8\" height=\"168\" id=\"minimap\" width=\"168\"></canvas></div>\n    <div data-page-node-id=\"jQhLPHJo3qSjjQOa1dNNWj\" class=\"hud-msg\" id=\"hudMsg\"></div>\n    <div data-page-node-id=\"27qtoJMWNx5D4aJcYj1uYC\" class=\"hud-flash\" id=\"hudFlash\"></div>\n    <button data-page-node-id=\"FvcMtrrAkLHLiaTzJ9zck4\" class=\"quit-btn\" id=\"btnQuit\"><!--pnid:3q8rwET9nfq7SgcqznLHvW-->退出</button>\n  </section>\n\n  <!--pnid:GL9MHbe40t0IDsTeN08Tq3--><!-- ============ 结算 ============ -->\n  <section data-page-node-id=\"INfgZBEjSI6SQnSP7VU47q\" class=\"screen hidden\" id=\"scr-result\">\n    <div data-page-node-id=\"MHHSHGqw1KUCFZLMEzMV25\" class=\"page result-page\">\n      <div data-page-node-id=\"Qv8arH7fWUjNatSUDhPSSV\" class=\"res-title\" id=\"resTitle\"><!--pnid:g7BV3pmBkxKV1C1fMORPWW-->比赛结束</div>\n      <div data-page-node-id=\"QpcA5mQVcupiUos26f6zfx\" class=\"res-sub\" id=\"resSub\"></div>\n      <div data-page-node-id=\"ZkJRhOVbELjJ5CApooxEuF\" class=\"res-podium\" id=\"resPodium\"></div>\n      <div data-page-node-id=\"AbcqP9xmz9umiE1uGDmNUE\" class=\"res-table\">\n        <div data-page-node-id=\"TZnyBu6h7QGm9PNrpz5jl6\" class=\"rt-head res\"><span data-page-node-id=\"HL42QlGimCIsY0lKC0s7sr\"><!--pnid:0uWRDFvxc5pN6je516PLue-->名次</span><span data-page-node-id=\"Xi6IVySg7ZNjujNSGH3Om3\"><!--pnid:W8un3nOStgd9HAWSEunbRV-->车手</span><span data-page-node-id=\"3417ilHapnQUMZ1VuZ83JJ\"><!--pnid:T3g0D2xCGhAzlK9jwS5dsp-->座驾</span><span data-page-node-id=\"OGWtSjI513Rc3UqC2VodTz\"><!--pnid:500vDqVRMid369QWEXtrvP-->总用时</span><span data-page-node-id=\"UMN3zvtR2JTfaOQwoRmffw\"><!--pnid:Ybfv4PnfayWDe4FxdncKXW-->最佳单圈</span><span data-page-node-id=\"hLCCBLvBm8rhT96NifEMGJ\"><!--pnid:KFvpTLbCKemIYRXteyM27U-->漂移</span><span data-page-node-id=\"bdJ3WxnIJwKw4ZhHY8V22f\"><!--pnid:7XFfr0RLPElwYSRziN13g3-->氮气</span><span data-page-node-id=\"6JYUqasOaa7nrh67ZCKXHY\"><!--pnid:K8qwmyDB4Pld3EA3FX59rJ-->撞飞</span></div>\n        <div data-page-node-id=\"RtnCbv5wrABqxNODbWgsYy\" id=\"resRows\"></div>\n      </div>\n      <div data-page-node-id=\"mugoUKFtUi8lFJYQM43J17\" class=\"res-reward\">\n        <div data-page-node-id=\"XHzb8bzgdsW97jB8PaMNnW\" class=\"rw\"><span data-page-node-id=\"O92ceQCuM7SqXRRWcd9hy4\"><!--pnid:2VHNeUcdvXFIq33G1iVVWx-->金币</span><b data-page-node-id=\"wdlhqO2TTFtSTA6TrbI9G3\" id=\"rwCoin\"><!--pnid:j3MX2kmRAfLxaAYI2WX424-->+0</b></div>\n        <div data-page-node-id=\"t2KTrHcSt12gxcIFMioDhR\" class=\"rw\"><span data-page-node-id=\"QZi2hc07YqlfxvtAFHq27T\"><!--pnid:feIq3DbmZRQIwtZbTf43XL-->经验</span><b data-page-node-id=\"dNt5w1wsbqOliRdMLwHCMW\" id=\"rwExp\"><!--pnid:m1VaGhyMh8eJOgP6CO0bPM-->+0</b></div>\n        <div data-page-node-id=\"yCRDnJST0cI1o2JDDehW9T\" class=\"rw\"><span data-page-node-id=\"WiWCmcVyqOJtGpl6YsDL7d\"><!--pnid:o0ENsGb8CLyuycfhPjgHyE-->钻石</span><b data-page-node-id=\"uQzYUxTcYDCJI2LVFjbKnJ\" id=\"rwDia\"><!--pnid:8hzCbb6TI7FCiGHUZo5g14-->+0</b></div>\n        <div data-page-node-id=\"JesjeEJVmbwUbvteRTOkpl\" class=\"rw\"><span data-page-node-id=\"sE0S7AoxaYwrG1PkEbiIba\"><!--pnid:bx80S4y1rGk9Ut0ExaoWA5-->本局评价</span><b data-page-node-id=\"EeygwiWLXfjxNsktn4Y9VZ\" id=\"rwRank\"><!--pnid:vR0EMsF7j1joVi96UYtHKH-->A</b></div>\n      </div>\n      <div data-page-node-id=\"bCbwSSYE6lIt2Fx2nN5Fzw\" class=\"res-btns\">\n        <button data-page-node-id=\"Tll7qVsztjKjgxFPtdEww7\" class=\"startbtn\" id=\"btnAgain\"><!--pnid:huLWOeRjXnr6Jhs9Sw92ZH-->再来一局</button>\n        <button data-page-node-id=\"BuU1X4LbbOYYbrXAlddjTW\" class=\"ghostbtn\" id=\"btnResHome\"><!--pnid:fpUPggTREsbR19dwuKD022-->返回主页</button>\n        <button data-page-node-id=\"hF5Yry4x1ux4jqoFfUqmdu\" class=\"ghostbtn\" id=\"btnResDetail\"><!--pnid:vi9VpotqRuG0PNptTTfnAB-->查看战绩</button>\n      </div>\n    </div>\n  </section>\n</div>\n\n";
+
+
+/* =========================================================
+ *  data.js —— 配置 / 车辆 / 配件 / 皮肤 / 赛道 / 道具 / 存档
+ * ========================================================= */
+window.RACER = window.RACER || {};
+(function (R) {
+  'use strict';
+
+  /* ---------- 全局参数 ---------- */
+  R.CFG = {
+    SEG_LEN: 200,        // 单段长度
+    RUMBLE: 3,           // 路肩条纹段数
+    ROAD_W: 4000,        // 半路宽（世界单位）— 赛道加宽为原来的 2 倍
+    FOV: 100,
+    CAM_H: 2650,         // 摄像机高度（视野俯角）— 由视角档位覆盖
+    CAM_BACK: 4300,      // 摄像机与车尾距离 — 由视角档位覆盖
+    DRAW_DIST: 440,      // 绘制段数 — 由视距档位覆盖
+    LAPS: 4,             // 默认圈数（赛道可覆盖）
+    MAX_CARS: 8,
+    CENTRIFUGAL: 0.20,   // 离心力
+    // 路宽翻倍后：车辆/景物尺寸都要除以 2，才能保持"真实尺寸不变、只是路变宽"
+    CAR_W: 0.28,         // 车"视觉"宽度（半路宽单位）— 由视角档位覆盖
+    HIT_W: 0.21,         // 车"碰撞"宽度（固定，不随视角变化，否则远视角下车会互相挤出赛道）
+    CAR_LEN: 420,        // 车长（世界单位）
+    FOG_DENSITY: 2.0,    // 雾密度 — 由视距档位覆盖
+    KMH: 26,             // 速度表换算除数
+    LEN: 1.9,            // 赛道总长系数（控制单圈时长）
+    STEER_TAU: 0.155,    // 转向迟滞时间常数（钝感力，越大越重）
+    STEER_RATE: 1.72,    // 横向移动速率（越小越重）
+    ACCEL_DIV: 4.4,      // 加速度除数（越大起步越钝）
+    BRAKE_DIV: 2.2,      // 刹车除数
+    CORNER_LOSS: 0.26,   // 弯道损耗系数（越大弯道越掉速）
+    YAW_MAX: 1.10,       // 车身偏航上限（防止视觉上"调头"）
+    ITEM_GAP: 130        // 道具盒自动布点间隔（段）
+  };
+
+  /* ---------- 镜头远近档位（范围大幅加大） ---------- */
+  R.CAM_LEVELS = [
+    { id: 'c1', label: '贴身', back: 2600, carW: 0.18, camH: 2050 },
+    { id: 'c2', label: '较近', back: 3600, carW: 0.21, camH: 2300 },
+    { id: 'c3', label: '标准', back: 4700, carW: 0.24, camH: 2550 },
+    { id: 'c4', label: '远',   back: 6200, carW: 0.28, camH: 2800 },
+    { id: 'c5', label: '超远', back: 8200, carW: 0.33, camH: 3150 }
+  ];
+  /* ---------- 可视距离档位（决定能看多远） ---------- */
+  R.FAR_LEVELS = [
+    { id: 'f1', label: '短',   dist: 170, fog: 5.2 },
+    { id: 'f2', label: '中',   dist: 280, fog: 3.2 },
+    { id: 'f3', label: '远',   dist: 440, fog: 2.0 },
+    { id: 'f4', label: '极远', dist: 620, fog: 1.1 }
+  ];
+  /* ---------- 道具频率档位 ---------- */
+  R.ITEM_RATES = [
+    { id: 'i0', label: '关闭', keep: 0,    cd: 99 },
+    { id: 'i1', label: '较少', keep: 0.35, cd: 6.0 },
+    { id: 'i2', label: '标准', keep: 0.60, cd: 4.0 },
+    { id: 'i3', label: '频繁', keep: 0.85, cd: 2.4 },
+    { id: 'i4', label: '疯狂', keep: 1.00, cd: 1.4 }
+  ];
+  R.levelById = function (arr, id, dft) {
+    for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i];
+    return arr[dft || 0];
+  };
+
+  // 应用视角/视距设置到运行时（立即生效）
+  R.applyView = function (settings) {
+    var s = settings || {};
+    var c = R.levelById(R.CAM_LEVELS, s.cam, 2);
+    var f = R.levelById(R.FAR_LEVELS, s.far, 2);
+    var low = s.quality === 'low';
+    R.CFG.CAM_BACK = c.back;
+    R.CFG.CAM_H = c.camH;
+    R.CFG.CAR_W = c.carW;
+    R.CFG.DRAW_DIST = low ? Math.round(f.dist * 0.55) : f.dist;
+    R.CFG.FOG_DENSITY = f.fog;
+    if (R.Render) R.Render.playerZ = R.CFG.CAM_BACK * R.Render.camDepth;
+  };
+
+  /* ---------- 车辆 ---------- */
+  // stats: 速度 / 漂移 / 加速 / 稳定性 (0-100)
+  R.CARS = [
+    { id: 'c1', name: '新手小蓝', tier: '新手平民车', price: 0, shape: 'hatch',
+      body: '#3aa0ff', accent: '#ffffff', glass: '#1c3550',
+      stats: { speed: 46, drift: 48, accel: 58, stab: 64 } },
+    { id: 'c2', name: '甜心粉猪', tier: '新手平民车', price: 0, shape: 'round',
+      body: '#ff7ab0', accent: '#ffe3ef', glass: '#5c2440',
+      stats: { speed: 44, drift: 62, accel: 54, stab: 70 } },
+    { id: 'c3', name: '沙漠之狐', tier: '进阶竞速车', price: 2600, shape: 'suv',
+      body: '#f5a623', accent: '#3b2a12', glass: '#4a3210',
+      stats: { speed: 62, drift: 58, accel: 66, stab: 58 } },
+    { id: 'c4', name: '森林猎手', tier: '进阶竞速车', price: 4200, shape: 'coupe',
+      body: '#3ddc84', accent: '#0f3f2a', glass: '#123a2c',
+      stats: { speed: 66, drift: 72, accel: 60, stab: 60 } },
+    { id: 'c5', name: '极地雪狼', tier: '高性能跑车', price: 6800, shape: 'coupe',
+      body: '#dff1ff', accent: '#2bb3ff', glass: '#204a6b',
+      stats: { speed: 78, drift: 76, accel: 62, stab: 74 } },
+    { id: 'c6', name: '暗夜战神', tier: '高性能跑车', price: 9800, shape: 'super',
+      body: '#2b2f45', accent: '#ff4d5e', glass: '#0b0e1a',
+      stats: { speed: 92, drift: 82, accel: 78, stab: 52 } }
+  ];
+
+  R.carById = function (id) {
+    for (var i = 0; i < R.CARS.length; i++) if (R.CARS[i].id === id) return R.CARS[i];
+    return R.CARS[0];
+  };
+
+  /* ---------- 改装配件（金币购买，影响属性） ---------- */
+  R.PARTS = {
+    engine: {
+      key: 'engine', name: '发动机', icon: '🔧', desc: '提升极速与加速能力',
+      levels: [
+        { name: '原厂引擎', price: 0, add: { speed: 0, accel: 0 } },
+        { name: '涡轮增压 I 型', price: 1600, add: { speed: 6, accel: 8 } },
+        { name: '涡轮增压 II 型', price: 3800, add: { speed: 12, accel: 15 } },
+        { name: 'V8 竞速引擎', price: 8200, add: { speed: 20, accel: 25 } }
+      ]
+    },
+    tire: {
+      key: 'tire', name: '轮胎', icon: '🛞', desc: '提升漂移抓地与车身稳定',
+      levels: [
+        { name: '普通公路胎', price: 0, add: { drift: 0, stab: 0 } },
+        { name: '运动型轮胎', price: 1300, add: { drift: 7, stab: 5 } },
+        { name: '半热熔胎', price: 3200, add: { drift: 14, stab: 10 } },
+        { name: '竞速热熔胎', price: 6800, add: { drift: 22, stab: 16 } }
+      ]
+    },
+    wing: {
+      key: 'wing', name: '尾翼', icon: '✈️', desc: '增加下压力，提升稳定与极速',
+      levels: [
+        { name: '无尾翼', price: 0, add: { stab: 0, speed: 0 } },
+        { name: '小鸭尾扰流', price: 900, add: { stab: 6, speed: 2 } },
+        { name: 'GT 定风尾翼', price: 2600, add: { stab: 12, speed: 4 } },
+        { name: '碳纤维大尾翼', price: 5600, add: { stab: 19, speed: 7 } }
+      ]
+    }
+  };
+  R.PART_KEYS = ['engine', 'tire', 'wing'];
+
+  R.emptyParts = function () { return { engine: 0, tire: 0, wing: 0 }; };
+
+  R.partsBonus = function (parts) {
+    var out = { speed: 0, drift: 0, accel: 0, stab: 0 };
+    if (!parts) return out;
+    for (var i = 0; i < R.PART_KEYS.length; i++) {
+      var k = R.PART_KEYS[i], lv = parts[k] || 0;
+      var def = R.PARTS[k];
+      if (!def) continue;
+      var l = def.levels[Math.min(lv, def.levels.length - 1)];
+      for (var s in l.add) out[s] += l.add[s];
+    }
+    return out;
+  };
+
+  /* ---------- 皮肤涂装 ---------- */
+  R.SKINS = [
+    { id: 's0', name: '原厂涂装', price: 0, pattern: 'none', body: null, accent: null },
+    { id: 's1', name: '烈焰红莲', price: 1200, pattern: 'flame', body: '#e8352c', accent: '#ffd23f' },
+    { id: 's2', name: '深空幻影', price: 1800, pattern: 'tech', body: '#1b2340', accent: '#7ee0ff' },
+    { id: 's3', name: '黄金传说', price: 3400, pattern: 'stripe', body: '#ffc21f', accent: '#6b4400' },
+    { id: 's4', name: '薄荷冰沙', price: 900, pattern: 'wave', body: '#4fd9bd', accent: '#ffffff' },
+    { id: 's5', name: '猛兽迷彩', price: 1500, pattern: 'camo', body: '#6f7d3c', accent: '#2c3510' },
+    { id: 's6', name: '霓虹电光', price: 2600, pattern: 'bolt', body: '#221a4a', accent: '#ff4ddb' }
+  ];
+  R.skinById = function (id) {
+    for (var i = 0; i < R.SKINS.length; i++) if (R.SKINS[i].id === id) return R.SKINS[i];
+    return R.SKINS[0];
+  };
+
+  // 把车辆定义 + 皮肤 + 配件解析成绘制/物理用的"外观包"
+  R.makeLook = function (def, skinId, parts) {
+    var sk = R.skinById(skinId);
+    return {
+      body: sk.body || def.body,
+      accent: sk.accent || def.accent,
+      glass: def.glass,
+      pattern: sk.pattern || 'none',
+      shape: def.shape || 'hatch',
+      wing: (parts && parts.wing) || 0
+    };
+  };
+
+  /* ---------- 物理 ---------- */
+  R.carPhysics = function (def, parts) {
+    var s = def.stats, b = R.partsBonus(parts);
+    var sp = s.speed + b.speed, dr = s.drift + b.drift,
+        ac = s.accel + b.accel, st = s.stab + b.stab;
+    var maxSpeed = 4900 + sp * 21;                 // 整体车速减半
+    return {
+      maxSpeed: maxSpeed,
+      accel: maxSpeed / R.CFG.ACCEL_DIV,
+      grip: 0.62 + dr * 0.0072,
+      stab: 0.72 + st * 0.0042,
+      driftGain: 0.72 + dr * 0.0055
+    };
+  };
+
+  /* ---------- 道具 ---------- */
+  R.ITEMS = {
+    boost:  { name: '氮气罐', icon: '⚡', color: '#ffb400', desc: '瞬间提速' },
+    missile:{ name: '追踪导弹', icon: '🚀', color: '#ff4d5e', desc: '击飞前车' },
+    shield: { name: '防护护盾', icon: '🛡️', color: '#2bb3ff', desc: '免疫攻击' },
+    banana: { name: '香蕉皮', icon: '🍌', color: '#ffd23f', desc: '放置陷阱' }
+  };
+  R.ITEM_KEYS = ['boost', 'missile', 'shield', 'banana'];
+
+  /* ---------- AI 难度 ---------- */
+  R.DIFF = {
+    easy:   { label: '简单', speed: 0.84, caution: 0.62, nitro: 0.30, rubber: 0.55, react: 0.75, line: 0.55, item: 0.5 },
+    normal: { label: '普通', speed: 0.94, caution: 0.44, nitro: 0.70, rubber: 0.35, react: 1.00, line: 0.85, item: 0.8 },
+    hard:   { label: '困难', speed: 0.96, caution: 0.34, nitro: 0.95, rubber: 0.22, react: 1.30, line: 1.00, item: 1.0 }
+  };
+
+  R.AI_NAMES = ['风驰小队', '雷霆闪电', '疾风少年', '糖果车神', '极速阿飞', '弯道之王', '氮气狂魔', '漂移达人'];
+
+  /* ---------- 赛道主题 ---------- */
+  R.THEMES = {
+    town: {
+      sky: ['#79c9ff', '#d6f0ff'], sun: '#fff3b0', ground: '#5cc44a',
+      road: ['#6d6d78', '#65656f'], rumble: ['#f2f2f2', '#e14b4b'],
+      lane: '#f4f6f8', fog: '#d6f0ff', rail: '#c3ccd6',
+      props: ['tree', 'house', 'building', 'lamp', 'sign', 'cone'],
+      propColor: { tree: '#3f9e46', trunk: '#8a5a3b', building: '#cfd8e3', lamp: '#9aa7b5' }
+    },
+    beach: {
+      sky: ['#5ec8f5', '#ffe9c4'], sun: '#fff0a0', ground: '#f0d9a0',
+      road: ['#7b7b84', '#71717a'], rumble: ['#ffffff', '#31b6d6'],
+      lane: '#f6f8fa', fog: '#ffe9c4', rail: '#d8c9a0',
+      props: ['palm', 'buoy', 'rock', 'sign', 'house'],
+      propColor: { tree: '#3fbf7f', trunk: '#a8763f', building: '#e8d6b0', lamp: '#c9b48a' }
+    },
+    forest: {
+      sky: ['#8fd8c0', '#e6fbe8'], sun: '#f7ffcf', ground: '#3f9e46',
+      road: ['#63636d', '#5b5b65'], rumble: ['#e8f7e0', '#3f9e46'],
+      lane: '#eefaf0', fog: '#e6fbe8', rail: '#9fb08f',
+      props: ['tree', 'tree', 'pine', 'rock', 'sign'],
+      propColor: { tree: '#2f8a3c', trunk: '#7a4f2f', building: '#b9c8b0', lamp: '#94a58d' }
+    },
+    snow: {
+      sky: ['#a8cbe8', '#f2fbff'], sun: '#ffffff', ground: '#e8f2fb',
+      road: ['#8f97a3', '#868e9a'], rumble: ['#ffffff', '#5b9bd5'],
+      lane: '#f7fbff', fog: '#f2fbff', rail: '#cddbe8',
+      props: ['pine', 'snowman', 'rock', 'flag'],
+      propColor: { tree: '#2e7d5b', trunk: '#6b4a34', building: '#dbe7f2', lamp: '#9fb4c9' }
+    },
+    night: {
+      sky: ['#101a3a', '#2b2350'], sun: '#ffe9a8', ground: '#1c2740',
+      road: ['#3a3f52', '#333849'], rumble: ['#ff4d5e', '#2bb3ff'],
+      lane: '#c9d6e8', fog: '#2b2350', rail: '#3d4a6b',
+      props: ['building', 'lamp', 'neon', 'cone'],
+      propColor: { tree: '#2c6b4a', trunk: '#4a3a2a', building: '#2c3550', lamp: '#ffd66b' }, night: true
+    },
+    desert: {
+      sky: ['#f2b45c', '#ffe6bd'], sun: '#fff2c4', ground: '#e2b878',
+      road: ['#7a7168', '#726a61'], rumble: ['#f5e2b8', '#b5492f'],
+      lane: '#f7ecd8', fog: '#ffe6bd', rail: '#c9a578',
+      props: ['cactus', 'boulder', 'ruin', 'rock', 'sign'],
+      propColor: { tree: '#5f9e46', trunk: '#8a6b3b', building: '#c8a273', lamp: '#b59873' }
+    },
+    mountain: {
+      sky: ['#7fb6d8', '#d9ecf7'], sun: '#fffbe0', ground: '#6f8f5a',
+      road: ['#6a6a74', '#62626c'], rumble: ['#f0f0f0', '#4a7b3a'],
+      lane: '#f2f5f8', fog: '#d9ecf7', rail: '#a9b3bd',
+      props: ['pine', 'boulder', 'rock', 'flag', 'tree'],
+      propColor: { tree: '#2f7d4f', trunk: '#6b4a34', building: '#c3ccd4', lamp: '#96a3ad' }
+    }
+  };
+
+  /* ---------- 赛道定义 ----------
+   * b 提供的 API：
+   *   straight(n) / curve(n, c, hill) / hill(n, h) / scurve(n, c)
+   *   boost(n) 加速带 / items(lanes) 道具盒 / jump() 跳台 / cut(n, side) 近道
+   * loop: true=循环跑道（跑 N 圈） false=非循环点对点（单程冲线）
+   */
+  R.TRACKS = [
+    {
+      id: 'town', name: '城镇公路', theme: 'town', difficulty: 0,
+      loop: true, laps: 5,
+      desc: '宽阔的城市公路，弯道舒缓，适合练手',
+      build: function (b) {
+        b.straight(70); b.boost(22);
+        b.curve(50, 3, 12);
+        b.straight(46); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.curve(56, -3.4, -10);
+        b.straight(52); b.boost(18);
+        b.curve(64, 4, 16); b.cut(26, 1);
+        b.straight(40);
+        b.jump();
+        b.curve(48, -4.2, -14); b.cut(22, -1);
+        b.straight(58); b.items([-0.55, 0.55]);
+        b.curve(44, 2.6, 8);
+        b.straight(60); b.boost(20);
+        b.curve(58, -3, 0);
+        b.straight(50);
+      }
+    },
+    {
+      id: 'beach', name: '海滨赛道', theme: 'beach', difficulty: 1,
+      loop: true, laps: 5,
+      desc: '阳光沙滩与起伏海堤，节奏明快',
+      build: function (b) {
+        b.straight(60); b.boost(20);
+        b.curve(46, 4, 18);
+        b.hill(40, 26);
+        b.curve(52, -4.4, -14); b.cut(24, -1);
+        b.straight(44); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.jump();
+        b.curve(60, 4.6, 0); b.cut(28, 1);
+        b.hill(40, -22);
+        b.straight(50); b.boost(18);
+        b.curve(40, -3.2, 10);
+        b.straight(46); b.items([0]);
+        b.curve(56, 3.6, -8);
+        b.straight(56);
+      }
+    },
+    {
+      id: 'forest', name: '森林弯道', theme: 'forest', difficulty: 1,
+      loop: true, laps: 6,
+      desc: '连续 S 弯与密林，考验漂移节奏',
+      build: function (b) {
+        b.straight(52); b.items([-0.55, 0.55]);
+        b.scurve(34, 4.2); b.cut(20, 1);
+        b.straight(30);
+        b.scurve(34, -4.6); b.cut(20, -1);
+        b.curve(46, 5, 14);
+        b.straight(34); b.boost(16);
+        b.scurve(30, -4);
+        b.jump();
+        b.curve(50, -5.2, -12); b.cut(24, -1);
+        b.straight(40); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.curve(42, 4.4, 8);
+        b.scurve(30, 3.6);
+        b.straight(54); b.boost(18);
+      }
+    },
+    {
+      id: 'snow', name: '雪地冰川', theme: 'snow', difficulty: 2,
+      loop: true, laps: 6,
+      desc: '湿滑冰面与急弯，稳定性决定成败',
+      build: function (b) {
+        b.straight(48); b.boost(16);
+        b.curve(44, 5.4, 20); b.cut(22, 1);
+        b.hill(36, 24);
+        b.curve(46, -5.6, -18); b.cut(24, -1);
+        b.straight(32); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.scurve(28, 5);
+        b.curve(40, 6, 0); b.cut(20, 1);
+        b.jump();
+        b.hill(34, -26);
+        b.curve(48, -5, -10); b.cut(22, -1);
+        b.straight(36); b.boost(16);
+        b.scurve(30, -4.6);
+        b.straight(50); b.items([-0.55, 0.55]);
+      }
+    },
+    {
+      id: 'night', name: '夜景都市', theme: 'night', difficulty: 2,
+      loop: true, laps: 5,
+      desc: '霓虹长街与高速发夹弯，极致速度感',
+      build: function (b) {
+        b.straight(80); b.boost(26);
+        b.curve(40, 5.6, 0); b.cut(20, 1);
+        b.straight(56); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.jump();
+        b.curve(38, -6, 16); b.cut(18, -1);
+        b.straight(64); b.boost(22);
+        b.scurve(28, 5.2);
+        b.curve(44, 5.8, -14); b.cut(22, 1);
+        b.straight(46); b.items([-0.55, 0.55]);
+        b.curve(40, -5.4, 12); b.cut(18, -1);
+        b.straight(72); b.boost(24);
+        b.curve(36, 4.6, 0);
+        b.straight(44);
+      }
+    },
+    /* ===== 新增：环山公路（循环） ===== */
+    {
+      id: 'mountain', name: '环山公路', theme: 'mountain', difficulty: 2,
+      loop: true, laps: 3, lenMul: 1.25,
+      desc: '盘山长坡与连续回头弯，落差极大',
+      build: function (b) {
+        b.straight(56); b.boost(18);
+        b.hill(46, 30);
+        b.curve(52, -5.2, -16); b.cut(24, -1);
+        b.hill(38, 24);
+        b.curve(46, 5.8, 18); b.cut(22, 1);
+        b.straight(40); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.scurve(30, 5.4);
+        b.hill(42, -28);
+        b.curve(50, -6, -20); b.cut(26, -1);
+        b.straight(36); b.boost(16);
+        b.jump();
+        b.curve(44, 5.4, 14); b.cut(20, 1);
+        b.straight(44); b.items([-0.55, 0.55]);
+        b.scurve(32, -4.8);
+        b.hill(40, 26);
+        b.curve(48, 4.6, -12);
+        b.straight(52); b.boost(20);
+      }
+    },
+    /* ===== 新增：荒漠遗迹（循环） ===== */
+    {
+      id: 'desert', name: '荒漠遗迹', theme: 'desert', difficulty: 1,
+      loop: true, laps: 5, lenMul: 1.1,
+      desc: '黄沙戈壁与古老遗迹，视野开阔',
+      build: function (b) {
+        b.straight(74); b.boost(24);
+        b.curve(48, 4.2, 14); b.cut(22, 1);
+        b.hill(40, 22);
+        b.straight(48); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.curve(54, -4.8, -16); b.cut(26, -1);
+        b.straight(44); b.boost(18);
+        b.jump();
+        b.scurve(30, 4.6);
+        b.curve(46, 5.2, 0); b.cut(20, 1);
+        b.straight(40); b.items([0]);
+        b.hill(38, -24);
+        b.curve(50, -4.4, 12); b.cut(24, -1);
+        b.straight(56); b.boost(20);
+        b.curve(42, 3.8, -8);
+        b.straight(52);
+      }
+    },
+    /* ===== 新增：港湾专线（非循环·点对点） ===== */
+    {
+      id: 'harbor', name: '港湾专线', theme: 'beach', difficulty: 2,
+      loop: false, laps: 1, lenMul: 4.2,
+      desc: '非循环点对点长跑，从渔港一路冲向灯塔',
+      build: function (b) {
+        b.straight(60); b.boost(18);
+        b.curve(46, 3.4, 12);
+        b.straight(50); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.curve(52, -4.2, -14); b.cut(24, -1);
+        b.hill(40, 24);
+        b.straight(48); b.boost(16);
+        b.scurve(30, 4.4);
+        b.jump();
+        b.curve(48, -4.8, -10); b.cut(22, -1);
+        b.straight(52); b.items([-0.55, 0.55]);
+        b.hill(38, -20);
+        b.curve(44, 4, 16); b.cut(20, 1);
+        b.straight(56); b.boost(18);
+        b.scurve(28, -3.8);
+        b.straight(46); b.items([0]);
+        b.curve(50, 4.6, -12);
+        b.straight(62); b.boost(22);
+      }
+    },
+    /* ===== 新增：峡谷穿越（非循环·点对点） ===== */
+    {
+      id: 'canyon', name: '峡谷穿越', theme: 'desert', difficulty: 2,
+      loop: false, laps: 1, lenMul: 4.6,
+      desc: '非循环点对点，穿越赤岩峡谷直达终点',
+      build: function (b) {
+        b.straight(66); b.boost(20);
+        b.curve(50, -4.6, -18); b.cut(24, -1);
+        b.hill(42, 28);
+        b.straight(44); b.items([-0.66, -0.22, 0.22, 0.66]);
+        b.scurve(32, 5.2);
+        b.curve(48, 5.6, 14); b.cut(22, 1);
+        b.straight(40); b.boost(16);
+        b.jump();
+        b.hill(38, -26);
+        b.curve(52, -5.4, -12); b.cut(26, -1);
+        b.straight(48); b.items([-0.55, 0.55]);
+        b.scurve(30, 4.8);
+        b.curve(46, 4.4, 18); b.cut(20, 1);
+        b.straight(54); b.boost(20);
+        b.curve(42, -4, -10);
+        b.straight(58); b.items([0]);
+        b.curve(48, 3.6, 0);
+        b.straight(64); b.boost(24);
+      }
+    }
+  ];
+
+  R.trackById = function (id) {
+    for (var i = 0; i < R.TRACKS.length; i++) if (R.TRACKS[i].id === id) return R.TRACKS[i];
+    return R.TRACKS[0];
+  };
+  R.DIFF_LABEL = ['简单', '普通', '困难'];
+
+  /* ---------- 本地存档 ---------- */
+  var KEY = 'speedracer_save_v1';
+  var DEFAULT_SAVE = {
+    nick: '新手司机', level: 1, exp: 0, coin: 6000, dia: 20,
+    races: 0, wins: 0, podium: 0, driftTotal: 0, nitroTotal: 0, crowdTotal: 0,
+    cars: ['c1', 'c2'], car: 'c1', car2: 'c2', foeCar: 'c3',
+    parts: {},                         // { 车id: {engine:0,tire:0,wing:0} }
+    skins: ['s0'],                     // 已拥有皮肤
+    skin: {},                          // { 车id: 皮肤id }
+    records: {},                       // {trackId:{best:秒,lap:秒}}
+    settings: {
+      diff: 'normal', players: 6, auto: 1, sound: 1, quality: 'high', mode: 'ai',
+      cam: 'c4', far: 'f4', itemRate: 'i3', assist: 1
+    }
+  };
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  R.Save = {
+    data: null,
+    load: function () {
+      var d = clone(DEFAULT_SAVE);
+      try {
+        var raw = initialSave;
+        if (raw) {
+          var p = JSON.parse(raw);
+          for (var k in d) if (p[k] !== undefined) d[k] = p[k];
+          d.settings = Object.assign(clone(DEFAULT_SAVE.settings), p.settings || {});
+          if (!d.records) d.records = {};
+          if (!d.parts) d.parts = {};
+          if (!d.skin) d.skin = {};
+          if (!d.skins || !d.skins.length) d.skins = ['s0'];
+          if (d.skins.indexOf('s0') < 0) d.skins.push('s0');
+        }
+      } catch (e) { }
+      this.data = d;
+      return d;
+    },
+    save: function () {
+      queueSave(JSON.stringify(this.data));
+    },
+    reset: function () {
+      initialSave = null;
+      var data = this.load();
+      this.save();
+      return data;
+    },
+    expNeed: function (lv) { return 120 + (lv - 1) * 90; },
+    addExp: function (n) {
+      var d = this.data;
+      d.exp += n;
+      var up = 0;
+      while (d.exp >= this.expNeed(d.level)) { d.exp -= this.expNeed(d.level); d.level++; up++; }
+      return up;
+    },
+    winRate: function () {
+      var d = this.data;
+      return d.races ? Math.round(d.wins / d.races * 100) : 0;
+    },
+    // 取某车的配件（缺省全 0）
+    partsOf: function (carId) {
+      var d = this.data;
+      if (!d.parts[carId]) d.parts[carId] = R.emptyParts();
+      var p = d.parts[carId];
+      if (p.engine == null) p.engine = 0;
+      if (p.tire == null) p.tire = 0;
+      if (p.wing == null) p.wing = 0;
+      return p;
+    },
+    skinOf: function (carId) { return this.data.skin[carId] || 's0'; }
+  };
+
+  /* ---------- 工具 ---------- */
+  R.fmtTime = function (t) {
+    if (t == null || !isFinite(t)) return '--:--.--';
+    var m = Math.floor(t / 60), s = t - m * 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+  };
+  R.clamp = function (v, a, b) { return v < a ? a : (v > b ? b : v); };
+  R.lerp = function (a, b, p) { return a + (b - a) * p; };
+  R.rand = function (a, b) { return a + Math.random() * (b - a); };
+  R.pick = function (arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+  // 指数平滑：与帧率无关的迟滞
+  R.smooth = function (cur, tgt, tau, dt) {
+    if (tau <= 0) return tgt;
+    return cur + (tgt - cur) * (1 - Math.exp(-dt / tau));
+  };
+
+})(window.RACER);
+
+
+
+/* =========================================================
+ *  engine.js —— 赛道生成 + 伪 3D 渲染 + 写实化卡通素材
+ * ========================================================= */
+(function (R) {
+  'use strict';
+  var CFG = R.CFG, SEG = CFG.SEG_LEN, ROAD_W = CFG.ROAD_W;
+  var clamp = R.clamp, lerp = R.lerp;
+
+  function easeIn(a, b, p) { return a + (b - a) * Math.pow(p, 2); }
+  function easeOut(a, b, p) { return a + (b - a) * (1 - Math.pow(1 - p, 2)); }
+  function easeInOut(a, b, p) { return a + (b - a) * (-Math.cos(p * Math.PI) / 2 + 0.5); }
+  R.easeIn = easeIn; R.easeOut = easeOut; R.easeInOut = easeInOut;
+
+  /* ======================= 赛道生成器 ======================= */
+  function Builder() {
+    this.segs = [];
+    this._y = 0;
+    this.lenMul = 1;
+  }
+  Builder.prototype.lastY = function () { return this._y; };
+
+  Builder.prototype.addSegment = function (curve, y) {
+    var n = this.segs.length;
+    this.segs.push({
+      index: n, curve: curve,
+      p1: { world: { x: 0, y: this._y, z: n * SEG }, camera: {}, screen: {} },
+      p2: { world: { x: 0, y: y, z: (n + 1) * SEG }, camera: {}, screen: {} },
+      sprites: [], cars: [], dyn: [],
+      clip: 0, fog: 1, looped: false,
+      boost: false, jump: false, finish: false, start: false,
+      cut: 0, items: null, itemT: 0
+    });
+    this._y = y;
+  };
+
+  Builder.prototype.addRoad = function (enter, hold, leave, curve, y) {
+    var startY = this._y;
+    var endY = startY + (y || 0) * SEG;
+    var total = enter + hold + leave;
+    var n;
+    for (n = 0; n < enter; n++) this.addSegment(easeIn(0, curve, n / enter), easeInOut(startY, endY, n / total));
+    for (n = 0; n < hold; n++) this.addSegment(curve, easeInOut(startY, endY, (enter + n) / total));
+    for (n = 0; n < leave; n++) this.addSegment(easeInOut(curve, 0, n / leave), easeInOut(startY, endY, (enter + hold + n) / total));
+    return this;
+  };
+
+  // 赛道总长系数：控制单圈时长
+  var LEN = CFG.LEN || 1.9;
+  // 一段路：进场 20% + 保持 60% + 出场 20%，总段数 = n
+  Builder.prototype.piece = function (n, c, h) {
+    n = Math.max(6, Math.round(n * LEN * this.lenMul));
+    var e = Math.round(n * 0.2), o = n - e * 2;
+    return this.addRoad(e, o, e, c || 0, h || 0);
+  };
+  Builder.prototype.straight = function (n) { return this.piece(n, 0, 0); };
+  Builder.prototype.curve = function (n, c, h) { return this.piece(n, c || 0, (h || 0) * 0.4); };
+  Builder.prototype.hill = function (n, h) { return this.piece(n, 0, (h || 20) * 0.22); };
+  Builder.prototype.scurve = function (n, c) {
+    this.piece(n * 0.5, c, 0);
+    this.piece(n * 0.5, -c, 0);
+    return this;
+  };
+
+  Builder.prototype.jump = function () {
+    this.addRoad(14, 12, 14, 0, 2.6);
+    var s = this.segs.length;
+    for (var i = s - 18; i < s - 6; i++) if (this.segs[i]) { this.segs[i].jump = true; }
+    this.addRoad(12, 10, 18, 0, -2.6);
+    return this;
+  };
+
+  Builder.prototype._mark = function (n, fn) {
+    var s = this.segs.length;
+    for (var i = Math.max(0, s - n); i < s; i++) fn(this.segs[i]);
+    return this;
+  };
+  Builder.prototype.boost = function (n) { return this._mark(n, function (s) { s.boost = true; }); };
+  Builder.prototype.cut = function (n, side) { return this._mark(n, function (s) { s.cut = side; }); };
+  Builder.prototype.items = function (lanes) {
+    var seg = this.segs[Math.max(0, this.segs.length - 3)];
+    seg.items = (lanes || [0]).slice();
+    return this;
+  };
+
+  R.buildTrack = function (def) {
+    var b = new Builder();
+    b.lenMul = def.lenMul || 1;
+    def.build(b);
+    var segs = b.segs;
+    var loop = def.loop !== false;
+    // 回到水平高度，闭合赛道
+    var tail = b._y;
+    if (Math.abs(tail) > 1) b.addRoad(24, 24, 24, 0, -tail / SEG);
+    var N = segs.length;
+    // 起跑/终点线：循环赛道在段首，点对点在段尾
+    var j;
+    if (loop) { for (j = 0; j < 6; j++) segs[j].finish = true; }
+    else { for (j = 0; j < 6; j++) segs[N - 1 - j].finish = true; }
+    for (j = 0; j < 12; j++) segs[j].start = true;
+
+    // 路侧装饰
+    var theme = R.THEMES[def.theme];
+    var props = theme.props;
+    var seed = def.id.length * 977 + 13;
+    function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+    for (var k = 0; k < N; k++) {
+      var s = segs[k];
+      if (k % 3 !== 0) continue;
+      var type = props[Math.floor(rnd() * props.length)];
+      var side = rnd() < 0.5 ? -1 : 1;
+      var off = side * (1.24 + rnd() * 1.6);
+      var pd = PROP_DEF[type] || PROP_DEF.tree;
+      off = side * Math.max(Math.abs(off), (pd.w / 2) * (0.8 + rnd() * 0.7) + 0.12);
+      s.sprites.push({ type: type, offset: off, scale: 0.8 + rnd() * 0.7 });
+      if (rnd() < 0.42) {
+        var t2 = props[Math.floor(rnd() * props.length)];
+        var p2 = PROP_DEF[t2] || PROP_DEF.tree;
+        var o2 = -side * (1.22 + rnd() * 1.8);
+        o2 = -side * Math.max(Math.abs(o2), (p2.w / 2) * (0.7 + rnd() * 0.8) + 0.12);
+        s.sprites.push({ type: t2, offset: o2, scale: 0.7 + rnd() * 0.8 });
+      }
+    }
+    // 观赛人群：贴近路边，可被撞飞
+    for (var c = 6; c < N - 6; c += 16) {
+      var sd = rnd() < 0.5 ? -1 : 1;
+      var cnt = 2 + Math.floor(rnd() * 3);
+      for (var ci = 0; ci < cnt; ci++) {
+        segs[c].sprites.push({
+          type: 'crowd', offset: sd * (1.07 + ci * 0.06),
+          scale: 0.85 + rnd() * 0.3, hit: false, hitT: 0,
+          seed: Math.floor(rnd() * 997)
+        });
+      }
+      if (rnd() < 0.45) {
+        var cnt2 = 1 + Math.floor(rnd() * 3);
+        for (var cj = 0; cj < cnt2; cj++) {
+          segs[c].sprites.push({
+            type: 'crowd', offset: -sd * (1.07 + cj * 0.06),
+            scale: 0.85 + rnd() * 0.3, hit: false, hitT: 0,
+            seed: Math.floor(rnd() * 997)
+          });
+        }
+      }
+    }
+    // 道具盒自动布点：整条赛道均匀铺满，运行期按"道具频率"档位启用其中一部分
+    var gap = CFG.ITEM_GAP || 130;
+    for (var it = Math.floor(gap * 0.6); it < N - 24; it += gap) {
+      var sg2 = segs[it];
+      if (sg2.jump || sg2.boost) continue;
+      if (!sg2.items) sg2.items = [-0.66, -0.22, 0.22, 0.66];
+      sg2.itemRank = rnd();
+    }
+    for (var ir = 0; ir < N; ir++) {
+      if (segs[ir].items && segs[ir].itemRank == null) segs[ir].itemRank = 0.12;  // 赛道自带的优先启用
+    }
+
+    // 起终点门柱
+    segs[2].sprites.push({ type: 'flag', offset: -1.09, scale: 1.05 });
+    segs[2].sprites.push({ type: 'flag', offset: 1.09, scale: 1.05 });
+    if (!loop) {
+      segs[N - 4].sprites.push({ type: 'flag', offset: -1.09, scale: 1.05 });
+      segs[N - 4].sprites.push({ type: 'flag', offset: 1.09, scale: 1.05 });
+    }
+
+    var track = {
+      id: def.id, name: def.name, def: def,
+      theme: def.theme, colors: theme,
+      difficulty: def.difficulty, desc: def.desc,
+      loop: loop, laps: def.laps || CFG.LAPS,
+      segments: segs, length: segs.length * SEG
+    };
+    track.mini = buildMiniPath(track);
+    return track;
+  };
+
+  /* ======================= 小地图路径 ======================= */
+  function buildMiniPath(track) {
+    var segs = track.segments, pts = [];
+    var x = 0, y = 0, ang = 0;
+    var step = Math.max(2, Math.floor(segs.length / 420));
+    for (var i = 0; i < segs.length; i += step) {
+      ang += segs[i].curve * 0.0062 * step;
+      x += Math.sin(ang); y += Math.cos(ang);
+      pts.push({ x: x, y: y, i: i, s: step });
+    }
+    var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    for (var j = 0; j < pts.length; j++) {
+      if (pts[j].x < minX) minX = pts[j].x; if (pts[j].x > maxX) maxX = pts[j].x;
+      if (pts[j].y < minY) minY = pts[j].y; if (pts[j].y > maxY) maxY = pts[j].y;
+    }
+    var w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
+    for (var k = 0; k < pts.length; k++) {
+      pts[k].nx = (pts[k].x - minX) / w;
+      pts[k].ny = (pts[k].y - minY) / h;
+    }
+    return { pts: pts, w: w, h: h, step: step };
+  }
+
+  R.drawMiniTrack = function (ctx, track, W, H, cars, playerCar, player2) {
+    var mini = track.mini, pts = mini.pts;
+    var pad = 14, sx = W - pad * 2, sy = H - pad * 2;
+    var ar = mini.w / mini.h;
+    var bw = sx, bh = sy;
+    if (ar > 1) bh = sx / ar; else bw = sy * ar;
+    var ox = (W - bw) / 2, oy = (H - bh) / 2;
+    function px(p) { return ox + p.nx * bw; }
+    function py(p) { return oy + p.ny * bh; }
+    function ptAt(idx) {
+      var p = pts[Math.floor(idx / mini.step)];
+      return p || pts[pts.length - 1];
+    }
+
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) { i === 0 ? ctx.moveTo(px(pts[i]), py(pts[i])) : ctx.lineTo(px(pts[i]), py(pts[i])); }
+    if (track.loop) ctx.closePath();
+    ctx.strokeStyle = 'rgba(30,60,100,.20)'; ctx.lineWidth = 11; ctx.stroke();
+    ctx.strokeStyle = '#8fa5bd'; ctx.lineWidth = 7; ctx.stroke();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3.2; ctx.stroke();
+
+    // 加速带 / 道具 / 近道
+    var segs = track.segments;
+    function markAt(idx, color, r) {
+      var p = ptAt(idx); if (!p) return;
+      ctx.beginPath(); ctx.arc(px(p), py(p), r, 0, 6.2832);
+      ctx.fillStyle = color; ctx.fill();
+    }
+    for (var s = 0; s < segs.length; s += mini.step) {
+      if (segs[s].boost) markAt(s, '#ffb400', 2.6);
+      if (segs[s].items) markAt(s, '#7c5cff', 2.2);
+      if (segs[s].cut) markAt(s, '#ff7a2b', 1.8);
+    }
+    // 起终点
+    ctx.beginPath(); ctx.arc(px(pts[0]), py(pts[0]), 4.5, 0, 6.2832);
+    ctx.fillStyle = track.loop ? '#e14b4b' : '#3ddc84'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    if (!track.loop) {
+      var lp = pts[pts.length - 1];
+      ctx.beginPath(); ctx.arc(px(lp), py(lp), 4.5, 0, 6.2832);
+      ctx.fillStyle = '#e14b4b'; ctx.fill(); ctx.stroke();
+    }
+
+    if (cars) {
+      for (var c = 0; c < cars.length; c++) {
+        var car = cars[c];
+        var p2 = ptAt(Math.floor(car.z / SEG));
+        if (!p2) continue;
+        var isP = car === playerCar, isP2 = car === player2;
+        ctx.beginPath();
+        ctx.arc(px(p2), py(p2), (isP || isP2) ? 5 : 3.6, 0, 6.2832);
+        ctx.fillStyle = isP ? '#ff6a2b' : (isP2 ? '#7c5cff' : (car.bodyColor || '#2bb3ff'));
+        ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4; ctx.stroke();
+      }
+    }
+  };
+
+  /* ======================= 投影 & 渲染 ======================= */
+  function project(p, camX, camY, camZ, camDepth, W, H, roadW) {
+    p.camera.x = (p.world.x || 0) - camX;
+    p.camera.y = (p.world.y || 0) - camY;
+    p.camera.z = (p.world.z || 0) - camZ;
+    var sc = camDepth / p.camera.z;
+    p.screen.scale = sc;
+    p.screen.x = W / 2 + sc * p.camera.x * W / 2;
+    p.screen.y = H / 2 - sc * p.camera.y * H / 2;
+    p.screen.w = sc * roadW * W / 2;
+  }
+  R.project = project;
+
+  function polygon(ctx, x1, y1, x2, y2, x3, y3, x4, y4, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+    ctx.closePath(); ctx.fill();
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+  R.roundRect = roundRect;
+
+  var Render = {};
+  Render.camDepth = 1 / Math.tan((CFG.FOV / 2) * Math.PI / 180);
+  // 摄像机落后车身的距离：调 CFG.CAM_BACK 即可整体拉近/拉远视角
+  Render.playerZ = (CFG.CAM_BACK || CFG.CAM_H) * Render.camDepth;
+
+  /* ---------- 天空 / 远景 ---------- */
+  Render.sky = function (ctx, W, H, track, cam) {
+    var th = track.colors;
+    var horizon = H / 2;
+    var g = ctx.createLinearGradient(0, 0, 0, horizon + 10);
+    g.addColorStop(0, th.sky[0]); g.addColorStop(1, th.sky[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, horizon + 12);
+    ctx.fillStyle = th.ground; ctx.fillRect(0, horizon, W, H - horizon);
+
+    var sunX = W * 0.5 - cam.x / ROAD_W * 120 - (cam.bg || 0) * 0.5;
+    var sunY = horizon - H * 0.26;
+    ctx.beginPath(); ctx.arc(sunX, sunY, H * 0.075, 0, 6.2832);
+    ctx.fillStyle = th.sun; ctx.globalAlpha = th.night ? 0.85 : 1; ctx.fill(); ctx.globalAlpha = 1;
+
+    var off = -(cam.bg || 0) * 1.6 - cam.x / ROAD_W * 90;
+    ctx.fillStyle = th.night ? 'rgba(120,140,190,.35)' : 'rgba(255,255,255,.85)';
+    for (var i = 0; i < 5; i++) {
+      var cx = ((i * 260 + off) % (W + 400) + W + 400) % (W + 400) - 200;
+      var cy = horizon - H * (0.34 - i * 0.035);
+      var s = 0.6 + (i % 3) * 0.22;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22 * s, 0, 6.2832);
+      ctx.arc(cx + 26 * s, cy + 6 * s, 17 * s, 0, 6.2832);
+      ctx.arc(cx - 24 * s, cy + 8 * s, 15 * s, 0, 6.2832);
+      ctx.fill();
+    }
+    // 远山 / 天际线
+    ctx.fillStyle = th.night ? 'rgba(30,40,70,.85)' : 'rgba(90,150,120,.35)';
+    ctx.beginPath(); ctx.moveTo(0, horizon + 2);
+    var seedX = -(cam.bg || 0) * 2.4;
+    for (var x = 0; x <= W; x += 40) {
+      var t = (x + seedX) * 0.006;
+      var hh = Math.sin(t) * 0.5 + Math.sin(t * 2.1 + 1.3) * 0.3 + Math.sin(t * 0.7) * 0.35;
+      ctx.lineTo(x, horizon - H * (0.055 + hh * 0.045));
+    }
+    ctx.lineTo(W, horizon + 2); ctx.closePath(); ctx.fill();
+  };
+
+  /* ---------- 单段路面 ---------- */
+  Render.segment = function (ctx, W, lanes, x1, y1, w1, x2, y2, w2, fog, seg, th) {
+    var r1 = w1 / 6, r2 = w2 / 6;
+    var l1 = w1 / 30, l2 = w2 / 30;
+    var alt = Math.floor(seg.index / CFG.RUMBLE) % 2;
+
+    // 草地
+    ctx.fillStyle = alt ? th.ground : shade(th.ground, -6);
+    ctx.fillRect(0, y2, W, y1 - y2);
+
+    // 近道（可切弯）
+    if (seg.cut) {
+      var side = seg.cut, cw1 = w1 * 0.85, cw2 = w2 * 0.85;
+      var a1 = x1 + side * w1, b1 = x1 + side * (w1 + cw1);
+      var a2 = x2 + side * w2, b2 = x2 + side * (w2 + cw2);
+      polygon(ctx, a1, y1, b1, y1, b2, y2, a2, y2, alt ? '#d8c9a5' : '#cfbe95');
+    }
+
+    // 路肩
+    polygon(ctx, x1 - w1 - r1, y1, x1 - w1, y1, x2 - w2, y2, x2 - w2 - r2, y2,
+      seg.jump ? '#ffb400' : th.rumble[alt]);
+    polygon(ctx, x1 + w1 + r1, y1, x1 + w1, y1, x2 + w2, y2, x2 + w2 + r2, y2,
+      seg.jump ? '#ffb400' : th.rumble[alt]);
+
+    // 路面
+    var roadCol = th.road[alt];
+    if (seg.finish) roadCol = (Math.floor(seg.index / 2) % 2) ? '#f4f4f4' : '#2b2b33';
+    if (seg.boost) roadCol = alt ? '#ffd94a' : '#ffc21f';
+    polygon(ctx, x1 - w1, y1, x1 + w1, y1, x2 + w2, y2, x2 - w2, y2, roadCol);
+
+    // 加速带箭头
+    if (seg.boost && alt) {
+      var cxm = (x1 + x2) / 2, cym = (y1 + y2) / 2, wm = (w1 + w2) / 2;
+      polygon(ctx, cxm - wm * 0.36, cym + 1, cxm + wm * 0.36, cym + 1, cxm, y2, cxm, y2, 'rgba(255,255,255,.55)');
+    }
+
+    // 车道线
+    if (!seg.boost && !seg.finish && th.lane) {
+      var lw1 = w1 * 2 / lanes, lw2 = w2 * 2 / lanes;
+      var lx1 = x1 - w1 + lw1, lx2 = x2 - w2 + lw2;
+      for (var l = 1; l < lanes; l++) {
+        polygon(ctx, lx1 - l1 / 2, y1, lx1 + l1 / 2, y1, lx2 + l2 / 2, y2, lx2 - l2 / 2, y2, th.lane);
+        lx1 += lw1; lx2 += lw2;
+      }
+    }
+
+    // 雾
+    if (fog < 1) {
+      ctx.globalAlpha = 1 - fog; ctx.fillStyle = th.fog;
+      ctx.fillRect(0, y2, W, y1 - y2 + 1); ctx.globalAlpha = 1;
+    }
+  };
+
+  /* ---------- 护栏（在远景→近景的第二遍里画，避免被后画的路面裁掉） ---------- */
+  Render.rail = function (ctx, W, x1, y1, w1, x2, y2, w2, seg, th) {
+    if (!th.rail) return;
+    var alt = Math.floor(seg.index / CFG.RUMBLE) % 2;
+    var r1 = w1 / 6, r2 = w2 / 6;
+    var rh1 = Math.min((y1 - y2) * 1.35, w1 * 0.10);
+    var rh2 = Math.min((y1 - y2) * 1.35, w2 * 0.10);
+    if (rh1 < 0.8) return;
+    var col = alt ? th.rail : shade(th.rail, -22);
+    var top = shade(th.rail, 30);
+    var lx = x1 - w1 - r1, lx2 = x2 - w2 - r2;
+    polygon(ctx, lx, y1, lx, y1 - rh1, lx2, y2 - rh2, lx2, y2, col);
+    polygon(ctx, lx, y1 - rh1, lx, y1 - rh1 * 1.18, lx2, y2 - rh2 * 1.18, lx2, y2 - rh2, top);
+    var rx = x1 + w1 + r1, rx2 = x2 + w2 + r2;
+    polygon(ctx, rx, y1, rx, y1 - rh1, rx2, y2 - rh2, rx2, y2, col);
+    polygon(ctx, rx, y1 - rh1, rx, y1 - rh1 * 1.18, rx2, y2 - rh2 * 1.18, rx2, y2 - rh2, top);
+  };
+
+  function shade(hex, amt) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = clamp(((n >> 16) & 255) + amt, 0, 255);
+    var g = clamp(((n >> 8) & 255) + amt, 0, 255);
+    var b = clamp((n & 255) + amt, 0, 255);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+  R.shade = shade;
+
+  /* ---------- F1 方程式赛车（后视） ---------- */
+  var SHAPE = {
+    hatch: { tire: 0.30, tireH: 0.62, wingW: 0.86, bodyW: 0.46, fin: 0.80 },
+    round: { tire: 0.32, tireH: 0.60, wingW: 0.90, bodyW: 0.48, fin: 0.86 },
+    suv:   { tire: 0.31, tireH: 0.66, wingW: 0.84, bodyW: 0.50, fin: 0.90 },
+    coupe: { tire: 0.29, tireH: 0.63, wingW: 0.94, bodyW: 0.44, fin: 0.76 },
+    super: { tire: 0.30, tireH: 0.68, wingW: 1.00, bodyW: 0.42, fin: 0.72 }
+  };
+
+  function drawPattern(ctx, pat, w, h, look) {
+    if (!pat || pat === 'none') return;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    if (pat === 'flame') {
+      ctx.fillStyle = '#ff7a2b';
+      for (var i = 0; i < 3; i++) {
+        var fx = -w * 0.34 + i * w * 0.28;
+        ctx.beginPath();
+        ctx.moveTo(fx, -h * 0.10);
+        ctx.quadraticCurveTo(fx + w * 0.06, -h * 0.26, fx + w * 0.02, -h * 0.40);
+        ctx.quadraticCurveTo(fx + w * 0.10, -h * 0.26, fx + w * 0.14, -h * 0.10);
+        ctx.closePath(); ctx.fill();
+      }
+    } else if (pat === 'tech') {
+      ctx.strokeStyle = look.accent; ctx.lineWidth = Math.max(1, w * 0.035);
+      for (var t = 0; t < 3; t++) {
+        var ty = -h * (0.16 + t * 0.1);
+        ctx.beginPath(); ctx.moveTo(-w * 0.4, ty); ctx.lineTo(w * 0.1, ty); ctx.lineTo(w * 0.24, ty - h * 0.06); ctx.lineTo(w * 0.4, ty - h * 0.06); ctx.stroke();
+      }
+    } else if (pat === 'stripe') {
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.fillRect(-w * 0.22, -h * 0.52, w * 0.09, h * 0.5);
+      ctx.fillRect(w * 0.13, -h * 0.52, w * 0.09, h * 0.5);
+    } else if (pat === 'wave') {
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, w * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.45, -h * 0.34);
+      ctx.quadraticCurveTo(-w * 0.15, -h * 0.46, w * 0.05, -h * 0.32);
+      ctx.quadraticCurveTo(w * 0.28, -h * 0.20, w * 0.45, -h * 0.32);
+      ctx.stroke();
+    } else if (pat === 'camo') {
+      ctx.fillStyle = 'rgba(30,40,20,.55)';
+      var spots = [[-0.3, -0.34, 0.13], [0.02, -0.44, 0.1], [0.28, -0.3, 0.12], [-0.1, -0.2, 0.09], [0.34, -0.16, 0.08]];
+      for (var s = 0; s < spots.length; s++) {
+        ctx.beginPath();
+        ctx.ellipse(w * spots[s][0], h * spots[s][1], w * spots[s][2], h * spots[s][2] * 0.9, 0, 0, 6.2832);
+        ctx.fill();
+      }
+    } else if (pat === 'bolt') {
+      ctx.fillStyle = look.accent;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.06, -h * 0.5); ctx.lineTo(w * 0.10, -h * 0.5);
+      ctx.lineTo(w * 0.02, -h * 0.32); ctx.lineTo(w * 0.16, -h * 0.32);
+      ctx.lineTo(-w * 0.10, -h * 0.08); ctx.lineTo(-w * 0.02, -h * 0.26);
+      ctx.lineTo(-w * 0.16, -h * 0.26); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  Render.car = function (ctx, o) {
+    var w = o.w, h = o.h;
+    var L = o.look || o.def || {};
+    var body = L.body || '#3aa0ff', accent = L.accent || '#fff', glass = L.glass || '#1c3550';
+    var lv = L.wing || 0;
+    var S = SHAPE[L.shape] || SHAPE.hatch;
+
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    if (o.spin) ctx.rotate(o.spin);
+    ctx.rotate((o.yaw || 0) * 0.34);
+
+    // 影子
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.03, w * 0.62, h * 0.13, 0, 0, 6.2832);
+    ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fill();
+
+    if (o.air > 0) ctx.translate(0, -o.air * h * 1.1);
+
+    var tireW = w * S.tire, tireH = h * S.tireH, tx = w * 0.43;
+
+    /* ===== 后轮：F1 外露宽胎 ===== */
+    function tire(sx) {
+      var g = ctx.createLinearGradient(sx - tireW / 2, 0, sx + tireW / 2, 0);
+      g.addColorStop(0, '#111218'); g.addColorStop(.35, '#2b2d38');
+      g.addColorStop(.62, '#1a1c24'); g.addColorStop(1, '#0e0f14');
+      roundRect(ctx, sx - tireW / 2, -tireH, tireW, tireH, tireW * 0.16);
+      ctx.fillStyle = g; ctx.fill();
+      // 胎面高光
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      roundRect(ctx, sx - tireW * 0.42, -tireH * 0.93, tireW * 0.15, tireH * 0.84, tireW * 0.05); ctx.fill();
+      // 轮胎配色环（倍耐力式彩带）
+      ctx.fillStyle = accent; ctx.globalAlpha = 0.75;
+      roundRect(ctx, sx - tireW * 0.5, -tireH * 0.60, tireW, Math.max(1, tireH * 0.11), tireW * 0.04); ctx.fill();
+      ctx.globalAlpha = 1;
+      // 底部磨损阴影
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      roundRect(ctx, sx - tireW * 0.5, -tireH * 0.14, tireW, Math.max(1, tireH * 0.14), tireW * 0.04); ctx.fill();
+    }
+    tire(-tx); tire(tx);
+
+    /* ===== 底板 + 扩散器 ===== */
+    ctx.fillStyle = '#15161d';
+    roundRect(ctx, -w * 0.30, -h * 0.24, w * 0.60, h * 0.24, w * 0.02); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.16)';
+    for (var dv = 0; dv < 5; dv++) {
+      ctx.fillRect(-w * 0.26 + dv * w * 0.105, -h * 0.21, Math.max(1, w * 0.022), h * 0.18);
+    }
+
+    /* ===== 尾翼（F1 双层翼 + 大端板，等级越高越夸张） ===== */
+    var wW = w * S.wingW * (0.78 + lv * 0.075);
+    var wY = -h * (0.98 + lv * 0.05);
+    var epH = h * (0.24 + lv * 0.05);
+    // 中央支柱
+    ctx.fillStyle = shade(body, -52);
+    roundRect(ctx, -w * 0.045, wY, w * 0.09, -wY - h * 0.30, w * 0.02); ctx.fill();
+    // 下端板
+    ctx.fillStyle = lv >= 3 ? '#1e2029' : shade(body, -34);
+    roundRect(ctx, -wW / 2 - w * 0.03, wY - epH, w * 0.07, epH, w * 0.02); ctx.fill();
+    roundRect(ctx, wW / 2 - w * 0.04, wY - epH, w * 0.07, epH, w * 0.02); ctx.fill();
+    if (lv >= 2) {
+      ctx.fillStyle = accent; ctx.globalAlpha = 0.8;
+      ctx.fillRect(-wW / 2 - w * 0.03, wY - epH * 0.72, w * 0.07, Math.max(1, epH * 0.16));
+      ctx.fillRect(wW / 2 - w * 0.04, wY - epH * 0.72, w * 0.07, Math.max(1, epH * 0.16));
+      ctx.globalAlpha = 1;
+    }
+    // 主翼面
+    var planeH = Math.max(2, h * (0.09 + lv * 0.012));
+    var gW = ctx.createLinearGradient(0, wY - planeH, 0, wY);
+    gW.addColorStop(0, shade(body, 30)); gW.addColorStop(1, shade(body, -18));
+    ctx.fillStyle = gW;
+    roundRect(ctx, -wW / 2, wY - planeH, wW, planeH, planeH * 0.4); ctx.fill();
+    // 上层襟翼（DRS）
+    if (lv >= 1) {
+      var flapH = Math.max(1.5, planeH * 0.6);
+      ctx.fillStyle = shade(body, lv >= 3 ? -40 : -6);
+      roundRect(ctx, -wW / 2, wY - planeH - flapH - Math.max(1, h * 0.015), wW, flapH, flapH * 0.4); ctx.fill();
+    }
+    if (lv >= 3) {
+      // DRS 中缝高光
+      ctx.fillStyle = accent; ctx.globalAlpha = 0.9;
+      ctx.fillRect(-wW * 0.44, wY - planeH * 1.05, wW * 0.88, Math.max(1, planeH * 0.14));
+      ctx.globalAlpha = 1;
+    }
+
+    /* ===== 侧箱 / 引擎盖 ===== */
+    var bw = w * S.bodyW;
+    var gB = ctx.createLinearGradient(0, -h * 0.80, 0, -h * 0.18);
+    gB.addColorStop(0, shade(body, 30)); gB.addColorStop(1, shade(body, -28));
+    ctx.beginPath();
+    ctx.moveTo(-bw * 0.46, -h * 0.76);
+    ctx.lineTo(bw * 0.46, -h * 0.76);
+    ctx.lineTo(bw * 0.62, -h * 0.26);
+    ctx.quadraticCurveTo(bw * 0.62, -h * 0.16, bw * 0.48, -h * 0.16);
+    ctx.lineTo(-bw * 0.48, -h * 0.16);
+    ctx.quadraticCurveTo(-bw * 0.62, -h * 0.16, -bw * 0.62, -h * 0.26);
+    ctx.closePath();
+    ctx.fillStyle = gB; ctx.fill();
+
+    // 涂装花纹（裁剪到车身）
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-bw * 0.46, -h * 0.76); ctx.lineTo(bw * 0.46, -h * 0.76);
+    ctx.lineTo(bw * 0.62, -h * 0.26);
+    ctx.quadraticCurveTo(bw * 0.62, -h * 0.16, bw * 0.48, -h * 0.16);
+    ctx.lineTo(-bw * 0.48, -h * 0.16);
+    ctx.quadraticCurveTo(-bw * 0.62, -h * 0.16, -bw * 0.62, -h * 0.26);
+    ctx.closePath(); ctx.clip();
+    drawPattern(ctx, L.pattern, bw * 1.2, h, L);
+    ctx.restore();
+
+    // 鲨鱼鳍（引擎盖背鳍）
+    ctx.fillStyle = shade(body, -42);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.035, -h * 0.78);
+    ctx.lineTo(w * 0.035, -h * 0.78);
+    ctx.lineTo(w * 0.05, -h * (0.62 + 0.30 * S.fin));
+    ctx.lineTo(-w * 0.05, -h * (0.62 + 0.30 * S.fin));
+    ctx.closePath(); ctx.fill();
+
+    /* ===== 座舱：进气口 / 头盔 / Halo ===== */
+    // 防滚架进气口
+    ctx.fillStyle = '#111319';
+    roundRect(ctx, -w * 0.13, -h * 1.00, w * 0.26, h * 0.24, w * 0.06); ctx.fill();
+    ctx.fillStyle = glass;
+    roundRect(ctx, -w * 0.09, -h * 0.97, w * 0.18, h * 0.13, w * 0.04); ctx.fill();
+    // 车手头盔
+    ctx.fillStyle = '#f2f5f8';
+    ctx.beginPath(); ctx.arc(0, -h * 1.03, w * 0.085, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = 'rgba(30,40,60,.55)';
+    ctx.beginPath(); ctx.arc(0, -h * 1.045, w * 0.062, 0, 6.2832); ctx.fill();
+    // Halo 保护架
+    ctx.strokeStyle = '#2b2f3a'; ctx.lineWidth = Math.max(1, w * 0.022);
+    ctx.beginPath(); ctx.arc(0, -h * 1.05, w * 0.135, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+
+    // 后视镜
+    ctx.fillStyle = shade(body, -40);
+    roundRect(ctx, -bw * 0.78, -h * 0.66, w * 0.07, h * 0.07, w * 0.02); ctx.fill();
+    roundRect(ctx, bw * 0.71, -h * 0.66, w * 0.07, h * 0.07, w * 0.02); ctx.fill();
+
+    /* ===== 尾灯 + 排气 ===== */
+    var blink = o.brake ? 1 : (0.55 + 0.45 * Math.sin(Date.now() / 260));
+    ctx.fillStyle = o.brake ? '#ff2020' : 'rgba(255,60,60,' + (0.35 + blink * 0.5).toFixed(2) + ')';
+    roundRect(ctx, -w * 0.055, -h * 0.60, w * 0.11, h * 0.06, w * 0.02); ctx.fill();
+    if (o.brake) {
+      ctx.globalAlpha = 0.45; ctx.fillStyle = '#ff8080';
+      roundRect(ctx, -w * 0.10, -h * 0.64, w * 0.20, h * 0.14, w * 0.04); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // 中置排气
+    ctx.fillStyle = '#3a3f4c';
+    roundRect(ctx, -w * 0.045, -h * 0.30, w * 0.09, h * 0.07, w * 0.02); ctx.fill();
+
+    /* ===== 氮气 / 加速火焰 ===== */
+    if (o.boost > 0) {
+      var fl = 0.7 + Math.random() * 0.6;
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#7ee0ff';
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.075, -h * 0.26); ctx.lineTo(w * 0.075, -h * 0.26);
+      ctx.lineTo(w * 0.045, h * 0.30 * fl); ctx.lineTo(-w * 0.045, h * 0.30 * fl);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.038, -h * 0.26); ctx.lineTo(w * 0.038, -h * 0.26);
+      ctx.lineTo(w * 0.018, h * 0.17 * fl); ctx.lineTo(-w * 0.018, h * 0.17 * fl);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    /* ===== 护盾 / 受击 ===== */
+    if (o.shield > 0) {
+      ctx.beginPath();
+      ctx.ellipse(0, -h * 0.5, w * 0.76, h * 0.76, 0, 0, 6.2832);
+      ctx.strokeStyle = 'rgba(43,179,255,' + (0.5 + 0.35 * Math.sin(Date.now() / 90)) + ')';
+      ctx.lineWidth = Math.max(1.5, w * 0.07); ctx.stroke();
+      ctx.fillStyle = 'rgba(120,220,255,.16)'; ctx.fill();
+    }
+    if (o.hurt > 0) {
+      ctx.globalAlpha = Math.min(0.7, o.hurt);
+      ctx.fillStyle = '#ff4d5e';
+      roundRect(ctx, -w * 0.54, -h * 1.15, w * 1.08, h * 1.15, w * 0.1); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  };
+  R.drawCar = Render.car;
+
+  /* ---------- 路边景物 ---------- */
+  // 尺寸单位是"半路宽"。赛道加宽 2 倍后这些值全部 ÷2，保证景物真实尺寸不变
+  var PROP_DEF = {
+    tree: { w: 0.31, h: 0.75 }, pine: { w: 0.275, h: 0.95 }, palm: { w: 0.35, h: 1.0 },
+    building: { w: 0.55, h: 1.2 }, neon: { w: 0.4, h: 1.1 }, lamp: { w: 0.11, h: 0.75 },
+    rock: { w: 0.25, h: 0.21 }, cone: { w: 0.11, h: 0.21 }, sign: { w: 0.275, h: 0.425 },
+    buoy: { w: 0.12, h: 0.35 }, snowman: { w: 0.225, h: 0.425 }, flag: { w: 0.17, h: 0.5 },
+    box: { w: 0.21, h: 0.21 }, banana: { w: 0.11, h: 0.11 },
+    house: { w: 0.45, h: 0.85 }, crowd: { w: 0.075, h: 0.17 },
+    cactus: { w: 0.21, h: 0.625 }, boulder: { w: 0.31, h: 0.275 }, ruin: { w: 0.5, h: 0.8 },
+    missile: { w: 0.14, h: 0.14 }, skid: { w: 0.07, h: 0.07 }
+  };
+  R.PROP_DEF = PROP_DEF;
+
+  var CROWD_COLORS = ['#ff6a2b', '#2bb3ff', '#ffd23f', '#3ddc84', '#ff7ab0', '#a98cff', '#ffffff'];
+  // 动态物件的透明度（拖痕需要淡入淡出）
+  var _dynAlpha = 1;
+
+  Render.prop = function (ctx, type, x, y, w, h, th, seedIdx) {
+    var c = th.propColor || {};
+    var s = Math.abs(seedIdx || 0) % 3;
+    switch (type) {
+      case 'tree': {
+        ctx.fillStyle = shade(c.trunk || '#8a5a3b', -18);
+        ctx.fillRect(x - w * 0.09, y - h * 0.45, w * 0.18, h * 0.45);
+        ctx.fillStyle = c.trunk || '#8a5a3b';
+        ctx.fillRect(x - w * 0.06, y - h * 0.45, w * 0.06, h * 0.45);
+        var tc = s === 0 ? (c.tree || '#3f9e46') : (s === 1 ? shade(c.tree || '#3f9e46', 16) : shade(c.tree || '#3f9e46', -14));
+        ctx.fillStyle = shade(tc, -22);
+        ctx.beginPath(); ctx.arc(x, y - h * 0.60, w * 0.46, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = tc;
+        ctx.beginPath(); ctx.arc(x - w * 0.28, y - h * 0.44, w * 0.30, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + w * 0.29, y - h * 0.47, w * 0.33, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.22)';
+        ctx.beginPath(); ctx.arc(x - w * 0.12, y - h * 0.74, w * 0.22, 0, 6.2832); ctx.fill();
+        break;
+      }
+      case 'pine': {
+        ctx.fillStyle = c.trunk || '#7a4f2f';
+        ctx.fillRect(x - w * 0.07, y - h * 0.3, w * 0.14, h * 0.3);
+        var pc = s === 1 ? shade(c.tree || '#2e7d5b', 18) : (c.tree || '#2e7d5b');
+        for (var i = 0; i < 3; i++) {
+          var ty = y - h * (0.26 + i * 0.25), tw = w * (0.5 - i * 0.11);
+          ctx.fillStyle = i === 2 ? pc : shade(pc, -16);
+          ctx.beginPath(); ctx.moveTo(x, ty - h * 0.32); ctx.lineTo(x - tw, ty); ctx.lineTo(x + tw, ty); ctx.closePath(); ctx.fill();
+        }
+        break;
+      }
+      case 'palm': {
+        ctx.strokeStyle = c.trunk || '#a8763f'; ctx.lineWidth = Math.max(1, w * 0.10);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x - w * 0.12, y - h * 0.5, x + w * 0.06, y - h * 0.78); ctx.stroke();
+        ctx.fillStyle = c.tree || '#3fbf7f';
+        for (var f = 0; f < 5; f++) {
+          var a = Math.PI * (0.15 + f * 0.18);
+          ctx.beginPath();
+          ctx.moveTo(x + w * 0.06, y - h * 0.78);
+          ctx.quadraticCurveTo(x + w * 0.06 + Math.cos(a) * w * 0.5, y - h * 0.78 - Math.sin(a) * h * 0.14,
+            x + w * 0.06 + Math.cos(a) * w * 0.86, y - h * 0.78 + Math.sin(a) * h * 0.06);
+          ctx.quadraticCurveTo(x + w * 0.06 + Math.cos(a) * w * 0.5, y - h * 0.76, x + w * 0.06, y - h * 0.74);
+          ctx.closePath(); ctx.fill();
+        }
+        break;
+      }
+      case 'house': {
+        // 带坡屋顶的小楼
+        var hw = w, hh = h * 0.62;
+        ctx.fillStyle = shade(c.building || '#e7dcc8', -14);
+        ctx.fillRect(x - hw / 2, y - hh, hw, hh);
+        ctx.fillStyle = c.building || '#e7dcc8';
+        ctx.fillRect(x - hw / 2, y - hh, hw * 0.72, hh);
+        ctx.fillStyle = '#b2513a';
+        ctx.beginPath();
+        ctx.moveTo(x - hw * 0.58, y - hh);
+        ctx.lineTo(x, y - h);
+        ctx.lineTo(x + hw * 0.58, y - hh);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.22)';
+        ctx.beginPath();
+        ctx.moveTo(x - hw * 0.58, y - hh); ctx.lineTo(x, y - h); ctx.lineTo(x - hw * 0.1, y - h * 0.98);
+        ctx.closePath(); ctx.fill();
+        // 窗与门
+        ctx.fillStyle = th.night ? '#ffd66b' : 'rgba(150,190,220,.85)';
+        ctx.fillRect(x - hw * 0.34, y - hh * 0.82, hw * 0.22, hh * 0.26);
+        ctx.fillRect(x + hw * 0.12, y - hh * 0.82, hw * 0.22, hh * 0.26);
+        ctx.fillStyle = 'rgba(255,255,255,.4)';
+        ctx.fillRect(x - hw * 0.34, y - hh * 0.82, hw * 0.22, hh * 0.06);
+        ctx.fillStyle = '#6b4a34';
+        ctx.fillRect(x - hw * 0.09, y - hh * 0.44, hw * 0.18, hh * 0.44);
+        break;
+      }
+      case 'building':
+      case 'neon': {
+        var bw = w, bh = h;
+        ctx.fillStyle = shade(c.building || '#cfd8e3', -18);
+        ctx.fillRect(x - bw / 2, y - bh, bw, bh);
+        ctx.fillStyle = c.building || '#cfd8e3';
+        ctx.fillRect(x - bw / 2, y - bh, bw * 0.78, bh);
+        ctx.fillStyle = 'rgba(255,255,255,.16)';
+        ctx.fillRect(x - bw / 2, y - bh, bw * 0.12, bh);
+        ctx.fillStyle = shade(c.building || '#cfd8e3', -34);
+        ctx.fillRect(x - bw * 0.52, y - bh * 1.04, bw * 1.04, bh * 0.05);
+        var cols = 3, rows = Math.max(2, Math.floor(bh / (w * 0.34)));
+        for (var r = 0; r < rows; r++) {
+          for (var cc = 0; cc < cols; cc++) {
+            var lit = th.night ? ((r * 7 + cc * 3 + s) % 3 !== 0) : ((r + cc + s) % 4 === 0);
+            ctx.fillStyle = lit ? (th.night ? '#ffd66b' : 'rgba(255,255,255,.78)') : (th.night ? 'rgba(60,80,120,.7)' : 'rgba(90,120,150,.42)');
+            var wx = x - bw * 0.36 + cc * bw * 0.26, wy = y - bh + bh * 0.10 + r * (bh * 0.84 / rows);
+            ctx.fillRect(wx, wy, bw * 0.16, bh * 0.5 / rows);
+            ctx.fillStyle = 'rgba(0,0,0,.18)';
+            ctx.fillRect(wx + bw * 0.07, wy, bw * 0.02, bh * 0.5 / rows);
+          }
+        }
+        // 底层商铺
+        ctx.fillStyle = 'rgba(40,60,90,.35)';
+        ctx.fillRect(x - bw * 0.42, y - bh * 0.16, bw * 0.84, bh * 0.16);
+        if (type === 'neon') {
+          ctx.fillStyle = (s === 0 ? '#ff4d8d' : (s === 1 ? '#2bb3ff' : '#ffd23f'));
+          ctx.fillRect(x - bw * 0.5, y - bh * 0.92, bw, Math.max(1.5, bh * 0.06));
+          ctx.fillRect(x - bw * 0.5, y - bh * 0.30, bw * 0.3, Math.max(1.5, bh * 0.04));
+        }
+        break;
+      }
+      case 'lamp': {
+        ctx.fillStyle = c.lamp || '#9aa7b5';
+        ctx.fillRect(x - w * 0.14, y - h, w * 0.28, h);
+        ctx.fillStyle = shade(c.lamp || '#9aa7b5', -30);
+        ctx.fillRect(x - w * 0.30, y - h, w * 0.42, Math.max(1, h * 0.05));
+        ctx.beginPath(); ctx.arc(x - w * 0.28, y - h, w * 0.42, 0, 6.2832);
+        ctx.fillStyle = th.night ? '#ffe9a8' : '#f2f6fa'; ctx.fill();
+        if (th.night) {
+          ctx.globalAlpha = 0.26; ctx.beginPath(); ctx.arc(x - w * 0.28, y - h, w * 1.4, 0, 6.2832);
+          ctx.fillStyle = '#ffe9a8'; ctx.fill(); ctx.globalAlpha = 1;
+        }
+        break;
+      }
+      case 'rock': {
+        ctx.fillStyle = '#8d98a4';
+        ctx.beginPath(); ctx.ellipse(x, y - h * 0.4, w * 0.5, h * 0.45, 0, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = '#a7b1bb';
+        ctx.beginPath(); ctx.ellipse(x - w * 0.14, y - h * 0.56, w * 0.26, h * 0.24, -0.3, 0, 6.2832); ctx.fill();
+        break;
+      }
+      case 'boulder': {
+        ctx.fillStyle = '#9c7b52';
+        ctx.beginPath();
+        ctx.moveTo(x - w * 0.5, y);
+        ctx.lineTo(x - w * 0.34, y - h * 0.9);
+        ctx.lineTo(x + w * 0.10, y - h);
+        ctx.lineTo(x + w * 0.50, y - h * 0.45);
+        ctx.lineTo(x + w * 0.42, y);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.25)';
+        ctx.beginPath();
+        ctx.moveTo(x - w * 0.34, y - h * 0.9); ctx.lineTo(x + w * 0.10, y - h); ctx.lineTo(x - w * 0.02, y - h * 0.5);
+        ctx.closePath(); ctx.fill();
+        break;
+      }
+      case 'cactus': {
+        ctx.fillStyle = '#4e9c46';
+        roundRect(ctx, x - w * 0.16, y - h * 0.86, w * 0.32, h * 0.86, w * 0.14); ctx.fill();
+        ctx.fillStyle = '#43913d';
+        roundRect(ctx, x - w * 0.42, y - h * 0.60, w * 0.26, h * 0.16, w * 0.08); ctx.fill();
+        ctx.fillRect(x - w * 0.40, y - h * 0.62, w * 0.18, h * 0.34);
+        roundRect(ctx, x + w * 0.18, y - h * 0.72, w * 0.24, h * 0.14, w * 0.07); ctx.fill();
+        ctx.fillRect(x + w * 0.22, y - h * 0.74, w * 0.16, h * 0.42);
+        ctx.fillStyle = 'rgba(255,255,255,.20)';
+        ctx.fillRect(x - w * 0.10, y - h * 0.82, w * 0.06, h * 0.78);
+        break;
+      }
+      case 'ruin': {
+        ctx.fillStyle = '#c8a273';
+        ctx.fillRect(x - w * 0.5, y - h * 0.62, w, h * 0.62);
+        ctx.fillStyle = '#b8905f';
+        ctx.fillRect(x - w * 0.5, y - h, w * 0.22, h);
+        ctx.fillRect(x + w * 0.28, y - h * 0.86, w * 0.22, h * 0.86);
+        ctx.fillStyle = 'rgba(0,0,0,.22)';
+        ctx.fillRect(x - w * 0.18, y - h * 0.5, w * 0.36, h * 0.5);
+        ctx.fillStyle = '#a9835b';
+        ctx.fillRect(x - w * 0.52, y - h * 0.66, w * 1.04, h * 0.06);
+        break;
+      }
+      case 'crowd': {
+        var t = Date.now() / 300 + (seedIdx || 0);
+        var bob = Math.sin(t) * h * 0.04;
+        var col = CROWD_COLORS[(seedIdx || 0) % CROWD_COLORS.length];
+        ctx.save();
+        ctx.translate(x, y + bob);
+        // 身体
+        ctx.fillStyle = col;
+        roundRect(ctx, -w * 0.40, -h * 0.62, w * 0.80, h * 0.62, w * 0.22); ctx.fill();
+        // 头
+        ctx.fillStyle = '#f7d5b0';
+        ctx.beginPath(); ctx.arc(0, -h * 0.76, w * 0.30, 0, 6.2832); ctx.fill();
+        // 帽子
+        ctx.fillStyle = shade(col, -40);
+        ctx.beginPath(); ctx.arc(0, -h * 0.80, w * 0.32, Math.PI, 0); ctx.fill();
+        ctx.fillRect(-w * 0.36, -h * 0.81, w * 0.72, h * 0.04);
+        // 手臂（欢呼）
+        var up = Math.sin(t * 1.4) > 0;
+        ctx.strokeStyle = '#f7d5b0'; ctx.lineWidth = Math.max(1, w * 0.16);
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.34, -h * 0.48);
+        ctx.lineTo(-w * (up ? 0.58 : 0.30), -h * (up ? 0.92 : 0.24));
+        ctx.moveTo(w * 0.34, -h * 0.48);
+        ctx.lineTo(w * (up ? 0.58 : 0.30), -h * (up ? 0.92 : 0.24));
+        ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case 'cone': {
+        ctx.fillStyle = '#ff7a2b';
+        ctx.beginPath(); ctx.moveTo(x, y - h); ctx.lineTo(x - w * 0.5, y); ctx.lineTo(x + w * 0.5, y); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x - w * 0.28, y - h * 0.55, w * 0.56, h * 0.16);
+        break;
+      }
+      case 'sign': {
+        ctx.fillStyle = '#8b96a3'; ctx.fillRect(x - w * 0.06, y - h, w * 0.12, h);
+        ctx.fillStyle = s === 0 ? '#ff6a2b' : (s === 1 ? '#2bb3ff' : '#ffd23f');
+        roundRect(ctx, x - w * 0.5, y - h, w, h * 0.42, w * 0.1); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.8)';
+        ctx.fillRect(x - w * 0.36, y - h * 0.86, w * 0.72, Math.max(1, h * 0.08));
+        break;
+      }
+      case 'buoy': {
+        ctx.fillStyle = '#e14b4b';
+        ctx.beginPath(); ctx.arc(x, y - h, w * 0.5, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(x - w * 0.5, y - h * 0.85, w, h * 0.2);
+        break;
+      }
+      case 'snowman': {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(x, y - h * 0.28, w * 0.5, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y - h * 0.72, w * 0.36, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = '#e14b4b'; ctx.fillRect(x - w * 0.3, y - h * 0.78, w * 0.6, h * 0.1);
+        ctx.fillStyle = '#2b2f45';
+        ctx.beginPath(); ctx.arc(x - w * 0.12, y - h * 0.76, w * 0.06, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + w * 0.12, y - h * 0.76, w * 0.06, 0, 6.2832); ctx.fill();
+        break;
+      }
+      case 'flag': {
+        ctx.fillStyle = '#c3ccd6'; ctx.fillRect(x - w * 0.10, y - h, w * 0.2, h);
+        ctx.fillStyle = '#8b96a3'; ctx.fillRect(x - w * 0.22, y - h * 0.06, w * 0.44, h * 0.06);
+        ctx.fillStyle = s === 0 ? '#ff6a2b' : '#2bb3ff';
+        ctx.beginPath(); ctx.moveTo(x + w * 0.08, y - h); ctx.lineTo(x + w * 0.7, y - h * 0.86);
+        ctx.lineTo(x + w * 0.08, y - h * 0.7); ctx.closePath(); ctx.fill();
+        break;
+      }
+      case 'box': {
+        var t2 = Date.now() / 420;
+        var sq = Math.abs(Math.cos(t2)) * 0.7 + 0.3;
+        ctx.save(); ctx.translate(x, y);
+        ctx.rotate(t2 * 0.8);
+        var bw2 = w * sq;
+        ctx.fillStyle = 'rgba(255,255,255,.9)';
+        roundRect(ctx, -bw2 / 2, -bw2 / 2, bw2, bw2, bw2 * 0.2); ctx.fill();
+        ctx.fillStyle = ['#ff6a2b', '#2bb3ff', '#ffd23f', '#a98cff'][s % 4];
+        roundRect(ctx, -bw2 * 0.32, -bw2 * 0.32, bw2 * 0.64, bw2 * 0.64, bw2 * 0.16); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, w * 0.06);
+        roundRect(ctx, -bw2 / 2, -bw2 / 2, bw2, bw2, bw2 * 0.2); ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case 'banana': {
+        ctx.fillStyle = '#ffd23f';
+        ctx.beginPath();
+        ctx.ellipse(x, y - h * 0.4, w * 0.5, h * 0.4, 0.3, 0, 6.2832); ctx.fill();
+        ctx.strokeStyle = '#c99a10'; ctx.lineWidth = Math.max(1, w * 0.1); ctx.stroke();
+        break;
+      }
+      case 'missile': {
+        ctx.save(); ctx.translate(x, y - h * 1.4);
+        // 尾焰
+        ctx.fillStyle = 'rgba(255,180,60,.9)';
+        ctx.beginPath(); ctx.moveTo(-w * 0.16, h * 0.3); ctx.lineTo(w * 0.16, h * 0.3);
+        ctx.lineTo(0, h * 1.0); ctx.closePath(); ctx.fill();
+        // 弹体
+        ctx.fillStyle = '#e9edf2';
+        roundRect(ctx, -w * 0.20, -h * 0.9, w * 0.40, h * 1.2, w * 0.12); ctx.fill();
+        ctx.fillStyle = '#ff4d5e';
+        ctx.beginPath(); ctx.moveTo(-w * 0.20, -h * 0.9); ctx.lineTo(w * 0.20, -h * 0.9);
+        ctx.lineTo(0, -h * 1.4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#3a4150';
+        ctx.fillRect(-w * 0.20, -h * 0.2, w * 0.40, Math.max(1, h * 0.14));
+        ctx.restore();
+        break;
+      }
+      case 'skid': {
+        ctx.save();
+        ctx.fillStyle = 'rgba(38,40,52,' + (0.34 * _dynAlpha).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.ellipse(x, y, w * 0.5, Math.max(1, w * 0.16), 0, 0, 6.2832);
+        ctx.fill();
+        ctx.restore();
+        break;
+      }
+    }
+  };
+
+  /* ---------- 主渲染 ---------- */
+  Render.render = function (ctx, track, cam) {
+    var W = cam.w, H = cam.h, segs = track.segments, N = segs.length;
+    var th = track.colors, camDepth = Render.camDepth;
+    var drawDist = cam.drawDist || CFG.DRAW_DIST;
+    var baseIdx = Math.floor(cam.z / SEG);
+    var startIdx = ((baseIdx % N) + N) % N;
+    var baseSeg = segs[startIdx];
+    var basePct = (cam.z % SEG) / SEG;
+    var camY = cam.y;
+    var maxy = H;
+    var x = 0, dx = -(baseSeg.curve * basePct);
+
+    Render.sky(ctx, W, H, track, cam);
+
+    var n, seg;
+    for (n = 0; n < drawDist; n++) {
+      var sIdx = (startIdx + n) % N;
+      seg = segs[sIdx];
+      seg.looped = sIdx < startIdx;   // 环绕到起点的段属于下一圈
+      seg.fog = Math.exp(-CFG.FOG_DENSITY * Math.pow(n / drawDist, 3));
+      seg.clip = maxy;
+      var cz = cam.z - (seg.looped ? track.length : 0);
+      project(seg.p1, cam.x * ROAD_W - x, camY, cz, camDepth, W, H, ROAD_W);
+      project(seg.p2, cam.x * ROAD_W - x - dx, camY, cz, camDepth, W, H, ROAD_W);
+      x += dx; dx += seg.curve;
+      seg.visible = false;
+      if (seg.p1.camera.z <= camDepth) continue;
+      if (seg.p2.screen.y >= seg.p1.screen.y) continue;
+      if (seg.p2.screen.y >= maxy) continue;
+      if (seg.p1.screen.y - seg.p2.screen.y < 0.4 && n > 30) continue;
+      seg.visible = true;
+      Render.segment(ctx, W, 4,
+        seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w,
+        seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w,
+        seg.fog, seg, th);
+      maxy = seg.p2.screen.y;
+    }
+
+    // 由远及近绘制景物与车辆
+    for (n = drawDist - 1; n >= 0; n--) {
+      seg = segs[(startIdx + n) % N];
+      if (!seg.visible) continue;
+      var clipY = seg.clip;
+      var i, sp;
+      // 护栏
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, W, Math.max(0, clipY)); ctx.clip();
+      if (seg.fog < 1) ctx.globalAlpha = Math.max(0, seg.fog);
+      Render.rail(ctx, W, seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w,
+        seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w, seg, th);
+      ctx.restore();
+      // 静态景物
+      for (i = 0; i < seg.sprites.length; i++) {
+        sp = seg.sprites[i];
+        if (sp.type === 'crowd' && sp.hit) continue;
+        var d = PROP_DEF[sp.type] || PROP_DEF.tree;
+        var sw = d.w * seg.p1.screen.w * sp.scale;
+        var sh = d.h * seg.p1.screen.w * sp.scale;
+        if (sw < 1.2) continue;
+        // 靠近镜头时平滑淡出，避免路人/建筑巨大穿帮
+        var fade = 1;
+        if (sh > H * 0.80) fade = Math.max(0, 1 - (sh - H * 0.80) / (H * 0.25));
+        if (fade <= 0.01) continue;
+        var sx = seg.p1.screen.x + seg.p1.screen.w * sp.offset;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, Math.max(0, clipY)); ctx.clip();
+        ctx.globalAlpha = fade * (seg.fog < 1 ? Math.max(0, seg.fog) : 1);
+        Render.prop(ctx, sp.type, sx, seg.p1.screen.y, sw, sh, th, sp.seed != null ? sp.seed : (sp.offset * 100 | 0));
+        ctx.restore();
+      }
+      // 动态物件（拖痕 / 香蕉皮 / 导弹）
+      for (i = 0; i < seg.dyn.length; i++) {
+        sp = seg.dyn[i];
+        var d2 = PROP_DEF[sp.type] || PROP_DEF.banana;
+        var sw2 = d2.w * seg.p1.screen.w * (sp.scale || 1);
+        var sh2 = d2.h * seg.p1.screen.w * (sp.scale || 1);
+        if (sw2 < 1) continue;
+        _dynAlpha = sp.a != null ? Math.max(0, Math.min(1, sp.a)) : 1;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, Math.max(0, clipY)); ctx.clip();
+        if (sp.a != null) ctx.globalAlpha = Math.max(0, Math.min(1, sp.a * (seg.fog)));
+        else if (seg.fog < 1) ctx.globalAlpha = Math.max(0, seg.fog);
+        Render.prop(ctx, sp.type, seg.p1.screen.x + seg.p1.screen.w * sp.offset,
+          seg.p1.screen.y, sw2, sh2, th, i);
+        ctx.restore();
+      }
+      // 道具盒
+      if (seg.items && seg.itemT <= 0 && !seg.itemHidden) {
+        for (i = 0; i < seg.items.length; i++) {
+          var bw3 = PROP_DEF.box.w * seg.p1.screen.w * 1.5;
+          if (bw3 < 1.5) continue;
+          ctx.save();
+          ctx.beginPath(); ctx.rect(0, 0, W, Math.max(0, clipY)); ctx.clip();
+          Render.prop(ctx, 'box', seg.p1.screen.x + seg.p1.screen.w * seg.items[i],
+            seg.p1.screen.y - seg.p1.screen.w * 0.8, bw3, bw3, th, i);
+          ctx.restore();
+        }
+      }
+      // 车辆
+      for (i = 0; i < seg.cars.length; i++) {
+        var car = seg.cars[i];
+        var nz = ((car.z % SEG) + SEG) % SEG;
+        var pct = nz / SEG;
+        var sx1 = seg.p1.screen.x, sy1 = seg.p1.screen.y, sw1 = seg.p1.screen.w;
+        var sx2 = seg.p2.screen.x, sy2 = seg.p2.screen.y, sw2b = seg.p2.screen.w;
+        var cxp = lerp(sx1, sx2, pct) + lerp(sw1, sw2b, pct) * car.x;
+        var cyp = lerp(sy1, sy2, pct);
+        var cw = CFG.CAR_W * lerp(sw1, sw2b, pct);
+        if (cw < 1.2) continue;
+        car._sx = cxp; car._sy = cyp; car._sw = cw;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(0, 0, W, Math.max(0, clipY)); ctx.clip();
+        if (seg.fog < 1) ctx.globalAlpha = Math.min(1, seg.fog + 0.25);
+        Render.car(ctx, {
+          x: cxp, y: cyp, w: cw, h: cw * 0.72, def: car.def, look: car.look,
+          yaw: car.yaw || 0, spin: car.spinAng || 0, air: car.air || 0,
+          boost: car.boosting ? 1 : 0, shield: car.shieldT || 0, brake: car.braking, hurt: car.hurtT || 0
+        });
+        ctx.restore();
+      }
+    }
+  };
+
+  R.Render = Render;
+
+  /* ---------- 车库预览：F1 方程式侧视 ---------- */
+  R.drawCarPreview = function (ctx, def, W, H, t, look) {
+    ctx.clearRect(0, 0, W, H);
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(20,60,110,.12)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    var L = look || { body: def.body, accent: def.accent, glass: def.glass, pattern: 'none', shape: def.shape, wing: 0 };
+    var body = L.body, accent = L.accent, glass = L.glass;
+    var lv = L.wing || 0;
+    var cx = W / 2, cy = H * 0.72, s = Math.min(W / 320, H / 190);
+    var bw = 250 * s;                 // 车长（侧向）
+    var bh = 62 * s;                  // 参考高度
+
+    ctx.save(); ctx.translate(cx, cy);
+    // 影子
+    ctx.beginPath(); ctx.ellipse(0, 8 * s, bw * 0.52, bh * 0.20, 0, 0, 6.2832);
+    ctx.fillStyle = 'rgba(20,50,90,.20)'; ctx.fill();
+
+    var fw = -bw * 0.40, rw = bw * 0.36;      // 前轮心 / 后轮心
+    var tw = bw * 0.20, th = bh * 0.86;       // 轮径
+
+    function wheel(wx, ww) {
+      var gg = ctx.createLinearGradient(0, wx && 0, 0, 0);
+      ctx.fillStyle = '#15161d';
+      roundRect(ctx, wx - ww / 2, -th, ww, th, ww * 0.22); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      roundRect(ctx, wx - ww * 0.40, -th * 0.88, ww * 0.16, th * 0.78, ww * 0.06); ctx.fill();
+      ctx.fillStyle = '#c8cfd8';
+      ctx.beginPath(); ctx.arc(wx, -th * 0.5, ww * 0.24, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = accent;
+      ctx.beginPath(); ctx.arc(wx, -th * 0.5, ww * 0.11, 0, 6.2832); ctx.fill();
+    }
+
+    /* ===== 尾翼（车尾，右侧） ===== */
+    var wW = bh * (0.86 + lv * 0.10), wY = -bh * (1.30 + lv * 0.06);
+    ctx.fillStyle = R.shade(body, -46);
+    ctx.fillRect(rw + bw * 0.06, wY, Math.max(2, bw * 0.02), -wY - bh * 0.42);
+    ctx.fillStyle = lv >= 3 ? '#1e2029' : R.shade(body, -30);
+    roundRect(ctx, rw + bw * 0.02, wY - bh * (0.34 + lv * 0.05), Math.max(2, bw * 0.03), bh * (0.44 + lv * 0.06), 2); ctx.fill();
+    ctx.fillStyle = R.shade(body, 18);
+    roundRect(ctx, rw - bw * 0.04, wY - bh * 0.10, wW, Math.max(2, bh * 0.11), 3); ctx.fill();
+    if (lv >= 1) {
+      ctx.fillStyle = R.shade(body, -14);
+      roundRect(ctx, rw - bw * 0.04, wY - bh * 0.22, wW, Math.max(1.5, bh * 0.07), 2); ctx.fill();
+    }
+    if (lv >= 3) {
+      ctx.fillStyle = accent;
+      ctx.fillRect(rw - bw * 0.02, wY - bh * 0.10, wW * 0.8, Math.max(1, bh * 0.02));
+    }
+
+    /* ===== 前翼（车头，左侧） ===== */
+    ctx.fillStyle = R.shade(body, -34);
+    roundRect(ctx, fw - bw * 0.20, -bh * 0.34, bw * 0.24, Math.max(2, bh * 0.10), 3); ctx.fill();
+    ctx.fillStyle = R.shade(body, 10);
+    roundRect(ctx, fw - bw * 0.17, -bh * 0.26, bw * 0.20, Math.max(1.5, bh * 0.06), 2); ctx.fill();
+    ctx.fillStyle = R.shade(body, -50);
+    roundRect(ctx, fw - bw * 0.21, -bh * 0.44, Math.max(2, bw * 0.03), bh * 0.20, 2); ctx.fill();
+
+    /* ===== 单体壳 / 侧箱 ===== */
+    var g2 = ctx.createLinearGradient(0, -bh * 0.85, 0, bh * 0.1);
+    g2.addColorStop(0, R.shade(body, 40)); g2.addColorStop(1, R.shade(body, -34));
+    ctx.beginPath();
+    ctx.moveTo(fw - bw * 0.06, -bh * 0.30);
+    ctx.lineTo(fw + bw * 0.16, -bh * 0.52);
+    ctx.lineTo(bw * 0.02, -bh * 0.60);
+    ctx.lineTo(rw + bw * 0.10, -bh * 0.56);
+    ctx.lineTo(rw + bw * 0.16, -bh * 0.26);
+    ctx.lineTo(bw * 0.02, -bh * 0.10);
+    ctx.lineTo(fw + bw * 0.10, -bh * 0.12);
+    ctx.closePath();
+    ctx.fillStyle = g2; ctx.fill();
+
+    // 涂装
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(fw - bw * 0.06, -bh * 0.30);
+    ctx.lineTo(fw + bw * 0.16, -bh * 0.52);
+    ctx.lineTo(bw * 0.02, -bh * 0.60);
+    ctx.lineTo(rw + bw * 0.10, -bh * 0.56);
+    ctx.lineTo(rw + bw * 0.16, -bh * 0.26);
+    ctx.lineTo(bw * 0.02, -bh * 0.10);
+    ctx.lineTo(fw + bw * 0.10, -bh * 0.12);
+    ctx.closePath(); ctx.clip();
+    drawPattern(ctx, L.pattern, bw, bh * 1.6, L);
+    ctx.restore();
+
+    // 侧箱进气口
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    roundRect(ctx, fw + bw * 0.16, -bh * 0.46, bw * 0.12, bh * 0.16, 3); ctx.fill();
+    // 赞助商腰线
+    ctx.fillStyle = accent;
+    roundRect(ctx, fw + bw * 0.02, -bh * 0.34, bw * 0.60, bh * 0.07, 3); ctx.fill();
+
+    /* ===== 座舱：进气口 / 头盔 / Halo ===== */
+    ctx.fillStyle = glass;
+    ctx.beginPath();
+    ctx.moveTo(bw * 0.00, -bh * 0.60); ctx.lineTo(bw * 0.10, -bh * 0.98);
+    ctx.lineTo(bw * 0.24, -bh * 0.98); ctx.lineTo(bw * 0.28, -bh * 0.58);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    ctx.beginPath();
+    ctx.moveTo(bw * 0.04, -bh * 0.64); ctx.lineTo(bw * 0.12, -bh * 0.94);
+    ctx.lineTo(bw * 0.17, -bh * 0.94); ctx.lineTo(bw * 0.10, -bh * 0.62);
+    ctx.closePath(); ctx.fill();
+    // 头盔
+    ctx.fillStyle = '#f2f5f8';
+    ctx.beginPath(); ctx.arc(bw * 0.16, -bh * 1.00, bh * 0.19, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = 'rgba(30,40,60,.5)';
+    ctx.beginPath(); ctx.arc(bw * 0.19, -bh * 1.02, bh * 0.12, 0, 6.2832); ctx.fill();
+    // Halo
+    ctx.strokeStyle = '#2b2f3a'; ctx.lineWidth = Math.max(1.2, bh * 0.05);
+    ctx.beginPath(); ctx.arc(bw * 0.15, -bh * 1.00, bh * 0.26, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+    // 引擎盖背鳍
+    ctx.fillStyle = R.shade(body, -44);
+    ctx.beginPath();
+    ctx.moveTo(bw * 0.26, -bh * 0.58); ctx.lineTo(bw * 0.42, -bh * 0.74);
+    ctx.lineTo(rw + bw * 0.10, -bh * 0.74); ctx.lineTo(rw + bw * 0.10, -bh * 0.56);
+    ctx.closePath(); ctx.fill();
+
+    wheel(fw, tw); wheel(rw, tw * 1.06);
+
+    // 悬浮光环
+    var pulse = 0.5 + 0.5 * Math.sin((t || 0) / 400);
+    ctx.strokeStyle = 'rgba(43,179,255,' + (0.25 + pulse * 0.3) + ')';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, bh * 0.34, bw * 0.48, bh * 0.16, 0, 0, 6.2832); ctx.stroke();
+    ctx.restore();
+  };
+
+})(window.RACER);
+
+
+
+/* =========================================================
+ *  race.js —— 对局核心：物理 / 漂移 / 氮气 / 道具 / AI / 分屏
+ * ========================================================= */
+(function (R) {
+  'use strict';
+  var CFG = R.CFG, SEG = CFG.SEG_LEN;
+  var clamp = R.clamp, lerp = R.lerp;
+
+  function findSeg(track, z) {
+    var segs = track.segments, N = segs.length;
+    var i = Math.floor(z / SEG) % N;
+    return segs[((i % N) + N) % N];
+  }
+  R.findSeg = findSeg;
+
+  // 环形赛道上 a 相对 b 的最短有符号距离
+  function relZ(a, b, L) {
+    var d = a - b;
+    while (d > L / 2) d -= L;
+    while (d < -L / 2) d += L;
+    return d;
+  }
+  R.relZ = relZ;
+
+  /* ==================== 车辆 ==================== */
+  function Car(def, isPlayer, name, opts) {
+    opts = opts || {};
+    this.def = def;
+    this.isPlayer = !!isPlayer;
+    this.playerIndex = opts.playerIndex != null ? opts.playerIndex : (isPlayer ? 0 : -1);
+    this.name = name || '电脑车手';
+    this.parts = opts.parts || R.emptyParts();
+    this.skin = opts.skin || 's0';
+    this.look = R.makeLook(def, this.skin, this.parts);
+    this.bodyColor = this.look.body;
+    this.phy = R.carPhysics(def, this.parts);
+    this.skill = opts.skill || 1;
+    this.baseMax = this.phy.maxSpeed * this.skill;
+
+    this.z = 0; this.x = 0; this.speed = 0;
+    this.yaw = 0; this.aimX = 0;
+    this.steerIn = 0; this.steer = 0;          // 转向输入与实际转向（带迟滞）
+    this.lap = 1; this.progress = 0;
+    this.lapStart = 0; this.bestLap = null; this.lastLap = null;
+    this.finished = false; this.finishTime = null;
+
+    // QQ飞车式漂移状态
+    this.drift = { on: false, dir: 0, ang: 0, t: 0, charge: 0, lvl: 0 };
+    this.driftCount = 0; this.skidT = 0;
+    this.nitroGauge = 0; this.nitroCards = 0; this.nitroT = 0; this.nitroCount = 0;
+    this.miniT = 0; this.miniPow = 1; this.boostT = 0;
+    this.item = null; this.shieldT = 0; this.spinT = 0; this.spinAng = 0; this.hurtT = 0;
+    this.airT = 0; this.air = 0; this.lastSeg = 0;
+    this.braking = false; this.boosting = false;
+    this.aiTimer = 0; this.aiNitroCd = R.rand(1, 4);
+    this.rank = 1;
+    this.lane = isPlayer ? 0 : R.rand(-0.22, 0.22);
+    this.crowdHits = 0; this.crowdCd = 0;
+    this.affect = null;      // 被道具影响的状态（用于对手状态小窗口）
+    this._sx = 0; this._sy = 0; this._sw = 0;
+  }
+
+  /* ==================== 对局 ==================== */
+  function Race(opts) {
+    this.track = opts.track;
+    this.mode = opts.mode || 'ai';         // ai / solo / duo
+    this.diff = opts.diff || 'normal';
+    this.diffCfg = R.DIFF[this.diff] || R.DIFF.normal;
+    this.laps = (this.track.laps || CFG.LAPS);
+    this.onEnd = opts.onEnd || function () { };
+    this.onMsg = opts.onMsg || function () { };
+    this.onFx = opts.onFx || function () { };
+    this.onHud = opts.onHud || function () { };
+
+    this.cars = [];
+    this.players = [];
+    this.bananas = [];
+    this.skids = [];
+    this.missiles = [];
+    this.particles = [];
+    this.hitCrowds = [];
+    this.crowdHits = 0;
+    this.split = !!opts.twoPlayers;
+    this.assist = opts.assist !== false;                     // 转向辅助：自动回正车头
+    var rate = R.levelById(R.ITEM_RATES, opts.itemRate, 2);
+    this.itemKeep = rate.keep;
+    this.itemCd = rate.cd;
+
+    var playerBase0 = R.carPhysics(opts.carDef, opts.parts1).maxSpeed;
+
+    function mkPlayer(def, idx, nm, parts, skin) {
+      var p = new Car(def, true, nm, { playerIndex: idx, parts: parts, skin: skin });
+      return p;
+    }
+    var p1 = mkPlayer(opts.carDef, 0, '玩家1', opts.parts1 || R.emptyParts(), opts.skin1 || 's0');
+    this.players.push(p1); this.cars.push(p1);
+    if (this.split) {
+      var p2 = mkPlayer(opts.car2Def || opts.carDef, 1, '玩家2', opts.parts2 || R.emptyParts(), opts.skin2 || 's0');
+      this.players.push(p2); this.cars.push(p2);
+    }
+    this.player = p1;
+
+    // 注意：aiCount 可能为 0（单人竞速 / 双人 1V1），不能用 `|| 5` 兜底
+    var aiCount = this.mode === 'solo' ? 0 : (opts.aiCount == null ? 5 : Math.max(0, opts.aiCount));
+    var names = R.AI_NAMES.slice();
+    for (var i = 0; i < aiCount; i++) {
+      // 1V1 时玩家可指定对手座驾
+      var cdef = (i === 0 && opts.foeDef) ? opts.foeDef : R.CARS[Math.floor(Math.random() * R.CARS.length)];
+      var aiParts = { engine: Math.floor(Math.random() * 3), tire: Math.floor(Math.random() * 3), wing: Math.floor(Math.random() * 3) };
+      var aiSkin = R.SKINS[Math.floor(Math.random() * R.SKINS.length)].id;
+      var ai = new Car(cdef, false, names[i % names.length], { skill: 1, parts: aiParts, skin: aiSkin });
+      var d = this.diffCfg;
+      // 以玩家座驾性能为基准归一化，AI 外观随机但实力只由难度决定
+      var skill = (playerBase0 / ai.phy.maxSpeed) * d.speed * (0.965 + Math.random() * 0.07);
+      ai.skill = skill;
+      ai.baseMax = ai.phy.maxSpeed * skill;
+      ai.phy.accel = ai.baseMax / CFG.ACCEL_DIV;
+      this.cars.push(ai);
+    }
+
+    // 发车阵列：玩家排在中游，留出超车空间
+    // 循环赛道排在起点线后方（负 z 会归一化到终点前）；点对点赛道必须排在起点线前方
+    var gridBase = this.track.loop ? -300 : 80;
+    var slots = [];
+    for (var r = 0; r < 5; r++) {
+      slots.push({ z: gridBase - r * 780, x: -0.35 });
+      slots.push({ z: gridBase - r * 780 - 140, x: 0.35 });
+    }
+    var total = this.cars.length;
+    var pSlot = Math.max(1, Math.min(4, Math.floor(total / 2)));
+    var order = [];
+    for (var s = 0; s < total; s++) order.push(s);
+    // 玩家1 在中游，玩家2 紧随其后
+    var seq = order.slice();
+    seq.splice(pSlot, 0, 'P1');
+    if (this.split) seq.splice(pSlot + 1, 0, 'P2');
+    var aiIdx = 0;
+    for (var t = 0; t < seq.length; t++) {
+      var car;
+      if (seq[t] === 'P1') car = p1;
+      else if (seq[t] === 'P2') car = this.players[1];
+      else car = this.cars[this.players.length + aiIdx++];
+      if (!car) continue;
+      var sl = slots[t % slots.length];
+      car.z = sl.z; car.x = sl.x; car.lap = 1; car.aimX = sl.x;
+    }
+    for (var pi = 0; pi < this.players.length; pi++) this.players[pi].lap = 1;
+
+    // 复位赛道动态数据（赛道对象会被多局复用）
+    this.itemSegs = [];
+    for (var q = 0; q < this.track.segments.length; q++) {
+      var sg = this.track.segments[q];
+      sg.cars.length = 0; sg.dyn.length = 0; sg.itemT = 0;
+      for (var sp = 0; sp < sg.sprites.length; sp++) {
+        if (sg.sprites[sp].type === 'crowd') { sg.sprites[sp].hit = false; sg.sprites[sp].hitT = 0; }
+      }
+      if (sg.items) {
+        sg.itemHidden = !this.itemOn(sg);   // 按道具频率档位决定这一组是否启用
+        this.itemSegs.push(sg);
+      }
+    }
+
+    this.time = 0;
+    this.state = 'countdown';   // countdown / racing / over / done
+    this.cd = 3.9;
+    this.lastCd = 4;
+    this.finishTimer = -1;
+    this.bgX = 0;
+    this.shake = 0;
+    this.dynSegs = [];
+    this.cam = mkCam(this);
+    this.cams = [this.cam];
+    if (this.split) { this.cam2 = mkCam(this); this.cams.push(this.cam2); }
+    this.rank = 1;
+  }
+
+  function mkCam(race) {
+    return { x: 0, y: CFG.CAM_H, z: 0, w: 0, h: 0, bg: 0, drawDist: CFG.DRAW_DIST, shake: 0 };
+  }
+
+  Race.prototype.startPos = function () { };
+
+  // 道具盒是否启用（赛道上铺满点位，按频率档位启用其中一部分）
+  Race.prototype.itemOn = function (seg) {
+    return seg.itemRank == null || seg.itemRank < this.itemKeep;
+  };
+
+  /* ---------- 帧更新 ---------- */
+  Race.prototype.update = function (dt, inputs) {
+    var i, car;
+    if (!inputs) inputs = [];
+    if (!inputs.length) inputs = [inputs];
+    this.inputs = inputs;
+
+    if (this.state === 'countdown') {
+      this.cd -= dt;
+      var n = Math.ceil(this.cd - 0.9);
+      if (n !== this.lastCd) {
+        this.lastCd = n;
+        if (n > 0) { this.onMsg(String(n)); this.onFx('beep'); }
+      }
+      if (this.cd <= 0.9 && !this._go) { this._go = true; this.onMsg('GO!'); this.onFx('go'); }
+      if (this.cd <= 0) { this.state = 'racing'; this.onMsg(''); }
+      for (i = 0; i < this.players.length; i++) this.players[i].speed = 0;
+      this.updateCamera(dt);
+      return;
+    }
+
+    if (this.state === 'racing' || this.state === 'over') {
+      this.time += dt;
+      for (i = 0; i < this.itemSegs.length; i++) {
+        if (this.itemSegs[i].itemT > 0) this.itemSegs[i].itemT -= dt;
+      }
+      for (i = 0; i < this.cars.length; i++) {
+        car = this.cars[i];
+        var ctrl;
+        if (car.isPlayer) {
+          ctrl = inputs[car.playerIndex] || inputs[0] || {};
+          if (car.finished) ctrl = { steer: this.aiControl(car, dt).steer, throttle: true, brake: false, drift: false };
+        } else {
+          ctrl = this.aiControl(car, dt);
+        }
+        this.stepCar(car, dt, ctrl);
+      }
+      this.updateAffects(dt);
+      this.collisions(dt);
+      this.items(dt, inputs);
+      this.updateBananas(dt);
+      this.updateSkids(dt);
+      this.updateMissiles(dt);
+      this.updateCrowd(dt);
+      this.rankAll();
+      this.updateParticles(dt);
+
+      var allDone = true;
+      for (i = 0; i < this.players.length; i++) if (!this.players[i].finished) allDone = false;
+      if (this.state === 'racing' && (allDone || this.time > 900)) {
+        this.state = 'over'; this.finishTimer = 1.6;
+      }
+      if (this.state === 'over') {
+        this.finishTimer -= dt;
+        if (this.finishTimer <= 0) { this.state = 'done'; this.onEnd(this.buildResult()); }
+      }
+    }
+    this.updateCamera(dt);
+  };
+
+  /* ---------- AI 控制 ---------- */
+  Race.prototype.aiControl = function (car, dt) {
+    var track = this.track, segs = track.segments, N = segs.length;
+    var d = this.diffCfg;
+    var seg = findSeg(track, car.z);
+
+    var look = 0;
+    for (var i = 1; i <= 26; i++) look += segs[(seg.index + i) % N].curve;
+    var cAhead = look / 26;
+    var corner = Math.min(1, Math.abs(cAhead) / 5.5);
+
+    var target = clamp(cAhead * 0.15, -0.85, 0.85) * d.line + (car.lane || 0);
+    if (seg.cut && Math.abs(cAhead) > 2.2 && Math.random() < 0.98) target = seg.cut * 1.32;
+    for (var j = 0; j < this.cars.length; j++) {
+      var o = this.cars[j];
+      if (o === car) continue;
+      var dz = o.z - car.z;
+      if (dz > 0 && dz < 3200 && Math.abs(o.x - car.x) < 0.20) target += (o.x > car.x ? -0.34 : 0.34);
+    }
+    target = clamp(target, -1.05, 1.05);
+    car.aimX = lerp(car.aimX, target, Math.min(1, dt * 2.6 * d.react));
+
+    var dx = car.aimX - car.x;
+    var steer = clamp(dx * 2.6, -1, 1);
+
+    var tgt = car.baseMax * (1 - corner * d.caution);
+    var gap = this.player.progress - car.progress;
+    tgt *= 1 + clamp(gap / (track.length * 0.4), -1, 1) * 0.12 * d.rubber * 2.6;
+
+    var ctrl = {
+      steer: steer,
+      throttle: car.speed < tgt,
+      brake: car.speed > tgt * 1.08,
+      drift: (Math.abs(steer) > 0.42 && corner > 0.32 && d.line > 0.6)
+    };
+
+    car.aiNitroCd -= dt;
+    if (car.nitroCards > 0 && car.nitroT <= 0 && corner < 0.32 && car.aiNitroCd <= 0) {
+      if (Math.random() < d.nitro) { this.useNitro(car); car.aiNitroCd = R.rand(2.5, 6); }
+    }
+    if (car.item) {
+      car.aiTimer -= dt;
+      if (car.aiTimer <= 0) {
+        car.aiTimer = R.rand(0.6, 3.2);
+        if (Math.random() < d.item) this.useItem(car);
+      }
+    }
+    return ctrl;
+  };
+
+  /* ---------- 漂移释放（QQ飞车式小喷/中喷/大喷） ---------- */
+  var MINI_T = [0, 0.50, 0.85, 1.25];
+  var MINI_P = [1, 1.20, 1.33, 1.46];
+  Race.prototype.releaseDrift = function (car) {
+    var lv = car.drift.lvl;
+    car.drift.on = false;
+    if (lv >= 1) {
+      car.miniT = Math.max(car.miniT, MINI_T[lv]);
+      car.miniPow = Math.max(car.miniPow, MINI_P[lv]);
+      car.driftCount++;
+      if (car.isPlayer) {
+        this.onFx(lv >= 3 ? 'mini3' : (lv === 2 ? 'mini2' : 'mini1'), car.playerIndex);
+        this.emitBurst(car, lv >= 3 ? '255,180,60' : (lv === 2 ? '126,224,255' : '235,240,248'), 14);
+      }
+    }
+    car.drift.t = 0; car.drift.charge = 0; car.drift.lvl = 0; car.drift.ang = 0;
+  };
+
+  /* ---------- 单车物理 ---------- */
+  Race.prototype.stepCar = function (car, dt, ctrl) {
+    var track = this.track;
+    var seg = findSeg(track, car.z);
+    var phy = car.phy;
+    var base = car.baseMax;
+
+    if (car.hurtT > 0) car.hurtT -= dt;
+
+    // 旋转失控
+    if (car.spinT > 0) {
+      car.spinT -= dt;
+      car.spinAng += dt * 13;
+      car.speed = Math.max(base * 0.12, car.speed - base * 1.4 * dt);
+      ctrl = { steer: 0, throttle: false, brake: false, drift: false };
+      if (car.drift.on) { car.drift.on = false; car.drift.t = 0; car.drift.charge = 0; car.drift.lvl = 0; }
+    } else {
+      car.spinAng = 0;
+    }
+
+    // —— 转向迟滞：输入 → 实际转向，指数逼近，产生"钝感"
+    var rawSteer = ctrl.steer || 0;
+    car.steerIn = rawSteer;
+    car.steer = R.smooth(car.steer, rawSteer, CFG.STEER_TAU, dt);
+    var steer = car.steer;
+
+    // —— 漂移状态机
+    var canDrift = (!car.spinT) && ctrl.drift && car.speed > base * 0.38 && car.airT <= 0;
+    if (canDrift && !car.drift.on) {
+      // 起漂阈值放低：转向有迟滞，若卡太严会出现"按了漂移却甩不起来"
+      if (steer > 0.13) { car.drift.on = true; car.drift.dir = 1; car.drift.ang = 0.30; car.drift.t = 0; car.drift.charge = 0; car.drift.lvl = 0; }
+      else if (steer < -0.13) { car.drift.on = true; car.drift.dir = -1; car.drift.ang = 0.30; car.drift.t = 0; car.drift.charge = 0; car.drift.lvl = 0; }
+    }
+    if (car.drift.on) {
+      car.drift.t += dt;
+      var sa = steer * car.drift.dir;                       // >0 同向加深，<0 反打拉车头
+      car.drift.ang = clamp(car.drift.ang + (sa * 0.95 - 0.22) * dt * 2.6, 0.10, 0.90);
+      car.drift.charge += dt * phy.driftGain * (0.5 + car.drift.ang);
+      var lv = car.drift.charge >= 2.6 ? 3 : (car.drift.charge >= 1.35 ? 2 : (car.drift.charge >= 0.5 ? 1 : 0));
+      if (lv !== car.drift.lvl) {
+        car.drift.lvl = lv;
+        if (car.isPlayer && lv > 0) this.onFx('lvl', car.playerIndex);
+      }
+      car.nitroGauge += dt * 16;
+      if (car.isPlayer) this.emitDrift(car, steer);
+    }
+    if (!canDrift && car.drift.on) this.releaseDrift(car);
+
+    // 计时器
+    if (car.nitroT > 0) car.nitroT -= dt;
+    if (car.miniT > 0) { car.miniT -= dt; if (car.miniT <= 0) car.miniPow = 1; }
+    if (car.boostT > 0) car.boostT -= dt;
+    if (car.shieldT > 0) car.shieldT -= dt;
+    if (car.airT > 0) {
+      car.airT -= dt;
+      if (car.airT <= 0) { car.miniT = Math.max(car.miniT, 0.35); car.miniPow = Math.max(car.miniPow, 1.16); if (car.isPlayer) this.onFx('land', car.playerIndex); }
+    }
+    car.air = car.airT > 0 ? Math.sin((1 - car.airT / 0.55) * Math.PI) * 0.9 : 0;
+
+    car.boosting = car.nitroT > 0;
+    car.braking = !!ctrl.brake;
+
+    // 纵向
+    var boostMul = 1;
+    if (car.nitroT > 0) boostMul = 1.52;
+    else if (car.boostT > 0) boostMul = 1.26;
+    else if (car.miniT > 0) boostMul = car.miniPow;
+    var maxV = base * boostMul;
+
+    if (ctrl.brake) car.speed -= base / CFG.BRAKE_DIV * dt;
+    else if (ctrl.throttle) car.speed += phy.accel * dt;
+    else car.speed -= base / 7 * dt;
+    if (car.nitroT > 0) car.speed += phy.accel * 0.85 * dt;
+    if (car.airT > 0) car.speed += phy.accel * 1.3 * dt;
+
+    // 弯道损耗（随车速缩放：低速时损耗同步变小，保证永远能重新起步）
+    var spPre = clamp(car.speed / base, 0, 1.4);
+    var c = Math.min(1.25, Math.abs(seg.curve) / 5);
+    var loss = c * c * base * CFG.CORNER_LOSS / phy.stab;
+    if (car.drift.on) loss *= (0.42 / phy.grip);
+    if (car.airT > 0) loss = 0;
+    loss *= clamp(spPre * 1.7, 0.12, 1);
+    car.speed -= loss * dt;
+
+    // 越界 / 近道
+    var ax = Math.abs(car.x);
+    var onCut = seg.cut !== 0 && Math.sign(car.x) === seg.cut && ax < 1.85;
+    if (ax > 0.99 && car.airT <= 0) {
+      var limit = base * (onCut ? 0.82 : 0.54);
+      if (car.speed > limit) car.speed = Math.max(limit, car.speed - base * (onCut ? 0.7 : 2.1) * dt);
+      if (car.isPlayer && !onCut) this.shake = Math.max(this.shake, 3.2);
+    }
+    if (ax > 1.9) { car.x = Math.sign(car.x) * 1.9; car.speed *= 0.9; }
+
+    if (car.speed > maxV) car.speed = Math.max(maxV, car.speed - base * 1.6 * dt);
+    if (car.speed < 0) car.speed = 0;
+
+    // 横向
+    var sp = car.speed / base;
+    var rate = dt * CFG.STEER_RATE * Math.min(1.2, sp);
+    if (car.drift.on) {
+      car.x += steer * rate * 0.80;                             // 漂移中转向效率下降
+      car.x += car.drift.dir * car.drift.ang * rate * 0.62;     // 车身外滑
+    } else {
+      car.x += steer * rate;
+    }
+    car.x -= rate * sp * seg.curve * CFG.CENTRIFUGAL / phy.stab;
+    if (ax > 0.99 && car.airT <= 0) car.x += steer * rate * 0.3;
+    // 彻底甩出赛道（1.4 已超出近道范围）时结束漂移，避免一路甩到看不见的地方
+    if (car.drift.on && Math.abs(car.x) > 1.6) this.releaseDrift(car);
+
+    // 漂移拖痕
+    if (car.drift.on) {
+      car.skidT -= dt;
+      if (car.skidT <= 0) {
+        car.skidT = 0.022;
+        this.skids.push({ z: car.z - 150, x: car.x - car.drift.dir * 0.11, life: 3.0 });
+        this.skids.push({ z: car.z - 150, x: car.x + car.drift.dir * 0.11, life: 3.0 });
+      }
+    }
+    this.addNitro(car, dt, sp);
+
+    // 视觉朝向（漂移时车身明显甩尾）
+    // 加硬上限 + 自动回正：碰撞/漂移过大/打转结束后不会把车头留在"调头"姿态
+    var wantYaw = steer * 0.40 + (car.drift.on ? car.drift.dir * car.drift.ang * 1.25 : 0);
+    wantYaw = clamp(wantYaw, -CFG.YAW_MAX, CFG.YAW_MAX);
+    var tau = 0.12;
+    if (this.assist) {
+      if (car.spinT > 0) tau = 0.06;                                   // 打转中尽快摆正
+      else if (!car.drift.on && Math.abs(steer) < 0.12) tau = 0.055;    // 松手自动回正
+      else if (!car.drift.on) tau = 0.085;                              // 漂移结束后快速收车
+    }
+    car.yaw = R.smooth(car.yaw, wantYaw, tau, dt);
+    car.yaw = clamp(car.yaw, -CFG.YAW_MAX, CFG.YAW_MAX);
+
+    // 前进
+    var prevZ = car.z;
+    car.z += car.speed * dt;
+    var curSeg = findSeg(track, car.z);
+    var prevSegObj = findSeg(track, prevZ);
+    if (curSeg.jump && !prevSegObj.jump && car.speed > base * 0.55 && car.airT <= 0) {
+      car.airT = 0.55;
+      if (car.isPlayer) this.onFx('jump', car.playerIndex);
+    }
+    // 圈数 / 冲线
+    if (car.z >= track.length) {
+      if (track.loop) { car.z -= track.length; this.onLap(car); }
+      else { car.z = track.length - 1; if (!car.finished) this.onLap(car); }
+    }
+    car.progress = (car.lap - 1) * track.length + car.z;
+  };
+
+  Race.prototype.addNitro = function (car, dt, sp) {
+    if (!car.drift.on) car.nitroGauge += dt * (6 + sp * 4);
+    if (car.nitroGauge >= 100) {
+      car.nitroGauge -= 100;
+      car.nitroCards = Math.min(2, car.nitroCards + 1);
+      if (car.isPlayer) this.onFx('card', car.playerIndex);
+    }
+  };
+
+  Race.prototype.onLap = function (car) {
+    if (car.finished) return;
+    var t = this.time - car.lapStart;
+    car.lastLap = t;
+    if (!car.bestLap || t < car.bestLap) car.bestLap = t;
+    car.lapStart = this.time;
+    car.lap++;
+    if (car.lap > this.laps) {
+      car.finished = true;
+      car.finishTime = this.time;
+      if (car.isPlayer) { this.onMsg('冲线!'); this.onFx('finish', car.playerIndex); }
+    } else if (car.isPlayer) {
+      this.onMsg('P' + (car.playerIndex + 1) + ' 第 ' + car.lap + ' 圈');
+      this.onFx('lap', car.playerIndex);
+    }
+  };
+
+  /* ---------- 碰撞 ---------- */
+  Race.prototype.collisions = function (dt) {
+    var cars = this.cars, L = this.track.length;
+    for (var i = 0; i < cars.length; i++) {
+      for (var j = i + 1; j < cars.length; j++) {
+        var a = cars[i], b = cars[j];
+        var dz = relZ(a.z, b.z, L);
+        if (Math.abs(dz) > CFG.CAR_LEN) continue;
+        var dx = a.x - b.x;
+        if (Math.abs(dx) > CFG.HIT_W * 1.05) continue;
+        var push = (CFG.HIT_W * 1.05 - Math.abs(dx)) * 0.62;
+        var dir = dx === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(dx);
+        a.x += dir * push; b.x -= dir * push;
+        var rear = dz < 0 ? a : b;
+        rear.speed *= Math.max(0.55, 1 - 0.75 * dt);
+        var front = dz < 0 ? b : a;
+        front.speed *= Math.max(0.85, 1 - 0.12 * dt);
+        if ((a.isPlayer || b.isPlayer) && Math.abs(dx) < CFG.HIT_W * 0.9) {
+          this.shake = Math.max(this.shake, 4);
+          this.onFx('bump');
+        }
+      }
+    }
+  };
+
+  /* ---------- 观赛人群：可撞飞 ---------- */
+  Race.prototype.updateCrowd = function (dt) {
+    for (var i = 0; i < this.players.length; i++) {
+      var car = this.players[i];
+      if (car.crowdCd > 0) car.crowdCd -= dt;
+      if (car.airT > 0 || car.speed < car.baseMax * 0.22) continue;
+      var seg = findSeg(this.track, car.z);
+      for (var s = 0; s < seg.sprites.length; s++) {
+        var sp = seg.sprites[s];
+        if (sp.type !== 'crowd' || sp.hit) continue;
+        if (Math.abs(car.x - sp.offset) > 0.12 + CFG.HIT_W * 0.45) continue;
+        sp.hit = true; sp.hitT = 14;
+        this.hitCrowds.push(sp);
+        car.crowdHits++; this.crowdHits++;
+        if (car.crowdCd <= 0) { car.speed *= 0.97; car.crowdCd = 0.4; }
+        this.shake = Math.max(this.shake, 2.4);
+        this.emitCrowdFly(car, sp.offset);
+        this.onFx('crowd', car.playerIndex);
+        if (car.crowdHits % 5 === 0) this.onMsg('撞飞观众 ×' + car.crowdHits);
+      }
+    }
+    // 复活计时（只遍历被撞过的，避免整条赛道扫描）
+    for (var k = this.hitCrowds.length - 1; k >= 0; k--) {
+      var sp2 = this.hitCrowds[k];
+      sp2.hitT -= dt;
+      if (sp2.hitT <= 0) { sp2.hit = false; this.hitCrowds.splice(k, 1); }
+    }
+  };
+
+  /* ---------- 被道具影响的状态（对手状态小窗口数据源） ---------- */
+  Race.prototype.setAffect = function (car, key, icon, label, t, by) {
+    car.affect = { key: key, icon: icon, label: label, t: t, by: by == null ? -1 : by };
+  };
+  Race.prototype.updateAffects = function (dt) {
+    for (var i = 0; i < this.cars.length; i++) {
+      var a = this.cars[i].affect;
+      if (!a) continue;
+      a.t -= dt;
+      if (a.t <= 0) this.cars[i].affect = null;
+    }
+  };
+  // 给某个玩家的小窗口返回当前受影响者列表
+  Race.prototype.foeStates = function (idx) {
+    var out = [];
+    for (var i = 0; i < this.cars.length; i++) {
+      var c = this.cars[i];
+      if (c.isPlayer && c.playerIndex === idx) continue;
+      if (!c.affect) continue;
+      out.push({
+        name: c.name, color: c.look ? c.look.body : c.def.body,
+        icon: c.affect.icon, label: c.affect.label,
+        t: Math.max(0, c.affect.t), mine: c.affect.by === idx, key: c.affect.key
+      });
+    }
+    out.sort(function (a, b) { return (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || b.t - a.t; });
+    return out.slice(0, 4);
+  };
+
+  /* ---------- 道具 ---------- */
+  Race.prototype.items = function (dt, inputs) {
+    for (var i = 0; i < this.cars.length; i++) {
+      var car = this.cars[i];
+      var seg = findSeg(this.track, car.z);
+      if (seg.items && seg.itemT <= 0 && !seg.itemHidden && !car.item) {
+        for (var k = 0; k < seg.items.length; k++) {
+          if (Math.abs(car.x - seg.items[k]) < 0.22) {
+            car.item = R.pick(R.ITEM_KEYS);
+            seg.itemT = this.itemCd;
+            if (car.isPlayer) { this.onFx('pick', car.playerIndex); this.emitBurst(car, '160,220,255', 10); }
+            break;
+          }
+        }
+      }
+      for (var b = this.bananas.length - 1; b >= 0; b--) {
+        var bn = this.bananas[b];
+        var dz = car.z - bn.z;
+        if (Math.abs(dz) < CFG.CAR_LEN * 0.7 && Math.abs(car.x - bn.x) < 0.17 && car.airT <= 0) {
+          if (!bn.owner || bn.owner !== car || bn.life < 28) {
+            if (car.shieldT > 0) {
+              car.shieldT = 0;
+              this.setAffect(car, 'break', '🛡️', '护盾被破', 1.0, bn.owner ? bn.owner.playerIndex : -1);
+            } else {
+              car.spinT = Math.max(car.spinT, 0.85); car.speed *= 0.42;
+              this.setAffect(car, 'spin', '💫', '打转失控', 0.85, bn.owner ? bn.owner.playerIndex : -1);
+            }
+            if (car.isPlayer) { this.shake = 6; this.onFx('hit', car.playerIndex); }
+            this.emitBurst(car, '255,210,63', 16);
+            this.bananas.splice(b, 1);
+          }
+        }
+      }
+    }
+    for (var pi = 0; pi < this.players.length; pi++) {
+      var inp = inputs[pi] || inputs[0] || {};
+      var pl = this.players[pi];
+      if (inp.useItem && pl.item) this.useItem(pl);
+      if (inp.useNitro && pl.nitroCards > 0 && pl.nitroT <= 0) this.useNitro(pl);
+    }
+  };
+
+  Race.prototype.updateBananas = function (dt) {
+    for (var i = this.bananas.length - 1; i >= 0; i--) {
+      this.bananas[i].life -= dt;
+      if (this.bananas[i].life <= 0) this.bananas.splice(i, 1);
+    }
+  };
+
+  Race.prototype.updateSkids = function (dt) {
+    for (var i = this.skids.length - 1; i >= 0; i--) {
+      this.skids[i].life -= dt;
+      if (this.skids[i].life <= 0) this.skids.splice(i, 1);
+    }
+    if (this.skids.length > 460) this.skids.splice(0, this.skids.length - 460);
+  };
+
+  /* ---------- 导弹 ---------- */
+  Race.prototype.updateMissiles = function (dt) {
+    var L = this.track.length;
+    for (var i = this.missiles.length - 1; i >= 0; i--) {
+      var m = this.missiles[i];
+      m.life -= dt;
+      m.z += m.spd * dt;
+      var tgt = m.target;
+      var hit = false;
+      if (tgt && !tgt.finished) {
+        m.x = lerp(m.x, tgt.x, Math.min(1, dt * 3.4));
+        var dz = relZ(tgt.z, m.z, L);
+        if (dz <= 0 && dz > -CFG.CAR_LEN * 2 && Math.abs(m.x - tgt.x) < 0.30) hit = true;
+      }
+      if (hit) {
+        if (tgt.shieldT > 0) {
+          tgt.shieldT = 0;
+          this.setAffect(tgt, 'break', '🛡️', '护盾被破', 1.2, m.owner ? m.owner.playerIndex : -1);
+        } else {
+          tgt.spinT = Math.max(tgt.spinT, 0.95); tgt.speed *= 0.38; tgt.hurtT = 0.4;
+          this.setAffect(tgt, 'spin', '💫', '打转失控', 0.95, m.owner ? m.owner.playerIndex : -1);
+        }
+        if (tgt.isPlayer) { this.shake = 8; this.onFx('hit', tgt.playerIndex); }
+        this.emitBurst(tgt, '255,120,60', 26);
+        this.missiles.splice(i, 1);
+        continue;
+      }
+      if (m.life <= 0 || m.z > L * 1.2) {
+        this.missiles.splice(i, 1);
+      }
+    }
+  };
+
+  Race.prototype.useItem = function (car) {
+    var it = car.item;
+    if (!it) return;
+    car.item = null;
+    var pi = car.playerIndex;
+    if (it === 'boost') {
+      car.boostT = Math.max(car.boostT, 2.0);
+      this.setAffect(car, 'boost', '⚡', '道具加速', 2.0, pi);
+      if (car.isPlayer) { this.onFx('boost', pi); this.emitBurst(car, '255,190,60', 18); }
+    } else if (it === 'shield') {
+      car.shieldT = 6;
+      this.setAffect(car, 'shield', '🛡️', '护盾护体', 6, pi);
+      if (car.isPlayer) this.onFx('shield', pi);
+    } else if (it === 'banana') {
+      this.bananas.push({ z: car.z - 260, x: car.x, life: 30, owner: car });
+      if (car.isPlayer) this.onFx('drop', pi);
+    } else if (it === 'missile') {
+      var best = null, bestD = 1e9;
+      for (var i = 0; i < this.cars.length; i++) {
+        var o = this.cars[i];
+        if (o === car || o.finished) continue;
+        var d = o.progress - car.progress;
+        if (d > 0 && d < 20000 && d < bestD) { bestD = d; best = o; }
+      }
+      if (best) {
+        this.missiles.push({
+          z: car.z + 200, x: car.x, target: best, owner: car,
+          spd: car.baseMax * 2.1, life: 6
+        });
+      }
+      if (car.isPlayer) this.onFx('fire', pi);
+    }
+  };
+
+  Race.prototype.useNitro = function (car) {
+    var n = car.nitroCards;
+    if (n <= 0) return;
+    car.nitroCards = 0;
+    car.nitroT = Math.max(car.nitroT, 1.05 + (n - 1) * 0.95);
+    car.nitroCount += n;
+    if (car.isPlayer) this.onFx('nitro', car.playerIndex);
+  };
+
+  /* ---------- 排名 ---------- */
+  Race.prototype.rankAll = function () {
+    var arr = this.cars.slice();
+    arr.sort(function (a, b) {
+      if (a.finished && b.finished) return a.finishTime - b.finishTime;
+      if (a.finished) return -1;
+      if (b.finished) return 1;
+      return b.progress - a.progress;
+    });
+    for (var i = 0; i < arr.length; i++) arr[i].rank = i + 1;
+    this.rank = this.player.rank;
+    return arr;
+  };
+
+  // 冲线后快速推演剩余车辆，保证结算人人有成绩
+  Race.prototype.finishRest = function () {
+    var step = 1 / 10, guard = 0, i;
+    while (guard++ < 6000) {
+      var all = true;
+      for (i = 0; i < this.cars.length; i++) if (!this.cars[i].finished) { all = false; break; }
+      if (all) break;
+      this.time += step;
+      for (i = 0; i < this.cars.length; i++) {
+        var car = this.cars[i];
+        if (car.finished) continue;
+        var ctrl = this.aiControl(car, step);
+        this.stepCar(car, step, ctrl);
+      }
+      this.collisions(step);
+    }
+    this.rankAll();
+  };
+
+  Race.prototype.buildResult = function () {
+    this.finishRest();
+    var arr = this.rankAll();
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var c = arr[i];
+      out.push({
+        rank: i + 1, name: c.name, isPlayer: c.isPlayer, playerIndex: c.playerIndex,
+        carName: c.def.name, color: c.look ? c.look.body : c.def.body,
+        finished: c.finished,
+        time: c.finished ? c.finishTime : null,
+        bestLap: c.bestLap, drift: c.driftCount, nitro: c.nitroCount,
+        crowd: c.crowdHits, progress: c.progress
+      });
+    }
+    return {
+      list: out,
+      playerRank: this.players[0].rank,
+      player2Rank: this.players.length > 1 ? this.players[1].rank : null,
+      time: this.players[0].finishTime, bestLap: this.players[0].bestLap,
+      crowd: this.crowdHits
+    };
+  };
+
+  /* ---------- 摄像机（每个玩家一个） ---------- */
+  Race.prototype.updateCamera = function (dt) {
+    var L = this.track.length;
+    this.shake = Math.max(0, this.shake - dt * 14);
+    for (var i = 0; i < this.cams.length; i++) {
+      var cam = this.cams[i], p = this.players[i];
+      if (!p) continue;
+      var seg = findSeg(this.track, p.z);
+      var pct = (p.z % SEG) / SEG;
+      var py = lerp(seg.p1.world.y, seg.p2.world.y, pct);
+      cam.x = R.smooth(cam.x, p.x, 0.09, dt);
+      cam.y = py + CFG.CAM_H + (p.airT > 0 ? p.airT * 260 : 0);
+      cam.z = ((p.z - R.Render.playerZ) % L + L) % L;
+      cam.bg = this.bgX;
+      cam.shake = this.shake;
+    }
+    this.bgX += (this.players[0] ? findSeg(this.track, this.players[0].z).curve : 0) * (this.players[0] ? this.players[0].speed : 0) * dt * 0.00004;
+  };
+
+  /* ---------- 粒子 ---------- */
+  Race.prototype.emitDrift = function (car, steer) {
+    var cam = this.cams[car.playerIndex] || this.cam;
+    var v = car.playerIndex;
+    var lv = car.drift.lvl;
+    var col = lv >= 3 ? '255,176,60' : (lv === 2 ? '126,224,255' : '235,240,248');
+    for (var i = 0; i < 2; i++) {
+      this.particles.push({
+        v: v, kind: 'smoke',
+        x: cam.w / 2 - steer * cam.w * 0.06 + R.rand(-10, 10),
+        y: cam.h * 0.95 + R.rand(-6, 6),
+        vx: -steer * R.rand(60, 180) + R.rand(-30, 30),
+        vy: R.rand(-70, -20),
+        life: R.rand(0.35, 0.75), max: 0.75,
+        r: R.rand(8, 18), c: col
+      });
+    }
+    if (lv > 0 && Math.random() < 0.35) {
+      this.particles.push({
+        v: v, kind: 'spark',
+        x: cam.w / 2 + R.rand(-30, 30), y: cam.h * 0.93,
+        vx: R.rand(-140, 140), vy: R.rand(-160, -40),
+        life: 0.28, max: 0.28, r: R.rand(2, 4.5), c: col
+      });
+    }
+    if (car.nitroT > 0) {
+      for (var j = 0; j < 3; j++) {
+        this.particles.push({
+          v: v, kind: 'spark',
+          x: cam.w / 2 + R.rand(-24, 24), y: cam.h * 0.97,
+          vx: R.rand(-90, 90), vy: R.rand(20, 90),
+          life: 0.3, max: 0.3, r: R.rand(5, 12), c: '126,224,255'
+        });
+      }
+    }
+  };
+
+  // 在车辆附近爆一团粒子
+  Race.prototype.emitBurst = function (car, color, n) {
+    var v = car.isPlayer ? car.playerIndex : -1;
+    var cam = this.cams[car.isPlayer ? car.playerIndex : 0] || this.cam;
+    var cx, cy;
+    if (car.isPlayer) { cx = cam.w / 2; cy = cam.h * 0.86; }
+    else { cx = car._sx || cam.w / 2; cy = (car._sy || cam.h * 0.6); }
+    for (var i = 0; i < (n || 12); i++) {
+      var a = Math.random() * 6.2832, sp = R.rand(60, 320);
+      this.particles.push({
+        v: v, kind: 'boom',
+        x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7,
+        life: R.rand(0.3, 0.7), max: 0.7, r: R.rand(4, 12), c: color
+      });
+    }
+    this.particles.push({ v: v, kind: 'ring', x: cx, y: cy, vx: 0, vy: 0, life: 0.4, max: 0.4, r: 8, c: color });
+  };
+
+  // 撞飞观众：小人飞出去
+  Race.prototype.emitCrowdFly = function (car, offset) {
+    var cam = this.cams[car.playerIndex] || this.cam;
+    var v = car.playerIndex;
+    var dir = Math.sign(offset - car.x) || 1;
+    var px = cam.w / 2 + (offset - car.x) * cam.w * 0.30;
+    for (var i = 0; i < 3; i++) {
+      this.particles.push({
+        v: v, kind: 'body',
+        x: px + R.rand(-8, 8), y: cam.h * 0.80 + R.rand(-10, 10),
+        vx: dir * R.rand(120, 300) + car.speed * 0.004, vy: -R.rand(180, 380),
+        g: 900, rot: 0, vr: R.rand(-9, 9),
+        life: R.rand(0.9, 1.5), max: 1.5, r: R.rand(7, 12),
+        c: ['255,106,43', '43,179,255', '255,210,63', '61,220,132'][i % 4]
+      });
+    }
+    for (var j = 0; j < 5; j++) {
+      this.particles.push({
+        v: v, kind: 'star',
+        x: px, y: cam.h * 0.78, vx: dir * R.rand(60, 220), vy: -R.rand(40, 200),
+        g: 500, life: 0.5, max: 0.5, r: R.rand(3, 6), c: '255,255,255'
+      });
+    }
+  };
+
+  Race.prototype.updateParticles = function (dt) {
+    for (var i = this.particles.length - 1; i >= 0; i--) {
+      var p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { this.particles.splice(i, 1); continue; }
+      if (p.g) p.vy += p.g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.vr) p.rot += p.vr * dt;
+      if (p.kind === 'smoke') p.r += dt * 26;
+      if (p.kind === 'ring') p.r += dt * 190;
+    }
+    if (this.particles.length > 260) this.particles.splice(0, this.particles.length - 260);
+  };
+
+  /* ---------- 渲染 ---------- */
+  Race.prototype.render = function (ctx, W, H) {
+    if (this.split) {
+      var hh = Math.floor(H / 2);
+      this.renderView(ctx, 0, 0, W, hh, this.cam, this.players[0], 0);
+      ctx.save();
+      ctx.fillStyle = '#0e1a2c'; ctx.fillRect(0, hh - 2, W, 4);
+      ctx.restore();
+      this.renderView(ctx, 0, hh, W, H - hh, this.cam2, this.players[1], 1);
+    } else {
+      this.renderView(ctx, 0, 0, W, H, this.cam, this.players[0], 0);
+    }
+  };
+
+  Race.prototype.renderView = function (ctx, ox, oy, vw, vh, cam, viewCar, viewIdx) {
+    var track = this.track, i, car;
+    cam.w = vw; cam.h = vh;
+
+    // 清掉上一帧挂载
+    for (i = 0; i < this.dynSegs.length; i++) { this.dynSegs[i].cars.length = 0; this.dynSegs[i].dyn.length = 0; }
+    this.dynSegs.length = 0;
+
+    var L = track.length;
+    var far = (cam.drawDist || CFG.DRAW_DIST) * SEG;
+    var self = this;
+    function attach(z, obj, key) {
+      var d = relZ(z, cam.z, L);
+      if (d < -600 || d > far) return;
+      var s = findSeg(track, z);
+      s[key].push(obj);
+      if (self.dynSegs.indexOf(s) < 0) self.dynSegs.push(s);
+    }
+    for (i = 0; i < this.cars.length; i++) {
+      car = this.cars[i];
+      if (car === viewCar) continue;
+      attach(car.z, car, 'cars');
+    }
+    for (i = 0; i < this.bananas.length; i++) attach(this.bananas[i].z, { type: 'banana', offset: this.bananas[i].x }, 'dyn');
+    for (i = 0; i < this.skids.length; i++) {
+      var sk = this.skids[i];
+      attach(sk.z, { type: 'skid', offset: sk.x, a: Math.min(1, sk.life / 1.8) }, 'dyn');
+    }
+    for (i = 0; i < this.missiles.length; i++) {
+      var ms = this.missiles[i];
+      attach(ms.z, { type: 'missile', offset: ms.x, scale: 1.4 }, 'dyn');
+    }
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(ox, oy, vw, vh); ctx.clip();
+    ctx.translate(ox, oy);
+    if (this.shake > 0.2) ctx.translate(R.rand(-this.shake, this.shake), R.rand(-this.shake, this.shake) * 0.6);
+    R.Render.render(ctx, track, cam);
+    this.drawViewCar(ctx, cam, viewCar, vw, vh);
+    this.drawParticles(ctx, viewIdx);
+    if (viewCar.nitroT > 0 || viewCar.boostT > 0) this.drawSpeedLines(ctx, vw, vh, viewCar.nitroT > 0);
+    ctx.restore();
+  };
+
+  Race.prototype.drawViewCar = function (ctx, cam, p, W, H) {
+    var camDepth = R.Render.camDepth, pz = R.Render.playerZ;
+    var seg = findSeg(this.track, p.z);
+    var pct = (p.z % SEG) / SEG;
+    var py = lerp(seg.p1.world.y, seg.p2.world.y, pct);
+    var y = H / 2 - (camDepth / pz) * (py - cam.y) * H / 2;
+    var roadHalf = (camDepth / pz) * CFG.ROAD_W * W / 2;
+    var cw = CFG.CAR_W * roadHalf;
+    var ch = cw * 0.72;
+    y = clamp(y, H * 0.62, H * 1.02);
+
+    R.Render.car(ctx, {
+      x: W / 2, y: y, w: cw, h: ch, def: p.def, look: p.look,
+      yaw: p.yaw, spin: p.spinAng, air: p.air,
+      boost: p.nitroT > 0 || p.boostT > 0 || p.miniT > 0 ? 1 : 0,
+      shield: p.shieldT, brake: p.braking, hurt: p.hurtT
+    });
+  };
+
+  Race.prototype.drawParticles = function (ctx, viewIdx) {
+    for (var i = 0; i < this.particles.length; i++) {
+      var p = this.particles[i];
+      if (p.v >= 0 && p.v !== viewIdx) continue;
+      var a = Math.max(0, p.life / p.max);
+      ctx.save();
+      if (p.kind === 'ring') {
+        ctx.strokeStyle = 'rgba(' + p.c + ',' + (a * 0.8).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(1.5, p.r * 0.22);
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.2832); ctx.stroke();
+      } else if (p.kind === 'body') {
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+        ctx.fillStyle = 'rgba(' + p.c + ',' + Math.min(1, a * 1.4).toFixed(3) + ')';
+        R.roundRect(ctx, -p.r * 0.5, -p.r * 0.9, p.r, p.r * 1.5, p.r * 0.4); ctx.fill();
+        ctx.fillStyle = 'rgba(247,213,176,' + Math.min(1, a * 1.4).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(0, -p.r * 1.0, p.r * 0.38, 0, 6.2832); ctx.fill();
+      } else if (p.kind === 'star') {
+        ctx.translate(p.x, p.y); ctx.rotate(p.life * 8);
+        ctx.fillStyle = 'rgba(' + p.c + ',' + (a * 0.9).toFixed(3) + ')';
+        ctx.beginPath();
+        for (var k = 0; k < 4; k++) {
+          var ang = k * Math.PI / 2;
+          ctx.lineTo(Math.cos(ang) * p.r * 2.2, Math.sin(ang) * p.r * 2.2);
+          ctx.lineTo(Math.cos(ang + 0.785) * p.r * 0.7, Math.sin(ang + 0.785) * p.r * 0.7);
+        }
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(' + p.c + ',' + (a * (p.kind === 'boom' ? 0.85 : 0.55)).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.r), 0, 6.2832); ctx.fill();
+      }
+      ctx.restore();
+    }
+  };
+
+  Race.prototype.drawSpeedLines = function (ctx, W, H, strong) {
+    ctx.save();
+    ctx.strokeStyle = strong ? 'rgba(255,255,255,.42)' : 'rgba(255,220,120,.30)';
+    ctx.lineWidth = 2;
+    var cx = W / 2, cy = H * 0.55;
+    var n = strong ? 22 : 12;
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * 6.2832 + Math.random() * 0.3;
+      var r0 = W * (0.22 + Math.random() * 0.1), r1 = r0 + W * (strong ? 0.16 : 0.1);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.7);
+      ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1 * 0.7);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  R.Race = Race;
+  R.Car = Car;
+
+})(window.RACER);
+
+
+
+/* =========================================================
+ *  main.js —— 页面路由 / HUD / 车库改装 / 双人分屏 / 结算 / 音效
+ * ========================================================= */
+(function (R) {
+  'use strict';
+  var CFG = R.CFG;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- 赛道缓存 ---------- */
+  var trackCache = {};
+  R.getTrack = function (id) {
+    if (!trackCache[id]) trackCache[id] = R.buildTrack(R.trackById(id));
+    return trackCache[id];
+  };
+
+  /* ---------- 画布 ---------- */
+  var canvas = $('game'), ctx = canvas.getContext('2d');
+  var W = 0, H = 0;
+  function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, R.Save.data.settings.quality === 'low' ? 1 : 1.5);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  /* ---------- 音效（WebAudio，无外部资源） ---------- */
+  var A = {
+    ac: null, master: null, eng: null, engGain: null, engFilter: null, on: true,
+    init: function () {
+      if (this.ac) return;
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        this.ac = new AC();
+        this.master = this.ac.createGain();
+        this.master.gain.value = 0.35;
+        this.master.connect(this.ac.destination);
+      } catch (e) { this.ac = null; }
+    },
+    beep: function (freq, dur, type, vol) {
+      if (!this.on || !this.ac) return;
+      var t = this.ac.currentTime;
+      var o = this.ac.createOscillator(), g = this.ac.createGain();
+      o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol || 0.18, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(this.master);
+      o.start(t); o.stop(t + dur + 0.02);
+    },
+    startEngine: function () {
+      if (!this.ac || this.eng) return;
+      var t = this.ac.currentTime;
+      var o = this.ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 80;
+      var f = this.ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 800;
+      var g = this.ac.createGain(); g.gain.value = 0;
+      o.connect(f); f.connect(g); g.connect(this.master); o.start(t);
+      this.eng = o; this.engGain = g; this.engFilter = f;
+    },
+    engine: function (pct, boost) {
+      if (!this.ac || !this.eng || !this.on) return;
+      var t = this.ac.currentTime;
+      this.eng.frequency.setTargetAtTime(70 + pct * (boost ? 240 : 170), t, 0.06);
+      this.engFilter.frequency.setTargetAtTime(600 + pct * 1400, t, 0.08);
+      this.engGain.gain.setTargetAtTime(this.on ? (0.035 + pct * 0.05) : 0, t, 0.1);
+    },
+    stopEngine: function () {
+      if (this.engGain) this.engGain.gain.setTargetAtTime(0, this.ac.currentTime, 0.05);
+    }
+  };
+  R.Audio = A;
+
+  function seq(list) { list.forEach(function (f, i) { setTimeout(function () { A.beep(f[0], f[1], f[2] || 'triangle', f[3] || 0.14); }, f[4] != null ? f[4] : i * 90); }); }
+  var SFX = {
+    beep: function () { A.beep(880, 0.12, 'square', 0.16); },
+    go: function () { A.beep(1320, 0.35, 'square', 0.2); },
+    mini1: function () { seq([[660, 0.09, 'triangle'], [990, 0.12, 'triangle']]); },
+    mini2: function () { seq([[720, 0.09, 'triangle'], [1080, 0.12, 'triangle'], [1320, 0.14, 'triangle']]); },
+    mini3: function () { seq([[560, 0.10, 'sawtooth'], [840, 0.12, 'triangle'], [1120, 0.14, 'triangle'], [1560, 0.20, 'triangle']]); },
+    lvl: function () { A.beep(1000, 0.06, 'sine', 0.10); },
+    nitro: function () { A.beep(220, 0.5, 'sawtooth', 0.16); },
+    card: function () { A.beep(1200, 0.08, 'sine', 0.14); },
+    jump: function () { A.beep(520, 0.18, 'sine', 0.14); },
+    land: function () { A.beep(180, 0.14, 'sine', 0.15); },
+    lap: function () { seq([[1046, 0.12, 'sine'], [1568, 0.18, 'sine']]); },
+    finish: function () { seq([[523, 0.22, 'triangle'], [659, 0.22, 'triangle'], [784, 0.22, 'triangle'], [1046, 0.24, 'triangle']]); },
+    hit: function () { A.beep(120, 0.3, 'sawtooth', 0.22); flash(); },
+    bump: function () { A.beep(150, 0.07, 'square', 0.08); },
+    pick: function () { A.beep(1400, 0.07, 'sine', 0.12); },
+    fire: function () { A.beep(700, 0.2, 'sawtooth', 0.14); },
+    boost: function () { A.beep(400, 0.25, 'triangle', 0.16); },
+    shield: function () { A.beep(880, 0.25, 'sine', 0.14); },
+    drop: function () { A.beep(300, 0.1, 'triangle', 0.12); },
+    crowd: function () { A.beep(520, 0.07, 'square', 0.07); }
+  };
+  function playFx(k) { if (A.on && SFX[k]) SFX[k](); }
+  function flash() {
+    var f = $('hudFlash');
+    if (!f) return;
+    f.style.transition = 'none'; f.style.opacity = '0.55';
+    requestAnimationFrame(function () { f.style.transition = 'opacity .35s'; f.style.opacity = '0'; });
+  }
+
+  /* ---------- 应用状态 ---------- */
+  var save = R.Save.load();
+  var sel = { trackId: 'town', mode: save.settings.mode || 'ai' };
+  var race = null, screen = 'home', miniTick = 0;
+  var garageTab = 'cars';
+
+  /* ---------- 页面切换 ---------- */
+  var SCREENS = ['home', 'tracks', 'garage', 'settings', 'stats', 'race', 'result'];
+  function showScreen(name) {
+    screen = name;
+    for (var i = 0; i < SCREENS.length; i++) {
+      var el = $('scr-' + SCREENS[i]);
+      if (el) el.classList.toggle('hidden', SCREENS[i] !== name);
+    }
+    $('topbar').classList.toggle('hidden', name === 'race' || name === 'result');
+    if (name === 'home') refreshHome();
+    if (name === 'garage') refreshGarage();
+    if (name === 'stats') refreshStats();
+    if (name === 'tracks') refreshTracks();
+    document.querySelectorAll('.bottomnav button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-go') === name);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-go]') : null;
+    if (t) { showScreen(t.getAttribute('data-go')); A.init(); }
+  });
+
+  /* ---------- 顶栏 ---------- */
+  function refreshTop() {
+    $('tbLevel').textContent = save.level;
+    $('tbNick').textContent = save.nick;
+    $('tbCoin').textContent = save.coin;
+    $('tbDia').textContent = save.dia;
+    $('tbWin').textContent = R.Save.winRate() + '%';
+    $('tbExp').style.width = Math.min(100, save.exp / R.Save.expNeed(save.level) * 100) + '%';
+  }
+  function refreshHome() {
+    refreshTop();
+    $('homeCarName').textContent = R.carById(save.car).name;
+    $('homeTrackName').textContent = R.trackById(sel.trackId).name;
+  }
+
+  /* ---------- 赛道选择 ---------- */
+  function refreshTracks() {
+    var list = $('trackList');
+    list.innerHTML = '';
+    $('trackCount').textContent = '共 ' + R.TRACKS.length + ' 条赛道 · 单局约 5 分钟';
+    R.TRACKS.forEach(function (t) {
+      var track = R.getTrack(t.id);
+      var card = document.createElement('div');
+      card.className = 'track-card' + (t.id === sel.trackId ? ' sel' : '');
+      var rec = save.records[t.id];
+      var lapsTxt = track.loop ? (track.laps + ' 圈') : '单程';
+      card.innerHTML =
+        '<div class="tc-img"><canvas width="320" height="120"></canvas></div>' +
+        '<div class="tc-body">' +
+        '<div class="tc-name">' + t.name + '</div>' +
+        '<div class="tc-meta"><span class="tag d' + t.difficulty + '">' + R.DIFF_LABEL[t.difficulty] + '</span>' +
+        '<span class="tag">' + lapsTxt + '</span>' +
+        '<span class="tag ' + (track.loop ? '' : 'pt') + '">' + (track.loop ? '循环跑道' : '点对点') + '</span>' +
+        '<span class="tag">' + Math.round(track.length / 150) + ' m</span></div>' +
+        '<div class="tc-rec">最佳单圈：' + (rec && rec.lap ? R.fmtTime(rec.lap) : '暂无') +
+        '　总时：' + (rec && rec.best ? R.fmtTime(rec.best) : '暂无') + '</div>' +
+        '<div class="tc-rec" style="color:#8a99ab">' + t.desc + '</div>' +
+        '</div>';
+      var cv = card.querySelector('canvas'), c2 = cv.getContext('2d');
+      var th = R.THEMES[t.theme];
+      var g = c2.createLinearGradient(0, 0, 0, 120);
+      g.addColorStop(0, th.sky[0]); g.addColorStop(1, th.sky[1]);
+      c2.fillStyle = g; c2.fillRect(0, 0, 320, 120);
+      c2.globalAlpha = 0.9;
+      R.drawMiniTrack(c2, track, 320, 120, null, null);
+      c2.globalAlpha = 1;
+      card.onclick = function () { sel.trackId = t.id; refreshTracks(); };
+      list.appendChild(card);
+    });
+    document.querySelectorAll('#scr-tracks .ms').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-mode') === sel.mode);
+    });
+    document.querySelectorAll('#scr-tracks .dp').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-diff') === save.settings.diff);
+    });
+    document.querySelectorAll('#scr-tracks .pp').forEach(function (b) {
+      b.classList.toggle('active', +b.getAttribute('data-p') === save.settings.players);
+    });
+    refreshP2Pick();
+    refreshSoloPick();
+    refreshTeamInfo();
+  }
+
+  // 本局人数构成
+  function refreshTeamInfo() {
+    var total = save.settings.players || 6;
+    var humans = sel.mode === 'duo' ? 2 : 1;
+    var ai = sel.mode === 'solo' ? 0 : Math.max(0, total - humans);
+    var txt;
+    if (sel.mode === 'solo') txt = '本局 <b>1</b> 人（单人竞速 · 无电脑玩家）';
+    else if (sel.mode === 'duo') txt = '本局 <b>' + Math.max(total, 2) + '</b> 人：真人 <b>2</b> + 电脑 <b>' + ai + '</b>';
+    else txt = '本局 <b>' + total + '</b> 人：真人 <b>1</b> + 电脑 <b>' + ai + '</b>';
+    $('teamInfo').innerHTML = txt;
+  }
+
+  // 1V1 / 单人竞速：自选我方座驾 + 对手座驾
+  function refreshSoloPick() {
+    var box = $('soloPick');
+    var show = sel.mode !== 'duo' && (save.settings.players || 6) === 2;
+    box.classList.toggle('hidden', !show);
+    if (!show) return;
+    if (!save.foeCar) save.foeCar = 'c3';
+    box.innerHTML =
+      '<span class="pick-label">我方座驾</span>' +
+      save.cars.map(function (id) {
+        return '<button class="pick-btn' + (id === save.car ? ' active' : '') + '" data-my="' + id + '">' + R.carById(id).name + '</button>';
+      }).join('') +
+      '<span class="pick-label" style="margin-left:8px">对手座驾</span>' +
+      R.CARS.map(function (c) {
+        return '<button class="pick-btn' + (c.id === save.foeCar ? ' active' : '') + '" data-foe="' + c.id + '">' + c.name + '</button>';
+      }).join('') +
+      '<button class="pick-btn' + (save.foeCar === 'random' ? ' active' : '') + '" data-foe="random">随机</button>';
+  }
+
+  function refreshP2Pick() {
+    var box = $('p2Pick');
+    box.classList.toggle('hidden', sel.mode !== 'duo');
+    if (sel.mode !== 'duo') return;
+    if (!save.car2) {
+      save.car2 = (function () {
+        for (var i = 0; i < save.cars.length; i++) if (save.cars[i] !== save.car) return save.cars[i];
+        return save.car;
+      })();
+    }
+    box.innerHTML = '<span>P2 座驾</span>' +
+      save.cars.map(function (id) {
+        var c = R.carById(id);
+        return '<button class="p2b-btn' + (id === save.car2 ? ' active' : '') + '" data-c2="' + id + '">' + c.name + '</button>';
+      }).join('');
+  }
+
+  document.addEventListener('click', function (e) {
+    var m = e.target.closest ? e.target.closest('.ms') : null;
+    if (m) { sel.mode = m.getAttribute('data-mode'); save.settings.mode = sel.mode; R.Save.save(); refreshTracks(); }
+    var d = e.target.closest ? e.target.closest('.dp') : null;
+    if (d) { save.settings.diff = d.getAttribute('data-diff'); R.Save.save(); refreshTracks(); }
+    var p = e.target.closest ? e.target.closest('.pp') : null;
+    if (p) { save.settings.players = +p.getAttribute('data-p'); R.Save.save(); refreshTracks(); }
+    var c2 = e.target.closest ? e.target.closest('.p2b-btn') : null;
+    if (c2) { save.car2 = c2.getAttribute('data-c2'); R.Save.save(); refreshP2Pick(); }
+    var my = e.target.closest ? e.target.closest('[data-my]') : null;
+    if (my) { save.car = my.getAttribute('data-my'); R.Save.save(); refreshSoloPick(); refreshHome(); }
+    var fo = e.target.closest ? e.target.closest('[data-foe]') : null;
+    if (fo) { save.foeCar = fo.getAttribute('data-foe'); R.Save.save(); refreshSoloPick(); }
+  });
+
+  /* ---------- 车库 ---------- */
+  var garageSel = save.car;
+  function curLook() {
+    var def = R.carById(garageSel);
+    return R.makeLook(def, R.Save.skinOf(garageSel), R.Save.partsOf(garageSel));
+  }
+  function refreshGarage() {
+    refreshTop();
+    $('garageCoin').textContent = save.coin;
+    document.querySelectorAll('#scr-garage .gt').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-tab') === garageTab);
+    });
+    $('carGrid').classList.toggle('hidden', garageTab !== 'cars');
+    $('partList').classList.toggle('hidden', garageTab !== 'parts');
+    $('skinGrid').classList.toggle('hidden', garageTab !== 'skins');
+    if (garageTab === 'cars') renderCars();
+    if (garageTab === 'parts') renderParts();
+    if (garageTab === 'skins') renderSkins();
+    showCarDetail(R.carById(garageSel));
+  }
+
+  function renderCars() {
+    var grid = $('carGrid');
+    grid.innerHTML = '';
+    R.CARS.forEach(function (c) {
+      var owned = save.cars.indexOf(c.id) >= 0;
+      var card = document.createElement('div');
+      card.className = 'car-card' + (c.id === garageSel ? ' sel' : '') + (owned ? '' : ' lock');
+      card.innerHTML = '<canvas width="150" height="74"></canvas>' +
+        '<div class="cc-name">' + c.name + '</div>' +
+        '<div class="cc-tier">' + c.tier + '</div>' +
+        (owned ? '<div class="cc-owned">已拥有</div>' : '<div class="cc-lock">💰 ' + c.price + ' 解锁</div>');
+      var cv = card.querySelector('canvas');
+      R.drawCarPreview(cv.getContext('2d'), c, 150, 74, 0,
+        R.makeLook(c, R.Save.skinOf(c.id), R.Save.partsOf(c.id)));
+      card.onclick = function () {
+        if (save.cars.indexOf(c.id) < 0) {
+          if (save.coin >= c.price) {
+            save.coin -= c.price; save.cars.push(c.id);
+            R.Save.save(); playFx('pick');
+          } else { alert('金币不足，再赢几局吧！'); return; }
+        }
+        garageSel = c.id;
+        refreshGarage();
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function renderParts() {
+    var box = $('partList');
+    box.innerHTML = '';
+    var parts = R.Save.partsOf(garageSel);
+    R.PART_KEYS.forEach(function (key) {
+      var def = R.PARTS[key];
+      var lv = parts[key] || 0;
+      var cur = def.levels[lv];
+      var next = def.levels[lv + 1];
+      var row = document.createElement('div');
+      row.className = 'part-row';
+      var lvDots = '';
+      for (var i = 0; i < def.levels.length; i++) lvDots += '<i class="' + (i <= lv ? 'on' : '') + '"></i>';
+      row.innerHTML =
+        '<div class="pr-head"><b>' + def.icon + ' ' + def.name + '</b><span>' + cur.name + '</span></div>' +
+        '<div class="pr-dots">' + lvDots + '</div>' +
+        '<div class="pr-desc">' + def.desc + '</div>' +
+        (next
+          ? '<div class="pr-next">升级到 <b>' + next.name + '</b>：' + bonusText(next.add) + '</div>' +
+            '<button class="buybtn">💰 ' + next.price + ' 升级</button>'
+          : '<div class="pr-max">已满级</div>');
+      var btn = row.querySelector('.buybtn');
+      if (btn) {
+        btn.onclick = function () {
+          if (save.coin < next.price) { alert('金币不足，再赢几局吧！'); return; }
+          save.coin -= next.price;
+          parts[key] = lv + 1;
+          R.Save.save(); playFx('pick'); refreshGarage();
+        };
+      }
+      box.appendChild(row);
+    });
+  }
+  function bonusText(add) {
+    var map = { speed: '极速', accel: '加速', drift: '漂移', stab: '稳定' };
+    var out = [];
+    for (var k in add) if (add[k]) out.push(map[k] + ' +' + add[k]);
+    return out.join('　');
+  }
+
+  function renderSkins() {
+    var box = $('skinGrid');
+    box.innerHTML = '';
+    var curId = R.Save.skinOf(garageSel);
+    R.SKINS.forEach(function (sk) {
+      var owned = save.skins.indexOf(sk.id) >= 0;
+      var card = document.createElement('div');
+      card.className = 'skin-card' + (sk.id === curId ? ' sel' : '') + (owned ? '' : ' lock');
+      var def = R.carById(garageSel);
+      card.innerHTML = '<canvas width="150" height="74"></canvas>' +
+        '<div class="sc-name">' + sk.name + '</div>' +
+        (owned ? '<div class="sc-owned">' + (sk.id === curId ? '使用中' : '点击装备') + '</div>'
+               : '<div class="sc-lock">💰 ' + sk.price + '</div>');
+      R.drawCarPreview(card.querySelector('canvas').getContext('2d'), def, 150, 74, 0,
+        R.makeLook(def, sk.id, R.Save.partsOf(garageSel)));
+      card.onclick = function () {
+        if (save.skins.indexOf(sk.id) < 0) {
+          if (save.coin < sk.price) { alert('金币不足，再赢几局吧！'); return; }
+          save.coin -= sk.price; save.skins.push(sk.id); R.Save.save(); playFx('pick');
+        }
+        save.skin[garageSel] = sk.id;
+        R.Save.save(); refreshGarage();
+      };
+      box.appendChild(card);
+    });
+  }
+
+  function showCarDetail(c) {
+    var parts = R.Save.partsOf(garageSel);
+    var b = R.partsBonus(parts);
+    $('garageCarName').textContent = c.name;
+    $('garageCarTier').textContent = c.tier;
+    var s = c.stats;
+    var rows = [
+      ['极速', s.speed, b.speed], ['漂移', s.drift, b.drift],
+      ['加速', s.accel, b.accel], ['稳定', s.stab, b.stab]
+    ];
+    $('garageStats').innerHTML = rows.map(function (r) {
+      var v = Math.min(140, r[1] + r[2]);
+      return '<div class="sb"><span>' + r[0] + '</span>' +
+        '<div class="bar' + (v > 70 ? ' g' : '') + '"><i style="width:' + Math.min(100, v) + '%"></i></div>' +
+        '<em>' + v + (r[2] ? '<b class="add">+' + r[2] + '</b>' : '') + '</em></div>';
+    }).join('');
+    previewCar = c;
+    previewLook = curLook();
+  }
+  var previewCar = R.carById(garageSel);
+  var previewLook = null;
+  function drawPreview(t) {
+    if (screen !== 'garage') return;
+    var cv = $('carPreview');
+    R.drawCarPreview(cv.getContext('2d'), previewCar, 360, 240, t, previewLook || curLook());
+  }
+  document.addEventListener('click', function (e) {
+    var g = e.target.closest ? e.target.closest('.gt') : null;
+    if (g) { garageTab = g.getAttribute('data-tab'); refreshGarage(); }
+  });
+  $('btnGarageOk').onclick = function () {
+    save.car = garageSel; R.Save.save(); refreshHome(); showScreen('home');
+  };
+
+  /* ---------- 设置 ---------- */
+  // 镜头 / 视距 / 道具频率 三组的按钮由配置动态生成
+  function fillSeg(id, items) {
+    var box = $(id); if (!box) return;
+    box.innerHTML = items.map(function (i) {
+      return '<button data-v="' + i.v + '">' + i.t + '</button>';
+    }).join('');
+  }
+  function buildOptButtons() {
+    fillSeg('setCam', R.CAM_LEVELS.map(function (l) { return { v: l.id, t: l.label }; }));
+    fillSeg('setFar', R.FAR_LEVELS.map(function (l) { return { v: l.id, t: l.label }; }));
+    fillSeg('setItemRate', R.ITEM_RATES.map(function (l) { return { v: l.id, t: l.label }; }));
+  }
+  function syncSettings() {
+    var s = save.settings;
+    setSeg('setDiff', s.diff); setSeg('setPlayers', String(s.players));
+    setSeg('setAuto', String(s.auto)); setSeg('setSound', String(s.sound));
+    setSeg('setQuality', s.quality);
+    setSeg('setCam', s.cam); setSeg('setFar', s.far);
+    setSeg('setItemRate', s.itemRate); setSeg('setAssist', String(s.assist));
+  }
+  function setSeg(id, v) {
+    var box = $(id); if (!box) return;
+    box.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-v') === v);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.seg-ctl button') : null;
+    if (!b) return;
+    var box = b.parentNode, id = box.id, v = b.getAttribute('data-v');
+    if (id === 'setDiff') save.settings.diff = v;
+    if (id === 'setPlayers') save.settings.players = +v;
+    if (id === 'setAuto') save.settings.auto = +v;
+    if (id === 'setSound') { save.settings.sound = +v; A.on = !!(+v); if (!A.on) A.stopEngine(); }
+    if (id === 'setQuality') { save.settings.quality = v; resize(); }
+    if (id === 'setCam') save.settings.cam = v;
+    if (id === 'setFar') save.settings.far = v;
+    if (id === 'setItemRate') save.settings.itemRate = v;
+    if (id === 'setAssist') save.settings.assist = +v;
+    if (id === 'setCam' || id === 'setFar' || id === 'setQuality') R.applyView(save.settings);
+    R.Save.save(); syncSettings();
+  });
+  $('btnSetOk').onclick = function () { refreshHome(); showScreen('home'); };
+  $('btnReset').onclick = function () {
+    if (confirm('确定清空所有存档数据？')) { save = R.Save.reset(); syncSettings(); refreshHome(); showScreen('home'); }
+  };
+
+  /* ---------- 战绩 ---------- */
+  function refreshStats() {
+    refreshTop();
+    var cards = [
+      ['总场次', save.races], ['胜率', R.Save.winRate() + '%'], ['登台次数', save.podium],
+      ['等级', 'Lv.' + save.level], ['累计漂移', save.driftTotal], ['累计氮气', save.nitroTotal],
+      ['撞飞观众', save.crowdTotal || 0], ['拥有车辆', save.cars.length]
+    ];
+    $('statCards').innerHTML = cards.map(function (c) {
+      return '<div class="sc"><b>' + c[1] + '</b><span>' + c[0] + '</span></div>';
+    }).join('');
+    $('recRows').innerHTML = R.TRACKS.map(function (t) {
+      var r = save.records[t.id];
+      var col = ['#3ddc84', '#ffb400', '#ff4d5e'][t.difficulty];
+      return '<div class="rt-row"><span><i class="dot" style="background:' + col + '"></i>' + t.name + '</span>' +
+        '<span>' + (t.loop !== false ? '循环' : '点对点') + '</span>' +
+        '<span class="' + (r && r.lap ? '' : 'no-rec') + '">' + (r && r.lap ? R.fmtTime(r.lap) : '暂无') + '</span>' +
+        '<span class="' + (r && r.best ? '' : 'no-rec') + '">' + (r && r.best ? R.fmtTime(r.best) : '暂无') + '</span></div>';
+    }).join('');
+  }
+
+  /* ---------- 开始对局 ---------- */
+  function startRace() {
+    A.init(); A.on = !!save.settings.sound;
+    var track = R.getTrack(sel.trackId);
+    var cfg = save.settings;
+    var duo = sel.mode === 'duo';
+    var total = cfg.players || 6;
+    if (duo) total = Math.max(2, total);
+    var aiCount = sel.mode === 'solo' ? 0 : Math.max(0, total - (duo ? 2 : 1));
+    var foeDef = null;
+    if (!duo && total === 2 && save.foeCar && save.foeCar !== 'random') foeDef = R.carById(save.foeCar);
+    race = new R.Race({
+      track: track, mode: sel.mode, diff: cfg.diff, aiCount: aiCount,
+      assist: !!cfg.assist, itemRate: cfg.itemRate, foeDef: foeDef,
+      carDef: R.carById(save.car), parts1: R.Save.partsOf(save.car), skin1: R.Save.skinOf(save.car),
+      car2Def: R.carById(save.car2 || save.car), parts2: R.Save.partsOf(save.car2 || save.car),
+      skin2: R.Save.skinOf(save.car2 || save.car),
+      twoPlayers: duo,
+      onMsg: function (t) {
+        var el = $('hudMsg');
+        el.textContent = t;
+        el.classList.toggle('show', !!t);
+        if (t) { clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('show'); }, t === 'GO!' ? 900 : 800); }
+      },
+      onFx: function (k) { playFx(k); },
+      onEnd: onRaceEnd
+    });
+    race.cam.w = W; race.cam.h = H;
+    race.cam.drawDist = CFG.DRAW_DIST;   // 由"可视距离"档位决定
+    for (var ci = 0; ci < race.cams.length; ci++) race.cams[ci].drawDist = race.cam.drawDist;
+    keys = {};
+    edge = [{ nitro: false, item: false }, { nitro: false, item: false }];
+    touch = [{ left: 0, right: 0, drift: 0 }, { left: 0, right: 0, drift: 0 }];
+    $('pane2').classList.toggle('hidden', !duo);
+    $('scr-race').classList.toggle('split', !!duo);
+    document.body.classList.toggle('split', !!duo);
+    showScreen('race');
+    A.startEngine();
+  }
+  $('btnQuickStart').onclick = startRace;
+  $('btnStartRace').onclick = startRace;
+  $('btnQuit').onclick = function () {
+    A.stopEngine(); race = null;
+    document.body.classList.remove('split');
+    showScreen('home');
+  };
+
+  /* ---------- 结算 ---------- */
+  function onRaceEnd(res) {
+    A.stopEngine();
+    document.body.classList.remove('split');
+    var list = res.list, me = null, me2 = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].isPlayer && list[i].playerIndex === 0) me = list[i];
+      if (list[i].isPlayer && list[i].playerIndex === 1) me2 = list[i];
+    }
+    var total = list.length, rank = me.rank;
+    var best = me2 ? Math.min(rank, me2.rank) : rank;
+    var coin = 40 + Math.max(0, total - rank) * 16 + me.drift * 3 + (rank === 1 ? 60 : 0);
+    if (me2) coin += 20 + Math.max(0, total - me2.rank) * 10;
+    coin += Math.floor((res.crowd || 0) * 2);
+    var exp = 30 + Math.max(0, total - rank) * 12;
+    var dia = best === 1 ? 3 : (best <= 3 ? 1 : 0);
+    var grade = best === 1 ? 'S' : (best === 2 ? 'A' : (best === 3 ? 'B' : (best <= total / 2 ? 'C' : 'D')));
+
+    save.coin += coin; save.dia += dia;
+    save.races++; if (best === 1) save.wins++; if (best <= 3) save.podium++;
+    save.driftTotal += me.drift + (me2 ? me2.drift : 0);
+    save.nitroTotal += me.nitro + (me2 ? me2.nitro : 0);
+    save.crowdTotal = (save.crowdTotal || 0) + (res.crowd || 0);
+    var up = R.Save.addExp(exp);
+    if (me.finished) {
+      var rec = save.records[sel.trackId] || {};
+      if (me.bestLap && (!rec.lap || me.bestLap < rec.lap)) rec.lap = me.bestLap;
+      if (me.time && (!rec.best || me.time < rec.best)) rec.best = me.time;
+      save.records[sel.trackId] = rec;
+    }
+    R.Save.save();
+
+    $('resTitle').textContent = best === 1 ? '🏆 冠军！' : ('最佳第 ' + best + ' 名');
+    $('resTitle').style.color = best === 1 ? '#ffb400' : '#ff6a2b';
+    $('resSub').textContent = me2
+      ? ('P1 第 ' + me.rank + ' 名　·　P2 第 ' + me2.rank + ' 名　·　全场 ' + total + ' 人')
+      : ('第 ' + me.rank + ' 名　·　全场 ' + total + ' 人');
+
+    var podium = '';
+    for (var p = 0; p < Math.min(3, list.length); p++) {
+      var c = list[p];
+      podium += '<div class="pd p' + (p + 1) + '">' +
+        '<div class="pdRank">' + ['冠军', '亚军', '季军'][p] + '</div>' +
+        '<canvas class="pdCar" width="128" height="80"></canvas>' +
+        '<div class="pdName">' + c.name + '</div>' +
+        '<div class="pdTime">' + (c.time != null ? R.fmtTime(c.time) : '未完赛') + '</div></div>';
+    }
+    $('resPodium').innerHTML = podium;
+    var pcs = $('resPodium').querySelectorAll('canvas');
+    for (var q = 0; q < pcs.length; q++) {
+      var def = null;
+      for (var k = 0; k < R.CARS.length; k++) if (R.CARS[k].name === list[q].carName) def = R.CARS[k];
+      R.drawCarPreview(pcs[q].getContext('2d'), def || R.CARS[0], 128, 80, 0);
+    }
+    $('resRows').innerHTML = list.map(function (c) {
+      var cls = 'rt-row res' + (c.isPlayer && c.playerIndex === 0 ? ' me' : (c.isPlayer ? ' me2' : ''));
+      return '<div class="' + cls + '">' +
+        '<span>' + c.rank + '</span>' +
+        '<span>' + c.name + '</span>' +
+        '<span style="color:' + c.color + '">' + c.carName + '</span>' +
+        '<span>' + (c.time != null ? R.fmtTime(c.time) : '未完赛') + '</span>' +
+        '<span>' + (c.bestLap ? R.fmtTime(c.bestLap) : '--') + '</span>' +
+        '<span>' + c.drift + '</span>' +
+        '<span>' + c.nitro + '</span>' +
+        '<span>' + (c.crowd || 0) + '</span></div>';
+    }).join('');
+    $('rwCoin').textContent = '+' + coin;
+    $('rwExp').textContent = '+' + exp + (up ? ' (升级!)' : '');
+    $('rwDia').textContent = '+' + dia;
+    $('rwRank').textContent = grade;
+    race = null;
+    showScreen('result');
+    playFx('finish');
+  }
+  $('btnAgain').onclick = startRace;
+  $('btnResHome').onclick = function () { showScreen('home'); };
+  $('btnResDetail').onclick = function () { showScreen('stats'); };
+
+  /* ---------- 输入（支持两名玩家） ---------- */
+  var keys = {};
+  var edge = [{ nitro: false, item: false }, { nitro: false, item: false }];
+  var touch = [{ left: 0, right: 0, drift: 0 }, { left: 0, right: 0, drift: 0 }];
+
+  window.addEventListener('keydown', function (e) {
+    var k = e.key.toLowerCase();
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
+    if (keys[k]) return;
+    keys[k] = true;
+    var duo = race && race.split;
+    // P1
+    if (k === 'j') edge[0].nitro = true;
+    if (k === 'k') edge[0].item = true;
+    // P2
+    if (duo && (k === ',' || k === '<')) edge[1].nitro = true;
+    if (duo && (k === '.' || k === '>')) edge[1].item = true;
+    if (!duo && (k === ',' || k === '<')) edge[0].nitro = true;
+    if (!duo && (k === '.' || k === '>')) edge[0].item = true;
+    if (k === 'r' && screen === 'race') startRace();
+  });
+  window.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
+  window.addEventListener('blur', function () { keys = {}; });
+
+  function bindHold(id, on, off) {
+    var el = $(id);
+    if (!el) return;
+    var active = false;
+    function down(e) { e.preventDefault(); if (!active) { active = true; el.classList.add('on'); on(); } }
+    function up(e) { e.preventDefault(); if (active) { active = false; el.classList.remove('on'); if (off) off(); } }
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  }
+  bindHold('btnDrift', function () { touch[0].drift = 1; }, function () { touch[0].drift = 0; });
+  bindHold('btnDrift2', function () { touch[1].drift = 1; }, function () { touch[1].drift = 0; });
+  $('btnNitro').addEventListener('pointerdown', function (e) { e.preventDefault(); edge[0].nitro = true; });
+  $('btnItem').addEventListener('pointerdown', function (e) { e.preventDefault(); edge[0].item = true; });
+  $('btnNitro2').addEventListener('pointerdown', function (e) { e.preventDefault(); edge[1].nitro = true; });
+  $('btnItem2').addEventListener('pointerdown', function (e) { e.preventDefault(); edge[1].item = true; });
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (screen !== 'race' || !race) return;
+    var idx = (race.split && e.clientY >= H / 2) ? 1 : 0;
+    touch[idx][e.clientX < W / 2 ? 'left' : 'right'] = 1;
+  });
+  canvas.addEventListener('pointerup', function () { touch[0].left = touch[0].right = 0; touch[1].left = touch[1].right = 0; });
+  canvas.addEventListener('pointercancel', function () { touch[0].left = touch[0].right = 0; touch[1].left = touch[1].right = 0; });
+
+  function buildInput(idx) {
+    var duo = race && race.split;
+    var left, right, up, down, drift;
+    if (idx === 0) {
+      left = keys['a'] || (!duo && keys['arrowleft']);
+      right = keys['d'] || (!duo && keys['arrowright']);
+      up = keys['w'] || (!duo && keys['arrowup']);
+      down = keys['s'] || (!duo && keys['arrowdown']);
+      drift = keys['shift'] || keys[' '] || (!duo && keys['enter']);
+    } else {
+      left = keys['arrowleft']; right = keys['arrowright'];
+      up = keys['arrowup']; down = keys['arrowdown'];
+      drift = keys['enter'];
+    }
+    var t = touch[idx] || { left: 0, right: 0, drift: 0 };
+    var inp = {
+      steer: ((right ? 1 : 0) - (left ? 1 : 0)) || ((t.right ? 1 : 0) - (t.left ? 1 : 0)),
+      throttle: !!up || !!save.settings.auto || !!t.right || !!t.left,
+      brake: !!down,
+      drift: !!drift || !!t.drift,
+      useNitro: edge[idx].nitro, useItem: edge[idx].item
+    };
+    edge[idx].nitro = false; edge[idx].item = false;
+    return inp;
+  }
+  function buildInputs() {
+    var arr = [buildInput(0)];
+    if (race && race.split) arr.push(buildInput(1));
+    return arr;
+  }
+
+  /* ---------- HUD ---------- */
+  var el = {};
+  function cacheEl() {
+    ['hudRank', 'hudTotal', 'hudLap', 'hudTime', 'hudLapTime', 'hudSpeed', 'nitroFill',
+      'nitroCards', 'driftFill', 'nitroCount', 'itemIcon', 'btnItem', 'minimap',
+      'hud2Rank', 'hud2Total', 'hud2Lap', 'hud2Time', 'hud2LapTime', 'hud2Speed', 'nitro2Fill',
+      'nitro2Cards', 'drift2Fill', 'nitro2Count', 'item2Icon', 'btnItem2',
+      'foeBox1', 'foeBox2'].forEach(function (id) { el[id] = $(id); });
+  }
+  var PANE = [
+    { rank: 'hudRank', total: 'hudTotal', lap: 'hudLap', time: 'hudTime', lapTime: 'hudLapTime', speed: 'hudSpeed', nf: 'nitroFill', nc: 'nitroCards', df: 'driftFill', cnt: 'nitroCount', icon: 'itemIcon', btn: 'btnItem' },
+    { rank: 'hud2Rank', total: 'hud2Total', lap: 'hud2Lap', time: 'hud2Time', lapTime: 'hud2LapTime', speed: 'hud2Speed', nf: 'nitro2Fill', nc: 'nitro2Cards', df: 'drift2Fill', cnt: 'nitro2Count', icon: 'item2Icon', btn: 'btnItem2' }
+  ];
+  function updatePane(idx, car) {
+    var m = PANE[idx];
+    if (!el[m.rank]) return;
+    el[m.rank].textContent = car.rank;
+    el[m.total].textContent = '/' + race.cars.length;
+    el[m.lap].textContent = Math.min(car.lap, race.laps) + '/' + race.laps;
+    el[m.time].textContent = R.fmtTime(race.time);
+    el[m.lapTime].textContent = R.fmtTime(Math.max(0, race.time - car.lapStart));
+    el[m.speed].textContent = Math.round(car.speed / CFG.KMH);
+    el[m.nf].style.width = car.nitroGauge.toFixed(0) + '%';
+    var charge = Math.min(1, car.drift.charge / 2.6);
+    el[m.df].style.width = (charge * 100).toFixed(0) + '%';
+    el[m.df].className = 'lvl' + car.drift.lvl;
+    var cards = '';
+    for (var i = 0; i < 2; i++) cards += '<i class="' + (i < car.nitroCards ? '' : 'off') + '"></i>';
+    el[m.nc].innerHTML = cards;
+    el[m.cnt].textContent = '×' + car.nitroCards;
+    if (car.item) {
+      var it = R.ITEMS[car.item];
+      el[m.icon].textContent = it.icon;
+      el[m.btn].classList.remove('empty');
+    } else {
+      el[m.icon].textContent = '—';
+      el[m.btn].classList.add('empty');
+    }
+  }
+  var foeSig = ['', ''];
+  function updateFoes(idx, boxId) {
+    var box = el[boxId];
+    if (!box) return;
+    var list = race.foeStates(idx);
+    var sig = list.map(function (f) { return f.name + f.key + Math.ceil(f.t * 4); }).join('|');
+    if (sig === foeSig[idx]) {
+      // 只更新倒计时文本，避免每帧重建 DOM
+      var ts = box.querySelectorAll('.ftime');
+      for (var k = 0; k < ts.length && k < list.length; k++) ts[k].textContent = list[k].t.toFixed(1) + 's';
+      return;
+    }
+    foeSig[idx] = sig;
+    box.innerHTML = list.map(function (f) {
+      return '<div class="foe-row ' + (f.mine ? 'mine ' : '') + (f.key === 'shield' ? 'shield' : '') + '">' +
+        '<i class="fdot" style="background:' + f.color + '"></i>' +
+        '<span class="fname">' + f.name + '</span>' +
+        '<span class="ficon">' + f.icon + '</span>' +
+        '<span class="ftime">' + f.t.toFixed(1) + 's</span></div>';
+    }).join('');
+  }
+  function updateHud() {
+    updatePane(0, race.players[0]);
+    updateFoes(0, 'foeBox1');
+    if (race.split) {
+      updatePane(1, race.players[1]);
+      updateFoes(1, 'foeBox2');
+    }
+    A.engine(Math.min(1, race.players[0].speed / race.players[0].baseMax), race.players[0].nitroT > 0);
+  }
+  function updateMini() {
+    var cv = el.minimap;
+    if (!cv) return;
+    var c = cv.getContext('2d');
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.fillStyle = '#e8f2fb'; c.fillRect(0, 0, cv.width, cv.height);
+    R.drawMiniTrack(c, race.track, cv.width, cv.height, race.cars, race.players[0], race.players[1]);
+  }
+
+  /* ---------- 首页动态背景（演示赛道） ---------- */
+  var demo = { z: 0, t: 0 };
+  function renderDemo(dt) {
+    var track = R.getTrack(sel.trackId);
+    demo.z += 4600 * dt; demo.t += dt;
+    var L = track.length;
+    var z = demo.z % L;
+    var seg = R.findSeg(track, z);
+    var pct = (z % CFG.SEG_LEN) / CFG.SEG_LEN;
+    var py = R.lerp(seg.p1.world.y, seg.p2.world.y, pct);
+    R.Render.render(ctx, track, {
+      x: Math.sin(demo.t * 0.35) * 0.5, y: py + CFG.CAM_H + 260, z: z,
+      w: W, h: H, bg: demo.z * 0.00016, drawDist: Math.round(CFG.DRAW_DIST * 0.85)
+    });
+  }
+
+  /* ---------- 主循环 ---------- */
+  var last = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    var dt = Math.min(0.05, (ts - last) / 1000 || 0);
+    last = ts;
+    if (screen === 'race' && race) {
+      race.update(dt, buildInputs());
+      if (race) race.render(ctx, W, H);
+      if (race) { updateHud(); if ((miniTick++ % 3) === 0) updateMini(); }
+    } else if (screen === 'garage') {
+      ctx.clearRect(0, 0, W, H);
+      var track = R.getTrack(sel.trackId);
+      demo.z += 2000 * dt;
+      var z = demo.z % track.length;
+      var sg = R.findSeg(track, z);
+      var py = R.lerp(sg.p1.world.y, sg.p2.world.y, (z % CFG.SEG_LEN) / CFG.SEG_LEN);
+      ctx.globalAlpha = 0.55;
+      R.Render.render(ctx, track, { x: 0, y: py + CFG.CAM_H + 200, z: z, w: W, h: H, bg: demo.z * 0.00016, drawDist: Math.round(CFG.DRAW_DIST * 0.6) });
+      ctx.globalAlpha = 1;
+      drawPreview(ts);
+    } else {
+      renderDemo(dt);
+    }
+  }
+
+  /* ---------- 调试入口（供无头截图/自动化使用） ---------- */
+  R.__dev = {
+    start: startRace,
+    go: showScreen,
+    peek: function () { return race; },
+    setTrack: function (id) { sel.trackId = id; },
+    setMode: function (m) { sel.mode = m; },
+    input: buildInputs,
+    fakeResult: function () {
+      onRaceEnd({
+        list: [
+          { rank: 1, name: '玩家1', isPlayer: true, playerIndex: 0, carName: '新手小蓝', color: '#3aa0ff', finished: true, time: 292.35, bestLap: 56.8, drift: 22, nitro: 9, crowd: 7 },
+          { rank: 2, name: '风驰小队', isPlayer: false, playerIndex: -1, carName: '极地雪狼', color: '#dff1ff', finished: true, time: 293.02, bestLap: 57.1, drift: 19, nitro: 8, crowd: 0 },
+          { rank: 3, name: '雷霆闪电', isPlayer: false, playerIndex: -1, carName: '沙漠之狐', color: '#f5a623', finished: true, time: 294.7, bestLap: 57.9, drift: 17, nitro: 7, crowd: 0 },
+          { rank: 4, name: '疾风少年', isPlayer: false, playerIndex: -1, carName: '森林猎手', color: '#3ddc84', finished: true, time: 296.2, bestLap: 58.4, drift: 18, nitro: 8, crowd: 0 },
+          { rank: 5, name: '糖果车神', isPlayer: false, playerIndex: -1, carName: '甜心粉猪', color: '#ff7ab0', finished: true, time: 298.9, bestLap: 59.2, drift: 15, nitro: 6, crowd: 0 },
+          { rank: 6, name: '极速阿飞', isPlayer: false, playerIndex: -1, carName: '暗夜战神', color: '#2b2f45', finished: true, time: 301.3, bestLap: 60.0, drift: 14, nitro: 6, crowd: 0 }
+        ], playerRank: 1, player2Rank: null, time: 292.35, bestLap: 56.8, crowd: 7
+      });
+    }
+  };
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    cacheEl();
+    resize();
+    window.addEventListener('resize', resize);
+    buildOptButtons();
+    R.applyView(save.settings);
+    syncSettings();
+    A.on = !!save.settings.sound;
+    R.TRACKS.forEach(function (t) { R.getTrack(t.id); });
+    refreshTop();
+    showScreen('home');
+    requestAnimationFrame(loop);
+  }
+  boot();
+
+})(window.RACER);
+
