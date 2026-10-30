@@ -24,11 +24,18 @@ export async function mount(container, {files}) {
     document.body.append(warning);
     globalThis.__basketballSave = {read:()=>current, write(value) { current=value; queue=queue.then(()=>execute('INSERT INTO basketball_save (id,data) VALUES (1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',[{type:'text',value}])).catch(()=>{warning.textContent='保存失败，请检查连接后重新打开应用。'; warning.style.display='block';}); }};
     async function asset(path) {const response=await files.get(`template-assets/${path}`); if (!response.ok) throw new Error(`素材读取失败：${path}`); const url=URL.createObjectURL(await response.blob()); urls.push(url); return url;}
-    const [sprites,...fonts] = await Promise.all(['sprites.png','font-0.ttf','font-1.woff2','font-2.woff2'].map(asset));
+    const sprites = await asset('sprites.png');
+    const fontSpecs = [['OriginalDisplay','font-0.ttf'],['GameChineseSans','font-1.woff2'],['GameChineseDisplay','font-2.woff2']];
+    const loadedFonts = await Promise.all(fontSpecs.map(async ([family,path]) => {
+      const response = await files.get(`template-assets/${path}`);
+      if (!response.ok) throw new Error(`素材读取失败：${path}`);
+      const face = new FontFace(family, await response.arrayBuffer(), {weight:'100 900', style:'normal', display:'swap'});
+      await face.load(); document.fonts.add(face); return face;
+    }));
     globalThis.__basketballAssets={sprites};
-    const style=document.createElement('style'); style.textContent=styles.replace(/__BASKETBALL_FONT_(\d)__/g,(_,n)=>fonts[Number(n)]); document.head.append(style);
+    const style=document.createElement('style'); style.textContent=styles.replace(/@font-face\{[^{}]*__BASKETBALL_FONT_\d__[^{}]*\}/g,''); document.head.append(style);
     container.innerHTML='<div id="root"></div>';
     await import('./game.js');
-    return ()=>{style.remove(); warning.remove(); urls.forEach(URL.revokeObjectURL);};
+    return ()=>{style.remove(); warning.remove(); loadedFonts.forEach(face=>document.fonts.delete(face)); urls.forEach(URL.revokeObjectURL);};
   } catch(error) {container.textContent=`游戏无法启动：${error.message}`; urls.forEach(URL.revokeObjectURL); throw error;}
 }
