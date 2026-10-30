@@ -1,0 +1,503 @@
+import "./style.css";
+import { database } from "./database.js";
+const stylesheet=document.createElement("link"); stylesheet.rel="stylesheet"; stylesheet.href=new URL("./app.css",import.meta.url).href; document.head.appendChild(stylesheet); document.title="一句话记账";
+document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n  <header>\n    <h1>一句话记账</h1>\n    <div class=\"sync\" id=\"syncBox\"><span class=\"dot\" id=\"syncDot\"></span><span id=\"syncTxt\">已同步</span></div>\n  </header>\n\n  <!-- 今天要处理 -->\n  <div class=\"card today\" id=\"todayCard\">\n    <h2><span class=\"bar\"></span>今天要处理</h2>\n    <div class=\"grid\">\n      <div class=\"stat\"><div class=\"v\" id=\"tCount\">0</div><div class=\"k\">今日笔数</div></div>\n      <div class=\"stat\"><div class=\"v red\" id=\"tExp\">¥0</div><div class=\"k\">今日支出</div></div>\n      <div class=\"stat\"><div class=\"v\" id=\"streak\">0</div><div class=\"k\">连续天数</div></div>\n    </div>\n    <div class=\"progress\" id=\"budgetBarWrap\"><i id=\"budgetBar\" style=\"width:0%\"></i></div>\n    <div class=\"alert ok\" id=\"todayAlert\">本月预算使用 0%，还剩 ¥0</div>\n    <div id=\"todayRemind\"></div>\n  </div>\n\n  <!-- 记账 -->\n  <div class=\"panel on\" id=\"panel-ledger\">\n    <div class=\"card\">\n      <h2><span class=\"bar\"></span>一句话记账</h2>\n      <div class=\"quick\" id=\"quickChips\"></div>\n      <div class=\"input-row\">\n        <input autocomplete=\"off\" id=\"sentence\" placeholder=\"例如：午饭花了35 / 打车28 / 昨天买菜45\" type=\"text\">\n      </div>\n      <div style=\"height:10px\"></div>\n      <div class=\"preview\" id=\"preview\">\n        <div class=\"pv-row\">\n          <span class=\"pv-tag\" id=\"pvType\">支出</span>\n          <span class=\"pv-amount\" id=\"pvAmount\">¥0</span>\n          <span class=\"pv-tag\" id=\"pvCat\">餐饮</span>\n          <span class=\"pv-tag\" id=\"pvDate\">今天</span>\n        </div>\n        <div class=\"pv-row\">\n          <span style=\"font-size:12px; color:var(--sub)\">类型</span>\n          <select id=\"pvTypeSel\"></select>\n          <span style=\"font-size:12px; color:var(--sub)\">分类</span>\n          <select id=\"pvCatSel\"></select>\n        </div>\n        <div class=\"pv-hint\" id=\"pvHint\"></div>\n        <div style=\"height:10px\"></div>\n        <button class=\"btn emerald\" disabled id=\"addBtn\">记一笔</button>\n      </div>\n    </div>\n  </div>\n\n  <!-- 流水 -->\n  <div class=\"panel\" id=\"panel-list\">\n    <div class=\"card\">\n      <h2><span class=\"bar\"></span>账单流水</h2>\n      <div class=\"seg\" id=\"seg\">\n        <button data-range=\"today\" id=\"segToday\">今日</button>\n        <button class=\"on\" data-range=\"month\" id=\"segMonth\">本月</button>\n        <button data-range=\"all\" id=\"segAll\">全部</button>\n      </div>\n      <div id=\"listBox\"></div>\n    </div>\n  </div>\n\n  <!-- 统计 -->\n  <div class=\"panel\" id=\"panel-stat\">\n    <div class=\"card\">\n      <h2><span class=\"bar\"></span>本月概览</h2>\n      <div class=\"kpis\">\n        <div class=\"kpi\"><div class=\"v exp\" id=\"mExp\">¥0</div><div class=\"k\">本月支出</div></div>\n        <div class=\"kpi\"><div class=\"v inc\" id=\"mInc\">¥0</div><div class=\"k\">本月收入</div></div>\n        <div class=\"kpi\"><div class=\"v net\" id=\"mNet\">¥0</div><div class=\"k\">结余</div></div>\n      </div>\n      <div class=\"charts\">\n        <div id=\"pieBox\" style=\"width:140px; height:140px; flex:none\"></div>\n        <div class=\"legend\" id=\"pieLegend\"></div>\n      </div>\n    </div>\n  </div>\n\n  <!-- 设置 -->\n  <div class=\"panel\" id=\"panel-set\">\n    <div class=\"card\">\n      <h2><span class=\"bar\"></span>设置与数据</h2>\n      <div class=\"set-row\">\n        <div class=\"lbl\">每月预算<small>超过 80% 会变黄提醒</small></div>\n        <input id=\"budgetInput\" min=\"0\" placeholder=\"3000\" step=\"100\" type=\"number\">\n      </div>\n      <div class=\"set-row\">\n        <div class=\"lbl\">同步状态<small id=\"setSyncTxt\">已同步</small></div>\n        <button class=\"btn ghost\" id=\"refreshBtn\">刷新</button>\n      </div>\n      <div class=\"set-actions\">\n        <button class=\"btn ghost\" id=\"exportBtn\">导出 JSON 备份</button>\n        <button class=\"btn ghost\" id=\"importBtn\">导入恢复</button>\n      </div>\n      <div class=\"set-actions\">\n        <button class=\"btn ghost\" id=\"clearSampleBtn\" style=\"display:none\">清空示例数据</button>\n      </div>\n      <div class=\"set-actions\">\n        <button class=\"btn ghost\" id=\"clearAllBtn\" style=\"color:var(--red); border-color:var(--red-soft)\">清空全部账单</button>\n      </div>\n      <input accept=\"application/json\" class=\"file-hidden\" id=\"fileInput\" type=\"file\">\n      <p style=\"font-size:11px; color:var(--sub); margin:14px 2px 0; line-height:1.6\">\n        账单保存在云端；导出 JSON 可作为本地快照备份。\n      </p>\n    </div>\n  </div>\n</div>\n\n<div class=\"tabbar\" id=\"tabbar\">\n  <button class=\"on\" data-tab=\"ledger\">\n    <svg fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path d=\"M12 5v14M5 12h14\" stroke-linecap=\"round\"/></svg>记账</button>\n  <button data-tab=\"list\">\n    <svg fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path d=\"M4 6h16M4 12h16M4 18h10\" stroke-linecap=\"round\"/></svg>流水</button>\n  <button data-tab=\"stat\">\n    <svg fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\" stroke-linecap=\"round\"/></svg>统计</button>\n  <button data-tab=\"set\">\n    <svg fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2\" stroke-linecap=\"round\"/></svg>设置</button>\n</div>\n\n<div class=\"toast\" id=\"toast\"></div>\n\n";
+
+(function(){
+  "use strict";
+  var DATABASE_ID = "runtime";
+
+  var db = database;
+  var ONLINE = !!db;
+
+  var state = {
+    records: [],          // [{_id, 摘要, 类型, 金额, 分类, 日期, 时间}]
+    options: { "类型": ["支出","收入"].map(text=>({text})), "分类": ["餐饮","交通","购物","居住","娱乐","医疗","人情","工资","其他"].map(text=>({text})) },
+    budget: 3000,
+    range: "month",
+    parsed: null,
+    loading: ONLINE
+  };
+
+  var CATEGORIES = ["餐饮","交通","购物","居住","娱乐","医疗","人情","工资","其他"];
+  var CAT_COLORS = {
+    "餐饮":"#4f46e5","交通":"#0ea5e9","购物":"#8b5cf6","居住":"#f59e0b",
+    "娱乐":"#ec4899","医疗":"#ef4444","人情":"#14b8a6","工资":"#22c55e","其他":"#94a3b8"
+  };
+
+  /* ---------- helpers ---------- */
+  function $(id){ return document.getElementById(id); }
+  function todayStr(){ var d=new Date(); return fmtDate(d); }
+  function fmtDate(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function pad(n){ return n<10?("0"+n):(""+n); }
+  function fmtMoney(n){
+    if(isNaN(n)) n=0;
+    var s = Math.abs(n).toFixed(2);
+    var parts = s.split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,",");
+    return (n<0?"-":"") + "¥" + parts.join(".");
+  }
+  function setSync(stateName, txt){
+    var dot = $("syncDot"), t = $("syncTxt");
+    dot.className = "dot" + (stateName==="syncing"?" syncing":(stateName==="offline"?" offline":""));
+    t.textContent = txt; $("setSyncTxt").textContent = txt;
+  }
+  function toast(msg){
+    var el = $("toast"); el.textContent = msg; el.className = "toast show";
+    setTimeout(function(){ el.className = "toast"; }, 1800);
+  }
+
+  /* ---------- 自然语言解析 ---------- */
+  function detectDate(text){
+    var t = new Date();
+    if(/今天|今日/.test(text)) return fmtDate(t);
+    if(/昨天|昨日/.test(text)){ t.setDate(t.getDate()-1); return fmtDate(t); }
+    if(/大前天/.test(text)){ t.setDate(t.getDate()-3); return fmtDate(t); }
+    if(/前天/.test(text)){ t.setDate(t.getDate()-2); return fmtDate(t); }
+    var wm = text.match(/周([一二三四五六日天])|(星期)([一二三四五六日天])/);
+    if(wm){
+      var cn = wm[1]||wm[3];
+      var map = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":0,"天":0};
+      var target = map[cn]; var cur = t.getDay();
+      var diff = (cur - target + 7) % 7; if(diff===0) diff=7;
+      t.setDate(t.getDate()-diff); return fmtDate(t);
+    }
+    var md = text.match(/(\d{1,2})\s*[月\/.\-]\s*(\d{1,2})\s*[日号]?/);
+    if(md){ var m=parseInt(md[1],10), d=parseInt(md[2],10); if(m>=1&&m<=12&&d>=1&&d<=31){ var y=new Date().getFullYear(); return y+"-"+pad(m)+"-"+pad(d); } }
+    return null;
+  }
+  function detectAmount(text){
+    var m = text.match(/(\d+(?:\.\d+)?)\s*([万千百])?/);
+    if(!m) return null;
+    var num = parseFloat(m[1]);
+    var unit = m[2];
+    if(unit==="万") num *= 10000; else if(unit==="千") num *= 1000; else if(unit==="百") num *= 100;
+    return Math.round(num*100)/100;
+  }
+  function detectType(text){
+    if(/收入|工资|薪水|薪资|到账|赚|收款|红包|退款|报销|分红|利息|股息|返现|提成|奖金|中奖|收/.test(text)) return "收入";
+    if(/花|付|支|买|消费|支出|开销|充|缴|还|请客|送礼|逛|订/.test(text)) return "支出";
+    return "支出";
+  }
+  function detectCategory(text, type){
+    var rules = [
+      ["工资", /工资|薪水|薪资|发工资|奖金|提成|分红|报销|利息|股息/],
+      ["餐饮", /饭|餐|吃|喝|早|午|晚|外卖|餐厅|食堂|咖啡|奶茶|小吃|夜宵|火锅|烧烤|菜|食/],
+      ["交通", /打车|滴滴|地铁|公交|高铁|火车|机票|飞机|加油|油费|停车|网约车|出租|车票|动车/],
+      ["购物", /买|购|淘宝|京东|天猫|衣服|鞋|包|日用品|超市|商城|快递|数码|家电|逛/],
+      ["居住", /房租|物业|水电|燃气|宽带|话费|房贷|押金/],
+      ["娱乐", /电影|游戏|会员|视频|旅游|唱歌|KTV|健身|演出|门票|乐园|玩/],
+      ["医疗", /药|医院|诊所|看病|体检|牙|医|挂号/],
+      ["人情", /红包|礼物|随礼|份子|请客|送礼|人情/]
+    ];
+    for(var i=0;i<rules.length;i++){ if(rules[i][1].test(text)) return rules[i][0]; }
+    return type==="收入" ? "工资" : "其他";
+  }
+  function parseSentence(raw){
+    var text = (raw||"").trim();
+    if(!text) return null;
+    var amount = detectAmount(text);
+    var type = detectType(text);
+    var category = detectCategory(text, type);
+    var dateISO = detectDate(text) || todayStr();
+    return { amount: amount, type: type, category: category, date: dateISO, note: text };
+  }
+
+  /* ---------- 渲染：解析预览 ---------- */
+  function renderPreview(){
+    var p = parseSentence($("sentence").value);
+    state.parsed = p;
+    var box = $("preview");
+    if(!p){ box.className="preview"; return; }
+    box.className = "preview show";
+    var isExp = p.type==="支出";
+    var typeTag = $("pvType"); typeTag.textContent = p.type;
+    typeTag.className = "pv-tag b " + (isExp?"exp":"inc");
+    var amt = $("pvAmount"); amt.textContent = p.amount==null ? "未识别" : fmtMoney(p.amount);
+    amt.className = "pv-amount " + (isExp?"exp":"inc");
+    $("pvCat").textContent = p.category;
+    var dtxt = p.date===todayStr() ? "今天" : p.date;
+    $("pvDate").textContent = dtxt;
+    // selects
+    fillSelect($("pvTypeSel"), state.options["类型"].map(function(o){return o.text;}), p.type);
+    fillSelect($("pvCatSel"), state.options["分类"].map(function(o){return o.text;}), p.category);
+    $("pvHint").textContent = p.amount==null ? "没识别出金额，请补充数字（如 35、1.5千）" : "";
+    $("addBtn").disabled = (p.amount==null);
+  }
+  function fillSelect(sel, items, selected){
+    sel.innerHTML = "";
+    for(var i=0;i<items.length;i++){
+      var o=document.createElement("option"); o.value=items[i]; o.textContent=items[i];
+      if(items[i]===selected) o.selected=true; sel.appendChild(o);
+    }
+  }
+
+  /* ---------- 渲染：今天要处理 / 统计 ---------- */
+  function refreshAll(){
+    renderToday();
+    renderList();
+    renderStats();
+  }
+  function monthKey(d){ return d.slice(0,7); }
+  function renderToday(){
+    var today = todayStr(), mk = monthKey(today);
+    var todayRecs = state.records.filter(function(r){ return r["日期"]===today; });
+    var tExp = todayRecs.filter(function(r){return r["类型"]==="支出";}).reduce(function(a,r){return a+(+r["金额"]||0);},0);
+    $("tCount").textContent = todayRecs.length;
+    $("tExp").textContent = fmtMoney(tExp);
+    // streak
+    var days = {}; state.records.forEach(function(r){ if(r["日期"]) days[r["日期"]]=1; });
+    var streak=0; var d=new Date();
+    while(days[fmtDate(d)]){ streak++; d.setDate(d.getDate()-1); }
+    $("streak").textContent = streak;
+    // budget
+    var mExp = state.records.filter(function(r){return r["类型"]==="支出" && monthKey(r["日期"])===mk;})
+      .reduce(function(a,r){return a+(+r["金额"]||0);},0);
+    var budget = state.budget||0;
+    var pct = budget>0 ? (mExp/budget*100) : 0;
+    var bar = $("budgetBar");
+    bar.style.width = Math.min(pct,100) + "%";
+    bar.className = pct>=100 ? "over" : (pct>=80 ? "warn" : "");
+    var alert = $("todayAlert");
+    if(budget<=0){ alert.className="alert ok"; alert.textContent="未设置月预算，去「设置」里填一个吧"; }
+    else if(pct>=100){ alert.className="alert red"; alert.textContent="本月预算已超支！已用 "+fmtMoney(mExp)+"，超出 "+fmtMoney(mExp-budget); }
+    else if(pct>=80){ alert.className="alert red"; alert.textContent="预算预警：本月已用 "+pct.toFixed(0)+"%，还剩 "+fmtMoney(budget-mExp); }
+    else { alert.className="alert ok"; alert.textContent="本月预算使用 "+pct.toFixed(0)+"%，还剩 "+fmtMoney(budget-mExp); }
+    // 今日未记账：红色提醒 + 一键去记账
+    var remind=$("todayRemind"); remind.innerHTML="";
+    if(todayRecs.length===0){
+      var box=el("div","alert red");
+      box.appendChild(el("span","","今天还没记账，趁记得赶紧记一笔"));
+      var go=el("button","btn","去记账");
+      go.style.cssText="margin-left:8px;padding:6px 12px;font-size:12px;border-radius:8px;";
+      go.addEventListener("click", function(){ switchTab("ledger"); $("sentence").focus(); });
+      box.appendChild(go);
+      remind.appendChild(box);
+    }
+  }
+  function switchTab(tab){
+    var btns=document.querySelectorAll("#tabbar button");
+    for(var i=0;i<btns.length;i++){ btns[i].className = (btns[i].getAttribute("data-tab")===tab)?"on":""; }
+    ["ledger","list","stat","set"].forEach(function(t){ $("panel-"+t).className="panel"+(t===tab?" on":""); });
+  }
+  function renderList(){
+    var box = $("listBox"); box.innerHTML="";
+    if(state.loading){ box.appendChild(el("div","empty","加载中…")); return; }
+    var today=todayStr(), mk=monthKey(today);
+    var recs = state.records.slice().sort(function(a,b){ return (b["时间"]||"").localeCompare(a["时间"]||""); });
+    if(state.range==="today") recs = recs.filter(function(r){return r["日期"]===today;});
+    else if(state.range==="month") recs = recs.filter(function(r){return monthKey(r["日期"])===mk;});
+    if(recs.length===0){
+      if(state.records.length===0){
+        appendExamples(box);
+        $("clearSampleBtn").style.display = "inline-block";
+      } else {
+        box.appendChild(el("div","empty","这段时间还没有账单，去记一笔吧～"));
+        $("clearSampleBtn").style.display = "none";
+      }
+      return;
+    }
+    $("clearSampleBtn").style.display = "none";
+    var groups={};
+    recs.forEach(function(r){ (groups[r["日期"]]=groups[r["日期"]]||[]).push(r); });
+    var keys=Object.keys(groups).sort(function(a,b){return b.localeCompare(a);});
+    keys.forEach(function(k){
+      var g=el("div","daygroup");
+      var total=groups[k].reduce(function(a,r){var v=(+r["金额"]||0)*(r["类型"]==="支出"?-1:1);return a+v;},0);
+      g.appendChild(el("div","daylabel", k+" · 小计 "+fmtMoney(total)));
+      groups[k].forEach(function(r){ g.appendChild(renderItem(r)); });
+      box.appendChild(g);
+    });
+  }
+  function el(tag, cls, text){
+    var e=document.createElement(tag);
+    if(cls) e.className=cls;
+    if(text!=null) e.textContent=text;
+    return e;
+  }
+  function renderItem(r){
+    var isExp = r["类型"]==="支出";
+    var row=el("div","item");
+    row.appendChild(el("span","cat-badge", r["分类"]||"其他"));
+    var mid=el("div","mid");
+    mid.appendChild(el("div","note", r["摘要"]||"（无备注）"));
+    mid.appendChild(el("div","date", isExp?"支出":"收入"));
+    row.appendChild(mid);
+    var amt=el("span","amt "+(isExp?"exp":"inc"));
+    amt.textContent=(isExp?"-":"+")+fmtMoney(+r["金额"]||0);
+    row.appendChild(amt);
+    var delId=r._id;
+    var del=el("button","del","×");
+    if(delId) del.setAttribute("data-id", delId);
+    del.addEventListener("click", function(){ doDelete(delId); });
+    row.appendChild(del);
+    return row;
+  }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function appendExamples(box){
+    box.appendChild(el("div","empty","还没有账单，先看看效果（以下为示例，不会存入云端）："));
+    var d=new Date(); d.setDate(d.getDate()-1);
+    var ex=[
+      {摘要:"午饭花了35",类型:"支出",金额:35,分类:"餐饮",日期:todayStr()},
+      {摘要:"打车28",类型:"支出",金额:28,分类:"交通",日期:todayStr()},
+      {摘要:"工资到账8000",类型:"收入",金额:8000,分类:"工资",日期:todayStr()},
+      {摘要:"昨天买菜45",类型:"支出",金额:45,分类:"购物",日期:fmtDate(d)}
+    ];
+    ex.forEach(function(r){
+      var isExp=r["类型"]==="支出";
+      var row=el("div","item");
+      var badge=el("span","cat-badge", r["分类"]);
+      var flag=el("span","example-flag","示例");
+      badge.appendChild(flag);
+      row.appendChild(badge);
+      var mid=el("div","mid");
+      mid.appendChild(el("div","note", r["摘要"]));
+      mid.appendChild(el("div","date", isExp?"支出":"收入"));
+      row.appendChild(mid);
+      var amt=el("span","amt "+(isExp?"exp":"inc"));
+      amt.textContent=(isExp?"-":"+")+fmtMoney(r["金额"]);
+      row.appendChild(amt);
+      row.appendChild(el("span","",  "")); // 占位对齐删除按钮
+      box.appendChild(row);
+    });
+  }
+  function renderStats(){
+    var mk = monthKey(todayStr());
+    var mRecs = state.records.filter(function(r){return monthKey(r["日期"])===mk;});
+    var mExp = 0, mInc = 0;
+    var byCat={};
+    mRecs.forEach(function(r){
+      var v=+r["金额"]||0;
+      if(r["类型"]==="支出"){ mExp+=v; byCat[r["分类"]]=(byCat[r["分类"]]||0)+v; }
+      else mInc+=v;
+    });
+    $("mExp").textContent=fmtMoney(mExp);
+    $("mInc").textContent=fmtMoney(mInc);
+    $("mNet").textContent=fmtMoney(mInc-mExp);
+    // pie
+    var data=[]; Object.keys(byCat).forEach(function(k){ data.push({key:k,value:byCat[k]}); });
+    data.sort(function(a,b){return b.value-a.value;});
+    drawPie($("pieBox"), data);
+    var lg=$("pieLegend"); lg.innerHTML="";
+    if(data.length===0){ lg.appendChild(el("div","empty","本月暂无支出分类")); }
+    data.forEach(function(d){
+      var pct = mExp>0 ? (d.value/mExp*100).toFixed(0) : 0;
+      var row=el("div","lg");
+      var swatch=el("i"); swatch.style.background = CAT_COLORS[d.key]||"#94a3b8";
+      row.appendChild(swatch);
+      row.appendChild(el("span","nm", d.key));
+      row.appendChild(el("span","vl", fmtMoney(d.value)+" · "+pct+"%"));
+      lg.appendChild(row);
+    });
+  }
+  /* SVG 甜甜圈饼图 */
+  var SVGNS="http://www.w3.org/2000/svg";
+  function mkSvg(tag, attrs, text){
+    var e=document.createElementNS(SVGNS, tag);
+    for(var k in attrs){ if(attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]); }
+    if(text!=null) e.textContent=text;
+    return e;
+  }
+  function drawPie(box, data){
+    box.innerHTML="";
+    var size=140, cx=70, cy=70, r=58, thick=20;
+    var total=data.reduce(function(a,d){return a+d.value;},0);
+    var svg=mkSvg("svg",{width:size,height:size,viewBox:"0 0 "+size+" "+size});
+    if(total<=0){
+      svg.appendChild(mkSvg("circle",{cx:cx,cy:cy,r:r,fill:"none",stroke:"#eef0f5","stroke-width":thick}));
+      svg.appendChild(mkSvg("text",{x:cx,y:cy+4,"text-anchor":"middle","font-size":11,fill:"#8a93a6"},"暂无支出"));
+      box.appendChild(svg); return;
+    }
+    var start=0;
+    data.forEach(function(d){
+      var ang=d.value/total*360;
+      svg.appendChild(mkSvg("path",{fill:"none",stroke:CAT_COLORS[d.key]||"#94a3b8","stroke-width":thick,"stroke-linecap":"butt",d:donutPath(cx,cy,r,start,start+ang)}));
+      start+=ang;
+    });
+    svg.appendChild(mkSvg("text",{x:cx,y:cy-2,"text-anchor":"middle","font-size":13,"font-weight":700,fill:"#1f2430"},fmtMoney(total)));
+    svg.appendChild(mkSvg("text",{x:cx,y:cy+14,"text-anchor":"middle","font-size":10,fill:"#8a93a6"},"本月支出"));
+    box.appendChild(svg);
+  }
+  function polar(cx,cy,r,deg){ var a=(deg-90)*Math.PI/180; return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}; }
+  function donutPath(cx,cy,r,start,end){
+    if(end-start>=359.999) end=start+359.999;
+    var p1=polar(cx,cy,r,start), p2=polar(cx,cy,r,end);
+    var large=(end-start)>180?1:0;
+    return "M "+p1.x.toFixed(2)+" "+p1.y.toFixed(2)+" A "+r+" "+r+" 0 "+large+" 1 "+p2.x.toFixed(2)+" "+p2.y.toFixed(2);
+  }
+
+  /* ---------- 数据层 ---------- */
+  function loadAll(startCursor, acc, guard){
+    acc = acc||[]; guard = guard||0;
+    if(guard>100) return Promise.resolve(acc);
+    return db.query({ databaseId:DATABASE_ID, pageSize:200, startCursor:startCursor }).then(function(r){
+      acc = acc.concat(r.results||[]);
+      var next=r.nextCursor;
+      if(r.hasMore && next && next!==startCursor && (r.results||[]).length){ return loadAll(next, acc, guard+1); }
+      return acc;
+    }).catch(function(err){
+      console.error("[database] 分页查询失败:", err);
+      throw err; // 交给 loadData 统一降级为离线模式
+    });
+  }
+  function mapRecords(rows){
+    return rows.map(function(row){
+      return {
+        _id: row._id,
+        摘要: row["摘要"], 类型: row["类型"], 金额: row["金额"],
+        分类: row["分类"], 日期: (row["日期"]||"").slice(0,10), 时间: row["时间"]||row["日期"]||""
+      };
+    });
+  }
+  function loadData(){
+    if(!ONLINE){ setSync("offline","离线模式"); state.records=state.records||[]; state.loading=false; refreshAll(); return; }
+    setSync("syncing","同步中");
+    state.loading=true; refreshAll();
+    db.getSchema({ databaseId:DATABASE_ID }).then(function(schema){
+      (schema.properties||[]).forEach(function(f){
+        if((f.type==="select") && f.config && f.config.options){ state.options[f.name]=f.config.options; }
+      });
+      return Promise.all([loadAll(), db.getBudget()]);
+    }).then(function(result){
+      state.records = mapRecords(result[0]);
+      state.budget = result[1]; $("budgetInput").value = state.budget;
+      state.loading=false;
+      setSync("synced","已同步");
+      refreshAll();
+    }).catch(function(err){
+      console.error("[database] 加载失败:", err);
+      setSync("offline","连接失败"); state.loading=false; refreshAll();
+    });
+  }
+  /* ---------- 写操作 ---------- */
+  function doAdd(){
+    var p = state.parsed;
+    if(!p || p.amount==null) return;
+    p.type = $("pvTypeSel").value;
+    p.category = $("pvCatSel").value;
+    var props = {
+      "摘要": { text: p.note },
+      "类型": { select: p.type },
+      "金额": { currency: p.amount },
+      "分类": { select: p.category },
+      "日期": { date: p.date },
+      "时间": { text: new Date().toISOString() }
+    };
+    $("addBtn").disabled = true;
+    if(!ONLINE){ toast("连接不可用，请稍后重试"); renderPreview(); return; }
+    setSync("syncing","同步中");
+    db.addRecord({ databaseId:DATABASE_ID, properties: props })
+      .then(function(){ $("sentence").value=""; renderPreview(); setSync("synced","已同步"); loadData(); toast("记好了 ✅"); })
+      .catch(function(err){ console.error("[database] 提交失败:", err); setSync("offline","离线模式"); toast("提交未确认，请刷新检查"); });
+  }
+  function doDelete(id){
+    if(!id) return;
+    if(!confirm("确定删除这条账单？")) return;
+    if(!ONLINE){ toast("连接不可用，请稍后重试"); return; }
+    setSync("syncing","同步中");
+    db.deleteRecord({ databaseId:DATABASE_ID, recordId: id })
+      .then(function(){ setSync("synced","已同步"); loadData(); toast("已删除"); })
+      .catch(function(err){ console.error("[database] 删除失败:", err); setSync("offline","离线模式"); toast("删除失败"); });
+  }
+
+  /* ---------- 设置 ---------- */
+  function saveBudget(){
+    var v = parseFloat($("budgetInput").value);
+    if(isNaN(v)||v<0) v=0;
+    db.setBudget(v).then(function(){ state.budget=v; renderToday(); toast("预算已保存"); }).catch(function(){ $("budgetInput").value=state.budget; toast("预算保存失败，请重试"); });
+  }
+  function exportJSON(){
+    var data = { exportedAt:new Date().toISOString(), records: state.records };
+    var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a=document.createElement("a"); a.href=url; a.download="记账备份_"+todayStr()+".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    toast("已导出备份");
+  }
+  function importJSON(file){
+    if(!ONLINE){ toast("连接不可用，请稍后重试"); return; }
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var data=JSON.parse(reader.result);
+        var recs=data.records||[];
+        if(!recs.length){ toast("文件中没有记录"); return; }
+        var chain=Promise.resolve(); var ok=0;
+        recs.forEach(function(r){
+          var props={
+            "摘要":{text:r["摘要"]||""}, "类型":{select:r["类型"]||"支出"},
+            "金额":{currency:parseFloat(r["金额"])||0}, "分类":{select:r["分类"]||"其他"},
+            "日期":{date:(r["日期"]||todayStr()).slice(0,10)}, "时间":{text:r["时间"]||new Date().toISOString()}
+          };
+          if(ONLINE){ chain=chain.then(function(){ return db.addRecord({databaseId:DATABASE_ID, properties:props}); }).then(function(){ok++;}); }
+        });
+        chain.then(function(){
+          loadData(); toast("已导入 "+ok+" 条");
+        }).catch(function(){ toast("部分导入失败"); loadData(); });
+      }catch(e){ toast("文件格式有误"); }
+    };
+    reader.readAsText(file);
+  }
+  function clearAll(){
+    if(!confirm("将删除全部账单记录，此操作不可恢复！确定继续？")) return;
+    if(!ONLINE){ toast("连接不可用，请稍后重试"); return; }
+    var ids = state.records.map(function(r){return r._id;}).filter(Boolean);
+    if(!ids.length){ toast("没有可删除的数据"); return; }
+    // 分批删除（每批最多100）
+    var chain=Promise.resolve();
+    for(var i=0;i<ids.length;i+=100){
+      var batch=ids.slice(i,i+100);
+      chain=chain.then((function(b){ return function(){ return db.batch_delete ? db.batch_delete({databaseId:DATABASE_ID, recordIds:b}) : Promise.all(b.map(function(id){return db.deleteRecord({databaseId:DATABASE_ID, recordId:id});})); }; })(batch));
+    }
+    chain.then(function(){ setSync("synced","已同步"); loadData(); toast("已清空全部账单"); })
+      .catch(function(err){ console.error(err); toast("清空失败"); });
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bind(){
+    $("sentence").addEventListener("input", renderPreview);
+    $("addBtn").addEventListener("click", doAdd);
+    $("sentence").addEventListener("keydown", function(e){ if(e.key==="Enter" && !$("addBtn").disabled) doAdd(); });
+    // 快捷短语
+    var quicks=["午饭花了35","打车28","奶茶18","昨天买菜45","工资到账8000","收到红包200"];
+    var qc=$("quickChips");
+    quicks.forEach(function(q){ var s=document.createElement("span"); s.className="chip"; s.textContent=q; s.addEventListener("click",function(){ $("sentence").value=q; renderPreview(); $("sentence").focus(); }); qc.appendChild(s); });
+    // 分段切换
+    document.querySelectorAll("#seg button").forEach(function(b){
+      b.addEventListener("click", function(){
+        document.querySelectorAll("#seg button").forEach(function(x){x.className="";});
+        b.className="on"; state.range=b.getAttribute("data-range"); renderList();
+      });
+    });
+    // tab 切换
+    document.querySelectorAll("#tabbar button").forEach(function(b){
+      b.addEventListener("click", function(){
+        document.querySelectorAll("#tabbar button").forEach(function(x){x.className="";});
+        b.className="on";
+        var tab=b.getAttribute("data-tab");
+        ["ledger","list","stat","set"].forEach(function(t){ $("panel-"+t).className="panel"+(t===tab?" on":""); });
+      });
+    });
+    $("budgetInput").value = state.budget||"";
+    $("budgetInput").addEventListener("change", saveBudget);
+    $("refreshBtn").addEventListener("click", function(){ loadData(); toast("已刷新"); });
+    $("exportBtn").addEventListener("click", exportJSON);
+    $("importBtn").addEventListener("click", function(){ $("fileInput").click(); });
+    $("fileInput").addEventListener("change", function(e){ if(e.target.files[0]) importJSON(e.target.files[0]); });
+    $("clearSampleBtn").addEventListener("click", function(){ toast("示例无需删除，记一笔真实账单即可覆盖"); });
+    $("clearAllBtn").addEventListener("click", clearAll);
+    // 数据变更订阅
+    if(ONLINE && typeof db.onUpdated==="function"){
+      db.onUpdated(function(payload){
+        var ids=(payload&&payload.databaseIds)||[];
+        if(ids.indexOf(DATABASE_ID)===-1) return;
+        loadData();
+      });
+    }
+  }
+
+  /* ---------- 初始化 ---------- */
+  bind();
+  setSync(ONLINE?"syncing":"offline", ONLINE?"同步中":"离线模式");
+  loadData();
+})();
