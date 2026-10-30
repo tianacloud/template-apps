@@ -1,0 +1,11 @@
+import {mkdir, readFile, writeFile, cp, rm} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2];
+if (!/^[0-9a-f]{40,64}$/.test(commit||'')) throw new Error('需要完整源码提交号');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await build({entryPoints:['src/main.js'],bundle:true,format:'esm',outfile:'dist/assets/app.js'});
+await cp('src/styles.css','dist/assets/app.css'); await cp('public/icon.png','dist/icon.png');
+const js=await readFile('dist/assets/app.js','utf8');
+await writeFile('dist/assets/app.js',`document.title='儿童习惯工作台'; document.body.innerHTML='<div id="app"></div>'; const link=document.createElement('link'); link.rel='stylesheet'; link.href=new URL('./app.css',import.meta.url).href; document.head.appendChild(link);\n${js}`);
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
