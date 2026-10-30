@@ -56,6 +56,7 @@ function defaultState(){
 
 var state, revision = 0, saveQueue = Promise.resolve(), saveFailed = false;
 function storageError(message){ saveFailed=true; var box=document.createElement('div'); box.setAttribute('role','alert'); box.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff6e8;padding:30px;color:#4a3b32;font:16px sans-serif'; box.textContent=message+' 请重新打开应用并核对数据。'; document.body.appendChild(box); }
+const initialLoad = (async function(){
 try {
  var initial=defaultState(); initial.boxes.forEach(b=>b.rewards.forEach(r=>{if(r.type==='gift' && !r.giftId && initial.gifts[0]) r.giftId=initial.gifts[0].id;}));
  await sql('INSERT OR IGNORE INTO study_state (id, document, revision) VALUES (1, ?, 1)',[JSON.stringify(initial)]);
@@ -63,6 +64,9 @@ try {
  if(!row) throw Error('数据读取失败'); state=JSON.parse(row.document); revision=Number(row.revision);
  if(!state.history) state.history={}; if(typeof state.bestStreak!=='number') state.bestStreak=0;
 } catch(e){ storageError('无法连接或读取云端数据。'); throw e; }
+})();
+window.tianaLoading?.waitUntil(initialLoad);
+await initialLoad;
 function save(){
  if(saveFailed) return; var snapshot=JSON.stringify(state);
  saveQueue=saveQueue.then(async function(){ if(saveFailed) return; try {

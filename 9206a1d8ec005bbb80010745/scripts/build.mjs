@@ -5,6 +5,6 @@ const source=JSON.parse(await readFile('source.json','utf8'));
 if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!source.git_instance_id || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请绑定 Git');
 const css=await readFile('src/style.css','utf8'),body=await readFile('src/body.html','utf8'),js=await readFile('src/app.js','utf8');
 await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});
-await build({stdin:{contents:`const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);document.body.innerHTML=${JSON.stringify(body)};\n${js}`,resolveDir:process.cwd()+'/src',sourcefile:'entry.js'},bundle:true,format:'esm',target:'es2022',outfile:'dist/assets/app.js'});
+await build({stdin:{contents:`const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);const container=document.createElement('template');container.innerHTML=${JSON.stringify(body)};const root=document.getElementById('app');if(!root)throw Error('应用容器未就绪');root.replaceChildren(...container.content.querySelector('#app').childNodes);\n${js}`,resolveDir:process.cwd()+'/src',sourcefile:'entry.js'},bundle:true,format:'esm',target:'es2022',outfile:'dist/assets/app.js'});
 await copyFile('public/icon.png','dist/icon.png');
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
