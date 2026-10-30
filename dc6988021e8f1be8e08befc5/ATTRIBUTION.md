@@ -23,4 +23,4 @@ The MIT and CC BY licenses provide their stated disclaimers and do not warrant t
 
 ## Runtime dependency
 
-`@tianacloud/serverless` is MIT-licensed. Its copyright and permission notice is retained in `licenses/Tiana-SDK-MIT.txt` and distributed with the application.
+`@tianacloud/serverless` is Apache-2.0-licensed. Its license is retained in `licenses/Tiana-SDK-Apache-2.0.txt` and distributed with the application.
