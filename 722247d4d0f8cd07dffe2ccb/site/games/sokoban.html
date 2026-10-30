@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>推箱子 · 摸鱼盒子</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .sk-levels { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; justify-content: center; }
+  .sk-lv {
+    width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 700;
+    cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .sk-lv.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .sk-lv.done::after { content: '·'; color: #2fbf8f; font-size: 22px; line-height: 0; vertical-align: -6px; }
+
+  .sk-board {
+    display: grid;
+    gap: 3px;
+    width: min(94vw, 460px);
+    margin: 0 auto;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .sk-cell { position: relative; aspect-ratio: 1 / 1; border-radius: 6px; background: var(--surface-2); }
+  .sk-cell.floor { background: rgba(91, 110, 245, .05); }
+  .sk-cell.wall { background: var(--ink-2); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); }
+  html[data-theme="dark"] .sk-cell.wall { background: #3c465c; }
+  .sk-cell.goal::after {
+    content: ''; position: absolute; inset: 30%;
+    border-radius: 50%; border: 2.5px dashed rgba(47, 191, 143, .75);
+  }
+  .sk-box {
+    position: absolute; inset: 9%;
+    border-radius: 7px;
+    background: linear-gradient(150deg, #f7b26a, #e2853a);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .5), 0 2px 5px rgba(180, 110, 40, .3);
+    transition: transform .1s;
+  }
+  .sk-box.on { background: linear-gradient(150deg, #63d6a5, #2fbf8f); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55), 0 2px 5px rgba(20, 140, 100, .28); }
+  .sk-man {
+    position: absolute; inset: 14%;
+    border-radius: 50%;
+    background: linear-gradient(150deg, #7c8dfa, #5b6ef5);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .45), 0 2px 6px rgba(60, 80, 200, .35);
+  }
+  .sk-man::before, .sk-man::after {
+    content: ''; position: absolute; top: 34%; width: 15%; height: 15%;
+    border-radius: 50%; background: #fff;
+  }
+  .sk-man::before { left: 26%; }
+  .sk-man::after { right: 26%; }
+  .sk-tools { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .sk-pad { display: grid; grid-template-columns: repeat(3, 48px); gap: 8px; margin-top: 12px; justify-content: center; }
+  .sk-pad button {
+    height: 44px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-2); font-size: 16px; cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .sk-pad button:active { transform: scale(.96); }
+  .sk-pad .sp { visibility: hidden; }
+</style>
+</head>
+<body class="game-page">
+
+<div class="g-bar">
+  <a class="g-back" href="../index.html" aria-label="返回首页">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <div class="g-name">推箱子<small>把所有箱子推到虚线圆点上</small></div>
+  <div class="g-tools">
+    <button class="icon-btn" data-boss title="切换工作界面 (Esc / 右键)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+    </button>
+    <button class="icon-btn" data-sound-toggle title="音效开关"></button>
+    <button class="icon-btn" data-theme-toggle title="切换主题" data-theme-icon></button>
+  </div>
+</div>
+
+<main class="g-stage">
+  <div class="scorebar">
+    <div class="score-box"><span class="lb">步数</span><span class="val" id="moves">0</span></div>
+    <div class="score-box"><span class="lb">推动</span><span class="val" id="pushes">0</span></div>
+    <div class="score-box accent"><span class="lb">完成</span><span class="val" id="goals">0/1</span></div>
+  </div>
+
+  <div class="sk-levels" id="levels"></div>
+  <div class="sk-board" id="board"></div>
+
+  <div class="sk-pad">
+    <button class="sp"></button>
+    <button data-dir="up">↑</button>
+    <button class="sp"></button>
+    <button data-dir="left">←</button>
+    <button data-dir="down">↓</button>
+    <button data-dir="right">→</button>
+  </div>
+
+  <div class="sk-tools">
+    <button class="btn" id="undoBtn">撤销</button>
+    <button class="btn" id="resetBtn">重来</button>
+    <button class="btn btn-primary" id="nextBtn">下一关</button>
+  </div>
+</main>
+
+<div class="g-hint">
+  <b>方向键</b> / <b>WASD</b> 移动，<b>Z</b> 撤销，<b>R</b> 重来 · <b>Esc</b> 或<b>右键</b> 切到工作界面
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3 id="ovTitle">过关</h3>
+    <div class="big" id="ovScore">0 步</div>
+    <p id="ovSub">推动 0 次</p>
+    <div class="overlay-actions">
+      <button class="btn" id="ovAgain">再走一遍</button>
+      <button class="btn btn-primary" id="ovNext">下一关</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/boss-data.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/games/sokoban.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS fishbox_store (key TEXT PRIMARY KEY, value TEXT NOT NULL);
