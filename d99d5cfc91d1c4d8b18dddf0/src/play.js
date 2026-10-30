@@ -2366,14 +2366,7 @@ function pickVoice(lang){
 
 let _audioEl = null;
 function playAsset(file, fallbackText, lang){
-  try{
-    if(_audioEl){ try{ _audioEl.pause(); }catch(e){} }
-    const a = new Audio(window.__learningAudioUrl(file));
-    _audioEl = a;
-    a.onerror = ()=> speakWeb(fallbackText, lang);
-    const p = a.play();
-    if(p && p.catch) p.catch(()=> speakWeb(fallbackText, lang));
-  }catch(e){ speakWeb(fallbackText, lang); }
+  void window.__playLearningAudio(file).catch(() => speakWeb(fallbackText, lang));
 }
 function speak(text, lang){
   lang = lang || 'zh-CN';
@@ -2387,15 +2380,7 @@ function speak(text, lang){
   return speakWeb(text, lang);
 }
 function playFullOrBody(fullFile, bodyFile, text){
-  // 优先播「含诗名作者」的完整音频；该文件缺失时回退到仅正文音频
-  try{
-    if(_audioEl){ try{ _audioEl.pause(); }catch(e){} }
-    const a = new Audio(window.__learningAudioUrl(fullFile));
-    _audioEl = a;
-    a.onerror = ()=> playAsset(bodyFile, text, 'zh-CN');
-    const p = a.play();
-    if(p && p.catch) p.catch(()=> playAsset(bodyFile, text, 'zh-CN'));
-  }catch(e){ playAsset(bodyFile, text, 'zh-CN'); }
+  void window.__playLearningAudio(fullFile).catch(() => playAsset(bodyFile, text, 'zh-CN'));
 }
 function playPoem(idx, text){ playFullOrBody('poem_full_' + idx + '.mp3', 'poem_' + idx + '.mp3', text); }
 function speakWeb(text, lang){
@@ -2426,11 +2411,7 @@ if('speechSynthesis' in window){
 /* ---------------- 答题音效（用户自定义 mp3，兼容所有浏览器含 Via） ---------------- */
 let _fxEl=null;
 function playFx(file){
-  try{
-    if(_fxEl){ try{ _fxEl.pause(); }catch(e){} }
-    const a=new Audio(window.__learningAudioUrl(file)); _fxEl=a;
-    const p=a.play(); if(p&&p.catch) p.catch(()=>{});
-  }catch(e){}
+  void window.__playLearningAudio(file, 'effect').catch(() => {});
 }
 function playCorrect(){ playFx('correct.mp3'); }
 function playWrong(){ playFx('wrong.wav'); }

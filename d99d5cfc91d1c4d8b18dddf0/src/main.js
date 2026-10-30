@@ -8,9 +8,26 @@ const link = document.createElement('link');
 link.rel = 'stylesheet'; link.href = new URL('./app.css', import.meta.url).href; document.head.appendChild(link);
 const response = await files.get('template-assets/audio/learning-audio.bin');
 if (!response.ok) { root.textContent = '无法读取学习音频，请检查网络后重新打开。'; return; }
-const audio = await response.blob();
-const urls = new Map();
-window.__learningAudioUrl = name => { const item = audioIndex[name]; if (!item) return ''; if (!urls.has(name)) urls.set(name, URL.createObjectURL(audio.slice(item[0], item[0] + item[1], item[2]))); return urls.get(name); };
+const audio = await response.arrayBuffer();
+const audioContext = new AudioContext();
+const playing = new Map();
+const generations = new Map();
+window.__playLearningAudio = async (name, channel = 'speech') => {
+  const item = audioIndex[name];
+  if (!item) throw new Error('音频不存在');
+  const generation = (generations.get(channel) || 0) + 1;
+  generations.set(channel, generation);
+  await audioContext.resume();
+  const decoded = await audioContext.decodeAudioData(audio.slice(item[0], item[0] + item[1]));
+  if (generations.get(channel) !== generation) return;
+  playing.get(channel)?.stop();
+  const source = audioContext.createBufferSource();
+  source.buffer = decoded;
+  source.connect(audioContext.destination);
+  playing.set(channel, source);
+  source.onended = () => { if (playing.get(channel) === source) playing.delete(channel); };
+  source.start();
+};
 root.textContent = '正在准备学习乐园…';
 try {
   const rows = (await sql('SELECT value FROM learning_state WHERE id = ?', ['main'])).rows;
@@ -39,5 +56,5 @@ try {
   root.textContent = '无法连接学习进度，请检查网络并重新打开。';
 }
 
-return () => { for (const url of urls.values()) URL.revokeObjectURL(url); };
+return () => { for (const source of playing.values()) source.stop(); void audioContext.close(); };
 }
