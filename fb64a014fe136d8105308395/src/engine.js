@@ -1,6 +1,6 @@
 /* docx 生成库 */
 (function(global2, factory) {
-  typeof exports === "object" && typeof module !== "undefined" ? factory(exports) : typeof define === "function" && define.amd ? define(["exports"], factory) : (global2 = typeof globalThis !== "undefined" ? globalThis : global2 || self, factory(global2.docx = {}));
+  factory(globalThis.docx = {});
 })(this, function(exports2) {
   "use strict";var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
