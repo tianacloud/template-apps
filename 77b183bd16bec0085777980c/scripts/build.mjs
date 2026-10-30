@@ -1,0 +1,14 @@
+import {readFile, mkdir, copyFile, rm} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit = process.argv[2];
+if (!/^[0-9a-f]{40,64}$/.test(commit || '')) throw new Error('完整提交号必填');
+const source = JSON.parse(await readFile('source.json','utf8'));
+if (process.env.TIANA_TEMPLATE_BUILD !== '1' && Object.values(source).some(v => !v || v.startsWith('__TIANA_'))) throw new Error('请填写 Git 和 SQLite 实例 ID');
+const html = await readFile('index.html','utf8');
+const style = html.match(/<style[^>]*>([\s\S]*?)<\/style>/)[1];
+const body = html.match(/<body[^>]*>([\s\S]*?)<script[^>]*>/)[1];
+const script = html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await build({stdin:{contents:`import {wordDatabase} from './database.js';\ndocument.title='单词小勇士 · 小学生记单词';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\n${script}`,resolveDir:process.cwd(),sourcefile:'entry.js',loader:'js'},bundle:true,format:'esm',outfile:'dist/assets/app.js'});
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
