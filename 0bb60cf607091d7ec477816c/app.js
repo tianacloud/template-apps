@@ -384,7 +384,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
     state.date = todayStr();
     state.start = 9; state.end = 18;
     state.cities = [
-      {n:"北京", tz: dz},
+      {n:(CITIES.find(function(c){ return c.tz === dz; }) || {n:dz.replace(/_/g," ")}).n, tz:dz},
       {n:"伦敦", tz:"Europe/London"},
       {n:"纽约", tz:"America/New_York"},
       {n:"洛杉矶", tz:"America/Los_Angeles"}
@@ -486,7 +486,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
   var loaded = readURL();
   if (!state.cities.length){
     state.cities = [
-      {n:"北京", tz: dz},
+      {n:(CITIES.find(function(c){ return c.tz === dz; }) || {n:dz.replace(/_/g," ")}).n, tz:dz},
       {n:"伦敦", tz:"Europe/London"},
       {n:"纽约", tz:"America/New_York"},
       {n:"洛杉矶", tz:"America/Los_Angeles"}
