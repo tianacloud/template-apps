@@ -1303,7 +1303,7 @@
     });
 
     /* ============================================================
-       7) 经历保存 + AI 整理 + 技能提取
+       7) 经历保存与技能提取
        ============================================================ */
     function analyzeExperience(rawTitle, rawDesc) {
       const text = (rawTitle + '。' + rawDesc).toLowerCase();
@@ -1721,7 +1721,7 @@
       // 渲染右边：学习中
       const learnEl = document.getElementById('learningSkillList');
       if (!learning.length) {
-        learnEl.innerHTML = `<div class="st-empty">点击下方按钮，告诉AI你想学什么 🌱</div>`;
+        learnEl.innerHTML = `<div class="st-empty">点击下方按钮，填写你想学什么 🌱</div>`;
       } else {
         learnEl.innerHTML = learning.map(s => {
           const statusClass = s.status || 'want';
@@ -3220,10 +3220,10 @@
     }
 
     /* ============================================================
-       20) AI角色图片生成：提示词构建 + 生成流程
+       20) 角色形象与预设选择
        ============================================================ */
 
-    // 构建 AI 图片提示词：只把适合视觉表达的内容转成人物元素
+    // 构建图片提示词：只把适合视觉表达的内容转成人物元素
     function buildCharPrompt(profile) {
       const baseStyle = 'Q-version chibi pixel art full-body game character, modern college student casual fashion, cute proportions not overly childish, front-facing or slight side pose, clean image, light Japanese RPG character sprite aesthetic, simple clean background, clear character outline suitable for small avatar display, 1:1 square composition';
 
