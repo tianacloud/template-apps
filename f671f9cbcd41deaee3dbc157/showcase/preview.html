@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 编排沙盘 · 可视化多智能体工作流</title>
+<style>
+:root{
+  --bg:#07070e; --card:rgba(255,255,255,.04); --line:rgba(255,255,255,.09);
+  --fg:#eae8f5; --dim:#9390ad; --violet:#7c5cff; --cyan:#22d3ee; --green:#34d399; --amber:#fbbf24; --pink:#f472b6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1100px 600px at 15% -10%,rgba(124,92,255,.18),transparent 60%),
+  radial-gradient(900px 500px at 92% 0%,rgba(34,211,238,.12),transparent 60%),var(--bg);
+  color:var(--fg);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;min-height:100%}
+.wrap{max-width:1400px;margin:0 auto;padding:0 20px 70px}
+header{padding:40px 0 22px;display:flex;gap:18px;align-items:flex-start}
+.logo{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:22px;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));box-shadow:0 8px 26px rgba(124,92,255,.4)}
+h1{font-size:26px;font-weight:650;letter-spacing:-.4px}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;background:rgba(52,211,153,.13);
+  color:var(--green);border:1px solid rgba(52,211,153,.28);font-size:11.5px;margin-left:8px;vertical-align:3px}
+.tagline{color:var(--dim);margin-top:5px;max-width:720px;font-size:13.5px}
+
+.layout{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:8px}
+@media(max-width:1080px){.layout{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:18px 20px}
+.card h3{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.card h3 .dot{width:7px;height:7px;border-radius:99px;background:var(--violet)}
+.sub{color:var(--dim);font-size:12.3px;margin-bottom:14px}
+
+/* 画布 */
+.canvas-wrap{position:relative;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  background:
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px) 0 0/28px 28px,
+    radial-gradient(900px 500px at 30% 0%,rgba(124,92,255,.10),transparent 65%),#08080f}
+#graph{display:block;width:100%;height:560px;cursor:grab}
+.node{cursor:pointer}
+.node rect{transition:.15s}
+.node.sel rect{stroke-width:2.4}
+.node text{user-select:none;pointer-events:none}
+.timeline{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:7px}
+.tl{display:flex;gap:11px;align-items:flex-start;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);
+  border-left:2.5px solid var(--violet);font-size:12.4px;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.tl.run{border-left-color:var(--cyan);background:rgba(34,211,238,.07)}
+.tl.tool{border-left-color:var(--amber);background:rgba(251,191,36,.07)}
+.tl.reject{border-left-color:#f43f5e;background:rgba(244,63,94,.08)}
+.tl.retry{border-left-color:var(--pink);background:rgba(244,114,182,.08)}
+.tl .t{color:var(--dim);font-variant-numeric:tabular-nums;flex:none;font-size:11.5px;padding-top:1px}
+.tl .n{font-weight:600;flex:none}
+.tl .m{color:var(--dim)}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 15px;
+  border-radius:10px;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit}
+.btn:hover{background:rgba(255,255,255,.08)}
+.btn.primary{background:linear-gradient(135deg,var(--violet),var(--cyan));border-color:transparent;font-weight:600}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn.ghost{color:var(--dim)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label.fl{display:block;font-size:11.5px;color:var(--dim);margin:12px 0 5px;letter-spacing:.4px}
+input[type=text],textarea,select{width:100%;background:rgba(0,0,0,.34);border:1px solid var(--line);color:var(--fg);
+  border-radius:9px;padding:9px 11px;font:13px/1.6 inherit;font-family:inherit;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:rgba(124,92,255,.65)}
+textarea{min-height:76px}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12.6px}
+.kv span{color:var(--dim)}
+.kv b{font-variant-numeric:tabular-nums}
+.stat-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.stat{flex:1;min-width:78px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:11px;padding:9px 12px}
+.stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--dim)}
+.warn{color:#f43f5e;font-size:12.4px;margin-top:8px}
+.ok{color:var(--green);font-size:12.4px;margin-top:8px}
+pre.out{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:10px;padding:12px;
+  font:11.5px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#c6c3e2;max-height:190px;overflow:auto;margin:0}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.pill{font-size:11.5px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--dim)}
+footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);color:var(--dim);font-size:12.4px;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap"><div style="padding:10px;color:#ddd">示例体验 · 数据仅保存在当前页面 <button class="btn" id="restoreExample">恢复示例</button></div>
+  <header>
+    <div class="logo">🧭</div>
+    <div>
+      <h1>Agent 编排沙盘<span class="badge">模拟运行</span></h1>
+      <p class="tagline">把多智能体工作流画出来、跑一遍、回放一遍。拖拽编排 Agent 节点，一键模拟执行看每个节点的输入输出与耗时，再用提示词版本管理对比改了什么。模拟不调用外部模型或服务，安装后工作流自动保存。</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div class="canvas-wrap">
+        <svg id="graph" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#6b688a"/>
+            </marker>
+            <marker id="arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#7c5cff"/>
+            </marker>
+          </defs>
+          <g id="edges"></g>
+          <g id="nodes"></g>
+        </svg>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn primary" id="btnRun">▶ 运行沙盘</button>
+        <button class="btn" id="btnReset">↺ 重置</button>
+        <button class="btn" id="btnExport" disabled title="安装后可导出">⬇ 导出工作流（安装后可用）</button>
+        <span class="pill" id="pillStats"></span>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3><span class="dot"></span>执行时间轴</h3>
+        <div class="sub">模拟执行的逐步事件流，可点击节点定位</div>
+        <div class="timeline" id="timeline"><div class="tl"><span class="m">点击「运行沙盘」开始，事件会逐条出现在这里。</span></div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot"></span>节点检查器</h3>
+        <div class="sub">点击画布中的节点进行配置</div>
+        <div class="stat-row" id="stats"></div>
+        <div id="inspector"><div class="sub">尚未选中节点</div></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot"></span>运行输入</h3>
+        <div class="sub">作为工作流的初始输入，注入开始节点</div>
+        <textarea id="input">帮我调研 2026 年主流的 AI 编程助手能力对比，并给出一份选型建议报告</textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn sm" id="btnSample">换个示例</button>
+          <button class="btn sm ghost" id="btnClear">清空</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot"></span>提示词版本</h3>
+        <div class="sub">当前节点提示词的版本号与预览</div>
+        <div id="pvBox"><div class="sub">选中节点后显示</div></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn sm" id="btnCopyPrompt">📋 复制提示词</button>
+          <button class="btn sm ghost" id="btnHist">📜 查看历史</button>
+        </div>
+        <pre class="out" id="promptOut" style="margin-top:10px">// 选中节点后显示生成的完整提示词</pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Agent 编排沙盘</span>
+    <span>模拟执行器在本地运行</span>
+  </footer>
+</div>
+<script>/* Agent 编排沙盘 · 核心引擎
+ * 零依赖：工作流图模型 + 本地模拟执行器 + 提示词版本管理
+ */
+const NodeKind = {
+  start: { label: '开始', color: '#34d399', icon: '▶' },
+  agent: { label: 'Agent', color: '#7c5cff', icon: '◆' },
+  tool: { label: '工具', color: '#22d3ee', icon: '⚙' },
+  branch: { label: '条件', color: '#fbbf24', icon: '⑂' },
+  merge: { label: '汇总', color: '#f472b6', icon: '⊕' },
+  end: { label: '结束', color: '#94a3b8', icon: '■' }
+};
+
+const ToolRegistry = {
+  webSearch: { label: '联网搜索', args: ['query'] },
+  httpGet: { label: 'HTTP 请求', args: ['url'] },
+  codeExec: { label: '代码执行', args: ['lang', 'code'] },
+  fileRead: { label: '读取文件', args: ['path'] },
+  knowledge: { label: '知识库检索', args: ['query'] },
+  notify: { label: '发送通知', args: ['channel', 'text'] }
+};
+
+const AgentRoles = [
+  { id: 'planner', label: '规划者', duty: '拆解任务、编排子步骤' },
+  { id: 'researcher', label: '研究员', duty: '搜集信息、交叉验证' },
+  { id: 'coder', label: '工程师', duty: '写代码、调试实现' },
+  { id: 'critic', label: '审查者', duty: '挑错、找风险' },
+  { id: 'writer', label: '写作者', duty: '组织语言、输出成品' }
+];
+
+/* ───────────── 提示词模板 ───────────── */
+const PromptTemplates = {
+  planner: (input) =>
+    `你是一名项目规划者。用户目标如下：\n\n${input}\n\n请把它拆成 3-6 个可独立执行的子任务，每个子任务说明：交付物、依赖、验收标准。`,
+  researcher: (input) =>
+    `你是一名研究员。基于以下信息找出关键事实、数据来源与不确定性：\n\n${input}\n\n输出：结论要点 / 证据 / 存疑点。`,
+  coder: (input) =>
+    `你是一名工程师。请根据以下需求给出实现方案与关键代码片段：\n\n${input}\n\n注意边界情况与错误处理。`,
+  critic: (input) =>
+    `你是一名严格的审查者。指出以下产出中的问题、风险与遗漏：\n\n${input}\n\n按「严重 / 一般 / 建议」分级。`,
+  writer: (input) =>
+    `你是一名写作者。把以下要点整理成一篇结构清晰、面向读者的成稿：\n\n${input}\n\n保持事实准确，不要编造数据。`
+};
+
+/* ───────────── 图模型 ───────────── */
+function createGraph() {
+  return {
+    nodes: [
+      { id: 'n1', kind: 'start', x: 90, y: 220, title: '开始', role: 'planner', prompt: '', config: {} },
+      { id: 'n2', kind: 'agent', x: 330, y: 220, title: '任务规划', role: 'planner', prompt: '', config: {} },
+      { id: 'n3', kind: 'agent', x: 570, y: 130, title: '资料搜集', role: 'researcher', prompt: '', config: { tool: 'webSearch' } },
+      { id: 'n4', kind: 'agent', x: 570, y: 310, title: '实现方案', role: 'coder', prompt: '', config: { tool: 'codeExec' } },
+      { id: 'n5', kind: 'branch', x: 810, y: 220, title: '质量闸门', role: 'critic', prompt: '', config: { threshold: 0.7 } },
+      { id: 'n6', kind: 'merge', x: 1050, y: 220, title: '汇总输出', role: 'writer', prompt: '', config: {} },
+      { id: 'n7', kind: 'end', x: 1270, y: 220, title: '结束', role: 'writer', prompt: '', config: {} }
+    ],
+    edges: [
+      { id: 'e1', from: 'n1', to: 'n2' },
+      { id: 'e2', from: 'n2', to: 'n3' },
+      { id: 'e3', from: 'n2', to: 'n4' },
+      { id: 'e4', from: 'n3', to: 'n5' },
+      { id: 'e5', from: 'n4', to: 'n5' },
+      { id: 'e6', from: 'n5', to: 'n6', label: '通过' },
+      { id: 'e7', from: 'n5', to: 'n4', label: '打回', back: true },
+      { id: 'e8', from: 'n6', to: 'n7' }
+    ]
+  };
+}
+
+function graphStats(g) {
+  const byKind = {};
+  for (const n of g.nodes) byKind[n.kind] = (byKind[n.kind] || 0) + 1;
+  // 拓扑排序检测环（back 边是刻意设计的回路，不算环）
+  const fwd = g.edges.filter(e => !e.back);
+  const indeg = {};
+  g.nodes.forEach(n => (indeg[n.id] = 0));
+  fwd.forEach(e => { if (indeg[e.to] !== undefined) indeg[e.to]++; });
+  const q = g.nodes.filter(n => indeg[n.id] === 0).map(n => n.id);
+  let visited = 0;
+  while (q.length) {
+    const id = q.shift(); visited++;
+    fwd.filter(e => e.from === id).forEach(e => {
+      indeg[e.to]--;
+      if (indeg[e.to] === 0) q.push(e.to);
+    });
+  }
+  const hasCycle = visited !== g.nodes.length;
+  const connected = new Set();
+  g.edges.forEach(e => { connected.add(e.from); connected.add(e.to); });
+  const orphans = g.nodes.filter(n => !connected.has(n.id)).map(n => n.id);
+  const backs = g.edges.filter(e => e.back).length;
+  return { total: g.nodes.length, edges: g.edges.length, byKind, hasCycle, orphans, backs };
+}
+
+/* ───────────── 模拟执行器 ───────────── */
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0);
+}
+
+function rng(seed) {
+  let s = seed || 1;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+const SAMPLE_POOL = {
+  planner: [
+    '1. 明确目标与边界：确认输入形式、输出形态、验收口径\n2. 拆分主流程：识别必须步骤与可选增强\n3. 定义数据契约：输入字段、输出字段、错误语义\n4. 排定交付节奏：按可验证的最小单元切分',
+    '拆解为四个阶段：澄清 → 原型 → 实现 → 验证。每阶段给出可独立验收的产出物，避免并行返工。'
+  ],
+  researcher: [
+    '事实要点：主流实现集中在三条技术路线，成本与交付周期差异显著。\n证据：官方文档版本号与发布日期可追溯。\n存疑点：社区方案多为个人实践，缺少规模验证。',
+    '检索到 7 条相关资料，其中 3 条来自一手来源。数据口径不一致，跨源对比时需注意时间窗口与样本量。'
+  ],
+  coder: [
+    '方案：先跑通最小闭环（输入→解析→输出），再补异常分支。\n关键点：解析层做 schema 校验并返回结构化错误；边界：超长输入需分片。\n```js\nfunction parse(input){ if(!input) return {ok:false,err:"empty"}; return {ok:true,data:input}; }\n```',
+    '实现要点：状态机管理阶段流转，每阶段独立可重入；对外部依赖全部走统一适配层，便于替换。'
+  ],
+  critic: [
+    '严重：缺少异常路径说明，失败时行为未定义。\n一般：术语不统一，验收口径存在歧义。\n建议：补充一个反例样本用于回归。',
+    '主要风险在边界条件与数据规模。性能目标缺少可测指标。建议先定基线再谈优化。'
+  ],
+  writer: [
+    '已整理为三段式成稿：问题背景 → 方案对比 → 落地建议。每条结论都标注了来源，可直接对外分享。',
+    '成稿完成，共 3 个小节、约 600 字，保留全部关键数字与限定条件，未做超出原始信息的推断。'
+  ]
+};
+
+/**
+ * 模拟执行整个图，产出带时间轴的运行记录。
+ * 不调用任何外部服务，纯本地模拟，用于演示编排逻辑与回放。
+ */
+function simulate(graph, input) {
+  const t0 = performance.now();
+  const events = [];
+  const results = {};
+  let clock = 0;
+  const rand = rng(hashSeed(input + graph.nodes.length));
+
+  const order = topoOrder(graph);
+  const incoming = {};
+  graph.nodes.forEach(n => (incoming[n.id] = []));
+  graph.edges.forEach(e => incoming[e.to].push(e));
+
+  let guard = 0;
+  for (const id of order) {
+    if (guard++ > 200) break;
+    const node = graph.nodes.find(n => n.id === id);
+    if (!node) continue;
+    if (node.kind === 'start') {
+      results[id] = input;
+      events.push({ t: clock, nodeId: id, phase: 'done', text: '接收输入 ' + String(input).slice(0, 40) });
+      continue;
+    }
+    if (node.kind === 'end') {
+      events.push({ t: clock, nodeId: id, phase: 'done', text: '流程结束' });
+      continue;
+    }
+    // 汇总输入
+    const upstream = incoming[id].map(e => results[e.from]).filter(Boolean);
+    const ctx = upstream.length ? upstream.join('\n---\n') : input;
+
+    const dur = 320 + Math.floor(rand() * 520);
+    events.push({ t: clock, nodeId: id, phase: 'run', text: `${NodeKind[node.kind].label}「${node.title}」执行中` });
+
+    // 分支判定
+    if (node.kind === 'branch') {
+      const score = 0.55 + rand() * 0.42;
+      const th = node.config.threshold ?? 0.7;
+      const pass = score >= th;
+      events.push({
+        t: clock + dur, nodeId: id, phase: pass ? 'done' : 'reject',
+        text: `质量分 ${score.toFixed(2)} ${pass ? '≥' : '<'} 阈值 ${th} → ${pass ? '通过' : '打回重做'}`
+      });
+      results[id] = { score, pass };
+      clock += dur;
+      if (!pass) {
+        // 走 label 匹配的边
+        const back = graph.edges.find(e => e.from === id && e.label === '打回');
+        if (back) events.push({ t: clock, nodeId: back.to, phase: 'retry', text: '被打回，重新执行' });
+      }
+      continue;
+    }
+
+    const pool = SAMPLE_POOL[node.role] || SAMPLE_POOL.planner;
+    const text = pool[Math.floor(rand() * pool.length)];
+    const hasTool = node.config && node.config.tool;
+    if (hasTool) {
+      const tool = ToolRegistry[node.config.tool];
+      events.push({ t: clock + dur * 0.35, nodeId: id, phase: 'tool', text: `调用工具：${tool ? tool.label : node.config.tool}` });
+    }
+    results[id] = text;
+    events.push({ t: clock + dur, nodeId: id, phase: 'done', text: `「${node.title}」完成，产出 ${text.length} 字` });
+    clock += dur;
+  }
+
+  return { events, results, durationMs: Math.round(performance.now() - t0), simulatedClock: clock };
+}
+
+function topoOrder(graph) {
+  const indeg = {};
+  graph.nodes.forEach(n => (indeg[n.id] = 0));
+  graph.edges.forEach(e => { if (indeg[e.to] !== undefined) indeg[e.to]++; });
+  const q = graph.nodes.filter(n => indeg[n.id] === 0).map(n => n.id);
+  const out = [];
+  while (q.length) {
+    const id = q.shift(); out.push(id);
+    graph.edges.filter(e => e.from === id).forEach(e => {
+      indeg[e.to]--;
+      if (indeg[e.to] === 0) q.push(e.to);
+    });
+  }
+  // 有环时把剩余节点追加在末尾
+  graph.nodes.forEach(n => { if (!out.includes(n.id)) out.push(n.id); });
+  return out;
+}
+
+/* ───────────── 提示词版本管理 ───────────── */
+function buildPrompt(node, input) {
+  const tpl = PromptTemplates[node.role] || PromptTemplates.planner;
+  let p = tpl(input);
+  if (node.prompt && node.prompt.trim()) {
+    p += '\n\n【附加要求】\n' + node.prompt.trim();
+  }
+  if (node.config && node.config.tool) {
+    const tool = ToolRegistry[node.config.tool];
+    p += `\n\n【可用工具】${tool ? tool.label : node.config.tool}`;
+  }
+  return p;
+}
+
+function promptVersion(node) {
+  // 用内容哈希做版本号，改一次提示词就升一版
+  const h = hashSeed((node.prompt || '') + '|' + node.role);
+  return 'v' + ((h % 90) + 10) + '.' + (h % 10);
+}
+
+/* Agent 编排沙盘 · 交互层 */
+const E = {NodeKind, ToolRegistry, AgentRoles, PromptTemplates, createGraph, graphStats, simulate, buildPrompt, promptVersion};
+
+const $ = s => document.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+const SAMPLES = [
+  '帮我调研 2026 年主流的 AI 编程助手能力对比，并给出一份选型建议报告',
+  '为一款面向小微企业的进销存系统设计技术方案，并给出迭代排期',
+  '把这份季度经营数据整理成给管理层的汇报材料，突出现金流风险',
+  '重构一个遗留的 Java 订单服务，输出可落地的分步改造计划'
+];
+
+/* ═════ 状态 ═════ */
+let graph = E.createGraph();
+let selectedId = null;
+let running = false;
+let runGeneration = 0;
+let runEvents = [];
+let history = {};   // nodeId -> [{version, prompt, time}]
+let sampleIdx = 0;
+
+/* ═════ 渲染 ═════ */
+function nodeById(id) { return graph.nodes.find(n => n.id === id); }
+
+/* 画布自适应：把节点整体缩放到可视宽度内 */
+let scale = 1, offX = 0, offY = 0;
+function fitView() {
+  const svg = $('#graph');
+  const W = svg.clientWidth, H = svg.clientHeight;
+  if (!graph.nodes.length) return;
+  const xs = graph.nodes.map(n => n.x), ys = graph.nodes.map(n => n.y);
+  const minX = Math.min(...xs) - 20, maxX = Math.max(...xs) + 212;
+  const minY = Math.min(...ys) - 20, maxY = Math.max(...ys) + 80;
+  scale = Math.min(1, (W - 16) / (maxX - minX), (H - 16) / (maxY - minY));
+  offX = (W - (maxX - minX) * scale) / 2 - minX * scale;
+  offY = (H - (maxY - minY) * scale) / 2 - minY * scale;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  $('#edges').setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
+  $('#nodes').setAttribute('transform', `translate(${offX},${offY}) scale(${scale})`);
+}
+
+function render() {
+  fitView();
+  renderEdges();
+  renderNodes();
+  renderStats();
+  renderInspector();
+  renderPromptBox();
+}
+
+function renderEdges() {
+  const g = $('#edges');
+  g.innerHTML = '';
+  graph.edges.forEach(e => {
+    const a = nodeById(e.from), b = nodeById(e.to);
+    if (!a || !b) return;
+    const ax = a.x + 96, ay = a.y + 30, bx = b.x, by = b.y + 30;
+    const dx = Math.max(40, Math.abs(bx - ax) * 0.5);
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', `M${ax},${ay} C${ax + dx},${ay} ${bx - dx},${by} ${bx},${by}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', e.label === '打回' ? '#f472b6' : '#4d4a6b');
+    path.setAttribute('stroke-width', '1.8');
+    path.setAttribute('marker-end', 'url(#arrow)');
+    g.appendChild(path);
+    if (e.label) {
+      const t = document.createElementNS(SVGNS, 'text');
+      t.setAttribute('x', (ax + bx) / 2);
+      t.setAttribute('y', (ay + by) / 2 - 6);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('fill', e.label === '打回' ? '#f472b6' : '#8b88ab');
+      t.setAttribute('font-size', '11');
+      t.textContent = e.label;
+      g.appendChild(t);
+    }
+  });
+}
+
+function renderNodes() {
+  const g = $('#nodes');
+  g.innerHTML = '';
+  graph.nodes.forEach(n => {
+    const k = E.NodeKind[n.kind];
+    const grp = document.createElementNS(SVGNS, 'g');
+    grp.setAttribute('class', 'node' + (n.id === selectedId ? ' sel' : ''));
+    grp.setAttribute('transform', `translate(${n.x},${n.y})`);
+
+    const rect = document.createElementNS(SVGNS, 'rect');
+    rect.setAttribute('x', '0'); rect.setAttribute('y', '0');
+    rect.setAttribute('width', '192'); rect.setAttribute('height', '60');
+    rect.setAttribute('rx', '13');
+    rect.setAttribute('fill', 'rgba(255,255,255,.045)');
+    rect.setAttribute('stroke', n.id === selectedId ? k.color : 'rgba(255,255,255,.14)');
+    rect.setAttribute('stroke-width', n.id === selectedId ? 2.4 : 1.2);
+    grp.appendChild(rect);
+
+    // 左侧色条
+    const bar = document.createElementNS(SVGNS, 'rect');
+    bar.setAttribute('x', '0'); bar.setAttribute('y', '0');
+    bar.setAttribute('width', '4'); bar.setAttribute('height', '60');
+    bar.setAttribute('rx', '2'); bar.setAttribute('fill', k.color);
+    grp.appendChild(bar);
+
+    const icon = document.createElementNS(SVGNS, 'text');
+    icon.setAttribute('x', '16'); icon.setAttribute('y', '24');
+    icon.setAttribute('font-size', '13'); icon.setAttribute('fill', k.color);
+    icon.textContent = k.icon;
+    grp.appendChild(icon);
+
+    const title = document.createElementNS(SVGNS, 'text');
+    title.setAttribute('x', '36'); title.setAttribute('y', '25');
+    title.setAttribute('font-size', '13.5'); title.setAttribute('fill', '#eae8f5');
+    title.setAttribute('font-weight', '600');
+    title.textContent = n.title;
+    grp.appendChild(title);
+
+    const sub = document.createElementNS(SVGNS, 'text');
+    sub.setAttribute('x', '36'); sub.setAttribute('y', '44');
+    sub.setAttribute('font-size', '11'); sub.setAttribute('fill', '#9390ad');
+    const role = E.AgentRoles.find(r => r.id === n.role);
+    const toolTxt = n.config && n.config.tool ? ' · ' + (E.ToolRegistry[n.config.tool] || { label: n.config.tool }).label : '';
+    sub.textContent = k.label + (role ? ' · ' + role.label : '') + toolTxt;
+    grp.appendChild(sub);
+
+    grp.addEventListener('click', ev => { if (!dragMoved) { selectedId = n.id; render(); } });
+    grp.addEventListener('pointerdown', ev => startDrag(ev, n, grp));
+    g.appendChild(grp);
+  });
+}
+
+/* ═════ 拖拽 ═════ */
+let dragMoved = false;
+function startDrag(ev, node, grp) {
+  ev.preventDefault();
+  dragMoved = false;
+  const svg = $('#graph');
+  const rect = svg.getBoundingClientRect();
+  const startX = ev.clientX, startY = ev.clientY;
+  const ox = node.x, oy = node.y;
+
+  const move = e => {
+    const dx = (e.clientX - startX) / scale;
+    const dy = (e.clientY - startY) / scale;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved = true;
+    node.x = Math.round(ox + dx);
+    node.y = Math.round(oy + dy);
+    renderEdges();
+    grp.setAttribute('transform', `translate(${node.x},${node.y})`);
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    if (dragMoved) {
+      // 只重绘图元，不重算 fitView，避免用户刚拖好的位置被重新缩放
+      renderEdges();
+      renderNodes();
+      setTimeout(() => { dragMoved = false; }, 50);
+    }
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+function renderStats() {
+  const s = E.graphStats(graph);
+  $('#pillStats').textContent = `${s.total} 节点 · ${s.edges} 连线 · ${s.hasCycle ? '⚠ 有环' : '无环'}`;
+  const kinds = Object.entries(s.byKind).map(([k, v]) =>
+    `<div class="stat"><b>${v}</b><span>${E.NodeKind[k].label}</span></div>`).join('');
+  $('#stats').innerHTML = kinds +
+    `<div class="stat"><b>${s.hasCycle ? '有环' : '无环'}</b><span>拓扑</span></div>`;
+  if (s.hasCycle) {
+    $('#stats').innerHTML += `<div class="warn">⚠️ 工作流存在环路，模拟执行将按拓扑序兜底运行。</div>`;
+  }
+  if (s.orphans.length) {
+    $('#stats').innerHTML += `<div class="warn">⚠️ 有 ${s.orphans.length} 个孤立节点未连线。</div>`;
+  }
+}
+
+/* ═════ 检查器 ═════ */
+function renderInspector() {
+  const box = $('#inspector');
+  const n = nodeById(selectedId);
+  if (!n) { box.innerHTML = '<div class="sub">尚未选中节点</div>'; return; }
+  const k = E.NodeKind[n.kind];
+  const roles = E.AgentRoles.map(r =>
+    `<option value="${r.id}" ${n.role === r.id ? 'selected' : ''}>${r.label} — ${r.duty}</option>`).join('');
+  const tools = Object.entries(E.ToolRegistry).map(([id, t]) =>
+    `<option value="${id}" ${n.config.tool === id ? 'selected' : ''}>${t.label}</option>`).join('');
+
+  box.innerHTML = `
+    <div class="row" style="margin:8px 0 4px">
+      <span class="pill" style="background:${k.color}22;color:${k.color}">${k.icon} ${k.label}</span>
+      <span class="pill">${E.promptVersion(n)}</span>
+    </div>
+    <label class="fl">节点名称</label>
+    <input type="text" id="iTitle" value="${esc(n.title)}">
+    <label class="fl">角色</label>
+    <select id="iRole">${roles}</select>
+    ${n.kind === 'agent' || n.kind === 'branch' ? `
+    <label class="fl">绑定工具</label>
+    <select id="iTool"><option value="">（不绑定）</option>${tools}</select>` : ''}
+    ${n.kind === 'branch' ? `
+    <label class="fl">质量阈值（低于此值打回重做）</label>
+    <input type="text" id="iTh" value="${n.config.threshold ?? 0.7}">` : ''}
+    <label class="fl">附加提示词要求</label>
+    <textarea id="iPrompt" placeholder="例如：输出必须包含 3 个具体数字">${esc(n.prompt || '')}</textarea>
+    <div class="row" style="margin-top:12px">
+      <button class="btn sm" id="iSave">保存</button>
+      <button class="btn sm ghost" id="iDel">删除节点</button>
+    </div>`;
+
+  $('#iSave').onclick = () => {
+    const before = n.prompt || '';
+    n.title = $('#iTitle').value.trim() || n.title;
+    n.role = $('#iRole').value;
+    if ($('#iTool')) n.config.tool = $('#iTool').value || null;
+    if ($('#iTh')) n.config.threshold = parseFloat($('#iTh').value) || 0.7;
+    const after = $('#iPrompt').value;
+    if (after !== before) {
+      n.prompt = after;
+      // 记录历史版本
+      const h = history[n.id] = history[n.id] || [];
+      h.push({ version: E.promptVersion(n), prompt: after, time: new Date().toLocaleTimeString('zh-CN') });
+      if (h.length > 12) h.shift();
+    }
+    render();
+  };
+  $('#iDel').onclick = () => {
+    if (n.kind === 'start' || n.kind === 'end') { $('#promptOut').textContent = '开始/结束节点不可删除'; return; }
+    graph.nodes = graph.nodes.filter(x => x.id !== n.id);
+    graph.edges = graph.edges.filter(e => e.from !== n.id && e.to !== n.id);
+    selectedId = null;
+    render();
+  };
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderPromptBox() {
+  const n = nodeById(selectedId);
+  if (!n) { $('#pvBox').innerHTML = '<div class="sub">选中节点后显示</div>'; $('#promptOut').textContent = '// 选中节点后显示生成的完整提示词'; return; }
+  const v = E.promptVersion(n);
+  const h = history[n.id] || [];
+  $('#pvBox').innerHTML = `
+    <div class="kv"><span>当前版本</span><b>${v}</b></div>
+    <div class="kv"><span>历史版本数</span><b>${h.length}</b></div>
+    <div class="kv"><span>最近修改</span><b>${h.length ? h[h.length - 1].time : '—'}</b></div>`;
+  $('#promptOut').textContent = E.buildPrompt(n, $('#input').value);
+}
+
+/* ═════ 执行 ═════ */
+async function run() {
+  if (running) return;
+  running = true;
+  const generation = ++runGeneration;
+  $('#btnRun').textContent = '⏳ 执行中…';
+  $('#btnRun').disabled = true;
+  $('#timeline').innerHTML = '';
+
+  const res = E.simulate(graph, $('#input').value);
+  runEvents = res.events;
+
+  for (const ev of res.events) {
+    if (generation !== runGeneration) return;
+    const row = document.createElement('div');
+    const kind = E.NodeKind[nodeById(ev.nodeId)?.kind || 'end'];
+    row.className = 'tl ' + ev.phase;
+    row.innerHTML = `<span class="t">${(ev.t / 1000).toFixed(2)}s</span>
+      <span class="n" style="color:${kind.color}">${esc(nodeById(ev.nodeId)?.title || ev.nodeId)}</span>
+      <span class="m">${esc(ev.text)}</span>`;
+    row.onclick = () => { selectedId = ev.nodeId; render(); };
+    $('#timeline').appendChild(row);
+    await new Promise(r => setTimeout(r, 260));
+  }
+
+  if (generation !== runGeneration) return;
+  const end = document.createElement('div');
+  end.className = 'tl';
+  end.innerHTML = `<span class="t">—</span><span class="m">流程完成，模拟耗时 ${res.simulatedClock}ms，共 ${res.events.length} 个事件</span>`;
+  $('#timeline').appendChild(end);
+
+  running = false;
+  $('#btnRun').textContent = '▶ 运行沙盘';
+  $('#btnRun').disabled = false;
+}
+
+/* ═════ 事件 ═════ */
+$('#restoreExample').onclick = () => { runGeneration++; running = false; $('#btnRun').disabled = false; $('#btnRun').textContent = '▶ 运行沙盘'; graph = E.createGraph(); selectedId = null; history = {}; sampleIdx = 0; $('#input').value = SAMPLES[0]; $('#timeline').innerHTML = '<div class="tl"><span class="m">点击「运行沙盘」开始，事件会逐条出现在这里。</span></div>'; render(); };
+$('#btnRun').onclick = run;
+$('#btnReset').onclick = () => { runGeneration++; running = false; $('#btnRun').disabled = false; $('#btnRun').textContent = '▶ 运行沙盘'; $('#timeline').innerHTML = '<div class="tl"><span class="m">点击「运行沙盘」开始，事件会逐条出现在这里。</span></div>'; graph = E.createGraph(); selectedId = null; history = {}; render(); };
+$('#btnExport').onclick = () => {
+  const data = { format: 'agentsandbox.flow/v1', name: '演示工作流', input: $('#input').value, graph, history };
+  const b = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'agent-flow.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+};
+$('#btnSample').onclick = () => { sampleIdx = (sampleIdx + 1) % SAMPLES.length; $('#input').value = SAMPLES[sampleIdx]; renderPromptBox(); };
+$('#btnClear').onclick = () => { $('#input').value = ''; renderPromptBox(); };
+$('#input').oninput = () => renderPromptBox();
+$('#btnCopyPrompt').onclick = async () => {
+  const n = nodeById(selectedId);
+  if (!n) return;
+  try { await navigator.clipboard.writeText(E.buildPrompt(n, $('#input').value)); $('#btnCopyPrompt').textContent = '✅ 已复制'; }
+  catch (e) { $('#btnCopyPrompt').textContent = '⚠️ 复制失败'; }
+  setTimeout(() => { $('#btnCopyPrompt').textContent = '📋 复制提示词'; }, 1400);
+};
+$('#btnHist').onclick = () => {
+  const n = nodeById(selectedId);
+  if (!n) return;
+  const h = history[n.id] || [];
+  if (!h.length) { $('#promptOut').textContent = '// 该节点还没有修改记录'; return; }
+  $('#promptOut').textContent = h.map(x => `── ${x.version} @ ${x.time} ──\n${x.prompt || '(空附加要求)'}`).join('\n\n');
+};
+
+/* 初始化 */
+render();
+</script>
+</body>
+</html>

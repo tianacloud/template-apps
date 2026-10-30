@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS sandbox_state (id TEXT PRIMARY KEY, state TEXT NOT NULL);
