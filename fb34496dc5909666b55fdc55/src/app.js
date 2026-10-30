@@ -1,7 +1,7 @@
 
 /* ---------- 代码雨背景 ---------- */
 const cv=document.getElementById('rain'),ctx=cv.getContext('2d');
-let cols,drops;const chars='01<>{}[];=/\\+$#@&*const if return fn 1024';
+let cols,drops;const chars='01<>{}[];=/\\+$#@&*const if return fn 1234';
 function resize(){cv.width=innerWidth;cv.height=innerHeight;
   cols=Math.floor(cv.width/16);drops=Array(cols).fill(0).map(()=>Math.random()*cv.height/20)}
 resize();addEventListener('resize',resize);
@@ -121,7 +121,7 @@ function endSim(){
   else if(S.money>=60){rank='💎 财务自由预备役';desc='账户余额让你有底气说出那句名言：“这个需求我不想接。”'}
   else{rank='☕ 平凡而伟大的码农';desc='没有逆天改命，也没有一夜暴富。但你修过的每一个 Bug、上线的每一个版本，都是这个世界稳定运行的一部分。致敬每一位普通程序员。'}
   log('$ git log --oneline | wc -l','dim');
-  log(`> 20 年，${1024+S.step*256} 次提交，无数个咖啡因驱动的夜晚。`,'dim');
+  log(`> 20 年，${1000+S.step*256} 次提交，无数个咖啡因驱动的夜晚。`,'dim');
   $('erank').textContent=rank;$('edesc').textContent=desc;
   $('endcard').style.display='block';
   $('endcard').scrollIntoView({behavior:'smooth',block:'nearest'});
