@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {evaluate,Session,requirement} from '../src/rules.js';
+test('空白、错色与旧图残留按并集扣分',()=>{const req={cells:[0,1,2,3],color:0},b=Array(64).fill(null);assert.equal(evaluate(b,req).pct,0);for(let i=0;i<4;i++)b[i]=0;assert.equal(evaluate(b,req).pct,100);b[0]=1;assert.equal(evaluate(b,req).pct,75);b[0]=0;b[4]=0;assert.equal(evaluate(b,req).pct,80)});
+test('连击奖励且画布保留，低分重置连击',()=>{const g=new Session(0,()=>0);g.req={cells:[0],color:0};g.board[0]=0;assert.equal(g.deliver(1).gain,100);g.req={cells:[0],color:0};assert.equal(g.deliver(2).gain,115);assert.equal(g.board[0],0);g.req={cells:[1],color:1};g.deliver(3);assert.equal(g.combo,0)});
+test('自动变更随交付加速有7秒下限，总时长45秒',()=>{const g=new Session(0,()=>0);assert.equal(g.tick(14001),'changed');g.deliveries=100;assert.equal(g.tick(21002),'changed');assert.equal(g.tick(45000),'end');assert.equal(g.deliver(45001),null)});
+test('主动变更扣3秒且保留至少1.2秒，目标均在64格内',()=>{const g=new Session(0);g.reroll(44000);assert.equal(g.remaining(44000),1200);for(let i=0;i<100;i++){const r=requirement();assert.ok(r.cells.every(n=>n>=0&&n<64));assert.ok(r.cells.length)}});
