@@ -1,0 +1,332 @@
+
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="logo">
+        <svg fill="none" height="21" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="21">
+          <circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.1"/>
+          <path d="M12 3.8v5.1M12 15.1v5.1M3.8 12h5.1M15.1 12h5.1"/>
+        </svg>
+      </span>
+      <div>
+        <h1>3D 打印耗材库</h1>
+        <p>Filament Stock · 库存 / 余量 / 低余量提醒</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="btnHelp" type="button">使用说明</button>
+      <details class="menu" id="dataMenu">
+        <summary>数据<span style="color:#b3bcc8">▾</span></summary>
+        <div class="menu-list">
+          <button id="btnExportJson" type="button">导出 JSON 备份</button>
+          <button id="btnExportCsv" type="button">导出 CSV 表格</button>
+          <button id="btnImport" type="button">导入 JSON</button>
+          <div class="sep"></div>
+          <button id="btnSeed" type="button">载入示例数据</button>
+          <button id="btnClear" type="button">清空全部数据</button>
+        </div>
+      </details>
+      <button class="btn primary" id="btnAdd" type="button">
+        <svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-width="2.6" viewBox="0 0 24 24" width="13"><path d="M12 5v14M5 12h14"/></svg>
+        新增耗材
+      </button>
+      <input accept=".json,application/json" hidden id="fileInput" type="file">
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats">
+    <div class="stat">
+      <span class="stat-label">耗材卷数</span>
+      <strong id="statSpools">0<small>卷</small></strong>
+      <em id="statSpoolsSub">在用 0 · 已用完 0</em>
+    </div>
+    <div class="stat">
+      <span class="stat-label">库存总余量</span>
+      <strong id="statWeight">0<small>kg</small></strong>
+      <em id="statWeightSub">合计净重 0 kg</em>
+    </div>
+    <div class="stat is-warn">
+      <span class="stat-label">低余量预警</span>
+      <strong id="statLow">0<small>卷</small></strong>
+      <em id="statLowSub">低于安全阈值</em>
+    </div>
+    <div class="stat">
+      <span class="stat-label">库存估值</span>
+      <strong id="statValue">¥0</strong>
+      <em id="statValueSub">按剩余比例折算</em>
+    </div>
+  </section>
+
+  <div class="alert" hidden id="alertBar">
+    <span class="alert-dot"></span>
+    <p><b id="alertText">—</b>，建议尽快补货或更换新卷。</p>
+    <button class="btn link" id="alertFilter" type="button">只看低余量 ›</button>
+  </div>
+
+  <section class="toolbar">
+    <div class="search">
+      <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-width="2.2" viewBox="0 0 24 24" width="14"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <input autocomplete="off" id="q" placeholder="搜索品牌 / 材料 / 颜色 / 位置…" type="search">
+    </div>
+    <select class="ctl" id="fMaterial"><option value>全部材料</option></select>
+    <select class="ctl" id="fColor"><option value>全部颜色</option></select>
+    <select class="ctl" id="fStatus">
+      <option value>全部状态</option>
+      <option value="ok">余量充足</option>
+      <option value="half">余量偏少</option>
+      <option value="low">低余量</option>
+      <option value="empty">已用完</option>
+    </select>
+    <select class="ctl" id="fSort">
+      <option value="remain-asc">余量：少 → 多</option>
+      <option value="remain-desc">余量：多 → 少</option>
+      <option value="updated-desc">最近更新</option>
+      <option value="purchased-desc">购入日期：新 → 旧</option>
+      <option value="material-asc">材料类型 A → Z</option>
+      <option value="brand-asc">品牌 A → Z</option>
+    </select>
+    <label class="chk"><input id="fLow" type="checkbox"> 仅低余量</label>
+    <div class="spacer"></div>
+    <button class="btn sm" id="btnReset" type="button">重置筛选</button>
+  </section>
+
+  <section class="grid" id="grid"></section>
+  <div id="emptyState"></div>
+
+  <section class="panels">
+    <div class="panel">
+      <h2>材料类型分布 <span>按剩余重量</span></h2>
+      <div id="distMaterial"></div>
+    </div>
+    <div class="panel">
+      <h2>颜色分布 <span>卷数</span></h2>
+      <div class="color-cloud" id="distColor"></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>库存数据保存在应用数据库 · 可使用 JSON 备份或转移</span>
+    <button class="btn link" id="btnHelp2" type="button">查看存储说明 ›</button>
+  </div>
+</main>
+
+<!-- 新增 / 编辑 -->
+<div class="overlay" id="overlaySpool">
+  <div aria-labelledby="spoolModalTitle" aria-modal="true" class="modal" role="dialog">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h2 id="spoolModalTitle">新增耗材</h2>
+        <p>记录一卷耗材的基本信息与剩余重量</p>
+      </div>
+      <button class="x" data-close="1" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field">
+          <label for="fBrand">品牌 <i>*</i></label>
+          <input autocomplete="off" id="fBrand" list="brandList" placeholder="如 Bambu Lab / eSUN">
+          <datalist id="brandList">
+            <option value="Bambu Lab"></option><option value="eSUN"></option>
+            <option value="Polymaker"></option><option value="SUNLU"></option>
+            <option value="三绿 Sunlu"></option><option value="彩格"></option>
+            <option value="Kingroon"></option><option value="Creality"></option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label for="fMaterialIn">材料类型 <i>*</i></label>
+          <input autocomplete="off" id="fMaterialIn" list="materialList" placeholder="如 PLA / PETG / TPU">
+          <datalist id="materialList">
+            <option value="PLA"></option><option value="PLA+"></option><option value="PETG"></option>
+            <option value="ABS"></option><option value="ASA"></option><option value="TPU"></option>
+            <option value="PA 尼龙"></option><option value="PC"></option><option value="PVA"></option>
+            <option value="木质"></option><option value="碳纤维"></option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label for="fColorName">颜色名称 <i>*</i></label>
+          <input autocomplete="off" id="fColorName" placeholder="如 哑光黑 / 荧光绿">
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div class="field">
+          <label for="fColorHex">色值</label>
+          <input id="fColorHex" type="color" value="#1f2328">
+          <span class="hint">用于卡片色标，可与名称不同</span>
+        </div>
+        <div class="field">
+          <label for="fDiameter">线径</label>
+          <select id="fDiameter">
+            <option value="1.75">1.75 mm</option>
+            <option value="2.85">2.85 mm</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fNet">净重（g）</label>
+          <input id="fNet" inputmode="decimal" min="1" step="10" type="number" value="1000">
+        </div>
+        <div class="field">
+          <label for="fRemain">当前余量（g）</label>
+          <input id="fRemain" inputmode="decimal" min="0" step="1" type="number" value="1000">
+          <span class="hint">新增时默认等于净重</span>
+        </div>
+        <div class="field">
+          <label for="fThreshold">低余量阈值（g）</label>
+          <input id="fThreshold" inputmode="decimal" min="0" step="10" type="number" value="150">
+          <span class="hint">余量 ≤ 该值即触发提醒</span>
+        </div>
+        <div class="field">
+          <label for="fLocation">存放位置</label>
+          <input autocomplete="off" id="fLocation" list="locList" placeholder="如 抽屉 A2 / 防潮箱">
+          <datalist id="locList">
+            <option value="架子 A1"></option><option value="架子 A2"></option>
+            <option value="抽屉 B1"></option><option value="防潮箱"></option><option value="打印机旁"></option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label for="fPrice">购入单价（元）</label>
+          <input id="fPrice" inputmode="decimal" min="0" step="1" type="number" value="0">
+        </div>
+        <div class="field">
+          <label for="fPurchased">购入日期</label>
+          <input id="fPurchased" type="date">
+        </div>
+        <div class="field full">
+          <label for="fNote">备注</label>
+          <textarea id="fNote" placeholder="打印温度、干燥情况、使用感受…"></textarea>
+        </div>
+      </div>
+      <p id="formError" style="display:none; color:#c62f2f; font-size:12px; margin-top:10px"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close="1" type="button">取消</button>
+      <button class="btn primary" id="btnSaveSpool" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 登记使用 -->
+<div class="overlay" id="overlayUse">
+  <div aria-modal="true" class="modal" role="dialog" style="max-width:440px">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h2>登记使用</h2>
+        <p id="useSub">—</p>
+      </div>
+      <button class="x" data-close="1" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="useGrams">本次消耗（g）</label>
+        <input id="useGrams" inputmode="decimal" min="0" step="1" type="number" value="20">
+        <div class="quick">
+          <button data-q="5" type="button">−5 g</button>
+          <button data-q="10" type="button">−10 g</button>
+          <button data-q="25" type="button">−25 g</button>
+          <button data-q="50" type="button">−50 g</button>
+          <button data-q="100" type="button">−100 g</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:11px">
+        <label for="useNote">打印内容 / 备注</label>
+        <input autocomplete="off" id="useNote" placeholder="如 手机支架 v2">
+      </div>
+      <div class="field" style="margin-top:11px">
+        <label for="useSet">或直接修正余量为（g）</label>
+        <input id="useSet" inputmode="decimal" min="0" placeholder="留空则按上面的消耗扣减" step="1" type="number">
+        <span class="hint">盘点时用这个直接校准读数</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="btnRefill" type="button">重置为满卷</button>
+      <button class="btn" data-close="1" type="button">取消</button>
+      <button class="btn primary" id="btnUseSave" type="button">确认登记</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情 -->
+<div class="overlay" id="overlayDetail">
+  <div aria-modal="true" class="modal" role="dialog">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h2 id="detailTitle">耗材详情</h2>
+        <p id="detailSub">—</p>
+      </div>
+      <button class="x" data-close="1" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="kv" id="detailKv"></div>
+      <div class="meter" style="margin-top:0"><div class="meter-fill" id="detailMeter"></div></div>
+      <div class="meter-meta" style="margin-bottom:14px">
+        <span>剩余 <b id="detailRemain">0 g</b></span><span id="detailPct">0%</span>
+      </div>
+      <h3 style="font-size:12.5px; color:#4c5866; margin-bottom:8px">使用记录 <span id="detailLogCount" style="color:#8b97a6; font-weight:400"></span></h3>
+      <div class="logs" id="detailLogs"></div>
+      <p id="detailNote" style="font-size:12px; color:#4c5866; margin-top:12px; line-height:1.6"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger" id="btnDetailDel" type="button">删除</button>
+      <button class="btn" id="btnDetailUse" type="button">登记使用</button>
+      <button class="btn primary" id="btnDetailEdit" type="button">编辑</button>
+    </div>
+  </div>
+</div>
+
+<!-- 说明 -->
+<div class="overlay" id="overlayHelp">
+  <div aria-modal="true" class="modal" role="dialog">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h2>使用说明</h2>
+        <p>存储方式 · 页面结构 · 全部功能</p>
+      </div>
+      <button class="x" data-close="1" type="button">✕</button>
+    </div>
+    <div class="modal-body help">
+      <h3><em>1</em>数据存储方式</h3>
+      <p>库存数据保存在应用数据库，登录后可在不同设备访问。可导出 JSON 备份并通过导入恢复。</p>
+      <pre>{
+  <span class="k">"id"</span>: <span class="s">"sp_1a2b3c"</span>,
+  <span class="k">"brand"</span>: <span class="s">"Bambu Lab"</span>,
+  <span class="k">"material"</span>: <span class="s">"PLA"</span>,
+  <span class="k">"colorName"</span>: <span class="s">"哑光黑"</span>,
+  <span class="k">"colorHex"</span>: <span class="s">"#1f2328"</span>,
+  <span class="k">"netWeight"</span>: 1000,   <span class="k">"remaining"</span>: 780,
+  <span class="k">"threshold"</span>: 150,    <span class="k">"diameter"</span>: 1.75,
+  <span class="k">"logs"</span>: [{ <span class="k">"t"</span>: 1761…, <span class="k">"g"</span>: 20, <span class="k">"note"</span>: <span class="s">"手机支架"</span> }]
+}</pre>
+      <p style="font-size:11.5px; color:#8b97a6">数据库连接失败时请检查登录状态并刷新页面。</p>
+
+      <h3><em>2</em>页面结构</h3>
+      <ul>
+        <li><strong>顶部操作区</strong>：品牌标题 + 使用说明 / 数据菜单（导出、导入、示例数据、清空）/ 新增耗材。</li>
+        <li><strong>概览指标</strong>：耗材卷数、库存总余量（kg）、低余量预警数、库存估值，随数据实时刷新。</li>
+        <li><strong>低余量提醒条</strong>：有耗材触及阈值时自动出现，一键跳转到「只看低余量」。</li>
+        <li><strong>筛选工具栏</strong>：关键词搜索 + 材料类型 + 颜色 + 状态 + 排序 + 仅低余量开关 + 重置。</li>
+        <li><strong>耗材卡片网格</strong>：色标、材料/颜色、余量进度条与百分比、位置标签、登记使用 / 编辑 / 记录 / 删除。</li>
+        <li><strong>分布面板</strong>：按材料类型统计剩余重量，按颜色统计卷数。</li>
+        <li><strong>四类弹窗</strong>：新增编辑、登记使用、详情与使用记录、本说明。</li>
+      </ul>
+
+      <h3><em>3</em>核心功能</h3>
+      <ul>
+        <li><strong>增删改查</strong>：新增耗材、点击卡片任意位置外露的按钮编辑、删除前二次确认、搜索即查。</li>
+        <li><strong>余量跟踪</strong>：登记每次打印消耗克数，余量自动扣减并写入时间线；也可直接校准读数、重置为满卷。</li>
+        <li><strong>低余量提醒</strong>：每卷独立阈值（默认 150 g），低于阈值卡片描边变黄、状态徽标标红、顶部提醒条汇总；用完（0 g）单独标记。</li>
+        <li><strong>分类筛选</strong>：按材料类型、颜色、状态筛选，可组合搜索与排序，筛选条件实时生效。</li>
+        <li><strong>导出备份</strong>：JSON 完整备份（含使用记录）、CSV 表格（Excel 可直接打开）、JSON 导入合并。</li>
+      </ul>
+
+      <h3><em>4</em>建议用法</h3>
+      <p>每卷耗材贴一张小标签写编号，打完一个件就在卡片上「登记使用」；阈值按你常打的单件用量设（例如单件约 60 g，可设 120 g），低于阈值时补货清单就自然出来了。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" data-close="1" type="button">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div aria-live="polite" id="toast" role="status"></div>
+
