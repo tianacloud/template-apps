@@ -1,11 +1,10 @@
 import { createTianaFetch } from '@tianacloud/serverless';
 import css from "./style.css?inline";
-const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
 import body from "./body.html?raw";
-document.title="本周工作台"; document.body.innerHTML=body; document.body.style.pointerEvents="none";
+let appRoot, files;
 
 /* ========== 数据层 ========== */
-var tasks=[], pendingImgs=[], editId=null, editDone=null, isOwner=false;
+var tasks=[], pendingImgs=[], pendingUploads=0, editId=null, editDone=null, isOwner=false;
 var sqlFetch, connection, revision=0, saving=Promise.resolve(), saveFailed=false;
 var imageUrls=new Map();
 const textArg=value=>({type:'text',value:String(value)});
@@ -17,7 +16,7 @@ async function execute(sql,args=[]){
   return result.response.result;
 }
 async function load(){
-  if(!window.tiana?.auth?.getAccessToken || !window.tiana?.files?.put) throw Error('数据或文件服务未就绪');
+  if(!window.tiana?.auth?.getAccessToken || !files?.put) throw Error('数据或文件服务未就绪');
   connection=await window.tiana.connection();
   if(connection.sql_api!=='hrana-v3') throw Error('数据库协议不支持');
   sqlFetch=createTianaFetch({origin:connection.origin,auth:window.tiana.auth,requestBodyMode:'buffered'});
@@ -29,7 +28,7 @@ async function load(){
   await Promise.all(tasks.flatMap(t=>t.images||[]).map(resolveImage));
 }
 async function resolveImage(path){
-  if(!imageUrls.has(path)) imageUrls.set(path,await window.tiana.files.getUrl(path));
+  if(!imageUrls.has(path)) imageUrls.set(path,await files.getUrl(path));
   return imageUrls.get(path);
 }
 function save(){
@@ -206,6 +205,7 @@ function delTask(id){
   save(); refreshAll(); toast('已删除');
 }
 function addTask(){
+  if(pendingUploads){toast('请等待图片上传完成');return;}
   var inp=document.getElementById('inpTitle');
   var title=inp.value.trim(); if(!title){ toast('请输入任务内容'); return; }
   tasks.push({ id:uid(), title:title, note:'', date:document.getElementById('inpDate').value||todayStr(),
@@ -264,13 +264,13 @@ function viewImg(src){ document.getElementById('viewerImg').src=src; document.ge
 async function storeImage(file){
   if(!file || !file.type.startsWith('image/')) throw Error('请选择图片');
   const path='attachments/'+crypto.randomUUID(); let uploadId;
-  try { await window.tiana.files.put(path,file,{onPrepared:r=>{uploadId=r.id;}}); }
-  catch(e){ if(!uploadId) throw e; let status=await window.tiana.files.uploadStatus(uploadId); if(!status.completed) status=await window.tiana.files.completeUpload(uploadId); if(!status.completed) throw Error('图片上传结果未知，请稍后检查'); }
+  try { await files.put(path,file,{onPrepared:r=>{uploadId=r.id;}}); }
+  catch(e){ if(!uploadId) throw e; let status=await files.uploadStatus(uploadId); if(!status.completed) status=await files.completeUpload(uploadId); if(!status.completed) throw Error('图片上传结果未知，请稍后检查'); }
   await resolveImage(path); return path;
 }
 async function onPickImgs(input){
   const fs=Array.from(input.files||[]); input.value='';
-  for(const file of fs){ if(pendingImgs.length>=9){toast('最多 9 张图片');break;} try{ pendingImgs.push(await storeImage(file)); renderPending(); }catch(e){alert('图片上传失败：'+e.message);break;} }
+  pendingUploads++; try { for(const file of fs){ if(pendingImgs.length>=9){toast('最多 9 张图片');break;} try{ pendingImgs.push(await storeImage(file)); renderPending(); }catch(e){alert('图片上传失败：'+e.message);break;} } } finally {pendingUploads--;}
 }
 function renderPending(){
   document.getElementById('pendingImgs').innerHTML=pendingImgs.map(function(src,i){
@@ -283,7 +283,7 @@ function rmPending(i){ pendingImgs.splice(i,1); renderPending(); }
 async function exportJSON(){
   try {
     const copy=await Promise.all(tasks.map(async t=>({...t,images:await Promise.all((t.images||[]).map(async path=>{
-      const response=await window.tiana.files.get(path); if(!response.ok) throw Error('图片读取失败');
+      const response=await files.get(path); if(!response.ok) throw Error('图片读取失败');
       const blob=await response.blob(); return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});
     }))})));
     const blob=new Blob([JSON.stringify(copy,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='本周工作台备份_'+todayStr()+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('已导出备份');
@@ -331,7 +331,7 @@ function clearSeed(){
 }
 /* ===== 一键盘成「我自己的工作台」 ===== */
 function makeMine(){
-  if(!confirm('将清空当前示例任务，换成一张空白工作台。这将清空当前工作台的任务，确定继续？'))return;
+  if(!confirm('将清空当前工作台的任务，确定继续？'))return;
   tasks=[]; isOwner=true;
   save(); closeWelcome(); refreshAll(); toast('已建成你的工作台，开始添加任务吧');
 }
@@ -345,7 +345,7 @@ function closeWelcome(){
 function shareLink(){
   var url=location.href.split('?')[0];
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(function(){ toast('链接已复制，发给同事即可'); },function(){ prompt('复制这个链接分享：',url); });
+    navigator.clipboard.writeText(url).then(function(){ toast('链接已复制，请先通过平台授权分享'); },function(){ prompt('复制这个链接分享：',url); });
   } else { prompt('复制这个链接分享：',url); }
 }
 
@@ -358,7 +358,7 @@ async function init(){
   var wd='日一二三四五六'[d.getDay()];
   document.getElementById('dateLabel').textContent=d.getMonth()+1+'月'+d.getDate()+'日 周'+wd;
   document.getElementById('inpDate').value=todayStr();
-  try { await load(); } catch(e) { document.body.innerHTML='<p style="padding:24px">无法加载工作台，请检查数据和文件连接后重新打开。</p>'; return; }
+  try { await load(); } catch(e) { appRoot.innerHTML='<p style="padding:24px">无法加载工作台，请检查数据和文件连接后重新打开。</p>'; return; }
   document.getElementById('inpTitle').addEventListener('keydown',function(e){ if(e.key==='Enter')addTask(); });
   // 粘贴：文本建任务，图片作附件
   document.getElementById('inpTitle').addEventListener('paste',function(e){
@@ -367,17 +367,15 @@ async function init(){
       if(items[i].type.indexOf('image')===0){
         e.preventDefault();
         if(pendingImgs.length>=9){ toast('最多 9 张图片'); return; }
-        storeImage(items[i].getAsFile()).then(d=>{pendingImgs.push(d);renderPending();toast('截图已粘贴为附件');}).catch(()=>alert('图片上传失败，请重试')); 
+        pendingUploads++; storeImage(items[i].getAsFile()).then(d=>{if(pendingImgs.length<9){pendingImgs.push(d);renderPending();toast('截图已粘贴为附件');}}).catch(()=>alert('图片上传失败，请检查后重试')).finally(()=>pendingUploads--); 
         return;
       }
     }
   });
   document.getElementById('editMask').addEventListener('click',function(e){ if(e.target===this)closeEdit(); });
   document.getElementById('viewer').addEventListener('click',function(e){ if(e.target===this)this.classList.remove('show'); });
-  refreshAll(); document.body.style.pointerEvents='';
+  refreshAll(); appRoot.style.pointerEvents='';
 }
-init();
-
 Object.assign(window,{load,save,flashSync,uid,toast,pad,fmt,todayStr,weekRange,inWeek,sorted,getTodayItems,getWeekTasks,weekStats,dayCounts,esc,prioChip,imgHtml,taskHtml,renderToday,renderWeekList,renderStats,renderTools,renderWelcome,refreshAll,toggleDone,delTask,addTask,openEdit,closeEdit,saveEdit,shiftDate,shiftNextWeek,edToggleDone,edDelete,viewImg,onPickImgs,renderPending,rmPending,exportJSON,exportDone,importJSON,clearSeed,makeMine,dismissWelcome,closeWelcome,shareLink,seed});
 
 const allowedActions = new Set(["addTask","clearSeed","closeEdit","dismissWelcome","edDelete","edToggleDone","exportDone","exportJSON","makeMine","saveEdit","shareLink","shiftDate","shiftNextWeek","delTask","openEdit","rmPending","toggleDone","viewImg","importJSON","onPickImgs"]);
@@ -393,7 +391,14 @@ function dispatchAction(el, action) {
   else if (arg !== '') return;
   window[match[1]](arg);
 }
-for (const type of ['click','change']) document.addEventListener(type, event => {
-  const el = event.target.closest('[data-' + type + ']');
-  if (el) dispatchAction(el, el.getAttribute('data-' + type));
-});
+function handleAction(event){
+  const el=event.target.closest('[data-'+event.type+']');
+  if(el && appRoot.contains(el)) dispatchAction(el,el.getAttribute('data-'+event.type));
+}
+export async function mount(root, context){
+  appRoot=root; files=context.files; document.title='本周工作台'; root.innerHTML=body; root.style.pointerEvents='none';
+  const style=document.createElement('style'); style.textContent=css; root.append(style);
+  for(const type of ['click','change']) root.addEventListener(type,handleAction);
+  await init();
+  return ()=>{for(const type of ['click','change']) root.removeEventListener(type,handleAction);style.remove();};
+}
