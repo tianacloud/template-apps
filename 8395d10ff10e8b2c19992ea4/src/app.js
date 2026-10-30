@@ -56299,7 +56299,7 @@ function fingerAdvance() {
 
   if (G.fStage < 3) {
     startFingerRound(G.fGroup, G.fStage + 1, false);
-    toast(`${g.name} · 进入阶段 ${G.fStage + 1}：${FINGER_STAGES[G.fStage].name}`);
+    toast(`${g.name} · 进入阶段 ${G.fStage}：${FINGER_STAGES[G.fStage - 1].name}`);
   } else {
     // 本组三阶段全过，解锁下一组
     if (G.fGroup + 1 < FINGER_GROUPS.length) {
