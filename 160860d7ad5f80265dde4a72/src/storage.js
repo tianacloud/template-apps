@@ -4,7 +4,7 @@ export async function openStorage(onError, sql = defaultSql) {
   const data = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
   const dirty = new Map();
   let timer, blocked = false, pending = Promise.resolve();
-  function schedule() { if (!timer && !blocked) timer = setTimeout(() => { timer = undefined; flush().catch(onError); }, 5000); }
+  function schedule(delay = 5000) { if (!timer && !blocked) timer = setTimeout(() => { timer = undefined; flush().catch(onError); }, delay); }
   function flush() {
     clearTimeout(timer); timer = undefined;
     pending = pending.catch(() => {}).then(async () => {
@@ -22,7 +22,7 @@ export async function openStorage(onError, sql = defaultSql) {
   }
   return {
     getItem(key) { return data[key] ?? null; },
-    setItem(key, value) { data[key] = String(value); dirty.set(key, data[key]); schedule(); },
+    setItem(key, value) { data[key] = String(value); dirty.set(key, data[key]); if (key === 'moyu_settings') { clearTimeout(timer); timer = undefined; schedule(250); } else schedule(); },
     removeItem(key) { delete data[key]; dirty.set(key, null); schedule(); },
     flush,
     retry() { blocked = false; return flush(); },
