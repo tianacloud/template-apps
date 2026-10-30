@@ -1,0 +1,11 @@
+import {mkdir,readFile,copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const read = p => readFile(p,'utf8');
+const body=await read('body.html');
+const css=(await Promise.all(['tokens','app','pump'].map(n=>read(`css/${n}.css`)))).join('\n');
+const js=(await Promise.all(['audio','store','app'].map(n=>read(`js/${n}.js`)))).join('\n');
+await mkdir('dist/assets',{recursive:true});
+await build({stdin:{contents:`import {createTianaFetch} from '@tianacloud/serverless';\ndocument.title='宝贝请起身';\nconst style=document.createElement('style'); style.textContent=${JSON.stringify(css)}; document.head.append(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\n${js}`,resolveDir:process.cwd(),sourcefile:'app.js'},bundle:true,format:'iife',outfile:'dist/assets/app.js'});
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await read('source.json'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',database_instance_id:source.database_instance_id,git_instance_id:source.git_instance_id}));
