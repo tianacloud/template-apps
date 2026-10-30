@@ -1,0 +1,13 @@
+import { readFile, mkdir, rm, copyFile } from 'node:fs/promises';
+import { build } from 'esbuild';
+const commit = process.argv[2];
+if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit || '')) throw Error('需要完整源码提交号');
+const source = JSON.parse(await readFile('source.json', 'utf8'));
+if (process.env.TIANA_TEMPLATE_BUILD !== '1' && Object.values(source).some(v => !v || v.startsWith('__TIANA_'))) throw Error('请填写资源实例 ID');
+await rm('dist', {recursive:true, force:true});
+await mkdir('dist/assets', {recursive:true});
+await build({entryPoints:['client/app.js'],bundle:true,format:'esm',outfile:'dist/assets/app.js',loader:{'.html':'text'},minify:true});
+await copyFile('client/styles.css','dist/assets/styles.css');
+await copyFile('client/game.js','dist/assets/game.js');
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
