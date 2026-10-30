@@ -1,0 +1,16 @@
+import {readFile,mkdir,rm,writeFile,copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2];
+if(!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (!/^[A-Za-z0-9_-]{1,128}$/.test(source.git_instance_id||'') || source.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const html=await readFile('client/index.html','utf8');
+const css=html.match(/<style[^>]*>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script/)[1];
+const script=html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+const db=await readFile('client/db.js','utf8');
+await build({stdin:{contents:db+` document.title='人生进度条 · Life in Weeks';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n${script}`,resolveDir:process.cwd(),sourcefile:'app.js'},outfile:'dist/assets/app.js',bundle:true,format:'esm'});
+await copyFile('public/icon.png','dist/icon.png');
+await copyFile('THIRD_PARTY_NOTICES','dist/THIRD_PARTY_NOTICES.txt');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
