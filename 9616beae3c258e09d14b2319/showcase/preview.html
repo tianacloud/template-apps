@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>标准文档结构化助手 · StandardDoc Studio</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --ink:#1f2933; --sub:#5b6b7b;
+    --line:#e4e9f0; --brand:#2f6df0; --brand-soft:#eaf1ff; --ok:#1f9d55;
+    --warn:#d97706; --shadow:0 6px 24px rgba(31,41,51,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6;
+  }
+  header{
+    background:linear-gradient(135deg,#2f6df0,#5b8def);
+    color:#fff; padding:18px 24px; box-shadow:var(--shadow);
+  }
+  header h1{margin:0; font-size:20px; letter-spacing:.5px}
+  header p{margin:4px 0 0; font-size:13px; opacity:.92}
+  .badge{
+    display:inline-block; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35);
+    padding:2px 10px; border-radius:999px; font-size:12px; margin-top:8px;
+  }
+  .layout{display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px; height:calc(100% - 86px)}
+  @media(max-width:920px){.layout{grid-template-columns:1fr; height:auto}}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden}
+  .panel .head{display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--line)}
+  .panel .head h2{margin:0; font-size:14px; color:var(--sub)}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line); background:#fbfcfe}
+  button{
+    font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:7px 12px; border-radius:8px; cursor:pointer; transition:.15s;
+  }
+  button:hover{border-color:var(--brand); color:var(--brand)}
+  button.primary{background:var(--brand); color:#fff; border-color:var(--brand)}
+  button.primary:hover{background:#235fd6; color:#fff}
+  button.ghost{background:transparent}
+  textarea{width:100%; flex:1; border:0; resize:none; padding:14px; font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; font-size:13px; color:var(--ink); outline:none; line-height:1.7}
+  .preview{flex:1; overflow:auto; padding:18px 22px; font-size:14px}
+  .preview h1,.preview h2,.preview h3,.preview h4{line-height:1.3; margin:18px 0 8px}
+  .preview h1{border-bottom:2px solid var(--line); padding-bottom:6px}
+  .preview table{border-collapse:collapse; margin:10px 0; font-size:13px}
+  .preview th,.preview td{border:1px solid var(--line); padding:6px 10px}
+  .preview th{background:var(--brand-soft)}
+  .preview code{background:#f0f3f8; padding:1px 5px; border-radius:4px}
+  .preview pre{background:#f0f3f8; padding:12px; border-radius:8px; overflow:auto}
+  .stat{display:flex; gap:14px; padding:8px 14px; font-size:12px; color:var(--sub); border-top:1px solid var(--line); background:#fbfcfe}
+  .stat b{color:var(--brand)}
+  .foot{padding:0 24px 22px; color:var(--sub); font-size:12px}
+  .foot a{color:var(--brand); text-decoration:none}
+  .toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:#1f2933; color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:.25s; pointer-events:none}
+  .toast.show{opacity:1}
+  .lock{font-size:12px; color:var(--ok); margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📐 标准文档结构化助手 <span style="font-weight:400;font-size:14px;opacity:.85">StandardDoc Studio</span></h1>
+  <p>把标准 / 规范 / 技术文档的纯文本，一键整理为层级清晰的 Markdown 与可检索的 Excel。</p>
+  <span class="badge">🔒 全程本地运行 · 文档内容不上传任何服务器</span>
+</header>
+
+<div class="toolbar">示例体验：数据仅保存在当前页面。<button id="restoreExample">恢复示例</button><span>下载与复制请在安装后使用。</span></div>
+<div class="layout">
+  <!-- 输入 -->
+  <section class="panel">
+    <div class="head"><h2>① 粘贴文档文本</h2><span class="lock">本地解析</span></div>
+    <div class="toolbar">
+      <button id="btnSample">载入示例</button>
+      <button id="btnParse" class="primary">解析并生成</button>
+      <button id="btnClear" class="ghost">清空</button>
+    </div>
+    <textarea id="input" placeholder="在此粘贴从 PDF / 规范中提取的纯文本。支持：&#10;· 编号标题：1 、1.1 、1.1.1&#10;· 中文标题：第一章 / 第一节 / 第3.2条&#10;· 表格：用 | 分隔或用制表符对齐的列&#10;· 段落正文自动归并"></textarea>
+    <div class="stat">
+      <span>字符：<b id="chars">0</b></span>
+      <span>识别标题：<b id="cntHead">0</b></span>
+      <span>识别表格：<b id="cntTab">0</b></span>
+    </div>
+  </section>
+
+  <!-- 预览 -->
+  <section class="panel">
+    <div class="head"><h2>② Markdown 预览 / 导出</h2><span class="lock" id="privacy">隐私保护中</span></div>
+    <div class="toolbar">
+      <button id="btnMd">⬇ 导出 Markdown</button>
+      <button id="btnXlsx">⬇ 导出 Excel</button>
+      <button id="btnCopy" class="ghost">复制 MD</button>
+    </div>
+    <div class="preview" id="preview"><p style="color:#9aa7b4">解析后，结构化的 Markdown 将显示在这里。</p></div>
+    <div class="stat">
+      <span>大纲层级：<b id="cntLv">—</b></span>
+      <span>表格行数：<b id="cntRows">—</b></span>
+    </div>
+  </section>
+</div>
+
+<div class="foot">
+  本工具完全在浏览器本地运行，粘贴的文档内容仅存在于你的设备内存中，关闭页面即清除，不会上传到任何服务器，适合处理含内部条款、未公开条文等敏感资料。
+  适用于水电、建筑、交通等各类工程技术标准的数字化整理。
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+"use strict";
+
+/* ---------- 工具函数 ---------- */
+const $ = (id)=>document.getElementById(id);
+let parsed = { md:"", outline:[], tables:[], full:[] };
+
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- 解析核心 ---------- */
+const CN_NUM = "零〇一二三四五六七八九十百千";
+
+const RE_CH1 = new RegExp("第["+CN_NUM+"0-9]+[篇部编章部分]");
+const RE_CH2 = new RegExp("第["+CN_NUM+"0-9]+节");
+const RE_CH3 = new RegExp("第["+CN_NUM+"0-9]+[条目]");
+function chineseHeadingLevel(s){
+  // 章/篇/部/编/部分 -> 1 ; 节 -> 2 ; 条/目 -> 3
+  if(RE_CH1.test(s)) return 1;
+  if(RE_CH2.test(s)) return 2;
+  if(RE_CH3.test(s)) return 3;
+  return 0;
+}
+
+const SPECIAL = ["前言","引言","附录","参考文献","术语和定义","范围","规范性引用文件","资料性引用文件","总则","一般规定","基本规定"];
+
+function parseDocument(text){
+  const lines = text.replace(/\r/g,"").split("\n");
+  const md = [];
+  const outline = [];
+  const tables = [];
+  const full = [];
+  let para = [];
+  let tableBuf = [];
+
+  const flushPara = ()=>{ if(para.length){ md.push(para.join(" ")); md.push(""); para=[]; } };
+  const flushTable = ()=>{
+    if(tableBuf.length>=2){
+      // 判断是否为 | 表格已带分隔
+      const isPipe = tableBuf[0].includes("|");
+      let rows;
+      if(isPipe){
+        rows = tableBuf.map(r=>r.split("|").map(c=>c.trim()).filter((cell,i,arr)=>!(i===0&&cell==="")&&!(i===arr.length-1&&cell==="")));
+      }else{
+        rows = tableBuf.map(r=>r.split(/\t+/).map(c=>c.trim()).filter(c=>c.length));
+      }
+      // 去掉纯分隔行
+      rows = rows.filter(r=>!r.every(cell=>/^:?-{3,}:?$/.test(cell)));
+      if(rows.length){
+        const maxc = Math.max(...rows.map(r=>r.length));
+        const head = rows[0];
+        let tbl = "| "+head.concat(Array(maxc-head.length).fill("")).join(" | ")+" |";
+        tbl += "\n| "+Array(maxc).fill("---").join(" | ")+" |";
+        rows.slice(1).forEach(r=>{ tbl += "\n| "+r.concat(Array(maxc-r.length).fill("")).join(" | ")+" |"; });
+        md.push(tbl); md.push("");
+        tables.push(rows); // 存入 Excel
+      }
+    } else if(tableBuf.length===1){
+      // 单行疑似表格：回退为正文，避免丢数据
+      para.push(tableBuf[0].replace(/\|/g,"丨"));
+    }
+    tableBuf=[];
+  };
+
+  for(let raw of lines){
+    const s = raw.trim();
+    full.push(raw);
+
+    if(s===""){ flushPara(); flushTable(); continue; }
+
+    // 表格优先识别：含 | 且至少两列，或含制表符且有>1列
+    const pipeCols = (s.match(/\|/g)||[]).length;
+    const tabCols = (raw.split(/\t+/).filter(c=>c.trim()).length);
+    const looksTable = (pipeCols>=1 && s.split("|").filter(x=>x.trim()).length>=2) || (raw.includes("\t") && tabCols>=2);
+    if(looksTable){
+      flushPara();
+      tableBuf.push(s.includes("|")? s : raw);
+      continue;
+    }
+
+    // 编号标题: 1 / 1.1 / 1.1.1
+    let m = s.match(/^(\d{1,3})(?:\.(\d{1,3}))*\s+([^\s].*)$/);
+    if(m){
+      flushPara(); flushTable();
+      const lead = m[0].match(/^\d+(?:\.\d+)*/)[0];
+      const level = Math.min(lead.split(".").length, 6);
+      const title = s.slice(lead.length).trim();
+      md.push("#".repeat(level)+" "+title); md.push("");
+      outline.push([level, lead, title]);
+      continue;
+    }
+    // 中文标题
+    const cl = chineseHeadingLevel(s);
+    if(cl && s.length<40){
+      flushPara(); flushTable();
+      md.push("#".repeat(cl)+" "+s); md.push("");
+      outline.push([cl, "", s]);
+      continue;
+    }
+    // 特殊章节（独立成行）
+    if(SPECIAL.some(k=>s===k || s.startsWith(k) && s.length<30)){
+      flushPara(); flushTable();
+      md.push("# "+s); md.push("");
+      outline.push([1,"",s]);
+      continue;
+    }
+    // 普通段落
+    flushTable();
+    para.push(s);
+  }
+  flushPara(); flushTable();
+
+  return { md: md.join("\n").replace(/\n{3,}/g,"\n\n").trim(), outline, tables, full };
+}
+
+/* ---------- 渲染预览 ---------- */
+function renderPreview(md){
+  // 轻量 Markdown -> HTML（标题/表格/段落/代码）
+  const esc=(t)=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const lines = md.split("\n");
+  let html="", i=0;
+  while(i<lines.length){
+    const l=lines[i];
+    if(/^#{1,6}\s/.test(l)){ const lv=l.match(/^#+/)[0].length; html+=`<h${lv}>${esc(l.replace(/^#+\s/,""))}</h${lv}>`; i++; continue; }
+    if(l.includes("|") && lines[i+1] && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i+1])){
+      const head=l.split("|").map(c=>c.trim()).filter((cell,x,arr)=>!(x===0&&cell==="")&&!(x===arr.length-1&&cell===""));
+      i+=2; const rows=[];
+      while(i<lines.length && lines[i].includes("|")){ rows.push(lines[i].split("|").map(c=>c.trim()).filter((cell,x,arr)=>!(x===0&&cell==="")&&!(x===arr.length-1&&cell===""))); i++; }
+      html+="<table><thead><tr>"+head.map(c=>`<th>${esc(c)}</th>`).join("")+"</tr></thead><tbody>";
+      rows.forEach(r=>{ html+="<tr>"+r.map(c=>`<td>${esc(c)}</td>`).join("")+"</tr>"; });
+      html+="</tbody></table>"; continue;
+    }
+    if(l.trim()===""){ i++; continue; }
+    let buf=[]; while(i<lines.length && lines[i].trim()!=="" && !/^#{1,6}\s/.test(lines[i]) && !(lines[i].includes("|"))){ buf.push(esc(lines[i])); i++; }
+    if(!buf.length){ buf.push(esc(lines[i])); i++; }
+    html+="<p>"+buf.join("<br>")+"</p>";
+  }
+  $("preview").innerHTML = html || '<p style="color:#9aa7b4">暂无内容。</p>';
+}
+
+/* ---------- 导出 ---------- */
+function download(name, content, type){
+  const blob=new Blob([content],{type}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function exportMd(){
+  if(!parsed.md){ toast("请先解析"); return; }
+  download("标准文档结构化结果.md", parsed.md, "text/markdown;charset=utf-8");
+  toast("已导出 Markdown");
+}
+
+function exportXlsx(){
+  if(!parsed.outline.length && !parsed.tables.length){ toast("请先解析"); return; }
+  // 优先用 SheetJS，失败降级 CSV
+  try{
+    if(typeof XLSX==="undefined") throw new Error("no-xlsx");
+    const wb=XLSX.utils.book_new();
+    const oa=[["层级","编号","标题"],...parsed.outline.map(r=>[r[0],r[1],r[2]])];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(oa), "大纲");
+    // 表格汇总：每个表格之间空一行标注
+    const ta=[]; let idx=1;
+    parsed.tables.forEach(t=>{ ta.push([`表格 ${idx++}`]); t.forEach(row=>ta.push(row)); ta.push([]); });
+    if(!ta.length) ta.push(["（未识别到表格）"]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ta), "表格");
+    const fa=parsed.full.map(l=>[l]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fa), "原文");
+    XLSX.writeFile(wb, "标准文档结构化结果.xlsx");
+    toast("已导出 Excel");
+  }catch(e){
+    let csv="层级,编号,标题\n"+parsed.outline.map(r=>r.join(",")).join("\n");
+    download("标准文档结构化结果.csv", csv, "text/csv;charset=utf-8");
+    toast("已导出 CSV（Excel 兼容）");
+  }
+}
+
+function copyMd(){
+  if(!parsed.md){ toast("请先解析"); return; }
+  navigator.clipboard.writeText(parsed.md).then(()=>toast("已复制 Markdown")).catch(()=>toast("复制失败"));
+}
+
+/* ---------- 示例（通用、无敏感信息） ---------- */
+const SAMPLE = `水利水电工程混凝土施工组织设计技术导则（示例·脱敏）
+前言
+本导则为推荐性技术文件，用于指导中小型水利水电工程混凝土施工。
+
+1 总则
+1.1 适用范围
+本导则适用于新建、扩建和改建的水利水电工程。
+1.2 基本原则
+应坚持安全、经济、环保、节约的原则。
+
+2 施工布置
+2.1 场地布置
+2.1.1 拌合系统
+拌合系统应靠近浇筑作业面布置，减少转运距离。
+2.1.2 骨料堆场
+骨料应按级配分区堆放，并设置遮雨设施。
+
+3 质量控制
+3.1 原材料
+水泥、粉煤灰、外加剂应有合格证明。
+
+表3.1 混凝土配合比参考
+水胶比 | 坍落度(mm) | 28d强度(MPa)
+0.45 | 160 | 35.0
+0.50 | 180 | 30.0
+0.55 | 200 | 25.0
+
+附录A 术语
+A.1 冷缝：先后浇筑的混凝土之间形成的薄弱界面。`;
+
+/* ---------- 事件绑定 ---------- */
+function doParse(){
+  const txt=$("input").value;
+  if(!txt.trim()){ toast("请先粘贴文本"); return; }
+  parsed = parseDocument(txt);
+  renderPreview(parsed.md);
+  $("chars").textContent = txt.length;
+  $("cntHead").textContent = parsed.outline.length;
+  $("cntTab").textContent = parsed.tables.length;
+  const lv = parsed.outline.length? Math.max(...parsed.outline.map(r=>r[0])) : "—";
+  $("cntLv").textContent = lv;
+  $("cntRows").textContent = parsed.tables.reduce((a,t)=>a+t.length,0);
+  $("privacy").textContent = "已本地解析 · 未上传";
+  toast("解析完成");
+}
+
+$("btnParse").onclick=doParse;
+$("btnSample").onclick=()=>{ $("input").value=SAMPLE; doParse(); };
+$("btnClear").onclick=()=>{ $("input").value=""; parsed={md:"",outline:[],tables:[],full:[]}; renderPreview(""); $("chars").textContent=0; $("cntHead").textContent=0; $("cntTab").textContent=0; $("cntLv").textContent="—"; $("cntRows").textContent="—"; $("privacy").textContent="隐私保护中"; };
+$("btnMd").disabled=true;
+$("btnXlsx").disabled=true;
+$("btnCopy").disabled=true;
+$("restoreExample").onclick=()=>{ $("input").value=SAMPLE; doParse(); };
+$("restoreExample").click();
+$("input").addEventListener("input",()=>{ $("chars").textContent=$("input").value.length; });
+</script>
+</body>
+</html>
