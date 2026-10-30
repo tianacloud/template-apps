@@ -1,0 +1,1 @@
+import {build} from 'vite'; import {readFileSync} from 'node:fs'; await build(); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(readFileSync('source.json'))}));
