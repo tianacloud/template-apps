@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>部门招考榜 · 2027 国考</title>
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .dlist{max-height:640px; overflow-y:auto; margin-top:10px}
+  .ditem{padding:12px 14px; border-radius:10px; cursor:pointer; border:1px solid transparent; transition:.16s}
+  .ditem:hover{background:var(--panel2)}
+  .ditem.on{background:rgba(212,169,90,.09); border-color:var(--line)}
+  .ditem .n1{display:flex; align-items:baseline; gap:9px}
+  .ditem .n1 b{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ditem .n2{font-size:11.5px; color:var(--txt3); margin-top:5px; display:flex; gap:10px; flex-wrap:wrap}
+  .ditem .n2 span{display:inline-flex; align-items:center; gap:4px}
+  .side{position:sticky; top:86px; align-self:start}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">DEPARTMENTS · 589 DEPTS / 5,927 BUREAUS</div>
+    <h1><span class="zh">部门招考榜</span></h1>
+    <div class="sub">
+      589 个招录部门、5,927 个用人司局。哪些部门在招人？它们到底要什么专业？
+    </div>
+    <div class="badge gold">◆ 前 10 名里有 10 个是税务系统</div>
+  </div>
+
+  <div class="note">
+    <span class="ic">ⓘ</span>
+    <div>
+      部门「专业需求」按该部门职位中<b>出现该专业的职位数</b>统计 —— 一个职位可挂多个专业，
+      故各项之和大于该部门职位总数，<b>这里不能用「招录人数」口径</b>，否则会重复计数。
+    </div>
+  </div>
+
+  <div class="grid g-5-7">
+    <div class="side">
+      <div class="panel">
+        <h3>部门排行 <span class="en">BY HEADCOUNT</span></h3>
+        <input id="kw" placeholder="搜索部门，如「税务」「海关」「公安」"
+          style="width:100%;margin:10px 0 4px;background:rgba(255,255,255,.05);border:1px solid var(--line2);
+          border-radius:8px;padding:8px 12px;color:var(--txt);font-size:12.5px;outline:none;font-family:inherit">
+        <div class="dlist" id="dlist"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3 id="dname" style="font-size:19px">选择一个部门</h3>
+        <div id="dmeta" style="font-size:12.5px;color:var(--txt3);margin-top:8px">
+          从左侧任选一个部门，查看它的招录规模、层级构成与专业需求
+        </div>
+        <div class="grid g4" style="margin-top:16px;gap:12px">
+          <div class="kpi" style="padding:14px 16px"><div class="lab">招录人数</div><div class="num gold" style="font-size:24px" id="k1">—</div></div>
+          <div class="kpi" style="padding:14px 16px"><div class="lab">职位数</div><div class="num" style="font-size:24px" id="k2">—</div></div>
+          <div class="kpi" style="padding:14px 16px"><div class="lab">用人司局</div><div class="num" style="font-size:24px" id="k3">—</div></div>
+          <div class="kpi" style="padding:14px 16px"><div class="lab">全国排名</div><div class="num blue" style="font-size:24px" id="k4">—</div></div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="panel">
+          <h3>专业需求 TOP <span class="en">MAJOR DEMAND</span></h3>
+          <div class="cap">按该部门职位中出现该专业的职位数排序</div>
+          <div id="d_major" class="chart" style="height:300px"></div>
+        </div>
+        <div class="panel">
+          <h3>机构层级构成 <span class="en">LEVEL</span></h3>
+          <div id="d_level" class="chart sm" style="height:300px"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <h3>用人司局 TOP <span class="en">BUREAUS</span></h3>
+        <div id="d_bureau" class="chart sm" style="height:260px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><h2>全国部门招录规模 TOP20</h2><span class="en">TOP 20</span></div>
+  <div class="panel">
+    <div id="c_top" class="chart lg"></div>
+    <div class="mini">
+      税务系统包揽前列，且岗位绝大部分在县（区）级及以下 —— 这与「国考 = 中央部委」的直觉相反。
+    </div>
+  </div>
+
+  <div class="foot">
+    数据来源：国家公务员局《中央机关及其直属机构 2027 年度考试录用公务员招考简章》（官方职位表）<br>
+    部门专业需求按「出现该专业的职位数」统计，非招录人数；平台已缓存前 5 大部门的完整明细<br>
+    本页面仅做数据统计与可视化，不提供报名、培训、资料售卖等任何服务
+  </div>
+</div>
+
+<script src="assets/echarts.min.js"></script>
+<script src="assets/app.js"></script>
+<script>
+App.nav('departments.html');
+const GK = window.GK;
+const ALL = GK.dept_top;
+let charts = [];
+
+function list(kw) {
+  const rows = kw ? ALL.filter(d => d.k.indexOf(kw) >= 0) : ALL;
+  document.getElementById('dlist').innerHTML = rows.length ? rows.map((d, i) => `
+    <div class="ditem" data-n="${d.k}">
+      <div class="n1">
+        <span class="tag ${i < 3 ? 'gold' : 'gray'}">${i + 1}</span>
+        <b title="${d.k}">${d.k}</b>
+      </div>
+      <div class="n2">
+        <span style="color:#9CC0FF">${App.fmt(d.hc)} 人</span>
+        <span>${App.fmt(d.pos)} 职位</span>
+        <span>${(100 * d.hc / GK.meta.hc).toFixed(2)}%</span>
+      </div>
+    </div>`).join('') : '<div class="empty">没有匹配的部门</div>';
+  [...document.querySelectorAll('.ditem')].forEach(el => el.onclick = () => pick(el.dataset.n));
+}
+
+function pick(name) {
+  [...document.querySelectorAll('.ditem')].forEach(el => el.classList.toggle('on', el.dataset.n === name));
+  const base = ALL.find(d => d.k === name) || { pos: 0, hc: 0 };
+  const idx = ALL.findIndex(d => d.k === name) + 1;
+  const D = GK.depts.detail[name];
+
+  document.getElementById('dname').textContent = name;
+  document.getElementById('k1').textContent = App.fmt(base.hc);
+  document.getElementById('k2').textContent = App.fmt(base.pos);
+  document.getElementById('k3').textContent = D ? App.fmt(D.bureau.length) + '+' : '—';
+  document.getElementById('k4').textContent = '#' + idx;
+  document.getElementById('dmeta').innerHTML = D && D.summary[0]
+    ? `<span class="tag gold">${D.summary[0].org_nature}</span> <span class="tag">${D.summary[0].org_level}</span>
+       <span class="tag gray">${D.summary[0].province}</span>`
+    : '该部门未进入明细统计（仅前 5 大部门展开司局级数据）';
+
+  charts.forEach(c => c && c.dispose()); charts = [];
+  if (D) {
+    charts.push(App.barH('d_major', D.major.slice(0, 10).map(d => ({ k: d.k, v: d.pos })),
+      { barW: 13, labelW: 96, unit: '职位数', gold: true }));
+    const lv = {};
+    D.summary.forEach(s => { lv[s.org_level] = (lv[s.org_level] || 0) + s.hc; });
+    charts.push(App.rose('d_level', Object.keys(lv).map(k => ({ k: k, v: lv[k] }))));
+    charts.push(App.barH('d_bureau', D.bureau.slice(0, 8).map(d => ({ k: d.k, v: d.hc, pos: d.pos })),
+      { barW: 12, labelW: 150 }));
+  } else {
+    charts.push(App.barH('d_major', GK.major_top.slice(0, 8).map(d => ({ k: d.k, v: d.pos })),
+      { barW: 12, labelW: 96, unit: '全国职位数' }));
+    charts.push(App.rose('d_level', GK.dims.org_level.map(d => ({ k: d.k, v: d.hc }))));
+    charts.push(App.barH('d_bureau', [{ k: '暂无明细数据', v: 1 }], { barW: 12 }));
+  }
+}
+
+document.getElementById('kw').oninput = e => list(e.target.value.trim());
+list('');
+pick(ALL[0].k);
+
+charts.push(App.barH('c_top', ALL.slice(0, 20).map(d => ({
+  k: d.k.replace('国家税务总局', '').replace('税务局', '税务'), v: d.hc, pos: d.pos
+})), { barW: 13, labelW: 74, gold: true }));
+
+App.auto(() => charts);
+</script>
+</body>
+</html>

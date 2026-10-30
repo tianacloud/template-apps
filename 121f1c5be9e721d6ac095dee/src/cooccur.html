@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>专业共现（并列大类） · 2027 国考</title>
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .seg{display:inline-flex; background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:9px; padding:3px}
+  .seg button{background:none; border:0; color:var(--txt2); font-size:12.5px; padding:6px 13px;
+    border-radius:7px; cursor:pointer; transition:.18s; font-family:inherit}
+  .seg button.on{background:linear-gradient(140deg,rgba(212,169,90,.9),rgba(168,132,60,.9)); color:#12203A; font-weight:700}
+  select{background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:8px;
+    padding:8px 12px; color:var(--txt); font-size:13px; outline:none; font-family:inherit; min-width:180px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">CO-OCCURRENCE · 91,480 MAJOR LINKS</div>
+    <h1><span class="zh">专业共现：你在跟谁抢同一批岗位</span></h1>
+    <div class="sub">
+      职位表里的专业极少单独出现。当一个职位同时写着「计算机类、经济学类、法学类」，
+      这三个专业的人就在抢同一个坑 —— 这就是<b>共现</b>。
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="ic">ⓘ</span>
+    <div>
+      共现按「同一职位同时出现 A 和 B」计数，单位为<b>职位数</b>（不是人数，避免重复计数）。
+      全国 19,426 个职位共产生 91,480 条专业关联，<b>平均每个职位挂 4.7 个专业</b>。
+    </div>
+  </div>
+
+  <!-- 分布 -->
+  <div class="grid g-5-7">
+    <div class="panel">
+      <h3>一个职位挂了多少专业 <span class="en">DISTRIBUTION</span></h3>
+      <div style="display:flex; gap:26px; margin:14px 0 6px">
+        <div><div class="lab" style="font-size:11.5px;color:var(--txt3)">平均</div>
+          <div class="num gold" style="font-family:var(--mono);font-size:28px;font-weight:700">4.7</div></div>
+        <div><div class="lab" style="font-size:11.5px;color:var(--txt3)">只写 1 个专业</div>
+          <div class="num" style="font-family:var(--mono);font-size:28px;font-weight:700">1,187</div></div>
+        <div><div class="lab" style="font-size:11.5px;color:var(--txt3)">最多</div>
+          <div class="num" style="font-family:var(--mono);font-size:28px;font-weight:700">24</div></div>
+      </div>
+      <div class="mini">橙色那一列是真正的「专属岗」—— 专业栏只写了一个专业。</div>
+    </div>
+    <div class="panel">
+      <h3>分布直方图 <span class="en">HISTOGRAM</span></h3>
+      <div id="c_hist" class="chart sm"></div>
+    </div>
+  </div>
+
+  <!-- 主角 -->
+  <div class="sec"><h2>以某个专业为中心</h2><span class="en">FOCUS</span>
+    <span class="more">切换专业，看它最常和谁一起出现</span></div>
+
+  <div style="margin-bottom:16px; display:flex; gap:14px; flex-wrap:wrap; align-items:center">
+    <select id="sel"></select>
+    <div class="seg" id="segV">
+      <button class="on" data-v="graph">关系图</button>
+      <button data-v="bar">排行</button>
+    </div>
+  </div>
+
+  <div class="grid g-8-4">
+    <div class="panel">
+      <h3 id="g_title">共现关系图 <span class="en">NETWORK</span></h3>
+      <div class="cap">节点越大、连线越粗＝共现越多（可拖动、可缩放）</div>
+      <div id="c_graph" class="chart lg" style="height:480px"></div>
+    </div>
+    <div class="panel">
+      <h3>共现排名 <span class="en">TOP PAIRS</span></h3>
+      <div id="c_bar" class="chart lg" style="height:480px"></div>
+      <div class="mini">这些岗位你能报，但竞争对手也来自这些专业。</div>
+    </div>
+  </div>
+
+  <!-- 矩阵 -->
+  <div class="sec"><h2>共现热力矩阵</h2><span class="en">MATRIX</span>
+    <span class="more">颜色越亮＝这两个专业越常同时出现</span></div>
+  <div class="panel">
+    <div id="c_heat" class="chart xl" style="height:560px"></div>
+  </div>
+
+  <!-- 榜单 -->
+  <div class="sec"><h2>全国共现 TOP20</h2><span class="en">TOP 20 PAIRS</span></div>
+  <div class="panel">
+    <table class="tbl" id="t_co">
+      <thead><tr><th class="rk"></th><th>专业类 A</th><th>专业类 B</th>
+        <th style="text-align:right">共现职位数</th><th>强度</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- 结论 -->
+  <div class="sec"><h2>三个结论</h2><span class="en">FINDINGS</span></div>
+  <div class="grid g3">
+    <div class="panel" style="border-color:var(--line)">
+      <h3><span style="color:var(--gold-l)">① 前四名高度重叠</span></h3>
+      <div style="font-size:12.6px;color:var(--txt2);line-height:1.95;margin-top:10px">
+        财政学类 + 财会审计类在 <b style="color:var(--gold-l)">4,024</b> 个职位里同时出现。
+        税务系统的一个岗位常同时写这四类，本质是同一批岗位。
+      </div>
+    </div>
+    <div class="panel" style="border-color:var(--line)">
+      <h3><span style="color:var(--gold-l)">② 计算机的另一半</span></h3>
+      <div style="font-size:12.6px;color:var(--txt2);line-height:1.95;margin-top:10px">
+        计算机类最常与统计学类（2,324）、数学类（2,180）共现 ——
+        一半的计算机岗是「数据 / 统计」方向，不是纯写代码。
+      </div>
+    </div>
+    <div class="panel" style="border-color:var(--line)">
+      <h3><span style="color:var(--gold-l)">③ 专属岗只有 1,187 个</span></h3>
+      <div style="font-size:12.6px;color:var(--txt2);line-height:1.95;margin-top:10px">
+        全国只有 1,187 个职位的专业栏里只写了一个专业。
+        想找专属岗，<a href="exclusive.html" style="color:var(--gold);text-decoration:none">去单一专业页 →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    数据来源：国家公务员局《中央机关及其直属机构 2027 年度考试录用公务员招考简章》（官方职位表）<br>
+    共现定义：同一职位的专业栏中同时出现两个专业类；计数单位为职位数<br>
+    本页面仅做数据统计与可视化，不提供报名、培训、资料售卖等任何服务
+  </div>
+</div>
+
+<script src="assets/echarts.min.js"></script>
+<script src="assets/app.js"></script>
+<script>
+App.nav('cooccur.html');
+const GK = window.GK;
+const TOP = GK.cooccur.top;
+
+/* 直方图 */
+(function () {
+  const d = GK.major_per_pos;
+  const c = echarts.init(document.getElementById('c_hist'));
+  c.setOption({
+    tooltip: App.tip({ trigger: 'axis', axisPointer: { type: 'shadow' },
+      formatter: p => `一个职位挂 <b style="color:#F0D9A6">${p[0].axisValue}</b> 个专业<br>共 <b>${App.fmt(p[0].value)}</b> 个职位` }),
+    grid: { left: 8, right: 16, top: 14, bottom: 26, containLabel: true },
+    xAxis: App.catAxis({ data: d.map(x => x.k), axisLabel: { color: '#63758F', fontSize: 10.5, interval: 1 } }),
+    yAxis: App.valAxis(),
+    series: [{
+      type: 'bar', barWidth: '62%', data: d.map(x => x.pos),
+      itemStyle: {
+        borderRadius: [3, 3, 0, 0],
+        color: p => p.dataIndex === 0 ? App.grad('#A8843C', '#D4A95A') : App.grad('#2A5FD6', '#4A86FF')
+      }
+    }]
+  });
+})();
+
+/* 主角列表：按参与共现的总次数排序 */
+const weight = {};
+TOP.forEach(p => { weight[p.a] = (weight[p.a] || 0) + p.pos; weight[p.b] = (weight[p.b] || 0) + p.pos; });
+const mainNames = Object.keys(weight).sort((a, b) => weight[b] - weight[a]);
+const sel = document.getElementById('sel');
+sel.innerHTML = mainNames.slice(0, 30).map(n => `<option value="${n}">${n}（${App.fmt(weight[n])}）</option>`).join('');
+
+let gC = null, bC = null;
+function focus(name) {
+  const byM = GK.cooccur.by_major[name];
+  let pairs;
+  if (byM) pairs = byM.map(d => ({ k: d.k, v: d.pos, pos: d.pos }));
+  else pairs = TOP.filter(p => p.a === name || p.b === name)
+    .map(p => ({ k: p.a === name ? p.b : p.a, v: p.pos, pos: p.pos }))
+    .sort((a, b) => b.v - a.v).slice(0, 12);
+
+  document.getElementById('g_title').innerHTML = `「${name}」的共现关系 <span class="en">NETWORK</span>`;
+
+  if (!gC) gC = App.graph('c_graph', [], [], {});
+  const nodes = [{ name: name, v: 2400,
+    itemStyle: { color: '#D4A95A', shadowColor: 'rgba(212,169,90,.5)', shadowBlur: 18 } }]
+    .concat(pairs.map(d => ({ name: d.k, v: d.v, n: App.fmt(d.v) + ' 个职位' })));
+  gC.setOption({
+    series: [{
+      type: 'graph', layout: 'force', roam: true, draggable: true,
+      force: { repulsion: 300, edgeLength: 125, gravity: .08 },
+      symbolSize: p => Math.max(18, Math.sqrt(p.v || 20) * 3.4),
+      label: { show: true, position: 'right', color: '#C6D2E6', fontSize: 11.5 },
+      lineStyle: { color: 'source', opacity: .38, curveness: .12, width: p => Math.min(5, .6 + (p.data ? p.data.value : 0) / 420) },
+      emphasis: { focus: 'adjacency', lineStyle: { width: 5, opacity: .85 } },
+      data: nodes, links: pairs.map(d => ({ source: name, target: d.k, value: d.v }))
+    }]
+  }, true);
+
+  if (!bC) bC = App.barH('c_bar', pairs.slice(0, 10), { barW: 13, labelW: 96, unit: '共现职位数' });
+  else bC.setOption({
+    yAxis: { data: pairs.slice(0, 10).map(d => d.k) },
+    series: [{ data: pairs.slice(0, 10).map(d => d.v) }]
+  });
+}
+sel.onchange = () => focus(sel.value);
+focus(sel.value || mainNames[0]);
+
+/* 热力矩阵 */
+(function () {
+  const names = mainNames.slice(0, 12);
+  const M = {};
+  TOP.forEach(p => { M[p.a + '|' + p.b] = p.pos; M[p.b + '|' + p.a] = p.pos; });
+  const cells = [];
+  names.forEach((a, i) => names.forEach((b, j) => cells.push([i, j, M[a + '|' + b] || 0])));
+  const max = Math.max.apply(null, cells.map(c => c[2]));
+  App.heat('c_heat', names, names, cells, max);
+})();
+
+/* 榜单 */
+(function () {
+  const max = TOP[0].pos;
+  document.querySelector('#t_co tbody').innerHTML = TOP.slice(0, 20).map((p, i) => `
+    <tr><td class="rk"><i class="${['g1','g2','g3'][i] || ''}">${i + 1}</i></td>
+    <td><b>${p.a}</b></td><td><b>${p.b}</b></td>
+    <td class="n"><b>${App.fmt(p.pos)}</b></td>
+    <td style="width:220px"><div class="bar-wrap"><div class="bar"><i class="${i === 0 ? 'gold' : ''}" style="width:${100 * p.pos / max}%"></i></div>
+    <span class="v">${(100 * p.pos / GK.meta.pos).toFixed(1)}%</span></div></td></tr>`).join('');
+})();
+
+App.auto([echarts.getInstanceByDom(document.getElementById('c_hist')), gC, bC,
+          echarts.getInstanceByDom(document.getElementById('c_heat'))]);
+</script>
+</body>
+</html>
