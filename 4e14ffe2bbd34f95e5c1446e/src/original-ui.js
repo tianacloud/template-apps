@@ -431,7 +431,7 @@ const cloudPreferences = {getItem:key => storedPreferences[key] ?? null, setItem
           // These three carry a <kbd> element, so they are set as controlled markup
           // rather than textContent. The strings come from STRINGS, never from input.
           var names={zh:['选择音频','选择文件夹','示例音','默认音','已选音频'],en:['Choose file','Choose folder','Samples','Default chime','Selected audio'],ja:['音声を選択','フォルダーを選択','サンプル','既定の音','選択した音声'],ko:['파일 선택','폴더 선택','예제','기본 알림음','선택한 오디오']}[currentLang]; ['chooseFile','chooseFolder','samples','clearSound'].forEach(function(id,i){document.getElementById(id).textContent=names[i];}); document.querySelector('[data-i18n="field.soundpath"]').textContent=names[4]; document.getElementById('folderNotice').textContent=({zh:'当前浏览器不支持选择文件夹，请选择单个音频。',en:'Folder selection is unavailable in this browser. Choose a single file.',ja:'フォルダーを選択できません。音声ファイルを選んでください。',ko:'폴더를 선택할 수 없습니다. 오디오 파일을 선택하세요.'})[currentLang];
-          el.soundHint.textContent = ({zh:'选择音频文件或文件夹，或使用示例音；默认音由页面合成。音频文件仅保存在当前浏览器。',en:'Choose a file or folder, or use the samples. The default chime is synthesised in the page. Files stay in this browser.',ja:'音声ファイルまたはフォルダーを選択するか、サンプルを使用します。ファイルはこのブラウザーに保存されます。',ko:'오디오 파일이나 폴더 또는 예제를 선택하세요. 파일은 이 브라우저에 저장됩니다.'})[currentLang] || 'Choose audio in this browser.';
+          el.soundHint.textContent = ({zh:'选择音频文件或文件夹，或使用示例音；默认音由页面合成。音频文件保存在应用文件存储。',en:'Choose a file or folder, or use the samples. The default chime is synthesised in the page. Files are saved in app storage.',ja:'音声ファイルまたはフォルダーを選択するか、サンプルを使用します。ファイルはアプリのストレージに保存されます。',ko:'오디오 파일이나 폴더 또는 예제를 선택하세요. 파일은 앱 저장소에 저장됩니다.'})[currentLang] || 'Choose audio in this browser.';
           el.shortcutHint.innerHTML = t('shortcut.hint');
           el.appearanceHint.innerHTML = t('card.shortcut.hint');
 
@@ -527,7 +527,7 @@ const cloudPreferences = {getItem:key => storedPreferences[key] ?? null, setItem
         // Set on toggle so a stale frame cannot revert the button mid-flight.
         var soundModePending = null;
         // 单曲循环 is server state (see soundPinned); the Client only mirrors it.
-        // 音量标准化 is a playback preference and stays local, default ON so a
+        // 音量标准化 is a playback preference saved with the app, default ON so a
         // folder of unevenly recorded tones is audible without extra setup.
         var NORMALIZE_KEY = 'pomodoro-sit-timer:normalize';
         var NORMALIZE_REF_KEY = 'pomodoro-sit-timer:normalize-ref';
