@@ -92,9 +92,9 @@ const DEFAULTS = {
       senior: { on: false, name: "", emoji: "🔭" }
     }
   },
-  /* —— 知识库（v4）：月度内容包版本，由内容精选机制追加 —— */
+  /* —— 知识库（v4）：内容包版本 —— */
   libSeen: "",
-  /* —— 家长锦囊（v5）：每周一问的自留地，只有家长写、只有家长看，不进孩子的任何统计 —— */
+  /* —— 家长锦囊（v5）：每周一问的自留地，供家长记录，不进孩子的统计；获授权成员共享 —— */
   checkins: []
 };
 
@@ -2671,7 +2671,7 @@ function confetti() {
   setTimeout(() => box.remove(), 2600);
 }
 
-/* ---------- 家长确认（复用本机 PIN，不上云） ---------- */
+/* ---------- 家长确认（共享 PIN 仅用于防误触） ---------- */
 let pinAskCb = null;
 function askParent(why, cb) {
   if (parentUnlocked) { cb(); return; }
