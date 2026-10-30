@@ -44,7 +44,7 @@ export async function apiFetch(path,options={}) {
       const snapshot=buildSnapshot(ledger,cfg.config);return json({...snapshot,config:cfg.config,configIssues:cfg.issues,autoEnabled,autoIntervalMs,autoRuns:[]});
     }
     if(u.pathname==='/api/auto') return json(await saveAuto({enabled:u.searchParams.get('enabled')==='1'}));
-    if(u.pathname==='/api/auto-interval'){autoIntervalMs=Math.max(5000,Math.min(3600000,Number(u.searchParams.get('ms'))||15000));return json({autoIntervalMs});}
+    if(u.pathname==='/api/auto-interval') return json(await saveAuto({intervalMs:Math.max(5000,Math.min(3600000,Number(u.searchParams.get('ms'))||15000))}));
     if(u.pathname==='/api/auto-run'){const ledger=await getLedger();if(!ledger) throw Error('尚未创建台账');const cfg=await getConfig();const d=buildSnapshot(ledger,cfg.config).decision;return json({outcome:'OK',reason:d.reason,message:d.reason});}
     throw Error('请求不支持');
   } catch(e) {return json(u.pathname==='/api/ledger'?{ok:false,error:e.message}: u.pathname==='/api/auto-run'?{outcome:'ERROR',message:e.message}: {error:e.message});}
