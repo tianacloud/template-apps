@@ -1099,7 +1099,7 @@
       </p>
     </main>
 
-    <script>let model={durationSec:1500,phase:'idle',remainingSec:1500,startedAt:null,completedSessions:0,focusSec:0,reminderSeq:0,soundPath:null,soundMode:'single',soundPinned:null,soundTrack:null,soundNext:null,soundVersion:0,liveSec:0};
+    <script>const demoStorage={values:{},getItem(k){return this.values[k]??null},setItem(k,v){this.values[k]=v},removeItem(k){delete this.values[k]}};let model={durationSec:1500,phase:'idle',remainingSec:1500,startedAt:null,completedSessions:0,focusSec:0,reminderSeq:0,soundPath:null,soundMode:'single',soundPinned:null,soundTrack:null,soundNext:null,soundVersion:0,liveSec:0};
 function demoState(){if(model.phase==='running'){let elapsed=Math.min(model.remainingSec,Math.floor((Date.now()-model.startedAt)/1000));if(elapsed>=model.remainingSec){model.focusSec+=model.remainingSec;model.remainingSec=0;model.startedAt=null;model.phase='reminded';model.completedSessions++;model.reminderSeq++;}else return {...model,remainingSec:model.remainingSec-elapsed,liveSec:elapsed};}return {...model,liveSec:0};}
 async function api(path,opt={}){let s=demoState(),b=opt.body?JSON.parse(opt.body):{};if(path.endsWith('/start')){if(model.phase!=='paused')model.remainingSec=model.durationSec;model.startedAt=Date.now();model.phase='running';}else if(path.endsWith('/pause')){model.focusSec+=s.liveSec;model.remainingSec=s.remainingSec;model.startedAt=null;model.phase='paused';}else if(path.endsWith('/discard')){model.phase='idle';model.remainingSec=model.durationSec;}else if(path.endsWith('/duration')){model.durationSec=b.durationSec;if(model.phase==='idle')model.remainingSec=b.durationSec;}else if(path.endsWith('/reset')){model.focusSec=0;model.completedSessions=0;}return Response.json(demoState());}
 async function selectFiles(){throw Error('安装后可选择音频');} async function clearSound(){}
@@ -1510,7 +1510,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
         function readLang() {
           var saved = FALLBACK_LANG;
           try {
-            saved = localStorage.getItem(LANG_KEY) || FALLBACK_LANG;
+            saved = demoStorage.getItem(LANG_KEY) || FALLBACK_LANG;
           } catch (error) {
             saved = FALLBACK_LANG;
           }
@@ -1534,7 +1534,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
           // These three carry a <kbd> element, so they are set as controlled markup
           // rather than textContent. The strings come from STRINGS, never from input.
           var names={zh:['选择音频','选择文件夹','示例音','默认音','已选音频'],en:['Choose file','Choose folder','Samples','Default chime','Selected audio'],ja:['音声を選択','フォルダーを選択','サンプル','既定の音','選択した音声'],ko:['파일 선택','폴더 선택','예제','기본 알림음','선택한 오디오']}[currentLang]; ['chooseFile','chooseFolder','samples','clearSound'].forEach(function(id,i){document.getElementById(id).textContent=names[i];}); document.querySelector('[data-i18n="field.soundpath"]').textContent=names[4]; document.getElementById('folderNotice').textContent=({zh:'当前浏览器不支持选择文件夹，请选择单个音频。',en:'Folder selection is unavailable in this browser. Choose a single file.',ja:'フォルダーを選択できません。音声ファイルを選んでください。',ko:'폴더를 선택할 수 없습니다. 오디오 파일을 선택하세요.'})[currentLang];
-          el.soundHint.textContent = ({zh:'选择音频文件或文件夹，或使用示例音；默认音由页面合成。音频文件仅保存在当前浏览器。',en:'Choose a file or folder, or use the samples. The default chime is synthesised in the page. Files stay in this browser.',ja:'音声ファイルまたはフォルダーを選択するか、サンプルを使用します。ファイルはこのブラウザーに保存されます。',ko:'오디오 파일이나 폴더 또는 예제를 선택하세요. 파일은 이 브라우저에 저장됩니다.'})[currentLang] || 'Choose audio in this browser.';
+          el.soundHint.textContent = ({zh:'选择音频文件或文件夹，或使用示例音；默认音由页面合成。安装后音频文件保存在应用文件存储。',en:'Choose a file or folder, or use the samples. The default chime is synthesised in the page. Installed apps save files in app storage.',ja:'音声ファイルまたはフォルダーを選択するか、サンプルを使用します。インストール後、ファイルはアプリのストレージに保存されます。',ko:'오디오 파일이나 폴더 또는 예제를 선택하세요. 설치 후 파일은 앱 저장소에 저장됩니다.'})[currentLang] || 'Choose audio in this browser.';
           el.shortcutHint.innerHTML = t('shortcut.hint');
           el.appearanceHint.innerHTML = t('card.shortcut.hint');
 
@@ -1549,7 +1549,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
           }
 
           try {
-            localStorage.setItem(LANG_KEY, currentLang);
+            demoStorage.setItem(LANG_KEY, currentLang);
           } catch (error) {
             /* preference simply will not survive a reload */
           }
@@ -1645,7 +1645,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
 
         function readNormalize() {
           try {
-            var saved = localStorage.getItem(NORMALIZE_KEY);
+            var saved = demoStorage.getItem(NORMALIZE_KEY);
             return saved === null ? true : saved === '1';
           } catch (error) {
             return true;
@@ -1654,7 +1654,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
 
         function readReference() {
           try {
-            var saved = localStorage.getItem(NORMALIZE_REF_KEY);
+            var saved = demoStorage.getItem(NORMALIZE_REF_KEY);
             var n = saved === null ? NaN : Number(saved);
             return Number.isFinite(n) && n > 0 ? n : null;
           } catch (error) {
@@ -1728,7 +1728,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
         function readTheme() {
           var saved = 'system';
           try {
-            saved = localStorage.getItem(THEME_KEY) || 'system';
+            saved = demoStorage.getItem(THEME_KEY) || 'system';
           } catch (error) {
             saved = 'system';
           }
@@ -1843,7 +1843,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
           if (peak <= SILENCE_FLOOR) return REF_MAX;
           normalizeReference = Math.min(REF_MAX, Math.max(REF_MIN, peak));
           try {
-            localStorage.setItem(NORMALIZE_REF_KEY, String(normalizeReference));
+            demoStorage.setItem(NORMALIZE_REF_KEY, String(normalizeReference));
           } catch (error) {
             /* preference simply will not survive a reload */
           }
@@ -2520,7 +2520,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
             var choice = event.currentTarget.dataset.themeChoice;
             applyTheme(choice);
             try {
-              localStorage.setItem(THEME_KEY, choice);
+              demoStorage.setItem(THEME_KEY, choice);
             } catch (error) {
               /* still applied for this page view */
             }
@@ -2636,7 +2636,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
           var turningOn = event.currentTarget.checked;
           soundNormalize = turningOn;
           try {
-            localStorage.setItem(NORMALIZE_KEY, soundNormalize ? '1' : '0');
+            demoStorage.setItem(NORMALIZE_KEY, soundNormalize ? '1' : '0');
           } catch (error) {
             /* preference simply will not survive a reload */
           }
@@ -2646,7 +2646,7 @@ async function selectFiles(){throw Error('安装后可选择音频');} async fun
           if (turningOn) {
             normalizeReference = null;
             try {
-              localStorage.removeItem(NORMALIZE_REF_KEY);
+              demoStorage.removeItem(NORMALIZE_REF_KEY);
             } catch (error) {
               /* preference simply will not survive a reload */
             }
