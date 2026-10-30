@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会议纪要速成器 · 行政人的 30 秒纪要神器</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg: #eef1f5;
+    --card: #ffffff;
+    --border: #dde3ea;
+    --text: #1f2937;
+    --text-2: #6b7280;
+    --danger: #dc2626;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ===== 顶栏 ===== */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .brand { display: flex; flex-direction: column; margin-right: auto; }
+  .brand h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .brand span { font-size: 12px; color: var(--text-2); }
+  .btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .15s;
+  }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-hover); }
+  .btn.small { padding: 4px 10px; font-size: 12px; }
+
+  /* ===== 主体两栏 ===== */
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 16px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .panel h2 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h2 .tag {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-2);
+  }
+  .preview-panel { position: sticky; top: 76px; }
+
+  /* ===== 表单 ===== */
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text);
+  }
+  .inp {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fafbfc;
+    color: var(--text);
+    transition: border .15s;
+  }
+  .inp:focus { outline: none; border-color: var(--primary); background: #fff; }
+  textarea.inp { resize: vertical; min-height: 64px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* 动态条目 */
+  .dyn-item {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 34px 12px 12px;
+    margin-bottom: 10px;
+    background: #fafbfc;
+  }
+  .dyn-item .del {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .dyn-item .del:hover { color: var(--danger); background: #fef2f2; }
+  .dyn-item .inp { margin-bottom: 8px; background: #fff; }
+  .dyn-item .inp:last-child { margin-bottom: 0; }
+  .add-btn {
+    width: 100%;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-2);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .add-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== 预览纸张 ===== */
+  .paper {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+    padding: 36px 40px;
+    min-height: 400px;
+  }
+  .paper h1 { font-size: 20px; text-align: center; margin-bottom: 18px; }
+  .paper h3 { font-size: 15px; margin: 16px 0 6px; }
+  .paper p { margin: 4px 0; font-size: 14px; }
+  .paper .meta { color: #374151; }
+  .paper .meta strong { color: #111827; }
+  .paper hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+  .paper ol, .paper ul { padding-left: 22px; font-size: 14px; }
+  .paper table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 8px 0;
+  }
+  .paper th, .paper td {
+    border: 1px solid #d1d5db;
+    padding: 6px 8px;
+    text-align: left;
+  }
+  .paper th { background: #f3f4f6; }
+  .paper .empty-tip {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 14px;
+    padding: 60px 0;
+  }
+  .paper .foot { margin-top: 20px; text-align: right; color: #9ca3af; font-size: 12px; }
+
+  /* ===== 历史抽屉 ===== */
+  .drawer-mask {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .35);
+    z-index: 90;
+  }
+  .drawer-mask.open { display: block; }
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    max-width: 88vw;
+    height: 100vh;
+    background: #fff;
+    z-index: 100;
+    transition: right .25s;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 20px rgba(15, 23, 42, .12);
+  }
+  .drawer.open { right: 0; }
+  .drawer-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .drawer-head h3 { font-size: 15px; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .history-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .history-item .t { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .history-item .d { font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+  .history-empty { text-align: center; color: var(--text-2); font-size: 13px; padding: 40px 0; }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%) translateY(20px);
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .25s;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== 移动端 ===== */
+  .mobile-only { display: none; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .preview-panel { position: static; }
+    .mobile-only { display: inline-block; }
+    .paper { padding: 24px 20px; }
+    .row2 { grid-template-columns: 1fr; }
+  }
+
+  /* ===== 打印 ===== */
+  @media print {
+    body { background: #fff; }
+    header, .form-panel, .drawer, .drawer-mask, .toast { display: none !important; }
+    main { display: block; padding: 0; }
+    .preview-panel { position: static; }
+    .panel { border: none; padding: 0; }
+    .paper { border: none; box-shadow: none; padding: 0; }
+  }
+</style>
+</head>
+<body><div style="padding:5px;text-align:center;background:#eef1ff;color:#4352a2;font-size:12px">示例体验，数据仅保留在本页；点击填入示例可恢复。</div>
+
+<header>
+  <div class="brand">
+    <h1>会议纪要速成器</h1>
+    <span>行政人的 30 秒纪要神器 · 填表即出稿</span>
+  </div>
+  <button class="btn" id="btnDemo">填入示例</button>
+  <button class="btn" id="btnClear">清空</button>
+  <button class="btn" id="btnSave">保存</button>
+  <button class="btn" id="btnHistory">历史记录</button>
+  <button class="btn" id="btnPrint">打印</button>
+  <button class="btn" id="btnDownload">下载 .md</button>
+  <button class="btn primary" id="btnCopy">复制全文</button>
+</header>
+
+<main>
+  <!-- 左：表单 -->
+  <section class="panel form-panel">
+    <h2>会议信息 <span class="tag">带 * 为必填</span></h2>
+
+    <div class="field">
+      <label>会议主题 *</label>
+      <input class="inp" id="fTitle" placeholder="如：三季度行政工作总结会">
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>开始时间</label>
+        <input class="inp" id="fTime" type="datetime-local">
+      </div>
+      <div class="field">
+        <label>地点 / 形式</label>
+        <input class="inp" id="fPlace" placeholder="如：三楼第一会议室 / 线上">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>主持人</label>
+        <input class="inp" id="fHost" placeholder="姓名">
+      </div>
+      <div class="field">
+        <label>记录人</label>
+        <input class="inp" id="fRecorder" placeholder="姓名">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>参会人员</label>
+      <input class="inp" id="fAttendees" placeholder="多人用顿号或逗号分隔，如：张敏、刘洋、王强">
+    </div>
+
+    <h2>议题讨论 <span class="tag">每条议题可写多条要点</span></h2>
+    <div id="topicList"></div>
+    <button class="add-btn" id="addTopic">＋ 添加议题</button>
+
+    <h2>会议决议</h2>
+    <div id="decisionList"></div>
+    <button class="add-btn" id="addDecision">＋ 添加决议</button>
+
+    <h2>待办事项 <span class="tag">事项 + 负责人 + 截止日期</span></h2>
+    <div id="todoList"></div>
+    <button class="add-btn" id="addTodo">＋ 添加待办</button>
+
+    <h2>其他事项</h2>
+    <div class="field">
+      <textarea class="inp" id="fOther" placeholder="补充说明、下次会议安排等，可留空"></textarea>
+    </div>
+  </section>
+
+  <!-- 右：预览 -->
+  <section class="panel preview-panel">
+    <h2>实时预览 <span class="tag">右侧内容即为最终纪要</span></h2>
+    <div class="paper" id="paper"></div>
+    <div style="text-align:center; margin-top:10px;">
+      <span style="font-size:12px; color:var(--text-2);" id="statBar">全文 0 字</span>
+      <button class="btn small mobile-only" id="btnJumpForm" style="margin-left:10px;">返回填写</button>
+    </div>
+  </section>
+</main>
+
+<!-- 历史抽屉 -->
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>历史纪要（示例体验）</h3>
+    <button class="btn small" id="btnCloseDrawer">关闭</button>
+  </div>
+  <div class="drawer-body" id="historyBody"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var HISTORY_KEY = "mmin_history_v1"; var localStorage = { value: "[]", getItem: function(){return this.value}, setItem: function(k,v){this.value=v} };
+  var currentMd = "";
+
+  /* ---------- 工具 ---------- */
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function val(id) { return $(id).value.trim(); }
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function formatDT(v) {
+    if (!v) return "";
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return v;
+    return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 " +
+      pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+  function formatDate(v) {
+    if (!v) return "";
+    var d = new Date(v + "T00:00:00");
+    if (isNaN(d.getTime())) return v;
+    return (d.getMonth() + 1) + "月" + d.getDate() + "日";
+  }
+
+  /* ---------- 动态条目 ---------- */
+  function makeItem(containerId, html) {
+    var box = document.createElement("div");
+    box.className = "dyn-item";
+    box.innerHTML = html;
+    box.querySelector(".del").addEventListener("click", function () {
+      box.remove();
+      render();
+    });
+    box.querySelectorAll(".inp").forEach(function (el) {
+      el.addEventListener("input", render);
+    });
+    $(containerId).appendChild(box);
+    return box;
+  }
+
+  function addTopic(data) {
+    var box = makeItem("topicList",
+      '<button class="del" title="删除">×</button>' +
+      '<input class="inp t-name" placeholder="议题名称，如：办公用品采购情况">' +
+      '<textarea class="inp t-points" placeholder="讨论要点，每行一条"></textarea>');
+    if (data) {
+      box.querySelector(".t-name").value = data.name || "";
+      box.querySelector(".t-points").value = data.points || "";
+    }
+    return box;
+  }
+  function addDecision(data) {
+    var box = makeItem("decisionList",
+      '<button class="del" title="删除">×</button>' +
+      '<textarea class="inp d-text" placeholder="决议内容，一条一行"></textarea>');
+    if (data) box.querySelector(".d-text").value = data || "";
+    return box;
+  }
+  function addTodo(data) {
+    var box = makeItem("todoList",
+      '<button class="del" title="删除">×</button>' +
+      '<input class="inp x-item" placeholder="待办事项">' +
+      '<div class="row2" style="margin:0;">' +
+      '<input class="inp x-owner" placeholder="负责人">' +
+      '<input class="inp x-due" type="date">' +
+      '</div>');
+    if (data) {
+      box.querySelector(".x-item").value = data.item || "";
+      box.querySelector(".x-owner").value = data.owner || "";
+      box.querySelector(".x-due").value = data.due || "";
+    }
+    return box;
+  }
+
+  /* ---------- 收集数据 ---------- */
+  function collect() {
+    var topics = [];
+    document.querySelectorAll("#topicList .dyn-item").forEach(function (el) {
+      var name = el.querySelector(".t-name").value.trim();
+      var points = el.querySelector(".t-points").value.trim();
+      if (name || points) topics.push({ name: name, points: points });
+    });
+    var decisions = [];
+    document.querySelectorAll("#decisionList .dyn-item").forEach(function (el) {
+      el.querySelector(".d-text").value.split("\n").forEach(function (line) {
+        var s = line.trim();
+        if (s) decisions.push(s);
+      });
+    });
+    var todos = [];
+    document.querySelectorAll("#todoList .dyn-item").forEach(function (el) {
+      var item = el.querySelector(".x-item").value.trim();
+      var owner = el.querySelector(".x-owner").value.trim();
+      var due = el.querySelector(".x-due").value;
+      if (item || owner || due) todos.push({ item: item, owner: owner, due: due });
+    });
+    return {
+      title: val("fTitle"),
+      time: val("fTime"),
+      place: val("fPlace"),
+      host: val("fHost"),
+      recorder: val("fRecorder"),
+      attendees: val("fAttendees"),
+      topics: topics,
+      decisions: decisions,
+      todos: todos,
+      other: val("fOther")
+    };
+  }
+
+  /* ---------- 生成 Markdown ---------- */
+  function buildMarkdown(d) {
+    var L = [];
+    L.push("# " + (d.title || "（未命名会议）") + " 会议纪要");
+    L.push("");
+    if (d.time) L.push("**会议时间**：" + formatDT(d.time));
+    if (d.place) L.push("**会议地点/形式**：" + d.place);
+    if (d.host || d.recorder) {
+      L.push("**主持人**：" + (d.host || "—") + "　**记录人**：" + (d.recorder || "—"));
+    }
+    if (d.attendees) L.push("**参会人员**：" + d.attendees);
+    L.push("");
+    L.push("---");
+    L.push("");
+
+    L.push("## 一、议题讨论");
+    L.push("");
+    if (d.topics.length === 0) {
+      L.push("（未填写议题）");
+    } else {
+      d.topics.forEach(function (t, i) {
+        L.push("### " + (i + 1) + ". " + (t.name || "（未命名议题）"));
+        L.push("");
+        if (t.points) {
+          t.points.split("\n").forEach(function (line) {
+            var s = line.trim();
+            if (s) L.push("- " + s);
+          });
+        } else {
+          L.push("（无讨论要点）");
+        }
+        L.push("");
+      });
+    }
+
+    L.push("## 二、会议决议");
+    L.push("");
+    if (d.decisions.length === 0) {
+      L.push("（无决议事项）");
+    } else {
+      d.decisions.forEach(function (s, i) { L.push((i + 1) + ". " + s); });
+    }
+    L.push("");
+
+    L.push("## 三、待办事项");
+    L.push("");
+    if (d.todos.length === 0) {
+      L.push("（本次会议无待办事项）");
+    } else {
+      L.push("| 序号 | 待办事项 | 负责人 | 截止日期 |");
+      L.push("| --- | --- | --- | --- |");
+      d.todos.forEach(function (t, i) {
+        L.push("| " + (i + 1) + " | " + (t.item || "—") + " | " + (t.owner || "—") +
+          " | " + (t.due ? formatDate(t.due) : "—") + " |");
+      });
+    }
+    L.push("");
+
+    L.push("## 四、其他事项");
+    L.push("");
+    L.push(d.other || "（无）");
+    L.push("");
+    L.push("---");
+    L.push("");
+    L.push("*本纪要由「会议纪要速成器」生成*");
+    return L.join("\n");
+  }
+
+  /* ---------- 极简 Markdown 渲染（预览用） ---------- */
+  function mdToHtml(md) {
+    var lines = md.split("\n");
+    var html = "";
+    var i = 0;
+    function inline(s) {
+      return escapeHtml(s)
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>");
+    }
+    while (i < lines.length) {
+      var line = lines[i];
+      if (/^\|/.test(line)) {
+        var rows = [];
+        while (i < lines.length && /^\|/.test(lines[i])) {
+          var cells = lines[i].split("|").map(function (c) { return c.trim(); });
+          cells = cells.filter(function (_, idx) {
+            return !(idx === 0 && cells[0] === "") && !(idx === cells.length - 1 && cells[cells.length - 1] === "");
+          });
+          if (!/^\|?\s*:?-{2,}/.test(lines[i].replace(/\|/g, "").replace(/\s/g, "")) || rows.length === 0) {
+            rows.push(cells);
+          }
+          i++;
+        }
+        if (rows.length) {
+          html += "<table><thead><tr>";
+          rows[0].forEach(function (c) { html += "<th>" + inline(c) + "</th>"; });
+          html += "</tr></thead><tbody>";
+          for (var r = 1; r < rows.length; r++) {
+            html += "<tr>";
+            rows[r].forEach(function (c) { html += "<td>" + inline(c) + "</td>"; });
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+        }
+        continue;
+      }
+      if (line === "---") { html += "<hr>"; i++; continue; }
+      if (/^# /.test(line)) { html += "<h1>" + inline(line.slice(2)) + "</h1>"; i++; continue; }
+      if (/^### /.test(line)) { html += "<h3>" + inline(line.slice(4)) + "</h3>"; i++; continue; }
+      if (/^- /.test(line)) { html += "<ul><li>" + inline(line.slice(2)) + "</li></ul>"; i++; continue; }
+      if (/^\d+\. /.test(line)) { html += "<ol><li>" + inline(line.replace(/^\d+\. /, "")) + "</li></ol>"; i++; continue; }
+      if (line.trim() === "") { i++; continue; }
+      html += "<p>" + inline(line) + "</p>";
+      i++;
+    }
+    return html;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render() {
+    var d = collect();
+    currentMd = buildMarkdown(d);
+    var paper = $("paper");
+    if (!d.title && !d.topics.length && !d.decisions.length && !d.todos.length) {
+      paper.innerHTML = '<div class="empty-tip">在左侧填写内容<br>这里会实时生成规范会议纪要</div>';
+    } else {
+      paper.innerHTML = mdToHtml(currentMd) + '<div class="foot">本纪要由「会议纪要速成器」生成</div>';
+    }
+    $("statBar").textContent = "全文 " + currentMd.replace(/\s/g, "").length + " 字";
+  }
+
+  /* ---------- 顶栏动作 ---------- */
+  function copyText(text, okMsg) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); toast(okMsg); }
+      catch (e) { toast("复制失败，请手动选择文本复制"); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  $("btnCopy").addEventListener("click", function () {
+    copyText(currentMd, "已复制，可直接粘贴到微信 / Word");
+  });
+
+  $("btnDownload").addEventListener("click", function () {
+    toast("安装后可下载 Markdown"); return;
+    var d = collect();
+    var name = "会议纪要-" + (d.title || "未命名") + "-" + new Date().toISOString().slice(0, 10) + ".md";
+    var blob = new Blob(["﻿" + currentMd], { type: "text/markdown;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+    toast("已下载 " + name);
+  });
+
+  $("btnPrint").addEventListener("click", function () { toast("安装后可打印"); });
+
+  $("btnClear").addEventListener("click", function () {
+    
+    ["fTitle", "fTime", "fPlace", "fHost", "fRecorder", "fAttendees", "fOther"].forEach(function (id) { $(id).value = ""; });
+    $("topicList").innerHTML = "";
+    $("decisionList").innerHTML = "";
+    $("todoList").innerHTML = "";
+    addTopic(); addDecision(); addTodo();
+    render();
+    toast("已清空");
+  });
+
+  $("btnDemo").addEventListener("click", function () {
+    $("fTitle").value = "三季度行政工作总结会";
+    var now = new Date();
+    $("fTime").value = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + "T14:00";
+    $("fPlace").value = "公司三楼第一会议室";
+    $("fHost").value = "张敏";
+    $("fRecorder").value = "刘洋";
+    $("fAttendees").value = "张敏、刘洋、王强、李婷、赵磊";
+    $("topicList").innerHTML = "";
+    addTopic({ name: "三季度办公用品采购情况", points: "本季度共采购办公用品 47 批次，总金额 3.2 万元\n硒鼓、打印纸用量同比上升 12%，需关注耗材成本" });
+    addTopic({ name: "新员工工位安排方案", points: "11 月预计入职 8 名新员工\n需整合三楼空闲工位，并增配 2 套办公桌椅" });
+    $("decisionList").innerHTML = "";
+    addDecision("四季度起办公用品改为月度集中采购，每月 5 日前完成需求汇总");
+    addDecision("11 月 10 日前完成新员工工位布置与设备调试");
+    $("todoList").innerHTML = "";
+    var due1 = new Date(now.getTime() + 14 * 86400000);
+    addTodo({ item: "统计四季度办公用品需求清单", owner: "李婷", due: due1.getFullYear() + "-" + pad(due1.getMonth() + 1) + "-" + pad(due1.getDate()) });
+    addTodo({ item: "完成新员工工位安排与设备调试", owner: "王强", due: due1.getFullYear() + "-" + pad(due1.getMonth() + 1) + "-" + pad(due1.getDate()) });
+    $("fOther").value = "下次例会定于 10 月底召开，请各部门提前准备季度汇报材料。";
+    render();
+    toast("已填入示例，可直接改成你的内容");
+  });
+
+  /* ---------- 历史记录 ---------- */
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveHistory() {
+    var d = collect();
+    if (!d.title && !d.topics.length && !d.todos.length && !d.decisions.length) {
+      toast("内容为空，无需保存");
+      return;
+    }
+    var list = getHistory();
+    list.unshift({
+      id: Date.now(),
+      title: d.title || "（未命名会议）",
+      time: new Date().toLocaleString("zh-CN", { hour12: false }),
+      data: {
+        title: d.title, time: d.time, place: d.place, host: d.host,
+        recorder: d.recorder, attendees: d.attendees, other: d.other,
+        topics: d.topics, decisions: d.decisions, todos: d.todos
+      }
+    });
+    if (list.length > 20) list = list.slice(0, 20);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      toast("已保存到历史记录");
+      renderHistory();
+    } catch (e) {
+      toast("保存失败");
+    }
+  }
+  function loadHistory(item) {
+    $("fTitle").value = item.data.title || "";
+    $("fTime").value = item.data.time || "";
+    $("fPlace").value = item.data.place || "";
+    $("fHost").value = item.data.host || "";
+    $("fRecorder").value = item.data.recorder || "";
+    $("fAttendees").value = item.data.attendees || "";
+    $("fOther").value = item.data.other || "";
+    $("topicList").innerHTML = "";
+    (item.data.topics || []).forEach(function (t) { addTopic(t); });
+    $("decisionList").innerHTML = "";
+    (item.data.decisions || []).forEach(function (s) { addDecision(s); });
+    $("todoList").innerHTML = "";
+    (item.data.todos || []).forEach(function (t) { addTodo(t); });
+    render();
+    closeDrawer();
+    toast("已载入「" + item.title + "」");
+  }
+  function renderHistory() {
+    var list = getHistory();
+    var body = $("historyBody");
+    if (!list.length) {
+      body.innerHTML = '<div class="history-empty">暂无历史记录<br>填好纪要后点顶栏「保存」即可留存</div>';
+      return;
+    }
+    body.innerHTML = "";
+    list.forEach(function (item) {
+      var div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML =
+        '<div class="t">' + escapeHtml(item.title) + "</div>" +
+        '<div class="d">保存于 ' + escapeHtml(item.time) + "</div>" +
+        '<button class="btn small act-load">载入</button> ' +
+        '<button class="btn small act-del">删除</button>';
+      div.querySelector(".act-load").addEventListener("click", function () { loadHistory(item); });
+      div.querySelector(".act-del").addEventListener("click", function () {
+        
+        var l = getHistory().filter(function (x) { return x.id !== item.id; });
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(l));
+        renderHistory();
+        toast("已删除");
+      });
+      body.appendChild(div);
+    });
+  }
+  function openDrawer() { $("drawer").classList.add("open"); $("drawerMask").classList.add("open"); renderHistory(); }
+  function closeDrawer() { $("drawer").classList.remove("open"); $("drawerMask").classList.remove("open"); }
+  $("btnSave").addEventListener("click", saveHistory);
+  $("btnHistory").addEventListener("click", openDrawer);
+  $("btnCloseDrawer").addEventListener("click", closeDrawer);
+  $("drawerMask").addEventListener("click", closeDrawer);
+
+  /* ---------- 输入监听 ---------- */
+  ["fTitle", "fTime", "fPlace", "fHost", "fRecorder", "fAttendees", "fOther"].forEach(function (id) {
+    $(id).addEventListener("input", render);
+  });
+  $("addTopic").addEventListener("click", function () { addTopic(); render(); });
+  $("addDecision").addEventListener("click", function () { addDecision(); render(); });
+  $("addTodo").addEventListener("click", function () { addTodo(); render(); });
+  $("btnJumpForm").addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  /* ---------- 初始化 ---------- */
+  var now0 = new Date();
+  $("fTime").value = now0.getFullYear() + "-" + pad(now0.getMonth() + 1) + "-" + pad(now0.getDate()) + "T09:00";
+  addTopic(); addDecision(); addTodo();
+  render();
+  $("btnDemo").click();
+})();
+</script>
+</body>
+</html>
