@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS coder_zen_state (id TEXT PRIMARY KEY, data TEXT NOT NULL);
