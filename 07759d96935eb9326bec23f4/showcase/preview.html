@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width,initial-scale=1" name="viewport">
+<title>过程能力分析系统 · CPK / 正态分布</title>
+<style>
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+:root{
+  --bg:#eef2f7; --card:#fff; --line:#dfe6ef; --line2:#eef2f7;
+  --ink:#0f172a; --ink2:#475569; --muted:#7b8aa0;
+  --pri:#1d4ed8; --pri-soft:#e8efff;
+  --red:#dc2626; --red-soft:#fdecec;
+  --amber:#c2740a; --amber-soft:#fdf4e3;
+  --green:#059669; --green-soft:#e7f7f1;
+  --shadow:0 1px 2px rgba(15,23,42,.05),0 8px 20px -14px rgba(15,23,42,.35);
+}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:13px;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+}
+input,button,textarea{font-family:inherit}
+
+/* ---------- header ---------- */
+.app-header{
+  height:56px;flex:0 0 56px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;background:#fff;border-bottom:1px solid var(--line);gap:12px;
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{
+  width:36px;height:36px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-size:10.5px;
+  font-weight:700;letter-spacing:.4px;box-shadow:0 4px 10px -3px rgba(30,64,175,.55);
+}
+.brand-txt h1{margin:0;font-size:14.5px;font-weight:600;letter-spacing:.2px}
+.brand-txt p{margin:1px 0 0;font-size:10.5px;color:var(--muted);letter-spacing:.3px}
+.header-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto}
+.btn{
+  height:31px;padding:0 12px;border-radius:7px;border:1px solid var(--line);
+  background:#fff;color:var(--ink2);font-size:12.5px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap;
+}
+.btn:hover{border-color:#b9c6d8;background:#f8fafc;color:var(--ink)}
+.btn:active{transform:translateY(.5px)}
+.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.primary:hover{background:#1a45c0;border-color:#1a45c0;color:#fff}
+
+/* ---------- layout ---------- */
+.layout{
+  flex:1;display:grid;grid-template-columns:384px minmax(0,1fr);
+  gap:12px;padding:12px;min-height:0;overflow:hidden;
+}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;
+}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 12px;border-bottom:1px solid var(--line2);flex:0 0 auto;
+}
+.card-head h2{
+  margin:0;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;white-space:nowrap;
+}
+.card-head h2::before{content:"";width:3px;height:12px;border-radius:2px;background:var(--pri)}
+.head-tools{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.card-body{padding:10px 12px;min-height:0}
+.card-body.flex{display:flex;flex-direction:column}
+
+/* ---------- fields ---------- */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:10.5px;color:var(--muted);letter-spacing:.2px}
+.field input{
+  height:30px;border:1px solid var(--line);border-radius:6px;padding:0 8px;font-size:12.5px;
+  color:var(--ink);background:#fff;outline:none;width:100%;transition:.15s;
+}
+.field input::placeholder{color:#b7c2d0}
+.field input:focus{border-color:#7aa2f5;box-shadow:0 0 0 3px rgba(59,130,246,.13)}
+.field input.bad{border-color:#f0a6a6;background:#fffafa}
+.field-row{display:grid;gap:8px;margin-bottom:9px}
+.field-row.r2{grid-template-columns:1fr 92px}
+.field-row.r3{grid-template-columns:1fr 1fr 1fr}
+.field-row:last-child{margin-bottom:0}
+.hint{margin:9px 0 0;font-size:10.5px;color:var(--muted);line-height:1.55}
+
+/* ---------- textarea ---------- */
+textarea#dataInput{
+  width:100%;flex:1;min-height:96px;resize:none;border:1px solid var(--line);border-radius:7px;
+  padding:8px 10px;font-family:"Consolas","Courier New",monospace;font-size:12.5px;
+  line-height:1.7;color:var(--ink);outline:none;background:#fcfdff;transition:.15s;
+}
+textarea#dataInput:focus{border-color:#7aa2f5;box-shadow:0 0 0 3px rgba(59,130,246,.13);background:#fff}
+textarea#dataInput::placeholder{color:#b7c2d0;font-family:"Microsoft YaHei",sans-serif}
+
+/* ---------- small buttons ---------- */
+.link-btn{
+  border:none;background:none;color:var(--pri);font-size:11.5px;cursor:pointer;
+  padding:2px 4px;border-radius:4px;white-space:nowrap;
+}
+.link-btn:hover{background:var(--pri-soft)}
+.link-btn.danger{color:#c0392b}
+.link-btn.danger:hover{background:var(--red-soft)}
+.count-badge{
+  font-size:11px;color:var(--ink2);background:#f1f5fa;border:1px solid var(--line);
+  border-radius:20px;padding:2px 9px;font-variant-numeric:tabular-nums;
+}
+.count-badge.warn{background:var(--red-soft);border-color:#f5c9c9;color:#b02a2a}
+
+/* ---------- data table ---------- */
+.table-wrap{overflow:auto;min-height:0;flex:1}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{
+  position:sticky;top:0;background:#f7f9fc;color:var(--muted);font-weight:500;
+  font-size:10.5px;text-align:right;padding:5px 10px;border-bottom:1px solid var(--line);
+  letter-spacing:.3px;z-index:1;
+}
+thead th:first-child{text-align:left}
+tbody td{
+  padding:4px 10px;text-align:right;border-bottom:1px solid #f4f7fb;
+  font-variant-numeric:tabular-nums;color:var(--ink2);
+}
+tbody td:first-child{text-align:left;color:var(--muted);font-size:11px}
+tbody tr.out td{background:var(--red-soft);color:#a51f1f;font-weight:600}
+tbody tr.out td:first-child{color:#a51f1f}
+tbody tr:hover td{background:#f8fbff}
+tbody tr.out:hover td{background:#fbe0e0}
+.flag{font-size:10px;padding:1px 5px;border-radius:3px;background:#f7dcdc;color:#a51f1f;margin-left:5px}
+
+/* ---------- verdict ---------- */
+.verdict{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:#fff;border:1px solid var(--line);border-left:4px solid #94a3b8;
+  border-radius:10px;padding:11px 16px;box-shadow:var(--shadow);flex:0 0 auto;
+  transition:.2s;
+}
+.verdict-l{display:flex;align-items:center;gap:13px;min-width:0}
+.grade{
+  width:50px;height:50px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+  font-size:15px;font-weight:700;color:#fff;background:#94a3b8;letter-spacing:-.3px;
+  box-shadow:0 5px 12px -6px rgba(15,23,42,.65);
+}
+.v-title{font-size:13.5px;font-weight:600;margin-bottom:2px}
+.v-desc{font-size:11.5px;color:var(--muted);line-height:1.5}
+.v-meta{display:flex;gap:14px;margin-top:5px;font-size:10.5px;color:var(--ink2);flex-wrap:wrap}
+.v-meta b{font-weight:600;font-variant-numeric:tabular-nums}
+.verdict-r{text-align:right;flex:0 0 auto;padding-left:12px;border-left:1px dashed var(--line)}
+.big-num{font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.big-num small{display:block;font-size:9.5px;font-weight:500;letter-spacing:1.4px;color:var(--muted);margin-top:4px}
+
+/* ---------- metrics ---------- */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;flex:0 0 auto}
+.metric{
+  background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;min-width:0;
+}
+.metric .k{font-size:10.5px;color:var(--muted);letter-spacing:.3px;display:flex;justify-content:space-between;align-items:baseline}
+.metric .k em{font-style:normal;font-size:9.5px;color:#b7c2d0}
+.metric .v{
+  font-size:19px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;
+  letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.metric .v .u{font-size:10px;color:var(--muted);font-weight:400;margin-left:2px;letter-spacing:0}
+.metric.hl::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pri)}
+.metric.dim .v{color:#b0bccb}
+
+/* ---------- chart ---------- */
+.chart-card{flex:1;min-height:0}
+.chart-wrap{flex:1;min-height:0;position:relative}
+canvas{display:block;width:100%;height:100%}
+.seg{display:flex;background:#f1f5fa;border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px}
+.seg button{
+  border:none;background:none;font-size:11.5px;color:var(--ink2);cursor:pointer;
+  padding:3px 10px;border-radius:5px;transition:.15s;
+}
+.seg button:hover{color:var(--ink)}
+.seg button.active{background:#fff;color:var(--pri);font-weight:600;box-shadow:0 1px 3px rgba(15,23,42,.12)}
+
+/* ---------- notes ---------- */
+.notes-card{flex:0 0 auto;max-height:150px}
+.notes-body{padding:8px 12px 10px;overflow:auto;min-height:0}
+.note{display:flex;gap:8px;font-size:11.5px;line-height:1.6;padding:4px 0}
+.note .dot{width:6px;height:6px;border-radius:50%;margin-top:6px;flex:0 0 auto;background:#cbd5e1}
+.note.t-red .dot{background:var(--red)}
+.note.t-amber .dot{background:var(--amber)}
+.note.t-green .dot{background:var(--green)}
+.note.t-blue .dot{background:var(--pri)}
+.note b{font-weight:600}
+.note .txt{color:var(--ink2)}
+
+/* ---------- scrollbar ---------- */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#cbd6e4;border-radius:6px;border:2px solid #fff}
+::-webkit-scrollbar-thumb:hover{background:#aebdd0}
+::-webkit-scrollbar-track{background:transparent}
+
+@media (max-width:1080px){
+  .layout{grid-template-columns:330px minmax(0,1fr)}
+  .metric .v{font-size:17px}
+  .metric{padding:7px 9px}
+}
+@media print{
+  body{overflow:visible;height:auto;background:#fff}
+  .app-header,.col-left,.seg,.link-btn,.head-tools{display:none!important}
+  .layout{display:block;padding:0;overflow:visible}
+  .col-right{gap:8px}
+  .chart-card{height:340px!important;flex:none}
+  .card,.verdict,.metric{box-shadow:none;break-inside:avoid}
+  .notes-card{max-height:none}
+}
+</style>
+</head>
+<body>
+<div style="padding:8px 16px;background:#eaf1fb;color:#334155;font:14px sans-serif">示例体验：数据仅保存在当前页面。 <button id="restoreExample" type="button">恢复示例</button> <span>导出和打印请安装后使用。</span></div>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="logo">CPK</div>
+    <div class="brand-txt">
+      <h1>过程能力分析系统</h1>
+      <p>Process Capability Analysis · 正态分布</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <input accept=".csv,.txt" hidden id="fileInput" type="file">
+    <button class="btn" id="btnImport">导入数据</button>
+    <button class="btn" id="btnExport">导出报告</button>
+    <button class="btn" id="btnPng">导出图表</button>
+    <button class="btn primary" id="btnPrint">打印</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ================= 左栏：输入 ================= -->
+  <section class="col col-left">
+    <div class="card" style="flex:0 0 auto">
+      <div class="card-head"><h2>规格与特性</h2></div>
+      <div class="card-body">
+        <div class="field-row r2">
+          <div class="field">
+            <label>特性名称</label>
+            <input id="partName" placeholder="如：成品外径 D" type="text">
+          </div>
+          <div class="field">
+            <label>单位</label>
+            <input id="unit" type="text" value="mm">
+          </div>
+        </div>
+        <div class="field-row r3">
+          <div class="field">
+            <label>下限 LSL</label>
+            <input id="lsl" placeholder="9.90" step="any" type="number">
+          </div>
+          <div class="field">
+            <label>目标值 M</label>
+            <input id="target" placeholder="选填" step="any" type="number">
+          </div>
+          <div class="field">
+            <label>上限 USL</label>
+            <input id="usl" placeholder="10.10" step="any" type="number">
+          </div>
+        </div>
+        <p class="hint">单侧规格（如硬度下限、杂质上限）可只填一侧，系统按单侧能力计算。</p>
+      </div>
+    </div>
+
+    <div class="card" style="flex:1; min-height:120px">
+      <div class="card-head">
+        <h2>测量数据</h2>
+        <div class="head-tools">
+          <span class="count-badge" id="countBadge">0 点</span>
+          <button class="link-btn" id="btnSample">示例</button>
+          <button class="link-btn danger" id="btnClear">清空</button>
+        </div>
+      </div>
+      <div class="card-body flex" style="padding-bottom:10px">
+        <textarea id="dataInput" placeholder="每行一个数据，或使用逗号 / 空格 / 制表符分隔：&#10;&#10;10.02, 9.98, 10.05, 9.96&#10;10.01, 10.03, 9.99, 10.04" spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <div class="card" style="flex:0 0 176px">
+      <div class="card-head">
+        <h2>数据明细</h2>
+        <span class="count-badge" id="tableSub">—</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>序号</th><th>测量值</th><th>偏差</th><th>判定</th></tr>
+          </thead>
+          <tbody id="dataBody">
+            <tr><td colspan="4" style="text-align:center; color:#b7c2d0; padding:18px 0">暂无数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 右栏：分析 ================= -->
+  <section class="col col-right">
+    <div class="verdict" id="verdict" style="border-left-color:#94a3b8">
+      <div class="verdict-l">
+        <div class="grade" id="gradeTag">—</div>
+        <div style="min-width:0">
+          <div class="v-title" id="vTitle">等待数据</div>
+          <div class="v-desc" id="vDesc">请在左侧录入或导入测量数据，并填写规格上下限</div>
+          <div class="v-meta" id="vMeta"></div>
+        </div>
+      </div>
+      <div class="verdict-r">
+        <div class="big-num" id="cpkBig" style="color:#b0bccb">—<small>CPK</small></div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric dim"><div class="k">样本数<span></span></div><div class="v" id="mN">—</div></div>
+      <div class="metric"><div class="k">均值 <em>x̄</em></div><div class="v" id="mMean">—</div></div>
+      <div class="metric"><div class="k">标准差 <em>s</em></div><div class="v" id="mSd">—</div></div>
+      <div class="metric"><div class="k">极差 <em>R</em></div><div class="v" id="mRange">—</div></div>
+      <div class="metric"><div class="k">Cp <em>潜在</em></div><div class="v" id="mCp">—</div></div>
+      <div class="metric"><div class="k">Cpu <em>上限</em></div><div class="v" id="mCpu">—</div></div>
+      <div class="metric"><div class="k">Cpl <em>下限</em></div><div class="v" id="mCpl">—</div></div>
+      <div class="metric hl"><div class="k">Cpk <em>实际</em></div><div class="v" id="mCpk">—</div></div>
+    </div>
+
+    <div class="card chart-card">
+      <div class="card-head">
+        <h2>分布分析图</h2>
+        <div class="head-tools">
+          <div class="seg" id="chartTabs">
+            <button class="active" data-mode="curve">正态曲线</button>
+            <button data-mode="hist">直方图</button>
+            <button data-mode="run">趋势图</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="card notes-card">
+      <div class="card-head"><h2>判定说明与改善方向</h2></div>
+      <div class="notes-body" id="notes">
+        <div class="note t-blue"><span class="dot"></span><span class="txt">录入数据后，系统自动输出过程能力等级、超规格明细与改善方向。</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+/* ==================================================================
+   过程能力分析系统  —  计算内核 / 渲染层
+   ================================================================== */
+const $ = id => document.getElementById(id);
+const SQRT2 = Math.SQRT2;
+const INV_SQRT_2PI = 1 / Math.sqrt(2 * Math.PI);
+
+const STATE = { values: [], stats: null, mode: 'curve' };
+
+/* 示例数据：成品外径 10.00 ±0.05，30 点，Cpk≈1.13 */
+const SAMPLE = [
+  10.010, 9.958, 9.955, 9.997, 10.028, 9.989, 10.014, 10.041,
+  10.010, 9.976, 9.993, 10.040, 9.987, 9.996, 10.009, 10.016,
+  9.971, 10.038, 10.054, 9.989, 10.001, 10.060, 10.013, 10.034,
+  9.974, 9.992, 10.047, 10.024, 10.002, 10.005
+];
+
+/* ------------------------- 数学工具 ------------------------- */
+function erf(x) {
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741,
+        a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return sign * y;
+}
+const normCdf = z => 0.5 * (1 + erf(z / SQRT2));
+const normPdf = (x, mu, sd) => sd > 0 ? INV_SQRT_2PI / sd * Math.exp(-0.5 * Math.pow((x - mu) / sd, 2)) : 0;
+
+function fmt(v, dec) {
+  if (v == null || !isFinite(v)) return '—';
+  let s = v.toFixed(dec);
+  if (/^-0\.?0*$/.test(s)) s = s.replace('-', '');
+  return s;
+}
+function fmtPpm(ppm) {
+  if (ppm == null || !isFinite(ppm)) return '—';
+  if (ppm >= 1000) return Math.round(ppm).toLocaleString('en-US');
+  if (ppm >= 1) return ppm.toFixed(1);
+  if (ppm > 0.001) return ppm.toFixed(3);
+  if (ppm > 0) return '<0.001';
+  return '0';
+}
+function inferDecimals(values) {
+  let d = 0;
+  for (const v of values.slice(0, 120)) {
+    const s = String(v);
+    if (/[eE]/.test(s)) continue;
+    const i = s.indexOf('.');
+    if (i >= 0) d = Math.max(d, s.length - i - 1);
+  }
+  return Math.min(Math.max(d, 2), 5);
+}
+
+/* ------------------------- 数据解析 ------------------------- */
+function parseData(text) {
+  if (!text) return [];
+  const lines = String(text).split(/\r?\n/).filter(l => l.trim() !== '');
+  const grid = [];
+  const re = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+
+  for (const line of lines) {
+    const cells = line.split(/[\s,;，、；\t]+/);
+    const nums = [];
+    for (let c of cells) {
+      c = c.trim().replace(/[^\d.eE+\-]/g, '');
+      if (!c) continue;
+      if (re.test(c)) {
+        const n = Number(c);
+        if (isFinite(n)) nums.push(n);
+      }
+    }
+    if (nums.length) grid.push(nums);
+  }
+  if (!grid.length) return [];
+
+  /* 多列数据：若首列为 1,2,3… 的连续序号，剔除该列，避免把序号当测量值 */
+  const widths = new Set(grid.map(g => g.length));
+  if (grid.length >= 3 && widths.size === 1 && grid[0].length > 1) {
+    let isSeq = true;
+    for (let i = 0; i < grid.length; i++) {
+      if (Math.abs(grid[i][0] - (i + 1)) > 1e-9) { isSeq = false; break; }
+    }
+    if (isSeq) return grid.reduce((acc, g) => acc.concat(g.slice(1)), []);
+  }
+  return grid.reduce((acc, g) => acc.concat(g), []);
+}
+
+/* ------------------------- 统计计算 ------------------------- */
+function computeStats(values, usl, lsl, target) {
+  const n = values.length;
+  if (n === 0) return null;
+
+  let sum = 0, min = Infinity, max = -Infinity;
+  for (const v of values) { sum += v; if (v < min) min = v; if (v > max) max = v; }
+  const mean = sum / n;
+
+  let ss = 0;
+  for (const v of values) ss += (v - mean) * (v - mean);
+  const s = n > 1 ? Math.sqrt(ss / (n - 1)) : 0;   // 样本标准差（n-1）
+  const sp = n > 0 ? Math.sqrt(ss / n) : 0;        // 总体标准差（n）
+  const range = max - min;
+
+  const hasUSL = Number.isFinite(usl);
+  const hasLSL = Number.isFinite(lsl);
+  const hasBoth = hasUSL && hasLSL;
+  const tol = hasBoth ? (usl - lsl) : null;
+
+  let cp = null, cpu = null, cpl = null, cpk = null, ca = null, m = null;
+  if (s > 0) {
+    if (hasUSL) cpu = (usl - mean) / (3 * s);
+    if (hasLSL) cpl = (mean - lsl) / (3 * s);
+    if (hasBoth) {
+      m = (usl + lsl) / 2;
+      cp = tol / (6 * s);
+      ca = (mean - m) / (tol / 2);
+      cpk = Math.min(cpu, cpl);
+    } else if (hasUSL) {
+      cpk = cpu;
+    } else if (hasLSL) {
+      cpk = cpl;
+    }
+  }
+
+  let pp = null, ppk = null;
+  if (sp > 0) {
+    if (hasBoth) {
+      pp = tol / (6 * sp);
+      ppk = Math.min((usl - mean) / (3 * sp), (mean - lsl) / (3 * sp));
+    } else if (hasUSL) ppk = (usl - mean) / (3 * sp);
+    else if (hasLSL) ppk = (mean - lsl) / (3 * sp);
+  }
+
+  // 超规格判定（带浮点容差）
+  const outs = [];
+  const tolU = hasUSL ? Math.max(1e-9, Math.abs(usl) * 1e-9) : 0;
+  const tolL = hasLSL ? Math.max(1e-9, Math.abs(lsl) * 1e-9) : 0;
+  values.forEach((v, i) => {
+    if (hasUSL && v > usl + tolU) outs.push({ i: i + 1, v, side: 'upper' });
+    else if (hasLSL && v < lsl - tolL) outs.push({ i: i + 1, v, side: 'lower' });
+  });
+
+  // 基于正态分布的理论不良率
+  let ppm = 0, yieldPct = 100;
+  if (s > 0 && (hasUSL || hasLSL)) {
+    let pOut = 0;
+    if (hasUSL) pOut += 1 - normCdf((usl - mean) / s);
+    if (hasLSL) pOut += normCdf((lsl - mean) / s);
+    pOut = Math.min(Math.max(pOut, 0), 1);
+    ppm = pOut * 1e6;
+    yieldPct = (1 - pOut) * 100;
+  }
+
+  // 规格限非法（USL ≤ LSL）时，能力指数不成立
+  if (hasBoth && tol <= 0) {
+    cp = null; cpu = null; cpl = null; cpk = null; ca = null;
+    pp = null; ppk = null; ppm = NaN; yieldPct = NaN;
+  }
+
+  return {
+    n, mean, s, sp, min, max, range,
+    cp, cpu, cpl, cpk, ca, m, tol,
+    pp, ppk, ppm, yieldPct,
+    hasUSL, hasLSL, hasBoth, outs,
+    usl: hasUSL ? usl : null, lsl: hasLSL ? lsl : null,
+    target: Number.isFinite(target) ? target : null,
+    dec: inferDecimals(values)
+  };
+}
+
+/* ------------------------- 等级判定 ------------------------- */
+function gradeOf(cpk) {
+  if (cpk == null || !isFinite(cpk)) return { code: '—', label: '过程能力待定', color: '#94a3b8', level: 0 };
+  if (cpk >= 1.67) return { code: 'A++', label: '特级 · 过程能力优良', color: '#047857', level: 5 };
+  if (cpk >= 1.33) return { code: 'A+', label: '一级 · 过程能力良好', color: '#059669', level: 4 };
+  if (cpk >= 1.00) return { code: 'A', label: '二级 · 过程能力尚可', color: '#c2740a', level: 3 };
+  if (cpk >= 0.67) return { code: 'B', label: '三级 · 过程能力不足', color: '#ea580c', level: 2 };
+  return { code: 'C', label: '四级 · 过程能力严重不足', color: '#dc2626', level: 1 };
+}
+const GRADE_DESC = {
+  5: '过程能力充分，维持现行管控方式，重点监控长期稳定性与设备漂移。',
+  4: '过程能力满足要求，保持现行工艺参数与点检频次，按常规抽样监控。',
+  3: '过程能力勉强满足，已接近管控边界，建议对中并压缩波动，加严首件与巡检。',
+  2: '过程能力不足，存在明确超差风险，须启动专项改善并加严检验。',
+  1: '过程能力严重不足，已产生批量不良风险，建议暂停放行、全检筛选并追溯已产出批次。',
+  0: '数据不足或规格缺失，无法评定。'
+};
+
+/* ------------------------- 界面渲染 ------------------------- */
+function setMetric(id, html, color) {
+  const el = $(id);
+  if (!el) return;
+  el.innerHTML = html;
+  el.style.color = color || '';
+}
+
+function resetUI() {
+  ['mN', 'mMean', 'mSd', 'mRange', 'mCp', 'mCpu', 'mCpl', 'mCpk'].forEach(id => setMetric(id, '—'));
+  $('gradeTag').textContent = '—';
+  $('gradeTag').style.background = '#94a3b8';
+  $('vTitle').textContent = '等待数据';
+  $('vDesc').textContent = '请在左侧录入或导入测量数据，并填写规格上下限';
+  $('vMeta').innerHTML = '';
+  $('cpkBig').innerHTML = '—<small>CPK</small>';
+  $('cpkBig').style.color = '#b0bccb';
+  $('verdict').style.borderLeftColor = '#94a3b8';
+  $('dataBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#b7c2d0;padding:18px 0">暂无数据</td></tr>';
+  $('tableSub').textContent = '—';
+  $('notes').innerHTML = '<div class="note t-blue"><span class="dot"></span><span class="txt">录入数据后，系统自动输出过程能力等级、超规格明细与改善方向。</span></div>';
+}
+
+function render(st) {
+  if (!st) { resetUI(); return; }
+  const g = gradeOf(st.cpk);
+  const dec = st.dec;
+  const unit = ($('unit').value || '').trim();
+  const uTxt = unit ? `<span class="u">${escapeHtml(unit)}</span>` : '';
+
+  /* --- 指标卡 --- */
+  setMetric('mN', st.n);
+  setMetric('mMean', (st.usl || st.lsl) ? fmt(st.mean, dec) + uTxt : fmt(st.mean, dec));
+  setMetric('mSd', fmt(st.s, Math.min(dec + 1, 6)));
+  setMetric('mRange', fmt(st.range, dec));
+  setMetric('mCp', st.cp == null ? '—' : fmt(st.cp, 2), st.cp == null ? '#b0bccb' : null);
+  setMetric('mCpu', st.cpu == null ? '—' : fmt(st.cpu, 2), st.cpu == null ? '#b0bccb' : null);
+  setMetric('mCpl', st.cpl == null ? '—' : fmt(st.cpl, 2), st.cpl == null ? '#b0bccb' : null);
+  setMetric('mCpk', st.cpk == null ? '—' : fmt(st.cpk, 2), st.cpk == null ? '#b0bccb' : g.color);
+
+  /* --- 结论横幅 --- */
+  $('gradeTag').textContent = g.code;
+  $('gradeTag').style.background = g.color;
+  $('verdict').style.borderLeftColor = g.color;
+  $('cpkBig').innerHTML = (st.cpk == null ? '—' : fmt(st.cpk, 2)) + '<small>CPK</small>';
+  $('cpkBig').style.color = g.color;
+
+  $('vTitle').textContent = g.label;
+  $('vTitle').style.color = g.level >= 4 ? '#047857' : (g.level === 3 ? '#8a5209' : (g.level ? '#b91c1c' : ''));
+  $('vDesc').textContent = GRADE_DESC[g.level] || GRADE_DESC[0];
+
+  const meta = [];
+  if (st.ca != null) {
+    const caPct = (Math.abs(st.ca) * 100);
+    meta.push(`<span>准确度 Ca：<b style="color:${caPct > 25 ? '#c2740a' : '#334155'}">${(st.ca * 100).toFixed(1)}%</b></span>`);
+  }
+  if (st.hasUSL || st.hasLSL) {
+    meta.push(`<span>预估不良率：<b style="color:${st.ppm > 1000 ? '#dc2626' : (st.ppm > 100 ? '#c2740a' : '#059669')}">${escapeHtml(fmtPpm(st.ppm))}</b> PPM</span>`);
+    meta.push(`<span>预估良率：<b>${isFinite(st.yieldPct) ? st.yieldPct.toFixed(3) + '%' : '—'}</b></span>`);
+  }
+  meta.push(`<span>超规格：<b style="color:${st.outs.length ? '#dc2626' : '#059669'}">${st.outs.length}</b> 点</span>`);
+  if (st.ppk != null) meta.push(`<span>Ppk：<b>${fmt(st.ppk, 2)}</b></span>`);
+  $('vMeta').innerHTML = meta.join('');
+
+  /* --- 数据明细表 --- */
+  renderTable(st, dec);
+
+  /* --- 提示与建议 --- */
+  renderNotes(st, g);
+}
+
+function renderTable(st, dec) {
+  const body = $('dataBody');
+  const MAX = 400;
+  const list = STATE.values;
+  let html = '';
+  const outMap = new Map();
+  st.outs.forEach(o => outMap.set(o.i - 1, o.side));
+  const shown = Math.min(list.length, MAX);
+  for (let i = 0; i < shown; i++) {
+    const v = list[i];
+    const side = outMap.get(i);
+    const dev = v - st.mean;
+    const cls = side ? ' class="out"' : '';
+    const judge = side
+      ? `<span class="flag">${side === 'upper' ? '超上限' : '超下限'}</span>`
+      : '<span style="color:#a8b4c4">OK</span>';
+    html += `<tr${cls}><td>${i + 1}</td><td>${fmt(v, dec)}</td>` +
+            `<td>${dev >= 0 ? '+' : ''}${fmt(dev, dec)}</td>` +
+            `<td style="text-align:right">${judge}</td></tr>`;
+  }
+  if (list.length > MAX) {
+    html += `<tr><td colspan="4" style="text-align:center;color:#b7c2d0;padding:8px 0">仅显示前 ${MAX} 条，共 ${list.length} 条</td></tr>`;
+  }
+  body.innerHTML = html;
+  const badge = $('tableSub');
+  badge.textContent = st.outs.length ? `超差 ${st.outs.length} / ${st.n}` : `全部合格 ${st.n}`;
+  badge.className = 'count-badge' + (st.outs.length ? ' warn' : '');
+}
+
+function renderNotes(st, g) {
+  const out = [];
+  const dec = st.dec;
+  const unit = escapeHtml(($('unit').value || '').trim());
+
+  /* 超规格明细 */
+  if (st.outs.length) {
+    const over = st.outs.filter(o => o.side === 'upper');
+    const under = st.outs.filter(o => o.side === 'lower');
+    const parts = [];
+    if (over.length) parts.push(`超上限 ${over.length} 点（序号 ${over.slice(0, 6).map(o => o.i).join('、')}${over.length > 6 ? ' 等' : ''}，最大 ${fmt(st.max, dec)}${unit}）`);
+    if (under.length) parts.push(`超下限 ${under.length} 点（序号 ${under.slice(0, 6).map(o => o.i).join('、')}${under.length > 6 ? ' 等' : ''}，最小 ${fmt(st.min, dec)}${unit}）`);
+    out.push({ t: 't-red', h: '存在超规格数据', x: parts.join('；') + '。须先隔离判定，不得直接放行。' });
+  }
+
+  /* 规格输入校验 */
+  if (!st.hasUSL && !st.hasLSL) {
+    out.push({ t: 't-amber', h: '未设定规格限', x: '已计算均值与标准差，但无法评定 Cp / Cpk。请补充 USL 或 LSL。' });
+  } else if (!st.hasBoth) {
+    out.push({ t: 't-blue', h: '单侧规格', x: '当前按单侧能力指数计算（' + (st.hasUSL ? '仅上限' : '仅下限') + '），Cp 与 Ca 不适用。' });
+  } else if (st.tol <= 0) {
+    out.push({ t: 't-red', h: '规格限设置异常', x: 'USL 小于或等于 LSL，请检查输入。' });
+  }
+
+  /* 能力水平 */
+  if (st.cpk != null && st.hasBoth) {
+    if (st.cpk >= 1.33) {
+      out.push({ t: 't-green', h: '能力达标', x: `Cpk = ${fmt(st.cpk, 2)}，满足 ≥1.33 的常规要求，维持现有管控即可。` });
+    } else {
+      /* 区分偏移主导 / 变异主导 */
+      const gap = (st.cp != null) ? (st.cp - st.cpk) : 0;
+      if (st.cp != null && gap > 0.20 && st.cp >= 1.0) {
+        out.push({ t: 't-amber', h: '短板在中心偏移', x: `Cp = ${fmt(st.cp, 2)} 明显高于 Cpk = ${fmt(st.cpk, 2)}，说明波动可接受但分布中心偏离规格中点（Ca = ${(st.ca * 100).toFixed(1)}%）。优先做对中调整，而非压缩波动。` });
+      } else if (st.cp != null && st.cp < 1.0) {
+        out.push({ t: 't-amber', h: '短板在波动过大', x: `Cp = ${fmt(st.cp, 2)}，离散程度偏大。应从设备精度、工装磨损、原料批次一致性、工艺参数稳定性四方面定位变异源。` });
+      } else {
+        out.push({ t: 't-amber', h: '能力不足', x: `Cpk = ${fmt(st.cpk, 2)} 低于 1.33。需同时对中与降波动，建议按月度改善计划推进。` });
+      }
+    }
+  }
+
+  /* 样本量提示 */
+  if (st.n < 30) {
+    out.push({ t: 't-blue', h: '样本量偏少', x: `当前 n = ${st.n}，结论置信度有限。建议补足至 ≥50 点，或按子组方式连续采集 25 组以上再作判定。` });
+  } else if (st.n > 500) {
+    out.push({ t: 't-blue', h: '样本量充足', x: `当前 n = ${st.n}，Cpk 与 Ppk 差异（${st.ppk != null ? fmt(st.cpk - st.ppk, 2) : '—'}）可反映过程稳定性，差异持续偏大提示存在特殊原因波动。` });
+  }
+
+  /* 数据异常 */
+  if (st.s === 0) {
+    out.push({ t: 't-amber', h: '标准差为零', x: '所有测量值相同，可能为量具分辨率不足或数据录入错误，请核实。' });
+  }
+
+  $('notes').innerHTML = out.map(o =>
+    `<div class="note ${o.t}"><span class="dot"></span><span class="txt"><b>${o.h}：</b>${o.x}</span></div>`
+  ).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ==================================================================
+   图表绘制引擎（原生 Canvas，无外部依赖）
+   ================================================================== */
+const PAD = { l: 56, r: 22, t: 20, b: 40 };
+
+function niceTicks(lo, hi, count) {
+  const raw = (hi - lo) / Math.max(count, 1);
+  if (!(raw > 0)) return { ticks: [], step: 1 };
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const m = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  const step = m * mag;
+  const start = Math.ceil(lo / step - 1e-9) * step;
+  const ticks = [];
+  for (let v = start; v <= hi + step * 1e-9 && ticks.length < 60; v += step) {
+    ticks.push(+v.toPrecision(12));
+  }
+  return { ticks, step };
+}
+
+function drawChart() {
+  const canvas = $('chart');
+  if (!canvas) return;
+  const wrap = canvas.parentElement;
+  const W = Math.max(320, wrap.clientWidth || 640);
+  const H = Math.max(190, wrap.clientHeight || 360);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const st = STATE.stats;
+  if (!st) { drawPlaceholder(ctx, W, H); return; }
+  if (STATE.mode === 'run') drawRunChart(ctx, W, H, st);
+  else drawDistChart(ctx, W, H, st);
+}
+
+function drawPlaceholder(ctx, W, H) {
+  const pw = W - PAD.l - PAD.r, ph = H - PAD.t - PAD.b;
+  ctx.strokeStyle = '#eef2f7';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + pw, y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#cfd9e6';
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t + ph); ctx.lineTo(PAD.l + pw, PAD.t + ph);
+  ctx.stroke();
+
+  ctx.fillStyle = '#b7c2d0';
+  ctx.font = '13px "Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('录入或导入测量数据后自动生成分布图', PAD.l + pw / 2, PAD.t + ph / 2 - 10);
+  ctx.font = '11.5px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillText('支持直接粘贴 Excel 列数据 · 支持 CSV 文本导入', PAD.l + pw / 2, PAD.t + ph / 2 + 12);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+function drawDistChart(ctx, W, H, st) {
+  const isHist = STATE.mode === 'hist';
+  const pw = W - PAD.l - PAD.r;
+  const ph = H - PAD.t - PAD.b;
+  if (pw < 60 || ph < 50) return;
+
+  /* ---- 坐标范围 ---- */
+  let lo = st.min, hi = st.max;
+  if (st.hasUSL) hi = Math.max(hi, st.usl);
+  if (st.hasLSL) lo = Math.min(lo, st.lsl);
+  if (st.target != null) { hi = Math.max(hi, st.target); lo = Math.min(lo, st.target); }
+  let span = hi - lo;
+  if (!(span > 0)) span = Math.max(Math.abs(hi) * 0.02, 0.001);
+  const pad = span * 0.08;
+  lo -= pad; hi += pad;
+
+  const x2p = x => PAD.l + (x - lo) / (hi - lo) * pw;
+  const mu = st.mean, sd = st.s;
+  const pdfMax = sd > 0 ? normPdf(mu, mu, sd) : 0;
+
+  /* ---- 直方图分箱 ---- */
+  const k = Math.max(5, Math.min(18, Math.ceil(Math.log2(Math.max(st.n, 2)) + 1)));
+  const binW = (hi - lo) / k;
+  const counts = new Array(k).fill(0);
+  if (isHist && binW > 0) {
+    for (const v of STATE.values) {
+      let idx = Math.floor((v - lo) / binW);
+      if (idx < 0) idx = 0;
+      if (idx >= k) idx = k - 1;
+      counts[idx]++;
+    }
+  }
+
+  let yMax = pdfMax * 1.16;
+  if (isHist) {
+    let maxD = 0;
+    for (const c of counts) maxD = Math.max(maxD, c / (st.n * binW));
+    yMax = Math.max(yMax, maxD * 1.14);
+  }
+  if (!(yMax > 0)) yMax = 1;
+  const y2p = y => PAD.t + ph - (y / yMax) * ph;
+
+  /* ---- 网格 ---- */
+  ctx.strokeStyle = '#eef2f7';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + pw, y); ctx.stroke();
+  }
+
+  /* ---- 裁剪绘制区 ---- */
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PAD.l, PAD.t, pw, ph);
+  ctx.clip();
+
+  const tail = (xa, xb) => {
+    if (xb - xa < 1e-12) return;
+    const N = 140;
+    ctx.beginPath();
+    ctx.moveTo(x2p(xa), y2p(0));
+    for (let i = 0; i <= N; i++) {
+      const x = xa + (xb - xa) * i / N;
+      ctx.lineTo(x2p(x), y2p(normPdf(x, mu, sd)));
+    }
+    ctx.lineTo(x2p(xb), y2p(0));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(220,38,38,.20)';
+    ctx.fill();
+  };
+
+  /* 曲线下方淡蓝填充 */
+  if (sd > 0) {
+    const N = 300;
+    ctx.beginPath();
+    ctx.moveTo(x2p(lo), y2p(0));
+    for (let i = 0; i <= N; i++) {
+      const x = lo + (hi - lo) * i / N;
+      ctx.lineTo(x2p(x), y2p(normPdf(x, mu, sd)));
+    }
+    ctx.lineTo(x2p(hi), y2p(0));
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, PAD.t, 0, PAD.t + ph);
+    grad.addColorStop(0, 'rgba(59,130,246,.18)');
+    grad.addColorStop(1, 'rgba(59,130,246,.02)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  /* 直方图柱 */
+  if (isHist) {
+    for (let i = 0; i < k; i++) {
+      if (!counts[i]) continue;
+      const x0 = lo + i * binW;
+      const px0 = x2p(x0) + 1;
+      const px1 = x2p(x0 + binW) - 1;
+      const yTop = y2p(counts[i] / (st.n * binW));
+      const h = PAD.t + ph - yTop;
+      ctx.fillStyle = 'rgba(37,99,235,.30)';
+      ctx.fillRect(px0, yTop, Math.max(px1 - px0, 1), h);
+      ctx.strokeStyle = 'rgba(37,99,235,.55)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px0, yTop, Math.max(px1 - px0, 1), h);
+    }
+  }
+
+  /* 超规格区域 */
+  if (sd > 0) {
+    if (st.hasLSL && st.lsl > lo) tail(lo, Math.min(st.lsl, hi));
+    if (st.hasUSL && st.usl < hi) tail(Math.max(st.usl, lo), hi);
+  }
+
+  /* 正态曲线 */
+  if (sd > 0) {
+    const N = 320;
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const x = lo + (hi - lo) * i / N;
+      const y = y2p(normPdf(x, mu, sd));
+      i ? ctx.lineTo(x2p(x), y) : ctx.moveTo(x2p(x), y);
+    }
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = isHist ? 1.8 : 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  /* ---- 坐标轴 ---- */
+  const tc = '#94a3b8';
+  ctx.strokeStyle = '#cfd9e6';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, PAD.t);
+  ctx.lineTo(PAD.l, PAD.t + ph);
+  ctx.lineTo(PAD.l + pw, PAD.t + ph);
+  ctx.stroke();
+
+  const { ticks, step } = niceTicks(lo, hi, Math.max(4, Math.min(9, Math.floor(pw / 88))));
+  const tdec = Math.min(5, Math.max(0, Math.ceil(-Math.log10(step))));
+  ctx.font = '11px "Consolas","Microsoft YaHei",monospace';
+  ctx.fillStyle = tc;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (const t of ticks) {
+    const px = x2p(t);
+    if (px < PAD.l - 2 || px > PAD.l + pw + 2) continue;
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath(); ctx.moveTo(px, PAD.t + ph); ctx.lineTo(px, PAD.t + ph + 4); ctx.stroke();
+    ctx.fillText(t.toFixed(tdec), px, PAD.t + ph + 7);
+  }
+
+  /* ---- 规格线与标注 ---- */
+  const unit = ($('unit').value || '').trim();
+  const dec = st.dec;
+
+  const vline = (x, color, dash, text, yBase, align, font) => {
+    const px = x2p(x);
+    if (px < PAD.l - 0.5 || px > PAD.l + pw + 0.5) return;
+    ctx.save();
+    ctx.setLineDash(dash);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px, PAD.t);
+    ctx.lineTo(px, PAD.t + ph);
+    ctx.stroke();
+    ctx.restore();
+
+    if (!text) return;
+    ctx.font = font || '600 11px "Microsoft YaHei",sans-serif';
+    const tw = ctx.measureText(text).width;
+    let tx = align === 'left' ? px - tw - 7 : px + 7;
+    if (tx < PAD.l + 2) tx = px + 7;
+    if (tx + tw > PAD.l + pw - 2) tx = px - tw - 7;
+    if (tx < PAD.l + 2) tx = PAD.l + 2;
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.fillRect(tx - 3, yBase - 11, tw + 6, 15);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, tx, yBase);
+  };
+
+  if (st.hasLSL) vline(st.lsl, '#dc2626', [5, 4], `LSL ${fmt(st.lsl, dec)}`, PAD.t + 13, 'right');
+  if (st.hasUSL) vline(st.usl, '#dc2626', [5, 4], `USL ${fmt(st.usl, dec)}`, PAD.t + 13, 'left');
+  if (st.target != null) vline(st.target, '#059669', [1.5, 3], `M ${fmt(st.target, dec)}`, PAD.t + 13, 'left', '500 10.5px "Microsoft YaHei",sans-serif');
+  vline(mu, '#0e7490', [], `x̄ ${fmt(mu, dec)}`, PAD.t + ph - 6, 'left');
+
+  /* ---- 左上角说明 ---- */
+  ctx.font = '10.5px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#a8b4c4';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(isHist ? '频次密度' : '概率密度 f(x)', PAD.l + 4, PAD.t - 6);
+
+  /* ---- 轴标题 ---- */
+  const partName = ($('partName').value || '').trim();
+  if (partName || unit) {
+    ctx.font = '11px "Microsoft YaHei",sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${partName}${unit ? ' / ' + unit : ''}`, PAD.l + pw, H - 6);
+  }
+}
+
+function drawRunChart(ctx, W, H, st) {
+  const pw = W - PAD.l - PAD.r;
+  const ph = H - PAD.t - PAD.b;
+  if (pw < 60 || ph < 50) return;
+
+  let lo = st.min, hi = st.max;
+  if (st.hasUSL) hi = Math.max(hi, st.usl);
+  if (st.hasLSL) lo = Math.min(lo, st.lsl);
+  let span = hi - lo;
+  if (!(span > 0)) span = Math.max(Math.abs(hi) * 0.02, 0.001);
+  lo -= span * 0.12; hi += span * 0.12;
+
+  const n = st.n;
+  const x2p = i => n <= 1 ? PAD.l + pw / 2 : PAD.l + (i - 1) / (n - 1) * pw;
+  const y2p = v => PAD.t + ph - (v - lo) / (hi - lo) * ph;
+
+  /* 网格 */
+  ctx.strokeStyle = '#eef2f7';
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.t + ph * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + pw, y); ctx.stroke();
+  }
+
+  /* 规格线 */
+  const hline = (v, color, dash, label) => {
+    const y = y2p(v);
+    if (y < PAD.t || y > PAD.t + ph) return;
+    ctx.save();
+    ctx.setLineDash(dash);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + pw, y); ctx.stroke();
+    ctx.restore();
+    if (label) {
+      ctx.font = '600 10.5px "Microsoft YaHei",sans-serif';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'right';
+      ctx.fillText(label, PAD.l + pw - 4, y - 5);
+    }
+  };
+  if (st.hasUSL) hline(st.usl, '#dc2626', [5, 4], 'USL');
+  if (st.hasLSL) hline(st.lsl, '#dc2626', [5, 4], 'LSL');
+  hline(st.mean, '#0e7490', [], '');
+  if (st.target != null) hline(st.target, '#059669', [1.5, 3], '');
+
+  /* 折线 */
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PAD.l, PAD.t, pw, ph);
+  ctx.clip();
+
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const px = x2p(i + 1), py = y2p(STATE.values[i]);
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.strokeStyle = 'rgba(37,99,235,.75)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  const drawDots = n <= 120;
+  for (let i = 0; i < n; i++) {
+    const px = x2p(i + 1), py = y2p(STATE.values[i]);
+    const v = STATE.values[i];
+    const isOut = (st.hasUSL && v > st.usl) || (st.hasLSL && v < st.lsl);
+    if (drawDots || isOut) {
+      ctx.beginPath();
+      ctx.arc(px, py, isOut ? 4 : 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = isOut ? '#dc2626' : '#2563eb';
+      ctx.fill();
+      if (isOut) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  /* 坐标轴 */
+  ctx.strokeStyle = '#cfd9e6';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, PAD.t);
+  ctx.lineTo(PAD.l, PAD.t + ph);
+  ctx.lineTo(PAD.l + pw, PAD.t + ph);
+  ctx.stroke();
+
+  /* x 轴刻度 */
+  ctx.font = '11px "Consolas",monospace';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'center';
+  const xStep = Math.max(1, Math.round(n / 8));
+  for (let i = 1; i <= n; i += xStep) {
+    const px = x2p(i);
+    ctx.beginPath(); ctx.moveTo(px, PAD.t + ph); ctx.lineTo(px, PAD.t + ph + 4);
+    ctx.strokeStyle = '#e2e8f0'; ctx.stroke();
+    ctx.fillText(i, px, PAD.t + ph + 16);
+  }
+
+  ctx.font = '10.5px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#a8b4c4';
+  ctx.textAlign = 'left';
+  ctx.fillText('测量值', PAD.l + 4, PAD.t - 6);
+  ctx.textAlign = 'right';
+  ctx.fillText('取样顺序', PAD.l + pw, H - 6);
+}
+
+/* ==================================================================
+   交互 / 导入导出
+   ================================================================== */
+function toNum(s) {
+  const t = String(s).trim();
+  if (t === '') return NaN;
+  const v = Number(t);
+  return isFinite(v) ? v : NaN;
+}
+
+let _timer = null;
+function update() {
+  const values = parseData($('dataInput').value);
+  STATE.values = values;
+
+  const usl = toNum($('usl').value);
+  const lsl = toNum($('lsl').value);
+  const target = toNum($('target').value);
+
+  // 规格合法性提示
+  $('usl').classList.toggle('bad', isFinite(usl) && isFinite(lsl) && usl <= lsl);
+  $('lsl').classList.toggle('bad', isFinite(usl) && isFinite(lsl) && usl <= lsl);
+
+  STATE.stats = values.length ? computeStats(values, usl, lsl, target) : null;
+  render(STATE.stats);
+  const badge = $('countBadge');
+  badge.textContent = values.length + ' 点';
+  badge.className = 'count-badge' + (STATE.stats && STATE.stats.outs.length ? ' warn' : '');
+  drawChart();
+}
+
+function toast(msg, isErr) {
+  let el = document.getElementById('__toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '__toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(12px);' +
+      'padding:9px 18px;border-radius:8px;font-size:12.5px;color:#fff;z-index:999;opacity:0;' +
+      'transition:.22s;pointer-events:none;box-shadow:0 8px 24px -8px rgba(15,23,42,.6);' +
+      'font-family:"Microsoft YaHei",sans-serif;white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.background = isErr ? '#b91c1c' : '#0f172a';
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(12px)';
+  }, 2200);
+}
+
+function stamp() {
+  const d = new Date();
+  const p = x => String(x).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function exportCSV() {
+  const st = STATE.stats;
+  if (!st) { toast('暂无数据可导出', true); return; }
+  const unit = ($('unit').value || '').trim();
+  const name = ($('partName').value || '未命名特性').trim();
+  const g = gradeOf(st.cpk);
+  const dec = st.dec;
+  const q = s => `"${String(s).replace(/"/g, '""')}"`;
+  const rows = [];
+
+  rows.push(['过程能力分析报告'].map(q).join(','));
+  rows.push([q('特性名称'), q(name)].join(','));
+  rows.push([q('单位'), q(unit)].join(','));
+  rows.push([q('分析时间'), q(new Date().toLocaleString('zh-CN'))].join(','));
+  rows.push('');
+  rows.push([q('规格与数据')].join(','));
+  rows.push([q('LSL 规格下限'), st.hasLSL ? st.lsl : '—'].join(','));
+  rows.push([q('M 目标值'), st.target != null ? st.target : '—'].join(','));
+  rows.push([q('USL 规格上限'), st.hasUSL ? st.usl : '—'].join(','));
+  rows.push([q('公差 T'), st.tol != null ? st.tol : '—'].join(','));
+  rows.push([q('样本数 n'), st.n].join(','));
+  rows.push('');
+  rows.push([q('统计量')].join(','));
+  rows.push([q('均值 x̄'), fmt(st.mean, dec)].join(','));
+  rows.push([q('标准差 s (n-1)'), fmt(st.s, Math.min(dec + 1, 6))].join(','));
+  rows.push([q('极差 R'), fmt(st.range, dec)].join(','));
+  rows.push([q('最小值'), fmt(st.min, dec)].join(','));
+  rows.push([q('最大值'), fmt(st.max, dec)].join(','));
+  rows.push([q('变异系数 CV'), st.mean !== 0 ? (st.s / Math.abs(st.mean) * 100).toFixed(2) + '%' : '—'].join(','));
+  rows.push('');
+  rows.push([q('过程能力指数')].join(','));
+  rows.push([q('Cp'), st.cp == null ? '—' : fmt(st.cp, 3)].join(','));
+  rows.push([q('Cpu'), st.cpu == null ? '—' : fmt(st.cpu, 3)].join(','));
+  rows.push([q('Cpl'), st.cpl == null ? '—' : fmt(st.cpl, 3)].join(','));
+  rows.push([q('Cpk'), st.cpk == null ? '—' : fmt(st.cpk, 3)].join(','));
+  rows.push([q('Ca 准确度'), st.ca == null ? '—' : (st.ca * 100).toFixed(2) + '%'].join(','));
+  rows.push([q('Pp'), st.pp == null ? '—' : fmt(st.pp, 3)].join(','));
+  rows.push([q('Ppk'), st.ppk == null ? '—' : fmt(st.ppk, 3)].join(','));
+  rows.push([q('预估不良率 PPM'), (st.hasUSL || st.hasLSL) ? fmtPpm(st.ppm) : '—'].join(','));
+  rows.push([q('预估良率'), (st.hasUSL || st.hasLSL) ? st.yieldPct.toFixed(3) + '%' : '—'].join(','));
+  rows.push([q('超规格点数'), st.outs.length].join(','));
+  rows.push([q('能力等级'), q(g.code + ' ' + g.label)].join(','));
+  rows.push('');
+  rows.push([q('测量数据明细')].join(','));
+  rows.push([q('序号'), q('测量值'), q('偏差'), q('判定')].join(','));
+
+  const outMap = new Map();
+  st.outs.forEach(o => outMap.set(o.i - 1, o.side));
+  STATE.values.forEach((v, i) => {
+    const side = outMap.get(i);
+    rows.push([
+      i + 1,
+      fmt(v, dec),
+      (v - st.mean >= 0 ? '+' : '') + fmt(v - st.mean, dec),
+      side ? (side === 'upper' ? '超上限' : '超下限') : 'OK'
+    ].join(','));
+  });
+
+  const blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  download(blob, `CPK分析_${name}_${stamp()}.csv`);
+  toast('报告已导出');
+}
+
+function exportPNG() {
+  if (!STATE.stats) { toast('暂无图表可导出', true); return; }
+  const c = $('chart');
+  const name = ($('partName').value || 'CPK').trim();
+  c.toBlob(blob => {
+    if (!blob) { toast('导出失败', true); return; }
+    download(blob, `CPK分布图_${name}_${stamp()}.png`);
+    toast('图表已导出');
+  }, 'image/png');
+}
+
+function importFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const buf = reader.result;
+    let text = '';
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    } catch (e) {
+      try { text = new TextDecoder('gbk').decode(buf); }
+      catch (e2) { text = new TextDecoder('utf-8').decode(buf); }
+    }
+    if (!text.trim()) { toast('文件内容为空', true); return; }
+    $('dataInput').value = text.trim();
+    update();
+    toast(`已导入 ${STATE.values.length} 个数据点`);
+  };
+  reader.onerror = () => toast('文件读取失败', true);
+  reader.readAsArrayBuffer(file);
+}
+
+function bindEvents() {
+  const ta = $('dataInput');
+  ta.addEventListener('input', () => {
+    clearTimeout(_timer);
+    _timer = setTimeout(update, 260);
+  });
+
+  ['usl', 'lsl', 'target', 'unit', 'partName'].forEach(id => {
+    $(id).addEventListener('input', () => {
+      clearTimeout(_timer);
+      _timer = setTimeout(update, 200);
+    });
+  });
+
+  $('btnSample').onclick = () => {
+    $('dataInput').value = SAMPLE.join(', ');
+    if (!$('usl').value) $('usl').value = '10.10';
+    if (!$('lsl').value) $('lsl').value = '9.90';
+    if (!$('target').value) $('target').value = '10.00';
+    if (!$('partName').value) $('partName').value = '成品外径 D';
+    update();
+    toast('已载入示例数据（30 点）');
+  };
+
+  $('btnClear').onclick = () => {
+    $('dataInput').value = '';
+    update();
+    ta.focus();
+  };
+
+  $('btnImport').onclick = () => $('fileInput').click();
+  $('fileInput').onchange = e => {
+    const f = e.target.files && e.target.files[0];
+    importFile(f);
+    e.target.value = '';
+  };
+
+  ['btnExport', 'btnPng', 'btnPrint'].forEach(id => { $(id).disabled = true; $(id).title = '安装后使用'; });
+  $('restoreExample').onclick = () => {
+    clearTimeout(_timer);
+    ['partName', 'lsl', 'target', 'usl'].forEach(id => $(id).value = '');
+    $('unit').value = 'mm';
+    $('dataInput').value = SAMPLE.join(', ');
+    $('lsl').value = '9.90'; $('usl').value = '10.10'; $('target').value = '10.00';
+    $('partName').value = '成品外径 D';
+    STATE.mode = 'curve';
+    document.querySelectorAll('#chartTabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'curve'));
+    update();
+  };
+
+  document.querySelectorAll('#chartTabs button').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('#chartTabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      STATE.mode = btn.dataset.mode;
+      drawChart();
+    };
+  });
+
+  // 拖拽导入
+  ['dragover', 'drop'].forEach(ev => {
+    document.addEventListener(ev, e => {
+      e.preventDefault();
+      if (ev === 'drop') {
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) importFile(f);
+      }
+    });
+  });
+
+  // 粘贴文本到页面任意位置也可导入
+  document.addEventListener('paste', e => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'textarea' || tag === 'input') return;
+    const t = e.clipboardData && e.clipboardData.getData('text');
+    if (t && parseData(t).length >= 3) {
+      $('dataInput').value = t;
+      update();
+      toast(`已粘贴 ${STATE.values.length} 个数据点`);
+    }
+  });
+
+  let rt = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(drawChart, 110);
+  });
+}
+
+/* 启动 */
+bindEvents();
+$('restoreExample').click();
+setTimeout(drawChart, 60);
+</script>
+</body>
+</html>
