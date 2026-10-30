@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>词象工坊 · 一句话生成极简海报</title>
+<style>
+  /* ============ 主题变量：深色 UI + 绿色点缀 ============ */
+  :root{
+    --bg:#0B0E12;
+    --card:#12161D;
+    --card-2:#171D26;
+    --line:#242D3A;
+    --text:#E8EEF4;
+    --muted:#8B98A6;
+    --accent:#3DDC84;
+    --accent-strong:#57E89B;
+    --accent-soft:rgba(61,220,132,.12);
+    --radius:16px;
+    --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Helvetica Neue",Arial,sans-serif;
+    --mono:"SF Mono","Cascadia Mono","Cascadia Code",Consolas,"Roboto Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:
+      radial-gradient(1100px 520px at 18% -8%, rgba(61,220,132,.09), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:26px 22px 44px;
+  }
+  ::selection{background:rgba(61,220,132,.32)}
+
+  /* ============ 顶栏 ============ */
+  .topbar{
+    max-width:1400px;margin:0 auto 22px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:46px;height:46px;border-radius:13px;flex:none;
+    background:linear-gradient(135deg,var(--accent),#1FA65F);
+    color:#06140C;font-weight:900;font-size:22px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 22px rgba(61,220,132,.35);
+  }
+  .brand h1{font-size:21px;letter-spacing:1px}
+  .brand .tagline{font-size:12px;color:var(--muted);margin-top:3px;letter-spacing:.4px}
+  .badge{
+    font-family:var(--mono);font-size:11px;color:var(--accent);
+    border:1px solid rgba(61,220,132,.35);background:var(--accent-soft);
+    padding:7px 13px;border-radius:999px;letter-spacing:.6px;white-space:nowrap;
+  }
+
+  /* ============ 主体布局：桌面左右分栏 / 移动端上下堆叠 ============ */
+  .layout{
+    max-width:1400px;margin:0 auto;
+    display:grid;grid-template-columns:minmax(330px,390px) 1fr;gap:22px;align-items:start;
+  }
+  .panel{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px;
+  }
+  .card h2{
+    font-size:12px;font-weight:600;color:var(--muted);
+    letter-spacing:2px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;margin-bottom:13px;
+  }
+  .card h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 8px rgba(61,220,132,.8)}
+
+  textarea,input[type=text]{
+    width:100%;background:#0D1117;border:1px solid var(--line);border-radius:11px;
+    color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;
+    padding:11px 13px;outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  textarea{resize:vertical;min-height:74px}
+  textarea:focus,input[type=text]:focus{
+    border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,132,.16);
+  }
+  textarea::placeholder,input::placeholder{color:#5B6673}
+
+  /* 示例句 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .chip{
+    font-size:12px;color:var(--muted);background:var(--card-2);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;
+    transition:all .15s;font-family:var(--sans);
+  }
+  .chip:hover{color:var(--accent);border-color:rgba(61,220,132,.5);background:var(--accent-soft)}
+
+  /* 风格四选一 */
+  .style-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{
+    background:var(--card-2);border:1px solid var(--line);border-radius:13px;
+    padding:10px;cursor:pointer;display:flex;align-items:center;gap:10px;
+    transition:all .15s;text-align:left;font-family:var(--sans);color:var(--text);min-width:0;
+  }
+  .opt:hover{border-color:#39465A}
+  .opt.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+  .opt .thumb{flex:none;line-height:0}
+  .opt .thumb svg{width:32px;height:42px;border-radius:6px;display:block}
+  .opt .opt-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .opt .opt-text b{font-size:13px}
+  .opt .opt-text i{font-size:10.5px;color:var(--muted);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* 尺寸三选一 */
+  .size-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .size-opt{flex-direction:column;gap:7px;padding:13px 6px;align-items:center;text-align:center}
+  .size-opt svg{width:22px;height:22px}
+  .size-opt b{font-size:12px}
+  .size-opt i{font-size:10px;color:var(--muted);font-style:normal}
+
+  /* 操作按钮 */
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600;
+    cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:var(--sans);
+  }
+  .btn svg{width:16px;height:16px;flex:none}
+  .btn.primary{background:var(--accent);color:#06140C}
+  .btn.primary:hover{background:var(--accent-strong);box-shadow:0 6px 20px rgba(61,220,132,.3)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--text)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.small{padding:9px 14px;font-size:13px;background:var(--card-2);border-color:var(--line);color:var(--text)}
+  .btn.small:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ============ 右侧预览舞台 ============ */
+  .stage{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;position:sticky;top:22px;
+  }
+  .canvas-wrap{display:flex;justify-content:center;align-items:center;padding:6px}
+  #poster{
+    display:block;max-width:100%;max-height:72vh;width:auto;height:auto;
+    border-radius:12px;background:#000;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .meta{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap;
+  }
+  .meta-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .meta-info b{color:var(--accent);font-weight:600}
+  .meta-info .tag{font-family:var(--sans)}
+
+  .footnote{
+    max-width:1400px;margin:26px auto 0;text-align:center;
+    font-size:11.5px;color:#5B6673;font-family:var(--mono);letter-spacing:.5px;
+  }
+
+  /* Toast 提示 */
+  #toast{
+    position:fixed;left:50%;bottom:28px;transform:translate(-50%,10px);
+    background:#1A2230;border:1px solid var(--line);color:var(--text);
+    font-size:13px;padding:10px 20px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:all .25s;z-index:99;
+    box-shadow:0 10px 32px rgba(0,0,0,.5);
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+
+  /* ============ 响应式：窄屏上下堆叠 ============ */
+  @media (max-width:960px){
+    .layout{grid-template-columns:1fr}
+    .stage{position:static}
+    #poster{max-height:58vh}
+    body{padding:18px 14px 32px}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">词</div>
+    <div>
+      <h1>词象工坊</h1>
+      <p class="tagline">WORD · POSTER STUDIO — 输入一句话，实时生成一张可导出的极简海报</p>
+    </div>
+  </div>
+  <div class="badge">纯前端 · 零依赖 · 确定性渲染</div>
+</header>
+
+<main class="layout">
+  <!-- ================= 左侧设置面板 ================= -->
+  <aside class="panel">
+    <section class="card">
+      <h2><span class="dot"></span>一句话标题</h2>
+      <textarea id="titleInput" placeholder="输入你的一句话，例如：凌晨四点的代码，是写给未来的诗"></textarea>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>副标题 / 署名</h2>
+      <input id="subInput" type="text" placeholder="可选，例如：给未来的自己">
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>风格</h2>
+      <div class="style-grid" id="styleGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="dot"></span>尺寸</h2>
+      <div class="size-row" id="sizeRow"></div>
+    </section>
+
+    <div class="actions">
+      <button id="exportBtn" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出 PNG
+      </button>
+      <button id="copyBtn" class="btn ghost">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        复制文案
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= 右侧实时预览 ================= -->
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="poster" width="1080" height="1080" aria-label="海报预览画布"></canvas>
+    </div>
+    <div class="meta">
+      <button id="variantBtn" class="btn small">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        换一张
+      </button>
+      <div class="meta-info">
+        <span>种子 <b id="metaSeed">—</b></span>
+        <span id="metaVariant">variant 0</span>
+        <span class="tag" id="metaStyle">瑞士网格</span>
+        <span class="tag" id="metaSize">1:1 方图</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<p class="footnote">所有渲染均在本地浏览器完成 · 相同输入永远得到相同海报 · 数据不离开你的设备</p>
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* =====================================================
+   * 一、常量定义：画布尺寸 / 字体 / 配色 / 风格与尺寸选项
+   * ===================================================== */
+  const SIZES = {
+    '1:1':  { w: 1080, h: 1080, label: '1:1 方图' },
+    '3:4':  { w: 900,  h: 1200, label: '3:4 竖版' },
+    '9:16': { w: 864,  h: 1536, label: '9:16 手机' },
+  };
+
+  const FONT = {
+    sans:  '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Helvetica Neue",Arial,sans-serif',
+    serif: '"Noto Serif SC","Source Han Serif SC","Songti SC","STSong",SimSun,"Times New Roman",serif',
+    mono:  '"SF Mono","Cascadia Mono","Cascadia Code",Consolas,"Roboto Mono","Courier New",monospace',
+  };
+
+  /* 每种风格多套配色（霓虹仅暗色），由种子随机挑选 */
+  const PALETTES = {
+    swiss: [
+      { bg:'#F3F0E9', ink:'#141414', accent:'#E63329', gray:'#7C756B' }, // 米白 + 红
+      { bg:'#141419', ink:'#F5F3EE', accent:'#FF4D3D', gray:'#918D98' }, // 深底 + 亮红
+      { bg:'#F3F0E9', ink:'#141414', accent:'#1D4ED8', gray:'#7C756B' }, // 米白 + 蓝
+      { bg:'#101014', ink:'#F5F3EE', accent:'#FFC53D', gray:'#918D98' }, // 深底 + 黄
+    ],
+    memphis: [
+      { bg:'#FBF3E4', ink:'#191924', accents:['#FF6B6B','#FFD93D','#4ECDC4','#5B5FEF','#FF8E42'] },
+      { bg:'#F1EAF9', ink:'#241B33', accents:['#FF6B9D','#C04CFD','#3ECF8E','#FFD93D','#4EA8FF'] },
+      { bg:'#E7F3EE', ink:'#0F2A24', accents:['#06D6A0','#118AB2','#FFD166','#EF476F','#274156'] },
+    ],
+    neon: [ // 霓虹风格只用暗色
+      { bg:'#050507', glowA:'#00E5FF', glowB:'#FF2EC4', grid:'rgba(255,255,255,.055)', sub:'rgba(255,255,255,.62)' },
+      { bg:'#04040A', glowA:'#7C5CFF', glowB:'#00FFA3', grid:'rgba(255,255,255,.055)', sub:'rgba(255,255,255,.62)' },
+      { bg:'#07050A', glowA:'#FF4D6D', glowB:'#4D7CFF', grid:'rgba(255,255,255,.055)', sub:'rgba(255,255,255,.62)' },
+    ],
+    magazine: [
+      { band:'#E63329', bg:'#FAF7F1', ink:'#17171C', sub:'#6B6660', block:'#17171C' },
+      { band:'#17171C', bg:'#FAF7F1', ink:'#17171C', sub:'#6B6660', block:'#E63329' },
+      { band:'#2E5EAA', bg:'#F7F5F0', ink:'#1A2433', sub:'#68707C', block:'#F0A202' },
+      { band:'#0F6B4F', bg:'#F5F8F6', ink:'#12211C', sub:'#5E6B66', block:'#12211C' },
+    ],
+  };
+
+  /* 风格四选一（附带左侧面板里的迷你预览图） */
+  const STYLE_DEFS = [
+    { key:'swiss', name:'瑞士网格', desc:'国际主义 · 粗体左对齐', svg:
+      '<svg viewBox="0 0 72 96"><rect width="72" height="96" fill="#F3F0E9"/><rect width="7" height="96" fill="#E63329"/>' +
+      '<rect x="14" y="34" width="42" height="9" rx="1" fill="#141414"/><rect x="14" y="49" width="30" height="9" rx="1" fill="#141414"/>' +
+      '<rect x="14" y="64" width="36" height="9" rx="1" fill="#141414"/><rect y="86" width="72" height="10" fill="#E63329"/></svg>' },
+    { key:'memphis', name:'孟菲斯', desc:'几何装饰 · 活泼明快', svg:
+      '<svg viewBox="0 0 72 96"><rect width="72" height="96" fill="#FBF3E4"/>' +
+      '<circle cx="14" cy="16" r="8" fill="#FF6B6B"/><circle cx="60" cy="22" r="6" fill="none" stroke="#4ECDC4" stroke-width="3"/>' +
+      '<polygon points="58,74 66,90 50,90" fill="#FFD93D"/><rect x="9" y="64" width="12" height="12" fill="#5B5FEF" transform="rotate(12 15 70)"/>' +
+      '<rect x="18" y="40" width="36" height="8" rx="2" fill="#191924"/><rect x="24" y="54" width="24" height="8" rx="2" fill="#191924"/></svg>' },
+    { key:'neon', name:'霓虹渐变', desc:'暗夜光晕 · 发光标题', svg:
+      '<svg viewBox="0 0 72 96"><defs>' +
+      '<radialGradient id="ngA" cx="30%" cy="25%" r="60%"><stop offset="0" stop-color="#00E5FF" stop-opacity=".8"/><stop offset="1" stop-color="#00E5FF" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="ngB" cx="72%" cy="78%" r="60%"><stop offset="0" stop-color="#FF2EC4" stop-opacity=".7"/><stop offset="1" stop-color="#FF2EC4" stop-opacity="0"/></radialGradient></defs>' +
+      '<rect width="72" height="96" fill="#050507"/><rect width="72" height="96" fill="url(#ngA)"/><rect width="72" height="96" fill="url(#ngB)"/>' +
+      '<rect x="20" y="42" width="32" height="7" rx="2" fill="#fff"/><rect x="26" y="55" width="20" height="7" rx="2" fill="#fff"/></svg>' },
+    { key:'magazine', name:'杂志编辑', desc:'刊头排版 · 衬线优雅', svg:
+      '<svg viewBox="0 0 72 96"><rect width="72" height="96" fill="#FAF7F1"/><rect width="72" height="16" fill="#E63329"/>' +
+      '<rect x="6" y="22" width="60" height="1.5" fill="#17171C"/><rect x="6" y="27" width="8" height="8" fill="#17171C"/>' +
+      '<rect x="6" y="44" width="40" height="9" fill="#17171C"/><rect x="6" y="57" width="28" height="9" fill="#17171C"/>' +
+      '<rect x="6" y="84" width="60" height="1.5" fill="#17171C"/></svg>' },
+  ];
+
+  const STYLE_NAMES = { swiss:'瑞士网格', memphis:'孟菲斯', neon:'霓虹渐变', magazine:'杂志编辑' };
+
+  /* 尺寸三选一 */
+  const SIZE_DEFS = [
+    { key:'1:1',  label:'1:1',  sub:'方图',  icon:'<rect x="4" y="4" width="16" height="16" rx="2"/>' },
+    { key:'3:4',  label:'3:4',  sub:'竖版',  icon:'<rect x="6" y="2" width="12" height="20" rx="2"/>' },
+    { key:'9:16', label:'9:16', sub:'手机',  icon:'<rect x="8" y="1" width="8" height="22" rx="2"/>' },
+  ];
+
+  /* 示例句（点击填入标题） */
+  const EXAMPLES = [
+    '凌晨四点的代码，是写给未来的诗',
+    '把复杂留给自己，把简单留给用户',
+    '保持热爱，奔赴山海',
+    '世界很大，bug 很小',
+    '每一个像素，都有它的脾气',
+  ];
+
+  /* 空状态占位配色（按风格区分深浅） */
+  const PLACEHOLDER_COLORS = {
+    swiss:['#F3F0E9','#141414'], memphis:['#FBF3E4','#191924'],
+    neon:['#050507','#8B98A6'], magazine:['#FAF7F1','#17171C'],
+  };
+
+  /* =====================================================
+   * 二、确定性随机：FNV-1a 哈希 + mulberry32 伪随机生成器
+   *    种子 = hash(标题 + 风格 + 尺寸 + variant)
+   * ===================================================== */
+  function hashStr(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* =====================================================
+   * 三、中文断行与排版引擎
+   *    - 分词：CJK 逐字、英文按单词；开括号并入下一 token，闭标点并入前一 token
+   *    - 平衡断行：给定行数 L，用 DP 找「各行宽度尽量接近」的断法（最小化行宽平方和）
+   *    - 字号自动缩放：二分查找满足最大行数与最大宽度的最大字号
+   * ===================================================== */
+  const OPEN_PUNCT  = '「『（(【[《〈“‘';
+  const CLOSE_PUNCT = '」』）)】]》〉”’—…·,.;:?！，。、；：？！';
+
+  function isCJK(ch) {
+    const c = ch.codePointAt(0);
+    return (c >= 0x2E80 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) ||
+           (c >= 0xFE30 && c <= 0xFE4F) || (c >= 0xFF00 && c <= 0xFFEF) ||
+           (c >= 0x3000 && c <= 0x303F);
+  }
+
+  /* 将一句话切成 token 数组：{ t: 文本, sp: 是否为可按空格连接的拉丁词 } */
+  function tokenize(text) {
+    const s = String(text || '').replace(/\s+/g, ' ').trim();
+    const tokens = [];
+    let buf = '', pending = ''; // pending: 待附着到下一个 token 的开括号
+    const flush = () => { if (buf) { tokens.push({ t: pending + buf, sp: true }); pending = ''; buf = ''; } };
+    for (const ch of s) {
+      if (ch === ' ') { flush(); continue; }
+      if (OPEN_PUNCT.includes(ch))  { flush(); pending += ch; continue; }
+      if (CLOSE_PUNCT.includes(ch)) {
+        if (buf) buf += ch;                                   // 并入正在累积的拉丁词
+        else if (tokens.length) tokens[tokens.length - 1].t += ch; // 并入上一个 token
+        else pending += ch;
+        continue;
+      }
+      if (isCJK(ch)) { flush(); tokens.push({ t: pending + ch, sp: false }); pending = ''; }
+      else buf += ch;                                          // 拉丁字符：累积成一个单词
+    }
+    flush();
+    if (pending) tokens.push({ t: pending, sp: false });
+    return tokens;
+  }
+
+  /* 拼接一行（相邻拉丁词之间补空格，CJK 之间不加空格） */
+  function joinTokens(arr) {
+    let s = '';
+    for (let i = 0; i < arr.length; i++) {
+      if (i > 0 && arr[i - 1].sp && arr[i].sp) s += ' ';
+      s += arr[i].t;
+    }
+    return s;
+  }
+
+  /* 贪心填充：得到（准）最少行数 */
+  function greedyLines(tokens, maxW, measure) {
+    const lines = [];
+    let cur = [];
+    for (const tk of tokens) {
+      if (cur.length && measure(joinTokens(cur.concat([tk]))) > maxW) { lines.push(cur); cur = [tk]; }
+      else cur.push(tk);
+    }
+    if (cur.length) lines.push(cur);
+    return lines;
+  }
+
+  /* 平衡断行：恰好 L 行、每行不超 maxW，最小化各行宽度平方和（≈ 行宽方差） */
+  function balancedLines(tokens, maxW, L, measure) {
+    const n = tokens.length;
+    if (L <= 1) return [tokens.slice()];
+    const cost = Array.from({ length: n + 1 }, () => new Array(L + 1).fill(Infinity));
+    const prev = Array.from({ length: n + 1 }, () => new Array(L + 1).fill(-1));
+    cost[0][0] = 0;
+    for (let k = 1; k <= L; k++) {
+      for (let i = k; i <= n; i++) {
+        for (let j = k - 1; j < i; j++) {
+          if (cost[j][k - 1] === Infinity) continue;
+          const w = measure(joinTokens(tokens.slice(j, i)));
+          if (w > maxW) continue;
+          const c = cost[j][k - 1] + w * w;
+          if (c < cost[i][k]) { cost[i][k] = c; prev[i][k] = j; }
+        }
+      }
+    }
+    if (cost[n][L] === Infinity) return null;
+    const lines = [];
+    let i = n, k = L;
+    while (k > 0) { const j = prev[i][k]; lines.unshift(tokens.slice(j, i)); i = j; k--; }
+    return lines;
+  }
+
+  /* 兜底：按行数硬切（仅在极小字号仍放不下时使用） */
+  function hardSplit(tokens, L) {
+    const per = Math.max(1, Math.ceil(tokens.length / L));
+    const lines = [];
+    for (let i = 0; i < tokens.length; i += per) lines.push(tokens.slice(i, i + per));
+    return lines;
+  }
+
+  /* 字号自动缩放：二分查找可通过约束的最大字号 */
+  function fitText(ctx, tokens, box, opts) {
+    function tryLayout(size) {
+      ctx.font = opts.weight + ' ' + size + 'px ' + opts.family;
+      const cache = new Map();
+      const measure = (s) => {
+        let w = cache.get(s);
+        if (w === undefined) { w = ctx.measureText(s).width; cache.set(s, w); }
+        return w;
+      };
+      const greedy = greedyLines(tokens, box.w, measure);
+      if (greedy.length > opts.maxLines) return null;
+      const lines = greedy.length > 1 ? balancedLines(tokens, box.w, greedy.length, measure) : greedy;
+      if (!lines) return null;
+      for (const ln of lines) if (measure(joinTokens(ln)) > box.w) return null;
+      return { size, lines };
+    }
+    let lo = opts.minSize, hi = opts.maxSize, best = null;
+    for (let it = 0; it < 18 && hi - lo > 0.5; it++) {
+      const mid = (lo + hi) / 2;
+      const r = tryLayout(mid);
+      if (r) { best = r; lo = mid; } else hi = mid;
+    }
+    if (!best) {
+      best = tryLayout(opts.minSize);
+      if (!best) return { size: opts.minSize, lines: hardSplit(tokens, opts.maxLines) };
+    }
+    return best;
+  }
+
+  /* 绘制一个文本块（在盒子内垂直居中，支持左/中/右对齐） */
+  function drawTextBlock(ctx, lines, box, size, opts) {
+    const lh = size * opts.lineHeight;
+    const totalH = lh * lines.length;
+    let y = box.y + (box.h - totalH) / 2 + lh / 2;
+    ctx.font = opts.weight + ' ' + size + 'px ' + opts.family;
+    ctx.fillStyle = opts.color;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = opts.align || 'left';
+    for (const ln of lines) {
+      const x = opts.align === 'center' ? box.x + box.w / 2
+              : opts.align === 'right'  ? box.x + box.w : box.x;
+      ctx.fillText(joinTokens(ln), x, y);
+      y += lh;
+    }
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /* =====================================================
+   * 四、绘图工具函数
+   * ===================================================== */
+  function hexA(hex, a) {
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    const n = parseInt(h, 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function lum(hex) { // 相对亮度 0~1，用于在色块上选择深/浅文字
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    const n = parseInt(h, 16);
+    return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  /* 逐字加字距绘制小标签（兼容不支持 ctx.letterSpacing 的环境） */
+  function drawTracked(ctx, text, x, y, tracking, align) {
+    const prevAlign = ctx.textAlign;
+    ctx.textAlign = 'left';
+    const chars = [...text];
+    const ws = chars.map((c) => ctx.measureText(c).width);
+    const total = ws.reduce((a, b) => a + b, 0) + tracking * (chars.length - 1);
+    let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
+    chars.forEach((c, i) => { ctx.fillText(c, cx, y); cx += ws[i] + tracking; });
+    ctx.textAlign = prevAlign;
+  }
+
+  /* =====================================================
+   * 五、四种风格的版式函数（核心）
+   * ===================================================== */
+
+  /* 1) 瑞士网格：米白/深底 + 左竖色带 + 超粗左对齐标题 + 顶部刻度 + 底部通栏色块 */
+  function drawSwiss(o) {
+    const { ctx, W, H, rng, pal, tokens, sub, seed } = o;
+    const m = Math.round(W * 0.075);
+    const bandW = Math.max(18, Math.round(W * 0.028));
+
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.accent; ctx.fillRect(0, 0, bandW, H); // 左侧竖色带
+
+    // 顶部细网格刻度尺
+    const ruleY = Math.round(H * 0.085);
+    const step = Math.round(W * 0.02);
+    ctx.strokeStyle = pal.gray; ctx.lineWidth = Math.max(1.5, W * 0.0016);
+    let i = 0;
+    for (let x = bandW + m; x <= W - m; x += step, i++) {
+      const len = (i % 5 === 0) ? Math.round(H * 0.022) : Math.round(H * 0.011);
+      ctx.beginPath(); ctx.moveTo(x, ruleY); ctx.lineTo(x, ruleY + len); ctx.stroke();
+    }
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.moveTo(bandW + m, ruleY); ctx.lineTo(W - m, ruleY); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // 顶部小字：WORD · POSTER + 序号
+    ctx.fillStyle = pal.gray;
+    ctx.font = '500 ' + Math.round(H * 0.02) + 'px ' + FONT.mono;
+    drawTracked(ctx, 'WORD · POSTER', bandW + m, ruleY - Math.round(H * 0.02), Math.round(W * 0.003));
+    ctx.textAlign = 'right';
+    ctx.fillText('NO.' + (seed % 900 + 100), W - m, ruleY - Math.round(H * 0.02));
+    ctx.textAlign = 'left';
+
+    // 右上超大序号水印
+    ctx.save();
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = pal.accent;
+    ctx.font = '900 ' + Math.round(H * 0.24) + 'px ' + FONT.sans;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(seed % 90 + 10), W - m, Math.round(H * 0.32));
+    ctx.restore();
+
+    // 超粗无衬线大标题（左对齐，自动缩放 + 平衡断行）
+    const box = { x: bandW + m, y: Math.round(H * 0.2), w: W - bandW - m * 2, h: Math.round(H * 0.52) };
+    const t = fitText(ctx, tokens, box, {
+      maxSize: Math.round(H * 0.155), minSize: Math.round(H * 0.042),
+      maxLines: 4, weight: 900, family: FONT.sans, lineHeight: 1.12,
+    });
+    drawTextBlock(ctx, t.lines, box, t.size, { weight: 900, family: FONT.sans, color: pal.ink, lineHeight: 1.12, align: 'left' });
+
+    // 副标题（灰字）
+    if (sub) {
+      ctx.font = '500 ' + Math.round(H * 0.03) + 'px ' + FONT.sans;
+      ctx.fillStyle = pal.gray;
+      ctx.fillText(sub, box.x, Math.round(H * 0.8));
+    }
+
+    // 底部通栏色块
+    const bandH = Math.round(H * 0.115);
+    ctx.fillStyle = pal.accent; ctx.fillRect(0, H - bandH, W, bandH);
+    ctx.fillStyle = lum(pal.accent) > 0.55 ? '#141414' : '#F5F3EE';
+    ctx.font = '600 ' + Math.round(H * 0.02) + 'px ' + FONT.mono;
+    drawTracked(ctx, '词象工坊 · WORD IMAGE STUDIO', bandW + m, H - bandH / 2, Math.round(W * 0.0025));
+  }
+
+  /* 2) 孟菲斯：随机几何装饰 + 居中标题 + 彩色药丸副标题 */
+  function drawMemphisShape(ctx, sp) {
+    ctx.save();
+    ctx.translate(sp.x, sp.y);
+    ctx.rotate(sp.rot);
+    ctx.fillStyle = sp.color; ctx.strokeStyle = sp.color;
+    const s = sp.s;
+    if (sp.type === 0) { // 实心圆
+      ctx.beginPath(); ctx.arc(0, 0, s / 2, 0, Math.PI * 2); ctx.fill();
+    } else if (sp.type === 1) { // 圆环
+      ctx.lineWidth = s * 0.16;
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.38, 0, Math.PI * 2); ctx.stroke();
+    } else if (sp.type === 2) { // 旋转方块
+      ctx.fillRect(-s / 2, -s / 2, s, s);
+    } else if (sp.type === 3) { // 三角
+      ctx.beginPath(); ctx.moveTo(0, -s / 2); ctx.lineTo(s / 2, s / 2); ctx.lineTo(-s / 2, s / 2);
+      ctx.closePath(); ctx.fill();
+    } else { // 波浪线
+      ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-s / 2, 0);
+      ctx.quadraticCurveTo(-s / 4, -s * 0.4, 0, 0);
+      ctx.quadraticCurveTo(s / 4, s * 0.4, s / 2, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawMemphis(o) {
+    const { ctx, W, H, rng, pal, tokens, sub } = o;
+    const m = Math.round(W * 0.09);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+
+    // 随机撒 4~6 组几何装饰（避开中央标题区）
+    const n = 4 + Math.floor(rng() * 3);
+    for (let k = 0; k < n; k++) {
+      const edge = Math.floor(rng() * 4);
+      const s = (0.05 + rng() * 0.09) * W;
+      let x, y;
+      if (edge === 0)      { x = W * (0.05 + rng() * 0.25); y = H * (0.06 + rng() * 0.2); }
+      else if (edge === 1) { x = W * (0.68 + rng() * 0.27); y = H * (0.06 + rng() * 0.2); }
+      else if (edge === 2) { x = W * (0.05 + rng() * 0.25); y = H * (0.72 + rng() * 0.22); }
+      else                 { x = W * (0.68 + rng() * 0.27); y = H * (0.72 + rng() * 0.22); }
+      drawMemphisShape(ctx, {
+        x, y, s, rot: rng() * Math.PI * 2, type: Math.floor(rng() * 5),
+        color: pal.accents[Math.floor(rng() * pal.accents.length)],
+      });
+    }
+
+    // 居中标题
+    const box = { x: m, y: Math.round(H * 0.24), w: W - 2 * m, h: Math.round(H * 0.44) };
+    const t = fitText(ctx, tokens, box, {
+      maxSize: Math.round(H * 0.115), minSize: Math.round(H * 0.04),
+      maxLines: 4, weight: 800, family: FONT.sans, lineHeight: 1.16,
+    });
+    drawTextBlock(ctx, t.lines, box, t.size, { weight: 800, family: FONT.sans, color: pal.ink, lineHeight: 1.16, align: 'center' });
+
+    // 副标题：彩色药丸标签托底
+    if (sub) {
+      let fs = Math.round(H * 0.03);
+      ctx.font = '700 ' + fs + 'px ' + FONT.sans;
+      let tw = ctx.measureText(sub).width;
+      const padX = fs * 0.9;
+      while (tw + padX * 2 > W - 2 * m && fs > 14) { // 超宽则缩小
+        fs -= 2;
+        ctx.font = '700 ' + fs + 'px ' + FONT.sans;
+        tw = ctx.measureText(sub).width;
+      }
+      const ph = fs * 1.9, pw = tw + padX * 2;
+      const px = (W - pw) / 2, py = box.y + box.h + Math.round(H * 0.045);
+      const pill = pal.accents[Math.floor(rng() * pal.accents.length)];
+      ctx.fillStyle = pill;
+      roundRect(ctx, px, py, pw, ph, ph / 2); ctx.fill();
+      ctx.fillStyle = lum(pill) > 0.6 ? '#191924' : '#FFFFFF';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '700 ' + fs + 'px ' + FONT.sans;
+      ctx.fillText(sub, W / 2, py + ph / 2);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    }
+  }
+
+  /* 3) 霓虹渐变：纯黑底 + 双色径向光晕 + 细网格 + 发光标题 */
+  function drawNeon(o) {
+    const { ctx, W, H, rng, pal, tokens, sub } = o;
+    const m = Math.round(W * 0.08);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+
+    // 两块径向渐变色斑当光晕
+    const blob = (cx, cy, r, color, alpha) => {
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, hexA(color, alpha));
+      g.addColorStop(0.55, hexA(color, alpha * 0.35));
+      g.addColorStop(1, hexA(color, 0));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    };
+    blob(W * (0.15 + rng() * 0.25), H * (0.12 + rng() * 0.2), W * (0.55 + rng() * 0.15), pal.glowA, 0.5);
+    blob(W * (0.55 + rng() * 0.3), H * (0.68 + rng() * 0.22), W * (0.5 + rng() * 0.15), pal.glowB, 0.42);
+
+    // 细网格
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    const gs = Math.round(W * 0.05);
+    ctx.beginPath();
+    for (let x = gs; x < W; x += gs) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = gs; y < H; y += gs) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+
+    // 顶部小字
+    ctx.font = '500 ' + Math.round(H * 0.019) + 'px ' + FONT.mono;
+    ctx.fillStyle = hexA(pal.glowA, 0.9);
+    drawTracked(ctx, 'NEON · 词象工坊', m, Math.round(H * 0.065), Math.round(W * 0.0035));
+
+    // 白色标题 + 同色系外发光
+    const box = { x: m, y: Math.round(H * 0.18), w: W - 2 * m, h: Math.round(H * 0.64) };
+    const t = fitText(ctx, tokens, box, {
+      maxSize: Math.round(H * 0.115), minSize: Math.round(H * 0.04),
+      maxLines: 3, weight: 800, family: FONT.sans, lineHeight: 1.22,
+    });
+    const lh = t.size * 1.22;
+    let y = box.y + (box.h - lh * t.lines.length) / 2 + lh / 2;
+    ctx.font = '800 ' + t.size + 'px ' + FONT.sans;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = hexA(pal.glowA, 0.9);
+    ctx.shadowBlur = Math.round(W * 0.05);
+    ctx.fillStyle = '#FFFFFF';
+    for (const ln of t.lines) { ctx.fillText(joinTokens(ln), W / 2, y); y += lh; }
+    ctx.shadowBlur = 0;
+
+    // 副标题
+    if (sub) {
+      ctx.font = '400 ' + Math.round(H * 0.026) + 'px ' + FONT.sans;
+      ctx.fillStyle = pal.sub;
+      ctx.fillText(sub, W / 2, Math.round(H * 0.88));
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+
+  /* 4) 杂志编辑：刊头色带 + NO.随机号 + 衬线左对齐标题 + 底部斜体副标题 */
+  function drawMagazine(o) {
+    const { ctx, W, H, pal, tokens, sub, seed } = o;
+    const m = Math.round(W * 0.075);
+    const bandH = Math.round(H * 0.125);
+
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+
+    // 顶部通栏色带：刊名 + NO.随机号
+    ctx.fillStyle = pal.band; ctx.fillRect(0, 0, W, bandH);
+    const onBand = lum(pal.band) > 0.55 ? '#17171C' : '#FAF7F1';
+    ctx.fillStyle = onBand;
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 ' + Math.round(H * 0.034) + 'px ' + FONT.sans;
+    ctx.fillText('词象 · THE WORD', m, bandH / 2);
+    ctx.font = '500 ' + Math.round(H * 0.026) + 'px ' + FONT.mono;
+    ctx.textAlign = 'right';
+    ctx.fillText('NO.' + (100 + seed % 800), W - m, bandH / 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+    // 色带下细横线
+    const lineY = bandH + Math.round(H * 0.02);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.85;
+    ctx.lineWidth = Math.max(1.5, W * 0.0015);
+    ctx.beginPath(); ctx.moveTo(m, lineY); ctx.lineTo(W - m, lineY); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // 左上角小色块
+    const bs = Math.round(W * 0.042);
+    const blockY = lineY + Math.round(H * 0.028);
+    ctx.fillStyle = pal.block; ctx.fillRect(m, blockY, bs, bs);
+
+    // 衬线大标题（左对齐）
+    const box = { x: m, y: blockY + bs + Math.round(H * 0.03), w: W - 2 * m, h: Math.round(H * 0.44) };
+    const t = fitText(ctx, tokens, box, {
+      maxSize: Math.round(H * 0.1), minSize: Math.round(H * 0.038),
+      maxLines: 5, weight: 700, family: FONT.serif, lineHeight: 1.28,
+    });
+    drawTextBlock(ctx, t.lines, box, t.size, { weight: 700, family: FONT.serif, color: pal.ink, lineHeight: 1.28, align: 'left' });
+
+    // 底部横线 + 斜体副标题 + 页码
+    const footY = Math.round(H * 0.9);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.moveTo(m, footY); ctx.lineTo(W - m, footY); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (sub) {
+      ctx.font = 'italic 400 ' + Math.round(H * 0.03) + 'px ' + FONT.serif;
+      ctx.fillStyle = pal.sub;
+      ctx.fillText(sub, m, footY + Math.round(H * 0.045));
+    }
+    ctx.font = '500 ' + Math.round(H * 0.022) + 'px ' + FONT.mono;
+    ctx.fillStyle = pal.sub; ctx.textAlign = 'right';
+    ctx.fillText('P.' + (seed % 90 + 10), W - m, footY + Math.round(H * 0.045));
+    ctx.textAlign = 'left';
+  }
+
+  const RENDERERS = { swiss: drawSwiss, memphis: drawMemphis, neon: drawNeon, magazine: drawMagazine };
+
+  /* 空状态占位海报 */
+  function drawPlaceholder(ctx, W, H, style) {
+    const [bg, fg] = PLACEHOLDER_COLORS[style] || PLACEHOLDER_COLORS.swiss;
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = fg; ctx.globalAlpha = 0.45;
+    ctx.font = '500 ' + Math.round(H * 0.028) + 'px ' + FONT.sans;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('在左侧输入一句话，实时生成海报', W / 2, H / 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+
+  /* =====================================================
+   * 六、应用状态与渲染调度
+   * ===================================================== */
+  const state = { title: '', subtitle: '', style: 'swiss', size: '1:1', variant: 0 };
+
+  const canvas = document.getElementById('poster');
+  const ctx = canvas.getContext('2d');
+
+  function render() {
+    const size = SIZES[state.size];
+    const W = size.w, H = size.h;
+    canvas.width = W; canvas.height = H; // 始终以原始高分辨率渲染
+
+    const title = state.title.trim();
+    // 种子 = 标题 + 风格 + 尺寸 + variant，保证同一输入永远得到同一张海报
+    const seed = hashStr(title + '|' + state.style + '|' + state.size + '|v' + state.variant);
+    const rng = mulberry32(seed);
+    const pals = PALETTES[state.style];
+    const pal = pals[Math.floor(rng() * pals.length)];
+
+    ctx.clearRect(0, 0, W, H);
+    if (!title) {
+      drawPlaceholder(ctx, W, H, state.style);
+    } else {
+      const tokens = tokenize(title);
+      RENDERERS[state.style]({ ctx, W, H, rng, pal, tokens, sub: state.subtitle.trim(), seed });
+    }
+    updateMeta(seed);
+  }
+
+  function updateMeta(seed) {
+    document.getElementById('metaSeed').textContent =
+      '#' + seed.toString(16).toUpperCase().padStart(6, '0');
+    document.getElementById('metaVariant').textContent = 'variant ' + state.variant;
+    document.getElementById('metaStyle').textContent = STYLE_NAMES[state.style];
+    document.getElementById('metaSize').textContent = SIZES[state.size].label;
+  }
+
+  /* rAF 节流：输入即时渲染但不掉帧 */
+  let rafId = 0;
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = 0; render(); });
+  }
+
+  /* =====================================================
+   * 七、UI 构建与交互
+   * ===================================================== */
+  const titleInput = document.getElementById('titleInput');
+  const subInput = document.getElementById('subInput');
+
+  // 示例句 chips
+  const chipsBox = document.getElementById('chips');
+  chipsBox.innerHTML = EXAMPLES.map((s, i) =>
+    '<button class="chip" data-i="' + i + '">' + s + '</button>').join('');
+  chipsBox.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    titleInput.value = EXAMPLES[+btn.dataset.i];
+    state.title = titleInput.value;
+    render();
+  });
+
+  // 风格四选一
+  const styleGrid = document.getElementById('styleGrid');
+  styleGrid.innerHTML = STYLE_DEFS.map((s) =>
+    '<button class="opt" data-style="' + s.key + '">' +
+    '<span class="thumb">' + s.svg + '</span>' +
+    '<span class="opt-text"><b>' + s.name + '</b><i>' + s.desc + '</i></span></button>').join('');
+  styleGrid.addEventListener('click', (e) => {
+    const btn = e.target.closest('.opt');
+    if (!btn) return;
+    state.style = btn.dataset.style;
+    syncOptActive();
+    render();
+  });
+
+  // 尺寸三选一
+  const sizeRow = document.getElementById('sizeRow');
+  sizeRow.innerHTML = SIZE_DEFS.map((s) =>
+    '<button class="opt size-opt" data-size="' + s.key + '">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">' + s.icon + '</svg>' +
+    '<span class="opt-text" style="align-items:center"><b>' + s.label + '</b><i>' + s.sub + '</i></span></button>').join('');
+  sizeRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.opt');
+    if (!btn) return;
+    state.size = btn.dataset.size;
+    syncOptActive();
+    render();
+  });
+
+  function syncOptActive() {
+    styleGrid.querySelectorAll('.opt').forEach((b) =>
+      b.classList.toggle('active', b.dataset.style === state.style));
+    sizeRow.querySelectorAll('.opt').forEach((b) =>
+      b.classList.toggle('active', b.dataset.size === state.size));
+  }
+
+  // 文本输入：即时渲染
+  titleInput.addEventListener('input', () => { state.title = titleInput.value; scheduleRender(); });
+  subInput.addEventListener('input', () => { state.subtitle = subInput.value; scheduleRender(); });
+
+  // 换一张：改变 variant 种子，探索不同构图
+  document.getElementById('variantBtn').addEventListener('click', () => {
+    state.variant++;
+    render();
+  });
+
+  // 导出 PNG（原始高分辨率）
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    const safe = (state.title.trim() || 'poster').replace(/[\\/:*?"<>|\s]+/g, '').slice(0, 16);
+    a.download = '词象工坊_' + safe + '_' + state.size.replace(':', 'x') + '.png';
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast('PNG 已导出');
+  });
+
+  // 复制文案：标题 + 副标题 + 话题标签
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const text = [state.title.trim(), state.subtitle.trim()]
+      .filter(Boolean).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('文案已复制');
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast('文案已复制'); }
+      catch (e2) { toast('复制失败，请手动复制'); }
+      ta.remove();
+    }
+  });
+
+  // Toast 提示
+  let toastTimer = 0;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
+  /* ============ 初始化：预填示例，立即渲染 ============ */
+  titleInput.value = EXAMPLES[0];
+  subInput.value = '给未来的自己';
+  state.title = titleInput.value;
+  state.subtitle = subInput.value;
+  syncOptActive();
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+import {mkdir,readFile,writeFile,copyFile} from 'node:fs/promises';
+const commit=process.argv[2]; if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('Pass a full source commit');
+const html=await readFile('index.html','utf8'); const css=html.match(/<style>([\s\S]*?)<\/style>/)[1]; const body=html.match(/<body>([\s\S]*?)<script src="app.js"><\/script>/)[1]; const app=await readFile('app.js','utf8');
+await mkdir('dist',{recursive:true}); await writeFile('dist/app.js',`const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n${app}`); await copyFile('public/icon.png','dist/icon.png'); const source=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'app.js',...source}));
