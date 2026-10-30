@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {JSDOM} from 'jsdom';
+test('真实控制器三次命中后：慢保存锁住重玩，响应丢失回读同轮，不重复写入',async()=>{
+ const bundle=await build({entryPoints:['src/main.js'],bundle:true,format:'iife',write:false,loader:{'.css':'text'},plugins:[{name:'test-db',setup(b){b.onResolve({filter:/\.\/db\.js$/},()=>({path:'db',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const sql=(...a)=>window.testSql(...a)',loader:'js'}))}}]});
+ const dom=new JSDOM('<!doctype html><div id="app"></div>',{url:'https://app.example/',runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window;let now=0,raf;Object.defineProperties(w,{innerWidth:{value:1200},innerHeight:{value:800}});Object.defineProperty(w.performance,'now',{value:()=>now});w.requestAnimationFrame=cb=>(raf=cb,1);w.Math.random=()=>.5;w.HTMLCanvasElement.prototype.getContext=()=>new Proxy({},{get:()=>()=>{}});
+ const records=new Map();let release,writes=0;const pending=new Promise(r=>release=r);w.testSql=async(q,a=[])=>{if(q.startsWith('SELECT id FROM'))return records.has(a[0])?[{id:a[0]}]:[];if(q.startsWith('SELECT'))return [];if(q.startsWith('INSERT')){writes++;records.set(a[0],a.slice());await pending;throw Error('response lost after commit')}return []};w.eval(bundle.outputFiles[0].text);const flush=async()=>{for(let i=0;i<24;i++)await Promise.resolve()};await flush();const click=s=>{const e=w.document.querySelector(s);assert.ok(e,s);e.click()};const tick=n=>{for(let i=0;i<n;i++){now+=33;raf(now)}};const pointer=(target,type,x,y)=>target.dispatchEvent(new w.MouseEvent(type,{bubbles:true,clientX:x,clientY:y,button:0}));
+ const c=w.document.querySelector('canvas');
+ for(const x of [.5,.36,.2]){pointer(w,'pointermove',1200*x,800*.435);pointer(c,'pointerdown',1200*x,800*.435);tick(40);pointer(w,'pointerup',1200*x,800*.435);tick(55);assert.equal(w.document.querySelector('#fortuneOverlay').classList.contains('hidden'),false);pointer(w.document.querySelector('#fBtn'),'pointerdown',0,0)}
+ assert.equal(w.document.querySelector('#endOverlay').classList.contains('hidden'),false);assert.match(w.document.querySelector('#endStats').textContent,/砸中 3/);
+ click('#save');await flush();assert.equal(w.document.querySelector('#againBtn').disabled,true);click('#againBtn');await flush();assert.equal(writes,1);release();await flush();assert.equal(records.size,1);assert.equal(w.document.querySelector('#save').disabled,true);click('#save');await flush();assert.equal(writes,1);click('#againBtn');assert.equal(w.document.querySelector('#endOverlay').classList.contains('hidden'),true);assert.match(w.document.querySelector('#stats').textContent,/砖 0\/3/);dom.window.close();
+});
