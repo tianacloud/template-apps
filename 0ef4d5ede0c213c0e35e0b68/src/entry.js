@@ -19,7 +19,7 @@ export async function mount(root, context) {
     window.BonCloud={
       async get(key){const r=await sql('SELECT value FROM bon_state WHERE key=?',[key]);return r.rows?.[0]?.[0]?.value||''},
       async set(key,value){await sql('INSERT INTO bon_state(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',[key,value]);return true},
-      async savePhoto(data){if(!data)return '';const response=await fetch(data);const blob=await response.blob();const path='photos/'+crypto.randomUUID()+'.jpg';await context.files.put(path,blob);return path},
+      async savePhoto(data){if(!data)return '';const match=/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(data);if(!match)throw Error('照片格式不受支持');const bytes=Uint8Array.from(atob(match[1]),c=>c.charCodeAt(0));const blob=new Blob([bytes],{type:'image/jpeg'});const path='photos/'+crypto.randomUUID()+'.jpg';await context.files.put(path,blob);return path},
       bindImage(img,path){return context.files.bindImage(img,path)}
     };
     root.innerHTML=html.replace('__ICON__',hero);
