@@ -1,4 +1,5 @@
 import { sql, verifiedWrite } from "./db.js";
+export function startApp() {
 
 const R = [
  {id:1,n:"番茄炒蛋",e:"🍅",cat:"家常",t:"10分钟",d:"简单",c:120,rate:4.9,
@@ -430,3 +431,5 @@ render();
 loadSelections().then(() => { ready = true; }).catch(() => {
   alert('无法读取收藏和菜单，请检查连接后重新打开应用。');
 });
+
+}
