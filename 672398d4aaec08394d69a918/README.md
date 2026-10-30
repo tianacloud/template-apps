@@ -19,7 +19,7 @@
 - 前端：原生 ES 模块 + Vite 库模式构建，无框架。
 - 数据：Tiana SQLite，通过 `@tianacloud/serverless` 的 `createTianaFetch` + hrana-v3 pipeline 访问。
 - 身份：Tiana 运行时登录态。
-- 静态数据：`public/data/hanzi-common.json`（拆字字典）。
+- 静态数据：`template-files/data/hanzi-common.json`（拆字字典）。
 - 字体：LXGW WenKai、ZCOOL KuaiLe，均为 SIL OFL 1.1，随应用托管。
 
 ## 安装与构建
@@ -46,7 +46,7 @@ npm run build -- <SOURCE_COMMIT>
 | 机构名与徽标 | `src/main.js` 的 `.school-brand`、`src/brand-badge.svg` |
 | 设计令牌（配色、圆角、阴影） | `src/style.css` 的 `:root` |
 | 内置示例字集 | `seeds.sql` |
-| 拆字字典 | `public/data/hanzi-common.json` |
+| 拆字字典 | `template-files/data/hanzi-common.json` |
 | 部件课堂名上限 | `rooms.max_components` 默认 3，控台可改 |
 
 ## 目录
@@ -64,12 +64,11 @@ src/
   ui.js          通用 UI 工具
   leaderboard.js 排行榜渲染
   style.css      全部样式
-  load-style.js  运行时加载样式表
   web-root.js    资源根路径解析
-public/
+template-files/
   data/hanzi-common.json  拆字字典
   fonts/                  字体文件与许可
-  fonts.css               字体 @font-face
+public/
   icon.png                256×256 应用图标
 spec/                     产品、玩法、界面、数据、验收规格
 tests/                    判分与拆字的单元测试
