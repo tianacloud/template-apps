@@ -82,6 +82,7 @@ import { createTianaFetch } from '@tianacloud/serverless';
   /* ---------- 持久化 ---------- */
   function save() {
     if (!ready || failed) return;
+    if (location.hash.match(/d=([0-9a-f]+)/i)) history.replaceState(null, "", location.pathname + location.search);
     clearTimeout(timer); timer = setTimeout(() => {
       const value = serialize();
       queue = queue.then(async () => { if (failed) return; try {
@@ -95,12 +96,10 @@ import { createTianaFetch } from '@tianacloud/serverless';
     return s;
   }
   function deserialize(str) {
-    if (!str || str.length !== COUNT) return false;
-    for (let i = 0; i < COUNT; i++) {
-      const v = parseInt(str[i], 16);
-      if (isNaN(v) || v < 0 || v >= PALETTE.length) return false;
-      grid[i] = v;
-    }
+    if (!str || str.length !== COUNT || !/^[0-9a-f]+$/i.test(str)) return false;
+    const values = Array.from(str, ch => parseInt(ch, 16));
+    if (values.some(v => v >= PALETTE.length)) return false;
+    grid = values;
     return true;
   }
 
