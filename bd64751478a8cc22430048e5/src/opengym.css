@@ -1,0 +1,644 @@
+/* Adapted from openGym e348fc17c42c7e9a211c5972e573ad3698190ee2, AGPL-3.0.
+   Original tokens, reset, type, cards, buttons, week, library, media and desktop rules.
+   Unused native app, planner and account components omitted. See NOTICE.md. */
+/* ============================================================================
+   openGym — design system
+   ----------------------------------------------------------------------------
+   Rebuilt around four rules, each aimed at a specific "generated" tell in the
+   previous sheet:
+
+   1. ONE TYPE SCALE, MOSTLY REGULAR WEIGHT. The old sheet set font-weight 700/800
+      on nearly every element, which flattens hierarchy — when everything shouts,
+      position is the only cue left. Here weight carries meaning: 600 for a title,
+      400 for its content, and size does the rest.
+   2. A NEUTRAL SURFACE RAMP. Cards are near-neutral greys a few points apart, not
+      saturated blue-greys. Colour is spent only on the accent and on status.
+   3. HAIRLINES, NOT BORDERS. Separators are sub-pixel and inset past the icon
+      rail, so a list reads as one object instead of a stack of outlined boxes.
+   4. MOTION THAT ACKNOWLEDGES, NOT ANIMATES. Presses scale ~2%, transitions run
+      140–220ms on an ease-out curve. Nothing bounces or slides for decoration.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- tokens -- */
+:root {
+  /* surfaces — dark is the default */
+  --bg:        #000000;
+  --bg-el:     #0e0e10;   /* elevated backdrop (sheets, bars) */
+  --surface:   #1c1c1e;   /* card / grouped-list fill */
+  --surface-2: #2c2c2e;   /* pressed + nested fill */
+  --surface-3: #3a3a3c;   /* controls (segmented track, switch off) */
+
+  /* text */
+  --label:     #ffffff;
+  --label-2:   rgba(235,235,245,.60);
+  --label-3:   rgba(235,235,245,.32);
+  --label-4:   rgba(235,235,245,.18);
+
+  /* lines */
+  --sep:       rgba(84,84,88,.60);
+  --sep-op:    rgba(84,84,88,.34);   /* for edges sitting over blur */
+  --hair:      .5px;
+
+  /* system palette (iOS dark values) */
+  --blue:#0a84ff; --green:#30d158; --red:#ff453a; --orange:#ff9f0a;
+  --yellow:#ffd60a; --teal:#40c8e0; --indigo:#5e5ce6; --pink:#ff375f;
+  --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
+
+  /* accent (per-account, synced) */
+  --acc:  var(--green);
+  --acc-2:#248a3d;
+  --on-acc:#000000;
+  --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
+  --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
+
+  /* geometry */
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:14px;
+  --pad:16px;
+  --icon-stroke:1.7;
+
+  /* motion */
+  --ease:cubic-bezier(.32,.72,0,1);
+  --fast:140ms; --med:220ms;
+
+  /* The system bars the page is drawn under. env() is all a browser and the iOS app give; the
+     Android WebView reports only the camera cutout there, and on Android 15, which draws the app
+     under the status and navigation bars, the app passes the bars themselves as --native-sat and
+     --native-sab (MainActivity.java). The larger one wins, so a WebView that learns to report
+     the bars does not count them twice. */
+  --sab:max(env(safe-area-inset-bottom,0px),var(--native-sab,0px));
+  --sat:max(env(safe-area-inset-top,0px),var(--native-sat,0px));
+  /* height of the connection indicator under the status bar, 0 while there is none — set by
+     components/SyncBanner.jsx. Whatever starts at the top of the screen starts below it. */
+  --conn:0px;
+}
+
+:root[data-theme="light"] {
+  --bg:        #f2f2f7;
+  --bg-el:     #f7f7fa;
+  --surface:   #ffffff;
+  --surface-2: #ececef;
+  --surface-3: #e3e3e8;
+
+  --label:     #000000;
+  --label-2:   rgba(60,60,67,.60);
+  --label-3:   rgba(60,60,67,.30);
+  --label-4:   rgba(60,60,67,.16);
+
+  --sep:       rgba(60,60,67,.29);
+  --sep-op:    rgba(60,60,67,.20);
+
+  --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
+  --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
+  --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
+  --acc-2:#248a3d;
+  --on-acc:#ffffff;
+}
+
+/* accents — Apple's system colours, so a recolour never looks off-system */
+:root[data-accent="lime"]  { --acc:var(--green);  --acc-2:#248a3d; --on-acc:#000 }
+:root[data-accent="sky"]   { --acc:var(--blue);   --acc-2:#0060df; --on-acc:#fff }
+:root[data-accent="orange"]{ --acc:var(--orange); --acc-2:#c76b00; --on-acc:#000 }
+:root[data-accent="violet"]{ --acc:var(--purple); --acc-2:#8944ab; --on-acc:#fff }
+:root[data-accent="pink"]  { --acc:var(--pink);   --acc-2:#d70036; --on-acc:#fff }
+:root[data-accent="red"]   { --acc:var(--red);    --acc-2:#d70015; --on-acc:#fff }
+:root[data-accent="teal"]  { --acc:var(--teal);   --acc-2:#0071a4; --on-acc:#000 }
+:root[data-accent="gold"]  { --acc:var(--yellow); --acc-2:#b25000; --on-acc:#000; --knob-ring:rgba(0,0,0,.28) }
+/* Label colour on a filled accent button is picked per accent by measured contrast,
+   not by taste. Button text is 17px/600, so the AA bar is 3:1 (large text). White on
+   the light-theme green is 2.22:1 and on teal 2.57:1 — both fail, and green is the
+   DEFAULT accent, so every primary button in light mode was failing. Black scores
+   9.46 / 8.16 there. Blue, purple, pink and red keep white (3.5–4.1:1), which both
+   passes and matches the platform convention. */
+:root[data-theme="light"][data-accent="lime"],
+:root[data-theme="light"][data-accent="teal"]  { --on-acc:#000 }
+:root[data-theme="light"][data-accent="sky"],
+:root[data-theme="light"][data-accent="violet"],
+:root[data-theme="light"][data-accent="pink"],
+:root[data-theme="light"][data-accent="red"]   { --on-acc:#fff }
+
+/* ---------------------------------------------------------------- reset -- */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{
+  font-size:16px;background:var(--bg);overscroll-behavior:none;overflow-x:clip;
+  -webkit-text-size-adjust:100%;
+}
+body{
+  background:var(--bg);color:var(--label);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Roboto,system-ui,sans-serif;
+  font-size:17px;line-height:1.29;letter-spacing:-.01em;
+  min-height:100vh;min-height:100dvh;overscroll-behavior-y:none;overflow-x:clip;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  touch-action:manipulation;
+  font-variant-numeric:tabular-nums;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;letter-spacing:inherit}
+input,select,textarea{font:inherit;color:var(--label);letter-spacing:inherit}
+img{max-width:100%}
+a{color:var(--acc);text-decoration:none}
+:focus{outline:none}
+:focus-visible{outline:2.5px solid var(--acc);outline-offset:2px;border-radius:6px}
+button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
+{-webkit-user-select:none;user-select:none}
+
+/* icons inherit colour and optical size from their context */
+.icn{
+  width:1em;height:1em;flex:none;display:block;
+  fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);
+  stroke-linecap:round;stroke-linejoin:round;
+}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ------------------------------------------------------------ type scale -- */
+/* The nine .t-* classes that used to live here emitted from no JSX in the app, while the views
+   typed their numbers inline (Home.jsx:223 is .t-title2 with a different weight). Deleted
+   2026-09-22 rather than adopted, because adopting a scale means changing what four screens
+   render, which is a design call and not a cleanup. `git log -- src/index.css` has them. */
+
+.muted{color:var(--label-2)} .dim{color:var(--label-3)}
+.small{font-size:13px;line-height:1.38}
+.accent{color:var(--acc)}
+.capitalize{text-transform:capitalize}
+/* exercise names and body-part/equipment terms arrive lowercase from the dataset,
+   so tags and chips capitalise by default. Anything that is a unit or a sentence opts
+   back out — blanket-capitalising turned "60 kg" into "60 Kg" and a whole hint into
+   Title Case. The compound selectors are needed: .tag/.chip come later in this file
+   and would otherwise win on source order. */
+.nocap,.tag.nocap,.chip.nocap{text-transform:none}
+
+/* ---------------------------------------------------------------- layout -- */
+#app{
+  padding:calc(var(--sat) + var(--conn) + 8px) var(--pad) calc(88px + var(--sab));
+  max-width:560px;margin:0 auto;
+}
+/* Android 15 with the keyboard up: room to scroll the last field on a page above the keys.
+   The tab bar stays where it is, under the keyboard, rather than riding up on it. */
+:root[data-native-kb] #app,:root[data-native-kb] body.resting #app,:root[data-native-kb] body.no-tabbar.resting #app{padding-bottom:calc(88px + var(--native-kb))}
+/* Keep the last workout controls clear of the mobile overlays without adding a second
+   screenful of blank scroll space. The stacked rest timer needs the larger reserve. */
+body.resting #app{padding-bottom:calc(166px + var(--sab))}
+/* The workout screen has no tab bar (App.jsx): only the docked rest bar, when it is there. */
+body.no-tabbar #app{padding-bottom:calc(24px + var(--sab))}
+body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
+.workout-end-spacer{height:0}
+@keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+#app.vfade{animation:viewfade var(--med) var(--ease)}
+
+/* Connection indicator (components/SyncBanner.jsx): pinned under the status bar for as long as
+   the app is not connected to a server. It carries the page's own ground and blur, like the
+   pinned workout header, so rows scrolling under it read as under it; --conn is the height of
+   its row, which #app and the pinned headers leave free. Above those headers (20, 40), below the
+   tab bar (50), the timer and every sheet. The sentence is never cut: its last words are the ones
+   that say the changes are kept, so a narrow phone gets a third line rather than an ellipsis. */
+.conn-bar{
+  position:fixed;inset-inline-start:0;inset-inline-end:0;top:0;z-index:45;
+  padding:var(--sat) var(--pad) 0;
+  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(10px);backdrop-filter:saturate(180%) blur(10px);
+}
+.conn-row{max-width:560px;margin:0 auto;padding:6px 0}
+.conn{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:start;min-height:34px;
+  padding-block:6px;padding-inline:12px 8px;border-radius:var(--r);
+  background:color-mix(in srgb,var(--yellow) 16%,var(--surface));color:var(--label);font-size:13px;line-height:1.3;
+}
+.conn .icn{flex:none;font-size:16px;color:var(--label-2)}
+.conn-t{flex:1;min-width:0;overflow-wrap:break-word}
+.conn-a{flex:none;padding:4px 10px;border-radius:99px;background:var(--surface-3);font-weight:600;white-space:nowrap}
+button.conn:active{filter:brightness(1.12)}
+.conn-bar.off .conn{background:color-mix(in srgb,var(--label-3) 18%,var(--surface))}
+.conn-bar.bad .conn{background:color-mix(in srgb,var(--red) 16%,var(--surface))}
+.conn-bar.bad .conn .icn{color:var(--red)}
+/* a deliberate local setup: said, not flagged — one small line, no fill */
+.conn-bar.quiet .conn-row{padding:2px 0 4px}
+.conn-bar.quiet .conn{min-height:26px;padding-block:2px;padding-inline:4px 2px;background:none;color:var(--label-2);font-size:12px;gap:6px}
+.conn-bar.quiet .conn .icn{font-size:13px;color:var(--label-3)}
+.conn-bar.quiet .conn-a{padding:2px 9px;font-size:12px;color:var(--acc);background:var(--acc-soft)}
+/* its × (#454): beside the line, not inside its button, so hiding it never also connects */
+.conn-bar.quiet .conn-row{display:flex;align-items:center;gap:2px}
+.conn-x{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:99px;color:var(--label-3);font-size:12px}
+.conn-x:active{background:var(--surface-2)}
+:root[data-theme="light"] .conn-bar:not(.quiet) .conn-a{background:var(--surface)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .conn-bar{background:var(--bg)}
+}
+/* large title, the way a nav bar does it */
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
+/* The title block gives way, the button on the right never does: a flex item will not shrink
+   below its longest word, so "Упражнения" at 34px or "Hi Bartholomew_Jones" used to push the
+   gear / "By muscle" past the screen edge. Two things follow from letting it shrink. Below 420px
+   — every phone width we test — the title drops a step to 30px, because the 95 to 125px the
+   Library button leaves the Polish and Russian titles is less than half of "Ćwiczenia" or
+   "Упражнения" at 34px and they came apart into three lines; at 30px all 14 packs take two at
+   most. And a word that still does not fit is broken with overflow-wrap:break-word, which moves
+   the whole word to the next line first and breaks it only if it does not fit there either —
+   `anywhere` broke "Bartholomew_Jones" mid-word even at 412px, where a line of its own was
+   waiting for it. hyphens:auto goes with them: the hyphen costs a character's worth of width in
+   a box this tight, and that is what turned "Упражнения" into "Упра / жнен / ия". */
+.hdr>div{min-width:0}
+.hdr>.btn{flex:none}
+.hdr>.hdr-actions{display:flex;align-items:center;gap:8px;flex:none}
+.hdr h1{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.028em;overflow-wrap:break-word}
+@media (max-width:420px){.hdr h1{font-size:30px}}
+.hdr .sub{color:var(--label-2);font-size:15px;letter-spacing:-.006em;margin-top:4px}
+/* Library: the count line runs under the title row at full width instead of beside the "By muscle"
+   button, which left it ~200px on a phone: the catalogue count plus your own exercises stays one
+   line in every language. The ellipsis is only the safety net (the strings are kept short), and
+   text-overflow follows the text direction, so Arabic clips on its own end. */
+.hdr.lib-hdr{flex-wrap:wrap;align-items:center;row-gap:0}
+.hdr.lib-hdr>.sub.lib-count{flex:1 0 100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:360px){.hdr.lib-hdr>.sub.lib-count{white-space:normal;overflow:visible;text-overflow:clip}}
+
+.iconbtn{
+  width:36px;height:36px;border-radius:50%;flex:none;
+  background:var(--surface);color:var(--label);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  transition:background var(--fast),transform var(--fast);
+}
+.iconbtn:active{background:var(--surface-2);transform:scale(.92)}
+/* invisible hit-area extension: these look right at their size but fall short of a
+   finger-sized target, so the pseudo element widens what the tap lands on without
+   changing the painted box. Segmented buttons sit flush against each other, so they
+   only grow vertically or the neighbour would steal the edge of the tap. */
+.iconbtn,.chip,.seg button,.helpbtn{position:relative}
+.iconbtn::before,.chip::before,.seg button::before,.helpbtn::before{content:'';position:absolute;inset:-6px}
+.seg button::before{inset:-6px 0}
+.iconbtn.on-ss{background:var(--acc-soft);color:var(--acc)}
+.iconbtn:disabled{opacity:.32}
+
+h4.sec{
+  font-size:13px;font-weight:400;letter-spacing:-.004em;color:var(--label-2);
+  text-transform:none;margin:22px 0 8px;padding:0 4px;
+}
+.card h2{
+  font-size:13px;font-weight:400;letter-spacing:-.004em;color:var(--label-2);
+  text-transform:none;margin:0 0 12px;
+}
+.divider{height:var(--hair);background:var(--sep);margin:14px 0;border:0}
+.row{display:flex;align-items:center;gap:12px}
+.row.between{justify-content:space-between}
+/* The body-weight card header (Home and Stats): title on the left, Goal + Log on the right. In
+   German the title and the two buttons ("Ziel", "+ Eintragen") outgrow a 320px card by about
+   55px, so the button pair may drop to a second line — still flush right, hence the auto margin. */
+.bw-head{flex-wrap:wrap;row-gap:8px}
+.bw-head>.row{margin-inline-start:auto}
+
+/* ----------------------------------------------------------------- card -- */
+.card{
+  background:var(--surface);border-radius:var(--r-card);
+  padding:16px;margin-bottom:12px;
+}
+.card .big{font-size:30px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
+
+/* ------------------------------------------------------ inset group list -- */
+.sect{margin-bottom:22px}
+.sect-t{
+  font-size:13px;font-weight:400;color:var(--label-2);
+  letter-spacing:-.004em;padding:0 4px 7px;display:block;
+}
+.sect-b{background:var(--surface);border-radius:var(--r-card);overflow:hidden}
+.sect-f{font-size:13px;color:var(--label-2);padding:7px 4px 0;line-height:1.38}
+
+.lrow{
+  display:flex;align-items:center;gap:12px;width:100%;text-align: start;
+  padding:11px 14px;min-height:46px;position:relative;color:var(--label);
+  background:none;
+}
+/* hairline starts after the icon rail so the list reads as one object */
+.lrow+.lrow::before{
+  content:'';position:absolute;inset-inline-start:14px;inset-inline-end:0;top:0;height:var(--hair);background:var(--sep);
+}
+.lrow:has(.lrow-i)+.lrow:has(.lrow-i)::before{inset-inline-start:55px}
+.lrow.tap:active{background:var(--surface-2)}
+.lrow-i{
+  width:29px;height:29px;border-radius:7px;flex:none;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--tint,var(--acc));color:#fff;
+}
+/* The title column never shrinks below its own longest word. With a basis of 0 and min-width:0 it
+   only got what a capped value left over, and on a 320px phone "Progression" (96px) was painted over
+   by "Linear progression" in a 37px box; min-width:auto — the flex default — is exactly the floor
+   that case wants. A fixed 104px floor fixed that row and starved the rest: the backfill sheet's Date
+   and Start-time rows have nothing but the title to give, so the floor shoved their fixed-width
+   .timef off a 320px screen, and a short title like "Routine" (63px) took 104px away from the value
+   beside it until "Freies Training" ellipsised. Asking only for the longest word takes nothing a row
+   did not already owe the title. .lrow-t does not ellipsise on purpose — long settings titles wrap
+   onto a second line — and the value next to it shrinks and ellipsises instead (below). */
+.lrow-m{flex:1;min-width:auto;display:flex;flex-direction:column;gap:1px}
+.lrow-t{font-size:17px;letter-spacing:-.012em;line-height:1.25}
+.lrow-s{font-size:13px;color:var(--label-2);line-height:1.3}
+/* Settings → Account ID: a machine string, so a machine face, small, and free to break anywhere
+   rather than push the row past a phone's edge. */
+.acct-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+/* flex:none would let a long value ("Follow the routine (Linear progression)") run straight
+   through the title next to it, since the title's column only holds out for its longest word.
+   Letting the value shrink and ellipsise instead keeps the two out of each other's way.
+   The cap is max-width, not flex-basis: .lrow-m is flex:1, so its basis is 0 and it absorbs
+   none of the shrink — a long value would otherwise take the whole row and squeeze the title
+   to 21px. A basis of 45% fixes that but reserves the space even for "3", costing the title
+   141px on the rows that need it most. A cap does neither. */
+.lrow-v{color:var(--label-2);font-size:17px;letter-spacing:-.012em;flex:0 1 auto;max-width:55%;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align: end}
+.lrow-c{color:var(--label);font-size:15px;flex:none;--icon-stroke:2.4}
+.lrow-k{color:var(--acc);font-size:17px;flex:none;--icon-stroke:2.4}
+.lrow.danger,.lrow.danger .lrow-t{color:var(--red)}
+/* A warning under a settings row reads at subtitle size: a sentence, not a row title. */
+.lrow.backup-lost .lrow-t{font-size:13px;line-height:1.3;color:var(--label-2);letter-spacing:0}
+/* The Stats exercise name gets its own line so long names cannot run into the title.
+   Two columns only — label/value on the left, chevron on the right — so this is for rows
+   WITHOUT an icon. `.lrow-i` is not placed here; on a row that has one it would auto-place
+   into the grid and push the layout around. Give it a leading column before using this
+   anywhere else. */
+.lrow.lrow-stack-value{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;
+}
+.lrow.lrow-stack-value .lrow-m{grid-column:1;grid-row:1}
+.lrow.lrow-stack-value .lrow-v{grid-column:1;grid-row:2;width:100%;max-width:none;text-align:start}
+.lrow.lrow-stack-value .lrow-c{grid-column:2;grid-row:1 / span 2;align-self:center}
+/* an (i) before a row's control: painted small and dim so the control stays the loud thing,
+   but with a finger-sized target like everything else — the padding is the hit area and the
+   vertical negative margin keeps it from making the row taller. The horizontal ones pull the
+   hit area back under the row's own 12px gap instead of adding to it. */
+.helpbtn{
+  color:var(--label-3);font-size:16px;background:none;line-height:0;flex:none;
+  margin-block:-11px;margin-inline:-4px -2px;padding:11px 4px;
+}
+.helpbtn:active{color:var(--label)}
+
+/* -------------------------------------------------------------- buttons -- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  padding:14px 18px;border-radius:var(--r);font-size:17px;font-weight:600;
+  letter-spacing:-.012em;background:var(--surface-2);color:var(--label);
+  transition:transform var(--fast) var(--ease),background var(--fast),opacity var(--fast);
+}
+.btn .icn{font-size:19px}
+.btn:active{transform:scale(.975)}
+.btn.primary{background:var(--acc);color:var(--on-acc)}
+.btn.primary:active{background:var(--acc-2)}
+.btn.tinted{background:var(--acc-soft);color:var(--acc)}
+.btn.danger{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+.btn.ghost,.btn.plain{background:none;color:var(--acc);font-weight:400}
+.btn.ghost:active,.btn.plain:active{background:var(--surface-2)}
+.btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
+.btn.sm .icn{font-size:16px}
+.btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
+.btn:disabled{opacity:.32;pointer-events:none}
+.weekly-volume-toggle{padding-block:0}
+.weekly-volume-toggle .icn{transition:transform var(--fast) var(--ease)}
+.weekly-volume-toggle[aria-expanded="true"] .icn{transform:rotate(180deg)}
+
+
+/* ------------------------------------------------------------ week strip -- */
+.week{display:flex;justify-content:space-between;gap:4px}
+.wday{
+  flex:1;text-align:center;padding:8px 2px 9px;border-radius:10px;
+  background:none;border:none;transition:background var(--fast);
+}
+.wday .lbl{font-size:11px;color:var(--label-3);font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.wday .num{font-size:17px;font-weight:400;margin:4px 0;letter-spacing:-.012em}
+.wday .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin:0 auto}
+.wday .dot.plan{background:var(--label-3)}
+.wday .dot.ovr{background:var(--orange)}
+.wday .dot.done{background:var(--acc)}
+/* a day off with a note on it (#261, lib/day-notes.js): the same colour on every calendar */
+.wday .dot.noted{background:var(--indigo)}
+.wday:active{background:var(--surface-2)}
+.wday.today .num{
+  background:var(--acc);color:var(--on-acc);font-weight:600;
+  width:31px;height:31px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;margin:2px auto;
+}
+
+/* ----------------------------------------------------------------- list -- */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{
+  display:flex;align-items:center;gap:12px;background:var(--surface);
+  border-radius:var(--r-card);padding:10px 12px;min-height:60px;
+  transition:background var(--fast);text-align: start;width:100%;
+}
+.item:active{background:var(--surface-2)}
+.routine-list{position:relative}
+/* One column at every width (#277), whatever page it is on. The desktop layout puts the #app
+   lists outside a .narrow page in two columns, and before the .narrow rule below won on
+   specificity this list sat in that grid on a computer, while the reorder measures its rows top
+   to bottom and draws the drop line across the whole list: an exercise dragged just below the
+   next one in its column landed at the end. Supersets ("the exercise above") read as a column too. */
+#app .list.routine-list{display:flex;flex-direction:column}
+.routine-drag-row{touch-action:pan-y;-webkit-touch-callout:none;position:relative;transition:transform var(--fast) var(--ease)}
+.routine-list.is-reordering{user-select:none;-webkit-user-select:none}
+.routine-list.is-reordering .routine-drag-row{transition:none}
+.routine-drag-row.is-dragging{z-index:2;pointer-events:none}
+.routine-drag-row.is-dragging .item{box-shadow:0 10px 28px rgba(0,0,0,.22);background:var(--surface-2)}
+.routine-drop-indicator{
+  position:absolute;left:6px;right:6px;height:3px;border-radius:99px;
+  background:var(--acc);transform:translateY(-50%);pointer-events:none;z-index:3;
+}
+/* The drag handle (#277, #114). A long press anywhere on a row reorders it on every device,
+   but nothing on screen said so, and with a mouse nobody holds a row to find out. So a pointer
+   device gets the grip it looks for, with a grab cursor, and pressing it picks the row up at
+   once (RoutineEdit.jsx). A touch screen keeps the long press and the row's full width. */
+.routine-grip{
+  display:none;flex:none;align-self:stretch;align-items:center;margin:-10px -6px -10px -4px;padding:0 4px;
+  color:var(--label-3);font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+}
+@media (hover:hover) and (pointer:fine){
+  .routine-grip{display:flex}
+  .routine-grip:hover{color:var(--label-2)}
+}
+.routine-list.is-reordering,.routine-list.is-reordering *{cursor:grabbing}
+.thumb{width:50px;height:50px;border-radius:9px;object-fit:cover;background:#fff;flex:none}
+/* exercise pictures are decoration inside tappable rows/cards: no save-image callout on
+   a long press and no drag ghost when a scroll starts on the picture */
+.thumb,.exmedia img,.exmedia video{-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+.thumb-x{
+  display:flex;align-items:center;justify-content:center;font-size:21px;
+  background:var(--surface-2);color:var(--label-2);
+}
+.item .tt{font-size:16px;font-weight:400;line-height:1.25;letter-spacing:-.009em}
+.item .ss{color:var(--label-2);font-size:13px;margin-top:2px}
+.item .grow{flex:1;min-width:0}
+/* A row's opener as a real button (the routine editor's exercise name), so a row holding other
+   buttons is no button itself. Reads as the plain text it replaced. */
+.item .item-open{display:flex;flex-direction:column;justify-content:center;align-self:stretch;text-align:start}
+.item .item-open>span{display:block}
+.chev{color:var(--label);flex:none;font-size:15px;--icon-stroke:2.4}
+.tag{
+  display:inline-flex;align-items:center;gap:3px;background:var(--surface-2);
+  color:var(--label-2);border-radius:6px;padding:3px 7px;font-size:12px;
+  font-weight:500;text-transform:capitalize;
+}
+.tag.acc{background:var(--acc-soft);color:var(--acc)}
+/* Left / Right on a per-side row: one width for both (#322). The two hidden words share the
+   visible one's grid cell, so the pill is as wide as the longer word. */
+.tag.sidepill{display:inline-grid;justify-items:center;flex:none}
+.tag.sidepill>span,.tag.sidepill::before,.tag.sidepill::after{grid-area:1/1}
+.tag.sidepill::before{content:attr(data-l);visibility:hidden}
+.tag.sidepill::after{content:attr(data-r);visibility:hidden}
+/* favourite marker (issue #6): a small yellow star glued to the exercise name — distinct from
+   the accent "chosen" tag at the row's end, which means "already in a routine or the log" */
+.fav-star{color:var(--yellow);font-size:12px;display:inline-block;margin-inline-end:5px;vertical-align:-1px}
+.fav-btn{margin-top:-4px;flex:none}
+/* One long word (a German custom name) wraps instead of pushing the star off the screen. */
+.exdetail-name{min-width:0;overflow-wrap:anywhere}
+.fav-btn.on{color:var(--yellow)}
+/* Exercise cards (S.exerciseView 'cards', ExerciseViewToggle): the Library, the picker and the
+   muscle explorer as a grid of pictures with the name underneath — two across on a phone, more
+   as the page or sheet widens. The id-prefixed selectors outrank the desktop rules further down
+   that make every #app list two columns and every sheet list one. The catalogue pictures are
+   180px, which is why a card stays near that size instead of filling a phone's width. */
+.list.ex-grid,#app .list.ex-grid,#modal-root .list.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ex-grid .item{position:relative;flex-direction:column;align-items:stretch;gap:8px;padding:8px}
+.ex-grid .item .thumb{width:100%;height:auto;aspect-ratio:1;border-radius:12px}
+.ex-grid .item .thumb-x{font-size:36px}
+.ex-grid .item .tt{font-size:15px}
+/* The badges ride on the picture's top corners and "+ Plan" spans the foot of the card. The
+   picker's "+" carries an inline padding/margin that widens its hit area in a row; on a card it
+   sits on the picture, so those give way here. */
+.ex-grid .item>.tag{position:absolute;top:14px;inset-inline-start:14px}
+.ex-grid .item:not(.ex-new)>.chev{position:absolute;top:14px;inset-inline-end:14px;width:32px;height:32px;margin:0 !important;padding:7px !important;border-radius:50%;background:var(--surface)}
+.ex-grid .item>.btn{width:100%}
+/* "Create your own exercise" stays a row across the top of the grid */
+.ex-grid .item.ex-new{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:10px 12px}
+.ex-grid .item.ex-new .thumb{width:50px;height:50px;border-radius:9px}
+.ex-grid .item.ex-new .thumb-x{font-size:21px}
+/* The list/cards button (ExerciseViewToggle) at the end of the search field, as tall as it and
+   dressed like it; pressed while the cards are on. */
+.search-row{display:flex;gap:8px}
+.search-row>.search{flex:1;min-width:0}
+.search-row>.ex-view-btn{width:46px;height:auto;border-radius:10px;background:var(--surface-2);font-size:20px}
+:root[data-theme="light"] .search-row>.ex-view-btn{background:rgba(118,118,128,.12)}
+.search-row>.ex-view-btn.on,:root[data-theme="light"] .search-row>.ex-view-btn.on{background:var(--acc-soft);color:var(--acc)}
+
+/* ---------------------------------------------------------------- chips -- */
+.chips{
+  display:flex;gap:7px;overflow-x:auto;padding:4px 4px 6px;   /* room for a chip's focus outline inside a sheet (#162) */
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+/* horizontal strips: keep a sideways overscroll from chaining to the page and leave a
+   margin when a chip is scrolled into view. The chip row also claims the horizontal axis
+   (touch-action:pan-x): on a phone a slightly diagonal swipe along the chips used to hand
+   the gesture to the page, which scrolled down instead. The row is 32px tall, so losing a
+   vertical scroll that happens to start on it costs nothing; the ~130px heatmap wrap keeps
+   both axes, there the trade-off goes the other way. The chips contain both axes: once a
+   strip is at its end, a diagonal drag must not chain into the page either. */
+.chips,.hm-wrap{overscroll-behavior-x:contain;scroll-padding-inline:16px}
+.chips{touch-action:pan-x;overscroll-behavior:contain}
+/* The chip hit-area (.chip::before, inset:-6px) must not poke out of the strip vertically:
+   overflow-x:auto makes overflow-y auto as well, and that 6px of positioned overflow gave
+   the 32px row a 36px scroll height — a diagonal swipe, wheel or drag then scrolled the
+   whole row up by 4px and left it there. Vertical slop is clipped by the strip anyway. */
+.chips .chip::before{top:0;bottom:0}
+.chip{
+  flex:none;padding:6px 13px;border-radius:99px;background:var(--surface);
+  font-size:14px;font-weight:400;color:var(--label);text-transform:capitalize;
+  letter-spacing:-.006em;transition:background var(--fast),color var(--fast);
+}
+.chip:active{background:var(--surface-2)}
+.chip.on{background:var(--acc);color:var(--on-acc);font-weight:500}
+.chip.on .dim{color:color-mix(in srgb,var(--on-acc) 62%,transparent)}
+.chip .qstate{text-transform:none}
+/* On a phone these rows scroll by swipe. On a pointer device lib/hchips.js lets you
+   click-drag anywhere on the row to pull it along; a grab cursor on rows that actually
+   overflow (data-xscroll, set by hchips.js on hover) is the hint. */
+@media (hover:hover) and (pointer:fine){
+  .chips[data-xscroll]{cursor:grab}
+}
+/* while a drag is in flight: no text selection, grabbing cursor everywhere (the `*` rule
+   outweighs button{cursor:pointer} so it holds even over a chip) */
+body.chips-dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
+body.chips-dragging *{cursor:inherit}
+
+/* =========================== CONTROLS ==================================== */
+
+
+.exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
+.exmedia img{width:100%;height:320px;object-fit:contain;display:block}
+.exmedia .gifhint,.exmedia .giftoggle{
+  position:absolute;bottom:9px;display:inline-flex;align-items:center;gap:4px;
+  background:rgba(0,0,0,.45);color:#fff;border-radius:99px;padding:5px 11px;
+  font-size:12px;font-weight:500;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+}
+.exmedia .gifhint{inset-inline-end:9px}
+.exmedia .giftoggle{inset-inline-start:9px}
+.exmedia .gifhint .icn,.exmedia .giftoggle .icn{font-size:13px}
+/* superset: both exercises are on screen together, so the animations have to give way —
+   at 180px you had to scroll a full screen between two exercises done back-to-back */
+.exmedia.compact img{height:120px}
+.exmedia.mini img{height:84px}
+/* both the animation and the still failed to load: a neutral tile instead of the browser's
+   broken-image glyph; same heights as the picture so the card does not jump. tap retries. */
+.exmedia.broken{background:var(--surface-2)}
+.exmedia-x{width:100%;height:320px;display:flex;align-items:center;justify-content:center;color:var(--label-3);font-size:34px}
+.exmedia.compact .exmedia-x{height:120px}
+.exmedia.mini .exmedia-x{height:84px}
+/* a custom exercise's own video (components/CustomMedia.jsx): the same box as a picture, on black
+   so a clip that does not fill it is letterboxed like any player */
+.exmedia video{width:100%;height:320px;object-fit:contain;display:block;background:#000}
+.exmedia.compact video{height:120px}
+.exmedia.mini video{height:84px}
+.exmedia:has(> video){background:#000}
+/* a catalogue animation: drawn on white, like the stills next to it */
+.exmedia video.catvid,.exmedia:has(> video.catvid){background:#fff}
+
+
+/* --- home: today's session row --- */
+.today-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:12px;padding:12px 14px;border-radius:var(--r);background:var(--surface-2);
+  transition:background var(--fast);width:100%;text-align: start;cursor:pointer;
+}
+.today-row:active{background:var(--surface-3)}
+.today-row .lbl2{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--label-3)}
+.today-row .ttl{
+  font-weight:500;font-size:17px;line-height:1.25;text-transform:capitalize;
+  letter-spacing:-.012em;margin-top:2px;
+  /* two lines before the ellipsis: "Leg Day — in progress" grows past one line in hu/tr/th/pt-BR */
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* Only where a pointer really hovers — on a phone :hover sticks to the row after the tap.
+   Lighter than :active, which goes all the way to --surface-3, so the two stay distinct. */
+@media (hover:hover){
+  .today-row:hover{background:color-mix(in srgb,var(--surface-2),var(--surface-3) 60%)}
+  :root[data-theme="light"] .today-row:hover{background:color-mix(in srgb,var(--surface-2),var(--surface-3) 85%)}
+}
+
+/* --------------------------------------------------- desktop (≥1000px) --- */
+.cols{display:block}
+@media (min-width:1000px){
+  #app{max-width:1080px;padding-top:calc(var(--conn) + 32px);padding-bottom:calc(128px + var(--sab))}
+  .conn-row{max-width:640px}   /* the width of the .narrow pages below it */
+  body.resting #app{padding-bottom:calc(220px + var(--sab))}
+  body.no-tabbar #app{padding-bottom:calc(40px + var(--sab))}
+  body.no-tabbar.resting #app{padding-bottom:calc(130px + var(--sab))}
+  .workout-end-spacer{height:40px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  .cols>*{min-width:0}
+  /* Two columns on the full-width pages (Library, History, Stats, Plan, Muscles). A .narrow page
+     is a single 640px column and keeps its lists in one too. The #app in that selector is what
+     lets it win: `.narrow .list` alone lost to `#app .list` on specificity, so Home, Workout,
+     Admin and the rest showed their lists two-up on a computer. Sheets live in #modal-root,
+     outside #app, and are one column at every width. */
+  #app .list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #modal-root .list,#app .narrow .list{display:flex;flex-direction:column}
+  .narrow{max-width:640px;margin:0 auto}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .cols .tiles,.center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
+  #tabbar{
+    left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:520px;
+    border:var(--hair) solid var(--sep-op);border-radius:var(--r-xl);
+    padding:7px 10px 9px;box-shadow:0 12px 40px -10px rgba(0,0,0,.5);
+  }
+  #tabbar button.start{margin-top:-26px}
+  .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}
+  .center{width:340px}
+  #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}
+  body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:0 12px 40px -10px rgba(0,0,0,.5)}
+  .exmedia img,.exmedia video{height:380px}
+  .hm-wrap{display:flex;flex-direction:column;align-items:center}
+}
+
+
