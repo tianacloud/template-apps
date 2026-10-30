@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS countdown_settings (id INTEGER PRIMARY KEY, value TEXT NOT NULL);
