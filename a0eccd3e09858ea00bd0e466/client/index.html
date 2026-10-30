@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
+<title>人生进度条 · Life in Weeks</title>
+<meta content="把一生画成 4000 多个小格子。输入生日，看看你的人生加载到哪一格了。" name="description">
+<style>
+  :root {
+    --paper: #faf6ee;
+    --card: #fffdf8;
+    --ink: #23262e;
+    --sub: #8b8577;
+    --line: #e8e0d0;
+    --accent: #e8735c;
+    --deep: #c2492f;
+    --gold: #c99a3f;
+    --future: #ede5d4;
+    --serif: Georgia, "Times New Roman", "STZhongsong", "SimSun", serif;
+    --sans: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  .hide { display: none !important; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+
+  .eyebrow { font-size: 11px; letter-spacing: .28em; color: var(--sub); text-transform: uppercase; }
+  h1 {
+    margin: 10px 0 4px; font-family: var(--serif); font-weight: 700;
+    font-size: clamp(34px, 8vw, 52px); letter-spacing: .04em; line-height: 1.1;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { margin: 0 0 30px; color: var(--sub); font-size: 13px; }
+
+  /* ---------- 设置卡 ---------- */
+  .setup {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px 22px 18px; box-shadow: 0 10px 30px rgba(90,70,40,.06);
+    margin-bottom: 34px;
+  }
+  .setup.done { display: none; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field label { font-size: 12px; letter-spacing: .12em; color: var(--sub); }
+  input[type="date"], input[type="text"], input[type="number"] {
+    font-family: var(--sans); font-size: 17px; color: var(--ink);
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; outline: none; width: 100%;
+  }
+  input[type="date"]:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent); }
+  input::placeholder { color: #c6bda9; }
+  .row2 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row2 > * { flex: 1; min-width: 0; }
+  .row2 .chips { flex: 1.4; }
+  .row2 input[type="number"] { flex: 0 0 150px; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px;
+    background: #fff; cursor: pointer; font-size: 13px; color: var(--ink);
+    font-family: var(--sans); transition: all .15s;
+  }
+  .chip.on { border-color: var(--accent); color: var(--deep); background: #fdeee9; font-weight: 600; }
+  .go {
+    margin-top: 4px; padding: 12px 28px; border: none; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #fff; font-size: 15px; font-family: var(--sans);
+    letter-spacing: .2em; font-weight: 600; transition: transform .1s, background .15s;
+  }
+  .go:hover { background: var(--deep); }
+  .go:active { transform: translateY(1px); }
+  .err { color: var(--deep); font-size: 12px; margin-top: 10px; min-height: 18px; }
+  .edit-line { font-size: 12px; color: var(--sub); margin: -24px 0 26px; }
+  .edit-line a { color: var(--deep); cursor: pointer; text-decoration: underline dotted; }
+
+  /* ---------- 主视图 ---------- */
+  .main.hide { display: none; }
+  .hero {
+    text-align: center; padding: 30px 10px 26px;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .pct {
+    font-family: var(--serif); font-size: clamp(64px, 18vw, 118px);
+    line-height: 1; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .pct small { font-size: .38em; color: var(--sub); font-weight: 400; margin-left: 4px; }
+  .hero-cap { color: var(--sub); font-size: 13px; margin-top: 8px; letter-spacing: .1em; }
+  .barwrap { position: relative; margin: 26px auto 30px; max-width: 620px; }
+  .bar { height: 13px; border-radius: 99px; background: var(--future); overflow: hidden; border: 1px solid var(--line); }
+  .fill {
+    height: 100%; width: 0%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--gold), var(--accent) 62%, var(--deep));
+    transition: width 1.1s cubic-bezier(.25,.8,.25,1);
+  }
+  .ticks { position: relative; height: 26px; margin-top: 6px; font-size: 10px; color: #b3ab99; }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  .ticks span::before { content: ""; display: block; width: 1px; height: 5px; background: #cfc6b2; margin: 0 auto 2px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 40px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 14px 12px; text-align: center;
+  }
+  .card b { display: block; font-family: var(--serif); font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .card b i { font-style: normal; font-size: 12px; color: var(--sub); font-weight: 400; margin-left: 2px; }
+  .card span { font-size: 11px; color: var(--sub); letter-spacing: .06em; }
+  .card.warm b { color: var(--deep); }
+
+  h2 {
+    font-size: 12px; letter-spacing: .26em; color: var(--sub);
+    text-transform: uppercase; font-weight: 600; margin: 0 0 14px;
+  }
+  .gridbox { margin-bottom: 46px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--sub); margin-bottom: 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .grid { display: flex; flex-direction: column; gap: 3px; }
+  .grow { display: flex; align-items: center; gap: 3px; }
+  .glabel { width: 88px; min-width: 88px; font-size: 10px; color: #b3ab99; text-align: right; padding-right: 6px; white-space: nowrap; overflow: visible; }
+  .glabel b { color: var(--deep); font-weight: 600; }
+  .cells { display: flex; gap: 2px; flex: 1; }
+  .cell { flex: 1; height: 9px; border-radius: 2px; background: var(--future); }
+  .cell.past { background: var(--accent); }
+  .cell.now { background: #ff2d1a; box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #ff2d1a; animation: blink 1.3s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .45; } }
+  .weekline { font-size: 13px; color: var(--sub); margin-top: 16px; }
+  .weekline b { color: var(--deep); font-family: var(--serif); font-size: 15px; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 40px 0 8px; }
+  .btn {
+    padding: 11px 22px; border-radius: 10px; cursor: pointer; font-size: 13px;
+    letter-spacing: .1em; font-family: var(--sans); transition: all .15s;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff; font-weight: 600;
+  }
+  .btn:hover { background: var(--deep); border-color: var(--deep); }
+  .btn.ghost { background: transparent; color: var(--deep); }
+  .btn.ghost:hover { background: #fdeee9; }
+  .copytip { font-size: 12px; color: var(--gold); align-self: center; opacity: 0; transition: opacity .2s; }
+  .copytip.on { opacity: 1; }
+
+  footer { margin-top: 46px; text-align: center; font-size: 11px; color: #b3ab99; line-height: 1.9; }
+
+  /* ---------- 分享卡弹层 ---------- */
+  .mask {
+    position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 20px;
+    background: rgba(35,32,24,.55); backdrop-filter: blur(3px);
+  }
+  .mask.hide { display: none; }
+  .sharepanel { background: var(--card); border-radius: 14px; padding: 16px; max-width: 400px; width: 100%; box-shadow: 0 30px 80px rgba(0,0,0,.4); }
+  .sharepanel img { width: 100%; border-radius: 8px; display: block; border: 1px solid var(--line); }
+  .sharepanel .row { display: flex; gap: 8px; margin-top: 12px; }
+  .sharepanel .btn { flex: 1; text-align: center; }
+
+  @media (max-width: 620px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .glabel { width: 64px; min-width: 64px; font-size: 9px; }
+    .wrap { padding-top: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Life in Weeks · 每格一周</div>
+  <h1>人生<em>进度条</em></h1>
+  <p class="sub">把一生画成几千个小格子。填个生日，看看你加载到哪一格了。</p>
+
+  <div class="setup" id="setup">
+    <div class="field">
+      <label>你的出生日期 · 点选，或在右边手动输入</label>
+      <div class="row2">
+        <input id="dob" max="2026-12-31" min="1920-01-01" type="date">
+        <input autocomplete="off" id="dob-text" placeholder="1998-06-18 / 19980618" type="text">
+      </div>
+    </div>
+    <div class="field">
+      <label>按活到多少岁算？ · 点快捷档，或自定义</label>
+      <div class="row2">
+        <div class="chips" id="chips">
+          <button class="chip" data-v="75">75</button>
+          <button class="chip on" data-v="85">85</button>
+          <button class="chip" data-v="90">90</button>
+          <button class="chip" data-v="95">95</button>
+          <button class="chip" data-v="100">100</button>
+        </div>
+        <input autocomplete="off" id="span-num" max="130" min="40" placeholder="自定义 40-130" step="1" type="number">
+      </div>
+    </div>
+    <button class="go" id="btn-go">画出来</button>
+    <div class="err" id="err"></div>
+  </div>
+  <div class="edit-line hide" id="edit-line">当前按 <b id="edit-info"></b> 计算 · <a id="btn-edit">改一下</a></div>
+
+  <div class="main hide" id="main">
+    <div class="hero">
+      <div class="pct"><span id="pct">0</span><small>%</small></div>
+      <div class="hero-cap" id="pct-cap">人生已加载</div>
+      <div class="barwrap">
+        <div class="bar"><div class="fill" id="fill"></div></div>
+        <div class="ticks" id="ticks"></div>
+      </div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="gridbox">
+      <h2>你的 <span id="grid-span">85</span> 年 · 每个格子是一周</h2>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>已经过完的</span>
+        <span><i style="background:#ff2d1a"></i>你在这格</span>
+        <span><i style="background:var(--future)"></i>还没来的</span>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="weekline" id="weekline"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btn-card">生成分享卡</button>
+      <button class="btn ghost" id="btn-copy">复制文案</button>
+      <span class="copytip" id="copytip">已复制</span>
+    </div>
+  </div>
+
+  <footer>
+    计算在浏览器中完成，生日和寿命设置保存在应用数据库。<br>
+    算法用 365.2425 天/年，格子按每年 52 周近似 · 献给每一个觉得日子过得快的人
+  </footer>
+</div>
+
+<div class="mask hide" id="mask">
+  <div class="sharepanel">
+    <img alt="人生进度条分享卡" id="share-img">
+    <div class="row">
+      <a class="btn" download="life-progress.png" id="btn-download">保存图片</a>
+      <button class="btn ghost" id="btn-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 人生进度条 · 全部逻辑：日期计算、周格图、实时心跳、分享卡 */
+(function () {
+  'use strict';
+
+  var DAY = 86400000;
+  var DAYS_PER_YEAR = 365.2425;
+  var WEEKS_PER_YEAR = 52;
+
+  var MILESTONES = { 6: '小学', 12: '初中', 15: '高中', 18: '成年', 22: '毕业', 30: '而立', 50: '知天命', 60: '退休', 70: '古稀' };
+
+  function $(id) { return document.getElementById(id); }
+
+  var els = {
+    setup: $('setup'), dob: $('dob'), dobText: $('dob-text'), chips: $('chips'),
+    spanNum: $('span-num'), go: $('btn-go'), err: $('err'),
+    editLine: $('edit-line'), editInfo: $('edit-info'), btnEdit: $('btn-edit'),
+    main: $('main'), pct: $('pct'), pctCap: $('pct-cap'), fill: $('fill'), ticks: $('ticks'),
+    cards: $('cards'), grid: $('grid'), weekline: $('weekline'),
+    copytip: $('copytip'), mask: $('mask'), shareImg: $('share-img'),
+    download: $('btn-download'), close: $('btn-close')
+  };
+
+  var dob = null;          // Date
+  var span = 85;           // 设定寿命
+  var lastPct = -1;
+
+  /* ------------------------------------------------------------ 工具 */
+  function parseDate(str) {
+    var s = String(str || '').trim();
+    if (!s) return null;
+    var m = /^(\d{4})(\d{2})(\d{2})$/.exec(s) ||
+            /^(\d{4})[-/.年]?\s*(\d{1,2})[-/.月]?\s*(\d{1,2})\s*日?$/.exec(s);
+    if (!m) return null;
+    var d = new Date(+m[1], +m[2] - 1, +m[3]);
+    if (d.getFullYear() !== +m[1] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[3]) return null;
+    return d;
+  }
+  function iso(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function lifePct(now) {
+    return clamp((now - dob) / (span * DAYS_PER_YEAR * DAY) * 100, 0, 100);
+  }
+  function yearPct(now) {
+    var a = new Date(now.getFullYear(), 0, 1);
+    var b = new Date(now.getFullYear() + 1, 0, 1);
+    return (now - a) / (b - a) * 100;
+  }
+  function nextBirthday(now) {
+    var next = new Date(dob);
+    next.setFullYear(now.getFullYear());
+    next.setHours(0, 0, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setFullYear(now.getFullYear() + 1);
+    return next;
+  }
+  function livedDays(now) { return (now - dob) / DAY; }
+  function livedWeeks(now) { return Math.floor(livedDays(now) / 7); }
+  function ageYears(now) { return (now - dob) / (DAYS_PER_YEAR * DAY); }
+
+  /* ------------------------------------------------------------ 渲染 */
+  function renderStatic() {
+    $('grid-span').textContent = span;
+    /* 刻度：每 10 岁一格 */
+    var html = '';
+    for (var a = 10; a <= span - 5; a += 10) {
+      html += '<span style="left:' + (a / span * 100).toFixed(2) + '%">' + a + '</span>';
+    }
+    els.ticks.innerHTML = html;
+
+    /* 周格图：每年一行 x 52 格 */
+    var frag = document.createDocumentFragment();
+    var lived = livedWeeks(new Date());
+    for (var year = 0; year < span; year++) {
+      var row = document.createElement('div');
+      row.className = 'grow';
+      var label = document.createElement('div');
+      label.className = 'glabel';
+      if (MILESTONES[year]) {
+        label.innerHTML = '<b>' + year + ' · ' + MILESTONES[year] + '</b>';
+      } else if (year % 5 === 0) {
+        label.textContent = year + ' 岁';
+      }
+      row.appendChild(label);
+      var cells = document.createElement('div');
+      cells.className = 'cells';
+      for (var w = 0; w < WEEKS_PER_YEAR; w++) {
+        var idx = year * WEEKS_PER_YEAR + w;
+        var c = document.createElement('div');
+        c.className = 'cell' + (idx < lived ? ' past' : idx === lived ? ' now' : '');
+        cells.appendChild(c);
+      }
+      row.appendChild(cells);
+      frag.appendChild(row);
+    }
+    els.grid.innerHTML = '';
+    els.grid.appendChild(frag);
+
+    els.editInfo.textContent = dob.getFullYear() + ' 年 ' + (dob.getMonth() + 1) + ' 月 ' + dob.getDate() +
+      ' 日出生 · 按活到 ' + span + ' 岁算';
+    els.editLine.classList.remove('hide');
+    els.main.classList.remove('hide');
+    els.setup.classList.add('done');
+  }
+
+  function renderCards(now) {
+    var remDays = Math.max(0, span * DAYS_PER_YEAR - livedDays(now));
+    var meals = remDays * 3;
+    var items = [
+      { n: fmt(livedDays(now)), u: '天', t: '已经活过', live: 'days' },
+      { n: fmt(Math.max(0, Math.ceil((nextBirthday(now) - now) / DAY))), u: '天', t: '距下一个生日' },
+      { n: yearPct(now).toFixed(1), u: '%', t: now.getFullYear() + ' 年已过' },
+      { n: fmt(span * WEEKS_PER_YEAR - livedWeeks(now)), u: '个', t: '剩余周末', warm: true },
+      { n: fmt(Math.max(0, Math.floor(span - ageYears(now)))), u: '个', t: '剩余夏天', warm: true },
+      { n: meals >= 10000 ? (meals / 10000).toFixed(1) + ' 万' : fmt(meals), u: '顿', t: '还能好好吃', warm: true }
+    ];
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      html += '<div class="card' + (it.warm ? ' warm' : '') + '"' + (it.live ? ' id="card-days"' : '') + '>' +
+        '<b>' + it.n + '<i>' + it.u + '</i></b><span>' + it.t + '</span></div>';
+    }
+    els.cards.innerHTML = html;
+  }
+
+  function tick() {
+    if (!dob) return;
+    var now = new Date();
+    var p = lifePct(now);
+    if (Math.abs(p - lastPct) > 0.0001) {
+      lastPct = p;
+      els.pct.textContent = p.toFixed(2);
+      els.fill.style.width = p.toFixed(3) + '%';
+      els.pctCap.textContent = p >= 99.99
+        ? '人生已加载完毕 · 每一格都是赚到的'
+        : '人生已加载 · 生日 ' + dob.getFullYear() + '.' + pad2(dob.getMonth() + 1) + '.' + pad2(dob.getDate());
+      renderCards(now);
+
+      var lived = livedWeeks(now);
+      var year = Math.floor(lived / WEEKS_PER_YEAR);
+      var col = lived % WEEKS_PER_YEAR;
+      els.weekline.innerHTML = '你正生活在第 <b>' + fmt(lived + 1) + '</b> 周 · ' + year + ' 岁这一行的第 <b>' +
+        (col + 1) + '</b> 格。这格过完，它就是暗红色的了。';
+    } else {
+      var daysEl = document.getElementById('card-days');
+      if (daysEl) {
+        var d = livedDays(now);
+        daysEl.querySelector('b').innerHTML = fmt(d) + '<i>天</i>';
+      }
+    }
+  }
+
+  async function apply() {
+    var now = new Date();
+    /* 日期：手动输入优先，其次点选 */
+    var typed = els.dobText.value.trim();
+    var v = parseDate(typed || els.dob.value);
+    if (!v) {
+      els.err.textContent = typed
+        ? '这个日期看不懂 · 试试 1998-06-18 或 19980618'
+        : '请先选一个出生日期（点选或手动输入都行）';
+      return;
+    }
+    if (v.getTime() > now.getTime()) { els.err.textContent = '出生日期不能在未来 —— 除非你是时间旅行者'; return; }
+
+    /* 寿命：自定义数字优先，其次快捷档 */
+    var custom = parseInt(els.spanNum.value, 10);
+    if (!isNaN(custom)) {
+      if (custom < 40 || custom > 130) { els.err.textContent = '自定义岁数请在 40 - 130 之间（先好好活着，别立太离谱的 flag）'; return; }
+      span = custom;
+    }
+
+    if ((now - v) / (DAYS_PER_YEAR * DAY) >= span) {
+      els.err.textContent = '已超过 ' + span + ' 岁的设定寿命，建议把寿命调大一点（认真的，祝你长寿）';
+      return;
+    }
+    els.err.textContent = '';
+    try { await lifeSql('INSERT INTO life_settings (id,dob,lifespan) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET dob=excluded.dob,lifespan=excluded.lifespan', [iso(v), String(span)]); } catch (e) { els.err.textContent = '保存结果未确认，请刷新后核对数据库连接。'; return; }
+    dob = v;
+    els.dob.value = iso(v);
+    lastPct = -1;
+    renderStatic();
+    tick();
+    els.main.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ------------------------------------------------------------ 分享卡 */
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function drawCard() {
+    var now = new Date();
+    var c = document.createElement('canvas');
+    c.width = 1080; c.height = 1500;
+    var x = c.getContext('2d');
+    var SERIF = '"Georgia","STZhongsong","SimSun",serif';
+
+    var bg = x.createLinearGradient(0, 0, 0, 1500);
+    bg.addColorStop(0, '#fbf7ef');
+    bg.addColorStop(1, '#f3ecdd');
+    x.fillStyle = bg;
+    x.fillRect(0, 0, 1080, 1500);
+
+    x.fillStyle = 'rgba(180,160,120,0.10)';
+    for (var gy = 40; gy < 1500; gy += 36) {
+      for (var gx = 40; gx < 1080; gx += 36) { x.fillRect(gx, gy, 2, 2); }
+    }
+    x.strokeStyle = 'rgba(194,73,47,0.35)';
+    x.lineWidth = 2;
+    roundRectPath(x, 28, 28, 1024, 1444, 18);
+    x.stroke();
+
+    x.textAlign = 'left';
+    x.fillStyle = '#8b8577';
+    x.font = '600 26px ' + SERIF;
+    x.fillText('L I F E   I N   W E E K S', 84, 128);
+    x.fillStyle = '#23262e';
+    x.font = '700 92px ' + SERIF;
+    x.fillText('人生进度条', 80, 236);
+
+    var p = lifePct(now);
+    x.fillStyle = '#c2492f';
+    x.font = '700 250px ' + SERIF;
+    x.fillText(p.toFixed(2), 80, 480);
+    var pctW = x.measureText(p.toFixed(2)).width;
+    x.fillStyle = '#8b8577';
+    x.font = '400 64px ' + SERIF;
+    x.fillText('%', 92 + pctW, 480);
+    x.fillStyle = '#8b8577';
+    x.font = '30px sans-serif';
+    x.fillText('人生已加载 · ' + dob.getFullYear() + '.' + pad2(dob.getMonth() + 1) + '.' + pad2(dob.getDate()) + ' 起 · 按活到 ' + span + ' 岁算', 84, 548);
+
+    x.fillStyle = '#ede5d4';
+    roundRectPath(x, 84, 590, 912, 22, 11);
+    x.fill();
+    var grad = x.createLinearGradient(84, 0, 996, 0);
+    grad.addColorStop(0, '#c99a3f');
+    grad.addColorStop(0.62, '#e8735c');
+    grad.addColorStop(1, '#c2492f');
+    x.fillStyle = grad;
+    roundRectPath(x, 84, 590, Math.max(30, 912 * p / 100), 22, 11);
+    x.fill();
+
+    var stats = [
+      ['已活', fmt(livedDays(now)) + ' 天'],
+      ['剩余周末', fmt(span * WEEKS_PER_YEAR - livedWeeks(now)) + ' 个'],
+      ['距下个生日', Math.max(0, Math.ceil((nextBirthday(now) - now) / DAY)) + ' 天'],
+      ['剩余夏天', fmt(Math.max(0, Math.floor(span - ageYears(now)))) + ' 个']
+    ];
+    x.fillStyle = '#8b8577';
+    x.font = '26px sans-serif';
+    x.fillText('一些精确的数字', 84, 692);
+    for (var i = 0; i < stats.length; i++) {
+      var sx = 84;
+      var sy = 768 + i * 104;
+      x.fillStyle = '#23262e';
+      x.font = '700 50px ' + SERIF;
+      x.fillText(stats[i][1], sx, sy);
+      x.fillStyle = '#8b8577';
+      x.font = '24px sans-serif';
+      x.fillText(stats[i][0], sx, sy + 38);
+    }
+
+    var lived = livedWeeks(now);
+    var cell = 6, gap = 1.5;
+    var gx0 = 640, gy0 = 718;
+    for (var year = 0; year < span; year++) {
+      for (var w = 0; w < WEEKS_PER_YEAR; w++) {
+        var idx = year * WEEKS_PER_YEAR + w;
+        if (idx === lived) x.fillStyle = '#ff2d1a';
+        else if (idx < lived) x.fillStyle = 'rgba(232,115,92,' + (0.45 + 0.5 * (year / span)).toFixed(2) + ')';
+        else x.fillStyle = 'rgba(200,186,156,0.5)';
+        x.fillRect(gx0 + w * (cell + gap), gy0 + year * (cell + gap), cell, cell);
+      }
+    }
+    x.fillStyle = '#8b8577';
+    x.font = '24px sans-serif';
+    x.fillText('每个格子是一周 · 共 ' + fmt(span * WEEKS_PER_YEAR) + ' 格', 640, gy0 + span * (cell + gap) + 34);
+
+    x.fillStyle = '#8b8577';
+    x.font = '26px sans-serif';
+    x.fillText('「把人生画出来，才知道周末有多贵。」', 84, 1400);
+    x.font = '22px sans-serif';
+    x.fillStyle = '#b3ab99';
+    x.fillText('生成于 ' + now.getFullYear() + '.' + pad2(now.getMonth() + 1) + '.' + pad2(now.getDate()) + ' · 数据只在你的手机里', 84, 1444);
+    return c;
+  }
+
+  function showCard() {
+    var canvas = drawCard();
+    var url = canvas.toDataURL('image/png');
+    els.shareImg.src = url;
+    els.download.href = url;
+    els.mask.classList.remove('hide');
+  }
+
+  function copyText() {
+    var now = new Date();
+    var txt = '我的人生已加载 ' + lifePct(now).toFixed(2) + '%：已活 ' + fmt(livedDays(now)) +
+      ' 天，剩余周末约 ' + fmt(span * WEEKS_PER_YEAR - livedWeeks(now)) + ' 个，距下个生日还有 ' +
+      Math.max(0, Math.ceil((nextBirthday(now) - now) / DAY)) + ' 天。你也来画一张？';
+    function done() {
+      els.copytip.classList.add('on');
+      setTimeout(function () { els.copytip.classList.remove('on'); }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+  }
+
+  /* ------------------------------------------------------------ 事件 */
+  els.chips.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t.classList.contains('chip')) return;
+    var all = els.chips.children;
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('on');
+    t.classList.add('on');
+    span = +t.getAttribute('data-v');
+    els.spanNum.value = span;
+  });
+  els.spanNum.addEventListener('input', function () {
+    if (els.spanNum.value !== '') {
+      var all = els.chips.children;
+      for (var i = 0; i < all.length; i++) all[i].classList.remove('on');
+    }
+  });
+
+  els.go.addEventListener('click', apply);
+  els.dob.addEventListener('change', function () { els.dobText.value = ''; });
+  els.dob.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+  els.dobText.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+  els.spanNum.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+  els.btnEdit.addEventListener('click', function () {
+    els.setup.classList.remove('done');
+    els.editLine.classList.add('hide');
+    els.dob.focus();
+  });
+  $('btn-card').addEventListener('click', showCard);
+  $('btn-copy').addEventListener('click', copyText);
+  els.close.addEventListener('click', function () { els.mask.classList.add('hide'); });
+  els.mask.addEventListener('click', function (e) { if (e.target === els.mask) els.mask.classList.add('hide'); });
+
+  /* ------------------------------------------------------------ 启动 */
+  (async function () {
+    try {
+      var rows = await lifeSql('SELECT dob, lifespan FROM life_settings WHERE id = 1');
+      if (!rows.length) return;
+      var savedDob = rows[0].dob, savedSpan = parseInt(rows[0].lifespan, 10);
+      var v = parseDate(savedDob);
+      if (v && savedSpan >= 40 && savedSpan <= 130) {
+        els.dob.value = savedDob; els.dobText.value = savedDob; els.spanNum.value = savedSpan;
+        var chips = els.chips.children;
+        for (var i = 0; i < chips.length; i++) chips[i].classList.toggle('on', +chips[i].getAttribute('data-v') === savedSpan);
+        span = savedSpan; dob = v; renderStatic(); tick();
+      }
+    } catch (e) { els.err.textContent = '无法读取已保存设置，请检查登录和数据库连接后刷新。'; }
+  })();
+
+  tick();
+  setInterval(tick, 1000);
+
+  /* 自动化测试 / 预览钩子 */
+  window.__LP = {
+    apply: apply,
+    state: function () { return { dob: dob, span: span }; },
+    calc: {
+      lifePct: lifePct, yearPct: yearPct, nextBirthday: nextBirthday,
+      livedDays: livedDays, livedWeeks: livedWeeks, ageYears: ageYears
+    },
+    drawCard: drawCard
+  };
+})();
+</script>
+</body>
+</html>
