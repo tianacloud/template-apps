@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS message(id INTEGER PRIMARY KEY, content TEXT, channel TEXT, parse_type TEXT, parse_snapshot TEXT, confidence REAL, type_edited INTEGER DEFAULT 0, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), deleted_at TEXT);
+CREATE TABLE IF NOT EXISTS todo(id INTEGER PRIMARY KEY, content TEXT, plan_date TEXT, date_source TEXT, status TEXT, split_seq INTEGER DEFAULT 0, message_id INTEGER, completed_at TEXT, week_key TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), deleted_at TEXT);
+CREATE TABLE IF NOT EXISTS book(id INTEGER PRIMARY KEY, name TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')));
+CREATE TABLE IF NOT EXISTS reading_note(id INTEGER PRIMARY KEY, content TEXT, book_id INTEGER, message_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), deleted_at TEXT);
+CREATE TABLE IF NOT EXISTS idea_category(id INTEGER PRIMARY KEY, name TEXT, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')));
+CREATE TABLE IF NOT EXISTS idea(id INTEGER PRIMARY KEY, content TEXT, category_id INTEGER, message_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), deleted_at TEXT);
+CREATE TABLE IF NOT EXISTS time_log(id INTEGER PRIMARY KEY, content TEXT, start_at TEXT, end_at TEXT, duration_min INTEGER, category TEXT, cross_day INTEGER, belong_date TEXT, message_id INTEGER, created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), deleted_at TEXT);
