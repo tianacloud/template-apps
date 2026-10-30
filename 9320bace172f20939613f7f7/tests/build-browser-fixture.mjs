@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,writeFile} from 'node:fs/promises';
+import * as rules from '../src/rules.js';
+const dance=Boolean(rules.newRoutine),seed=rules.sampleCases();
+await mkdir('.browser-fixture',{recursive:true});
+const adapter=`export class Repository {async list(){const f=window.__fixture;f.listCount++;if(f.holdList)await new Promise(r=>f.listWaiters.push(r));return structuredClone(f.data);}async get(id){return structuredClone(window.__fixture.data.find(x=>x.id===id)||null);}async save(doc){const f=window.__fixture,snapshot=structuredClone(doc);f.saveRequests.push(snapshot);if(f.holdSaves)await new Promise(r=>f.saveWaiters.push(r));if(f.saveError)throw Error(f.saveError);const next={...snapshot,revision:(snapshot.revision||0)+1,updatedAt:new Date().toISOString()};f.data=[next,...f.data.filter(x=>x.id!==next.id)];return structuredClone(next);}async remove(doc){const f=window.__fixture;f.data=f.data.filter(x=>x.id!==doc.id);}}`;
+await build({entryPoints:['src/main.js'],bundle:true,format:'esm',outfile:'.browser-fixture/app.js',loader:{'.css':'text'},define:{__SHOWCASE__:'false'},plugins:[{name:'synthetic-repository',setup(b){b.onResolve({filter:/^\.\/db\.js$/},()=>({path:'db',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:adapter}));}}]});
+const setup=`window.__fixture={data:${JSON.stringify(seed)},holdList:${dance},holdSaves:false,saveError:'',listCount:0,saveRequests:[],listWaiters:[],saveWaiters:[],releaseList(){this.holdList=false;this.listWaiters.splice(0).forEach(r=>r());},releaseSaves(){this.holdSaves=false;this.saveWaiters.splice(0).forEach(r=>r());}};`;
+await writeFile('.browser-fixture/index.html','<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>'+setup+'</script><div id="app"></div><script type="module" src="./app.js"></script></html>');
+console.log('Synthetic in-memory repository fixture only; not cloud validation.');
