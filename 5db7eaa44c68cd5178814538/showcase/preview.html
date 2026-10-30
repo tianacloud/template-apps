@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="报错诊所 ErrorClinic — 终端里的报错诊断台。粘贴堆栈，30 秒拿走排查清单。终端里的诊断台。" name="description">
+<title>报错诊所 ErrorClinic — 终端里的诊断台</title>
+<link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308090A'/%3E%3Ctext x='7' y='22' font-family='monospace' font-size='15' fill='%2301C886'%3E%26gt;_%3C/text%3E%3C/svg%3E" rel="icon">
+<style>
+:root{
+  --bg:#08090A; --s1:#101014; --s2:#16171C; --s3:#1E1F25;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
+  --text:#F7F8F8; --t2:#9CA3AF; --t3:#6B7280;
+  --accent:#01C886; --accent-d:rgba(1,200,134,.13); --amber:#F0B429; --danger:#E5484D;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,'Microsoft YaHei',monospace;
+  --sans:'Noto Sans SC',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r1:6px; --r2:8px; --r3:12px;
+  --ez:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.65;
+  display:grid;grid-template-rows:44px 1fr 30px;overflow:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(1,200,134,.28);color:#fff}
+button{font-family:var(--mono);cursor:pointer;background:none;border:none;color:inherit}
+:focus-visible{outline:1.5px solid var(--accent);outline-offset:2px;border-radius:4px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#26272E;border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+
+#rain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;transition:opacity .4s}
+#rain.on{opacity:.16}
+.scanlines{position:fixed;inset:0;z-index:55;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.28) 2px 3px)}
+.scanlines.on{opacity:.5}
+#ambient{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(640px 320px at 18% -5%,rgba(1,200,134,.07),transparent 70%),
+             radial-gradient(520px 300px at 85% 110%,rgba(240,180,41,.045),transparent 70%)}
+
+/* ---------- titlebar ---------- */
+.titlebar{display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--s1);
+  border-bottom:1px solid var(--line);position:relative;z-index:10}
+.dots{display:flex;gap:7px}
+.dots i{width:11px;height:11px;border-radius:50%;display:block}
+.d-r{background:#FF5F57}.d-y{background:#FEBC2E}.d-g{background:#28C840}
+.tb-title{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tb-btn{font-size:11.5px;color:var(--t2);border:1px solid var(--line2);border-radius:var(--r1);
+  padding:4px 10px;transition:all .15s var(--ez);white-space:nowrap}
+.tb-btn:hover{color:var(--accent);border-color:rgba(1,200,134,.45);background:var(--accent-d)}
+.tb-badge{font-family:var(--mono);font-size:11px;color:var(--accent);border:1px solid rgba(1,200,134,.35);
+  background:var(--accent-d);border-radius:99px;padding:3px 10px;white-space:nowrap}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:210px 1fr;min-height:0;position:relative;z-index:5}
+.sidebar{background:var(--s1);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:9px;padding:4px 8px 14px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.brand-mark{font-family:var(--mono);font-weight:700;font-size:12px;color:var(--accent);border:1px solid rgba(1,200,134,.4);
+  background:var(--accent-d);border-radius:var(--r1);padding:3px 7px;letter-spacing:.04em}
+.brand-name{font-family:var(--mono);font-size:13px;font-weight:700}
+.brand-name small{display:block;font-size:10px;color:var(--t3);font-weight:400}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r2);font-family:var(--mono);
+  font-size:12.5px;color:var(--t2);transition:all .15s var(--ez);width:100%;text-align:left;border:1px solid transparent}
+.nav-item .k{color:var(--t3);font-size:11px;margin-left:auto}
+.nav-item:hover{color:var(--text);background:var(--s2)}
+.nav-item.active{color:var(--accent);background:var(--accent-d);border-color:rgba(1,200,134,.25)}
+.nav-item.active .k{color:var(--accent)}
+.side-foot{margin-top:auto;padding:10px 8px 2px;border-top:1px solid var(--line);font-family:var(--mono);
+  font-size:10.5px;color:var(--t3);line-height:1.7}
+.side-foot b{color:var(--amber);font-weight:500}
+
+.main{overflow-y:auto;padding:26px 30px 60px;min-width:0}
+.view{max-width:920px;margin:0 auto;animation:fadein .35s var(--ez)}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- diagnose: hero ---------- */
+.hero{padding:18px 0 26px}
+.ascii{font-family:var(--mono);font-size:clamp(7px,1.5vw,11px);line-height:1.25;color:var(--accent);
+  text-shadow:0 0 14px rgba(1,200,134,.35);white-space:pre;overflow-x:auto;user-select:none}
+.hero-tag{margin-top:14px;font-family:var(--mono);color:var(--t2);font-size:13px}
+.hero-tag .p{color:var(--amber)}
+.cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1.06s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.hero-sub{margin-top:10px;color:var(--t2);font-size:13.5px;max-width:640px}
+.hero-sub b{color:var(--text);font-weight:500}
+
+.panel{background:var(--s1);border:1px solid var(--line);border-radius:var(--r3);padding:18px 20px;margin-bottom:16px}
+.panel-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.panel-h .no{font-family:var(--mono);font-size:11px;color:var(--accent);border:1px solid rgba(1,200,134,.35);
+  border-radius:var(--r1);padding:2px 7px;background:var(--accent-d)}
+.panel-h h3{font-size:14.5px;font-weight:500;font-family:var(--mono)}
+.panel-h .hint{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--t3)}
+
+textarea#raw{width:100%;min-height:170px;resize:vertical;background:var(--bg);border:1px solid var(--line2);
+  border-radius:var(--r2);padding:14px 16px;color:var(--text);font-family:var(--mono);font-size:12.5px;line-height:1.7}
+textarea#raw::placeholder{color:var(--t3)}
+textarea#raw:focus{outline:none;border-color:rgba(1,200,134,.5);box-shadow:0 0 0 3px rgba(1,200,134,.08)}
+.toolbar{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.btn{font-size:12.5px;padding:8px 16px;border-radius:var(--r2);border:1px solid var(--line2);color:var(--t2);
+  transition:all .15s var(--ez);display:inline-flex;align-items:center;gap:7px}
+.btn:hover{color:var(--text);border-color:var(--line2);background:var(--s2)}
+.btn.primary{color:#03130C;background:var(--accent);border-color:var(--accent);font-weight:700}
+.btn.primary:hover{background:#2AE9A4;box-shadow:0 0 18px rgba(1,200,134,.25)}
+.btn.warn:hover{color:var(--danger);border-color:rgba(229,72,77,.45)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.drop-hint{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{font-family:var(--mono);font-size:11.5px;color:var(--t2);border:1px dashed var(--line2);border-radius:99px;
+  padding:5px 13px;transition:all .15s var(--ez)}
+.chip:hover{color:var(--accent);border-color:rgba(1,200,134,.5);border-style:solid}
+.langstrip{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--t3)}
+.langstrip span{border:1px solid var(--line);border-radius:var(--r1);padding:3px 8px}
+
+/* ---------- parsing animation ---------- */
+.parsing{font-family:var(--mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line2);
+  border-radius:var(--r2);padding:16px;min-height:120px;position:relative;overflow:hidden}
+.parsing .scan{position:absolute;left:0;right:0;height:44px;top:-44px;
+  background:linear-gradient(180deg,transparent,rgba(1,200,134,.12),transparent);animation:scan 1s linear infinite}
+@keyframes scan{to{top:100%}}
+.plog{color:var(--t2);white-space:pre-wrap}
+.plog b{color:var(--accent);font-weight:500}
+.plog i{color:var(--amber);font-style:normal}
+
+/* ---------- report ---------- */
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.report-grid{grid-template-columns:1fr}}
+.filecard{background:var(--s2);border:1px solid var(--line);border-radius:var(--r2);padding:16px}
+.fc-row{display:flex;gap:8px;align-items:baseline;margin:5px 0;font-family:var(--mono);font-size:12.5px;flex-wrap:wrap}
+.fc-row .k{color:var(--t3);width:64px;flex-shrink:0}
+.fc-row .v{color:var(--text);word-break:break-all}
+.fc-row .v.hl{color:var(--accent)}
+.badge{font-family:var(--mono);font-size:10.5px;border-radius:var(--r1);padding:2px 8px;border:1px solid var(--line2);color:var(--t2)}
+.badge.lang{color:var(--accent);border-color:rgba(1,200,134,.4);background:var(--accent-d)}
+.badge.fp{color:var(--amber);border-color:rgba(240,180,41,.35);background:rgba(240,180,41,.08)}
+.badge.n{color:var(--danger);border-color:rgba(229,72,77,.4);background:rgba(229,72,77,.08)}
+.ascii-report{font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--accent);white-space:pre;
+  overflow-x:auto;background:var(--bg);border:1px solid var(--line);border-radius:var(--r2);padding:14px 16px;min-height:96px}
+.cause{margin:12px 0}
+.cause-top{display:flex;align-items:center;gap:10px;font-size:13px}
+.cause-top .p{font-family:var(--mono);font-size:11.5px;color:var(--amber);width:44px;text-align:right;flex-shrink:0}
+.bar{flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#854F0B,var(--amber));border-radius:4px;
+  transition:width .7s var(--ez)}
+.cause-why{font-size:12px;color:var(--t3);margin:3px 0 0 54px}
+.check{display:flex;gap:11px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);
+  margin:8px 0;cursor:pointer;transition:all .15s var(--ez);background:var(--s2)}
+.check:hover{border-color:var(--line2)}
+.check.done{border-color:rgba(1,200,134,.35);background:var(--accent-d)}
+.check .box{width:16px;height:16px;border:1.5px solid var(--t3);border-radius:4px;flex-shrink:0;margin-top:3px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:#03130C;transition:all .15s var(--ez)}
+.check.done .box{background:var(--accent);border-color:var(--accent)}
+.check .tx{font-size:13px;color:var(--text)}
+.check.done .tx{color:var(--t2);text-decoration:line-through;text-decoration-color:rgba(1,200,134,.5)}
+.check .cmd{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(240,180,41,.08);
+  border:1px solid rgba(240,180,41,.22);border-radius:var(--r1);padding:2px 8px;margin-top:5px;display:inline-block;word-break:break-all}
+.ring-wrap{display:flex;align-items:center;gap:14px;margin:4px 0 10px}
+.ring{width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;color:var(--accent);background:var(--s2);border:1px solid var(--line)}
+.ring b{font-weight:500}
+.verify{font-size:13px;color:var(--t2)}
+.verify b{color:var(--text);font-weight:500}
+
+/* ---------- kb ---------- */
+.kb-tools{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.kb-tools input{flex:1;min-width:180px;background:var(--bg);border:1px solid var(--line2);border-radius:var(--r2);
+  padding:9px 14px;color:var(--text);font-family:var(--mono);font-size:12.5px}
+.kb-tools input:focus{outline:none;border-color:rgba(1,200,134,.5)}
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.kb-card{background:var(--s1);border:1px solid var(--line);border-radius:var(--r3);padding:15px 16px;
+  transition:all .15s var(--ez);cursor:pointer;display:flex;flex-direction:column;gap:8px}
+.kb-card:hover{border-color:rgba(1,200,134,.35);transform:translateY(-2px)}
+.kb-card .t{font-family:var(--mono);font-size:13px;color:var(--accent);word-break:break-all}
+.kb-card .m{font-size:12px;color:var(--t2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb-card .meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:auto}
+.kb-card .tm{font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-left:auto}
+.empty{border:1px dashed var(--line2);border-radius:var(--r3);padding:44px 20px;text-align:center;color:var(--t3);
+  font-family:var(--mono);font-size:12.5px}
+.kb-detail{background:var(--s1);border:1px solid rgba(1,200,134,.3);border-radius:var(--r3);padding:18px 20px;margin-bottom:16px}
+.kb-detail pre{font-family:var(--mono);font-size:11.5px;color:var(--t2);background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--r2);padding:12px;overflow-x:auto;max-height:220px;white-space:pre-wrap;word-break:break-all}
+.kb-notes{width:100%;margin-top:10px;background:var(--bg);border:1px solid var(--line2);border-radius:var(--r2);
+  padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:12px;min-height:56px;resize:vertical}
+.kb-notes:focus{outline:none;border-color:rgba(1,200,134,.5)}
+
+/* ---------- samples ---------- */
+.smp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.smp{background:var(--s1);border:1px solid var(--line);border-radius:var(--r3);padding:16px;display:flex;
+  flex-direction:column;gap:9px;transition:all .15s var(--ez)}
+.smp:hover{border-color:rgba(1,200,134,.4);transform:translateY(-2px)}
+.smp .t{font-family:var(--mono);font-size:13px;color:var(--text)}
+.smp .d{font-size:12px;color:var(--t2);flex:1}
+.smp .go{font-family:var(--mono);font-size:11.5px;color:var(--accent);align-self:flex-start;
+  border:1px solid rgba(1,200,134,.35);border-radius:var(--r1);padding:5px 12px;transition:all .15s var(--ez)}
+.smp .go:hover{background:var(--accent-d)}
+
+/* ---------- about ---------- */
+.prose h2{font-family:var(--mono);font-size:15px;color:var(--accent);margin:26px 0 10px;font-weight:500}
+.prose h2:first-child{margin-top:0}
+.prose p{color:var(--t2);font-size:13.5px;max-width:760px;margin-bottom:10px}
+.prose p b,.prose li b{color:var(--text);font-weight:500}
+.prose ul{padding-left:18px;color:var(--t2);font-size:13.5px;margin-bottom:10px}
+.prose li{margin:4px 0}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;
+  padding:2px 7px;color:var(--t2);background:var(--s2)}
+table.km{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
+table.km td{border:1px solid var(--line);padding:8px 12px;color:var(--t2)}
+table.km td:first-child{font-family:var(--mono);color:var(--accent);width:130px;white-space:nowrap}
+
+/* ---------- statusbar ---------- */
+.statusbar{display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--s1);border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:10.5px;color:var(--t3);position:relative;z-index:10;overflow:hidden}
+.statusbar .live{color:var(--accent)}
+.statusbar .sp{margin-left:auto}
+.statusbar button{font-size:10.5px;color:var(--t3)}
+.statusbar button:hover{color:var(--accent)}
+
+/* ---------- palette ---------- */
+.palette{position:fixed;inset:0;z-index:80;display:flex;justify-content:center;align-items:flex-start;
+  padding-top:14vh;background:rgba(4,5,6,.72)}
+.palette.hidden{display:none}
+.palette-box{width:min(520px,92vw);background:var(--s1);border:1px solid var(--line2);border-radius:var(--r3);
+  overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.palette-box input{width:100%;background:var(--bg);border:none;border-bottom:1px solid var(--line);
+  padding:14px 16px;color:var(--text);font-family:var(--mono);font-size:13.5px}
+.palette-box input:focus{outline:none}
+.plist{max-height:300px;overflow-y:auto;padding:6px}
+.pitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:var(--r2);
+  font-family:var(--mono);font-size:12.5px;color:var(--t2);transition:background .12s}
+.pitem .ic{color:var(--accent);width:20px;text-align:center}
+.pitem .k{margin-left:auto;font-size:10.5px;color:var(--t3)}
+.pitem.sel,.pitem:hover{background:var(--s2);color:var(--text)}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;bottom:46px;right:18px;z-index:90;font-family:var(--mono);font-size:12px;color:var(--accent);
+  background:var(--s1);border:1px solid rgba(1,200,134,.4);border-radius:var(--r2);padding:10px 16px;
+  opacity:0;transform:translateY(8px);transition:all .3s var(--ez);pointer-events:none;max-width:80vw}
+.toast.show{opacity:1;transform:none}
+
+.page-h{font-family:var(--mono);font-size:17px;font-weight:500;margin-bottom:4px}
+.page-h span{color:var(--accent)}
+.page-sub{font-size:13px;color:var(--t3);margin-bottom:22px}
+.sec-gap{height:8px}
+
+@media (max-width:860px){
+  body{grid-template-rows:44px 1fr 56px}
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;right:0;bottom:30px;height:56px;flex-direction:row;align-items:center;gap:2px;
+    border-right:none;border-top:1px solid var(--line);padding:0 6px;z-index:40;overflow-x:auto}
+  .brand,.side-foot{display:none}
+  .nav-item{flex-direction:column;gap:2px;font-size:10.5px;padding:6px 10px;flex:1;min-width:64px;text-align:center}
+  .nav-item .k{display:none}
+  .main{padding:18px 14px 90px}
+  .statusbar{font-size:9.5px;gap:10px;bottom:0}
+  .statusbar .sp{display:none}
+  .hero{padding:6px 0 18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ---------- 1024 festive theme ---------- */
+body.fest{--accent:#FFB020;--accent-d:rgba(255,176,32,.14)}
+body.fest .ascii,body.fest .ascii-report{color:#FFB020;text-shadow:0 0 14px rgba(255,176,32,.4)}
+body.fest .brand-mark,body.fest .tb-badge,body.fest .badge.lang,body.fest .nav-item.active,
+body.fest .panel-h .no{color:#FFB020;border-color:rgba(255,176,32,.45)!important;background:rgba(255,176,32,.12)!important}
+body.fest .btn.primary{color:#1A1205;background:#FFB020;border-color:#FFB020}
+body.fest .btn.primary:hover{background:#FFC857;box-shadow:0 0 18px rgba(255,176,32,.3)}
+body.fest ::selection{background:rgba(255,176,32,.3)}
+body.fest .ring,body.fest .cause .bar i{color:#FFB020}
+body.fest .check.done{border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.12)}
+body.fest .check.done .box{background:#FFB020;border-color:#FFB020}
+body.fest .cursor,body.fest #rain{color:#FFB020}
+
+/* ---------- stats / sort / import ---------- */
+.kb-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{background:var(--s1);border:1px solid var(--line);border-radius:var(--r2);padding:12px 16px;flex:1;min-width:118px}
+.stat .n{font-family:var(--mono);font-size:22px;color:var(--accent);font-weight:700;line-height:1.1}
+.stat .l{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:3px}
+.sel{background:var(--bg);border:1px solid var(--line2);border-radius:var(--r2);color:var(--t2);
+  font-family:var(--mono);font-size:12px;padding:8px 12px;cursor:pointer}
+.sel:focus{outline:none;border-color:rgba(1,200,134,.5)}
+.hidden-file{display:none}
+.err-panel{border-color:rgba(229,72,77,.5)!important}
+.err-panel h3{color:var(--danger)}
+.fest-note{font-family:var(--mono);font-size:11px;color:var(--amber);border:1px dashed rgba(240,180,41,.5);
+  border-radius:99px;padding:3px 12px;display:inline-block;margin-left:8px}
+</style>
+</head>
+<body>
+
+<canvas id="rain"></canvas>
+<div class="scanlines on" id="scan"></div>
+<div id="ambient"></div>
+
+<header class="titlebar">
+  <span class="dots"><i class="d-r"></i><i class="d-y"></i><i class="d-g"></i></span>
+  <span class="tb-title">clinic — diagnose — 80×24</span>
+  <span class="tb-right">
+    <span class="tb-badge">ERROR CLINIC</span>
+    <button class="tb-btn" id="btn-palette">⌘K 命令面板</button>
+  </span>
+</header>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">&gt;_</span>
+      <span class="brand-name">ErrorClinic<small>报错诊所 v1.0.0</small></span>
+    </div>
+    <button class="nav-item active" data-view="diagnose"><span>诊断台</span><span class="k">F1</span></button>
+    <button class="nav-item" data-view="kb" title="快捷键 F2"><span>错题本</span><span class="k" id="nav-kb-count">0</span></button>
+    <button class="nav-item" data-view="samples"><span>样本库</span><span class="k">F3</span></button>
+    <button class="nav-item" data-view="about"><span>关于</span><span class="k">F4</span></button>
+    <div class="side-foot">
+      终端工具箱<br>
+      <b>ERROR CLINIC</b><br>
+      ErrorClinic
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<footer class="statusbar">
+  <span class="live">● LOCAL MODE</span>
+  <span id="st-kb">KB: 0</span>
+  <span>UTF-8</span>
+  <span>LF</span>
+  <span class="sp"></span>
+  <button id="st-crt">CRT: ON</button>
+  <span>v1.0.0 · 0x400</span>
+</footer>
+
+<div class="palette hidden" id="palette">
+  <div class="palette-box">
+    <input autocomplete="off" id="palette-input" placeholder="输入命令… 例如 diagnose / kb / samples / rain / help">
+    <div class="plist" id="palette-list"></div>
+  </div>
+</div>
+
+<div aria-live="polite" class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+/* ================= utils ================= */
+function $(s,r){return (r||document).querySelector(s)}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function hash36(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))>>>0}return h.toString(36)}
+function ago(ts){var d=Date.now()-ts;if(d<6e4)return '刚刚';if(d<36e5)return Math.floor(d/6e4)+' 分钟前';
+  if(d<864e5)return Math.floor(d/36e5)+' 小时前';if(d<2592e6)return Math.floor(d/864e5)+' 天前';
+  return new Date(ts).toLocaleDateString('zh-CN')}
+function toast(msg){var t=$('#toast');t.textContent='> '+msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show')},2600)}
+function copyText(txt,ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast(ok)},function(){fallbackCopy(txt,ok)});return}fallbackCopy(txt,ok)}catch(e){fallbackCopy(txt,ok)}}
+function fallbackCopy(txt,ok){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast(ok)}catch(e){toast('复制失败，请手动选择')}document.body.removeChild(ta)}
+var REDUCED=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= data: samples ================= */
+var SAMPLES=[
+{id:'java-npe',lang:'Java',title:'Java · 空指针 NPE',desc:'Spring 服务里对可能为 null 的字段直接取 length()。',
+raw:'Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "<local3>" is null\n\tat com.example.order.OrderService.calculateDiscount(OrderService.java:87)\n\tat com.example.order.OrderController.checkout(OrderController.java:142)\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n\tat org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:985)\nCaused by: java.lang.IllegalArgumentException: user id must not be null\n\tat com.example.order.OrderService.loadUser(OrderService.java:211)'},
+{id:'py-keyerror',lang:'Python',title:'Python · KeyError',desc:'任务进程里 prices[sku] 遇到不存在的商品编码。',
+raw:'Traceback (most recent call last):\n  File "/app/worker/tasks.py", line 152, in process_order\n    total = prices[sku]\nKeyError: \'SKU-8842\''},
+{id:'ts2339',lang:'TypeScript',title:'TS · 属性不存在 TS2339',desc:'图表配置对象上 push 了类型定义里没有的字段。',
+raw:'src/components/Chart.tsx:42:18 - error TS2339: Property \'datasets\' does not exist on type \'ChartConfig\'.\n\n42   config.datasets.push(series)\n     ~~~~~\n\n  ChartConfig.ts:8:3\n    8   series?: Series[]\n      ~~~~~~~~~~~~~~~~~~\n    \'series\' is declared here.'},
+{id:'econnrefused',lang:'Node.js',title:'Node · 连接被拒 ECONNREFUSED',desc:'本地服务连不上 5432，数据库没起来或端口写错。',
+raw:'Error: connect ECONNREFUSED 127.0.0.1:5432\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1595:16)\n    at Client.pgConnect (/app/node_modules/pg/lib/connection.js:71:14)\n    at Client.connect (/app/node_modules/pg/lib/client.js:73:17)\nError code: ECONNREFUSED\nerrno: -111\nsyscall: connect\naddress: 127.0.0.1\nport: 5432'},
+{id:'docker-port',lang:'Docker',title:'Docker · 端口被占用',desc:'compose 起容器时 8080 已经被别的进程 listen。',
+raw:'docker: Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:8080 -> 0.0.0.0:0: listen tcp 0.0.0.0:8080: bind: address already in use.'},
+{id:'go-nilmap',lang:'Go',title:'Go · nil map 赋值 panic',desc:'声明了 map 忘了 make，写入直接 panic。',
+raw:'panic: assignment to entry in nil map\n\ngoroutine 1 [running]:\nmain.buildIndex(0x0, 0x0)\n\t/home/dev/probe/index.go:63 +0x1a4\nmain.main()\n\t/home/dev/probe/main.go:24 +0x1d4'},
+{id:'k8s-backoff',lang:'Kubernetes',title:'K8s · CrashLoopBackOff',desc:'容器反复重启，readiness 探针 503。',
+raw:'Events:\n  Type     Reason     Age                From               Message\n  ----     ------     ----               ----               -------\n  Normal   Scheduled  2m                 default-scheduler  Successfully assigned default/api-7d9f to node-02\n  Warning  BackOff    32s (x4 over 96s)  kubelet            Back-off restarting failed container api\n  Warning  Unhealthy  12s (x8 over 2m)   kubelet            Readiness probe failed: HTTP probe failed with statuscode: 503'},
+{id:'segfault',lang:'C/C++',title:'C · 段错误 Segmentation fault',desc:'传感器守护进程解引用空指针后 core dumped。',
+raw:'$ ./sensor_daemon\nSegmentation fault (core dumped)\n[1]    8214 segmentation fault (core dumped)  ./sensor_daemon'},
+{id:'cors',lang:'Web',title:'Web · CORS 预检失败',desc:'前端跨域请求被浏览器拦截，服务端没回 CORS 头。',
+raw:"Access to fetch at 'https://api.example.com/v2/orders' from origin 'https://app.example.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource."},
+{id:'rust-panic',lang:'Rust',title:'Rust · panic 越界',desc:'向量越界解引用，release 下直接 abort。',
+raw:"thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 9', src/main.rs:42:9\nstack backtrace:\n   0: rust_begin_unwind\n   1: core::panicking::panic_fmt\n   2: core::panicking::panic_bounds_check\n             at /rustc/stable/library/core/src/panicking.rs:148:5"},
+{id:'cpp-exc',lang:'C++',title:'C++ · std::exception',desc:'substr 越界抛 std::out_of_range，未捕获 terminate。',
+raw:"terminate called after throwing an instance of 'std::out_of_range'\n  what():  basic_string::substr: __pos (which is 42) > this->size() (which is 11)\n  at /app/main.cpp:17"},
+{id:'shell-cmd',lang:'Shell',title:'Shell · command not found',desc:'脚本里写了未安装的命令，CI 直接挂。',
+raw:"$ ./deploy.sh\n./deploy.sh: line 12: pnpm: command not found\nmake: *** [Makefile:8: build] Error 127"},
+{id:'php-fatal',lang:'PHP',title:'PHP · Fatal Error',desc:'调用了不存在的方法，未捕获致命错误。',
+raw:"PHP Fatal error:  Uncaught Error: Call to undefined method Foo::bar() in /app/src/Foo.php:12\nStack trace:\n#0 /app/index.php(8): Foo->bar()\n#1 {main}\n  thrown in /app/src/Foo.php on line 12"}
+];
+
+/* ================= parser ================= */
+var LANGS=[
+{id:'python',name:'Python',re:/Traceback \(most recent call last\)|File "[^"]+\.py", line \d+/},
+{id:'java',name:'Java',re:/Exception in thread|\.java:\d+|^java\.lang\.|^[\w.]+Exception: /m},
+{id:'typescript',name:'TypeScript',re:/error TS\d+:/},
+{id:'go',name:'Go',re:/goroutine \d+ \[running\]|^panic: |\.go:\d+/m},
+{id:'docker',name:'Docker',re:/docker: Error response|port is already allocated|failed to solve/},
+{id:'k8s',name:'Kubernetes',re:/CrashLoopBackOff|Back-off restarting|kubelet/},
+{id:'network',name:'Network/Web',re:/ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|getaddrinfo|CORS|Access-Control/},
+{id:'javascript',name:'JavaScript/Node',re:/\bat\s+.*\.(js|mjs|cjs):\d+|^Error:/m},
+{id:'rust',name:'Rust',re:/panicked at|thread '.+' panicked/},
+{id:'c',name:'C/C++',re:/Segmentation fault|core dumped/},
+{id:'shell',name:'Shell',re:/command not found|No such file or directory|Permission denied/},
+{id:'cpp',name:'C++',re:/terminate called|std::\w+::|what\(\):|throw [^(]*exception/},
+{id:'php',name:'PHP',re:/PHP Fatal error|Uncaught .+ in .+\.php|Stack trace:/}
+];
+var LANG_NAME={java:'Java',python:'Python',typescript:'TypeScript',javascript:'JavaScript/Node',go:'Go',rust:'Rust',c:'C/C++',cpp:'C++',php:'PHP',docker:'Docker',k8s:'Kubernetes',network:'Network/Web',shell:'Shell',unknown:'Unknown'};
+function detectLang(raw){for(var i=0;i<LANGS.length;i++){if(LANGS[i].re.test(raw))return LANGS[i].id}return 'unknown'}
+function extractType(raw){
+  var m=raw.match(/\b([\w.]+(?:Exception|Error|Panic))\b/)||raw.match(/error (TS\d+):/)||
+        raw.match(/^(panic: [^\n]+)/m)||raw.match(/^([\w.]+Error):/m)||raw.match(/^(\w+):/m);
+  if(m)return (m[1]||m[0]).replace(/:$/,'').trim().slice(0,60);
+  var l=raw.split('\n').filter(function(x){return x.trim()})[0]||'';
+  return l.trim().slice(0,60)||'Unknown error';
+}
+function extractMessage(raw,type){
+  var lines=raw.split('\n');
+  for(var i=0;i<lines.length&&i<25;i++){
+    var l=lines[i].trim();
+    if(l.indexOf(type)>=0&&l.length>type.length){return l.slice(l.indexOf(type)+type.length).replace(/^[:：\s]+/,'').trim().slice(0,200)}
+    if(/^(KeyError|panic|Segmentation fault|docker:|Access to fetch)/.test(l))return l.slice(0,200);
+  }
+  var f=lines.filter(function(x){return x.trim()})[0]||'';
+  return f.trim().slice(0,200);
+}
+function extractFrames(raw){
+  var out=[],re=/([\w.\-\/]+\.(?:java|kt|py|js|mjs|cjs|ts|go|rs|c|cc|cpp|h|rb|php))["']?(?::|:|, line )(\d+)/g,m;
+  while((m=re.exec(raw))!==null&&out.length<12){out.push({file:m[1],line:parseInt(m[2],10)})}
+  var seen={},u=[];
+  out.forEach(function(f){var k=f.file+':'+f.line;if(!seen[k]){seen[k]=1;u.push(f)}});
+  return u;
+}
+function normalizeMsg(msg){
+  return String(msg||'').toLowerCase()
+    .replace(/0x[0-9a-f]+/g,'0xH')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g,'UUID')
+    .replace(/\d+/g,'N').replace(/[\/\\][\w.\-\/\\]+/g,'PATH')
+    .replace(/\s+/g,' ').trim().slice(0,120);
+}
+function parse(raw){
+  var lang=detectLang(raw),type=extractType(raw),msg=extractMessage(raw,type);
+  var fp='fp_'+hash36(lang+'|'+normalizeMsg(msg||type));
+  return {lang:lang,type:type,message:msg,frames:extractFrames(raw),fp:fp,raw:raw.slice(0,4000)};
+}
+// 解析异常兜底：任何输入都不会让调用方崩溃
+function safeParse(raw){
+  try{return parse(raw)}
+  catch(e){return {lang:'unknown',type:'解析失败',message:'输入无法解析为已知错误格式',frames:[],fp:'fp_unknown',raw:String(raw==null?'':raw).slice(0,4000)}}
+}
+
+/* ================= rules engine ================= */
+function S(lang,typeRe,msgRe){return function(s){
+  var sc=0;
+  if(lang&&s.lang===lang)sc+=0.45;
+  if(typeRe&&typeRe.test(s.type))sc+=0.4;
+  if(msgRe&&msgRe.test(s.message))sc+=0.15;
+  return sc;
+}}
+var RULES=[
+{id:'java-npe',score:S('java',/NullPointer/,/null|invoke/),causes:[
+ {t:'依赖注入缺失或 Bean 未初始化',w:'Spring 容器里该字段没被注入，运行时为 null',p:0.34},
+ {t:'上游返回值未做空值校验',w:'loadUser / DAO 在异常路径下返回 null',p:0.30},
+ {t:'自动拆箱踩坑',w:'Long/Integer 为 null 时赋给基本类型',p:0.14},
+ {t:'并发可见性导致读到中间态',w:'发布对象时字段尚未填充完成',p:0.12},
+ {t:'反射/JNI 边界传 null',w:'框架回调把 null 传进了业务方法',p:0.10}],
+checks:[
+ {t:'定位根因帧：看栈顶第一个业务包内的帧，不是框架帧',cmd:' OrderService.java:87'},
+ {t:'检查该行所有参与运算的字段来源',cmd:'git log -L 87,87:OrderService.java'},
+ {t:'对入口参数加前置断言，把 NPE 变成明确异常',cmd:'Objects.requireNonNull(userId, "userId")'},
+ {t:'写一个最小复现单测，覆盖 null 路径'},
+ {t:'检查 @Autowired 字段是否有 final / 构造器注入'}],
+verify:'修复后复现单测转绿，且相同入参在预发环境不再复现。'},
+{id:'python-keyerror',score:S('python',/KeyError/,/key/i),causes:[
+ {t:'键名拼写或大小写不一致',w:'数据源里的 key 带空格 / 下划线差异',p:0.32},
+ {t:'对上游返回结构的假设错误',w:'接口改了字段名或层级，本地没同步',p:0.28},
+ {t:'可选字段缺省值缺失',w:'历史数据里根本没有这个 sku 记录',p:0.22},
+ {t:'可变默认参数被污染',w:'def f(d={}) 多次调用共享了同一 dict',p:0.10},
+ {t:'编码 / BOM 导致 key 不可见字符',w:'从 CSV 读入的 key 带了 \\ufeff',p:0.08}],
+checks:[
+ {t:'打印实际 keys 与期望 keys 的差集',cmd:'print(set(prices) - {sku})'},
+ {t:'改用 .get() 并提供默认值或显式报错',cmd:'prices.get(sku) or raise ValueError(sku)'},
+ {t:'在入口处校验 schema（pydantic / marshmallow）'},
+ {t:'pdb 断点在 prices[sku] 前一行，看变量'},
+ {t:'确认数据同步任务是否漏了这条记录'}],
+verify:'异常数据样例可以通过校验器并给出可读错误，不再裸崩 KeyError。'},
+{id:'ts-type-error',score:S('typescript',/TS\d+/,/property|type/i),causes:[
+ {t:'类型定义缺失或已过时',w:'d.ts 没跟上运行时的实际结构',p:0.36},
+ {t:'any 泄漏吞掉了检查',w:'上游 any 让错误延后到这一行才爆',p:0.24},
+ {t:'依赖版本升级导致类型不兼容',w:'major 升级改了导出类型',p:0.22},
+ {t:'泛型推断失败',w:'默认泛型落到了最宽的约束上',p:0.18}],
+checks:[
+ {t:'全量类型检查，拿到完整错误列表而不是第一个',cmd:'tsc --noEmit'},
+ {t:'看报错行 hover 出的实际类型，确认推断结果'},
+ {t:'给该值显式标注类型或 as const，缩小推断范围'},
+ {t:'检查 node_modules 里该库的 .d.ts 版本'},
+ {t:'开启 strict 模式后重跑，看是否暴露更多问题'}],
+verify:'tsc --noEmit 零错误，且 CI 类型检查门禁通过。'},
+{id:'conn-refused',score:S('network',null,/ECONNREFUSED|ETIMEDOUT|connect/i),causes:[
+ {t:'目标服务根本没起来',w:'进程崩溃或还没启动完成',p:0.42},
+ {t:'端口 / 主机配置写错',w:'env 里指向了 5432 实际是 5433',p:0.28},
+ {t:'防火墙 / 安全组拦截',w:'云上安全组没放行该端口',p:0.16},
+ {t:'localhost 解析到 IPv6 ::1',w:'服务只听在 127.0.0.1',p:0.14}],
+checks:[
+ {t:'确认端口是否有进程在 listen',cmd:'ss -lntp | grep 5432'},
+ {t:'直接 curl / telnet 验证连通性',cmd:'curl -v 127.0.0.1:5432'},
+ {t:'核对连接串与 env 配置是否一致'},
+ {t:'检查 IPv4 / IPv6 监听差异',cmd:'netstat -an | grep 5432'},
+ {t:'看对端服务日志是否有启动报错'}],
+verify:'连通性探针持续通过，连接池正常建立。'},
+{id:'docker-port',score:S('docker',null,/port|bind|in use/i),causes:[
+ {t:'端口被本机其他进程占用',w:'旧服务 / IDE 内置服务占着 8080',p:0.55},
+ {t:'上次容器异常退出未清理',w:'容器还在但端口映射没释放',p:0.25},
+ {t:'多个项目默认端口撞车',w:'compose 模板都用了 8080',p:0.20}],
+checks:[
+ {t:'查看谁占用了端口',cmd:'lsof -i :8080'},
+ {t:'列出运行中容器确认端口映射',cmd:'docker ps --format "{{.Names}} {{.Ports}}"'},
+ {t:'改映射端口或停掉冲突进程',cmd:'ports: ["8081:80"]'},
+ {t:'清理异常退出的旧容器',cmd:'docker compose down --remove-orphans'}],
+verify:'docker compose up 后端口映射全部就绪，服务可访问。'},
+{id:'go-nilmap',score:S('go',null,/nil map|panic/i),causes:[
+ {t:'map 声明后未 make',w:'var m map[K]V 之后直接赋值',p:0.52},
+ {t:'并发读写 map',w:'fatal error: concurrent map writes',p:0.24},
+ {t:'结构体零值直接使用',w:'嵌入的 map 字段没在构造函数里初始化',p:0.24}],
+checks:[
+ {t:'确认声明处是否 make',cmd:'index := make(map[string]Entry, 64)'},
+ {t:'检查并发访问，必要时加锁或 sync.Map'},
+ {t:'统一在 NewXxx 构造函数里初始化所有集合字段'},
+ {t:'复跑 go run，确认 panic 点与修复点一致'}],
+verify:'go test -race 通过，无 panic 无竞态告警。'},
+{id:'k8s-backoff',score:S('k8s',/Events|BackOff|probe/i,/BackOff|CrashLoop|probe/i),causes:[
+ {t:'容器启动命令 / 参数错误',w:'entrypoint 一执行就退出',p:0.34},
+ {t:'readiness / liveness 探针配置不当',w:'启动慢于探针初始延迟',p:0.26},
+ {t:'依赖服务未就绪',w:'数据库没起来，应用连不上就退',p:0.22},
+ {t:'资源限制触发 OOMKilled',w:'limit 太小或内存泄漏',p:0.18}],
+checks:[
+ {t:'看上一次崩溃的日志，而不是当前日志',cmd:'kubectl logs POD --previous'},
+ {t:'看 Events 里的退出码与原因',cmd:'kubectl describe pod POD'},
+ {t:'调大 initialDelaySeconds / 改成 startupProbe'},
+ {t:'检查 limits 与 OOMKilled 记录',cmd:'kubectl get pod -o jsonpath="{.status.containerStatuses}"'},
+ {t:'把外部依赖改为启动时重试而不是快速失败'}],
+verify:'Pod 连续 10 分钟 Ready，重启次数不再增长。'},
+{id:'segfault',score:S('c',null,/Segmentation|core dumped/i),causes:[
+ {t:'空指针解引用',w:'malloc 失败 / 前置调用返回 NULL 未检查',p:0.40},
+ {t:'数组越界读写',w:'循环边界差一，踩到相邻内存',p:0.26},
+ {t:'use-after-free / double free',w:'提前释放了仍在使用的缓冲区',p:0.20},
+ {t:'栈溢出',w:'无限递归或超大局部数组',p:0.14}],
+checks:[
+ {t:'gdb 里看崩溃调用栈',cmd:'gdb ./sensor_daemon core -batch -ex bt'},
+ {t:'AddressSanitizer 重编复跑',cmd:'gcc -fsanitize=address -g sensor.c'},
+ {t:'valgrind 检查内存错误',cmd:'valgrind ./sensor_daemon'},
+ {t:'检查所有 malloc / free 配对与返回值'},
+ {t:'审查最近改动的指针相关提交',cmd:'git log -p --since="1 week ago"'}],
+verify:'ASan 下跑完整用例零报告，压测 24h 无 core。'},
+{id:'cors',score:S('network',null,/CORS|Access-Control|preflight/i),causes:[
+ {t:'预检 OPTIONS 未正确响应',w:'服务端没处理 OPTIONS 或返回了 4xx',p:0.36},
+ {t:'Allow-Origin 头缺失或值不匹配',w:'只配了主站漏了带端口的开发域',p:0.26},
+ {t:'credentials 模式与通配符冲突',w:'withCredentials 时不能用 *',p:0.22},
+ {t:'网关 / 代理剥离了响应头',w:'Nginx 没透传或覆盖了 CORS 头',p:0.16}],
+checks:[
+ {t:'DevTools Network 看 OPTIONS 预检的状态码与响应头'},
+ {t:'服务端补全 CORS 响应头（含预检缓存）'},
+ {t:'带 cookie 时把 * 改成具体 origin'},
+ {t:'检查 Nginx / Ingress 是否剥离了自定义头',cmd:'curl -i -X OPTIONS https://api.example.com/v2/orders'},
+ {t:'确认 Access-Control-Allow-Headers 覆盖了实际请求头'}],
+verify:'浏览器 Network 里预检 204 且响应头齐全，业务请求 200。'},
+{id:'rust-panic',score:S('rust',/panic|panicked/,/panic|out of bounds|borrow|unwrap|index/i),causes:[
+ {t:'索引越界访问',w:'向量 / 切片下标超出长度，release 下直接 abort',p:0.46},
+ {t:'对 None/Err 执行 unwrap',w:'expect/unwrap 在 None 上触发 panic',p:0.28},
+ {t:'非安全代码越界',w:'unsafe 块里的指针 / 切片越界',p:0.16},
+ {t:'并发 panic 未捕获',w:'线程内 panic 未用 catch_unwind 兜住',p:0.10}],
+checks:[
+ {t:'看 panic 信息里的文件:行号，定位触发点',cmd:'src/main.rs:42'},
+ {t:'把 unwrap 换成带上下文的 expect 或 ? 传播'},
+ {t:'为越界下标加边界检查或改用 get() 返回 Option',cmd:'if let Some(v)=vec.get(i){...}'},
+ {t:'用 RUST_BACKTRACE=1 重跑拿完整回溯',cmd:'RUST_BACKTRACE=1 cargo run'},
+ {t:'并发场景用 catch_unwind 兜住线程内 panic'}],
+verify:'重新触发时 panic 信息指向正确代码行，且越界路径已被边界检查覆盖。'},
+{id:'cpp-exception',score:S('cpp',/std::|exception|terminate|out_of_range/,/std::|exception|terminate|out_of_range/i),causes:[
+ {t:'标准异常未捕获',w:'throw 出的 std::exception 一路 propagate 到 terminate',p:0.40},
+ {t:'下标 / 长度越界',w:'string::substr / vector::at 越界抛 out_of_range',p:0.30},
+ {t:'空指针解引用（未捕获）',w:'访问已释放对象触发段错误前先抛坏指针',p:0.18},
+ {t:'noexcept 函数内抛异常',w:'在 noexcept 函数里抛异常直接 terminate',p:0.12}],
+checks:[
+ {t:'用 gdb 在 throw 处断下，看异常类型与栈',cmd:'catch throw'},
+ {t:'确认抛点：main.cpp 的具体行与入参',cmd:'gdb ./a.out -ex run -ex bt'},
+ {t:'给下标操作加范围校验，或显式用 at() 抛错'},
+ {t:'审查 noexcept 函数是否可能抛异常'},
+ {t:'用 sanitizer 重编复跑',cmd:'g++ -fsanitize=address -g main.cpp'}],
+verify:'相同入参触发时异常类型明确，调用方已捕获或前置校验避免越界。'},
+{id:'shell-cmd',score:S('shell',/command not found|not found|Error 127|Permission denied/,/command not found|not found|Permission denied|127/i),causes:[
+ {t:'命令未安装 / 不在 PATH',w:'pnpm/docker 等依赖本地没装或 PATH 没配',p:0.50},
+ {t:'脚本 shebang 指向错误解释器',w:'#!/usr/bin/env bash 但环境是 dash/sh',p:0.24},
+ {t:'权限不足',w:'可执行位没加或被安全策略拦截',p:0.16},
+ {t:'CI 环境与本地不一致',w:'本地有而 runner 镜像没有的工具',p:0.10}],
+checks:[
+ {t:'确认命令是否存在于当前 PATH',cmd:'which pnpm || command -v pnpm'},
+ {t:'检查脚本解释器与 shebang 是否匹配',cmd:'head -1 deploy.sh'},
+ {t:'给脚本加可执行权限或显式调用解释器',cmd:'chmod +x deploy.sh'},
+ {t:'用容器复现 CI 环境再跑一次',cmd:'docker run --rm -v $PWD:/w -w /w node:18 ./deploy.sh'},
+ {t:'把缺失依赖写进 CI 安装步骤'}],
+verify:'在干净环境（容器 / 新机器）上脚本可完整跑通，退出码 0。'},
+{id:'php-fatal',score:S('php',/Error|Exception|Fatal/,/Fatal error|Uncaught|undefined|null/i),causes:[
+ {t:'调用了不存在的方法 / 属性',w:'重构改名后旧调用点没同步',p:0.40},
+ {t:'自动加载找不到类',w:'命名空间 / 文件名大小写不一致导致 autoload 失败',p:0.26},
+ {t:'类型声明与传入不符',w:'严格模式下参数类型不对直接 fatal',p:0.20},
+ {t:'依赖未安装 / vendor 缺失',w:'composer install 没跑或版本锁错',p:0.14}],
+checks:[
+ {t:'看 fatal 行指向的文件:行号与调用栈',cmd:'Foo.php:12'},
+ {t:'确认方法名是否重构后改名',cmd:'grep -rn "function bar" src/'},
+ {t:'核对命名空间与自动加载规则（PSR-4）'},
+ {t:'检查 composer 依赖与 autoload 是否生成',cmd:'composer dump-autoload'},
+ {t:'用静态分析提前发现问题',cmd:'vendor/bin/phpstan analyse'}],
+verify:'phpstan 零错误，且相同请求不再触发 fatal，调用点已对齐。'}
+];
+var FALLBACK={id:'generic-triage',causes:[
+ {t:'环境差异',w:'本地能跑线上不能跑，先看版本与配置',p:0.26},
+ {t:'最近变更引入',w:'回归缺陷，重点看最近 48h 的提交',p:0.26},
+ {t:'输入数据异常',w:'边界值 / 空值 / 编码问题',p:0.22},
+ {t:'依赖版本漂移',w:'lock 文件与真实安装不一致',p:0.14},
+ {t:'并发与时序',w:'偶发问题多半和竞态有关',p:0.12}],
+checks:[
+ {t:'构造最小复现：砍掉无关变量，直到还能复现'},
+ {t:'看完整日志上下文，不要只看最后一行报错'},
+ {t:'二分定位变更',cmd:'git bisect start HEAD HEAD~20'},
+ {t:'对比正常与异常环境的版本 / 配置差异'},
+ {t:'存入错题本，跟踪是否复发'}],
+verify:'最小复现稳定触发，修复后同一复现路径通过。'};
+function diagnose(raw){
+  var sig=parse(raw),best=null,bs=0;
+  for(var i=0;i<RULES.length;i++){var s=RULES[i].score(sig);if(s>bs){bs=s;best=RULES[i]}}
+  if(!best||bs<0.5){best=FALLBACK;bs=Math.max(bs,0.42)}
+  return {sig:sig,rule:best,confidence:Math.min(bs,0.98),causes:best.causes,checks:best.checks.map(function(c){return {t:c.t,cmd:c.cmd||'',done:false}}),verify:best.verify};
+}
+// 诊断异常兜底：解析或规则匹配异常时回退到通用清单，并保留错误信息
+function safeDiagnose(raw){
+  try{
+    var d=diagnose(raw);
+    if(d&&d.sig&&d.rule)return d;
+    return {sig:safeParse(raw),rule:FALLBACK,confidence:0.42,causes:FALLBACK.causes,
+      checks:FALLBACK.checks.map(function(c){return {t:c.t,cmd:c.cmd||'',done:false}}),verify:FALLBACK.verify};
+  }catch(e){
+    return {sig:safeParse(raw),rule:FALLBACK,confidence:0.42,causes:FALLBACK.causes,
+      checks:FALLBACK.checks.map(function(c){return {t:c.t,cmd:c.cmd||'',done:false}}),verify:FALLBACK.verify,
+      error:String((e&&e.message)||e)};
+  }
+}
+
+/* ================= state ================= */
+var state={view:'diagnose',kb:[],diag:null,parseGen:0,filter:{q:'',lang:'all'},detail:null,kbSort:'recent'};
+var saveQueue=Promise.resolve(), saveFailed=false;
+function saveKB(){var snapshot=JSON.stringify(state.kb);saveQueue=saveQueue.then(function(){if(saveFailed)return;return window.clinicStore.save(snapshot).catch(function(){saveFailed=true;toast('保存结果未确认，请刷新核对数据库')})});updateChrome()}
+/* ================= chrome ================= */
+function updateChrome(){
+  $('#nav-kb-count').textContent=state.kb.length;
+  $('#st-kb').textContent='KB: '+state.kb.length;
+}
+function setView(v){
+  state.view=v;
+  $$('.nav-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===v)});
+  render();
+}
+
+/* ================= views ================= */
+var ASCII_LOGO=[
+' ██████╗██╗     ██╗███╗   ██╗██╗ ██████╗ ',
+' ██╔════╝██║     ██║████╗  ██║██║██╔════╝ ',
+' ██║     ██║     ██║██╔██╗ ██║██║██║     ',
+' ██║     ██║     ██║██║╚██╗██║██║██║     ',
+' ╚██████╗███████╗██║██║ ╚████║██║╚██████╗ ',
+' ╚═════╝╚══════╝╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ '].join('\n');
+
+function viewDiagnose(){
+  var h='<div class="view">';
+  if(!state.diag){
+    h+='<div class="hero">'
+      +'<pre class="ascii">'+ASCII_LOGO+'</pre>'
+      +'<div class="hero-tag"><span class="p">clinic@local</span>:~$ clinic diagnose --paste<span class="cursor"></span></div>'
+      +'<p class="hero-sub">把堆栈贴进来，<b>30 秒拿走一份结构化排查清单</b>。解析错误指纹，按概率排序疑似原因，勾着清单一步步排——顺便把坑存进你的错题本。</p>'
+      +'</div>'
+      +'<div class="panel"><div class="panel-h"><span class="no">01</span><h3>paste stack trace</h3><span class="hint">支持拖入 .log / .txt 文件</span></div>'
+      +'<textarea id="raw" spellcheck="false" placeholder="Exception in thread &quot;main&quot; java.lang.NullPointerException..."></textarea>'
+      +'<div class="toolbar"><button class="btn primary" id="btn-run">开始诊断 ▸</button>'
+      +'<button class="btn" id="btn-clear">清空</button>'
+      +'<span class="drop-hint">本地解析 · 演示错题本仅在本页内保存</span></div>'
+      +'<div class="chips" id="chips"></div>'
+      +'<div class="langstrip"><span>Java</span><span>Python</span><span>JS / TS</span><span>Go</span><span>Rust</span><span>C / C++</span><span>Docker</span><span>K8s</span><span>Shell</span><span>Network / CORS</span></div>'
+      +'</div>';
+  }else{
+    var d=state.diag,s=d.sig;
+    var causesH=d.causes.map(function(c,i){
+      return '<div class="cause"><div class="cause-top"><span class="p">'+Math.round(c.p*100)+'%</span>'
+        +'<div class="bar"><i style="width:'+Math.round(c.p*100)+'%"></i></div></div>'
+        +'<div class="cause-top" style="margin-top:5px"><span style="flex:1;font-size:13px">'+(i+1)+'. '+esc(c.t)+'</span></div>'
+        +'<div class="cause-why">'+esc(c.w)+'</div></div>';
+    }).join('');
+    var checksH=d.checks.map(function(c,i){
+      return '<div class="check'+(c.done?' done':'')+'" data-ci="'+i+'" role="checkbox" aria-checked="'+(c.done?'true':'false')+'" tabindex="0">'
+        +'<span class="box">'+(c.done?'✓':'')+'</span><span><span class="tx">'+esc(c.t)+'</span>'+(c.cmd?'<br><span class="cmd">$ '+esc(c.cmd.trim())+'</span>':'')+'</span></div>';
+    }).join('');
+    var doneN=d.checks.filter(function(c){return c.done}).length;
+    var pct=Math.round(doneN/d.checks.length*100);
+    var kbHit=null;
+    for(var i=0;i<state.kb.length;i++){if(state.kb[i].fp===s.fp){kbHit=state.kb[i];break}}
+    if(d.error){h+='<div class="panel err-panel"><div class="panel-h"><span class="no" style="color:var(--danger);border-color:rgba(229,72,77,.4);background:rgba(229,72,77,.08)">!</span><h3 style="color:var(--danger)">诊断过程捕获到异常</h3></div><p style="font-size:13px;color:var(--t2)">'+esc(d.error)+' — 已回退到通用排查清单，原始堆栈仍可复制。</p></div>'}
+    h+='<div class="view-head" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">'
+      +'<button class="btn" id="btn-new">← 新诊断</button>'
+      +'<span style="font-family:var(--mono);font-size:12px;color:var(--t3)">'+esc(s.type)+' · '+esc(LANG_NAME[s.lang]||s.lang)+'</span>'
+      +'<span style="margin-left:auto"></span>'
+      +'<button class="btn" id="btn-copy-raw">复制原始堆栈</button>'
+      +'<button class="btn" id="btn-save">'+(kbHit?'更新错题本记录':'存入错题本')+'</button>'
+      +'<button class="btn" id="btn-copy">复制 Markdown</button>'
+      +'</div>';
+    if(kbHit){h+='<div class="panel" style="border-color:rgba(240,180,41,.35)"><div class="panel-h"><span class="no" style="color:var(--amber);border-color:rgba(240,180,41,.4);background:rgba(240,180,41,.08)">!</span><h3 style="color:var(--amber)">这个坑你踩过 '+kbHit.count+' 次</h3></div>'
+      +'<p style="font-size:13px;color:var(--t2)">首次 '+ago(kbHit.firstSeen)+' · 最近 '+ago(kbHit.lastSeen)+(kbHit.notes?' · 历史备注：'+esc(kbHit.notes):'')+'</p></div>'}
+    h+='<div class="report-grid">'
+      +'<div class="panel"><div class="panel-h"><span class="no">02</span><h3>error fingerprint · 错误档案</h3></div>'
+      +'<div class="filecard"><div class="fc-row"><span class="k">lang</span><span class="badge lang">'+esc(LANG_NAME[s.lang]||s.lang)+'</span></div>'
+      +'<div class="fc-row"><span class="k">type</span><span class="v hl">'+esc(s.type)+'</span></div>'
+      +'<div class="fc-row"><span class="k">message</span><span class="v">'+esc(s.message||'—')+'</span></div>'
+      +'<div class="fc-row"><span class="k">fp</span><span class="badge fp">'+esc(s.fp)+'</span>'+(kbHit?'<span class="badge n">×'+kbHit.count+'</span>':'')+'</div>'
+      +'<div class="fc-row"><span class="k">frames</span><span class="v">'+s.frames.length+' 个根因帧</span></div>'
+      +(s.frames.length?'<div class="fc-row"><span class="k">top</span><span class="v">'+esc(s.frames[0].file)+':'+s.frames[0].line+'</span></div>':'')
+      +'</div>'
+      +'<div class="panel-h" style="margin-top:14px"><span class="no">03</span><h3>diagnosis report</h3><span class="hint">rule: '+esc(d.rule.id)+' · conf '+(d.confidence*100).toFixed(0)+'%</span></div>'
+      +'<div class="ascii-report" id="ascii-report"></div>'
+      +'</div>'
+      +'<div class="panel"><div class="panel-h"><span class="no">04</span><h3>triage · 三阶排查</h3></div>'
+      +'<div style="font-family:var(--mono);font-size:11px;color:var(--t3);margin-bottom:8px">STAGE 1 / 最可能的原因（按概率排序）</div>'
+      +causesH
+      +'<div style="font-family:var(--mono);font-size:11px;color:var(--t3);margin:16px 0 8px">STAGE 2 / 排查清单（逐项勾掉）</div>'
+      +'<div class="ring-wrap"><div class="ring" id="ring"><b>'+pct+'%</b></div><div style="font-size:12px;color:var(--t3)">'+doneN+' / '+d.checks.length+' 已完成</div></div>'
+      +checksH
+      +'<div style="font-family:var(--mono);font-size:11px;color:var(--t3);margin:16px 0 6px">STAGE 3 / 验证方式</div>'
+      +'<p class="verify"><b>✓ </b>'+esc(d.verify)+'</p>'
+      +'</div></div>';
+  }
+  return h+'</div>';
+}
+function reportAscii(d){
+  var s=d.sig,L=[
+'┌─ DIAGNOSIS REPORT ──────────────────────────┐',
+'│ lang      '+pad(LANG_NAME[s.lang]||s.lang,34)+'│',
+'│ type      '+pad(s.type,34)+'│',
+'│ fp        '+pad(s.fp,34)+'│',
+'│ frames    '+pad(String(s.frames.length)+' detected',34)+'│',
+'│ rule      '+pad(d.rule.id+' ('+(d.confidence*100).toFixed(0)+'%)',34)+'│',
+'└─────────────────────────────────────────────┘'];
+  return L.join('\n');
+}
+function pad(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s+new Array(n-s.length+1).join(' ')}
+
+function viewKB(){
+  var list=state.kb.filter(function(e){
+    var q=state.filter.q.toLowerCase();
+    var okQ=!q||(e.type+' '+e.message+' '+e.fp+' '+(e.notes||'')).toLowerCase().indexOf(q)>=0;
+    var okL=state.filter.lang==='all'||e.lang===state.filter.lang;
+    return okQ&&okL;
+  });
+  var sort=state.kbSort||'recent';
+  list=list.slice().sort(function(a,b){
+    if(sort==='count')return (b.count||1)-(a.count||1);
+    if(sort==='lang')return (LANG_NAME[a.lang]||a.lang).localeCompare(LANG_NAME[b.lang]||b.lang,'zh');
+    return (b.lastSeen||0)-(a.lastSeen||0);
+  });
+  var langs={};state.kb.forEach(function(e){langs[e.lang]=1});
+  var langChips=Object.keys(langs).map(function(l){
+    return '<button class="chip" data-lang="'+l+'" style="'+(state.filter.lang===l?'color:var(--accent);border-style:solid;border-color:rgba(1,200,134,.5)':'')+'">'+esc(LANG_NAME[l]||l)+'</button>';
+  }).join('');
+  var maxC=state.kb.reduce(function(m,e){return Math.max(m,e.count||1)},0);
+  var lastSeen=state.kb.reduce(function(m,e){return Math.max(m,e.lastSeen||0)},0);
+  var h='<div class="view"><div class="page-h">错题本 <span>/ kb</span></div>'
+    +'<div class="page-sub">保存的错误指纹。同一个 fp 再次出现时会提醒「第 N 次踩坑」。</div>'
+    +'<div class="kb-stats">'
+    +'<div class="stat"><div class="n">'+state.kb.length+'</div><div class="l">沉淀错误</div></div>'
+    +'<div class="stat"><div class="n">'+Object.keys(langs).length+'</div><div class="l">覆盖语言</div></div>'
+    +'<div class="stat"><div class="n">×'+(maxC||0)+'</div><div class="l">最高复发</div></div>'
+    +'<div class="stat"><div class="n">'+(lastSeen?ago(lastSeen):'—')+'</div><div class="l">最近诊断</div></div>'
+    +'</div>'
+    +'<div class="kb-tools"><input id="kb-q" placeholder="搜索 type / message / fp / 备注…" value="'+esc(state.filter.q)+'">'
+    +'<select class="sel" id="kb-sort"><option value="recent"'+(sort==='recent'?' selected':'')+'>最近</option><option value="count"'+(sort==='count'?' selected':'')+'>次数</option><option value="lang"'+(sort==='lang'?' selected':'')+'>语言</option></select>'
+    +'<label class="btn" for="kb-import" style="cursor:pointer">导入 JSON</label><input type="file" id="kb-import" class="hidden-file" accept="application/json,.json">'
+    +'<button class="chip" data-lang="all" style="'+(state.filter.lang==='all'?'color:var(--accent);border-style:solid;border-color:rgba(1,200,134,.5)':'')+'">全部</button>'+langChips+'</div>';
+  if(state.detail){
+    var e=state.detail;
+    h+='<div class="kb-detail"><div class="panel-h"><span class="no">detail</span><h3 style="color:var(--accent)">'+esc(e.type)+'</h3>'
+      +'<span class="hint">'+esc(e.fp)+' · ×'+e.count+'</span></div>'
+      +'<div class="fc-row"><span class="k">lang</span><span class="badge lang">'+esc(LANG_NAME[e.lang]||e.lang)+'</span></div>'
+      +'<div class="fc-row"><span class="k">message</span><span class="v">'+esc(e.message||'—')+'</span></div>'
+      +'<div class="fc-row"><span class="k">seen</span><span class="v">首次 '+ago(e.firstSeen)+' · 最近 '+ago(e.lastSeen)+' · 共 '+e.count+' 次</span></div>'
+      +(e.frames&&e.frames.length?'<div class="fc-row"><span class="k">frames</span><span class="v">'+e.frames.map(function(f){return esc(f.file)+':'+f.line}).join(' · ')+'</span></div>':'')
+      +'<textarea class="kb-notes" id="kb-notes" placeholder="解法备注：当时怎么修好的？写下来，下次直接抄。">'+esc(e.notes||'')+'</textarea>'
+      +'<div class="toolbar"><button class="btn primary" id="btn-notes-save">保存备注</button>'
+      +'<button class="btn" id="btn-kb-back">返回列表</button>'
+      +'<button class="btn warn" id="btn-kb-del" style="margin-left:auto">删除条目</button></div>'
+      +'<details style="margin-top:12px"><summary style="font-family:var(--mono);font-size:11.5px;color:var(--t3);cursor:pointer">原始堆栈（折叠）</summary><pre>'+esc(e.raw||'')+'</pre></details>'
+      +'</div>';
+  }
+  if(!list.length){
+    h+='<div class="empty">'+(state.kb.length?'没有匹配的条目':'错题本是空的 — 诊断一次，点「存入错题本」开始沉淀')+'</div>';
+  }else{
+    h+='<div class="kb-grid">'+list.map(function(e){
+      return '<div class="kb-card" data-fp="'+esc(e.fp)+'"><div class="t">'+esc(e.type)+'</div>'
+        +'<div class="m">'+esc(e.message||'')+'</div>'
+        +'<div class="meta"><span class="badge lang">'+esc(LANG_NAME[e.lang]||e.lang)+'</span>'
+        +(e.count>1?'<span class="badge n">×'+e.count+'</span>':'')
+        +'<span class="tm">'+ago(e.lastSeen)+'</span></div></div>';
+    }).join('')+'</div>';
+  }
+  if(state.kb.length){
+    h+='<div class="toolbar" style="margin-top:18px"><button class="btn" id="btn-kb-export">导出 Markdown</button>'
+      +'<button class="btn" id="btn-kb-export-json">导出 JSON</button>'
+      +'<button class="btn warn" id="btn-kb-clear" style="margin-left:auto">清空错题本</button></div>';
+  }
+  return h+'</div>';
+}
+function viewSamples(){
+  var h='<div class="view"><div class="page-h">样本库 <span>/ samples</span></div>'
+    +'<div class="page-sub">高频错误样本，一键装入诊断台。零门槛体验完整流程。</div><div class="smp-grid">';
+  h+=SAMPLES.map(function(s){
+    return '<div class="smp"><span class="badge lang" style="align-self:flex-start">'+esc(s.lang)+'</span>'
+      +'<div class="t">'+esc(s.title)+'</div><div class="d">'+esc(s.desc)+'</div>'
+      +'<button class="go" data-smp="'+s.id+'">装入诊断台 ▸</button></div>';
+  }).join('');
+  return h+'</div></div>';
+}
+function viewAbout(){
+  return '<div class="view prose"><div class="page-h">关于 <span>/ about</span></div>'
+    +'<div class="page-sub">报错诊所 ErrorClinic · 终端里的诊断台 · v1.0.0 (build 0x400)</div>'
+    +'<h2>&gt; 作品定位</h2><p>面向程序员的<b>终端风报错诊断台</b>。解决的具体痛点：报错贴进搜索框只能得到碎片化答案，缺少结构化的排查思路；踩过的坑没有沉淀，下次遇见从头再来。ErrorClinic 不喂答案，而是给<b>按概率排序的疑似原因 + 可勾选的排查清单</b>，训练的是排查方法本身。</p>'
+    +'<h2>&gt; 核心功能</h2><ul>'
+    +'<li><b>全栈报错解析器</b> — Java / Python / JS / TS / Go / Rust / C / Docker / K8s / Shell / 网络错误，自动提取语言、类型、根因帧与错误指纹</li>'
+    +'<li><b>三阶排查引擎</b> — 疑似原因（概率排序）→ 排查清单（含命令）→ 验证方式</li>'
+    +'<li><b>个人错题本</b> — 索引错误指纹，复发提醒「第 N 次踩坑」，支持搜索 / 备注 / 导出 Markdown</li>'
+    +'<li><b>终端诊断台体验</b> — 打字机流式输出、ASCII 诊断报告、CRT 氛围、键盘优先</li>'
+    +'<li><b>二进制雨彩蛋</b> — 命令面板输入 1024 触发二进制雨</li></ul>'
+    +'<h2>&gt; 快捷键</h2><table class="km">'
+    +'<tr><td>⌘K / Ctrl+K</td><td>命令面板</td></tr>'
+    +'<tr><td>F1 – F4</td><td>诊断台 / 错题本 / 样本库 / 关于</td></tr>'
+    +'<tr><td>/</td><td>聚焦输入框</td></tr>'
+    +'<tr><td>Esc</td><td>关闭浮层 / 回到诊断台</td></tr></table>'
+    +'<h2>&gt; 技术实现</h2><p>浏览器本地执行规则诊断。解析层为多组正则 + 启发式语言检测；指纹为归一化消息的 djb2 哈希，跨格式稳定；诊断层为规则引擎（模式匹配 → 概率化原因 + 清单），未命中时回退通用三阶清单。演示错题本仅在本页内保存。</p>'
+    +'<h2>&gt; 路线图</h2><ul><li>v1.1 接入本地 LLM（Ollama）做开放式诊断</li><li>v1.2 支持命令行诊断</li><li>v2.0 团队脱敏错题热度榜（当前仅演示数据）</li></ul>'
+    +'<p style="color:var(--t3);font-size:12px;margin-top:20px">所有样本数据均为虚构演示数据。</p></div>';
+}
+
+/* ================= render ================= */
+function render(){
+  var m=$('#main');
+  if(state.view==='diagnose')m.innerHTML=viewDiagnose();
+  else if(state.view==='kb')m.innerHTML=viewKB();
+  else if(state.view==='samples')m.innerHTML=viewSamples();
+  else m.innerHTML=viewAbout();
+  m.scrollTop=0;
+  bindView();
+}
+function bindView(){
+  if(state.view==='diagnose'&&!state.diag){
+    $('#btn-run').onclick=runDiagnose;
+    $('#btn-clear').onclick=function(){$('#raw').value='';$('#raw').focus()};
+    var chips=$('#chips');
+    SAMPLES.forEach(function(s){
+      var b=document.createElement('button');b.className='chip';b.textContent=s.title;
+      b.onclick=function(){$('#raw').value=s.raw;runDiagnose()};
+      chips.appendChild(b);
+    });
+    var rawEl=$('#raw');
+    if(rawEl){rawEl.focus();rawEl.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();runDiagnose()}})}
+  }
+  if(state.view==='diagnose'&&state.diag){
+    $('#btn-new').onclick=function(){state.diag=null;render()};
+    $('#btn-copy').onclick=function(){copyText(diagMarkdown(state.diag),'已复制 Markdown 诊断报告')};
+    var copyRaw=$('#btn-copy-raw');if(copyRaw)copyRaw.onclick=function(){copyText(state.diag.sig.raw,'已复制原始堆栈')};
+    $('#btn-save').onclick=saveToKB;
+    $$('.check').forEach(function(el){
+      function toggle(){
+        var i=+el.getAttribute('data-ci');
+        state.diag.checks[i].done=!state.diag.checks[i].done;
+        el.classList.toggle('done',state.diag.checks[i].done);
+        el.setAttribute('aria-checked',state.diag.checks[i].done?'true':'false');
+        el.querySelector('.box').textContent=state.diag.checks[i].done?'✓':'';
+        var dn=state.diag.checks.filter(function(c){return c.done}).length;
+        var p=Math.round(dn/state.diag.checks.length*100);
+        $('#ring').innerHTML='<b>'+p+'%</b>';
+        el.closest('.panel').querySelector('.ring-wrap div:last-child').textContent=dn+' / '+state.diag.checks.length+' 已完成';
+      }
+      el.onclick=toggle;
+      el.onkeydown=function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();toggle()}};
+    });
+    typeAscii($('#ascii-report'),reportAscii(state.diag));
+  }
+  if(state.view==='kb'){
+    var q=$('#kb-q');
+    if(q){q.oninput=function(){state.filter.q=q.value;var p=q.selectionStart;render();var nq=$('#kb-q');nq.focus();nq.setSelectionRange(p,p)}}
+    var sortSel=$('#kb-sort');if(sortSel){sortSel.value=state.kbSort||'recent';sortSel.onchange=function(){state.kbSort=sortSel.value;render()}}
+    var imp=$('#kb-import');if(imp)imp.onchange=importKB;
+    var exj=$('#btn-kb-export-json');if(exj)exj.onclick=function(){if(!state.kb.length){toast('错题本是空的')}else copyText(kbJSON(),'已导出 '+state.kb.length+' 条错题 JSON')};
+    $$('[data-lang]').forEach(function(b){b.onclick=function(){state.filter.lang=b.getAttribute('data-lang');render()}});
+    $$('.kb-card').forEach(function(c){c.onclick=function(){
+      var fp=c.getAttribute('data-fp');
+      state.detail=null;for(var i=0;i<state.kb.length;i++){if(state.kb[i].fp===fp)state.detail=state.kb[i]}
+      render();
+    }});
+    if(state.detail){
+      $('#btn-kb-back').onclick=function(){state.detail=null;render()};
+      $('#btn-notes-save').onclick=function(){state.detail.notes=$('#kb-notes').value;saveKB();toast('正在保存备注')};
+      $('#btn-kb-del').onclick=function(){
+        state.kb=state.kb.filter(function(e){return e.fp!==state.detail.fp});
+        state.detail=null;saveKB();render();toast('条目已删除');
+      };
+    }
+    var ex=$('#btn-kb-export');
+    if(ex)ex.onclick=function(){copyText(kbMarkdown(),'已导出 '+state.kb.length+' 条错题 Markdown')};
+    var cl=$('#btn-kb-clear');
+    if(cl)cl.onclick=function(){
+      if(confirm('确认清空全部 '+state.kb.length+' 条错题记录？此操作不可恢复。')){state.kb=[];state.detail=null;saveKB();render();toast('错题本已清空')}
+    };
+  }
+  if(state.view==='samples'){
+    $$('[data-smp]').forEach(function(b){b.onclick=function(){
+      var id=b.getAttribute('data-smp');
+      for(var i=0;i<SAMPLES.length;i++){if(SAMPLES[i].id===id){state.view='diagnose';state.diag=null;render();$('#raw').value=SAMPLES[i].raw;runDiagnose();return}}
+    }});
+  }
+}
+
+/* ================= diagnose flow ================= */
+function runDiagnose(){
+  var ta=$('#raw');if(!ta){toast('诊断台未就绪');return}
+  var raw=ta.value.trim();
+  if(raw.length<8){toast('内容太短，至少贴几行堆栈');return}
+  try{
+    var gen=++state.parseGen;
+    var box=$('#main');
+    if(!box)return;
+    box.innerHTML='<div class="view"><div class="panel"><div class="panel-h"><span class="no">01</span><h3>parsing…</h3><span class="hint">clinic parse --lang auto</span></div>'
+      +'<div class="parsing"><div class="scan"></div><div class="plog" id="plog"></div></div></div></div>';
+    var steps=[
+      function(){return '> 读取输入 <i>'+raw.length+'</i> 字符'},
+      function(){var d=safeDiagnose(raw);return '> 检测语言 <b>'+esc(LANG_NAME[d.sig.lang]||d.sig.lang)+'</b>'},
+      function(){var d=safeDiagnose(raw);return '> 提取类型 <b>'+esc(d.sig.type)+'</b> · 根因帧 <b>'+d.sig.frames.length+'</b> 个'},
+      function(){var d=safeDiagnose(raw);return '> 计算指纹 <b>'+esc(d.sig.fp)+'</b>'},
+      function(){var d=safeDiagnose(raw);return '> 匹配规则 <b>'+esc(d.rule.id)+'</b> (conf '+(d.confidence*100).toFixed(0)+'%)'},
+      function(){return '> 生成三阶排查清单 <b>OK</b>'}
+    ];
+    var i=0,log=$('#plog');
+    function next(){
+      if(gen!==state.parseGen)return;
+      var line=document.createElement('div');line.innerHTML=steps[i]();log.appendChild(line);
+      i++;
+      if(i<steps.length){setTimeout(next,REDUCED?10:220)}
+      else{setTimeout(function(){if(gen===state.parseGen){state.diag=safeDiagnose(raw);render()}},REDUCED?10:420)}
+    }
+    next();
+  }catch(e){
+    // 任何意外都不应让 UI 卡死：回退到输入视图并保留原文
+    toast('解析过程出现异常，已安全恢复输入');
+    try{state.diag=null;render();var r=$('#raw');if(r)r.value=raw}catch(_){}
+  }
+}
+function saveToKB(){
+  var d=state.diag,s=d.sig,now=Date.now(),hit=null;
+  for(var i=0;i<state.kb.length;i++){if(state.kb[i].fp===s.fp)hit=state.kb[i]}
+  if(hit){hit.count++;hit.lastSeen=now;hit.raw=s.raw;
+    if(hit.count>=3)toast('第 '+hit.count+' 次踩同一个坑了 — 建议写进团队 wiki');
+    else toast('已更新记录：第 '+hit.count+' 次踩坑');
+  }else{
+    state.kb.unshift({fp:s.fp,lang:s.lang,type:s.type,message:s.message,frames:s.frames,raw:s.raw,
+      firstSeen:now,lastSeen:now,count:1,notes:''});
+    toast('已存入错题本 · '+s.fp);
+  }
+  saveKB();render();
+}
+
+/* ================= markdown ================= */
+function diagMarkdown(d){
+  var s=d.sig,L=[];
+  L.push('# 诊断报告 · '+s.type);L.push('');
+  L.push('- 语言：'+(LANG_NAME[s.lang]||s.lang)+' · 指纹：`'+s.fp+'` · 规则：`'+d.rule.id+'`（置信度 '+(d.confidence*100).toFixed(0)+'%）');
+  if(s.frames.length)L.push('- 根因帧：'+s.frames.map(function(f){return f.file+':'+f.line}).join(' → '));
+  L.push('');L.push('## 最可能的原因');
+  d.causes.forEach(function(c,i){L.push((i+1)+'. '+c.t+'（'+Math.round(c.p*100)+'%）— '+c.w)});
+  L.push('');L.push('## 排查清单');
+  d.checks.forEach(function(c){L.push('- ['+(c.done?'x':' ')+'] '+c.t+(c.cmd?' `'+c.cmd.trim()+'`':''))});
+  L.push('');L.push('## 验证');L.push(d.verify);
+  L.push('');L.push('```');L.push(s.raw.slice(0,800));L.push('```');
+  return L.join('\n');
+}
+function kbMarkdown(){
+  var L=['# 错题本导出 · '+new Date().toLocaleString('zh-CN'),''];
+  state.kb.forEach(function(e){
+    L.push('## '+e.type+' `'+e.fp+'` ×'+e.count);
+    L.push('- '+(LANG_NAME[e.lang]||e.lang)+' · 首次 '+new Date(e.firstSeen).toLocaleString('zh-CN')+' · 最近 '+new Date(e.lastSeen).toLocaleString('zh-CN'));
+    if(e.message)L.push('- '+e.message);
+    if(e.notes)L.push('- 备注：'+e.notes);
+    L.push('');
+  });
+  return L.join('\n');
+}
+function kbJSON(){
+  return JSON.stringify(state.kb.map(function(e){
+    return {fp:e.fp,lang:e.lang,type:e.type,message:e.message,frames:e.frames||[],raw:e.raw||'',
+      firstSeen:e.firstSeen,lastSeen:e.lastSeen,count:e.count,notes:e.notes||''};
+  }),null,2);
+}
+function importKB(ev){
+  var f=ev&&ev.target&&ev.target.files&&ev.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onerror=function(){toast('文件读取失败，请重试')};
+  rd.onload=function(){
+    try{
+      var arr=JSON.parse(String(rd.result));
+      if(!Array.isArray(arr))throw new Error('不是合法的错题本数组');
+      var added=0;
+      arr.forEach(function(e){
+        if(!e||!e.fp)return;
+        var hit=null;
+        for(var i=0;i<state.kb.length;i++){if(state.kb[i].fp===e.fp){hit=state.kb[i];break}}
+        if(hit){hit.count=Math.max(hit.count||1,e.count||1);hit.lastSeen=Math.max(hit.lastSeen||Date.now(),e.lastSeen||Date.now());if(e.notes)hit.notes=e.notes;}
+        else{state.kb.unshift({fp:e.fp,lang:e.lang||'unknown',type:e.type||'Unknown',message:e.message||'',frames:e.frames||[],raw:e.raw||'',firstSeen:e.firstSeen||Date.now(),lastSeen:e.lastSeen||Date.now(),count:e.count||1,notes:e.notes||''});added++}
+      });
+      saveKB();render();toast('已导入 '+added+' 条新错题（重复指纹已合并）');
+    }catch(e){toast('JSON 解析失败：'+(e.message||e))}
+  };
+  rd.readAsText(f);
+  try{ev.target.value=''}catch(_){}
+}
+
+/* ================= typewriter ================= */
+function typeAscii(el,text){
+  if(REDUCED){el.textContent=text;return}
+  el.textContent='';var i=0;
+  (function tick(){
+    if(i<text.length){el.textContent+=text.charAt(i);i++;setTimeout(tick,7)}
+  })();
+}
+
+/* ================= binary rain ================= */
+var rainOn=false,rainRAF=null;
+function initRain(){
+  var cv=$('#rain'),ctx=cv.getContext('2d');
+  function resize(){cv.width=innerWidth;cv.height=innerHeight}
+  resize();addEventListener('resize',resize);
+  var cols=[],fs=14;
+  function reset(){cols=[];var n=Math.floor(cv.width/fs);for(var i=0;i<n;i++)cols.push({y:Math.random()*-50,s:(Math.random()*1.5+0.6)})}
+  function frame(){
+    if(!rainOn)return;
+    ctx.fillStyle='rgba(8,9,10,.12)';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.font=fs+'px monospace';
+    for(var i=0;i<cols.length;i++){
+      var c=cols[i],ch=Math.random()>.5?'1':'0';
+      ctx.fillStyle=Math.random()>.985?'#E6FFF4':'#01C886';
+      ctx.fillText(ch,i*fs,c.y*fs);
+      c.y+=c.s;
+      if(c.y*fs>cv.height&&Math.random()>.975)c.y=0;
+    }
+    rainRAF=requestAnimationFrame(frame);
+  }
+  window.toggleRain=function(){
+    rainOn=!rainOn;
+    cv.classList.toggle('on',rainOn);
+    if(rainOn){reset();frame();toast('二进制雨已开启 — ERROR CLINIC，祝排查顺利')}
+    else{cancelAnimationFrame(rainRAF);ctx.clearRect(0,0,cv.width,cv.height);toast('二进制雨已关闭')}
+  };
+}
+
+/* ================= command palette ================= */
+var CMDS=[
+ {ic:'⌂',t:'诊断台',k:'F1',run:function(){setView('diagnose')}},
+ {ic:'▤',t:'错题本',k:'F2',run:function(){setView('kb')}},
+ {ic:'◈',t:'样本库',k:'F3',run:function(){setView('samples')}},
+ {ic:'?',t:'关于本作品',k:'F4',run:function(){setView('about')}},
+ {ic:'0/1',t:'触发二进制雨（rain）',k:'',run:function(){window.toggleRain()}},
+ {ic:'⤓',t:'导出错题本 Markdown',k:'',run:function(){if(!state.kb.length){toast('错题本是空的')}else copyText(kbMarkdown(),'已导出 '+state.kb.length+' 条错题 Markdown')}},
+ {ic:'⤓',t:'导出错题本 JSON',k:'',run:function(){if(!state.kb.length){toast('错题本是空的')}else copyText(kbJSON(),'已导出 '+state.kb.length+' 条错题 JSON')}},
+ {ic:'⤒',t:'导入错题本 JSON',k:'',run:function(){var i=document.createElement('input');i.type='file';i.accept='application/json';i.onchange=importKB;document.body.appendChild(i);i.click();document.body.removeChild(i)}},
+ {ic:'✦',t:'切换 终端节日配色',k:'',run:function(){window.toggleFest()}},
+ {ic:'⌫',t:'清空错题本',k:'',run:function(){if(!state.kb.length){toast('错题本已是空的')}else if(confirm('确认清空全部 '+state.kb.length+' 条错题记录？')){state.kb=[];state.detail=null;saveKB();render();toast('错题本已清空')}}},
+ {ic:'▭',t:'切换 CRT 扫描线',k:'',run:function(){window.toggleCRT()}},
+ {ic:'?',t:'帮助：粘贴任意堆栈开始诊断',k:'',run:function(){setView('diagnose');toast('把堆栈贴进诊断台，按 ⌘K 随时回来')}}
+];
+function initPalette(){
+  var pal=$('#palette'),inp=$('#palette-input'),list=$('#palette-list'),sel=0;
+  function draw(q){
+    q=(q||'').toLowerCase();
+    var items=CMDS.filter(function(c){return !q||c.t.toLowerCase().indexOf(q)>=0||(q==='rain'&&c.t.indexOf('二进制')>=0)});
+    if(q==='rain')items=[CMDS[4]];
+    if(!items.length){list.innerHTML='<div style="padding:14px;color:var(--t3);font-family:var(--mono);font-size:12px">没有匹配命令</div>';return}
+    sel=0;
+    list.innerHTML=items.map(function(c,i){
+      return '<button class="pitem'+(i===0?' sel':'')+'" data-i="'+CMDS.indexOf(c)+'"><span class="ic">'+c.ic+'</span>'+esc(c.t)+(c.k?'<span class="k">'+c.k+'</span>':'')+'</button>';
+    }).join('');
+    $$('.pitem',list).forEach(function(b){
+      b.onclick=function(){close();CMDS[+b.getAttribute('data-i')].run()};
+    });
+  }
+  function open(){pal.classList.remove('hidden');inp.value='';draw('');inp.focus()}
+  function close(){pal.classList.add('hidden')}
+  window.__closePalette=close;
+  $('#btn-palette').onclick=open;
+  pal.onclick=function(e){if(e.target===pal)close()};
+  inp.oninput=function(){draw(inp.value)};
+  inp.onkeydown=function(e){
+    var items=$$('.pitem',list);
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      if(!items.length)return;
+      items[sel].classList.remove('sel');
+      sel=(sel+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;
+      items[sel].classList.add('sel');
+    }else if(e.key==='Enter'){
+      e.preventDefault();
+      if(items.length){close();CMDS[+items[sel].getAttribute('data-i')].run()}
+    }else if(e.key==='Escape'){close()}
+  };
+}
+
+/* ================= boot ================= */
+function init(){
+  updateChrome();render();initRain();initPalette();
+  $$('.nav-item').forEach(function(b){b.onclick=function(){setView(b.getAttribute('data-view'))}});
+  window.toggleCRT=function(){
+    var on=$('#scan').classList.toggle('on');
+    $('#st-crt').textContent='CRT: '+(on?'ON':'OFF');
+    toast('CRT 扫描线 '+(on?'已开启':'已关闭'));
+  };
+  window.toggleFest=function(){var on=document.body.classList.toggle('fest');toast(on?'终端节日配色已开启 🎉':'已恢复默认配色')};
+  document.addEventListener('keydown',function(e){
+    if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#palette').classList.contains('hidden')?$('#btn-palette').click():window.__closePalette()}
+    else if(e.key==='F1'){e.preventDefault();setView('diagnose')}
+    else if(e.key==='F2'){e.preventDefault();setView('kb')}
+    else if(e.key==='F3'){e.preventDefault();setView('samples')}
+    else if(e.key==='F4'){e.preventDefault();setView('about')}
+    else if(e.key==='Escape'){window.__closePalette()}
+    else if(e.key==='/'&&document.activeElement.tagName!=='TEXTAREA'&&document.activeElement.tagName!=='INPUT'){
+      e.preventDefault();
+      if(state.view!=='diagnose')setView('diagnose');
+      setTimeout(function(){var r=$('#raw');if(r)r.focus()},60);
+    }
+  });
+  document.addEventListener('dragover',function(e){e.preventDefault()});
+  document.addEventListener('drop',function(e){
+    e.preventDefault();
+    var file=e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(!file)return;
+    if(file.size>512*1024){toast('文件过大（>512KB），请只贴关键堆栈');return}
+    var rd=new FileReader();
+    rd.onerror=function(){toast('文件读取失败，请重试')};
+    rd.onload=function(){
+      if(state.view!=='diagnose'){state.view='diagnose';state.diag=null;render()}
+      $('#raw').value=String(rd.result).slice(0,8000);runDiagnose();
+    };
+    rd.readAsText(file);
+  });
+  if(REDUCED)toast('已检测到减弱动效偏好，动画已简化');
+  toast('ErrorClinic v1.0.0 就绪 — 粘贴堆栈或点样本库试试');
+}
+window.clinicStore={load:function(){return Promise.resolve('[]')},save:function(){return Promise.resolve()}}; function start(){init()}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start):start();
+})();
+</script>
+</body>
+</html>
