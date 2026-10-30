@@ -668,14 +668,14 @@ function allocate(total, domainList) {
     let moved = false;
     domainList.forEach((d) => {
       if (out[d] > avail[d]) {
-        const surplus = out[d] - avail[d];
+        let surplus = out[d] - avail[d];
         out[d] = avail[d];
         const receivers = domainList.filter((x) => out[x] < avail[x]);
         const rsum = receivers.reduce((s, x) => s + EXAMS[x].mid, 0) || 1;
         receivers.forEach((x) => {
           const want = Math.max(1, Math.round(surplus * EXAMS[x].mid / rsum));
-          const take = Math.min(want, avail[x] - out[x]);
-          if (take > 0) { out[x] += take; moved = true; }
+          const take = Math.min(want, avail[x] - out[x], surplus);
+          if (take > 0) { out[x] += take; surplus -= take; moved = true; }
         });
       }
     });
