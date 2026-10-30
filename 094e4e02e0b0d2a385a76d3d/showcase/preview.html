@@ -455,7 +455,7 @@
   @media (prefers-reduced-motion:reduce){
     *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
   }
-</style></head><body><div style="position:fixed;z-index:9999;right:8px;top:8px;background:#18212b;color:#fff;padding:8px;border-radius:8px;font:12px sans-serif">示例体验 <button type="button" onclick="location.reload()">恢复示例</button></div>
+</style></head><body><div style="position:fixed;z-index:9999;right:8px;top:8px;background:#18212b;color:#fff;padding:8px;border-radius:8px;font:12px sans-serif">示例体验 <button type="button" id="resetExample">恢复示例</button></div>
 <div data-page-node-id="zPMt8skVkf8uxU21SnvLee" class="app">
 
   <!--pnid:C22aDdF9zTtWnXQ0yHaR0t--><!-- ================= HOME ================= -->
@@ -995,6 +995,7 @@
     $('modal').setAttribute('aria-hidden', 'false');
     window.setTimeout(function () {
       try {
+        if (!$('modal').classList.contains('open')) return;
         if (input.style.display !== 'none') { input.focus(); input.select(); }
         else { $('modalOk').focus(); }
       } catch (e) {}
@@ -1317,7 +1318,7 @@
     state.locked = true;
 
     window.setTimeout(function () {
-      try { $('nextBtn').focus({ preventScroll: true }); } catch (e) {}
+      if (sheetArmed) { try { $('nextBtn').focus({ preventScroll: true }); } catch (e) {} }
     }, 260);
   }
 
@@ -1388,8 +1389,11 @@
 
     var coarse = false;
     try { coarse = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
-    $('cardTip').style.display = coarse ? 'block' : 'none';
-    $('saveBtn').style.display = coarse ? 'none' : 'flex';
+    $('cardTip').textContent = '下载成绩卡请安装应用后使用';
+    $('cardTip').style.display = 'block';
+    $('saveBtn').style.display = 'flex';
+    $('saveBtn').disabled = true;
+    $('saveBtn').textContent = '安装后下载成绩卡';
 
     showScreen('result');
     renderBest();
@@ -1675,6 +1679,15 @@
   /* =========================================================
      事件绑定
      ========================================================= */
+  $('resetExample').addEventListener('click', function () {
+    state.running = false; stopTimer(); window.clearTimeout(toastTimer);
+    $('toast').classList.remove('show'); $('toast').textContent = '';
+    closeSheet(); closeModal();
+    Object.assign(state, {idx:0, lives:LIFE_MAX, score:0, combo:0, maxCombo:0, correct:0, answered:0, selected:0, locked:true, playMs:0, running:false});
+    timerEnd = 0; lastResult = null; best = 0; Store.set(0);
+    $('codeBody').replaceChildren(); $('scoreVal').textContent = '0';
+    $('comboBadge').classList.remove('on'); renderLives(); renderBest(); showScreen('home');
+  });
   $('startBtn').addEventListener('click', startGame);
   $('submitBtn').addEventListener('click', function () { submit(false); });
   $('nextBtn').addEventListener('click', nextQuestion);
@@ -1683,7 +1696,7 @@
     showScreen('home');
     renderBest();
   });
-  $('copyBtn').addEventListener('click', onCopyChallenge);
+  $('copyBtn').addEventListener('click', function () { openModal('挑战文案', '预览中请手动复制示例文案。', '挑战文案', buildChallenge('')); });
   $('saveBtn').addEventListener('click', downloadCard);
   $('modalOk').addEventListener('click', closeModal);
   $('modal').addEventListener('click', function (e) {
