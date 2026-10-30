@@ -1,0 +1,1647 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+  :root{
+    --bg-1:#1c2230;
+    --bg-2:#0f1216;
+    --bg-3:#0b0d10;
+    --card-a:#252b36;
+    --card-b:#1a1f27;
+    --card-back-a:#20262f;
+    --card-back-b:#171b21;
+    --text:#e6e9ee;
+    --muted:#8b95a5;
+    --muted-2:#7c8798;
+    --line:rgba(255,255,255,.08);
+    --green:#10b981;
+    --green-soft:#6ee7b7;
+    --red:#ef4444;
+    --red-soft:#fca5a5;
+    --radius:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1100px 560px at 50% -12%, var(--bg-1) 0%, var(--bg-2) 46%, var(--bg-3) 100%);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;
+    padding:30px 18px 44px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .app{width:min(560px,100%);display:flex;flex-direction:column;gap:20px;}
+
+  /* Header */
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+  header .title{font-size:19px;font-weight:700;letter-spacing:.4px;}
+  header .stats{
+    font-size:12.5px;color:var(--green-soft);
+    background:rgba(16,185,129,.1);
+    border:1px solid rgba(16,185,129,.25);
+    padding:5px 12px;border-radius:20px;font-weight:600;white-space:nowrap;
+    display:flex;align-items:center;
+  }
+  header .stats .sep{color:rgba(255,255,255,.22);margin:0 5px;font-weight:400;}
+  header .stats .stat-master{color:#8ca6c4;font-weight:500;}
+
+  /* Progress bar */
+  .bar{height:4px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;}
+  .bar-fill{height:100%;width:0%;border-radius:4px;
+    background:linear-gradient(90deg,#0ea5a0,#10b981,#34d399);
+    transition:width .45s cubic-bezier(.4,.2,.2,1);}
+
+  /* 本轮进度点 */
+  .round-dots{display:flex;justify-content:center;align-items:center;gap:8px;min-height:10px;}
+  .rdot{display:block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12);transition:.25s ease;}
+  .rdot.done{background:var(--green);box-shadow:0 0 9px rgba(16,185,129,.45);}
+  .rdot.now{background:#0e1319;box-shadow:0 0 0 2px #34d399,0 0 8px rgba(16,185,129,.35);}
+  .rdot.retry{background:rgba(248,113,113,.75);box-shadow:0 0 8px rgba(248,113,113,.3);}
+
+  /* Stage (fade transitions) */
+  .stage{
+    transition:opacity .2s ease, transform .2s ease;
+    perspective:1600px;
+  }
+  .stage.is-out{opacity:0;transform:translateY(10px) scale(.98);}
+
+  /* Flip card */
+  .flip-card{width:100%;height:322px;cursor:pointer;}
+  .flip-inner{
+    position:relative;width:100%;height:100%;
+    transform-style:preserve-3d;
+    transition:transform .65s cubic-bezier(.4,.2,.2,1);
+  }
+  .flip-inner.flipped{transform:rotateY(180deg);}
+  .face{
+    position:absolute;inset:0;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    box-shadow:0 22px 48px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+    padding:28px;display:flex;overflow:hidden;
+  }
+
+  /* Front */
+  .front{
+    background:linear-gradient(160deg,var(--card-a),var(--card-b));
+    flex-direction:column;justify-content:center;align-items:center;text-align:center;
+  }
+  .front::after{
+    content:"";position:absolute;inset:0;border-radius:var(--radius);
+    background:radial-gradient(400px 200px at 50% 0%, rgba(16,185,129,.1), transparent 70%);
+    pointer-events:none;
+  }
+  .front-tag{
+    position:absolute;top:20px;left:24px;
+    font-size:10.5px;letter-spacing:2.5px;color:var(--muted-2);font-weight:600;
+  }
+  .word-main{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(38px,8vw,54px);
+    font-weight:700;letter-spacing:.5px;line-height:1.15;
+    color:#f4f7fb;position:relative;z-index:1;
+    word-break:break-word;
+  }
+  .hint{
+    position:absolute;bottom:22px;left:0;right:0;text-align:center;
+    font-size:12.5px;color:var(--muted-2);letter-spacing:.5px;
+  }
+
+  /* 卡片右上角熟练度 */
+  .face-level{
+    position:absolute;top:18px;right:20px;z-index:2;
+    display:flex;align-items:center;gap:7px;
+    font-size:10.5px;font-weight:600;color:var(--muted-2);
+  }
+  .lv-stars{font-size:12.5px;letter-spacing:1.5px;color:#fbbf24;}
+  .lv-stars .off{color:rgba(255,255,255,.2);}
+  .lv-pct{letter-spacing:.3px;}
+
+  /* Back */
+  .back{
+    background:linear-gradient(160deg,var(--card-back-a),var(--card-back-b));
+    transform:rotateY(180deg);
+    flex-direction:column;justify-content:space-between;
+  }
+  .back-word{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:16px;color:var(--muted);letter-spacing:1px;
+  }
+  .back-main{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;}
+  .pos{
+    align-self:flex-start;display:inline-block;
+    font-size:11.5px;font-weight:700;letter-spacing:.5px;
+    color:var(--green-soft);background:rgba(16,185,129,.12);
+    border:1px solid rgba(16,185,129,.28);
+    padding:2px 9px;border-radius:8px;margin-bottom:2px;
+  }
+  .meaning{
+    font-size:22px;font-weight:700;line-height:1.5;color:#eaf5ef;word-break:break-word;
+  }
+  .example-wrap{
+    border-left:3px solid rgba(16,185,129,.5);
+    padding-left:13px;
+  }
+  .ex-label{font-size:10.5px;letter-spacing:1.5px;color:var(--muted-2);margin-bottom:4px;}
+  .example{
+    font-size:13.5px;font-style:italic;color:#a3adbd;line-height:1.55;
+    max-height:66px;overflow:auto;
+  }
+  .example::-webkit-scrollbar{width:4px;}
+  .example::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px;}
+
+  /* Action buttons */
+  .actions{display:flex;gap:14px;}
+  .btn{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+    padding:15px 10px;border-radius:15px;font-size:14.5px;font-weight:650;
+    cursor:pointer;transition:.18s ease;border:1px solid;background:transparent;
+    font-family:inherit;letter-spacing:.3px;user-select:none;
+  }
+  .btn-unknown{color:var(--red-soft);border-color:rgba(248,113,113,.32);background:rgba(239,68,68,.08);}
+  .btn-unknown:hover{background:rgba(239,68,68,.18);transform:translateY(-2px);}
+  .btn-unknown:active{transform:translateY(0) scale(.98);}
+  .btn-known{color:var(--green-soft);border-color:rgba(16,185,129,.38);background:rgba(16,185,129,.1);}
+  .btn-known:hover{background:rgba(16,185,129,.2);transform:translateY(-2px);}
+  .btn-known:active{transform:translateY(0) scale(.98);}
+
+  /* Add trigger */
+  .add-trigger{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn-open-add{
+    width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 20px;border-radius:14px;cursor:pointer;font-family:inherit;
+    border:1.5px dashed rgba(16,185,129,.4);
+    background:rgba(16,185,129,.06);color:var(--green-soft);
+    font-size:14px;font-weight:650;letter-spacing:.3px;transition:.18s;
+  }
+  .btn-open-add:hover{background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.62);}
+  .btn-open-add:active{transform:scale(.99);}
+
+  /* Modal */
+  .modal-mask{
+    position:fixed;inset:0;z-index:100;display:none;
+    align-items:center;justify-content:center;padding:20px;
+    background:rgba(4,6,9,.72);backdrop-filter:blur(6px);
+  }
+  .modal-mask.show{display:flex;animation:fadeIn .2s ease;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{
+    width:min(460px,100%);max-height:90vh;overflow-y:auto;
+    background:linear-gradient(160deg,#222833,#181c23);
+    border:1px solid rgba(255,255,255,.1);border-radius:22px;
+    box-shadow:0 30px 80px rgba(0,0,0,.62);
+    padding:22px;
+    animation:slideUp .26s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes slideUp{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+  .modal::-webkit-scrollbar{width:6px;}
+  .modal::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:6px;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .modal-head h3{font-size:17px;font-weight:700;letter-spacing:.3px;}
+  .modal-close{
+    border:none;background:rgba(255,255,255,.06);color:var(--muted);
+    width:30px;height:30px;border-radius:9px;cursor:pointer;
+    font-size:14px;line-height:1;transition:.15s;
+  }
+  .modal-close:hover{background:rgba(239,68,68,.18);color:var(--red-soft);}
+
+  .tabs{display:flex;gap:6px;background:rgba(255,255,255,.04);padding:4px;border-radius:12px;margin-bottom:16px;}
+  .tab{
+    flex:1;padding:9px 6px;border:none;background:transparent;color:var(--muted);
+    font-size:13px;font-weight:600;border-radius:9px;cursor:pointer;
+    transition:.18s;font-family:inherit;
+  }
+  .tab.active{background:rgba(16,185,129,.16);color:var(--green-soft);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .field{margin-bottom:13px;}
+  .field > label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .field > label .req{color:#f87171;}
+  .field > input[type=text],.field > textarea{
+    width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);
+    border-radius:11px;padding:11px 13px;font-size:13.5px;color:var(--text);
+    outline:none;font-family:inherit;transition:.18s;resize:vertical;
+  }
+  .field > input::placeholder,.field > textarea::placeholder{color:#5f6a7a;}
+  .field > textarea{min-height:118px;line-height:1.6;}
+  .field > input:focus,.field > textarea:focus{
+    border-color:rgba(16,185,129,.5);background:rgba(255,255,255,.06);
+    box-shadow:0 0 0 3px rgba(16,185,129,.1);
+  }
+  .field .err{display:none;font-size:11.5px;color:#f87171;margin-top:5px;}
+  .field.invalid > input{border-color:rgba(248,113,113,.6);}
+  .field.invalid .err{display:block;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{
+    padding:6px 13px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);color:var(--muted);
+    font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit;
+  }
+  .chip:hover{border-color:rgba(16,185,129,.4);color:var(--green-soft);}
+  .chip.active{background:rgba(16,185,129,.16);border-color:rgba(16,185,129,.5);color:var(--green-soft);}
+  .chip-input{
+    padding:6px 11px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(255,255,255,.03);color:var(--text);font-size:12.5px;
+    width:80px;outline:none;font-family:inherit;transition:.15s;
+  }
+  .chip-input:focus{border-color:rgba(16,185,129,.5);}
+
+  .mini-preview{
+    border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);
+    padding:11px 14px;margin:2px 0 16px;min-height:62px;
+  }
+  .mp-label{font-size:10px;letter-spacing:1.6px;color:var(--muted-2);margin-bottom:5px;}
+  .mp-word{font-family:Georgia,serif;font-size:17px;color:#f4f7fb;word-break:break-word;}
+  .mp-line{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap;}
+  .mp-pos{
+    font-size:10.5px;font-weight:700;color:var(--green-soft);
+    background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.28);
+    padding:1px 7px;border-radius:6px;
+  }
+  .mp-meaning{font-size:13px;color:#cdd7e3;word-break:break-word;}
+
+  .modal-actions{display:flex;gap:10px;margin-top:6px;}
+  .modal-actions.single{justify-content:flex-end;}
+  .modal-actions.single .btn-cancel{flex:0 0 auto;padding:11px 26px;}
+  .btn-cancel,.btn-primary{
+    flex:1;padding:12px;border-radius:12px;font-size:13.5px;font-weight:650;
+    cursor:pointer;font-family:inherit;transition:.18s;border:1px solid;
+  }
+  .btn-cancel{background:transparent;border-color:var(--line);color:var(--muted);}
+  .btn-cancel:hover{background:rgba(255,255,255,.05);color:var(--text);}
+  .btn-primary{background:rgba(16,185,129,.16);border-color:rgba(16,185,129,.45);color:var(--green-soft);}
+  .btn-primary:hover{background:rgba(16,185,129,.28);}
+
+  .batch-help{font-size:11px;color:var(--muted-2);margin-top:6px;line-height:1.7;}
+  .batch-help code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:10.5px;}
+  .batch-preview{max-height:180px;overflow-y:auto;margin:10px 0 14px;}
+  .batch-preview::-webkit-scrollbar{width:5px;}
+  .batch-preview::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:5px;}
+  .bp-item{
+    display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;
+    font-size:12.5px;margin-bottom:6px;background:rgba(255,255,255,.02);
+    border:1px solid transparent;
+  }
+  .bp-item.ok{border-color:rgba(16,185,129,.18);}
+  .bp-item.bad{border-color:rgba(248,113,113,.25);background:rgba(239,68,68,.06);}
+  .bp-item.dup{border-color:rgba(251,191,36,.22);background:rgba(251,191,36,.05);}
+  .bp-ico{flex-shrink:0;font-size:11px;}
+  .bp-word{font-weight:600;color:#e6edf3;white-space:nowrap;}
+  .bp-meaning{color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bp-note{margin-left:auto;flex-shrink:0;font-size:10.5px;color:var(--muted-2);}
+  .bp-empty{font-size:12px;color:var(--muted-2);text-align:center;padding:16px 10px;}
+  .bp-sum{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .inline-note{font-size:12px;color:var(--green-soft);text-align:center;margin-top:10px;min-height:16px;}
+
+  /* ===== Library modal ===== */
+  .lib-modal{width:min(540px,100%);}
+  .tab-count{font-size:11px;color:var(--muted-2);font-weight:600;}
+  .preset-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
+  .bank-card{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);padding:14px;}
+  .bank-head{display:flex;align-items:center;gap:10px;}
+  .bank-icon{
+    flex-shrink:0;width:38px;height:38px;display:grid;place-items:center;font-size:20px;
+    background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.22);border-radius:11px;
+  }
+  .bank-info{flex:1;min-width:0;}
+  .bank-name{font-size:14px;font-weight:700;color:#f0f5fa;}
+  .bank-desc{font-size:11.5px;color:var(--muted);margin-top:1px;line-height:1.5;}
+  .bank-count{font-size:11.5px;color:var(--muted-2);white-space:nowrap;flex-shrink:0;}
+  .bank-progress{height:4px;border-radius:4px;background:rgba(255,255,255,.06);margin:11px 0 9px;overflow:hidden;}
+  .bank-progress > div{height:100%;border-radius:4px;background:linear-gradient(90deg,#0ea5a0,#34d399);transition:width .4s ease;}
+  .bank-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .bank-state{font-size:11.5px;color:var(--muted-2);}
+  .bank-btns{display:flex;gap:8px;margin-left:auto;}
+  .bank-btn{
+    padding:7px 13px;border-radius:9px;font-size:12px;font-weight:650;cursor:pointer;
+    font-family:inherit;border:1px solid rgba(16,185,129,.42);
+    background:rgba(16,185,129,.14);color:var(--green-soft);transition:.15s;white-space:nowrap;
+  }
+  .bank-btn:hover{background:rgba(16,185,129,.26);}
+  .bank-btn:disabled{opacity:.42;cursor:not-allowed;background:rgba(255,255,255,.03);border-color:var(--line);color:var(--muted-2);}
+  .bank-btn.ghost{border-color:var(--line);background:transparent;color:var(--muted);}
+  .bank-btn.ghost:hover{background:rgba(255,255,255,.05);color:var(--text);}
+  .bank-words{
+    margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);
+    max-height:150px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;
+  }
+  .bank-words::-webkit-scrollbar,.mine-list::-webkit-scrollbar{width:5px;}
+  .bank-words::-webkit-scrollbar-thumb,.mine-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:5px;}
+  .wchip{font-size:11px;padding:3px 8px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:#cdd7e3;white-space:nowrap;}
+  .wchip b{color:#eaf5ef;font-weight:600;}
+
+  .lib-search input{
+    width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);
+    border-radius:11px;padding:10px 13px;font-size:13px;color:var(--text);
+    outline:none;font-family:inherit;transition:.18s;
+  }
+  .lib-search input::placeholder{color:#5f6a7a;}
+  .lib-search input:focus{border-color:rgba(16,185,129,.5);box-shadow:0 0 0 3px rgba(16,185,129,.1);}
+  .mine-stats{font-size:11.5px;color:var(--muted-2);margin:9px 2px 8px;}
+  .mine-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 2px 9px;}
+  .mine-toolbar .mine-stats{margin:0;}
+  .sort-btn{
+    font-family:inherit;font-size:11px;color:#9fb0c6;background:rgba(255,255,255,.04);
+    border:1px solid var(--line);border-radius:8px;padding:4px 9px;cursor:pointer;
+    white-space:nowrap;transition:.16s;
+  }
+  .sort-btn:hover{border-color:rgba(16,185,129,.35);color:#d3dde9;}
+  .mine-list{max-height:322px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .mine-item{
+    display:flex;align-items:center;gap:10px;padding:9px 11px;
+    border-radius:10px;background:rgba(255,255,255,.02);border:1px solid var(--line);
+  }
+  .mi-main{flex:1;min-width:0;}
+  .mi-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .mi-word{font-family:Georgia,serif;font-size:14.5px;font-weight:600;color:#f2f6fa;}
+  .mi-pos{font-size:10px;font-weight:700;color:var(--green-soft);background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.26);padding:0 6px;border-radius:5px;}
+  .mi-level{font-size:10.5px;letter-spacing:1px;color:#fbbf24;white-space:nowrap;line-height:1;}
+  .mi-level .off{color:rgba(255,255,255,.22);}
+  .mi-status{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;margin-left:auto;}
+  .mi-status.done{background:rgba(16,185,129,.14);color:#6ee7b7;}
+  .mi-status.queued{background:rgba(96,165,250,.12);color:#93c5fd;}
+  .mi-status.fresh{background:rgba(148,163,184,.13);color:#b6c2d4;}
+  .mi-meaning{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mi-meter{height:3px;border-radius:3px;background:rgba(255,255,255,.07);margin-top:7px;overflow:hidden;}
+  .mi-meter i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#0ea5a0,#34d399);transition:width .3s ease;}
+  .mi-meter.lv0 i{background:rgba(255,255,255,.12);}
+  .mi-meter.low i{background:linear-gradient(90deg,#b45309,#f59e0b);}
+  .mi-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:5px;font-size:10.5px;color:var(--muted-2);}
+  .mi-meta .hi{color:#93b3a8;}
+  .mi-del{
+    flex-shrink:0;border:none;background:transparent;color:var(--muted-2);
+    cursor:pointer;font-size:13px;padding:5px 8px;border-radius:8px;transition:.15s;
+  }
+  .mi-del:hover{background:rgba(239,68,68,.16);color:var(--red-soft);}
+  .mine-empty{text-align:center;color:var(--muted-2);font-size:12.5px;padding:26px 12px;line-height:1.7;}
+
+  /* Done state */
+  .done-box{
+    display:none;text-align:center;
+    padding:52px 24px;
+    background:linear-gradient(160deg,var(--card-back-a),var(--card-back-b));
+    border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:0 22px 48px rgba(0,0,0,.5);
+  }
+  .done-box .trophy{
+    width:84px;height:84px;margin:0 auto;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:40px;line-height:1;
+    background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.24);
+    animation:pop .5s ease;
+  }
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  .done-box h2{font-size:21px;font-weight:700;margin-top:18px;color:#f4f7fb;}
+  .done-box p{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;}
+  .done-stats{
+    display:flex;justify-content:center;flex-wrap:wrap;gap:18px;
+    margin-top:16px;font-size:12px;color:var(--muted-2);
+  }
+  .done-stats b{color:#dbe6f2;font-weight:650;font-size:13px;margin-left:3px;}
+  .done-reset{
+    display:block;margin:14px auto 0;background:none;border:none;
+    font-family:inherit;font-size:11.5px;color:#63728a;cursor:pointer;
+    text-decoration:underline;text-underline-offset:3px;transition:.16s;
+  }
+  .done-reset:hover{color:#93a3b8;}
+  .reset-btn{
+    margin-top:24px;padding:12px 26px;border-radius:13px;
+    border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.12);
+    color:var(--green-soft);font-size:14px;font-weight:650;cursor:pointer;
+    transition:.18s;font-family:inherit;
+  }
+  .reset-btn:hover{background:rgba(16,185,129,.24);transform:translateY(-1px);}
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:34px;
+    transform:translateX(-50%) translateY(16px);
+    opacity:0;pointer-events:none;
+    background:rgba(30,36,45,.96);
+    border:1px solid rgba(255,255,255,.12);
+    color:#dbe4ee;padding:10px 20px;border-radius:12px;
+    font-size:13px;transition:.25s ease;z-index:60;
+    max-width:88vw;text-align:center;
+    box-shadow:0 12px 30px rgba(0,0,0,.45);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:480px){
+    body{padding:20px 14px 36px;}
+    .flip-card{height:290px;}
+    .face{padding:22px;}
+    .meaning{font-size:19px;}
+    header{gap:8px;}
+    header .title{font-size:16px;letter-spacing:0;}
+    header .stats{font-size:10.5px;padding:4px 9px;letter-spacing:-.2px;}
+    header .stats .sep{margin:0 3px;}
+    .face-level{top:15px;right:16px;gap:5px;}
+  }
+</style></head><body>
+  <div class="app">
+    <header>
+      <div class="title"><!--pnid:bGMUYtV90S0eSMsqhsN2mo-->📚 闪卡记单词</div>
+      <div class="stats" id="statsText">
+        <span id="statRound"><!--pnid:zPKDNMC6Pxo65kPBl7EuPk-->本轮 0 / 10</span>
+        <span class="sep"><!--pnid:z3WENbFCsjTrQGjte1XTGQ-->·</span>
+        <span class="stat-master" id="statMaster"><!--pnid:WZgSroBpYXi2xnKsd1Lu1M-->已掌握 0 / 0</span>
+      </div>
+    </header>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+
+    <!--pnid:uQ55fzCV0b0xzduqNYTYXl--><!-- 卡片区 -->
+    <div class="stage" id="stage">
+      <div class="flip-card" id="flipCard">
+        <div class="flip-inner" id="flipInner">
+          <!--pnid:cO5l3UO2KBID1Ws9xBI0vb--><!-- 正面 -->
+          <div class="face front">
+            <span class="front-tag"><!--pnid:3AlWMATxV0CsVZfNGwnOME-->FLASHCARD</span>
+            <div class="face-level" id="frontLevel"></div>
+            <div class="word-main" id="frontWord"><!--pnid:bYFM17oR1SmJ8jE3O7rpt4-->—</div>
+            <div class="hint"><!--pnid:1DuyOJW6ce5LUxHQhJ5oma-->点击卡片查看释义</div>
+          </div>
+          <!--pnid:IXx01Ty92PO3kyPsuvsdHJ--><!-- 背面 -->
+          <div class="face back">
+            <div class="face-level" id="backLevel"></div>
+            <div class="back-word" id="backWord"><!--pnid:bSVND61eRRqyIKCmLfsayW-->—</div>
+            <div class="back-main">
+              <span class="pos" id="pos"><!--pnid:GOTA97hdAhUEtQ59IYNla5-->n.</span>
+              <div class="meaning" id="meaning"><!--pnid:VANob0GVwAMyMjWgJ69VhX-->—</div>
+            </div>
+            <div class="example-wrap">
+              <div class="ex-label"><!--pnid:H73yHRIPBqKjGQ46jZr2Pa-->例句</div>
+              <div class="example" id="example"><!--pnid:0X80qVr7JFbredss5Xq9eS-->—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--pnid:Qb6XDKVbFMMgeav7d94p3a--><!-- 本轮进度点 -->
+    <div class="round-dots" id="roundDots"></div>
+
+    <!--pnid:Wnxt8u8zDLOR0ddDlxOlHX--><!-- 操作按钮 -->
+    <div class="actions" id="actions">
+      <button class="btn btn-unknown" id="btnUnknown"><!--pnid:KohvxIOCOYRp9RBNuhWBIz-->🔴 不认识 / 模糊</button>
+      <button class="btn btn-known" id="btnKnown"><!--pnid:gBFoVMcgsMs7qEPeH3cIHi-->🟢 认识 / 掌握</button>
+    </div>
+
+    <!--pnid:UjU88Ka0kV9YL4HOeNjQeG--><!-- 完成状态 -->
+    <div class="done-box" id="doneBox">
+      <div class="trophy" id="doneIcon"><!--pnid:KPdJVDpnXAimmwNlbLZei3-->🎉</div>
+      <h2 id="doneTitle"><!--pnid:IiqhGw4vycyrkffB46mB86-->恭喜！今日单词已全部掌握！</h2>
+      <p id="doneDesc"><!--pnid:hH0D513ZweGFGt2ipVlWdO-->你已经走完了整个队列，记忆正在巩固中。</p>
+      <div class="done-stats" id="doneStats"></div>
+      <button class="reset-btn" id="btnNext"><!--pnid:mJOfd6RgpTNk8FOcv8HAHH-->抽下一轮 · 10 词</button>
+      <button class="done-reset" id="btnResetAll"><!--pnid:cllN4n9wZpnWl0ii1TE7b0-->重置全部熟练度</button>
+    </div>
+
+    <!--pnid:tQIsyyTiZZzpK0yaLIg49Q--><!-- 添加新词 / 词库入口 -->
+    <div class="add-trigger">
+      <button class="btn-open-add" id="btnOpenLib"><!--pnid:MPHxk1JW7xEVf1uPlTWPnL-->📚 词库</button>
+      <button class="btn-open-add" id="btnOpenAdd"><!--pnid:RDRdxYEcImsuhwapjKZ6kp-->＋ 添加新词</button>
+    </div>
+  </div>
+
+  <!--pnid:X5GRJPt9fQIhLWlaI8Pm9F--><!-- 添加新词弹窗 -->
+  <div class="modal-mask" id="modalMask">
+    <div aria-label="添加新词" aria-modal="true" class="modal" role="dialog">
+      <div class="modal-head">
+        <h3><!--pnid:UkTHeYyxbGjxsMK1KQOBvw-->＋ 添加新词</h3>
+        <button aria-label="关闭" class="modal-close" id="modalClose"><!--pnid:WJCyJPF80k7dJnHuQUhrWm-->✕</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="single"><!--pnid:iu6gEPgyZH4do6gcf6UkFH-->单个添加</button>
+        <button class="tab" data-tab="batch"><!--pnid:wiXWkf2GHy2s9SPG32uyth-->批量导入</button>
+      </div>
+
+      <!--pnid:sSFWnFRKRwyapKKlJ4vQth--><!-- 单个添加 -->
+      <div class="tab-panel active" id="panelSingle">
+        <div class="field" id="fieldWord">
+          <label><!--pnid:d0rFPldzrqwoZrODPia9jc-->英文单词 <span class="req"><!--pnid:a2cqV9qJEEnZFqAcbZ2Xsx-->*</span></label>
+          <input autocomplete="off" id="fWord" maxlength="60" placeholder="如：apple" type="text">
+          <div class="err"><!--pnid:mqPkc8IGHVFNnetWzoatDg-->请输入英文单词</div>
+        </div>
+
+        <div class="field">
+          <label><!--pnid:3FudMoaXHwJZQiEIMaSQjn-->词性（可选）</label>
+          <div class="chips" id="posChips">
+            <button class="chip" data-pos="n." type="button"><!--pnid:JFhRvZiWANm4jKI2LzVCh0-->n.</button>
+            <button class="chip" data-pos="v." type="button"><!--pnid:zImWnob3B8mocHu8vGHTwg-->v.</button>
+            <button class="chip" data-pos="adj." type="button"><!--pnid:tBnXfpqhjYxvnbDKPUKvax-->adj.</button>
+            <button class="chip" data-pos="adv." type="button"><!--pnid:uMjwtKi8wKawr8kMmkEDrd-->adv.</button>
+            <button class="chip" data-pos="prep." type="button"><!--pnid:fh3MnMQFsFsBFX8gpr3ELg-->prep.</button>
+            <input class="chip-input" id="posCustom" maxlength="12" placeholder="其他" type="text">
+          </div>
+        </div>
+
+        <div class="field" id="fieldMeaning">
+          <label><!--pnid:j13qyqpYbJOi1fl63Jf76C-->中文释义 <span class="req"><!--pnid:iAUASPrxiX6zCT3X3KL6oK-->*</span></label>
+          <input id="fMeaning" maxlength="100" placeholder="如：苹果" type="text">
+          <div class="err"><!--pnid:yZOgLzwtjuKyTAipblxYAM-->请输入中文释义</div>
+        </div>
+
+        <div class="field">
+          <label><!--pnid:Phm0GzJAnyjfXhzd8KLqiE-->例句（选填）</label>
+          <input id="fExample" maxlength="200" placeholder="如：I ate an apple this morning." type="text">
+        </div>
+
+        <div class="mini-preview">
+          <div class="mp-label"><!--pnid:AaH2hr5yTnvTrmY1iESAnv-->实时预览</div>
+          <div class="mp-word" id="mpWord"><!--pnid:gebCMvqevRYgM31qdhkhIe-->—</div>
+          <div class="mp-line">
+            <span class="mp-pos" id="mpPos" style="display:none"><!--pnid:cS1SKtVJGZTrtQnGAy2BYH-->n.</span>
+            <span class="mp-meaning" id="mpMeaning"><!--pnid:p907GNVKZbERJ3P3D3RFX0-->释义将显示在这里</span>
+          </div>
+        </div>
+
+        <div class="inline-note" id="singleNote"></div>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" id="btnCancel1"><!--pnid:VTNQVYItgzG4tgEkT6RHdE-->关闭</button>
+          <button class="btn-primary" id="btnSaveOne"><!--pnid:8fkB5BVzQnMfhw02lH1c5T-->添加到词库</button>
+        </div>
+      </div>
+
+      <!--pnid:566QJrvZOCnPpSpywdyHqj--><!-- 批量导入 -->
+      <div class="tab-panel" id="panelBatch">
+        <div class="field">
+          <label><!--pnid:zkGDRBsFCicNkcPgTSy3Eo-->每行一个单词</label>
+          <textarea id="batchInput" placeholder="apple - n. 苹果&#10;benefit - n./v. 益处；使受益&#10;curious adj. 好奇的"></textarea>
+          <div class="batch-help"><!--pnid:dvEwrgCX7B7rGOFth6HMbr-->
+            支持：<code>apple - n. 苹果</code><!--pnid:0uJgyTnJFrpFx2D4JcaXIb--> · <code>apple n. 苹果</code><!--pnid:Wq2CWg9tDUkcRqnZmqawAc--> · <code>apple, n., 苹果</code>
+          </div>
+        </div>
+        <div class="batch-preview" id="batchPreview">
+          <div class="bp-empty"><!--pnid:PpizMkRB42BQZrvE6LTdt8-->输入后这里会实时显示解析结果</div>
+        </div>
+        <div class="bp-sum" id="batchSummary"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="btnCancel2"><!--pnid:7x6uQGLLOcVSyXtqDkGTJ1-->关闭</button>
+          <button class="btn-primary" id="btnSaveBatch"><!--pnid:aic4O2ytDihyPYHnJLun8P-->导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--pnid:dNZWtbI2X1nKElrcibylHL--><!-- 词库弹窗 -->
+  <div class="modal-mask" id="libMask">
+    <div aria-label="词库" aria-modal="true" class="modal lib-modal" role="dialog">
+      <div class="modal-head">
+        <h3><!--pnid:cbASs73Pth6W4NNjFFPiAW-->📚 词库</h3>
+        <button aria-label="关闭" class="modal-close" id="libClose"><!--pnid:WfJbyq6IPvZFdIHHx2ZtAs-->✕</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-libtab="preset"><!--pnid:HWu5InV9BxM4Egx77u3qEK-->预设词库</button>
+        <button class="tab" data-libtab="mine"><!--pnid:OIaNAz3AzD14QqRGM4gLEj-->我的词库 <span class="tab-count" id="mineCount"></span></button>
+      </div>
+
+      <!--pnid:TKUTzAX7JVlxY8TM0LHZgk--><!-- 预设词库 -->
+      <div class="tab-panel active" id="libPanelPreset">
+        <div class="preset-list" id="presetList"></div>
+        <div class="modal-actions single">
+          <button class="btn-cancel" id="libClose3"><!--pnid:7gqAaO21WcvKFsq1lv8VP7-->关闭</button>
+        </div>
+      </div>
+
+      <!--pnid:puvG7sKQZoPuvelCN22oVc--><!-- 我的词库 -->
+      <div class="tab-panel" id="libPanelMine">
+        <div class="lib-search">
+          <input id="libSearch" maxlength="40" placeholder="搜索单词或释义…" type="text">
+        </div>
+        <div class="mine-toolbar">
+          <div class="mine-stats" id="mineStats"></div>
+          <button class="sort-btn" id="btnSort" title="切换排序方式"><!--pnid:jXU1MkF1xyaMHmxJKc2BJ6-->最需复习 ↓</button>
+        </div>
+        <div class="mine-list" id="mineList"></div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="libClose2"><!--pnid:THad79jbuO8kwoLPHU91f9-->关闭</button>
+          <button class="btn-primary" id="libAddNew"><!--pnid:uxATQX3ACsvlCwCGot3beF-->＋ 添加新词</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>const memoryStore={}; const localStorage={getItem:k=>memoryStore[k]||null,setItem:(k,v)=>memoryStore[k]=v};
+
+/* ===================== 1. 默认词库 ===================== */
+const DEFAULT_WORDS = [
+  { word:'abandon',  pos:'v.',       meaning:'放弃；抛弃；遗弃', example:'He had to abandon the plan due to a lack of funds.' },
+  { word:'benefit',  pos:'n. / v.',  meaning:'益处；使受益',       example:'Regular exercise will benefit both your body and mind.' },
+  { word:'curious',  pos:'adj.',     meaning:'好奇的；求知欲强的', example:'Children are naturally curious about the world around them.' },
+  { word:'decline',  pos:'v. / n.',  meaning:'下降；婉拒',         example:'Sales declined sharply in the last quarter of the year.' },
+  { word:'efficient',pos:'adj.',     meaning:'高效的；有能力的',   example:'She is an efficient manager who always gets things done.' },
+  { word:'fragile',  pos:'adj.',     meaning:'脆弱的；易碎的',     example:'Please handle the fragile glassware with great care.' },
+  { word:'generous', pos:'adj.',     meaning:'慷慨的；大方的',     example:'He was generous enough to pay for everyone at dinner.' },
+  { word:'hesitate', pos:'v.',       meaning:'犹豫；踌躇',         example:"Don't hesitate to ask if you need any help." }
+];
+
+/* ===================== 1.1 预设场景词库 ===================== */
+const PRESET_BANKS = [
+  {
+    id: 'travel',
+    name: '旅游出行',
+    icon: '✈️',
+    desc: '机场、酒店、景点、交通，出境游高频词',
+    raw: [
+      ['airport','n.','机场','We arrived at the airport early.'],
+      ['ticket','n.','票；机票','I bought a train ticket online.'],
+      ['passport','n.','护照',"Don't forget your passport."],
+      ['luggage','n.','行李','My luggage is too heavy.'],
+      ['suitcase','n.','行李箱','She packed her suitcase last night.'],
+      ['boarding','n.','登机；登船','Boarding starts in ten minutes.'],
+      ['departure','n.','出发；离境','The departure time is 8 a.m.'],
+      ['arrival','n.','到达；抵达','Our arrival was delayed by rain.'],
+      ['destination','n.','目的地','The island is a popular destination.'],
+      ['itinerary','n.','行程；路线安排','The itinerary covers three cities.'],
+      ['reservation','n.','预订；预约','I made a hotel reservation.'],
+      ['reserve','v.','预订；保留','We reserved a table for two.'],
+      ['check-in','n.','办理登机／入住','Check-in opens at noon.'],
+      ['customs','n.','海关','We went through customs quickly.'],
+      ['visa','n.','签证','She applied for a travel visa.'],
+      ['souvenir','n.','纪念品','I bought a small souvenir.'],
+      ['landmark','n.','地标；标志性建筑','The tower is a famous landmark.'],
+      ['sightseeing','n.','观光；游览','We spent the day sightseeing.'],
+      ['guide','n.','导游；指南','Our guide spoke good English.'],
+      ['tour','n.','旅行；游览','We joined a city tour.'],
+      ['traveler','n.','旅行者','The traveler carried a big map.'],
+      ['backpack','n.','背包','He packed a light backpack.'],
+      ['hostel','n.','青年旅舍','The hostel was cheap and clean.'],
+      ['hotel','n.','酒店；旅馆','The hotel has a sea view.'],
+      ['resort','n.','度假村；胜地','They stayed at a beach resort.'],
+      ['beach','n.','海滩','We walked along the beach.'],
+      ['coastline','n.','海岸线','The coastline is beautiful.'],
+      ['mountain','n.','山；山脉','We climbed the mountain at dawn.'],
+      ['valley','n.','山谷','A river runs through the valley.'],
+      ['forest','n.','森林','The forest is full of birds.'],
+      ['desert','n.','沙漠','The desert gets cold at night.'],
+      ['island','n.','岛屿','The island has no cars.'],
+      ['waterfall','n.','瀑布','The waterfall is fifty meters high.'],
+      ['canyon','n.','峡谷','We drove through the canyon.'],
+      ['harbor','n.','港口；海港','Boats filled the small harbor.'],
+      ['ferry','n.','渡轮','We took a ferry across the bay.'],
+      ['cruise','n.','邮轮旅行；巡航','They went on a week-long cruise.'],
+      ['subway','n.','地铁','The subway is the fastest way.'],
+      ['taxi','n.','出租车','Let us take a taxi to the station.'],
+      ['railway','n.','铁路','The railway runs along the coast.'],
+      ['platform','n.','站台','The train leaves from platform three.'],
+      ['schedule','n.','时刻表；日程','Check the bus schedule first.'],
+      ['delay','n./v.','延误；耽搁','The flight had a two-hour delay.'],
+      ['cancel','v.','取消','They canceled the trip because of rain.'],
+      ['route','n.','路线','This route is much shorter.'],
+      ['map','n.','地图','I downloaded an offline map.'],
+      ['direction','n.','方向','We walked in the wrong direction.'],
+      ['distance','n.','距离','The distance is about five kilometers.'],
+      ['currency','n.','货币','What currency do they use here?'],
+      ['exchange','v./n.','兑换；交换','I need to exchange some money.'],
+      ['cash','n.','现金','Do you accept cash?'],
+      ['wallet','n.','钱包','He lost his wallet on the bus.'],
+      ['receipt','n.','收据；发票','Please keep the receipt.'],
+      ['insurance','n.','保险','Travel insurance is important.'],
+      ['emergency','n.','紧急情况','Call this number in an emergency.'],
+      ['adventure','n.','冒险；冒险经历','The trip was a real adventure.'],
+      ['view','n.','景色；视野','The room has a lovely view.'],
+      ['scenery','n.','风景；景色','The scenery along the road is amazing.'],
+      ['sunset','n.','日落','We watched the sunset by the sea.'],
+      ['sunrise','n.','日出','They got up early for the sunrise.'],
+      ['weather','n.','天气','The weather was perfect all week.'],
+      ['climate','n.','气候','The island has a mild climate.'],
+      ['temperature','n.','温度；气温','The temperature dropped at night.'],
+      ['fog','n.','雾','Heavy fog delayed the flight.'],
+      ['storm','n.','暴风雨','A storm hit the coast last night.'],
+      ['umbrella','n.','雨伞','Take an umbrella with you.'],
+      ['sunscreen','n.','防晒霜','Do not forget sunscreen at the beach.'],
+      ['camera','n.','相机','She brought a new camera.'],
+      ['photograph','n./v.','照片；拍照','He took a photograph of the bridge.'],
+      ['memory','n.','回忆；记忆','The trip gave us great memories.'],
+      ['seat','n.','座位','I booked a window seat.'],
+      ['aisle','n.','过道；通道','Please keep the aisle clear.'],
+      ['passenger','n.','乘客','The passengers waited quietly.'],
+      ['captain','n.','机长；船长','The captain welcomed us aboard.'],
+      ['flight','n.','航班；飞行','My flight leaves at seven.'],
+      ['airline','n.','航空公司','The airline lost my bag.'],
+      ['terminal','n.','航站楼；终点站','We met at the terminal entrance.'],
+      ['gate','n.','登机口；大门','The gate closes at six.'],
+      ['seatbelt','n.','安全带','Please fasten your seatbelt.'],
+      ['border','n.','边境；边界','We crossed the border by bus.'],
+      ['stamp','n./v.','印章；盖章','They stamped my passport.'],
+      ['attraction','n.','景点；吸引力','The main attraction is the old town.'],
+      ['museum','n.','博物馆','The museum is free on Sundays.'],
+      ['gallery','n.','美术馆；画廊','We visited a small art gallery.'],
+      ['temple','n.','寺庙；神殿','The temple sits on a hill.'],
+      ['castle','n.','城堡','The castle was built in 1200.'],
+      ['palace','n.','宫殿','The palace is open to visitors.'],
+      ['square','n.','广场；正方形','People gathered in the square.'],
+      ['bridge','n.','桥','The bridge crosses the river.'],
+      ['lake','n.','湖','We rented a boat on the lake.'],
+      ['river','n.','河流','The river is wide and calm.'],
+      ['village','n.','村庄','The village is quiet and pretty.'],
+      ['local','adj.','当地的；本地的','Try the local food.'],
+      ['traditional','adj.','传统的','They wore traditional clothes.'],
+      ['culture','n.','文化','I love learning about local culture.'],
+      ['language','n.','语言','I learned a few words of the language.'],
+      ['translate','v.','翻译','Can you translate this for me?'],
+      ['accent','n.','口音','He speaks with a soft accent.'],
+      ['journey','n.','旅程；行程','The journey took eight hours.'],
+      ['explore','v.','探索；游览','We spent the day exploring.']
+    ]
+  },
+  {
+    id: 'business',
+    name: '职场商务',
+    icon: '💼',
+    desc: '会议、沟通、合同、财务，办公场景核心词',
+    raw: [
+      ['meeting','n.','会议','The meeting starts at nine.'],
+      ['agenda','n.','议程','Please read the agenda first.'],
+      ['deadline','n.','截止日期','The deadline is Friday.'],
+      ['project','n.','项目；工程','The project is on track.'],
+      ['client','n.','客户；委托人','The client approved our plan.'],
+      ['customer','n.','顾客；用户','Customers love the new design.'],
+      ['contract','n.','合同','We signed a two-year contract.'],
+      ['negotiate','v.','谈判；协商','We negotiated a better price.'],
+      ['negotiation','n.','谈判','The negotiation took three days.'],
+      ['proposal','n.','提案；建议书','She sent a detailed proposal.'],
+      ['budget','n.','预算','We are over budget this month.'],
+      ['report','n./v.','报告；汇报','He wrote a weekly report.'],
+      ['data','n.','数据','The data shows steady growth.'],
+      ['analysis','n.','分析','Our analysis found a clear trend.'],
+      ['strategy','n.','策略；战略','We need a new strategy.'],
+      ['goal','n.','目标','Set clear goals for the team.'],
+      ['target','n.','目标；指标','We hit our sales target.'],
+      ['task','n.','任务','This task is urgent.'],
+      ['priority','n.','优先事项','Safety is our top priority.'],
+      ['schedule','v./n.','安排；日程','Let us schedule a call.'],
+      ['team','n.','团队','The team works well together.'],
+      ['colleague','n.','同事','My colleague helped me a lot.'],
+      ['manager','n.','经理；管理者','The manager approved the leave.'],
+      ['employee','n.','员工','Every employee gets free training.'],
+      ['employer','n.','雇主','The employer offers flexible hours.'],
+      ['department','n.','部门','She works in the sales department.'],
+      ['position','n.','职位；位置','He applied for a new position.'],
+      ['interview','n./v.','面试；采访','I have an interview tomorrow.'],
+      ['resume','n.','简历','Please update your resume.'],
+      ['candidate','n.','候选人','We interviewed five candidates.'],
+      ['salary','n.','薪水；工资','They discussed the salary openly.'],
+      ['bonus','n.','奖金；红利','Everyone got a year-end bonus.'],
+      ['promotion','n.','晋升；促销','She got a promotion last month.'],
+      ['resign','v.','辞职','He resigned for personal reasons.'],
+      ['retire','v.','退休','My father retired last year.'],
+      ['hire','v.','雇用','We plan to hire two people.'],
+      ['recruit','v.','招聘；招募','The company recruits every spring.'],
+      ['training','n.','培训','New staff attend a week of training.'],
+      ['skill','n.','技能；技巧','Communication is a key skill.'],
+      ['experience','n.','经验；经历','She has ten years of experience.'],
+      ['performance','n.','绩效；表现','His performance improved a lot.'],
+      ['feedback','n.','反馈','Thanks for your honest feedback.'],
+      ['review','n./v.','评估；复查','We do a review every quarter.'],
+      ['approve','v.','批准；赞成','The boss approved my request.'],
+      ['confirm','v.','确认','Please confirm the meeting time.'],
+      ['arrange','v.','安排','I will arrange the documents.'],
+      ['discuss','v.','讨论','Let us discuss it after lunch.'],
+      ['present','v.','展示；陈述','She presented the results clearly.'],
+      ['presentation','n.','演示；报告','His presentation was clear and short.'],
+      ['document','n.','文件；文档','Please sign this document.'],
+      ['file','n.','文件；档案','Save the file to the shared folder.'],
+      ['email','n.','电子邮件','I sent you an email this morning.'],
+      ['reply','v./n.','回复','Please reply by Friday.'],
+      ['attach','v.','附上；附加','I attached the report to the email.'],
+      ['forward','v.','转发','Could you forward this to Tom?'],
+      ['contact','v./n.','联系','Contact me if you have questions.'],
+      ['conference','n.','会议；研讨会','She spoke at a business conference.'],
+      ['workshop','n.','研讨会；工作坊','We joined a two-day workshop.'],
+      ['cooperate','v.','合作','The two teams cooperate closely.'],
+      ['partnership','n.','合作关系','They formed a new partnership.'],
+      ['supplier','n.','供应商','The supplier raised prices.'],
+      ['purchase','v./n.','购买','We purchased new equipment.'],
+      ['order','n./v.','订单；订购','The order shipped yesterday.'],
+      ['delivery','n.','交付；送货','Delivery takes three days.'],
+      ['invoice','n.','发票','Please send the invoice today.'],
+      ['payment','n.','付款','Payment is due next week.'],
+      ['refund','n./v.','退款','The customer asked for a refund.'],
+      ['profit','n.','利润','The company made a small profit.'],
+      ['loss','n.','亏损；损失','The store reported a loss.'],
+      ['revenue','n.','收入；营收','Revenue grew ten percent.'],
+      ['market','n.','市场','They entered a new market.'],
+      ['marketing','n.','市场营销','Marketing needs a bigger budget.'],
+      ['brand','n.','品牌','The brand is well known.'],
+      ['product','n.','产品','Our product is easy to use.'],
+      ['service','n.','服务','Good service keeps customers.'],
+      ['quality','n.','质量；品质','We never cut quality.'],
+      ['innovation','n.','创新','Innovation drives growth.'],
+      ['efficiency','n.','效率','The new tool improved efficiency.'],
+      ['process','n.','流程；过程','Follow the standard process.'],
+      ['policy','n.','政策；制度','The company changed its policy.'],
+      ['rule','n.','规则；规定','Follow the safety rules.'],
+      ['responsibility','n.','责任','It is my responsibility to report it.'],
+      ['authority','n.','权限；权威','Only managers have this authority.'],
+      ['decision','n.','决定','We made a quick decision.'],
+      ['solution','n.','解决方案','We found a simple solution.'],
+      ['problem','n.','问题','Let us solve this problem first.'],
+      ['risk','n.','风险','Every plan has some risk.'],
+      ['opportunity','n.','机会','This is a great opportunity.'],
+      ['challenge','n.','挑战','The deadline is a real challenge.'],
+      ['result','n.','结果','The results look good.'],
+      ['progress','n.','进展；进步','We made good progress today.'],
+      ['update','n./v.','更新；最新消息','Send me a quick update.'],
+      ['reminder','n.','提醒','This is a friendly reminder.'],
+      ['appointment','n.','预约；约会','I have an appointment at three.'],
+      ['calendar','n.','日历；日程表','Put it on the shared calendar.'],
+      ['office','n.','办公室','She is in the office today.'],
+      ['remote','adj.','远程的','Many staff work remote on Fridays.'],
+      ['overtime','n.','加班','He worked overtime all week.'],
+      ['efficient','adj.','高效的','She is an efficient worker.'],
+      ['professional','adj.','专业的；职业的','Keep a professional tone.']
+    ]
+  }
+].map(bank => ({
+  ...bank,
+  words: bank.raw.map(([word, pos, meaning, example]) => ({ word, pos, meaning, example }))
+}));
+
+/* ===================== 2. 状态与持久化 ===================== */
+const KEY = 'flashcard_state_v2';
+const LEGACY_KEY = 'flashcard_state_v1';
+const ROUND_SIZE = 10;     // 每轮抽词数量
+const MAX_LEVEL = 5;       // 熟练度上限（5 颗星）
+const MASTER_LEVEL = 4;    // ≥4 颗星（80%）视为已掌握
+const $ = id => document.getElementById(id);
+
+let words = [];        // 全部单词（含熟练度字段）
+let queue = [];        // 本轮待答队列（存 id）
+let roundIds = [];     // 本轮抽中的 10 个词（顺序固定，用于进度点）
+let roundDone = {};    // 本轮已答对：{ id: true }
+let roundRetry = {};   // 本轮答错次数：{ id: n }
+
+function uid(){ return 'w_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* 熟练度：0-5 星，百分比 = level / 5 * 100 */
+function lvOf(w){ return Math.max(0, Math.min(MAX_LEVEL, w.level || 0)); }
+function pctOf(w){ return Math.round(lvOf(w) / MAX_LEVEL * 100); }
+function isMastered(w){ return lvOf(w) >= MASTER_LEVEL; }
+function starHtml(lv){
+  const n = Math.max(0, Math.min(MAX_LEVEL, lv));
+  return '★'.repeat(n) + (n < MAX_LEVEL ? `<span class="off">${'★'.repeat(MAX_LEVEL - n)}</span>` : '');
+}
+
+function normalizeWord(w){
+  return {
+    id: w.id,
+    word: String(w.word || '').trim(),
+    pos: String(w.pos || '').trim(),
+    meaning: String(w.meaning || '').trim(),
+    example: String(w.example || '').trim(),
+    level: Math.max(0, Math.min(MAX_LEVEL, parseInt(w.level, 10) || 0)),
+    seen: Math.max(0, parseInt(w.seen, 10) || 0),
+    right: Math.max(0, parseInt(w.right, 10) || 0),
+    lastSeen: Number(w.lastSeen) || 0
+  };
+}
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify({ words, queue, roundIds, roundDone, roundRetry }));
+}
+
+function load(){
+  let s = null, legacy = false;
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) s = JSON.parse(raw);
+    if(!s){
+      const old = localStorage.getItem(LEGACY_KEY);
+      if(old){ s = JSON.parse(old); legacy = true; }
+    }
+  }catch(e){ return false; }
+  if(!s || !Array.isArray(s.words)) return false;
+
+  const oldMastered = new Set(Array.isArray(s.mastered) ? s.mastered : []);
+  words = s.words
+    .filter(w => w && w.id && w.word && w.meaning)
+    .map(w => normalizeWord({
+      ...w,
+      // 旧数据：曾「已掌握」的词给到 4 星，其余从 0 开始
+      level: legacy ? (oldMastered.has(w.id) ? MASTER_LEVEL : 0) : w.level
+    }));
+
+  const idSet = new Set(words.map(w => w.id));
+  const keep = arr => (Array.isArray(arr) ? arr.filter(id => idSet.has(id)) : []);
+  const keepMap = obj => {
+    const out = {};
+    if(obj && typeof obj === 'object'){
+      Object.keys(obj).forEach(k => { if(idSet.has(k)) out[k] = obj[k]; });
+    }
+    return out;
+  };
+
+  roundIds = legacy ? [] : keep(s.roundIds);
+  const rSet = new Set(roundIds);
+  queue = roundIds.length ? keep(s.queue).filter(id => rSet.has(id)) : [];
+  roundDone = legacy ? {} : keepMap(s.roundDone);
+  roundRetry = legacy ? {} : keepMap(s.roundRetry);
+  return true;
+}
+
+/* 抽本轮 10 个词：熟练度越低、越久没练的越优先，兼带随机轮换 */
+function pickRoundWords(n){
+  if(words.length <= n) return shuffle(words);
+  const now = Date.now();
+  const scored = words.map(w => {
+    const gap = w.lastSeen ? Math.min((now - w.lastSeen) / 86400000, 30) : 30;
+    return { w, s: lvOf(w) * 100 - gap * 3 + Math.random() * 45 };
+  });
+  scored.sort((a, b) => a.s - b.s);
+
+  const weak = [], strong = [];
+  scored.forEach(({ w }) => (isMastered(w) ? strong : weak).push(w));
+
+  const picked = weak.slice(0, n);
+  if(picked.length < n) picked.push(...strong.slice(0, n - picked.length));
+  return shuffle(picked);
+}
+
+function startRound(){
+  roundDone = {};
+  roundRetry = {};
+  if(!words.length){
+    roundIds = [];
+    queue = [];
+    save();
+    return;
+  }
+  roundIds = pickRoundWords(ROUND_SIZE).map(w => w.id);
+  queue = roundIds.slice();
+  save();
+}
+
+function initState(){
+  if(!load()){
+    words = DEFAULT_WORDS.map((w, i) => normalizeWord({ id: 'd' + i, ...w }));
+    roundIds = []; queue = []; roundDone = {}; roundRetry = {};
+  }
+  // 没有进行中的轮次时自动抽一轮；已完结的轮次保留结果页
+  if(!roundIds.length && words.length) startRound();
+  else save();
+}
+
+/* ===================== 3. 渲染 ===================== */
+function getCurrentWord(){
+  if(!queue.length) return null;
+  return words.find(w => w.id === queue[0]) || null;
+}
+
+function renderDots(){
+  const box = $('roundDots');
+  if(!roundIds.length){ box.innerHTML = ''; return; }
+  const cur = queue[0];
+  box.innerHTML = roundIds.map(id => {
+    let cls = 'rdot';
+    if(roundDone[id]) cls += ' done';
+    else if(id === cur) cls += ' now';
+    else if(roundRetry[id]) cls += ' retry';
+    return `<i class="${cls}"></i>`;
+  }).join('');
+}
+
+function render(){
+  const total = words.length;
+  const masteredCount = words.filter(isMastered).length;
+  const roundTotal = roundIds.length;
+  const roundKnown = roundIds.filter(id => roundDone[id]).length;
+
+  // 顶部统计
+  $('statRound').textContent = `本轮 ${roundKnown} / ${roundTotal || ROUND_SIZE}`;
+  $('statMaster').textContent = `已掌握 ${masteredCount} / ${total}`;
+  $('barFill').style.width = (roundTotal ? Math.round(roundKnown / roundTotal * 100) : 0) + '%';
+
+  renderDots();
+
+  const w = getCurrentWord();
+  const stage = $('stage');
+  const actions = $('actions');
+  const doneBox = $('doneBox');
+
+  if(!w){
+    const empty = total === 0;
+    const allMastered = !empty && words.every(isMastered);
+    const fuzzy = roundIds.filter(id => !roundDone[id]).length;
+    const btn = $('btnNext');
+
+    if(empty){
+      $('doneIcon').textContent = '🗂️';
+      $('doneTitle').textContent = '词库还是空的';
+      $('doneDesc').textContent = '去「词库」导入预设单词，或添加自己的单词吧。';
+      $('doneStats').innerHTML = '';
+      btn.textContent = '去导入词库';
+      btn.dataset.mode = 'lib';
+      $('btnResetAll').style.display = 'none';
+    }else if(allMastered){
+      $('doneIcon').textContent = '🏆';
+      $('doneTitle').textContent = '全部单词都掌握啦！';
+      $('doneDesc').textContent = `${total} 个词全部达到 ★★★★ 以上，记忆已经比较牢固了。`;
+      $('doneStats').innerHTML = `<span>本轮认识<b>${roundKnown}</b></span><span>平均熟练度<b>${
+        Math.round(words.reduce((a, x) => a + pctOf(x), 0) / total)
+      }%</b></span>`;
+      btn.textContent = '再练一轮 · 巩固';
+      btn.dataset.mode = 'next';
+      $('btnResetAll').style.display = 'block';
+    }else{
+      $('doneIcon').textContent = '🎉';
+      $('doneTitle').textContent = '本轮完成';
+      $('doneDesc').textContent = roundTotal
+        ? (fuzzy
+            ? `本轮 ${roundTotal} 个词里认识了 ${roundKnown} 个，还有 ${fuzzy} 个没到 ★★★★，下轮会优先抽到它们。`
+            : `本轮 ${roundTotal} 个词全部答对，熟练度各涨了一颗星。`)
+        : '再来一轮，继续巩固记忆。';
+      $('doneStats').innerHTML = `<span>认识<b>${roundKnown}</b></span><span>待加强<b>${fuzzy}</b></span><span>词库共<b>${total}</b></span>`;
+      btn.textContent = '抽下一轮 · 10 词';
+      btn.dataset.mode = 'next';
+      $('btnResetAll').style.display = 'block';
+    }
+
+    stage.style.display = 'none';
+    actions.style.display = 'none';
+    doneBox.style.display = 'block';
+    return;
+  }
+
+  stage.style.display = 'block';
+  actions.style.display = 'flex';
+  doneBox.style.display = 'none';
+
+  // 填充内容
+  $('frontWord').textContent = w.word;
+  $('backWord').textContent  = w.word;
+  $('meaning').textContent   = w.meaning;
+  $('example').textContent   = w.example && w.example.trim() ? w.example : '—— 暂无例句 ——';
+
+  const lvPill = `<span class="lv-stars">${starHtml(lvOf(w))}</span><span class="lv-pct">${pctOf(w)}%</span>`;
+  $('frontLevel').innerHTML = lvPill;
+  $('backLevel').innerHTML  = lvPill;
+
+  const posEl = $('pos');
+  if(w.pos && w.pos.trim()){
+    posEl.textContent = w.pos;
+    posEl.style.display = 'inline-block';
+  }else{
+    posEl.style.display = 'none';
+  }
+
+  // 重置翻转（回到正面）
+  $('flipInner').classList.remove('flipped');
+}
+
+/* 切换卡片时的淡出/淡入动画 */
+function animateSwitch(cb){
+  const stage = $('stage');
+  stage.classList.add('is-out');
+  setTimeout(() => {
+    cb();
+    requestAnimationFrame(() => stage.classList.remove('is-out'));
+  }, 190);
+}
+
+/* ===================== 4. 交互逻辑 ===================== */
+function handleKnown(){
+  if(!queue.length) return;
+  animateSwitch(() => {
+    const id = queue.shift();
+    const w = words.find(x => x.id === id);
+    if(w){
+      w.level = Math.min(MAX_LEVEL, lvOf(w) + 1);   // 认识 → 熟练度 +1 星
+      w.seen  = (w.seen || 0) + 1;
+      w.right = (w.right || 0) + 1;
+      w.lastSeen = Date.now();
+    }
+    roundDone[id] = true;
+    delete roundRetry[id];
+    save();
+    render();
+  });
+}
+
+function handleUnknown(){
+  if(!queue.length) return;
+  animateSwitch(() => {
+    const id = queue.shift();
+    const w = words.find(x => x.id === id);
+    if(w){
+      w.level = Math.max(0, lvOf(w) - 1);           // 不认识 → 熟练度 -1 星（最低 0）
+      w.seen = (w.seen || 0) + 1;
+      w.lastSeen = Date.now();
+    }
+    roundRetry[id] = (roundRetry[id] || 0) + 1;
+    // 回队尾再考一次；同一个词本轮最多出现 3 次，避免死循环
+    if(roundRetry[id] <= 2 && !roundDone[id] && queue.length) queue.push(id);
+    save();
+    render();
+  });
+}
+
+function handleFlip(){
+  if(queue.length === 0) return;
+  $('flipInner').classList.toggle('flipped');
+}
+
+/* ===================== 5. 添加新词（弹窗表单） ===================== */
+let modalOpen = false;
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---- 解析工具（批量导入用） ---- */
+function extractPos(rest){
+  // 支持 n. / v. / adj. / n./v. / n. / v. 等复合词性
+  const re = /^((?:n|v|vt|vi|adj|adv|prep|conj|pron|num|art|interj|aux)\.(?:\s*[\/／,，]\s*(?:n|v|vt|vi|adj|adv|prep|conj|pron|num|art|interj|aux)\.)*)\s*/i;
+  const m = rest.match(re);
+  if(m){
+    const pos = m[1].replace(/\s+/g, '').replace(/\//g, ' / ');
+    const meaning = rest.slice(m[0].length).replace(/^[,，;；:：\s]+/, '').trim();
+    return { pos, meaning };
+  }
+  return { pos: '', meaning: rest.replace(/^[,，;；:：\s]+/, '').trim() };
+}
+
+function parseLine(raw){
+  const line = String(raw).trim();
+  if(!line) return null;
+  let w = '', rest = '', m;
+
+  if((m = line.match(/^(.+?)\s+[-–—]\s+(.+)$/))){ w = m[1]; rest = m[2]; }           // " - " 破折号
+  else if((m = line.match(/^([^,，]+)\s*[,，]\s*(.+)$/))){ w = m[1]; rest = m[2]; }     // 逗号
+  else if((m = line.match(/^([A-Za-z][A-Za-z'’\- ]*?)\s+((?:n|v|vt|vi|adj|adv|prep|conj|pron|num|art|interj|aux)\..*)$/i))){ w = m[1]; rest = m[2]; }
+  else if((m = line.match(/^([A-Za-z][A-Za-z'’\- ]*?)\s+([\u4e00-\u9fa5\u3000-\u303f].*)$/))){ w = m[1]; rest = m[2]; } // 英文 + 中文释义
+  else if((m = line.match(/^(.+?)\s*[-–—]\s*(.+)$/))){ w = m[1]; rest = m[2]; }        // 任意破折号（兜底，放后面避免拆分 hello-world）
+  else if((m = line.match(/^(\S+)\s+(.+)$/))){ w = m[1]; rest = m[2]; }                 // 兜底"
+  else return { error: true, raw: line };
+
+  w = w.trim(); rest = rest.trim();
+  if(!w || !rest) return { error: true, raw: line };
+  const { pos, meaning } = extractPos(rest);
+  if(!meaning) return { error: true, raw: line };
+  return { error: false, word: w, pos, meaning, raw: line };
+}
+
+/* ---- 弹窗开关 ---- */
+function openModal(){
+  modalOpen = true;
+  $('modalMask').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('fWord').focus(), 80);
+}
+function closeModal(){
+  modalOpen = false;
+  $('modalMask').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+/* ---- 单个添加 ---- */
+function currentPos(){
+  const custom = $('posCustom').value.trim();
+  if(custom) return custom;
+  const act = document.querySelector('#posChips .chip.active');
+  return act ? act.dataset.pos : '';
+}
+
+function updatePreview(){
+  $('mpWord').textContent = $('fWord').value.trim() || '—';
+  $('mpMeaning').textContent = $('fMeaning').value.trim() || '释义将显示在这里';
+  const p = currentPos();
+  const mpPos = $('mpPos');
+  if(p){ mpPos.textContent = p; mpPos.style.display = 'inline-block'; }
+  else { mpPos.style.display = 'none'; }
+}
+
+function resetSingleForm(){
+  $('fWord').value = '';
+  $('fMeaning').value = '';
+  $('fExample').value = '';
+  $('posCustom').value = '';
+  document.querySelectorAll('#posChips .chip').forEach(c => c.classList.remove('active'));
+  $('fieldWord').classList.remove('invalid');
+  $('fieldMeaning').classList.remove('invalid');
+  $('singleNote').textContent = '';
+  updatePreview();
+}
+
+function addSingleWord(){
+  const word = $('fWord').value.trim();
+  const meaning = $('fMeaning').value.trim();
+  const example = $('fExample').value.trim();
+  const pos = currentPos();
+
+  let ok = true;
+  $('fieldWord').classList.toggle('invalid', !word); if(!word) ok = false;
+  $('fieldMeaning').classList.toggle('invalid', !meaning); if(!meaning) ok = false;
+  if(!ok){ if(!word) $('fWord').focus(); else $('fMeaning').focus(); return; }
+
+  const dup = words.some(w => w.word.toLowerCase() === word.toLowerCase());
+  words.push(normalizeWord({ id: uid(), word, pos, meaning, example }));
+  afterWordsChanged();
+  render();
+  resetSingleForm();
+  $('singleNote').textContent = dup
+    ? `✓ 已添加：${word}（该词已存在，已作为新条目加入）`
+    : `✓ 已添加：${word}，可继续添加`;
+  $('fWord').focus();
+  showToast('已加入词库：' + word);
+}
+
+/* 词库变动后：没有进行中的轮次就新抽一轮，否则保留当前轮不打断 */
+function afterWordsChanged(){
+  if(!roundIds.length && words.length) startRound();
+  else save();
+}
+
+/* ---- 批量导入 ---- */
+function renderBatchPreview(){
+  const el = $('batchPreview');
+  const sumEl = $('batchSummary');
+  const lines = $('batchInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if(!lines.length){
+    el.innerHTML = '<div class="bp-empty">输入后这里会实时显示解析结果</div>';
+    sumEl.textContent = '';
+    return;
+  }
+  const existing = new Set(words.map(w => w.word.toLowerCase()));
+  let ok = 0, bad = 0, dup = 0;
+  const html = lines.map(line => {
+    const p = parseLine(line);
+    if(!p || p.error){
+      bad++;
+      return `<div class="bp-item bad"><span class="bp-ico" style="color:#f87171">✕</span><span class="bp-word">${escapeHtml(line)}</span><span class="bp-note">无法解析</span></div>`;
+    }
+    if(existing.has(p.word.toLowerCase())){
+      dup++;
+      return `<div class="bp-item dup"><span class="bp-ico" style="color:#fbbf24">•</span><span class="bp-word">${escapeHtml(p.word)}</span><span class="bp-meaning">${escapeHtml(p.meaning)}</span><span class="bp-note">已存在，跳过</span></div>`;
+    }
+    ok++;
+    return `<div class="bp-item ok"><span class="bp-ico" style="color:#6ee7b7">✓</span><span class="bp-word">${escapeHtml(p.word)}</span><span class="bp-meaning">${escapeHtml(p.meaning)}</span><span class="bp-note">${p.pos ? escapeHtml(p.pos) : ''}</span></div>`;
+  }).join('');
+  el.innerHTML = html;
+  sumEl.innerHTML = `可导入 <b style="color:#6ee7b7">${ok}</b> 条 · 重复 ${dup} 条 · 无法解析 ${bad} 条`;
+}
+
+function importBatch(){
+  const lines = $('batchInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if(!lines.length){ $('batchInput').focus(); return; }
+
+  const existing = new Set(words.map(w => w.word.toLowerCase()));
+  let added = 0, skipped = 0, invalid = 0;
+  lines.forEach(line => {
+    const p = parseLine(line);
+    if(!p || p.error){ invalid++; return; }
+    const key = p.word.toLowerCase();
+    if(existing.has(key)){ skipped++; return; }
+    words.push(normalizeWord({ id: uid(), word: p.word, pos: p.pos, meaning: p.meaning, example: '' }));
+    existing.add(key);
+    added++;
+  });
+
+  if(added){
+    afterWordsChanged();
+    render();
+    $('batchInput').value = '';
+    renderBatchPreview();
+    closeModal();
+    showToast(`成功导入 ${added} 个单词`
+      + (skipped ? `，跳过 ${skipped} 个重复` : '')
+      + (invalid ? `，${invalid} 行无法解析` : ''));
+  }else{
+    showToast(invalid ? `没有可导入的单词（${invalid} 行无法解析）` : '都是已存在的单词，已全部跳过');
+  }
+}
+
+/* ---- 弹窗交互绑定 ---- */
+$('btnOpenAdd').addEventListener('click', openModal);
+$('modalClose').addEventListener('click', closeModal);
+$('btnCancel1').addEventListener('click', closeModal);
+$('btnCancel2').addEventListener('click', closeModal);
+$('modalMask').addEventListener('click', e => { if(e.target === $('modalMask')) closeModal(); });
+
+function switchTab(name){
+  document.querySelectorAll('#modalMask .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  $('panelSingle').classList.toggle('active', name === 'single');
+  $('panelBatch').classList.toggle('active', name === 'batch');
+  if(name === 'batch'){ renderBatchPreview(); $('batchInput').focus(); }
+  else { $('fWord').focus(); }
+}
+document.querySelectorAll('#modalMask .tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+$('posChips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  const was = chip.classList.contains('active');
+  document.querySelectorAll('#posChips .chip').forEach(c => c.classList.remove('active'));
+  if(!was) chip.classList.add('active');
+  $('posCustom').value = '';
+  updatePreview();
+});
+$('posCustom').addEventListener('input', () => {
+  if($('posCustom').value.trim()){
+    document.querySelectorAll('#posChips .chip').forEach(c => c.classList.remove('active'));
+  }
+  updatePreview();
+});
+
+['fWord','fMeaning','fExample'].forEach(id => {
+  $(id).addEventListener('input', updatePreview);
+  $(id).addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addSingleWord(); } });
+});
+$('fWord').addEventListener('input', () => { $('fieldWord').classList.remove('invalid'); $('singleNote').textContent = ''; });
+$('fMeaning').addEventListener('input', () => { $('fieldMeaning').classList.remove('invalid'); $('singleNote').textContent = ''; });
+
+$('btnSaveOne').addEventListener('click', addSingleWord);
+$('batchInput').addEventListener('input', renderBatchPreview);
+$('btnSaveBatch').addEventListener('click', importBatch);
+
+/* ===================== 5.1 词库（预设 + 我的） ===================== */
+function openLib(){
+  modalOpen = true;
+  $('libMask').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  renderLib();
+}
+function closeLib(){
+  modalOpen = false;
+  $('libMask').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function renderLib(){
+  $('mineCount').textContent = `(${words.length})`;
+  renderPresetBanks();
+  renderMineList();
+}
+
+function findBank(id){ return PRESET_BANKS.find(b => b.id === id); }
+
+function renderPresetBanks(){
+  const existing = new Set(words.map(w => w.word.toLowerCase()));
+  $('presetList').innerHTML = PRESET_BANKS.map(b => {
+    const total = b.words.length;
+    const owned = b.words.filter(w => existing.has(w.word.toLowerCase())).length;
+    const pct = Math.round(owned / total * 100);
+    const full = owned >= total;
+    const label = full ? '已全部导入' : (owned ? `继续导入 ${total - owned} 词` : `导入 ${total} 词`);
+    const stateText = !owned ? '尚未导入' : (full ? `已全部在词库 · ${total} 词` : `已在词库 ${owned} / ${total}`);
+    return `
+      <div class="bank-card">
+        <div class="bank-head">
+          <div class="bank-icon">${b.icon}</div>
+          <div class="bank-info">
+            <div class="bank-name">${b.name}</div>
+            <div class="bank-desc">${b.desc}</div>
+          </div>
+          <div class="bank-count">${total} 词</div>
+        </div>
+        <div class="bank-progress"><div style="width:${pct}%"></div></div>
+        <div class="bank-foot">
+          <span class="bank-state">${stateText}</span>
+          <div class="bank-btns">
+            <button class="bank-btn ghost" data-preview="${b.id}">预览</button>
+            <button class="bank-btn" data-import="${b.id}" ${full ? 'disabled' : ''}>${label}</button>
+          </div>
+        </div>
+        <div class="bank-words" id="bw_${b.id}" hidden></div>
+      </div>`;
+  }).join('');
+
+  $('presetList').querySelectorAll('[data-preview]').forEach(btn => {
+    btn.addEventListener('click', () => toggleBankPreview(btn.dataset.preview, btn));
+  });
+  $('presetList').querySelectorAll('[data-import]').forEach(btn => {
+    btn.addEventListener('click', () => importBank(btn.dataset.import));
+  });
+}
+
+function toggleBankPreview(id, btn){
+  const box = $('bw_' + id);
+  if(!box) return;
+  if(!box.hidden){ box.hidden = true; btn.textContent = '预览'; return; }
+  const bank = findBank(id);
+  box.innerHTML = bank.words.map(w =>
+    `<span class="wchip"><b>${escapeHtml(w.word)}</b> ${escapeHtml(w.meaning)}</span>`
+  ).join('');
+  box.hidden = false;
+  btn.textContent = '收起';
+}
+
+function importBank(id){
+  const bank = findBank(id);
+  if(!bank) return;
+  const existing = new Set(words.map(w => w.word.toLowerCase()));
+  let added = 0, skipped = 0;
+  bank.words.forEach(w => {
+    const key = w.word.toLowerCase();
+    if(existing.has(key)){ skipped++; return; }
+    words.push(normalizeWord({ id: uid(), word: w.word, pos: w.pos, meaning: w.meaning, example: w.example }));
+    existing.add(key);
+    added++;
+  });
+
+  if(added){
+    afterWordsChanged();
+    render();
+    renderLib();
+    showToast(`已导入「${bank.name}」${added} 个新词` + (skipped ? `，跳过 ${skipped} 个已存在` : ''));
+  }else{
+    showToast(`「${bank.name}」的单词已全部在词库中`);
+  }
+}
+
+/* ===================== 5.2 熟练度 / 我的词库 ===================== */
+const MINE_SORTS = [
+  { id: 'weak',   label: '最需复习 ↓' },
+  { id: 'strong', label: '最熟练 ↓' },
+  { id: 'new',    label: '最近添加 ↓' }
+];
+let mineSort = 'weak';
+
+function cycleMineSort(){
+  const i = MINE_SORTS.findIndex(s => s.id === mineSort);
+  mineSort = MINE_SORTS[(i + 1) % MINE_SORTS.length].id;
+  $('btnSort').textContent = MINE_SORTS.find(s => s.id === mineSort).label;
+  renderMineList();
+}
+
+function sortMineList(list){
+  const a = list.slice();
+  if(mineSort === 'weak'){
+    a.sort((x, y) => (lvOf(x) - lvOf(y)) || ((x.lastSeen || 0) - (y.lastSeen || 0)));
+  }else if(mineSort === 'strong'){
+    a.sort((x, y) => (lvOf(y) - lvOf(x)) || ((x.lastSeen || 0) - (y.lastSeen || 0)));
+  }else{
+    a.reverse();   // words 数组本身按添加顺序
+  }
+  return a;
+}
+
+function statusOf(w){
+  if(isMastered(w)) return '<span class="mi-status done">已掌握</span>';
+  if(lvOf(w) === 0 && !w.seen) return '<span class="mi-status fresh">未练习</span>';
+  return '<span class="mi-status queued">待巩固</span>';
+}
+
+function renderMineList(){
+  const q = ($('libSearch').value || '').trim().toLowerCase();
+  const filtered = words.filter(w =>
+    !q || w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
+  );
+  const list = sortMineList(filtered);
+
+  const masteredCount = words.filter(isMastered).length;
+  const avg = words.length ? Math.round(words.reduce((a, w) => a + pctOf(w), 0) / words.length) : 0;
+  $('mineStats').textContent = `共 ${words.length} 词 · 已掌握 ${masteredCount} · 平均熟练度 ${avg}%`;
+
+  if(!list.length){
+    $('mineList').innerHTML = `<div class="mine-empty">${
+      words.length ? '没有匹配的单词，换个关键词试试' : '词库还是空的，去「预设词库」导入，或添加自己的单词吧'
+    }</div>`;
+    return;
+  }
+
+  $('mineList').innerHTML = list.map(w => {
+    const lv = lvOf(w);
+    const pct = pctOf(w);
+    const meterCls = lv === 0 ? 'lv0' : (lv < MASTER_LEVEL ? 'low' : '');
+    const last = w.lastSeen
+      ? new Date(w.lastSeen).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+      : '未练习';
+    return `
+      <div class="mine-item">
+        <div class="mi-main">
+          <div class="mi-line">
+            <span class="mi-word">${escapeHtml(w.word)}</span>
+            ${w.pos ? `<span class="mi-pos">${escapeHtml(w.pos)}</span>` : ''}
+            <span class="mi-level">${starHtml(lv)}</span>
+            ${statusOf(w)}
+          </div>
+          <div class="mi-meaning">${escapeHtml(w.meaning)}</div>
+          <div class="mi-meter ${meterCls}"><i style="width:${pct}%"></i></div>
+          <div class="mi-meta">
+            <span class="hi">熟练度 ${pct}%</span>
+            <span>练习 ${w.seen || 0} 次</span>
+            <span>认识 ${w.right || 0} 次</span>
+            <span>最近 ${last}</span>
+          </div>
+        </div>
+        <button class="mi-del" data-delword="${w.id}" title="从词库删除">✕</button>
+      </div>`;
+  }).join('');
+
+  $('mineList').querySelectorAll('[data-delword]').forEach(btn => {
+    btn.addEventListener('click', () => deleteWord(btn.dataset.delword));
+  });
+}
+
+function deleteWord(id){
+  const idx = words.findIndex(w => w.id === id);
+  if(idx === -1) return;
+  const name = words[idx].word;
+  words.splice(idx, 1);
+  queue = queue.filter(x => x !== id);
+  roundIds = roundIds.filter(x => x !== id);
+  delete roundDone[id];
+  delete roundRetry[id];
+  if(!roundIds.length && words.length) startRound();
+  else save();
+  render();
+  renderLib();
+  showToast('已删除：' + name);
+}
+
+function switchLibTab(name){
+  document.querySelectorAll('[data-libtab]').forEach(t => t.classList.toggle('active', t.dataset.libtab === name));
+  $('libPanelPreset').classList.toggle('active', name === 'preset');
+  $('libPanelMine').classList.toggle('active', name === 'mine');
+  if(name === 'mine') renderMineList();
+}
+
+$('btnOpenLib').addEventListener('click', openLib);
+$('libClose').addEventListener('click', closeLib);
+$('libClose2').addEventListener('click', closeLib);
+$('libClose3').addEventListener('click', closeLib);
+$('libMask').addEventListener('click', e => { if(e.target === $('libMask')) closeLib(); });
+document.querySelectorAll('[data-libtab]').forEach(t => t.addEventListener('click', () => switchLibTab(t.dataset.libtab)));
+$('libSearch').addEventListener('input', renderMineList);
+$('btnSort').addEventListener('click', cycleMineSort);
+$('libAddNew').addEventListener('click', () => { closeLib(); openModal(); });
+
+/* ===================== 6. Toast ===================== */
+let toastTimer = null;
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+/* ===================== 7. 事件绑定 ===================== */
+$('flipCard').addEventListener('click', handleFlip);
+$('btnKnown').addEventListener('click', handleKnown);
+$('btnUnknown').addEventListener('click', handleUnknown);
+
+$('btnNext').addEventListener('click', () => {
+  if($('btnNext').dataset.mode === 'lib'){ openLib(); return; }
+  startRound();
+  render();
+  showToast(`已抽取新一轮 ${roundIds.length} 个单词`);
+});
+
+$('btnResetAll').addEventListener('click', () => {
+  if(!words.length) return;
+  if(!$('btnResetAll').dataset.confirmed){ $('btnResetAll').dataset.confirmed='yes'; $('btnResetAll').textContent='再次点击确认重置'; return; }
+  delete $('btnResetAll').dataset.confirmed; $('btnResetAll').textContent='重置全部熟练度';
+  words.forEach(w => { w.level = 0; w.seen = 0; w.right = 0; w.lastSeen = 0; });
+  startRound();
+  render();
+  renderLib();
+  showToast('已重置全部熟练度');
+});
+
+// 键盘快捷键：空格翻面 / ← 不认识 / → 认识（弹窗打开时让位给表单）
+document.addEventListener('keydown', e => {
+  if(modalOpen){
+    if(e.key === 'Escape'){
+      e.preventDefault();
+      if($('libMask').classList.contains('show')) closeLib();
+      else closeModal();
+    }
+    return;
+  }
+  const tag = (e.target.tagName || '').toUpperCase();
+  if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if(e.code === 'Space'){ e.preventDefault(); handleFlip(); }
+  else if(e.key === 'ArrowLeft'){ handleUnknown(); }
+  else if(e.key === 'ArrowRight'){ handleKnown(); }
+});
+
+/* ===================== 8. 启动 ===================== */
+initState();
+render();
+updatePreview();
+function restoreExample(){
+  Object.keys(memoryStore).forEach(key => delete memoryStore[key]);
+  closeModal(); closeLib(); resetSingleForm(); clearTimeout(toastTimer); $('toast').classList.remove('show'); $('toast').textContent = ''; $('singleNote').textContent = '';
+  $('batchInput').value = ''; $('libSearch').value = ''; mineSort = 'weak'; $('btnSort').textContent = MINE_SORTS[0].label; delete $('btnResetAll').dataset.confirmed; $('btnResetAll').textContent = '重置全部熟练度'; renderBatchPreview();
+  switchTab('single'); switchLibTab('preset');
+  initState(); render(); updatePreview();
+}
+</script><span style="position:fixed;right:95px;top:18px;z-index:10000;color:#fff;font-size:12px">示例体验 · 数据仅保存在当前页面</span><button type="button" style="position:fixed;right:12px;top:12px;z-index:10000;border:1px solid #d5d9e9;border-radius:8px;padding:6px;background:#fff;color:#57617e;cursor:pointer" onclick="restoreExample()">恢复示例</button></body></html>
