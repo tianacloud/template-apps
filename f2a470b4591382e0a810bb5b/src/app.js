@@ -1,5 +1,7 @@
 import { createTianaFetch } from '@tianacloud/serverless';
 export async function mount(root, { files }) {
+  document.body.style.display = 'block';
+  Object.assign(root.style, {minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center'});
   root.style.color = '#fff';
   root.style.fontFamily = "'Noto Sans SC', sans-serif";
   let fontError = false;
