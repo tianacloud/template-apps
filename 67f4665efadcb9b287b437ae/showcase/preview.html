@@ -1,0 +1,2426 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>诗韵</title><style>/* ================= 诗韵 · 古风简约主题 ================= */
+:root{
+  --paper:#f6f2e9;
+  --paper-2:#fdfbf6;
+  --paper-3:#efe9dc;
+  --ink:#23201c;
+  --ink-2:#574f46;
+  --ink-3:#8b8377;
+  --line:#e3dacb;
+  --line-soft:#efe8da;
+  --cinnabar:#a63a2e;      /* 朱砂 */
+  --cinnabar-2:#c25b4a;
+  --jade:#40705f;          /* 青 */
+  --jade-2:#5f8d78;
+  --gold:#a9873f;
+  --blue:#3d5a80;
+  --radius:3px;
+  --editor-line:39px;      /* 编辑区行高，背景横线与之同步，改字号只需改这里 */
+  --tap:40px;              /* 触屏最小点击高度 */
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-t:env(safe-area-inset-top, 0px);
+  --serif:"Songti SC","STSong","SimSun","Noto Serif CJK SC","Source Han Serif SC","Kaiti SC","STKaiti",serif;
+  --sans:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:15px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;      /* 防止 iOS 横屏自动放大字号 */
+  text-size-adjust:100%;
+  overflow-x:hidden;
+  touch-action:manipulation;          /* 去掉双击缩放带来的 300ms 延迟 */
+}
+.paper-grain{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(168,57,46,.035), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(64,112,95,.04), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(120,105,80,.022) 0 1px, transparent 1px 4px);
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 26px 14px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--paper-2),var(--paper));
+}
+.brand{display:flex;align-items:center;gap:14px}
+.seal{
+  width:40px;height:40px;flex:0 0 40px;
+  display:grid;place-items:center;
+  background:var(--cinnabar);color:#fdf7ee;
+  font-size:22px;border-radius:4px;
+  box-shadow:0 1px 0 rgba(0,0,0,.08);letter-spacing:0;
+}
+.brand-text h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.32em}
+.brand-text p{margin:2px 0 0;font-size:12px;color:var(--ink-3);letter-spacing:.12em}
+.topbar-actions{display:flex;gap:8px}
+
+.layout{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+  gap:20px;padding:20px 26px 8px;
+  align-items:start;
+}
+.panel{
+  background:var(--paper-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  box-shadow:0 1px 2px rgba(90,70,40,.04);
+}
+
+/* ---------- 控件 ---------- */
+.control-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-3)}
+.field > span{letter-spacing:.1em}
+.field-row{display:flex;gap:10px}
+select,input[type=text],input[type=password],input[type=number],textarea{
+  font-family:var(--serif);font-size:14px;color:var(--ink);
+  background:#fffdf8;border:1px solid var(--line);border-radius:var(--radius);
+  padding:6px 9px;outline:none;transition:border-color .15s, box-shadow .15s;
+}
+select{min-width:110px}
+input:focus,select:focus,textarea:focus{border-color:var(--cinnabar-2);box-shadow:0 0 0 2px rgba(166,58,46,.09)}
+input[type=number]{width:80px}
+
+button{font-family:var(--serif);cursor:pointer;border-radius:var(--radius);transition:.15s}
+.primary-btn{
+  background:var(--cinnabar);color:#fff8ef;border:1px solid var(--cinnabar);
+  padding:7px 16px;font-size:14px;letter-spacing:.16em;
+}
+.primary-btn:hover{background:#8f2f25}
+.primary-btn:disabled{background:#c9a49e;border-color:#c9a49e;cursor:not-allowed}
+.ghost-btn{
+  background:transparent;color:var(--ink-2);border:1px solid var(--line);
+  padding:6px 14px;font-size:13px;
+}
+.ghost-btn:hover{border-color:var(--ink-3);color:var(--ink);background:var(--paper-3)}
+.danger-btn{background:transparent;border:1px solid #d8b6b0;color:var(--cinnabar);padding:6px 14px;font-size:13px}
+.danger-btn:hover{background:#fbeee9}
+.hint{font-size:12px;color:var(--ink-3);line-height:1.6}
+.checkline{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);margin-top:8px}
+.checkline input{accent-color:var(--cinnabar)}
+
+/* ---------- 编辑区 ---------- */
+.io-row{padding-top:2px;border-top:1px dashed var(--line-soft);margin-bottom:12px}
+.io-row .sep{width:1px;height:18px;background:var(--line);margin:0 2px}
+.drop-zone{position:relative}
+.drop-mask{
+  position:absolute;inset:0;display:grid;place-items:center;
+  background:rgba(253,251,246,.94);border:2px dashed var(--cinnabar-2);
+  border-radius:var(--radius);color:var(--cinnabar);font-size:14px;letter-spacing:.16em;
+  pointer-events:none;z-index:3;
+}
+#editor{
+  width:100%;min-height:170px;resize:vertical;
+  font-size:19px;line-height:var(--editor-line);letter-spacing:.06em;
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 calc(var(--editor-line) - 1px),
+      var(--line-soft) calc(var(--editor-line) - 1px) var(--editor-line)),
+    #fffdf8;
+  padding:10px 12px;
+}
+.analysis-wrap{margin-top:14px;border-top:1px solid var(--line-soft);padding-top:12px}
+.analysis-title{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.analysis-title > span:first-child{font-size:13px;letter-spacing:.2em;color:var(--ink-2)}
+.analysis{max-height:330px;overflow:auto}
+.line-block{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:6px 8px;border-radius:var(--radius);cursor:default;
+}
+.line-block:hover{background:var(--paper-3)}
+.line-block.is-active{background:#f4ece0;box-shadow:inset 2px 0 0 var(--cinnabar)}
+.line-idx{font-size:11px;color:var(--ink-3);min-width:16px;padding-top:6px}
+.chars{display:flex;flex-wrap:wrap;gap:2px}
+.ch{display:flex;flex-direction:column;align-items:center;min-width:22px}
+.ch-t{font-size:18px;line-height:1.35}
+.ch-m{
+  position:relative;
+  width:16px;height:4px;border-radius:2px;background:#cfc7b8;margin-top:1px;cursor:pointer;
+}
+/* 触屏上把命中区域扩大到手指可点（原本只有 4px 高） */
+@media (hover:none){
+  .ch-m::after{content:"";position:absolute;left:-6px;right:-6px;top:-11px;bottom:-11px}
+}
+.ch-m.p{background:var(--jade)}
+.ch-m.z{background:var(--cinnabar)}
+.ch-m.u{background:#cfc7b8}
+.ch.is-final .ch-t{font-weight:600}
+.ch.is-final .ch-t::after{
+  content:"";display:block;height:1px;background:var(--gold);margin-top:2px;
+}
+.line-tail{display:flex;align-items:center;gap:6px;margin-left:auto;padding-top:4px}
+.rhyme-badge{
+  font-size:11px;padding:1px 7px;border:1px solid var(--line);border-radius:10px;color:var(--ink-2);background:#fffdf8;white-space:nowrap;
+}
+.rhyme-badge.ok{border-color:var(--jade-2);color:var(--jade)}
+.rhyme-badge.bad{border-color:var(--cinnabar-2);color:var(--cinnabar)}
+.mini-btn{
+  background:transparent;border:1px solid var(--line);color:var(--ink-2);
+  font-size:11px;padding:1px 8px;border-radius:10px;
+}
+.mini-btn:hover{border-color:var(--cinnabar-2);color:var(--cinnabar)}
+
+.verdict{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+.v-item{
+  font-size:12px;padding:3px 10px;border-radius:2px;border-left:3px solid var(--line);
+  background:var(--paper-3);color:var(--ink-2);
+}
+.v-item.ok{border-left-color:var(--jade);color:var(--jade)}
+.v-item.warn{border-left-color:var(--gold);color:#7d6428}
+.v-item.err{border-left-color:var(--cinnabar);color:var(--cinnabar)}
+
+/* ---------- 右侧工具 ---------- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+.tab{
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  padding:7px 13px;font-size:14px;color:var(--ink-3);letter-spacing:.08em;
+}
+.tab:hover{color:var(--ink)}
+.tab.is-active{color:var(--ink);border-bottom-color:var(--cinnabar)}
+.tabpane{display:none}
+.tabpane.is-active{display:block}
+.pane-block{margin-bottom:18px}
+.block-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.block-head h3{margin:0;font-size:14px;font-weight:600;letter-spacing:.14em;color:var(--ink-2)}
+.badge{
+  font-size:11px;padding:1px 8px;border:1px solid var(--line);border-radius:10px;color:var(--ink-3);background:var(--paper-3)
+}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.filter-row input[type=text]{flex:1 1 140px;min-width:120px}
+
+.char-grid{display:flex;flex-wrap:wrap;gap:5px;max-height:280px;overflow:auto;padding:2px}
+.char-chip{
+  width:36px;height:36px;display:grid;place-items:center;
+  border:1px solid var(--line);background:#fffdf8;border-radius:var(--radius);
+  font-size:17px;cursor:pointer;padding:0;
+}
+.char-chip:hover{border-color:var(--cinnabar);color:var(--cinnabar);background:#fdf4ee}
+.char-chip.p{border-bottom:2px solid var(--jade-2)}
+.char-chip.z{border-bottom:2px solid var(--cinnabar-2)}
+
+.chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:12px;
+  background:#fffdf8;color:var(--ink-2);cursor:pointer;
+}
+.chip:hover{border-color:var(--cinnabar-2);color:var(--cinnabar)}
+.chip.static{cursor:default}
+
+.word-list{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:5px}
+.word-item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:6px 10px;border:1px solid var(--line-soft);border-radius:var(--radius);
+  background:#fffdf8;cursor:pointer;
+}
+.word-item:hover{border-color:var(--cinnabar-2);background:#fdf4ee}
+.word-item .w-t{font-size:16px;letter-spacing:.06em}
+.word-item .w-m{font-size:11px;color:var(--ink-3)}
+.word-item .w-m em{font-style:normal;color:var(--jade)}
+.word-item .w-m i{font-style:normal;color:var(--cinnabar)}
+
+.result-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.result-item{
+  padding:8px 10px;border:1px solid var(--line-soft);border-radius:var(--radius);
+  background:#fffdf8;font-size:15px;line-height:1.6;
+}
+.result-item .ri-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.result-item .ri-txt{letter-spacing:.05em}
+.result-item .ri-note{font-size:11px;color:var(--ink-3);margin-top:3px}
+.result-item.ok{border-left:3px solid var(--jade)}
+.result-item.warn{border-left:3px solid var(--gold)}
+.result-item.err{border-left:3px solid var(--cinnabar)}
+.empty{font-size:13px;color:var(--ink-3);padding:10px 2px}
+
+.template-box{
+  font-family:var(--serif);font-size:15px;line-height:2;color:var(--ink-2);
+  background:var(--paper-3);border:1px dashed var(--line);border-radius:var(--radius);
+  padding:10px 12px;white-space:pre-wrap;letter-spacing:.1em;
+}
+
+.lex-input{width:100%;min-height:120px;resize:vertical;font-size:14px;line-height:1.8}
+
+/* ---------- 稿匣 ---------- */
+.sec-title{
+  font-size:12px;letter-spacing:.24em;color:var(--ink-2);
+  border-left:3px solid var(--gold);padding-left:8px;margin-top:4px;
+}
+.temp-box{
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-3);
+  padding:9px 11px;font-size:12px;color:var(--ink-2);line-height:1.8;
+  display:flex;flex-direction:column;gap:7px;
+}
+.temp-box .tb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.draft-list{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow:auto}
+.draft-item{
+  border:1px solid var(--line-soft);border-radius:var(--radius);background:#fffdf8;
+  padding:9px 11px;display:flex;flex-direction:column;gap:6px;
+}
+.draft-item:hover{border-color:var(--line)}
+.draft-item .d-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.draft-item .d-name{font-size:15px;letter-spacing:.06em}
+.draft-item .d-time{font-size:11px;color:var(--ink-3);white-space:nowrap}
+.draft-item .d-prev{font-size:12px;color:var(--ink-3);line-height:1.6;word-break:break-all}
+.draft-item .d-ops{display:flex;gap:6px;flex-wrap:wrap}
+.draft-item.is-current{border-left:3px solid var(--cinnabar)}
+
+/* ---------- 底部 ---------- */
+.statusbar{
+  position:relative;z-index:1;
+  display:flex;gap:8px;justify-content:center;
+  padding:12px 20px 20px;font-size:12px;color:var(--ink-3);letter-spacing:.06em;
+}
+.statusbar .dot{color:var(--line)}
+
+/* ---------- 抽屉 / 遮罩 ---------- */
+.mask{position:fixed;inset:0;background:rgba(35,32,28,.28);z-index:40}
+.drawer{
+  position:fixed;top:0;right:0;height:100%;height:100dvh;width:min(440px,92vw);z-index:41;
+  background:var(--paper-2);border-left:1px solid var(--line);
+  box-shadow:-6px 0 24px rgba(80,60,30,.10);
+  display:flex;flex-direction:column;
+  overscroll-behavior:contain;
+}
+.drawer-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--line);
+}
+.drawer-head h2{margin:0;font-size:16px;font-weight:600;letter-spacing:.18em}
+.drawer-body{padding:16px 20px 28px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.drawer-body .field input,.drawer-body .field select{width:100%}
+.notice{
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-3);
+  padding:10px 12px;font-size:12px;color:var(--ink-2);line-height:1.8;
+}
+.notice p{margin:0 0 4px}
+.notice ul{margin:0;padding-left:18px}
+.help-list{padding-left:18px;margin:0;font-size:13px;line-height:1.9;color:var(--ink-2)}
+.help-list b{color:var(--ink)}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper-2);font-size:13px;
+  padding:8px 18px;border-radius:2px;z-index:60;opacity:0;pointer-events:none;transition:.2s;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+/* ================= 响应式 ================= */
+
+/* ---- 触屏：去掉 hover 残留，改用按下反馈 ---- */
+@media (hover:none){
+  .ghost-btn:hover{border-color:var(--line);color:var(--ink-2);background:transparent}
+  .primary-btn:hover{background:var(--cinnabar)}
+  .danger-btn:hover{background:transparent}
+  .mini-btn:hover{border-color:var(--line);color:var(--ink-2)}
+  .chip:hover{border-color:var(--line);color:var(--ink-2)}
+  .word-item:hover{border-color:var(--line-soft);background:#fffdf8}
+  .char-chip:hover{border-color:var(--line);color:var(--ink);background:#fffdf8}
+  .line-block:hover{background:transparent}
+  .tab:hover{color:var(--ink-3)}
+  .ghost-btn:active,.primary-btn:active,.danger-btn:active,
+  .mini-btn:active,.chip:active,.word-item:active,.char-chip:active{transform:scale(.97)}
+  .char-chip:active,.chip:active{border-color:var(--cinnabar-2);color:var(--cinnabar)}
+  .line-block:active{background:var(--paper-3)}
+}
+
+/* ---- 平板 / 窄窗口：单列，工具区吸顶 ---- */
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr;padding:14px;gap:16px}
+  .topbar{padding:12px 16px 10px}
+  .brand-text h1{font-size:18px}
+  .brand{gap:10px}
+  .tools{position:relative}
+  .tabs{
+    position:sticky;top:0;z-index:6;
+    background:var(--paper-2);
+    margin:-4px -4px 10px;padding:4px 4px 0;
+  }
+  #editor{--editor-line:35px;font-size:17px}
+  .analysis{max-height:none}
+  .char-grid{max-height:52vh}
+  .word-list,.result-list{max-height:52vh}
+}
+
+/* ---- 手机 ---- */
+@media (max-width:640px){
+  .topbar{padding:10px 12px 8px}
+  .seal{width:34px;height:34px;flex:0 0 34px;font-size:19px}
+  .brand{gap:9px}
+  .brand-text h1{font-size:17px;letter-spacing:.22em}
+  .brand-text p{display:none}
+  .topbar-actions{gap:6px}
+  .topbar .ghost-btn{padding:7px 11px;font-size:12px;min-height:36px}
+
+  .layout{padding:10px 10px 4px;gap:12px}
+  .panel{padding:12px 12px 14px;border-radius:var(--radius)}
+
+  /* 控件：手指尺寸 + 字号 ≥16px 防 iOS 聚焦缩放 */
+  button{min-height:38px}
+  .primary-btn,.ghost-btn,.danger-btn{min-height:var(--tap);padding:8px 14px}
+  select,input[type=text],input[type=password],input[type=number],textarea{
+    font-size:16px;padding:8px 10px;min-height:38px;
+  }
+  .field{font-size:12px}
+  .control-row{gap:8px}
+  .field-row{width:100%}
+  .field-row .field{flex:1 1 0;min-width:0}
+  .control-row .field{flex:1 1 140px;min-width:120px}
+  .control-row .field select{width:100%}
+
+  /* 文件行：占满两行，好点 */
+  .io-row{gap:7px;padding-top:8px}
+  .io-row .sep{display:none}
+  .io-row button{flex:1 1 30%;min-width:78px}
+  .io-row #selSplit{flex:1 1 100%;width:100%;min-width:0}
+  .io-row #autosaveTip{flex:1 1 100%}
+
+  /* 编辑区 */
+  #editor{--editor-line:33px;font-size:17px;min-height:150px;padding:9px 10px}
+
+  /* 工具页签：横向可滑，不换行，点击区够大 */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{white-space:nowrap;padding:10px 11px;font-size:14px;min-height:42px}
+
+  /* 候选字 / 词条 / 结果：加大命中区 */
+  .char-chip{width:42px;height:42px;font-size:18px}
+  .mini-btn{min-height:32px;padding:6px 12px;font-size:12px}
+  .word-item,.result-item{min-height:46px;padding:10px 12px}
+  .word-item .w-t{font-size:16px}
+  .chip{padding:6px 12px;font-size:13px}
+  .char-grid{max-height:44vh;gap:6px}
+  .word-list,.result-list{max-height:44vh}
+  .template-box{font-size:14px;line-height:1.9}
+
+  /* 逐句分析：窄屏让尾部徽标换行，避免挤压 */
+  .line-block{flex-wrap:wrap;padding:7px 6px}
+  .line-tail{margin-left:0;flex:1 1 100%;padding-top:3px;justify-content:flex-start}
+  .ch-t{font-size:17px}
+  .ch{min-width:20px}
+
+  /* 抽屉：全屏 + 安全区 */
+  .drawer{width:100%;border-left:none}
+  .drawer-head{padding:calc(12px + var(--safe-t)) 16px 12px}
+  .drawer-body{padding:14px 16px calc(26px + var(--safe-b))}
+  .drawer .filter-row input[type=text]{flex:1 1 100%}
+  .notice{font-size:12px;line-height:1.85}
+  .draft-item .d-ops{gap:8px}
+  .draft-item .mini-btn{min-height:34px;padding:7px 14px}
+
+  /* 底部与浮层 */
+  .statusbar{
+    padding:10px 14px calc(16px + var(--safe-b));
+    flex-wrap:wrap;gap:4px 8px;text-align:center;line-height:1.6;
+  }
+  #toast{
+    bottom:calc(26px + var(--safe-b));max-width:86vw;
+    text-align:center;line-height:1.5;padding:9px 16px;
+  }
+  body.kb-open #toast{bottom:calc(46vh)}      /* 软键盘弹起时上移，避免被遮 */
+  .mask{height:100dvh}
+}
+
+/* ---- 超小屏 ---- */
+@media (max-width:380px){
+  .brand-text h1{font-size:16px;letter-spacing:.16em}
+  .topbar .ghost-btn{padding:6px 9px;font-size:12px}
+  .io-row button{flex:1 1 44%;min-width:0}
+  .char-chip{width:40px;height:40px}
+  .tab{padding:10px 9px;font-size:13px}
+  #editor{--editor-line:31px;font-size:16px}
+}
+
+/* ---- 横屏矮屏：压缩纵向留白 ---- */
+@media (max-height:480px) and (orientation:landscape){
+  .topbar{padding:8px 12px 6px}
+  .brand-text p{display:none}
+  .seal{width:30px;height:30px;flex:0 0 30px;font-size:17px}
+  .layout{padding:8px 12px;gap:10px}
+  #editor{min-height:110px}
+  .analysis{max-height:34vh}
+  .char-grid,.word-list,.result-list{max-height:38vh}
+  .statusbar{padding:8px 12px calc(10px + var(--safe-b))}
+}
+
+#btnSettings, .tab[data-tab="ai"] { display:none !important; }
+</style></head><body><div style="padding:8px;background:#eee;text-align:center">示例体验 · 数据仅在本页保留，导入、下载和稿匣请安装后使用 <button id="reset-example" type="button">恢复示例</button></div>
+
+<div class="paper-grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="seal" aria-hidden="true">韵</span>
+    <div class="brand-text">
+      <h1>诗韵</h1>
+      <p>诗词辅助创作 · 韵脚补全 · 平仄格律</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="btnHelp" class="ghost-btn" type="button">用法</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ 左：创作区 ============ -->
+  <section class="panel work">
+    <div class="work-head">
+      <div class="control-row">
+        <label class="field">
+          <span>体式</span>
+          <select id="selForm">
+            <option value="auto">自动判断</option>
+            <option value="wujue">五言绝句</option>
+            <option value="qijue">七言绝句</option>
+            <option value="wulv">五言律诗</option>
+            <option value="qilv">七言律诗</option>
+            <option value="ci">词 / 长短句</option>
+            <option value="free">自由诗</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>韵书</span>
+          <select id="selBook">
+            <option value="pingshui">平水韵（106 韵）</option>
+            <option value="xinyun">中华新韵（14 韵）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>主韵部</span>
+          <select id="selRhyme"><option value="">自动推测</option></select>
+        </label>
+      </div>
+      <div class="control-row">
+        <button id="btnAnalyze" class="primary-btn" type="button">审 韵</button>
+        <button id="btnClear" class="ghost-btn" type="button">清空</button>
+        <button id="btnDemo" class="ghost-btn" type="button">示例</button>
+        <span class="hint">写一句或一首，点「审韵」即可</span>
+      </div>
+      <div class="control-row io-row">
+        <button id="btnSplit" class="ghost-btn" type="button">分行</button>
+        <select id="selSplit" aria-label="分行方式">
+          <option value="punct">按标点断句</option>
+          <option value="punct-keep">按标点断句（留标点）</option>
+          <option value="len5">每 5 字一行</option>
+          <option value="len7">每 7 字一行</option>
+        </select>
+        <button id="btnTidy" class="ghost-btn" type="button">整理空行</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button id="btnUpload" disabled title="安装后使用" class="ghost-btn" type="button">上传</button>
+        <button id="btnDownload" disabled title="安装后使用" class="ghost-btn" type="button">下载</button>
+        <button id="btnCopy" class="ghost-btn" type="button">复制全文</button>
+        <button id="btnDrafts" disabled title="安装后使用" class="ghost-btn" type="button">稿匣</button>
+        <span id="autosaveTip" class="hint">未暂存</span>
+        <input id="fileInput" type="file" accept=".txt,.md,.csv,text/plain,.json" hidden>
+      </div>
+    </div>
+
+    <div id="dropZone" class="drop-zone">
+      <textarea id="editor" spellcheck="false" placeholder="在此落笔……&#10;例：&#10;远上寒山石径斜&#10;白云生处有人家&#10;&#10;可直接把 .txt 文件拖进来"></textarea>
+      <div id="dropMask" class="drop-mask" hidden>松手即载入文本</div>
+    </div>
+
+    <div class="analysis-wrap">
+      <div class="analysis-title">
+        <span>平仄 · 韵脚</span>
+        <span class="hint">字下色块：青＝平，朱＝仄，灰＝未收；点击色块可手动改判多音字</span>
+      </div>
+      <div id="analysis" class="analysis"></div>
+    </div>
+
+    <div id="verdict" class="verdict"></div>
+  </section>
+
+  <!-- ============ 右：工具区 ============ -->
+  <section class="panel tools">
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="rhyme" type="button">韵脚</button>
+      <button class="tab" data-tab="meter" type="button">格律</button>
+      <button class="tab" data-tab="words" type="button">词句</button>
+      <button class="tab" data-tab="lex" type="button">词库</button>
+    </nav>
+
+    <!-- 韵脚 -->
+    <div class="tabpane is-active" id="pane-rhyme">
+      <div class="pane-block">
+        <div class="block-head">
+          <h3>韵脚候选</h3>
+          <span id="rhymeBelong" class="badge">—</span>
+        </div>
+        <div class="filter-row">
+          <input id="rhymeFilter" type="text" placeholder="按意象筛选：如 月 / 山 / 愁 / 归">
+          <select id="rhymeToneFilter">
+            <option value="">全部平仄</option>
+            <option value="平">只显示平声</option>
+            <option value="仄">只显示仄声</option>
+          </select>
+        </div>
+        <p class="hint">点选单字可替换当前句中「韵脚字」；未选中句子时插入到光标处。</p>
+        <div id="rhymeGrid" class="char-grid"></div>
+      </div>
+      <div class="pane-block">
+        <div class="block-head"><h3>邻韵 / 可通押</h3></div>
+        <div id="nearRhyme" class="chip-row"></div>
+      </div>
+    </div>
+
+    <!-- 格律 -->
+    <div class="tabpane" id="pane-meter">
+      <div class="pane-block">
+        <div class="block-head"><h3>格律校验</h3><span id="meterScore" class="badge">—</span></div>
+        <div id="meterResult" class="result-list"></div>
+      </div>
+      <div class="pane-block">
+        <div class="block-head"><h3>参考谱式</h3></div>
+        <div id="meterTemplate" class="template-box"></div>
+        <p class="hint">○ 平 ● 仄 ◎ 可平可仄；律诗颔联、颈联宜对仗。</p>
+      </div>
+    </div>
+
+    <!-- 词句 -->
+    <div class="tabpane" id="pane-words">
+      <div class="pane-block">
+        <div class="block-head"><h3>合韵词句</h3><span id="wordsBelong" class="badge">—</span></div>
+        <div class="filter-row">
+          <input id="wordsFilter" type="text" placeholder="关键词：如 春 / 相思 / 江">
+          <select id="wordsCat">
+            <option value="">全部分类</option>
+          </select>
+        </div>
+        <div id="wordsList" class="word-list"></div>
+        <p class="hint">点击词条插入到光标处；勾选「替换句尾」则替换当前句末同长度文字。</p>
+        <label class="checkline"><input type="checkbox" id="wordsReplace"><span>替换句尾</span></label>
+      </div>
+    </div>
+
+    <!-- 词库 -->
+    <div class="tabpane" id="pane-lex">
+      <div class="pane-block">
+        <div class="block-head"><h3>我的词库</h3><span id="lexCount" class="badge">0 条</span></div>
+        <p class="hint">可从豆包输入法、搜狗等导出的词库文本粘贴进来（每行一词，或「词 频」格式），保存后参与合韵筛选。</p>
+        <textarea id="lexInput" class="lex-input" spellcheck="false" placeholder="明月&#10;青山&#10;归鸿&#10;一叶舟"></textarea>
+        <div class="filter-row">
+          <button id="btnLexSave" class="primary-btn" type="button">保存词库</button>
+          <button id="btnLexClear" class="ghost-btn" type="button">清空</button>
+        </div>
+        <div id="lexPreview" class="chip-row"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="status">就绪</span>
+  <span class="dot">·</span>
+  <span>示例数据仅保存在当前页面</span>
+</footer>
+
+<!-- ============ 稿匣抽屉 ============ -->
+<div id="draftsMask" class="mask" hidden></div>
+<aside id="draftsDrawer" class="drawer" hidden aria-label="稿匣">
+  <div class="drawer-head">
+    <h2>稿匣 · 临时保存</h2>
+    <button id="btnCloseDrafts" class="ghost-btn" type="button">关闭</button>
+  </div>
+  <div class="drawer-body">
+    <div class="filter-row">
+      <button id="btnDraftSaveAs" class="primary-btn" type="button">存为新稿</button>
+      <button id="btnDraftExport" class="ghost-btn" type="button">导出全部</button>
+      <button id="btnDraftImport" class="ghost-btn" type="button">导入</button>
+      <button id="btnDraftWipe" class="danger-btn" type="button">清空稿匣</button>
+    </div>
+    <div id="draftTemp" class="temp-box"></div>
+    <div id="draftList" class="draft-list"></div>
+    <div class="notice">
+      <p><b>关于保存</b></p>
+      <ul>
+        <li><b>临时草稿</b>：每次停笔约 1 秒暂存到示例，刷新/关页面后仍在，点「恢复」取回。</li>
+        <li><b>稿匣</b>：可命名存多份，随时载入、覆盖、删除，也可导出 JSON 备份到别处。</li>
+        <li>示例数据仅保存在当前页面；安装后草稿保存于应用数据库。</li>
+      </ul>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ 帮助 ============ -->
+<div id="helpMask" class="mask" hidden></div>
+<aside id="help" class="drawer" hidden aria-label="用法">
+  <div class="drawer-head">
+    <h2>用法</h2>
+    <button id="btnCloseHelp" class="ghost-btn" type="button">关闭</button>
+  </div>
+  <div class="drawer-body">
+    <ol class="help-list">
+      <li><b>落笔</b>：在左侧写一两句诗，支持五言、七言、词与自由诗。</li>
+      <li><b>审韵</b>：点「审韵」，自动标注每个字的平仄，标出韵脚字与所属韵部。</li>
+      <li><b>补韵脚</b>：在「韵脚」页按意象筛选同韵字，点选即可替换句尾或插入光标处。</li>
+      <li><b>合韵词句</b>：在「词句」页挑双字、三字词，末字已按当前韵部过滤。</li>
+      <li><b>校格律</b>：「格律」页给出谱式匹配、孤平、三平调、失粘等提示。</li>
+      <li><b>分行与存取</b>：「分行」按标点或字数切句，「上传 / 下载」读写 .txt，「稿匣」可命名存多份稿。</li>
+    </ol>
+    <p class="hint">快捷键：Ctrl+Enter 审韵；Ctrl+S 存入稿匣；拖拽 .txt 到编辑区可直接载入；停笔约 1 秒自动暂存。</p>
+  </div>
+</aside>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>/* ============================================================
+ *  data-rhyme.js  ——  内置韵书（离线，不依赖网络）
+ *  · 平水韵 106 韵：平声 30 韵收录较全，仄声每韵收常用字
+ *  · 中华新韵 14 韵：按普通话韵母分部，分平/仄两栏
+ *  tone: 平 / 上 / 去 / 入   （入声在普通话中已消失，创作古体时须留意）
+ * ============================================================ */
+(function (root) {
+  'use strict';
+
+  var P = []; // 平水韵
+  function ps(name, tone, chars) { P.push({ name: name, tone: tone, chars: chars }); }
+
+  /* ---------------- 上平声 ---------------- */
+  ps('上平一东', '平', '东同铜桐筒童僮瞳中衷忠虫终戎崇嵩弓躬宫融雄熊穹穷冯风枫丰充隆空公功工攻蒙濛笼聋栊珑洪红鸿虹丛翁聪骢通蓬篷烘潼胧砻峒螽癃窿懵讧忡酆侗艨倥崆洚氃穜罞');
+  ps('上平二冬', '平', '冬彤农宗淙钟龙茏舂松淞冲容溶蓉庸封胸凶匈汹雍浓秾重从逢缝峰锋蜂烽茸蛩筇慵恭供琮悰榕熔茸鳙喁颙慒憹蹱憃茏跫邛共龚');
+  ps('上平三江', '平', '江釭窗邦缸降双泷逄扛杠腔梆桩豇肛尨哤駹玒矼舡玒');
+  ps('上平四支', '平', '支枝肢脂卮知驰筛奇宜仪羁篱池驰雌儿规危夷师姿迟龟眉悲之芝时诗棋旗辞词期祠基疑姬丝司葵医帷思滋持痴维卮麾墀弥慈遗肌雌披嬉尸狸炊湄篱兹差疲茨卑亏蕤骑歧岐谁斯私窥熙欺疵赀羁彝髭颐资糜饥衰锥姨夔涯伊蓍追缁箕椎罴篪厘萎匙脾澌骊尼崎曦羁疵訾羁蜊骴眵罹蘼蚍珉陴丕倕酏厮祗麒褵迤');
+  ps('上平五微', '平', '微薇晖徽挥韦围帏违菲霏妃绯飞非扉肥腓威祈沂颀机几讥矶玑稀希晞衣依归巍欷畿闱騑腓豨矶颀');
+  ps('上平六鱼', '平', '鱼渔初书舒居裾车渠蕖余予誉舆胥狙锄疏蔬梳虚嘘徐猪闾庐驴诸除储如墟菹琚疽趄淤妤雎蘧祛挐滁胪纾蜍洳');
+  ps('上平七虞', '平', '虞愚娱隅刍无芜巫于盂衢儒濡襦须株诛朱珠殊铢蛛瑜榆愉谀腴区驱躯岖趋扶符凫雏敷夫肤纡输枢厨俱驹模蒲胡湖瑚乎壶狐弧孤辜姑菰徒途涂荼图屠奴呼吾梧吴租卢鲈炉芦苏酥乌污枯粗都铺诬竽雩吁瞿劬殳徂孥泸轳瓠蝴糊乎莩罦孚桴俘柧觚呱');
+  ps('上平八齐', '平', '齐黎藜梨蠡妻凄萋堤低题提荑蹄啼鸡稽兮倪霓西栖犀嘶梯鼙迷泥溪圭闺携畦嵇跻脐奚蹊鹈批黧缇袿');
+  ps('上平九佳', '平', '佳涯娃娲蜗蛙洼街鞋牌柴钗崖阶偕谐骸排乖怀淮槐豺侪埋霾斋喈揩荄鲑哇');
+  ps('上平十灰', '平', '灰恢魁隈回徊槐枚梅媒煤瑰雷罍催摧堆陪杯嵬推开哀埃台苔该才材财裁来莱栽哉灾猜孩腮洄莓崔裴培诙虺桅胚唉');
+  ps('上平十一真', '平', '真因茵辛新晨辰臣人仁神亲申伸绅身宾滨邻鳞麟珍尘陈春津秦频苹颦银垠筠巾民珉贫淳醇纯唇沦纶轮伦匀旬巡驯钧均臻榛姻彬鹑皴遵峋循甄岷谆椿询恂莘堙屯呻粼磷濒嚚禋驎驎');
+  ps('上平十二文', '平', '文闻纹蚊云氛分纷芬焚坟群裙君军勤斤筋勋薰曛熏荤耘芸汾氲员欣芹殷昕郧皲慇');
+  ps('上平十三元', '平', '元原源园猿辕垣烦蕃樊翻暄萱喧冤言轩藩魂浑温孙门尊存蹲敦墩昏婚阍村屯豚臀盆奔论坤痕恩根吞跟沅嫄蹯燔谖番');
+  ps('上平十四寒', '平', '寒韩丹单安鞍盘桓刊宽看官观冠鸾銮峦欢坛檀弹残干肝竿乾阑栏澜兰丸完般瞒潘酸团湍端剜钻攒');
+  ps('上平十五删', '平', '删关弯湾还环鬟寰班斑颁蛮颜奸攀顽山鳏间艰闲娴悭孱潺潸斓纶');
+
+  /* ---------------- 下平声 ---------------- */
+  ps('下平一先', '平', '先前千阡笺天坚肩贤弦烟燕莲怜田年颠巅宣传椽边编玄悬泉迁仙鲜钱煎然延筵毡膻蝉缠连联篇偏圆缘捐涓娟川穿船沿铅鸢旋渊咽焉湮阏');
+  ps('下平二萧', '平', '萧箫挑貂刁迢条髫蜩苕凋雕聊辽寥撩僚寮尧幺宵消霄绡销超朝潮嚣樵谯骄娇焦蕉椒饶桡荛烧遥徭姚摇谣轺瑶韶昭招飙标镳瓢苗描要腰邀乔桥侨妖夭漂飘翘祧佻骁鹩嘹');
+  ps('下平三肴', '平', '肴巢捎梢交郊茅嘲钞敲坳胶蛟包苞胞炮跑挠铙呶哮爻淆崤');
+  ps('下平四豪', '平', '豪毫操髦刀萄桃逃涛劳牢醪遭糟糕高篙羔膏骚搔缫毛旄袍蒿敖遨熬嗷獒螯嗥号');
+  ps('下平五歌', '平', '歌多罗河戈阿和波科柯陀娥蛾鹅萝荷过磨螺禾窠娑蓑梭哦讹峨魔何苛珂轲莎拖他驼沱跎酡瘸皤');
+  ps('下平六麻', '平', '麻花霞家茶沙纱车牙蛇瓜斜邪芽嘉瑕鸦遮叉葩奢楂琶衙夸哗骅呀芭笆槎拿嗟些涯');
+  ps('下平七阳', '平', '阳杨扬香乡光昌堂章张王房芳长塘妆常凉霜藏场央狼郎廊梁粮良量疆姜僵缰桑刚钢纲狂床方肪妨坊忘亡襄骧湘箱厢详祥翔庠墙樯嫱蔷强苍仓沧康糠荒慌肓殃秧泱');
+  ps('下平八庚', '平', '庚更羹盲氓甍宏茎莺樱泓橙争筝清情晴擎檠鲸黥迎行衡蘅烹平评枰京惊荆明盟鸣盈楹营莹荣兵卿生牲甥笙声成城程诚呈酲征钲轻倾名令琼赓');
+  ps('下平九青', '平', '青经泾形邢型陉亭停廷庭蜓霆丁钉仃馨星腥醒灵龄铃苓伶零玲聆翎瓴厅汀冥溟暝螟铭瓶屏萍萤荧荥扃坰');
+  ps('下平十蒸', '平', '蒸承澄陵凌升胜兴缯凭仍兢冰膺鹰应蝇绳乘层曾增憎罾矜凝灯登滕藤腾肱弘薨能恒鹏朋崩僧');
+  ps('下平十一尤', '平', '尤邮优忧流留榴骝刘由油游猷悠攸牛修羞秋周州洲舟酬仇柔俦畴筹稠邱抽瘳遒收鸠搜飕邹愁休求球裘谋牟眸侔侯喉猴楼娄偷头投钩沟幽彪浮');
+  ps('下平十二侵', '平', '侵寻浔林霖临针箴斟沈沉深淫心琴禽擒钦衾吟今襟金音阴岑簪骎琳淋郴瘖森参涔');
+  ps('下平十三覃', '平', '覃潭谭参骖南男谙庵含涵函岚蚕探贪耽堪戡龛三甘柑酣篮蓝婪惭昙毿');
+  ps('下平十四盐', '平', '盐檐廉帘嫌严占髯谦奁纤签瞻蟾炎添兼缣尖歼潜阎粘甜恬拈砭');
+  ps('下平十五咸', '平', '咸喃掺搀杉衫芟缄监嵌凡帆馋巉');
+
+  /* ---------------- 上声（常用字） ---------------- */
+  ps('上声一董', '上', '董动孔总笼澒汞懵桶捅侗懂蓊捧哄');
+  ps('上声二肿', '上', '肿种踵宠陇垄拥冗耸悚冢重奉捧勇涌踊恐拱巩竦');
+  ps('上声三讲', '上', '讲港棒蚌项');
+  ps('上声四纸', '上', '纸只咫是靡彼毁委诡髓水垒癸死履指视美痞匕砥比妣弭婢紫捶徙玺跬');
+  ps('上声五尾', '上', '尾鬼苇卉几伟娓虺匪斐诽悱');
+  ps('上声六语', '上', '语圉龉吕侣旅膂杵处褚女许拒距炬与予渚煮暑鼠黍汝巨伫苎贮');
+  ps('上声七麌', '上', '麌浦牡祖赌堵愈甫脯府腑俯主柱缕舞武鹉侮数矩禹羽宇雨聚取枸踽偻');
+  ps('上声八荠', '上', '荠礼体米陛邸底抵弟悌洗济澧醴');
+  ps('上声九蟹', '上', '蟹解买骇洒矮拐楷摆');
+  ps('上声十贿', '上', '贿悔改采彩在殆怠乃每海宰载铠恺待倍猥罪');
+  ps('上声十一轸', '上', '轸敏允引尹尽忍准隼笋盾闵悯泯紧蚓殒窘');
+  ps('上声十二吻', '上', '吻粉愤隐谨近恽刎');
+  ps('上声十三阮', '上', '阮远晚返反饭婉苑偃本损衮混稳蹇巘');
+  ps('上声十四旱', '上', '旱暖管满短馆缓碗懒伞诞坦袒散但');
+  ps('上声十五潸', '上', '潸眼简版盏产限绾');
+  ps('上声十六铣', '上', '铣善浅典转犬选冕辇茧岘泫展剪扁卷鲜藓践饯');
+  ps('上声十七篠', '上', '篠小表鸟了晓少扰绕杳窈窕挑皎袅');
+  ps('上声十八巧', '上', '巧饱卯昴狡爪挠搅咬炒吵');
+  ps('上声十九皓', '上', '皓宝早老好道稻脑恼岛倒祷抱讨考浩昊澡枣嫂扫槁潦缟');
+  ps('上声二十哿', '上', '哿火舸我娜荷可左果裹朵锁琐堕舵妥簸颇');
+  ps('上声二十一马', '上', '马下者野雅瓦寡社写泻夏冶也把贾假洒');
+  ps('上声二十二养', '上', '养像象仰朗奖桨敞枉往网长上掌响享想两鞅');
+  ps('上声二十三梗', '上', '梗影景井领冷静省永猛炳皿矿屏岭');
+  ps('上声二十四迥', '上', '迥茗挺艇鼎酩醒等肯');
+  ps('上声二十五有', '上', '有酒首手口母后柳友妇斗狗久负厚走守右否丑吼帚肘朽');
+  ps('上声二十六寝', '上', '寝饮锦品枕甚凛廪沈审婶');
+  ps('上声二十七感', '上', '感览揽胆澹惨敢毯坎撼');
+  ps('上声二十八琰', '上', '琰敛险检脸染掩冉闪陕渐');
+  ps('上声二十九豏', '上', '豏槛范犯湛减斩黯');
+
+  /* ---------------- 去声（常用字） ---------------- */
+  ps('去声一送', '去', '送梦凤洞众弄贡冻痛中空哄');
+  ps('去声二宋', '去', '宋用颂诵统综共重从供');
+  ps('去声三绛', '去', '绛降巷撞虹');
+  ps('去声四寘', '去', '寘置事地意泪寺异义议戏智记寐魅坠醉翠翅避刺为思被瑞睡');
+  ps('去声五未', '去', '未味气沸贵胃畏慰魏纬谓毅翡');
+  ps('去声六御', '去', '御处去虑誉署据驭絮著预踞锯');
+  ps('去声七遇', '去', '遇路赂露鹭树戍暮慕墓募注住驻数度渡赋傅付素诉塑兔顾故固误悟寤护恶步布怖');
+  ps('去声八霁', '去', '霁制计势世丽厉励例济替第弟闭敝蔽弊币契细系继憩慧惠桂说逝誓');
+  ps('去声九泰', '去', '泰会带外盖大赖籁蔡害艾奈沛兑最贝');
+  ps('去声十卦', '去', '卦挂画话败稗卖迈快界戒械');
+  ps('去声十一队', '去', '队内退辈佩背碎对妹昧配悔');
+  ps('去声十二震', '去', '震信印进润顺慎晋骏峻浚振鬓殡阵认吝趁衅');
+  ps('去声十三问', '去', '问运晕韵训奋忿郡分闻');
+  ps('去声十四愿', '去', '愿怨万饭献健建宪劝蔓券远寸困闷顿钝论恨嫩番');
+  ps('去声十五翰', '去', '翰汉难岸断乱叹观散畔伴半案按旦烂漫干看判叛唤换腕冠弹');
+  ps('去声十六谏', '去', '谏雁患涧间晏慢办盼惯');
+  ps('去声十七霰', '去', '霰殿面县变箭战扇见现砚练炼燕宴电甸片遍羡恋眩便传转穿');
+  ps('去声十八啸', '去', '啸笑照诏妙肖料钓吊调叫少眺要');
+  ps('去声十九效', '去', '效教貌校孝闹豹罩棹觉乐');
+  ps('去声二十号', '去', '号帽报道盗噪灶好到倒傲造暴操');
+  ps('去声二十一箇', '去', '个贺作佐大饿过和挫座坐破卧货');
+  ps('去声二十二祃', '去', '祃驾夜下谢榭罢夏霸灞嫁价假暇化');
+  ps('去声二十三漾', '去', '漾上望相将状帐丈仗杖障向唱畅量酿旷况宕浪放访妄忘丧壮长当藏');
+  ps('去声二十四敬', '去', '敬命正政郑性姓盛圣咏泳映病并竞竟镜净庆行迎');
+  ps('去声二十五径', '去', '径定听胜磬应乘赠邓凳莹证兴宁');
+  ps('去声二十六宥', '去', '宥候就秀宿奏富副兽斗漏陋守售寿授绶旧臼右佑宙袖岫臭咒后');
+  ps('去声二十七沁', '去', '沁饮禁任荫临渗');
+  ps('去声二十八勘', '去', '勘暗滥缆憾撼探三暂');
+  ps('去声二十九艳', '去', '艳剑念验赡店占厌焰');
+  ps('去声三十陷', '去', '陷鉴监泛梵忏');
+
+  /* ---------------- 入声（17 韵） ---------------- */
+  ps('入声一屋', '入', '屋木竹目服福禄熟谷肉族鹿腹菊牧复肃育六宿读独速逐轴缩哭幅斛仆畜蓄叔淑塾扑沐郁馥');
+  ps('入声二沃', '入', '沃俗玉足曲粟烛录辱狱绿毒局欲束蜀促触续赎笃浴酷');
+  ps('入声三觉', '入', '觉角桷榷岳乐捉朔卓琢啄剥驳雹朴确壳浊擢濯学数');
+  ps('入声四质', '入', '质日笔出室实疾术一乙吉秩密律逸失漆栗毕恤蜜橘瑟蟋弼七叱卒');
+  ps('入声五物', '入', '物佛拂屈郁乞不');
+  ps('入声六月', '入', '月骨发阙越谒没伐罚竭歇突忽袜厥蕨掘粤樾');
+  ps('入声七曷', '入', '曷达末阔活钵脱夺褐割葛渴拨泼括聒抹');
+  ps('入声八黠', '入', '黠拔八察杀刹轧猾');
+  ps('入声九屑', '入', '屑节雪绝列烈结穴说洁别裂热决诀灭折拙切窃咽血悦阅缺');
+  ps('入声十药', '入', '药薄恶略作乐落阁鹤爵弱约脚雀幕壑郭错托索搏酌削钥著度');
+  ps('入声十一陌', '入', '陌石客白泽伯迹宅席策碧籍格役帛戟璧驿麦额柏积夕液册尺隙逆');
+  ps('入声十二锡', '入', '锡壁历击绩笛敌滴镝檄激寂觅戚');
+  ps('入声十三职', '入', '职国德食蚀色力翼墨极息熄直值植织识忆亿臆特勒肋惑默贼刻克黑北或');
+  ps('入声十四缉', '入', '缉辑立集邑急入泣湿吸及级汁习给十什拾笠执蛰');
+  ps('入声十五合', '入', '合塔答纳榻杂腊蜡匝鸽沓');
+  ps('入声十六叶', '入', '叶帖贴牒蝶叠睫涉猎妾惬协侠荚');
+  ps('入声十七洽', '入', '洽恰狭峡法甲匣压鸭乏插闸');
+
+  /* ================= 中华新韵（14 韵，按普通话） ================= */
+  var X = [];
+  function xy(name, ping, ze) { X.push({ name: name, tone: '平', chars: ping, zeChars: ze || '' }); }
+  xy('一麻 a ia ua', '麻花家茶沙纱车牙芽涯霞斜虾瓜夸跨华哗骅拿爬耙杷琶葩蛙娃洼娲花划查茶槎茬茬咱啥爸妈啊呀鸦丫桠夸跨', '马下夏厦假贾寡剐耍傻瓦把打那哪罢霸坝怕骂化画话挂卦跨踏纳杂法发答八杀辣袜压鸭甲峡洽察');
+  xy('二波 o e uo', '波多河歌和磨婆坡颇摸模拖驼沱何荷俄蛾鹅哦科苛柯棵哥戈锅窝涡萝骡螺过说脱活夺昨罗锣箩梭蓑缩佛薄泊泼拨勃渤博膊驳膜琢酌灼卓浊捉国获或惑扩阔落络洛若弱莫寞诺错措恶握沃廓', '火果裹朵躲锁琐所左可我破卧坐座做个贺贺过课货堕舵惰坐左可扯舍社射设热乐各客刻克测侧色涩得德特责则择折哲彻撤舌蛇设涉摄灭列烈裂猎结洁接节雪血月越阅悦绝决诀缺却确略约药削学觉角脚');
+  xy('三皆 ie üe', '些斜鞋偕谐街阶皆爹耶爷茄瘸靴嗟遮车奢赊蛇斜携谐鞋谐爷茄', '写泻谢榭卸野也冶夜液叶页业屑雪血月越悦阅决诀绝缺却确略约药削学觉角脚劣灭列烈裂猎接节结洁劫怯协挟叶业别灭');
+  xy('四开 ai uai', '开栽哉灾裁才材财苔台抬孩来莱哀埃挨该陔腮猜乖怀淮槐排牌埋霾斋皆偕街鞋骸涯崖乖摔衰帅埋霾乃排', '海改采彩在再载待怠殆乃每买拐矮慨凯铠宰彩采宰爱碍戴带贷态太泰盖丐害骇派败稗卖迈快块外坏怪帅率');
+  xy('五微 ei ui', '飞非扉绯妃肥腓微薇威葳巍归龟闺规回茴徊蛔梅枚媒煤玫雷擂羸培陪赔裴杯悲碑卑谁随隋垂陲锥追椎吹炊堆推颓盔亏窥奎葵逵馗危巍为违围帏维唯惟帷', '悔毁诲晦美每妹昧魅沛背辈配佩珮废沸肺费吠队对兑退蜕内累垒蕾类泪碎岁穗遂隧祟贵桂柜跪惠慧会绘汇讳悔毁水尾伟纬委萎鬼轨诡癸嘴髓毁');
+  xy('六豪 ao iao', '高篙膏羔糕皋豪毫号蒿薅涛滔韬逃桃淘陶萄劳牢醪痨遭糟朝潮嘲巢捎梢稍烧韶招昭钊饶桡娆超抄钞操糙曹槽嘈搔骚缫刀叨萄熬遨嗷獒螯翱猫毛旄髦茅锚袍炮跑庖匏包胞苞褒标镖膘飙镳漂飘瓢苗描瞄要腰邀夭妖么幺消宵霄硝销绡萧箫潇嚣骁娇骄焦蕉椒乔桥侨樵翘锹敲悄锹挑迢条鲦苕调蜩聊辽寥撩僚嘹疗刁貂雕凋碉浇交郊茭胶蛟娇骄焦', '好郝早澡枣蚤老姥草吵炒少扰绕杳窈了僚了鸟袅表裱巧悄晓小皎狡剿搅爪找沼扫嫂考烤拷倒岛捣祷讨套恼脑宝保堡饱抱报暴爆豹曝帽貌冒瑁茂到倒道稻盗悼悼告诰号浩皓昊镐教叫觉较校孝哮效校笑啸耀曜药钓吊调掉料廖妙庙尿剽票漂骠俏峭窍翘撬');
+  xy('七尤 ou iu', '秋楸鳅丘邱蚯牛尤优忧悠幽攸由油游猷蚰邮犹猷留榴瘤流琉硫旒刘浏羞馐修脩休咻貅求球裘逑仇酬筹畴踌俦惆绸稠柔揉蹂收舟州洲周啁邹驺陬搜飕馊艘抽瘳仇侯喉猴篌骺楼娄耧蝼偷头投骰钩沟篝勾谋牟眸侔缪抔剖兜篼', '有友酉莠牖黝柳绺久玖灸韭酒首手守帚肘丑醜口叩扣寇豆逗窦斗读后後厚候堠就鹫疚咎旧臼舅柩秀绣锈袖岫臭咒宙胄昼骤皱绉瘦漱兽寿受授售绶右佑祐宥囿诱又幼宙奏揍凑腠漏陋露镂陋够购构垢诟吼叩');
+  xy('八寒 an ian uan üan', '山舢删潸跚姗珊关观官棺冠倌纶鳏间艰闲娴鹇悭颜言研妍延筵蜒焉鄢燕咽湮烟胭淹阉严岩炎阎檐盐颜添天田甜恬填阗滇颠巅癫年粘鲇鲶联连莲怜廉镰帘奁前钱虔乾黔钳潜滇颠篇偏翩片扁编边鞭砭边边边', '眼演偃堰简减剪检俭茧柬蹇谳晚挽碗宛婉莞皖管馆满懒览揽缆伞散坦袒叹炭探暗岸按案办半伴瓣扮畔叛盼慢漫幔曼蔓饭贩范犯泛范梵看汉汗旱悍瀚翰换唤焕涣幻患宦豢惯贯灌罐冠观乱算蒜断段锻缎串钏传转赚撰馔篆战颤站占暂赞攒餐残惭惨灿璨单丹郸担耽眈胆疸淡弹蛋氮但诞惮澹摊滩瘫坛檀谈痰坛');
+  xy('九文 en in un ün', '人仁壬忍认任纫韧深申伸绅呻身参莘神辰晨宸臣尘陈沉忱沈审婶甚肾慎渗真珍诊疹枕朕阵振震镇宾滨缤彬斌濒豳贫频颦嫔民珉岷缗邻临林淋琳霖鳞麟嶙磷遴吝赁今金斤巾津襟禁浸寝侵钦衾琴禽擒芹秦心芯辛新薪馨鑫信音阴荫吟垠银龈淫寅鄞尹引蚓隐瘾印胤温瘟文纹闻蚊汶问闻', '本畚笨奔锛盆喷门们闷焖分芬纷坟焚氛粉份奋愤粪很狠恨痕跟根亘肯恳垦啃恩摁怎参岑涔森什沈审婶哂肾慎甚渗壬荏饪妊认任韧刃纫本笨盆喷门闷分粉份奋愤粪温稳问文闻蚊吻刎紊');
+  xy('十唐 ang iang uang', '光洸桄胱昌菖猖娼鲳章彰樟漳獐璋长苌场肠常嫦尝偿裳床幢撞庄装妆桩赃脏藏仓苍沧舱窗疮创怆当裆珰铛方芳妨坊肪房防亡忘忙芒盲茫氓囊攮郎狼廊琅榔螂良粮凉梁梁量辆亮晾踉张章掌涨胀帐账仗杖障嶂瘴将浆姜疆缰僵江豇扛康糠慷扛昂航杭行吭夯帮邦浜旁膀庞彷桑丧嗓搡霜双泷爽王亡望忘枉网往', '上尚赏晌掌长涨丈杖仗帐账障嶂像象橡向项巷相想享响飨巷奖桨蒋将匠酱强抢襁镪仰养氧痒样恙漾烊两俩魉亮辆量谅晾踉厂敞氅场昶怅畅唱倡创怆访纺仿舫放网枉往罔惘忘望王妄胖旁膀棒蚌谤磅镑傍谤');
+  xy('十一庚 eng ing ong iong', '风枫疯丰沣封葑峰锋蜂烽逢缝冯蓬篷蒙朦檬氓萌盟懵腾藤滕疼誊能层曾增憎罾缯赠僧撑瞠成城诚承乘程逞惩澄橙称撑瞠生牲甥笙声升胜昇绳省剩盛圣嵊乘承成城程乘争挣峥狰睁筝丁仃叮盯钉疔仃厅汀听廷庭蜓停亭婷霆灵铃玲龄苓伶零凌陵菱绫翎瓴宁咛拧凝凝平评坪苹萍屏瓶凭冯朋鹏棚硼蓬篷碰明名铭鸣冥溟瞑螟暝情晴请清蜻鲭轻青氢倾卿擎檠鲸黥琼茕穷穹邛筇兄凶匈汹胸雄熊庸慵雍臃拥泳咏永甬勇涌踊蛹用', '冷愣棱塄等登灯邓凳镫磴瞪赠增曾憎层蹭噌梗埂耿哽绠更耕羹耿矿旷况框眶矿轰哄烘弘宏洪鸿虹讧哄汞拱巩恐孔控空总聪匆葱囱从丛淙琮松淞嵩怂耸竦宋送颂诵统桶捅痛通同铜桐童僮瞳筒桶捅痛弄农浓脓秾弄中忠终钟盅衷肿种踵众重冢充冲忡舂虫崇宠铳戎绒荣融茸容溶蓉熔榕冗工功攻弓躬公蚣供宫恭龚巩汞拱贡共空孔恐控');
+  xy('十二齐 i er ü', '衣依伊漪医移仪宜夷姨胰痍咦疑嶷沂遗怡贻饴迤彝颐蛇移奇骑歧岐其棋旗麒祺琪綦期欺栖妻凄萋郪西栖犀樨洗细溪蹊兮曦羲熙希稀晞欷犀低堤提题啼蹄荑缇鹈梯锑批披坯砒劈霹迷谜麋糜靡弥猕尼泥妮倪霓猊呢离漓篱璃梨犁黎藜厘狸罹蠡礼里理鲤李俚娌逦', '已以蚁倚椅旖迤矣意义议艺呓屹亿忆抑易蜴邑挹悒佚轶役疫毅益溢翼翌翊逸肄诣谊薏镒一乙亦弈奕衣裔异翼比彼鄙匕庇毖痹弊币毙敝蔽弊避壁璧臂碧必泌秘密蜜谧辟僻譬劈癖匹圮否痞癖地弟递娣第帝谛蒂缔棣祭际济剂荠计记纪忌季悸寄寂蓟技妓冀骥继既暨稷系係细戏系系');
+  xy('十三支 -i', '资姿咨兹滋孳孜淄缁辎锱咨紫姊子仔字自恣眦渍疵茨瓷慈磁辞词祠茨此次刺赐伺司丝私思斯撕厮嘶蛳死四肆泗驷寺似饲嗣巳汜祀俟涘侍恃峙痔志痣知蜘脂卮支枝肢之芝止趾址芷旨指纸至致窒蛭郅桎志痣治制质踬挚贽鸷识帜炽斥赤吃尺迟持池驰弛豉侈齿耻褫叱饬敕是时鲥石实食蚀识拾十什石史使驶始示士仕世事势释适氏舐式试轼弑饰视嗜誓逝');
+  xy('十四姑 u', '乌呜钨污巫诬於迂淤瘀无芜毋吾梧吴蜈鼯武鹉舞侮妩庑五伍午忤迕误悟晤寤务雾鹜婺骛乌呜污部布怖簿步埠哺捕补簿不卜哺普谱浦圃朴璞濮仆扑朴铺扑匍菩蒲脯葡溥普母姆拇亩牡木沐目牧穆苜睦没殁佛弗拂氟伏茯服福蝠辐幅夫肤孵敷扶芙蚨浮桴俘符服弗府俯腑腐斧釜甫辅脯父讣赴副富赋傅缚复腹覆馥蝮初刍雏除厨橱锄储楚础处触畜搐怵黜矗叔淑菽熟塾赎属蜀术述束戍恕庶数墅疏蔬梳枢殊书抒舒纾输叔熟暑署曙薯数树竖庶恕');
+
+  root.RHYME_BOOKS = {
+    pingshui: { key: 'pingshui', name: '平水韵', desc: '近体诗用韵标准，106 韵，保留入声', groups: P },
+    xinyun: { key: 'xinyun', name: '中华新韵', desc: '普通话韵母 14 韵，适合新诗与今韵创作', groups: X }
+  };
+
+  /* 常见可通押（邻韵）关系，仅供参考 */
+  root.NEAR_RHYME = {
+    '上平一东': ['上平二冬'],
+    '上平二冬': ['上平一东'],
+    '上平三江': ['下平七阳'],
+    '下平七阳': ['上平三江'],
+    '上平四支': ['上平五微', '上平八齐'],
+    '上平五微': ['上平四支', '上平八齐'],
+    '上平八齐': ['上平四支', '上平五微'],
+    '上平十一真': ['上平十二文', '上平十三元'],
+    '上平十二文': ['上平十一真'],
+    '上平十三元': ['上平十四寒', '上平十五删'],
+    '上平十四寒': ['上平十五删', '上平十三元'],
+    '下平一先': ['下平二萧', '下平十四盐'],
+    '下平二萧': ['下平三肴', '下平四豪'],
+    '下平三肴': ['下平二萧', '下平四豪'],
+    '下平四豪': ['下平二萧', '下平三肴'],
+    '下平五歌': ['下平六麻'],
+    '下平六麻': ['下平五歌'],
+    '下平八庚': ['下平九青', '下平十蒸'],
+    '下平九青': ['下平八庚', '下平十蒸'],
+    '下平十蒸': ['下平八庚', '下平九青'],
+    '下平十一尤': [],
+    '下平十二侵': [],
+    '下平十三覃': ['下平十四盐', '下平十五咸'],
+    '下平十四盐': ['下平十三覃', '下平十五咸'],
+    '下平十五咸': ['下平十三覃', '下平十四盐']
+  };
+})(window);
+
+/* ============================================================
+ *  data-lexicon.js —— 意象分类词库（离线兜底推荐用）
+ *  词条以二至四字为主；末字决定其可落的韵部，程序会自动归类。
+ * ============================================================ */
+(function (root) {
+  'use strict';
+
+  root.LEXICON = [
+    {
+      cat: '天象',
+      words: ['明月', '清风', '星河', '白露', '霜华', '烟雨', '斜阳', '残雪', '孤月', '疏星',
+        '流云', '微雨', '寒星', '朝霞', '暮霭', '霁月', '长风', '细雨', '新月', '落晖',
+        '银河', '玉露', '烟岚', '夕照', '清辉', '薄雾', '疏雨', '残星', '秋月', '春阴',
+        '东风', '西风', '春风', '秋风', '晓风', '晚风', '寒风', '狂风', '松风', '江风',
+        '山风', '天风', '凉风', '悲风', '斜风', '香风', '微风', '夜风', '霜风', '野风',
+        '朝阳', '夕阳', '秋阳', '春阳', '残阳', '骄阳', '斜晖', '春晖', '清辉', '余晖',
+        '朝晖', '夕晖', '暮云', '孤云', '闲云', '愁云', '寒云', '断云', '归云', '层云',
+        '山云', '江云', '野云', '停云', '秋云', '春云', '白云', '火云', '暮烟', '寒烟',
+        '炊烟', '秋烟', '风烟', '苍烟', '青烟', '紫烟', '晓烟', '暮烟中', '长天', '秋天',
+        '江天', '远天', '霜天', '碧天', '九天', '楚天', '海天', '中天', '半天', '满天',
+        '清霜', '秋霜', '寒霜', '晓霜', '新霜', '飞霜', '鬓霜', '轻霜', '严霜', '繁霜',
+        '月光', '秋光', '清光', '晨光', '波光', '年光', '山光', '湖光', '春光', '夜光',
+        '流光', '韶光', '微光', '寒光', '水光', '天光', '云光', '晴光', '露光', '星光',
+        '斜月', '新月', '残月', '江月', '山月', '松月', '溪月', '霜月', '岁月', '烟月',
+        '一江月', '半窗月', '千山雪', '满地霜', '一天星', '五更风', '三更雨', '十分秋']
+    },
+    {
+      cat: '山水',
+      words: ['青山', '碧水', '江流', '远岫', '幽涧', '沧浪', '孤峰', '寒江', '野渡', '空山',
+        '长河', '浅渚', '危崖', '清溪', '遥岑', '断岸', '平芜', '曲径', '深谷', '古渡',
+        '沙汀', '烟渚', '溪桥', '石径', '苍崖', '远浦', '秋水', '春江', '暮山', '晴川',
+        '远山', '春山', '秋山', '关山', '云山', '故山', '空山', '寒山', '江山', '巫山',
+        '千山', '万山', '楚山', '吴山', '南山', '西山', '东山', '前山', '乱山', '好山',
+        '云间', '山间', '花间', '人间', '窗间', '松间', '林间', '水湾', '一湾', '江湾',
+        '溪湾', '柳边', '桥边', '天边', '云边', '水边', '鬓边', '篱边', '耳边', '江边',
+        '长川', '大川', '一川', '平川', '逝川', '秦川', '辋川', '剑南', '江南', '城南',
+        '溪南', '村南', '东南', '西南', '湖南', '淮南', '岭南', '天南', '渭北', '江东',
+        '青松', '孤松', '奇峰', '千峰', '云峰', '雪峰', '碧峰', '数峰', '乱峰', '群峰',
+        '青林', '深林', '秋林', '平林', '寒林', '烟林', '故林', '竹林', '枫林', '桂林',
+        '山青', '长亭', '短亭', '江亭', '溪亭', '野亭', '孤亭', '沙汀', '寒汀', '烟汀',
+        '烟波', '秋波', '微波', '风波', '绿波', '沧波', '凌波', '江波', '寒波', '逝波',
+        '长河', '关河', '山河', '天河', '银河', '冰河', '清河', '秋河', '星河', '御河',
+        '平沙', '白沙', '寒沙', '烟沙', '江沙', '溪沙', '鸥沙', '暮沙', '晴沙', '长沙',
+        '江湖', '五湖', '西湖', '平湖', '秋湖', '镜湖', '南湖', '东湖', '碧湖', '一湖',
+        '万重山', '千嶂里', '一江秋', '小桥边', '水云间', '白云深处', '绿杨阴里']
+    },
+    {
+      cat: '花木',
+      words: ['落花', '疏梅', '杨柳', '梧桐', '兰芷', '红叶', '青莲', '芳草', '幽兰', '残荷',
+        '修竹', '寒梅', '垂柳', '黄叶', '飞絮', '苔痕', '松声', '芭蕉', '芦花', '新篁',
+        '疏影', '暗香', '绿阴', '落英', '春草', '秋菊', '苍松', '红药', '白蘋', '青芜',
+        '飞花', '春花', '黄花', '野花', '闲花', '梅花', '桃花', '杨花', '残花', '杏花',
+        '桂花', '藕花', '菱花', '繁花', '名花', '好花', '新花', '疏花', '寒花', '一花',
+        '南枝', '故枝', '寒枝', '一枝', '花枝', '柳枝', '松枝', '空枝', '旧枝', '满枝',
+        '江梅', '早梅', '春梅', '青梅', '红梅', '腊梅', '落梅', '野梅', '官梅', '一梅',
+        '青芜', '平芜', '绿芜', '春芜', '碧梧', '苍梧', '高梧', '疏桐', '孤桐', '井桐',
+        '新柳', '官柳', '细柳', '弱柳', '高柳', '古柳', '烟柳', '秋柳', '江柳', '岸柳',
+        '秋菊', '黄菊', '丛菊', '野菊', '霜菊', '东篱', '幽篁', '翠竹', '苦竹', '斑竹',
+        '荷香', '芰荷', '枯荷', '败荷', '新荷', '秋荷', '红药', '芍药', '幽兰', '丛兰',
+        '一庭花', '半篱菊', '满阶桐', '三径菊', '十里荷']
+    },
+    {
+      cat: '禽兽',
+      words: ['归鸿', '啼莺', '栖鸦', '白鹭', '寒蝉', '孤鹤', '新燕', '征雁', '啼鹃', '沙鸥',
+        '流莺', '暮鸦', '秋雁', '双燕', '黄鹂', '鹧鸪', '杜宇', '飞鸿', '宿鸟', '玄蝉',
+        '轻鸥', '紫燕', '瘦马', '孤鸿', '闲鸥', '征鸿', '断雁', '哀猿', '昏鸦', '飞鸦',
+        '乳燕', '语燕', '社燕', '春莺', '晓莺', '夜莺', '孤莺', '残蝉', '暮蝉', '新蝉',
+        '秋蝉', '乱蝉', '野鸥', '江鸥', '白鸥', '盟鸥', '归雁', '塞雁', '北雁', '南雁',
+        '孤鹤', '野鹤', '云鹤', '老鹤', '双鹤', '黄鹤', '白鹤', '沙禽', '珍禽', '幽禽']
+    },
+    {
+      cat: '时序',
+      words: ['春晓', '秋夕', '残春', '长夜', '晚晴', '新秋', '晓寒', '岁暮', '清晨', '黄昏',
+        '半夜', '深秋', '早春', '暮春', '初秋', '清秋', '永夜', '残冬', '芳晨', '向晚',
+        '漏尽', '更残', '新春', '早春', '暮春', '芳春', '阳春', '三春', '一春', '青春',
+        '伤春', '寻春', '春归', '春残', '春深', '春寒', '春阴', '春晴', '春眠', '春愁',
+        '清秋', '深秋', '新秋', '九秋', '悲秋', '千秋', '高秋', '中秋', '秋深', '秋阴',
+        '秋光', '秋声', '秋心', '秋霜', '秋烟', '秋水', '秋山', '秋月', '秋来', '秋残',
+        '轻寒', '微寒', '晓寒', '岁寒', '清寒', '夜寒', '新寒', '广寒', '嫩寒', '峭寒',
+        '漏残', '香残', '梦残', '花残', '钟残', '夜阑', '更阑', '酒阑', '梦阑', '漏断',
+        '流年', '少年', '长年', '丰年', '暮年', '残年', '经年', '十年', '千年', '百年',
+        '几何', '无多', '几多', '许多', '愁多', '梦多', '雨多', '恨多', '情多', '夜多',
+        '三更雨', '五更寒', '一宵寒', '半窗秋', '十年灯']
+    },
+    {
+      cat: '人事',
+      words: ['故人', '归舟', '渔火', '孤灯', '乡书', '离亭', '扁舟', '柴门', '江楼', '征帆',
+        '渔舟', '客舟', '旧游', '归梦', '残酒', '家书', '孤篷', '行舟', '野寺', '空庭',
+        '荒城', '古道', '小楼', '闲门', '幽径', '故人', '行人', '佳人', '游人', '离人',
+        '幽人', '玉人', '美人', '诗人', '愁人', '远人', '伊人', '他人', '何人', '几人',
+        '故乡', '他乡', '异乡', '江乡', '水乡', '梦乡', '醉乡', '客乡', '归航', '远航',
+        '孤航', '音书', '素书', '锦书', '读书', '寄书', '琴书', '新诗', '旧诗', '题诗',
+        '裁诗', '吟诗', '小诗', '清诗', '高楼', '西楼', '空楼', '登楼', '危楼', '戍楼',
+        '孤舟', '轻舟', '同游', '旧游', '清游', '远游', '重游', '江城', '孤城', '山城',
+        '春城', '空城', '锦城', '归程', '客程', '远程', '征程', '去程', '半程', '前程',
+        '人家', '谁家', '田家', '渔家', '酒家', '山家', '仙家', '客家', '官家', '君家',
+        '相逢', '重逢', '难逢', '偶逢', '遭逢', '相从', '过从', '无从', '云从', '追从',
+        '风来', '雨来', '春来', '秋来', '晚来', '夜来', '晓来', '飞来', '潮来', '月来',
+        '雁来', '归来', '去来', '客来', '僧来', '梦来', '谁来', '燕来', '香来', '寒来',
+        '酒杯', '一杯', '停杯', '举杯', '深杯', '残杯', '空杯', '别杯', '衔杯', '传杯',
+        '风尘', '烟尘', '清尘', '芳尘', '香尘', '微尘', '征尘', '软尘', '素尘', '纤尘',
+        '一叶舟', '万里客', '十年书', '千里目', '五湖心']
+    },
+    {
+      cat: '情思',
+      words: ['相思', '离愁', '清欢', '幽怀', '旧梦', '乡心', '归心', '客愁', '闲愁', '深情',
+        '素心', '壮心', '初心', '寸心', '离恨', '清愁', '新恨', '旧约', '浮生', '尘缘',
+        '一梦', '半醉', '独醒', '无寐', '忘机', '断肠', '销魂', '凝眸', '回首', '凭栏',
+        '情长', '意长', '梦长', '天长', '夜长', '日长', '山长', '水长', '云长', '漏长',
+        '乡心', '归心', '客心', '秋心', '尘心', '幽心', '琴心', '道心', '人心', '天心',
+        '闲愁', '新愁', '旧愁', '浓愁', '春愁', '客愁', '离愁', '乡愁', '清愁', '万愁',
+        '多情', '无情', '有情', '深情', '旧情', '离情', '春情', '诗情', '乡情', '世情',
+        '尘缘', '因缘', '世缘', '夙缘', '仙缘', '机缘', '别离', '远离', '伤离', '乱离',
+        '微凉', '夜凉', '清凉', '苍凉', '凄凉', '荒凉', '秋凉', '晚凉', '月凉', '露凉',
+        '思君', '忆君', '梦君', '别君', '送君', '逢君', '知君', '怜君', '惜君', '为君']
+    },
+    {
+      cat: '形貌',
+      words: ['苍茫', '萧疏', '玲珑', '依稀', '朦胧', '寂寥', '清绝', '幽独', '飘零', '参差',
+        '空蒙', '潺湲', '迢递', '崔嵬', '涟漪', '婆娑', '烂漫', '憔悴', '零落', '徘徊',
+        '缥缈', '氤氲', '苍翠', '峥嵘', '寂寂', '悠悠', '溶溶', '漠漠', '凄凄', '脉脉',
+        '寥寥', '逍遥', '飘摇', '迢迢', '萧萧', '飘飘', '微微', '盈盈', '亭亭', '依依',
+        '萋萋', '纷纷', '点点', '重重', '沉沉', '阴阴', '冥冥', '昭昭', '徐徐', '迟迟',
+        '微茫', '渺茫', '浩荡', '深沉', '幽深', '冷落', '阑珊', '峥嵘', '澄澈', '浩渺',
+        '清明', '清新', '鲜嫩', '孤高', '清高', '孤芳', '芳菲', '依稀', '分明', '分明',
+        '等闲', '清闲', '幽闲', '安闲', '得闲', '偷闲', '从容', '从容', '悠然', '澹然',
+        '秋阴', '春阴', '清阴', '绿阴', '夕阴', '昼阴', '层阴', '夜深', '秋深', '春深',
+        '云深', '山深', '烟深', '幽深', '年深', '愁深', '情深', '宵深', '梦深', '林深']
+    },
+    {
+      cat: '器用',
+      words: ['玉笛', '瑶琴', '罗衣', '珠帘', '锦书', '银烛', '金樽', '画屏', '青灯', '玉壶',
+        '素笺', '朱弦', '翠袖', '红烛', '孤剑', '长笛', '短棹', '残棋', '清樽', '宝篆',
+        '疏钟', '暮钟', '晨钟', '渔笛', '玉漏', '孤枕', '寒砧', '孤灯', '残灯', '秋灯',
+        '渔灯', '风灯', '夜灯', '疏灯', '一灯', '山灯', '红妆', '晓妆', '残妆', '啼妆',
+        '空床', '半床', '东墙', '粉墙', '短墙', '颓墙', '邻墙', '秋千', '阑干', '帘栊',
+        '扁舟', '孤篷', '征鞍', '归鞍', '玉鞍', '锦鞍', '尘鞍', '征辔', '归桡', '兰桡']
+    },
+    {
+      cat: '闲居',
+      words: ['闲居', '幽居', '独坐', '静掩', '垂钓', '读书', '煮茶', '种菊', '听松', '看云',
+        '扫叶', '采薇', '濯缨', '抚琴', '对弈', '临帖', '焚香', '试墨', '枕石', '漱泉',
+        '独酌', '独吟', '独行', '独眠', '高卧', '闲眠', '闲行', '闲坐', '闲吟', '闲看',
+        '掩卷', '闭门', '闭关', '忘言', '忘归', '忘机', '忘情', '寻幽', '探幽', '归田']
+    },
+    {
+      cat: '登临',
+      words: ['登高', '凭栏', '远望', '极目', '长啸', '临风', '把酒', '振衣', '千仞', '万里',
+        '天涯', '海角', '故国', '关山', '乡关', '远目', '层楼', '危栏', '高楼', '绝顶',
+        '俯仰', '踟蹰', '徘徊', '徙倚', '延伫', '凝望', '怅望', '回望', '西望', '北望',
+        '望中', '望乡', '望远', '望云', '望月', '望江', '望山', '天涯路', '万里天']
+    },
+    {
+      cat: '边塞',
+      words: ['烽火', '孤城', '大漠', '长河', '关河', '朔气', '金鼓', '铁衣', '胡笳', '羌笛',
+        '烽烟', '戍楼', '塞草', '沙场', '玉门', '燕然', '雕弓', '白羽', '青冢', '长城',
+        '胡尘', '胡马', '胡天', '塞雁', '塞鸿', '征人', '征戍', '征骑', '征战', '征袍',
+        '铁马', '金戈', '画角', '霜角', '悲笳', '戍角', '狼烟', '边草', '边城', '边月',
+        '阴山', '瀚海', '天山', '青海', '楼兰', '交河', '陇头', '阳关', '玉关', '雁门']
+    },
+    {
+      cat: '乡思',
+      words: ['思乡', '望乡', '还乡', '归乡', '怀乡', '客思', '乡思', '乡梦', '乡信', '乡关',
+        '故园', '故国', '故山', '故林', '故人', '故交', '故里', '旧业', '旧游', '旧约',
+        '归期', '归计', '归梦', '归心', '归客', '归人', '归鸿', '归雁', '归舟', '归帆',
+        '客心', '客愁', '客梦', '客泪', '客枕', '客衣', '客程', '客舟', '客中', '客身',
+        '家山', '家书', '家园', '家信', '家贫', '故园心', '万里归', '十年客', '一夜乡心']
+    }
+  ];
+})(window);
+
+/* ============================================================
+ *  core.js —— 韵部索引 / 平仄 / 韵脚 / 格律
+ * ============================================================ */
+(function (root) {
+  'use strict';
+
+  var CJK = /[\u4e00-\u9fff]/;
+
+  function clean(s) {
+    return (s || '').replace(/[^\u4e00-\u9fff]/g, '');
+  }
+
+  function uniq(str) {
+    var seen = {}, out = '';
+    for (var i = 0; i < str.length; i++) {
+      var c = str[i];
+      if (CJK.test(c) && !seen[c]) { seen[c] = 1; out += c; }
+    }
+    return out;
+  }
+
+  /* ---------------- 索引构建 ---------------- */
+  var INDEX = {};        // bookKey -> { char: { groups:[{name,tone}], tones:{}, detail:{} } }
+  var GROUPMAP = {};     // bookKey -> { groupName: [chars] }
+
+  function buildIndex(bookKey) {
+    if (INDEX[bookKey]) return INDEX[bookKey];
+    var book = root.RHYME_BOOKS[bookKey];
+    var idx = {}, gm = {};
+    book.groups.forEach(function (g) {
+      var tone = g.tone === '平' ? '平' : '仄';
+      var detail = g.tone;
+      var chars = uniq(clean(g.chars));
+      if (!gm[g.name]) gm[g.name] = [];
+      for (var i = 0; i < chars.length; i++) {
+        var c = chars[i];
+        if (!idx[c]) idx[c] = { groups: [], tones: {}, detail: {} };
+        idx[c].groups.push({ name: g.name, tone: detail });
+        idx[c].tones[tone] = 1;
+        idx[c].detail[detail] = 1;
+        if (gm[g.name].indexOf(c) < 0) gm[g.name].push(c);
+      }
+      if (g.zeChars) {                       // 中华新韵的仄声栏
+        var zc = uniq(clean(g.zeChars));
+        for (var j = 0; j < zc.length; j++) {
+          var z = zc[j];
+          if (!idx[z]) idx[z] = { groups: [], tones: {}, detail: {} };
+          idx[z].groups.push({ name: g.name, tone: '仄' });
+          idx[z].tones['仄'] = 1;
+          idx[z].detail['仄'] = 1;
+          if (gm[g.name].indexOf(z) < 0) gm[g.name].push(z);
+        }
+      }
+    });
+    INDEX[bookKey] = idx;
+    GROUPMAP[bookKey] = gm;
+    return idx;
+  }
+
+  /* ---------------- 查询 ---------------- */
+  function charInfo(ch, bookKey) {
+    var idx = buildIndex(bookKey);
+    var it = idx[ch];
+    if (!it) return { unknown: true, tones: {}, detail: {}, groups: [] };
+    return {
+      unknown: false,
+      tones: Object.keys(it.tones),
+      detail: Object.keys(it.detail),
+      groups: it.groups
+    };
+  }
+
+  /** 平仄判定：'平' / '仄' / '平仄'(两读) / '?'(未收) */
+  function pingze(ch, bookKey) {
+    var info = charInfo(ch, bookKey);
+    if (info.unknown) return '?';
+    var t = info.tones;
+    if (t.length > 1) return '平仄';
+    return t[0];
+  }
+
+  /** 该字所属韵部名（优先平声韵部；若无平声读法则取首个） */
+  function rhymeOf(ch, bookKey) {
+    var info = charInfo(ch, bookKey);
+    if (info.unknown) return null;
+    var groups = info.groups;
+    for (var i = 0; i < groups.length; i++) if (groups[i].tone === '平') return groups[i].name;
+    return groups[0] ? groups[0].name : null;
+  }
+
+  /** 是否属于某韵部（多音字任一读音命中即可） */
+  function inRhyme(ch, groupName, bookKey) {
+    var info = charInfo(ch, bookKey);
+    if (info.unknown) return false;
+    for (var i = 0; i < info.groups.length; i++) if (info.groups[i].name === groupName) return true;
+    return false;
+  }
+
+  function groupChars(groupName, bookKey) {
+    buildIndex(bookKey);
+    return GROUPMAP[bookKey][groupName] || [];
+  }
+
+  function allGroups(bookKey) {
+    var b = root.RHYME_BOOKS[bookKey];
+    return b.groups.map(function (g) { return g.name; });
+  }
+
+  /* ---------------- 断句 ---------------- */
+  var PUNCT = /[，。、？！；：,.?!;:""'「」『』（）()《》〈〉·—…~～]/g;
+
+  function stripPunct(s) { return (s || '').replace(PUNCT, ''); }
+
+  function parseLines(text) {
+    return (text || '').split(/\r?\n/).map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; });
+  }
+
+  /* ---------------- 逐句分析 ---------------- */
+  function analyzeLine(line, bookKey) {
+    var raw = stripPunct(line).replace(/\s/g, '');
+    var chars = [];
+    for (var i = 0; i < raw.length; i++) {
+      var c = raw[i];
+      if (!CJK.test(c)) continue;
+      var pz = pingze(c, bookKey);
+      chars.push({
+        ch: c,
+        pz: pz,
+        ping: pz.indexOf('平') >= 0,
+        ze: pz.indexOf('仄') >= 0,
+        unknown: pz === '?',
+        rhyme: rhymeOf(c, bookKey),
+        final: false
+      });
+    }
+    if (chars.length) chars[chars.length - 1].final = true;
+    return { raw: raw, chars: chars, final: chars.length ? chars[chars.length - 1].ch : '' };
+  }
+
+  function analyze(text, bookKey, forcedRhyme) {
+    var lines = parseLines(text).map(function (l) { return analyzeLine(l, bookKey); });
+    var tally = {};
+    lines.forEach(function (l, i) {
+      if (!l.final) return;
+      var g = rhymeOf(l.final, bookKey);
+      if (!g) return;
+      var weight = (i % 2 === 1) ? 3 : 1;      // 偶句（押韵位）权重更高
+      tally[g] = (tally[g] || 0) + weight;
+    });
+    var main = forcedRhyme || '';
+    if (!main) {
+      var best = '', bestN = 0;
+      Object.keys(tally).forEach(function (g) { if (tally[g] > bestN) { bestN = tally[g]; best = g; } });
+      main = best;
+    }
+    var issues = [];
+    if (main) {
+      lines.forEach(function (l, i) {
+        if (!l.final) return;
+        if (!inRhyme(l.final, main, bookKey)) {
+          var g = rhymeOf(l.final, bookKey);
+          issues.push({
+            type: 'rhyme', level: (i % 2 === 1) ? 'err' : 'warn', line: i,
+            msg: '第 ' + (i + 1) + ' 句末字「' + l.final + '」' + (g ? '属 ' + g : '韵书未收') + '，与主韵 ' + main + ' 不合'
+          });
+        }
+      });
+    }
+    return { lines: lines, tally: tally, mainRhyme: main, issues: issues };
+  }
+
+  /* ---------------- 格律 ---------------- */
+  // ○ 平 ● 仄
+  var TEMPLATES = {
+    wu: {
+      '平起·首句入韵': ['平平仄仄平', '仄仄仄平平', '仄仄平平仄', '平平仄仄平'],
+      '平起·首句不入韵': ['平平平仄仄', '仄仄仄平平', '仄仄平平仄', '平平仄仄平'],
+      '仄起·首句入韵': ['仄仄仄平平', '平平仄仄平', '平平平仄仄', '仄仄仄平平'],
+      '仄起·首句不入韵': ['仄仄平平仄', '平平仄仄平', '平平平仄仄', '仄仄仄平平']
+    },
+    qi: {
+      '平起·首句入韵': ['平平仄仄仄平平', '仄仄平平仄仄平', '仄仄平平平仄仄', '平平仄仄仄平平'],
+      '平起·首句不入韵': ['平平仄仄平平仄', '仄仄平平仄仄平', '仄仄平平平仄仄', '平平仄仄仄平平'],
+      '仄起·首句入韵': ['仄仄平平仄仄平', '平平仄仄仄平平', '平平仄仄平平仄', '仄仄平平仄仄平'],
+      '仄起·首句不入韵': ['仄仄平平平仄仄', '平平仄仄仄平平', '平平仄仄平平仄', '仄仄平平仄仄平']
+    }
+  };
+
+  function toneSeq(line) {
+    // 返回每字的平仄可能集合：'平' / '仄' / '平仄' / '?'
+    return line.chars.map(function (c) { return c.pz; });
+  }
+
+  function matchTemplate(line, tpl) {
+    var seq = toneSeq(line);
+    if (seq.length !== tpl.length) return null;
+    var bad = [], loose = 0;
+    for (var i = 0; i < tpl.length; i++) {
+      var want = tpl[i];
+      var got = seq[i];
+      var ok = got.indexOf(want) >= 0;
+      var isLoose = (i % 2 === 0) && i !== tpl.length - 1;   // 一三五不论（末字除外）
+      if (!ok) {
+        if (isLoose) { loose++; bad.push({ pos: i, want: want, got: got, loose: true }); }
+        else bad.push({ pos: i, want: want, got: got, loose: false });
+      }
+    }
+    return { bad: bad, score: bad.filter(function (b) { return !b.loose; }).length * 3 + loose };
+  }
+
+  /** 判定体式：len=每句字数, n=句数 */
+  function detectForm(lines) {
+    var lens = lines.filter(function (l) { return l.chars.length > 0; }).map(function (l) { return l.chars.length; });
+    if (!lens.length) return { key: 'free', label: '未定', size: 0, n: 0 };
+    var n = lens.length;
+    var counter = {};
+    lens.forEach(function (x) { counter[x] = (counter[x] || 0) + 1; });
+    var size = 0, best = 0;
+    Object.keys(counter).forEach(function (k) { if (counter[k] > best) { best = counter[k]; size = +k; } });
+    var key = 'free', label = '自由诗 / 古体';
+    if (size === 5) {
+      if (n === 4) { key = 'wujue'; label = '五言绝句'; }
+      else if (n === 8) { key = 'wulv'; label = '五言律诗'; }
+      else { key = 'wu'; label = '五言古诗（' + n + ' 句）'; }
+    } else if (size === 7) {
+      if (n === 4) { key = 'qijue'; label = '七言绝句'; }
+      else if (n === 8) { key = 'qilv'; label = '七言律诗'; }
+      else { key = 'qi'; label = '七言古诗（' + n + ' 句）'; }
+    } else if (n === 1) { key = 'free'; label = '单句'; }
+    return { key: key, label: label, size: size, n: n, mixed: Object.keys(counter).length > 1 };
+  }
+
+  function mark(sym) { return sym; }
+
+  function meterCheck(lines, bookKey) {
+    var form = detectForm(lines);
+    var out = { form: form, items: [], templates: [], best: null };
+    if (form.key !== 'wujue' && form.key !== 'qijue' && form.key !== 'wulv' && form.key !== 'qilv') {
+      if (form.mixed) out.items.push({ level: 'warn', msg: '各句字数不一（' + form.label + '），按自由诗处理，不套近体谱式。' });
+      else if (form.size === 5 || form.size === 7) {
+        out.items.push({ level: 'warn', msg: '句数为 ' + form.n + '，非绝句（4 句）或律诗（8 句），仅作平仄提示，不套谱式。' });
+      } else {
+        out.items.push({ level: 'warn', msg: '当前为' + form.label + '，不做近体格律比对。' });
+      }
+      return out;
+    }
+    var kind = (form.key === 'wujue' || form.key === 'wulv') ? 'wu' : 'qi';
+    var need = form.key === 'wujue' || form.key === 'qijue' ? 4 : 8;
+    var tpls = TEMPLATES[kind];
+    var names = Object.keys(tpls);
+    var results = names.map(function (name) {
+      var tpl = tpls[name];
+      var full = [];
+      for (var i = 0; i < need; i++) full.push(tpl[i % 4]);
+      var bad = [], score = 0, missing = 0;
+      for (var j = 0; j < need; j++) {
+        var line = lines[j];
+        if (!line || !line.chars.length) { missing++; continue; }
+        var m = matchTemplate(line, full[j]);
+        if (!m) { score += 99; bad.push({ line: j, pos: -1, msg: '字数不合（应为 ' + full[j].length + ' 字）' }); continue; }
+        score += m.score;
+        m.bad.forEach(function (b) {
+          bad.push({
+            line: j, pos: b.pos, loose: b.loose,
+            msg: '第 ' + (j + 1) + ' 句第 ' + (b.pos + 1) + ' 字「' + line.chars[b.pos].ch + '」宜' + b.want +
+                 '（现读' + (b.got === '?' ? '未收' : b.got) + '）' + (b.loose ? '（一三五不论，可不改）' : '')
+          });
+        });
+      }
+      return { name: name, tpl: full, score: score + missing * 99, bad: bad };
+    });
+    results.sort(function (a, b) { return a.score - b.score; });
+    var best = results[0];
+    out.best = best;
+    out.templates = results;
+
+    var hard = best.bad.filter(function (b) { return !b.loose && b.pos >= 0; });
+    if (best.score === 0) out.items.push({ level: 'ok', summary: true, msg: '合「' + best.name + '」谱式，未见出律。' });
+    else {
+      out.items.push({ level: 'warn', summary: true, msg: '最接近「' + best.name + '」谱式，有 ' + best.bad.length + ' 处偏差（' + hard.length + ' 处须改）。' });
+      best.bad.slice(0, 12).forEach(function (b) {
+        out.items.push({ level: b.loose ? 'warn' : 'err', msg: b.msg });
+      });
+    }
+
+    // 孤平 / 三平调 / 三仄尾
+    lines.forEach(function (line, i) {
+      var s = line.chars.map(function (c) { return c.pz === '平仄' ? '平' : c.pz; });
+      var n = s.length;
+      if (n < 5) return;
+      var tail = s.slice(-3).join('');
+      var isRhymeLine = (i % 2 === 1);
+      var pingCount = s.slice(0, n - 1).filter(function (x) { return x === '平'; }).length;
+      if (isRhymeLine && pingCount === 1) {
+        out.items.push({ level: 'err', msg: '第 ' + (i + 1) + ' 句除韵脚外仅一平声，犯「孤平」。' });
+      }
+      if (!isRhymeLine && tail === '平平平') {
+        out.items.push({ level: 'err', msg: '第 ' + (i + 1) + ' 句末三字皆平，犯「三平调」。' });
+      }
+      if (!isRhymeLine && tail === '仄仄仄') {
+        out.items.push({ level: 'warn', msg: '第 ' + (i + 1) + ' 句末三字皆仄（三仄尾），古体常见，近体中宜避。' });
+      }
+    });
+
+    // 粘对
+    function secondTone(i) {
+      var l = lines[i];
+      if (!l || l.chars.length < 2) return null;
+      var pz = l.chars[1].pz;
+      return pz === '平' ? '平' : (pz === '仄' ? '仄' : null);
+    }
+    for (var k = 0; k + 1 < need; k += 2) {
+      var a = secondTone(k), b = secondTone(k + 1);
+      if (a && b && a === b) out.items.push({ level: 'err', msg: '第 ' + (k + 1) + '、' + (k + 2) + ' 句第二字同为' + a + '，「失对」。' });
+      var next = secondTone(k + 2);
+      if (b && next && b !== next) out.items.push({ level: 'warn', msg: '第 ' + (k + 2) + '、' + (k + 3) + ' 句第二字平仄不同，「失粘」。' });
+    }
+    if (need === 8) {
+      out.items.push({ level: 'warn', msg: '律诗颔联（3、4 句）与颈联（5、6 句）宜对仗。' });
+    }
+    out.items.push({ level: 'warn', summary: true, msg: '注：古绝、乐府与古体本不拘近体格律（如《静夜思》），以上仅供打磨时参考。' });
+    return out;
+  }
+
+  /* ---------------- 候选推荐 ---------------- */
+  /** 取某韵部候选字，可按意象关键字过滤（用词库反查） */
+  function rhymeCandidates(groupName, bookKey, filter, toneFilter, extraLex) {
+    var chars = groupChars(groupName, bookKey);
+    var out = chars.map(function (c) {
+      var info = charInfo(c, bookKey);
+      return { ch: c, pz: info.tones.length > 1 ? '平仄' : info.tones[0], src: '' };
+    });
+    if (toneFilter) {
+      out = out.filter(function (o) { return o.pz.indexOf(toneFilter) >= 0; });
+    }
+    var kw = (filter || '').trim();
+    if (kw) {
+      var hit = {}, order = [];
+      collectWords(extraLex).forEach(function (w) {
+        if (w.word.indexOf(kw) < 0) return;
+        var last = w.word[w.word.length - 1];
+        if (!inRhyme(last, groupName, bookKey)) return;
+        if (!hit[last]) { hit[last] = []; order.push(last); }
+        if (hit[last].indexOf(w.word) < 0) hit[last].push(w.word);
+      });
+      var matched = order.map(function (c) {
+        return { ch: c, pz: charInfo(c, bookKey).tones.length > 1 ? '平仄' : charInfo(c, bookKey).tones[0], src: hit[c].slice(0, 3).join('、') };
+      });
+      if (matched.length) return { matched: matched, rest: out.filter(function (o) { return hit[o.ch] ? false : true; }) };
+      return { matched: [], rest: out };
+    }
+    return { matched: [], rest: out };
+  }
+
+  function collectWords(extra) {
+    var arr = [], seen = {};
+    (root.LEXICON || []).forEach(function (g) {
+      g.words.forEach(function (w) {
+        if (seen[w]) return;
+        seen[w] = 1;
+        arr.push({ word: w, cat: g.cat });
+      });
+    });
+    (extra || []).forEach(function (w) {
+      if (seen[w]) return;
+      seen[w] = 1;
+      arr.push({ word: w, cat: '我的词库' });
+    });
+    return arr;
+  }
+
+  /** 合韵词组：末字属于该韵部的词条 */
+  function wordCandidates(groupName, bookKey, filter, cat, extraLex) {
+    if (!groupName) return [];
+    var all = collectWords(extraLex);
+    var kw = (filter || '').trim();
+    return all.filter(function (w) {
+      var last = w.word[w.word.length - 1];
+      if (!CJK.test(last)) return false;
+      if (!inRhyme(last, groupName, bookKey)) return false;
+      if (cat && w.cat !== cat) return false;
+      if (kw && w.word.indexOf(kw) < 0 && w.cat.indexOf(kw) < 0) return false;
+      return true;
+    });
+  }
+
+  root.PoemCore = {
+    clean: clean,
+    uniq: uniq,
+    charInfo: charInfo,
+    pingze: pingze,
+    rhymeOf: rhymeOf,
+    inRhyme: inRhyme,
+    groupChars: groupChars,
+    allGroups: allGroups,
+    parseLines: parseLines,
+    stripPunct: stripPunct,
+    analyzeLine: analyzeLine,
+    analyze: analyze,
+    meterCheck: meterCheck,
+    detectForm: detectForm,
+    rhymeCandidates: rhymeCandidates,
+    wordCandidates: wordCandidates,
+    collectWords: collectWords,
+    TEMPLATES: TEMPLATES
+  };
+})(window);
+
+/* ============================================================
+ *  app.js —— 界面逻辑
+ *  原则：用户输入一律以 textContent 渲染，杜绝 innerHTML 注入；
+ *        示例数据只保存在本页内存。
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var memory = {};
+  var previewStorage = {getItem:function(k){return memory[k] || null;},setItem:function(k,v){memory[k]=String(v);},removeItem:function(k){delete memory[k];}};
+  var CJK = /[\u4e00-\u9fff]/;
+  var C = window.PoemCore;
+  var isTouch = false;   // 触屏设备：影响聚焦策略与提示位置
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var TEMP_KEY = 'shiyun.draft.v1';
+  var TEMP_TS = 'shiyun.draft.ts.v1';
+  var DRAFTS_KEY = 'shiyun.drafts.v1';
+
+  var state = {
+    bookKey: 'pingshui',
+    form: 'auto',
+    forcedRhyme: '',
+    activeLine: -1,        // 原文行号
+    rawLines: [],          // 原文非空行号映射
+    manual: {},            // 'line:pos' -> '平'|'仄'
+    lex: [],
+    last: null,
+    drafts: [],
+    currentDraftId: '',
+    tempTs: 0,
+    tempSaved: ''
+  };
+
+  /* ---------------- 小工具 ---------------- */
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = String(text);
+    return e;
+  }
+
+  function miniBtn(label, fn) {
+    var b = el('button', 'mini-btn', label);
+    b.type = 'button';
+    b.addEventListener('click', function (ev) { ev.stopPropagation(); fn(); });
+    return b;
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+  function fmtTime(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  function shortTime(ts) {
+    var d = new Date(ts);
+    return pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function fileStamp() {
+    var d = new Date();
+    return '' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes());
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    if (!t) {
+      t = el('div'); t.id = 'toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  function status(msg) { $('status').textContent = msg; }
+
+  function isCJK(s) { return CJK.test(s); }
+
+  /* ---------------- 编辑器读写 ---------------- */
+  function getText() { return $('editor').value; }
+
+  function setText(v) {
+    $('editor').value = v;
+    refresh();
+  }
+
+  /** 原文中第 rawIdx 行（非空行序号）替换最后一个汉字 */
+  function replaceFinalChar(rawIdx, newChar) {
+    var lines = $('editor').value.split('\n');
+    var count = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].trim().length === 0) continue;
+      count++;
+      if (count !== rawIdx) continue;
+      var s = lines[i];
+      var pos = -1;
+      for (var j = s.length - 1; j >= 0; j--) { if (CJK.test(s[j])) { pos = j; break; } }
+      if (pos < 0) { lines[i] = s + newChar; }
+      else { lines[i] = s.slice(0, pos) + newChar + s.slice(pos + 1); }
+      break;
+    }
+    $('editor').value = lines.join('\n');
+    refresh();
+  }
+
+  /** 原文第 rawIdx 行替换句尾 n 字 */
+  function replaceTail(rawIdx, word) {
+    var lines = $('editor').value.split('\n');
+    var count = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].trim().length === 0) continue;
+      count++;
+      if (count !== rawIdx) continue;
+      var s = lines[i].replace(/[，。、？！；：,.?!;:]+$/, '');
+      var idx = -1;
+      for (var j = s.length - 1; j >= 0; j--) { if (CJK.test(s[j])) { idx = j; break; } }
+      if (idx < 0) { lines[i] = s + word; }
+      else {
+        var cut = Math.min(idx + 1, word.length);
+        lines[i] = s.slice(0, idx + 1 - cut) + word;
+      }
+      break;
+    }
+    $('editor').value = lines.join('\n');
+    refresh();
+  }
+
+  function insertAtCursor(text, doFocus) {
+    var ta = $('editor');
+    var start = ta.selectionStart || 0, end = ta.selectionEnd || 0;
+    var v = ta.value;
+    ta.value = v.slice(0, start) + text + v.slice(end);
+    var pos = start + text.length;
+    ta.setSelectionRange(pos, pos);
+    // 触屏上不强制聚焦，避免软键盘反复弹起遮住候选区
+    if (doFocus !== false) ta.focus();
+    refresh();
+  }
+
+  /* ---------------- 分析 ---------------- */
+  function refresh() {
+    var text = getText();
+    var raw = C.parseLines(text);
+    state.rawLines = [];
+    var all = text.split('\n');
+    var k = 0;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].trim().length === 0) continue;
+      state.rawLines.push(i);
+      k++;
+    }
+
+    var res = C.analyze(text, state.bookKey, state.forcedRhyme);
+    // 应用手动平仄改判
+    res.lines.forEach(function (line, li) {
+      line.chars.forEach(function (c, ci) {
+        var m = state.manual[li + ':' + ci];
+        if (m) { c.pz = m; c.ping = m === '平'; c.ze = m === '仄'; c.manual = true; }
+      });
+    });
+    state.last = res;
+
+    var form = C.detectForm(res.lines);
+    var formSel = state.form;
+    if (formSel && formSel !== 'auto') {
+      var map = { wujue: '五言绝句', qijue: '七言绝句', wulv: '五言律诗', qilv: '七言律诗', ci: '词 / 长短句', free: '自由诗' };
+      form.label = map[formSel] || form.label;
+      form.key = formSel;
+    }
+
+    renderAnalysis(res);
+    renderVerdict(res, form);
+    renderRhymePane(res);
+    renderMeterPane(res, form);
+    renderWordsPane(res);
+    status('共 ' + res.lines.length + ' 句 · 主韵 ' + (res.mainRhyme || '未定') + ' · ' + form.label);
+    saveTemp();
+  }
+
+  function renderAnalysis(res) {
+    var box = $('analysis');
+    box.textContent = '';
+    if (!res.lines.length) {
+      box.appendChild(el('div', 'empty', '尚无诗句，先在左侧写一句吧。'));
+      return;
+    }
+    res.lines.forEach(function (line, i) {
+      var row = el('div', 'line-block' + (state.activeLine === i ? ' is-active' : ''));
+      row.dataset.line = String(i);
+      row.appendChild(el('span', 'line-idx', String(i + 1)));
+
+      var chars = el('div', 'chars');
+      line.chars.forEach(function (c, ci) {
+        var w = el('div', 'ch' + (c.final ? ' is-final' : ''));
+        w.appendChild(el('span', 'ch-t', c.ch));
+        var cls = c.pz === '平' ? 'p' : (c.pz === '仄' ? 'z' : 'u');
+        var m = el('div', 'ch-m ' + cls);
+        m.dataset.pos = String(ci);
+        m.title = c.manual ? '手动判定：' + c.pz + '（点击复位）'
+          : (c.unknown ? '韵书未收，点击可判定' : (c.pz === '平仄' ? '平仄两读（' + (c.groups || []).map(function (g) { return g.name; }).join('/') + '）' : c.pz + ' · ' + (c.groups && c.groups[0] ? c.groups[0].name : '')));
+        m.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          cycleTone(i, ci);
+        });
+        w.appendChild(m);
+        chars.appendChild(w);
+      });
+      row.appendChild(chars);
+
+      var tail = el('div', 'line-tail');
+      var gr = line.final ? C.rhymeOf(line.final, state.bookKey) : null;
+      var ok = gr && res.mainRhyme ? C.inRhyme(line.final, res.mainRhyme, state.bookKey) : false;
+      var badge = el('span', 'rhyme-badge' + (gr ? (ok ? ' ok' : ' bad') : ''), gr ? (ok ? gr : gr + '（出韵）') : '未收');
+      tail.appendChild(badge);
+      var b = el('button', 'mini-btn', '补韵脚');
+      b.type = 'button';
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        state.activeLine = i;
+        switchTab('rhyme');
+        refresh();
+      });
+      tail.appendChild(b);
+      row.appendChild(tail);
+
+      row.addEventListener('click', function () {
+        state.activeLine = state.activeLine === i ? -1 : i;
+        refresh();
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function cycleTone(lineIdx, charIdx) {
+    var key = lineIdx + ':' + charIdx;
+    var cur = state.manual[key];
+    var line = state.last && state.last.lines[lineIdx];
+    var auto = line ? line.chars[charIdx].pz : '?';
+    if (!cur) state.manual[key] = (auto === '仄') ? '平' : '仄';
+    else if (cur === '仄') delete state.manual[key];
+    else state.manual[key] = '仄';
+    refresh();
+  }
+
+  function renderVerdict(res, form) {
+    var box = $('verdict');
+    box.textContent = '';
+    var items = [];
+    if (res.mainRhyme) {
+      var bad = res.issues.filter(function (x) { return x.level === 'err'; });
+      if (!bad.length) items.push({ level: 'ok', msg: '押 ' + res.mainRhyme + '，未见出韵' });
+      else items.push({ level: 'err', msg: '有 ' + bad.length + ' 处出韵' });
+    } else {
+      items.push({ level: 'warn', msg: '尚未确定韵部' });
+    }
+    items.push({ level: 'warn', msg: '体式：' + form.label });
+    var unknown = 0;
+    res.lines.forEach(function (l) { l.chars.forEach(function (c) { if (c.unknown) unknown++; }); });
+    if (unknown) items.push({ level: 'warn', msg: unknown + ' 字未见于本韵书（多为今字或生僻字）' });
+    items.forEach(function (it) {
+      box.appendChild(el('span', 'v-item ' + it.level, it.msg));
+    });
+  }
+
+  /* ---------------- 韵脚面板 ---------------- */
+  function renderRhymePane(res) {
+    var g = res.mainRhyme || '';
+    $('rhymeBelong').textContent = g || '未定';
+    var grid = $('rhymeGrid');
+    grid.textContent = '';
+    var near = $('nearRhyme');
+    near.textContent = '';
+
+    if (g) {
+      (window.NEAR_RHYME[g] || []).forEach(function (n) {
+        var c = el('span', 'chip', '可通押 · ' + n);
+        c.addEventListener('click', function () {
+          state.forcedRhyme = n;
+          $('selRhyme').value = n;
+          refresh();
+          toast('已切换到 ' + n);
+        });
+        near.appendChild(c);
+      });
+      if (!near.children.length) near.appendChild(el('span', 'chip static', '此韵无推荐通押，宜一韵到底'));
+    }
+
+    if (!g) {
+      grid.appendChild(el('div', 'empty', '请先写一句诗，或在上方「主韵部」中指定。'));
+      return;
+    }
+    var filter = $('rhymeFilter').value;
+    var tone = $('rhymeToneFilter').value;
+    var r = C.rhymeCandidates(g, state.bookKey, filter, tone, state.lex);
+    var list = r.matched.concat(r.rest);
+    if (!list.length) {
+      grid.appendChild(el('div', 'empty', '该韵部在所选平仄下无候选字。'));
+      return;
+    }
+    if (r.matched.length) {
+      var tip = el('div', 'hint', '意象命中 ' + r.matched.length + ' 字，已置顶（悬停可见来源词）');
+      tip.style.flexBasis = '100%';
+      grid.appendChild(tip);
+    }
+    var limit = Math.min(list.length, 420);
+    for (var i = 0; i < limit; i++) {
+      (function (o) {
+        var b = el('button', 'char-chip ' + (o.pz === '平' ? 'p' : (o.pz === '仄' ? 'z' : '')), o.ch);
+        b.type = 'button';
+        b.title = (o.pz === '平仄' ? '平仄两读' : o.pz) + (o.src ? ' · 见于：' + o.src : '');
+        b.addEventListener('click', function () { applyChar(o.ch); });
+        grid.appendChild(b);
+      })(list[i]);
+    }
+    if (list.length > limit) grid.appendChild(el('div', 'empty', '另有 ' + (list.length - limit) + ' 字未显示，可用意象关键词缩小范围。'));
+  }
+
+  function applyChar(ch) {
+    if (state.activeLine >= 0) {
+      replaceFinalChar(state.activeLine, ch);
+      toast('已将第 ' + (state.activeLine + 1) + ' 句末字改为「' + ch + '」');
+    } else {
+      insertAtCursor(ch, !isTouch);
+    }
+  }
+
+  /* ---------------- 格律面板 ---------------- */
+  function renderMeterPane(res, form) {
+    var m = C.meterCheck(res.lines, state.bookKey);
+    var box = $('meterResult');
+    box.textContent = '';
+    var errs = m.items.filter(function (x) { return x.level === 'err' && !x.summary; }).length;
+    $('meterScore').textContent = m.best ? (errs ? errs + ' 处须改' : (m.best.score ? '小疵可改' : '通过')) : '—';
+
+    if (!m.items.length) box.appendChild(el('div', 'empty', '写满四句或八句后再看格律。'));
+    m.items.forEach(function (it) {
+      box.appendChild(el('div', 'result-item ' + it.level, it.msg));
+    });
+
+    var tbox = $('meterTemplate');
+    tbox.textContent = '';
+    if (m.best) {
+      var head = el('div', '', m.best.name + '（' + (m.best.tpl.length) + ' 句）');
+      head.style.color = '#574f46';
+      head.style.fontSize = '12px';
+      head.style.letterSpacing = '.1em';
+      tbox.appendChild(head);
+      var g = el('div', '');
+      m.best.tpl.forEach(function (t, i) {
+        var line = el('div', '', '');
+        for (var k = 0; k < t.length; k++) {
+          var sym = t[k] === '平' ? '○' : '●';
+          var loose = (k % 2 === 0) && k !== t.length - 1;
+          line.appendChild(el('span', '', loose ? '◎' : sym));
+        }
+        var cur = res.lines[i];
+        if (cur && cur.raw) {
+          var sp = el('span', '', '   ' + cur.raw);
+          sp.style.color = '#8b8377';
+          sp.style.fontSize = '13px';
+          line.appendChild(sp);
+        }
+        g.appendChild(line);
+      });
+      tbox.appendChild(g);
+    } else {
+      tbox.appendChild(el('div', 'empty', '当前体式不套用近体谱式。'));
+    }
+  }
+
+  /* ---------------- 词句面板 ---------------- */
+  function renderWordsPane(res) {
+    var g = res.mainRhyme || '';
+    $('wordsBelong').textContent = g || '未定';
+    var box = $('wordsList');
+    box.textContent = '';
+    var filter = $('wordsFilter').value;
+    var cat = $('wordsCat').value;
+    var list = C.wordCandidates(g, state.bookKey, filter, cat, state.lex);
+    if (!g) { box.appendChild(el('div', 'empty', '先确定韵部，这里会列出末字合韵的词组。')); return; }
+    if (!list.length) { box.appendChild(el('div', 'empty', '「' + g + '」韵下暂无匹配词组，换个关键词或用「韵脚」页挑单字。')); return; }
+    list.slice(0, 200).forEach(function (w) {
+      var row = el('div', 'word-item');
+      row.appendChild(el('span', 'w-t', w.word));
+      var meta = el('span', 'w-m', '');
+      var em = el('em', '', w.cat);
+      meta.appendChild(em);
+      var last = w.word[w.word.length - 1];
+      var pz = C.pingze(last, state.bookKey);
+      meta.appendChild(document.createTextNode(' · 末字' + (pz === '?' ? '未收' : pz)));
+      row.appendChild(meta);
+      row.addEventListener('click', function () { applyWord(w.word); });
+      box.appendChild(row);
+    });
+  }
+
+  function applyWord(word) {
+    if ($('wordsReplace').checked && state.activeLine >= 0) {
+      replaceTail(state.activeLine, word);
+      toast('句尾已换为「' + word + '」');
+    } else {
+      insertAtCursor(word, !isTouch);
+    }
+  }
+
+  /* ---------------- 词库 ---------------- */
+  function loadLex() {
+    try {
+      var a = JSON.parse(previewStorage.getItem('shiyun.lex.v1') || '[]');
+      state.lex = Array.isArray(a) ? a : [];
+    } catch (e) { state.lex = []; }
+  }
+
+  function saveLex(list) {
+    try { previewStorage.setItem('shiyun.lex.v1', JSON.stringify(list)); } catch (e) { }
+  }
+
+  function renderLex() {
+    $('lexCount').textContent = state.lex.length + ' 条';
+    var box = $('lexPreview');
+    box.textContent = '';
+    state.lex.slice(0, 60).forEach(function (w) {
+      box.appendChild(el('span', 'chip static', w));
+    });
+    if (state.lex.length > 60) box.appendChild(el('span', 'chip static', '…另有 ' + (state.lex.length - 60) + ' 条'));
+  }
+
+  function parseLexText(text) {
+    var out = [];
+    text.split(/\r?\n/).forEach(function (line) {
+      var s = line.trim();
+      if (!s) return;
+      s = s.split(/[\s\t,，]+/)[0];
+      s = s.replace(/[^\u4e00-\u9fff]/g, '');
+      if (s.length >= 1 && s.length <= 8 && out.indexOf(s) < 0) out.push(s);
+    });
+    return out;
+  }
+
+  /* ---------------- 设置 ---------------- */
+  function fillRhymeSelect() {
+    var sel = $('selRhyme');
+    var cur = sel.value;
+    sel.textContent = '';
+    sel.appendChild(el('option', '', '自动推测'));
+    C.allGroups(state.bookKey).forEach(function (g) {
+      var o = el('option', '', g);
+      o.value = g;
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  }
+
+  function fillCatSelect() {
+    var sel = $('wordsCat');
+    var cur = sel.value;
+    sel.textContent = '';
+    sel.appendChild(el('option', '', '全部分类'));
+    (window.LEXICON || []).forEach(function (g) {
+      var o = el('option', '', g.cat);
+      o.value = g.cat;
+      sel.appendChild(o);
+    });
+    var o2 = el('option', '', '我的词库');
+    o2.value = '我的词库';
+    sel.appendChild(o2);
+    if (cur) sel.value = cur;
+  }
+
+  function openDrawer(id, maskId) {
+    $(id).hidden = false;
+    $(maskId).hidden = false;
+  }
+  function closeDrawer(id, maskId) {
+    $(id).hidden = true;
+    $(maskId).hidden = true;
+  }
+
+  function saveTemp() {
+    var t = getText();
+    try {
+      previewStorage.setItem(TEMP_KEY, t);
+      state.tempTs = Date.now();
+      previewStorage.setItem(TEMP_TS, String(state.tempTs));
+      state.tempSaved = t;
+    } catch (e) { }
+    renderTempTip();
+    if (!$('draftsDrawer').hidden) renderTempBox();
+  }
+  function loadTemp() {
+    try {
+      var t = previewStorage.getItem(TEMP_KEY) || '';
+      state.tempTs = Number(previewStorage.getItem(TEMP_TS) || 0) || 0;
+      state.tempSaved = t;
+      return t;
+    } catch (e) { return ''; }
+  }
+  function clearTemp() {
+    try { previewStorage.removeItem(TEMP_KEY); previewStorage.removeItem(TEMP_TS); } catch (e) { }
+    state.tempTs = 0; state.tempSaved = '';
+    renderTempTip(); renderTempBox();
+  }
+  function renderTempTip() {
+    var tip = $('autosaveTip');
+    if (tip) tip.textContent = state.tempTs ? ('已暂存 · ' + shortTime(state.tempTs)) : '未暂存';
+  }
+
+  /* ---------------- 稿匣（命名保存多份） ---------------- */
+  function loadDrafts() {
+    try {
+      var a = JSON.parse(previewStorage.getItem(DRAFTS_KEY) || '[]');
+      state.drafts = Array.isArray(a) ? a.filter(function (d) { return d && typeof d.text === 'string'; }) : [];
+    } catch (e) { state.drafts = []; }
+  }
+  function saveDrafts() {
+    try { previewStorage.setItem(DRAFTS_KEY, JSON.stringify(state.drafts)); return true; }
+    catch (e) { return false; }
+  }
+  function findDraft(id) {
+    for (var i = 0; i < state.drafts.length; i++) if (state.drafts[i].id === id) return state.drafts[i];
+    return null;
+  }
+
+  function draftDefaultName() {
+    var lines = getText().split(/\r?\n/).filter(function (s) { return s.trim(); });
+    var first = lines[0] || '';
+    return first.replace(/[，。、？！；：,.?!;:]/g, '').slice(0, 10) || ('未命名 ' + shortTime(Date.now()));
+  }
+
+  function saveDraftAs() {
+    var t = getText();
+    if (!t.trim()) { toast('没有内容可存'); return; }
+    var name = window.prompt('给这一稿起个名字', draftDefaultName());
+    if (name === null) return;
+    name = String(name).trim() || draftDefaultName();
+    var d = {
+      id: 'd' + Date.now() + Math.random().toString(36).slice(2, 6),
+      name: name, text: t, ts: Date.now(),
+      form: state.form, book: state.bookKey
+    };
+    state.drafts.push(d);
+    if (saveDrafts()) { state.currentDraftId = d.id; toast('已存入稿匣：' + name); }
+    else toast('保存失败（浏览器禁用了本地存储）');
+    renderDrafts();
+  }
+
+  function applyDraft(d) {
+    if (getText().trim() && !window.confirm('将用「' + d.name + '」替换当前内容，继续？')) return;
+    state.currentDraftId = d.id;
+    state.form = d.form || 'auto';
+    $('selForm').value = state.form;
+    if (d.book && d.book !== state.bookKey) {
+      state.bookKey = d.book;
+      $('selBook').value = d.book;
+      fillRhymeSelect();
+    }
+    setText(d.text);
+    saveTemp();
+    toast('已载入：' + d.name);
+  }
+
+  function overwriteDraft(id) {
+    var d = findDraft(id);
+    if (!d) return;
+    d.text = getText();
+    d.ts = Date.now();
+    d.form = state.form; d.book = state.bookKey;
+    saveDrafts(); renderDrafts(); saveTemp();
+    toast('已更新：' + d.name);
+  }
+
+  function renameDraft(id) {
+    var d = findDraft(id);
+    if (!d) return;
+    var name = window.prompt('改名为', d.name);
+    if (name === null) return;
+    d.name = String(name).trim() || d.name;
+    d.ts = Date.now();
+    saveDrafts(); renderDrafts();
+  }
+
+  function deleteDraft(id) {
+    var d = findDraft(id);
+    if (!d) return;
+    if (!window.confirm('删除「' + d.name + '」？此操作不可撤销。')) return;
+    state.drafts = state.drafts.filter(function (x) { return x.id !== id; });
+    saveDrafts(); renderDrafts();
+    toast('已删除');
+  }
+
+  function renderTempBox() {
+    var box = $('draftTemp');
+    box.textContent = '';
+    box.appendChild(el('div', '', state.tempTs ? ('临时草稿：' + fmtTime(state.tempTs)) : '临时草稿：暂无'));
+    if (state.tempTs && getText() !== state.tempSaved) {
+      box.appendChild(el('div', '', '当前编辑区与上次暂存内容不同，可「恢复」回到暂存版本。'));
+    }
+    var ops = el('div', 'tb-row');
+    ops.appendChild(miniBtn('立即暂存', function () { saveTemp(); toast('已暂存'); }));
+    ops.appendChild(miniBtn('恢复暂存', function () {
+      var t = state.tempSaved;
+      if (!t.trim()) { toast('没有可恢复的暂存内容'); return; }
+      if (getText().trim() && !window.confirm('用暂存内容替换当前编辑区？')) return;
+      setText(t); toast('已恢复暂存');
+    }));
+    ops.appendChild(miniBtn('清空暂存', function () {
+      if (!window.confirm('清空临时草稿？稿匣里的稿件不受影响。')) return;
+      clearTemp(); toast('已清空暂存');
+    }));
+    box.appendChild(ops);
+  }
+
+  function renderDrafts() {
+    var box = $('draftList');
+    box.textContent = '';
+    renderTempBox();
+    if (!state.drafts.length) {
+      box.appendChild(el('div', 'empty', '稿匣还是空的。点「存为新稿」把当前文字收进来，或粘贴一首旧作存着慢慢改。'));
+      return;
+    }
+    state.drafts.slice().sort(function (a, b) { return b.ts - a.ts; }).forEach(function (d) {
+      var item = el('div', 'draft-item' + (d.id === state.currentDraftId ? ' is-current' : ''));
+      var top = el('div', 'd-top');
+      top.appendChild(el('span', 'd-name', d.name));
+      top.appendChild(el('span', 'd-time', shortTime(d.ts) + ' · ' + d.text.replace(/\s+/g, '').length + ' 字'));
+      item.appendChild(top);
+      var prev = d.text.split(/\r?\n/).filter(function (s) { return s.trim(); }).slice(0, 2).join(' ／ ');
+      item.appendChild(el('div', 'd-prev', prev || '（空稿）'));
+      var ops = el('div', 'd-ops');
+      ops.appendChild(miniBtn('载入', function () { applyDraft(d); }));
+      ops.appendChild(miniBtn('覆盖', function () { overwriteDraft(d.id); }));
+      ops.appendChild(miniBtn('改名', function () { renameDraft(d.id); }));
+      ops.appendChild(miniBtn('下载', function () { downloadText(d.text, d.name); }));
+      ops.appendChild(miniBtn('删除', function () { deleteDraft(d.id); }));
+      item.appendChild(ops);
+      box.appendChild(item);
+    });
+  }
+
+  /* ---------------- 分行 / 整理 ---------------- */
+  function splitByPunct(text, keep) {
+    var lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+    var out = [];
+    lines.forEach(function (line) {
+      var cur = '';
+      for (var i = 0; i < line.length; i++) {
+        var c = line[i];
+        if (/[，。、？！；：,.?!;:]/.test(c)) {
+          if (keep) cur += c;
+          if (cur.trim()) { out.push(cur.trim()); cur = ''; }
+          continue;
+        }
+        cur += c;
+      }
+      if (cur.trim()) out.push(cur.trim());
+    });
+    return out.filter(function (s) { return s.replace(/[，。、？！；：,.?!;:]/g, '').length > 0; });
+  }
+
+  function splitFixed(text, n) {
+    var s = String(text)
+      .replace(/[\s\u3000]+/g, '')
+      .replace(/[，。、？！；：,.?!;:「」『』《》〈〉""''…—－\-]/g, '');
+    var out = [];
+    for (var i = 0; i < s.length; i += n) out.push(s.substr(i, n));
+    return out;
+  }
+
+  function doSplit() {
+    var t = getText();
+    if (!t.trim()) { toast('先写点什么，或上传一个 .txt'); return; }
+    var mode = $('selSplit').value;
+    var arr;
+    if (mode === 'len5') arr = splitFixed(t, 5);
+    else if (mode === 'len7') arr = splitFixed(t, 7);
+    else arr = splitByPunct(t, mode === 'punct-keep');
+    if (!arr.length) { toast('没有可切分的内容'); return; }
+    setText(arr.join('\n'));
+    toast('已分为 ' + arr.length + ' 行');
+  }
+
+  function doTidy() {
+    var arr = getText().split(/\r?\n/)
+      .map(function (s) { return s.replace(/\u3000/g, ' ').replace(/\s+$/, '').replace(/^\s+/, ''); })
+      .filter(function (s) { return s.length; });
+    setText(arr.join('\n'));
+    toast(arr.length ? ('已整理为 ' + arr.length + ' 行') : '内容为空');
+  }
+
+  /* ---------------- 上传 / 下载 / 复制 ---------------- */
+  function readFile(f, cb) {
+    if (f.size > 1024 * 1024) { toast('文件超过 1MB，未载入'); return; }
+    var fr = new FileReader();
+    fr.onload = function () { cb(String(fr.result || '').replace(/^\ufeff/, '').replace(/\r\n?/g, '\n'), f.name); };
+    fr.onerror = function () { toast('读取失败'); };
+    fr.readAsText(f, 'utf-8');
+  }
+
+  function pickFile(cb) {
+    var inp = $('fileInput');
+    inp.value = '';
+    inp.onchange = function () {
+      var f = inp.files && inp.files[0];
+      inp.value = '';
+      if (f) readFile(f, cb);
+    };
+    inp.click();
+  }
+
+  function downloadBlob(text, filename, mime) {
+    mime = mime || 'text/plain';
+    var url = '';
+    try {
+      url = URL.createObjectURL(new Blob([text], { type: mime + ';charset=utf-8' }));
+    } catch (e) { url = ''; }
+    if (!url) url = 'data:' + mime + ';charset=utf-8,' + encodeURIComponent(text);  // 兜底
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      if (url.indexOf('blob:') === 0) { try { URL.revokeObjectURL(url); } catch (e) { } }
+      a.remove();
+    }, 1500);
+  }
+
+  function downloadText(text, name) {
+    downloadBlob('\ufeff' + text, (name || '诗韵') + '-' + fileStamp() + '.txt', 'text/plain');
+    toast('已下载 .txt');
+  }
+
+  function copyText(t) {
+    if (!t) { toast('没有内容可复制'); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { toast('已复制全文'); }, function () { legacyCopy(t); });
+    } else legacyCopy(t);
+  }
+
+  function legacyCopy(t) {
+    var ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { }
+    ta.remove();
+    toast(ok ? '已复制全文' : '复制失败，请手动选中复制');
+  }
+
+  function exportDrafts() {
+    if (!state.drafts.length) { toast('稿匣是空的'); return; }
+    downloadBlob(JSON.stringify(state.drafts, null, 2), '诗韵稿匣-' + fileStamp() + '.json', 'application/json');
+    toast('已导出 ' + state.drafts.length + ' 份稿');
+  }
+
+  function importDrafts() {
+    pickFile(function (text) {
+      var arr = null;
+      try { arr = JSON.parse(text); } catch (e) { arr = null; }
+      if (!Array.isArray(arr)) { toast('不是有效的稿匣备份文件'); return; }
+      var add = 0;
+      arr.forEach(function (d) {
+        if (!d || typeof d.text !== 'string') return;
+        var id = d.id || ('d' + Date.now() + Math.random().toString(36).slice(2, 6));
+        var old = findDraft(id);
+        if (old) { old.name = d.name || old.name; old.text = d.text; old.ts = d.ts || Date.now(); }
+        else { state.drafts.push({ id: id, name: d.name || '未命名', text: d.text, ts: d.ts || Date.now(), form: d.form || 'auto', book: d.book || 'pingshui' }); add++; }
+      });
+      if (saveDrafts()) { renderDrafts(); toast('已导入，新增 ' + add + ' 份'); }
+      else toast('导入失败（浏览器禁用了本地存储）');
+    });
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.toggle('is-active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.tabpane').forEach(function (p) {
+      p.classList.toggle('is-active', p.id === 'pane-' + name);
+    });
+  }
+
+  /* ---------------- 绑定 ---------------- */
+  /** 软键盘弹起时给 body 打标记，让 toast / 状态栏上移不被遮挡 */
+  function watchKeyboard() {
+    if (!window.visualViewport) return;
+    var vv = window.visualViewport;
+    var update = function () {
+      var hidden = (window.innerHeight || 0) - vv.height;
+      document.body.classList.toggle('kb-open', hidden > 120);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+  }
+
+  function bind() {
+    // 中文输入法组词期间（拼音候选未上屏）不做分析，避免把拼音当正文
+    var lazy = debounce(function () { refresh(); }, 260);
+    $('editor').addEventListener('input', function (e) {
+      if (e.isComposing) return;
+      lazy();
+    });
+    $('editor').addEventListener('compositionend', function () { lazy(); });
+    $('editor').addEventListener('click', function () {
+      var ta = $('editor');
+      var upto = ta.value.slice(0, ta.selectionStart).split('\n');
+      var nonEmptyBefore = upto.filter(function (l) { return l.trim().length; }).length;
+      state.activeLine = -1;
+      state._caretLine = nonEmptyBefore - 1;
+    });
+
+    $('selForm').addEventListener('change', function () { state.form = this.value; refresh(); });
+    $('selBook').addEventListener('change', function () {
+      state.bookKey = this.value;
+      state.forcedRhyme = '';
+      fillRhymeSelect();
+      $('selRhyme').value = '';
+      refresh();
+    });
+    $('selRhyme').addEventListener('change', function () {
+      state.forcedRhyme = this.value;
+      refresh();
+    });
+
+    $('btnAnalyze').addEventListener('click', function () { refresh(); toast('已审韵'); });
+    $('btnClear').addEventListener('click', function () {
+      setText('');
+      state.manual = {};
+      state.activeLine = -1;
+    });
+    $('btnDemo').addEventListener('click', function () {
+      setText('床前明月光\n疑是地上霜\n举头望明月\n低头思故乡');
+      state.form = 'wujue';
+      $('selForm').value = 'wujue';
+      refresh();
+    });
+
+    $('rhymeFilter').addEventListener('input', debounce(function () { renderRhymePane(state.last); }, 200));
+    $('rhymeToneFilter').addEventListener('change', function () { renderRhymePane(state.last); });
+    $('wordsFilter').addEventListener('input', debounce(function () { renderWordsPane(state.last); }, 200));
+    $('wordsCat').addEventListener('change', function () { renderWordsPane(state.last); });
+
+
+    // 分行 / 整理 / 文件
+    $('btnSplit').addEventListener('click', doSplit);
+    $('btnTidy').addEventListener('click', doTidy);
+    $('btnUpload').addEventListener('click', function () {
+      pickFile(function (text, name) {
+        if (!text.trim()) { toast('文件内容为空'); return; }
+        if (getText().trim() && !window.confirm('将用「' + name + '」替换当前内容，继续？')) return;
+        setText(text);
+        saveTemp();
+        toast('已载入 ' + name);
+      });
+    });
+    $('btnDownload').addEventListener('click', function () {
+      if (!getText().trim()) { toast('没有内容可下载'); return; }
+      downloadText(getText(), '诗韵');
+    });
+    $('btnCopy').addEventListener('click', function () { copyText(getText()); });
+
+    // 拖放载入
+    var dz = $('dropZone');
+    var dragDepth = 0;
+    dz.addEventListener('dragenter', function (e) {
+      e.preventDefault(); dragDepth++; $('dropMask').hidden = false;
+    });
+    dz.addEventListener('dragover', function (e) { e.preventDefault(); });
+    dz.addEventListener('dragleave', function (e) {
+      e.preventDefault(); dragDepth--;
+      if (dragDepth <= 0) { dragDepth = 0; $('dropMask').hidden = true; }
+    });
+    dz.addEventListener('drop', function (e) {
+      e.preventDefault(); dragDepth = 0; $('dropMask').hidden = true;
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      readFile(f, function (text, name) {
+        if (!text.trim()) { toast('文件内容为空'); return; }
+        if (getText().trim() && !window.confirm('将用「' + name + '」替换当前内容，继续？')) return;
+        setText(text);
+        saveTemp();
+        toast('已载入 ' + name);
+      });
+    });
+
+    // 稿匣
+    $('btnDrafts').addEventListener('click', function () {
+      loadDrafts();
+      renderDrafts();
+      openDrawer('draftsDrawer', 'draftsMask');
+    });
+    $('btnCloseDrafts').addEventListener('click', function () { closeDrawer('draftsDrawer', 'draftsMask'); });
+    $('draftsMask').addEventListener('click', function () { closeDrawer('draftsDrawer', 'draftsMask'); });
+    $('btnDraftSaveAs').addEventListener('click', saveDraftAs);
+    $('btnDraftExport').addEventListener('click', exportDrafts);
+    $('btnDraftImport').addEventListener('click', importDrafts);
+    $('btnDraftWipe').addEventListener('click', function () {
+      if (!state.drafts.length) { toast('稿匣已经是空的'); return; }
+      if (!window.confirm('清空稿匣里的 ' + state.drafts.length + ' 份稿件？建议先「导出全部」备份。')) return;
+      state.drafts = [];
+      state.currentDraftId = '';
+      saveDrafts(); renderDrafts();
+      toast('稿匣已清空');
+    });
+
+    $('btnLexSave').addEventListener('click', function () {
+      var list = parseLexText($('lexInput').value);
+      state.lex = list;
+      saveLex(list);
+      renderLex();
+      refresh();
+      toast('已保存 ' + list.length + ' 条');
+    });
+    $('btnLexClear').addEventListener('click', function () {
+      state.lex = [];
+      saveLex([]);
+      $('lexInput').value = '';
+      renderLex();
+      refresh();
+      toast('词库已清空');
+    });
+
+    $('btnHelp').addEventListener('click', function () { openDrawer('help', 'helpMask'); });
+    $('btnCloseHelp').addEventListener('click', function () { closeDrawer('help', 'helpMask'); });
+    $('helpMask').addEventListener('click', function () { closeDrawer('help', 'helpMask'); });
+
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.addEventListener('click', function () { switchTab(t.dataset.tab); });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); refresh(); toast('已审韵'); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveDraftAs(); }
+      if (e.key === 'Escape') {
+        closeDrawer('help', 'helpMask');
+        closeDrawer('draftsDrawer', 'draftsMask');
+      }
+    });
+  }
+
+  function debounce(fn, ms) {
+    var t = null;
+    return function () {
+      var args = arguments, self = this;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(self, args); }, ms);
+    };
+  }
+
+  /* ---------------- 启动 ---------------- */
+  function init() {
+    try { isTouch = !!(window.matchMedia && window.matchMedia('(hover:none)').matches); } catch (e) { isTouch = false; }
+    loadLex();
+    loadDrafts();
+    fillRhymeSelect();
+    fillCatSelect();
+    bind();
+    renderLex();
+    $('editor').value = loadTemp() || '远上寒山石径斜\n白云生处有人家';
+    renderTempTip();
+    refresh();
+    watchKeyboard();
+    status('示例体验 · 数据仅保存在当前页面');
+
+
+  }
+
+  document.getElementById('reset-example').addEventListener('click', function () {
+    memory = {}; state.bookKey = 'pingshui'; state.form = 'auto'; state.forcedRhyme = ''; state.activeLine = -1;
+    state.rawLines = []; state.manual = {}; state.lex = []; state.last = null; state.drafts = []; state.currentDraftId = ''; state.tempTs = 0; state.tempSaved = '';
+    document.querySelectorAll('input,textarea,select').forEach(function (e) { if (e.type === 'checkbox' || e.type === 'radio') e.checked = e.defaultChecked; else if (e.tagName === 'SELECT') e.selectedIndex = 0; else e.value = e.defaultValue; });
+    $('editor').value = '远上寒山石径斜\n白云生处有人家';
+    closeDrawer('help', 'helpMask'); closeDrawer('draftsDrawer', 'draftsMask'); fillRhymeSelect(); fillCatSelect(); renderLex(); renderTempTip(); refresh();
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script></body></html>
