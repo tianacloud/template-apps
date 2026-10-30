@@ -1438,14 +1438,14 @@ function initViewSwitch() {
     const svg = $('bodySvg');
     if (svg) svg.setAttribute('viewBox', m === 'col' ? '0 0 750 2800' : '0 0 1500 1400');
     document.querySelectorAll('#modelViewSwitch button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
-    ui.modelMode = m; saveState();
+    if (ui.modelMode !== m) { ui.modelMode = m; saveState(); }
   }
   // 卡片布局：肌群卡片横排（2列网格）/ 竖排（单列列表）
   function setCardsMode(m) {
     stage.classList.toggle('cards-row', m === 'row');
     stage.classList.toggle('cards-col', m === 'col');
     document.querySelectorAll('#cardsViewSwitch button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
-    ui.cardsMode = m; saveState();
+    if (ui.cardsMode !== m) { ui.cardsMode = m; saveState(); }
   }
 
   // 默认：移动端两个都竖排；桌面两个都横排；已选过则保留各自偏好
