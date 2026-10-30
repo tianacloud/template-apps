@@ -1,0 +1,480 @@
+
+/* ============ 数据层 ============ */
+const STATUS=['待开始','进行中','已完成','延期'];
+const SC={'待开始':'#c8cedb','进行中':'#3aa0ff','已完成':'#16c784','延期':'#ff5d6c'};
+const GCOL={'硬装':'#3aa0ff','软装':'#a06bff','通用':'#9aa3c0'};
+const CATC=['#3aa0ff','#16c784','#ffae34','#a06bff','#ff5d6c','#26c6da','#feca57','#7bed9f','#ee5a9b','#576574','#5b6cff','#ff9f43','#2ed8b6'];
+function emptyState(){return{project:{name:'我的装修项目',totalBudget:300000,hardBudget:0,softBudget:0,startDate:'',endDate:'',area:0},categories:[],rooms:[],phases:[],transactions:[]};}
+let state=emptyState();
+let store;
+function save(){store.save()}
+
+/* ============ 工具 ============ */
+const $=id=>document.getElementById(id);
+function money(n){return '¥'+Number(n||0).toLocaleString('zh-CN',{maximumFractionDigits:0});}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function go(p){document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  document.querySelectorAll('.panel').forEach(s=>s.classList.toggle('active',s.id==='p-'+p));
+  ({overview:renderOverview,floor:renderFloor,progress:renderProgress,accounts:renderAccounts,settings:renderSettings}[p])();}
+
+/* ============ 计算 ============ */
+function roomHard(r){if(!r.hardItems.length)return 0;return Math.round(r.hardItems.filter(i=>i.done).length/r.hardItems.length*100);}
+function roomSoft(r){if(!r.softItems.length)return 0;return Math.round(r.softItems.filter(i=>i.done).length/r.softItems.length*100);}
+function roomOverall(r){const h=r.hardItems.length,s=r.softItems.length;if(!h&&!s)return 0;
+  return Math.round(((r.hardItems.filter(i=>i.done).length)+(r.softItems.filter(i=>i.done).length))/(h+s)*100);}
+function hardPct(){const rs=state.rooms.filter(r=>r.hardItems.length);if(!rs.length)return 0;return Math.round(rs.reduce((a,r)=>a+roomHard(r),0)/rs.length);}
+function softPct(){const rs=state.rooms.filter(r=>r.softItems.length);if(!rs.length)return 0;return Math.round(rs.reduce((a,r)=>a+roomSoft(r),0)/rs.length);}
+function overallPct(){const h=hardPct(),s=softPct();if(!h&&!s)return 0;return Math.round((h+s)/2);}
+function phaseProg(ph){if(!ph.nodes.length)return 0;return Math.round(ph.nodes.filter(n=>n.status==='已完成').length/ph.nodes.length*100);}
+function phaseStatus(ph){const s=new Set(ph.nodes.map(n=>n.status));if(s.size===0)return'待开始';
+  if(s.has('延期'))return'延期';if(s.has('进行中'))return'进行中';if(s.size===1&&s.has('已完成'))return'已完成';return'进行中';}
+function groupOf(cat){const c=state.categories.find(c=>c.name===cat);return c?c.group:'通用';}
+function spendByGroup(g){return state.transactions.filter(t=>t.type==='expense'&&groupOf(t.category)===g).reduce((a,t)=>a+Number(t.amount||0),0);}
+function budgetByGroup(g){return state.categories.filter(c=>c.group===g).reduce((a,c)=>a+Number(c.budget||0),0);}
+function expenseTotal(){return state.transactions.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.amount||0),0);}
+function incomeTotal(){return state.transactions.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.amount||0),0);}
+function remain(){return Number(state.project.totalBudget||0)-expenseTotal()+incomeTotal();}
+function catSpend(name){return state.transactions.filter(t=>t.type==='expense'&&t.category===name).reduce((a,t)=>a+Number(t.amount||0),0);}
+
+/* ============ 图表 ============ */
+function ring(pct,color,sub){const r=46,C=2*Math.PI*r,off=C*(1-pct/100);
+  return `<svg viewBox="0 0 110 110" width="100" height="100">
+   <circle cx="55" cy="55" r="${r}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+   <circle cx="55" cy="55" r="${r}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+     stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 55 55)"/>
+   <text x="55" y="52" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">${pct}%</text>
+   <text x="55" y="70" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.85)">${sub}</text></svg>`;}
+function donut(items){const total=items.reduce((a,b)=>a+b.value,0);
+  if(total<=0)return'<div class="empty">暂无支出</div>';
+  const r=52,C=2*Math.PI*r;let acc=0,s='';
+  items.forEach(it=>{const len=it.value/total*C;
+    s+=`<circle cx="66" cy="66" r="${r}" fill="none" stroke="${it.color}" stroke-width="18"
+      stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" transform="rotate(-90 66 66)"/>`;acc+=len;});
+  return `<svg viewBox="0 0 132 132" width="150" height="150">${s}
+   <text x="66" y="60" text-anchor="middle" font-size="15" font-weight="800" fill="#1c2434">${money(total)}</text>
+   <text x="66" y="78" text-anchor="middle" font-size="10" fill="#727b8c">支出合计</text></svg>`;}
+
+/* ============ 渲染：总览 ============ */
+function renderOverview(){const o=overallPct(),hp=hardPct(),sp=softPct(),ex=expenseTotal(),inc=incomeTotal(),rem=remain();
+  const b=Number(state.project.totalBudget||0),ep=b>0?Math.round(ex/b*100):0;
+  const hSpend=spendByGroup('硬装'),sSpend=spendByGroup('软装');
+  const recent=[...state.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  $('p-overview').innerHTML=`
+  <div class="hero">
+    <div class="htop">
+      <div>
+        <h1>${esc(state.project.name)}</h1>
+        <div class="meta">📐 建筑面积 ${state.project.area||'—'} ㎡ · 🗓 ${state.project.startDate||'—'} 至 ${state.project.endDate||'—'} · 共 ${state.rooms.length} 个空间</div>
+        <div class="meta" style="margin-top:8px">硬装完成 <b>${hp}%</b> · 软装完成 <b>${sp}%</b></div>
+      </div>
+      <div class="rings">
+        <div class="ringb">${ring(o,'#fff','整体进度')}</div>
+        <div class="ringb">${ring(ep, ep>b?'#ff5d6c':'#ffd56b','预算执行')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g4">
+    <div class="stat"><div class="k">总预算</div><div class="v">${money(b)}</div></div>
+    <div class="stat"><div class="k"><i class="swatch" style="background:var(--hard)"></i>硬装支出</div><div class="v" style="color:var(--hard)">${money(hSpend)}</div></div>
+    <div class="stat"><div class="k"><i class="swatch" style="background:var(--soft)"></i>软装支出</div><div class="v" style="color:var(--soft)">${money(sSpend)}</div></div>
+    <div class="stat"><div class="k">资金结余</div><div class="v" style="color:${rem<0?'var(--bad)':'var(--ok)'}">${money(rem)}</div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h2>🎯 硬装 vs 软装完成度</h2>
+      <div style="margin-bottom:14px"><div class="mini" style="display:flex;justify-content:space-between"><span>硬装（水电/泥木/油漆/安装）</span><b>${hp}%</b></div>
+        <div class="pbar" style="margin-top:6px"><i style="width:${hp}%;background:linear-gradient(90deg,#3aa0ff,#6fc0ff)"></i></div></div>
+      <div><div class="mini" style="display:flex;justify-content:space-between"><span>软装（家具/家电/布艺/装饰）</span><b>${sp}%</b></div>
+        <div class="pbar" style="margin-top:6px"><i style="width:${sp}%;background:linear-gradient(90deg,#a06bff,#c79bff)"></i></div></div>
+      <div class="legend" style="margin-top:16px">
+        <span><i class="dot" style="background:var(--hard)"></i>硬装预算 ${money(budgetByGroup('硬装'))}</span>
+        <span><i class="dot" style="background:var(--soft)"></i>软装预算 ${money(budgetByGroup('软装'))}</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>💵 预算执行率</h2>
+      <div class="pbar" style="height:16px;margin-top:6px"><i style="width:${Math.min(ep,100)}%;background:${ep>b?'var(--bad)':'linear-gradient(90deg,var(--primary),var(--primary2))'}"></i></div>
+      <div class="flex" style="margin-top:10px;gap:8px"><span class="mini">已用 <b>${ep}%</b></span>
+        <span class="sp mini">超支 ${money(Math.max(0,ex-b))}</span></div>
+      <div class="grid g2" style="margin-top:14px">
+        <div class="stat" style="padding:12px 14px"><div class="k">已支出</div><div class="v" style="font-size:19px;color:var(--bad)">${money(ex)}</div></div>
+        <div class="stat" style="padding:12px 14px"><div class="k">已收入</div><div class="v" style="font-size:19px;color:var(--ok)">${money(inc)}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🕘 最近账目动态</h2>
+    ${recent.length?`<table><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>说明</th><th style="text-align:right">金额</th></tr></thead><tbody>
+      ${recent.map(t=>`<tr><td>${t.date}</td><td><span class="tag" style="background:${t.type==='expense'?'#fff0f3':'#eafaf3'};color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'支出':'收入'}</span></td>
+      <td>${esc(t.category)}</td><td>${esc(t.note||'—')}</td>
+      <td style="text-align:right;font-weight:700;color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'-':'+'}${money(t.amount)}</td></tr>`).join('')}
+    </tbody></table>`:`<div class="empty">还没有账目，去「账目管理」添加第一笔</div>`}
+  </div>`;
+  $('budgetPill').innerHTML=`结余 <b style="color:${rem<0?'var(--bad)':'#1c2434'}">${money(rem)}</b>`;
+}
+
+/* ============ 渲染：立体户型 ============ */
+var viewMode='3d',selRoom=null;
+function renderFloor(){const rs=state.rooms;
+  if(!rs.length){$('p-floor').innerHTML=`<div class="card empty">暂无户型数据。去「项目设置」或点顶部「✦ 示例数据」载入带立体户型的三居室模板。</div>`;return;}
+  selRoom=selRoom&&rs.find(r=>r.id===selRoom)?selRoom:rs[0].id;
+  $('p-floor').innerHTML=`
+  <div class="card">
+    <div class="flex" style="margin-bottom:6px">
+      <h2 style="margin:0">🧊 立体户型图</h2>
+      <span class="sp"></span>
+      <div class="toptabs">
+        <button class="${viewMode==='3d'?'on':''}" data-action-click="viewMode='3d';renderFloor()">立体</button>
+        <button class="${viewMode==='2d'?'on':''}" data-action-click="viewMode='2d';renderFloor()">平面</button>
+      </div>
+    </div>
+    <div class="legend" style="margin-bottom:8px">
+      <span><i class="dot" style="background:var(--hard)"></i>硬装</span>
+      <span><i class="dot" style="background:var(--soft)"></i>软装</span>
+      <span>颜色深浅 = 完成度（越绿越接近完工）</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:18px">
+      <div style="background:linear-gradient(135deg,#f7f9ff,#eef2ff);border-radius:16px;padding:10px;display:flex;align-items:center;justify-content:center;overflow:auto">
+        ${viewMode==='3d'?isoSVG():planSVG()}
+      </div>
+      <div id="roomPanel"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🏠 全部空间一览</h2>
+    <div class="grid g3">
+      ${rs.map(r=>`<div class="room-card ${r.id===selRoom?'sel':''}" data-action-click="selRoom='${r.id}';renderFloor()">
+        <div><div style="font-weight:800">${esc(r.name)}</div>
+        <div class="mini">${r.area?r.area+'㎡ · ':''}硬装 ${roomHard(r)}% / 软装 ${roomSoft(r)}%</div></div>
+        <span class="sp"></span>
+        <div style="text-align:right"><div class="mini">整体</div><b style="color:${roomOverall(r)===100?'var(--ok)':'var(--primary2)'}">${roomOverall(r)}%</b></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  renderRoomPanel();
+}
+function renderRoomPanel(){const r=state.rooms.find(x=>x.id===selRoom);if(!r)return;
+  const box=(it,grp)=>`<div class="flex" style="padding:7px 0;border-bottom:1px solid var(--line)">
+    <div class="cbox ${it.done?'on':''}" data-action-click="toggleItem('${r.id}','${grp}','${it.id}')">${it.done?'✓':''}</div>
+    <span style="font-weight:600;text-decoration:${it.done?'line-through':'none'};color:${it.done?'var(--sub)':'var(--ink)'}">${esc(it.name)}</span></div>`;
+  $('roomPanel').innerHTML=`
+    <div style="border:1px solid var(--line);border-radius:14px;padding:15px;background:#fbfcff">
+      <div style="font-weight:800;font-size:16px">${esc(r.name)} <span class="mini">${r.area?r.area+'㎡':''}</span></div>
+      <div class="mini" style="margin:6px 0 12px">整体完成 <b style="color:${roomOverall(r)===100?'var(--ok)':'var(--primary2)'}">${roomOverall(r)}%</b></div>
+      <div style="display:flex;gap:8px;margin-bottom:6px"><span class="tag2" style="background:#e7f3ff;color:var(--hard)">硬装 ${roomHard(r)}%</span>
+        <span class="tag2" style="background:#f1eaff;color:var(--soft)">软装 ${roomSoft(r)}%</span></div>
+      <div style="font-weight:800;font-size:13px;color:var(--hard);margin:12px 0 4px">🔧 硬装清单</div>
+      ${r.hardItems.length?r.hardItems.map(i=>box(i,'hard')).join(''):'<div class="mini">暂无</div>'}
+      <div style="font-weight:800;font-size:13px;color:var(--soft);margin:12px 0 4px">🛋 软装清单</div>
+      ${r.softItems.length?r.softItems.map(i=>box(i,'soft')).join(''):'<div class="mini">暂无</div>'}
+      <div class="flex" style="margin-top:12px">
+        <button class="btn sm" data-action-click="addItem('${r.id}','hard')">＋硬装项</button>
+        <button class="btn sm" data-action-click="addItem('${r.id}','soft')">＋软装项</button>
+      </div>
+    </div>`;
+}
+function toggleItem(rid,grp,id){const r=state.rooms.find(x=>x.id===rid);const arr=grp==='hard'?r.hardItems:r.softItems;
+  const it=arr.find(i=>i.id===id);it.done=!it.done;save();renderFloor();renderOverview();}
+function addItem(rid,grp){const nm=prompt('清单项名称：');if(!nm)return;const r=state.rooms.find(x=>x.id===rid);
+  (grp==='hard'?r.hardItems:r.softItems).push({id:uid(),name:nm,done:false});save();renderFloor();renderOverview();toast('已添加');}
+
+/* 等距投影 */
+const TW=42,TH=21,WH=22;
+function proj(x,y){return[(x-y)*TW/2,(x+y)*TH/2];}
+function isoSVG(){const rs=state.rooms;let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  rs.forEach(r=>{[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]].forEach(c=>{const[p,q]=proj(c[0],c[1]);
+    minX=Math.min(minX,p);maxX=Math.max(maxX,p);minY=Math.min(minY,q);maxY=Math.max(maxY,q);});});
+  minY-=WH;const P=26;const vb=`${minX-P} ${minY-P} ${maxX-minX+2*P} ${maxY-minY+2*P}`;
+  let s='';
+  rs.forEach(r=>{
+    const o=roomOverall(r);const hue=Math.round(o/100*140); // 0红->140绿
+    const floor=`hsl(${hue},62%,${72-Math.round(o/100*8)}%)`;
+    const wall=`hsl(${hue},48%,${54-Math.round(o/100*6)}%)`;
+    const[ax,ay]=proj(r.x,r.y),[bx,by]=proj(r.x+r.w,r.y),[cx,cy]=proj(r.x+r.w,r.y+r.h),[dx,dy]=proj(r.x,r.y+r.h);
+    const au=[ax,ay-WH],bu=[bx,by-WH],du=[dx,dy-WH];
+    const sel=r.id===selRoom;
+    s+=`<g style="cursor:pointer" data-action-click="selRoom='${r.id}';renderFloor()">
+      <polygon points="${ax},${ay} ${bx},${by} ${bx},${by-WH} ${ax},${ay-WH}" fill="${wall}" opacity=".96"/>
+      <polygon points="${ax},${ay} ${dx},${dy} ${dx},${dy-WH} ${ax},${ay-WH}" fill="${wall}" opacity=".78"/>
+      <polygon points="${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}" fill="${floor}" stroke="${sel?'#1c2434':'#fff'}" stroke-width="${sel?2.5:1.2}"/>
+      <text x="${(ax+bx+cx+dx)/4}" y="${(ay+by+cy+dy)/4-2}" text-anchor="middle" font-size="11" font-weight="700" fill="#1c2434">${esc(r.name)}</text>
+      <text x="${(ax+bx+cx+dx)/4}" y="${(ay+by+cy+dy)/4+12}" text-anchor="middle" font-size="10" font-weight="800" fill="${o===100?'#0a8a5c':'#3a4358'}">${o}%</text>
+    </g>`;});
+  return`<svg viewBox="${vb}" style="width:100%;max-width:680px;height:auto">${s}</svg>`;
+}
+function planSVG(){const rs=state.rooms;const sc=46;let maxX=0,maxY=0;
+  rs.forEach(r=>{maxX=Math.max(maxX,r.x+r.w);maxY=Math.max(maxY,r.y+r.h);});
+  let s='';rs.forEach(r=>{const o=roomOverall(r);const hue=Math.round(o/100*140);
+    s+=`<g style="cursor:pointer" data-action-click="selRoom='${r.id}';renderFloor()">
+      <rect x="${r.x*sc}" y="${r.y*sc}" width="${r.w*sc}" height="${r.h*sc}" rx="6"
+        fill="hsl(${hue},60%,${80-Math.round(o/100*10)}%)" stroke="${r.id===selRoom?'#1c2434':'#fff'}" stroke-width="${r.id===selRoom?2.5:1.5}"/>
+      <text x="${r.x*sc+r.w*sc/2}" y="${r.y*sc+r.h*sc/2-3}" text-anchor="middle" font-size="12" font-weight="700" fill="#1c2434">${esc(r.name)}</text>
+      <text x="${r.x*sc+r.w*sc/2}" y="${r.y*sc+r.h*sc/2+13}" text-anchor="middle" font-size="11" font-weight="800" fill="${o===100?'#0a8a5c':'#3a4358'}">${o}%</text>
+    </g>`;});
+  return`<svg viewBox="0 0 ${maxX*sc} ${maxY*sc}" style="width:100%;max-width:560px;height:auto">${s}</svg>`;
+}
+
+/* ============ 渲染：进度 ============ */
+function renderProgress(){const ov=overallPct();
+  const groups=[{k:'硬装',items:state.phases.filter(p=>p.group==='硬装')},{k:'软装',items:state.phases.filter(p=>p.group==='软装')}];
+  let html=`<div class="card"><div class="flex"><h2 style="margin:0">📅 施工阶段与时间线</h2>
+    <span class="sp pill" style="background:#eef0ff;color:var(--primary2);padding:6px 13px;border-radius:20px;font-weight:700">整体进度 ${ov}%</span>
+    <button class="btn p sm" data-action-click="addPhase()">＋ 新增阶段</button></div></div>`;
+  if(!state.phases.length)html+=`<div class="card empty">暂无阶段。点「新增阶段」或「✦ 示例数据」载入硬装+软装全套阶段。</div>`;
+  groups.forEach(g=>{if(!g.items.length)return;
+    html+=`<div class="card"><h2><span class="dot" style="background:${GCOL[g.k]};width:12px;height:12px"></span>${g.k}阶段 <span class="tag2" style="background:${g.k==='硬装'?'#e7f3ff':'#f1eaff'};color:${GCOL[g.k]}">${g.items.length} 项</span></h2>`;
+    g.items.forEach((ph,idx)=>{const pg=phaseProg(ph),st=phaseStatus(ph);
+      html+=`<div class="phase"><div class="phase-head">
+        <span class="phase-name">${ph.name}</span>
+        <span class="tag" style="background:${SC[st]}22;color:${SC[st]}">${st}</span>
+        <span class="mini">🗓 ${ph.start||'—'} ~ ${ph.end||'—'}</span>
+        <span class="sp"></span>
+        <button class="btn ghost sm" data-action-click="editPhase('${ph.id}')">编辑</button>
+        <button class="btn ghost sm" data-action-click="addNode('${ph.id}')">＋节点</button>
+        <button class="btn danger sm" data-action-click="delPhase('${ph.id}')">删除</button>
+      </div>
+      <div class="pbar"><i style="width:${pg}%;background:linear-gradient(90deg,${GCOL[g.k]},${g.k==='硬装'?'#7fc0ff':'#c79bff'})"></i></div>
+      <div class="mini" style="margin:6px 0 10px">阶段完成 ${pg}%</div>
+      <div class="flex" style="gap:8px;flex-wrap:wrap">
+        ${ph.nodes.length?ph.nodes.map(n=>`<div class="chip" data-action-click="cycleNode('${ph.id}','${n.id}')">
+          <i class="dot" style="background:${SC[n.status]}"></i>${esc(n.name)}<span class="mini">${n.status}</span></div>`).join(''):'<span class="mini">暂无节点</span>'}
+      </div></div>`;});
+    html+=`</div>`;});
+  $('p-progress').innerHTML=html;
+}
+function cycleNode(pid,nid){const ph=state.phases.find(p=>p.id===pid),n=ph.nodes.find(x=>x.id===nid);
+  n.status=STATUS[(STATUS.indexOf(n.status)+1)%STATUS.length];save();renderProgress();renderOverview();}
+function addPhase(){const name=prompt('阶段名称：');if(!name)return;const g=prompt('所属（硬装/软装）：','硬装');
+  state.phases.push({id:uid(),name,group:(g==='软装'?'软装':'硬装'),start:'',end:'',nodes:[]});save();renderProgress();toast('已新增');}
+function editPhase(pid){const ph=state.phases.find(p=>p.id===pid);const name=prompt('阶段名称：',ph.name);if(name===null)return;
+  const start=prompt('开始(YYYY-MM-DD)：',ph.start),end=prompt('结束(YYYY-MM-DD)：',ph.end);
+  ph.name=name||ph.name;ph.start=start||'';ph.end=end||'';save();renderProgress();renderOverview();}
+function delPhase(pid){if(!confirm('删除该阶段及其节点？'))return;state.phases=state.phases.filter(p=>p.id!==pid);save();renderProgress();renderOverview();toast('已删除');}
+function addNode(pid){const name=prompt('节点名称：');if(!name)return;const ph=state.phases.find(p=>p.id===pid);
+  ph.nodes.push({id:uid(),name,status:'待开始'});save();renderProgress();renderOverview();}
+
+/* ============ 渲染：账目 ============ */
+function renderAccounts(){const b=Number(state.project.totalBudget||0),ex=expenseTotal(),inc=incomeTotal(),rem=remain();
+  const hS=spendByGroup('硬装'),sS=spendByGroup('软装');
+  const donutItems=state.categories.filter(c=>catSpend(c.name)>0).map((c,i)=>({label:c.name,value:catSpend(c.name),color:CATC[i%CATC.length]}));
+  const opts=state.categories.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}（${c.group}）</option>`).join('');
+  const tx=[...state.transactions].sort((a,b)=>b.date.localeCompare(a.date));
+  $('p-accounts').innerHTML=`
+  <div class="grid g4">
+    <div class="stat"><div class="k">总预算</div><div class="v">${money(b)}</div></div>
+    <div class="stat"><div class="k">已支出</div><div class="v" style="color:var(--bad)">${money(ex)}</div></div>
+    <div class="stat"><div class="k">已收入</div><div class="v" style="color:var(--ok)">${money(inc)}</div></div>
+    <div class="stat"><div class="k">结余</div><div class="v" style="color:${rem<0?'var(--bad)':'var(--ok)'}">${money(rem)}</div></div>
+  </div>
+
+  <div class="card">
+    <h2>➕ 录入账目</h2>
+    <div class="grid g3">
+      <div><label>日期</label><input type="date" id="f-date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div><label>类型</label><select id="f-type"><option value="expense">支出</option><option value="income">收入</option></select></div>
+      <div><label>分类</label><select id="f-cat">${opts||'<option>请先到设置添加分类</option>'}</select></div>
+      <div><label>金额(元)</label><input type="number" id="f-amt" min="0" step="0.01" placeholder="0.00"></div>
+      <div><label>收款方/来源</label><input type="text" id="f-payee" placeholder="如：XX装修公司"></div>
+      <div><label>备注</label><input type="text" id="f-note" placeholder="可选"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn p" data-action-click="addTx()">💾 保存这笔账目</button></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h2>🥧 支出分类占比</h2>
+      <div class="flex" style="gap:16px;align-items:center">
+        ${donut(donutItems)}
+        <div class="legend" style="flex-direction:column;gap:7px">${donutItems.map((d,i)=>`<span><i class="dot" style="background:${d.color}"></i>${esc(d.label)} · ${money(d.value)}</span>`).join('')||'<span class="mini">暂无</span>'}</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📊 硬装 / 软装 支出对比</h2>
+      <div style="margin-bottom:14px"><div class="mini" style="display:flex;justify-content:space-between"><span><i class="swatch" style="background:var(--hard)"></i>硬装支出 / 预算</span><b>${money(hS)} / ${money(budgetByGroup('硬装'))}</b></div>
+        <div class="bar-track"><div class="bar-spend" style="width:${Math.min(budgetByGroup('硬装')?Math.round(hS/budgetByGroup('硬装')*100):0,100)}%;background:var(--hard)"></div></div></div>
+      <div><div class="mini" style="display:flex;justify-content:space-between"><span><i class="swatch" style="background:var(--soft)"></i>软装支出 / 预算</span><b>${money(sS)} / ${money(budgetByGroup('软装'))}</b></div>
+        <div class="bar-track"><div class="bar-spend" style="width:${Math.min(budgetByGroup('软装')?Math.round(sS/budgetByGroup('软装')*100):0,100)}%;background:var(--soft)"></div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📒 账目明细 <span class="tag2">${tx.length} 笔</span></h2>
+    ${tx.length?`<table><thead><tr><th>日期</th><th>类型</th><th>分类</th><th>收款方</th><th>备注</th><th style="text-align:right">金额</th><th></th></tr></thead><tbody>
+      ${tx.map(t=>`<tr><td>${t.date}</td>
+        <td><span class="tag" style="background:${t.type==='expense'?'#fff0f3':'#eafaf3'};color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'支出':'收入'}</span></td>
+        <td>${esc(t.category)}</td><td>${esc(t.payee||'—')}</td><td>${esc(t.note||'—')}</td>
+        <td style="text-align:right;font-weight:700;color:${t.type==='expense'?'var(--bad)':'var(--ok)'}">${t.type==='expense'?'-':'+'}${money(t.amount)}</td>
+        <td style="text-align:right"><button class="btn danger sm" data-action-click="delTx('${t.id}')">删</button></td></tr>`).join('')}
+    </tbody></table>`:`<div class="empty">还没有账目</div>`}
+  </div>`;
+}
+function addTx(){const date=$('f-date').value,type=$('f-type').value,cat=$('f-cat').value,amt=parseFloat($('f-amt').value),payee=$('f-payee').value,note=$('f-note').value;
+  if(!date){toast('请选日期');return;}if(!(amt>0)){toast('金额不正确');return;}if(!cat){toast('请先到设置添加分类');return;}
+  state.transactions.push({id:uid(),date,type,category:cat,amount:amt,payee,note});save();
+  $('f-amt').value='';$('f-payee').value='';$('f-note').value='';renderAccounts();renderOverview();toast('已保存');}
+function delTx(id){if(!confirm('删除？'))return;state.transactions=state.transactions.filter(t=>t.id!==id);save();renderAccounts();renderOverview();toast('已删除');}
+
+/* ============ 渲染：设置 ============ */
+function renderSettings(){const p=state.project;
+  $('p-settings').innerHTML=`
+  <div class="card">
+    <h2>⚙ 项目信息</h2>
+    <div class="grid g3">
+      <div><label>项目名称</label><input id="s-name" value="${esc(p.name)}"></div>
+      <div><label>总预算(元)</label><input id="s-budget" type="number" min="0" value="${p.totalBudget}"></div>
+      <div><label>建筑面积(㎡)</label><input id="s-area" type="number" min="0" value="${p.area}"></div>
+      <div><label>开工日期</label><input id="s-start" type="date" value="${p.startDate}"></div>
+      <div><label>预计完工</label><input id="s-end" type="date" value="${p.endDate}"></div>
+      <div><label>硬装/软装预算(元)</label><input id="s-hs" type="text" value="${p.hardBudget+' / '+p.softBudget}" placeholder="如 220000 / 80000"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn p" data-action-click="saveSettings()">💾 保存</button></div>
+  </div>
+
+  <div class="card">
+    <h2>🏷 支出分类与预算</h2>
+    ${['硬装','软装','通用'].map(g=>{const cs=state.categories.filter(c=>c.group===g);if(!cs.length)return'';
+      return`<div style="margin-bottom:12px"><div class="mini" style="font-weight:800;color:${GCOL[g]};margin-bottom:6px">${g}类</div>
+        ${cs.map(c=>`<div class="flex" style="gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
+          <input value="${esc(c.name)}" style="max-width:200px;font-weight:700" data-action-change="renameCat('${esc(c.name)}',this.value)">
+          <input type="number" min="0" value="${c.budget}" placeholder="预算" style="max-width:140px" data-action-change="setCatBudget('${esc(c.name)}',this.value)">
+          <span class="mini">已支出 ${money(catSpend(c.name))}</span>
+          <span class="sp"></span><button class="btn danger sm" data-action-click="delCat('${esc(c.name)}')">删</button></div>`).join('')}
+      </div>`;}).join('')}
+    <div class="flex" style="margin-top:10px;gap:8px">
+      <input id="new-cat" placeholder="新分类名" style="max-width:160px">
+      <select id="new-grp" style="max-width:120px"><option value="硬装">硬装</option><option value="软装">软装</option><option value="通用">通用</option></select>
+      <button class="btn" data-action-click="addCat()">＋ 添加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🗂 数据管理</h2>
+    <div class="flex">
+      <button class="btn" data-action-click="exportJSON()">⬇ 导出备份</button>
+      <button class="btn" data-action-click="document.getElementById('imp').click()">⬆ 导入</button>
+      <button class="btn" data-action-click="loadSample()">✦ 示例数据</button>
+      <button class="btn danger" data-action-click="clearAll()">🗑 清空</button>
+    </div>
+    <p class="mini" style="margin-top:10px">数据保存在应用的云数据库中。</p>
+  </div>`;
+}
+function saveSettings(){const p=state.project;p.name=$('s-name').value||'我的装修项目';
+  p.totalBudget=parseFloat($('s-budget').value)||0;p.area=parseFloat($('s-area').value)||0;
+  p.startDate=$('s-start').value;p.endDate=$('s-end').value;
+  const hs=$('s-hs').value.split('/');p.hardBudget=parseFloat(hs[0])||0;p.softBudget=parseFloat(hs[1])||0;save();
+  $('projTitle').textContent=p.name;renderOverview();renderAccounts();toast('已保存');}
+function renameCat(old,nw){nw=(nw||'').trim();if(!nw||nw===old)return;const c=state.categories.find(x=>x.name===old);if(c)c.name=nw;
+  state.transactions.forEach(t=>{if(t.category===old)t.category=nw;});save();renderSettings();renderAccounts();}
+function setCatBudget(name,v){const c=state.categories.find(x=>x.name===name);if(c)c.budget=parseFloat(v)||0;save();renderSettings();renderAccounts();}
+function addCat(){const nw=$('new-cat').value.trim(),g=$('new-grp').value;if(!nw){toast('输入分类名');return;}
+  if(state.categories.some(c=>c.name===nw)){toast('已存在');return;}state.categories.push({name:nw,group:g,budget:0});save();renderSettings();renderAccounts();}
+function delCat(name){if(state.transactions.some(t=>t.category===name)){toast('该分类已有账目');return;}
+  state.categories=state.categories.filter(c=>c.name!==name);save();renderSettings();renderAccounts();}
+function clearAll(){if(!confirm('清空全部数据？建议先导出备份。'))return;state=emptyState();save();initAll();toast('已清空');}
+
+/* ============ 导入导出 ============ */
+function exportJSON(){const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=`装修数据_${new Date().toISOString().slice(0,10)}.json`;a.click();toast('已导出');}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.project)throw 0;state=d;save();initAll();toast('导入成功');}catch(err){alert('文件格式不正确');}};
+  r.readAsText(f);e.target.value='';}
+
+/* ============ 示例数据 ============ */
+function mk(n){return n.map(x=>({id:uid(),name:x,done:false}));}
+function loadSample(){
+  const s=emptyState();
+  s.project={name:'示例 · 89㎡ 三居室',totalBudget:300000,hardBudget:220000,softBudget:80000,startDate:'2026-03-01',endDate:'2026-09-30',area:89};
+  // 户型（网格坐标 x,y,w,h）
+  const R=(name,group,x,y,w,h,area,hard,soft)=>({id:uid(),name,group,x,y,w,h,area,hardItems:mk(hard),softItems:mk(soft)});
+  s.rooms=[
+    R('客厅','公共',0,0,6,4,28,['墙面基层','乳胶漆','地面瓷砖','吊顶','电视背景墙'],['沙发','茶几','电视柜','窗帘','地毯','装饰画']),
+    R('餐厅','公共',6,0,3,3,10,['墙面','地面','餐边柜基层'],['餐桌','餐椅','吊灯','窗帘']),
+    R('厨房','硬装',9,0,3,3,6,['墙地砖','防水','橱柜','水电点位','铝扣板吊顶'],['烟机灶具','水槽','小家电']),
+    R('玄关','公共',6,3,3,1,3,['地面','鞋柜基层','插座'],['鞋柜','换鞋凳','穿衣镜']),
+    R('主卧','软装',0,4,4,5,15,['墙面','木地板','衣柜基层','吊顶'],['床','床垫','床头柜','衣柜','窗帘','灯具','四件套']),
+    R('次卧','软装',4,4,4,3,12,['墙面','木地板','衣柜基层'],['床','书桌','椅子','窗帘']),
+    R('儿童房','软装',4,7,4,2,9,['墙面','木地板','护墙'],['儿童床','学习桌','玩具柜','窗帘']),
+    R('卫生间①','硬装',8,4,2,2,4,['墙地砖','防水','回填','洁具点位','浴霸'],['马桶','花洒','浴室柜','镜柜']),
+    R('卫生间②','硬装',10,4,2,2,4,['墙地砖','防水','洁具点位'],['马桶','淋浴','浴室柜']),
+    R('阳台','软装',8,6,4,3,7,['地面','防水','上下水'],['洗衣柜','晾衣机','绿植','休闲椅']),
+  ];
+  // 预置部分完成
+  const done=(r,name)=>{const it=r.hardItems.find(i=>i.name===name);if(it)it.done=true;};
+  done(s.rooms[0],'墙面基层');done(s.rooms[0],'乳胶漆');
+  s.rooms[1].hardItems.forEach(i=>i.done=true);
+  s.rooms[4].softItems.find(i=>i.name==='床').done=true;
+  // 阶段
+  const P=(name,group,start,end,nodes)=>({id:uid(),name,group,start,end,nodes:nodes.map(n=>({id:uid(),name:n,status:'待开始'}))});
+  s.phases=[
+    P('设计签约','硬装','2026-03-01','2026-03-20',['方案确认','合同签订','施工图交付']),
+    P('拆改工程','硬装','2026-03-21','2026-04-10',['墙体拆除','垃圾清运','门窗拆除']),
+    P('水电改造','硬装','2026-04-11','2026-05-15',['水路改造','电路改造','打压测试','节点验收']),
+    P('泥瓦工程','硬装','2026-05-16','2026-06-30',['防水施工','墙地砖铺贴','地面找平']),
+    P('木工工程','硬装','2026-07-01','2026-07-31',['吊顶制作','柜体制作','门套安装']),
+    P('油漆工程','硬装','2026-08-01','2026-08-31',['批腻子','底漆面漆','壁纸']),
+    P('安装阶段','硬装','2026-09-01','2026-09-20',['橱柜卫浴','灯具开关','木地板','五金']),
+    P('家具进场','软装','2026-09-10','2026-09-22',['沙发茶几','床具','衣柜','餐桌椅']),
+    P('软装布置','软装','2026-09-18','2026-09-27',['窗帘布艺','装饰画','床品','绿植']),
+    P('家电安装','软装','2026-09-20','2026-09-28',['厨房电器','空调','电视','净水']),
+    P('竣工验收','软装','2026-09-29','2026-09-30',['开荒保洁','竣工验收']),
+  ];
+  s.phases[0].nodes.forEach(n=>n.status='已完成');
+  s.phases[1].nodes.forEach(n=>n.status='已完成');
+  s.phases[2].nodes[0].status='已完成';s.phases[2].nodes[1].status='已完成';s.phases[2].nodes[2].status='进行中';
+  s.phases[3].nodes[0].status='进行中';
+  // 分类
+  s.categories=[
+    {name:'设计费',group:'硬装',budget:15000},{name:'人工费',group:'硬装',budget:80000},
+    {name:'主材',group:'硬装',budget:60000},{name:'辅材',group:'硬装',budget:20000},
+    {name:'定制柜体',group:'硬装',budget:30000},{name:'门窗',group:'硬装',budget:15000},
+    {name:'家具',group:'软装',budget:40000},{name:'家电',group:'软装',budget:45000},
+    {name:'窗帘布艺',group:'软装',budget:8000},{name:'灯具',group:'软装',budget:6000},
+    {name:'装饰/绿植',group:'软装',budget:6000},{name:'物业押金',group:'通用',budget:3000},
+  ];
+  const T=(d,type,cat,amt,payee,note)=>({id:uid(),date:d,type,category:cat,amount:amt,payee,note});
+  s.transactions=[
+    T('2026-03-05','expense','设计费',12000,'XX设计工作室','全屋设计+效果图'),
+    T('2026-03-18','expense','物业押金',3000,'物业','装修押金+垃圾清运费'),
+    T('2026-03-22','expense','人工费',8000,'示例施工队','拆除人工'),
+    T('2026-04-12','expense','主材',22000,'XX建材城','水电材料'),
+    T('2026-04-20','expense','人工费',18000,'示例电工','水电人工'),
+    T('2026-05-10','income','物业押金',3000,'物业','押金退还'),
+    T('2026-05-18','expense','主材',38000,'XX瓷砖仓','客厨卫瓷砖'),
+    T('2026-05-25','expense','辅材',9000,'德高','防水+背胶'),
+    T('2026-06-02','expense','人工费',26000,'示例瓦工','泥瓦人工'),
+    T('2026-06-20','expense','定制柜体',15000,'XX橱柜','柜体板材'),
+    T('2026-07-10','expense','人工费',14000,'示例木工','木工人工'),
+    T('2026-08-15','expense','主材',18000,'多乐士','乳胶漆+腻子'),
+    T('2026-09-12','expense','家具',22000,'全友','沙发+茶几+餐桌'),
+    T('2026-09-16','expense','家电',28000,'京东','空调×3+电视'),
+    T('2026-09-22','expense','窗帘布艺',6500,'如鱼得水','全屋窗帘'),
+    T('2026-09-25','expense','灯具',4800,'雷士','全屋灯具'),
+  ];
+  state=s;save();initAll();toast('已载入示例数据');
+}
+
+/* ============ 启动 ============ */
+function initAll(){$('projTitle').textContent=state.project.name;renderOverview();renderFloor();renderProgress();renderAccounts();renderSettings();}
+document.querySelector('.app').inert=true;
+store=window.createRenovationStore(data=>{state=data;initAll()}, status=>{
+  if(status==='err'){document.querySelector('.app').inert=true;const b=document.createElement('button');b.textContent='保存未确认，点击导出当前数据后刷新核对';b.style.cssText='position:fixed;top:10px;left:10px;z-index:1000;padding:12px';b.onclick=exportJSON;document.body.appendChild(b);}
+});
+store.start(emptyState(),()=>state).then(data=>{state=data;initAll();document.querySelector('.app').inert=false}).catch(()=>{document.getElementById('app').textContent='数据库连接失败，请检查登录后重新打开。'});
+
+for (const kind of ['click','change']) document.addEventListener(kind, e => {
+  const el=e.target.closest('[data-action-'+kind+']'); if(!el) return;
+  const action=el.getAttribute('data-action-'+kind);
+  for (const part of action.split(';').map(x=>x.trim()).filter(Boolean)) {
+    if(part === "document.getElementById('imp').click()") {document.getElementById('imp').click(); continue;}
+    const assignment=part.match(/^(viewMode|selRoom)='([^']*)'$/);
+    if(assignment) {window[assignment[1]]=assignment[2]; continue;}
+    const call=part.match(/^(\w+)\((.*)\)$/); if(!call || typeof window[call[1]]!=='function') continue;
+    const args=call[2] ? call[2].split(',').map(x=>{x=x.trim(); if(x==='event') return e; if(x==='this.value') return el.value; if(x.startsWith("'")&&x.endsWith("'")) return x.slice(1,-1); return x;}) : [];
+    window[call[1]](...args);
+  }
+});
