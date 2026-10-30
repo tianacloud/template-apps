@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS shangan_state (id TEXT PRIMARY KEY, document TEXT NOT NULL, revision INTEGER NOT NULL);

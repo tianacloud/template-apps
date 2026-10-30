@@ -1,0 +1,15 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2];
+if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1') for (const key of ['git_instance_id','database_instance_id']) if (!/^[A-Za-z0-9_-]{1,128}$/.test(source[key]||'') || source[key].startsWith('__TIANA_')) throw Error('请填写 '+key);
+const html=await readFile('client/index.html','utf8');
+const body=html.match(/<body>([\s\S]*?)<script src="app.js"><\/script>/)?.[1];
+if(!body) throw Error('缺少界面');
+const css=await readFile('client/styles.css','utf8');
+const js=(await build({entryPoints:['client/app.js'],bundle:true,write:false,format:'iife',platform:'browser'})).outputFiles[0].text;
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='上岸体质';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\n`+js);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
