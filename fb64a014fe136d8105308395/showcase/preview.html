@@ -1,0 +1,2980 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>建筑消防给水计算器 · 消防水量 / 分区 / 水泵扬程</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #eef1f5;
+  --bg-grad: linear-gradient(160deg, #eef1f5 0%, #e8ecf2 100%);
+  --panel: #ffffff;
+  --panel-2: #f7f9fc;
+  --text: #1a2230;
+  --text-2: #5a6678;
+  --text-3: #8a95a6;
+  --line: #dde3ec;
+  --line-2: #e8edf4;
+  --brand: #16456b;
+  --brand-2: #1f5f8f;
+  --accent: #c8402e;
+  --accent-soft: #fdf0ed;
+  --ok: #1f7a52;
+  --ok-soft: #eaf6f0;
+  --warn: #a8700f;
+  --warn-soft: #fdf6e6;
+  --shadow: 0 1px 2px rgba(22, 45, 70, .05), 0 8px 24px -12px rgba(22, 45, 70, .18);
+  --radius: 12px;
+  --mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+
+html[data-theme="dark"] {
+  --bg: #0f151d;
+  --bg-grad: linear-gradient(160deg, #0f151d 0%, #131b25 100%);
+  --panel: #17202b;
+  --panel-2: #1c2733;
+  --text: #e8eef7;
+  --text-2: #9aa8bb;
+  --text-3: #6f7d90;
+  --line: #263341;
+  --line-2: #202b38;
+  --brand: #7fb4dd;
+  --brand-2: #9cc8ea;
+  --accent: #ef6a52;
+  --accent-soft: #2a1b18;
+  --ok: #57c08d;
+  --ok-soft: #14251d;
+  --warn: #d9a441;
+  --warn-soft: #2a2317;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -14px rgba(0, 0, 0, .7);
+}
+
+body {
+  margin: 0;
+  background: var(--bg-grad);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(100deg, #12395a 0%, #1c5580 62%, #24688f 100%);
+  color: #fff;
+  padding: 0 22px;
+  height: 62px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 14px rgba(10, 30, 50, .28);
+}
+.brand-mark {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .22);
+  display: grid; place-items: center;
+  flex: 0 0 auto;
+}
+.brand-mark svg { width: 20px; height: 20px; }
+.brand-txt { line-height: 1.2; }
+.brand-txt b { font-size: 16.5px; letter-spacing: .3px; font-weight: 700; display: block; }
+.brand-txt span { font-size: 11px; color: #b9d4e8; letter-spacing: 1.4px; text-transform: uppercase; }
+.topbar-spacer { flex: 1; }
+.author-chip {
+  font-size: 12px; color: #d3e5f3;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .16);
+  padding: 5px 11px; border-radius: 999px;
+  white-space: nowrap;
+}
+.author-chip b { color: #fff; font-weight: 600; }
+.icon-btn {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08); color: #fff; cursor: pointer;
+  display: grid; place-items: center; transition: .15s;
+}
+.icon-btn:hover { background: rgba(255,255,255,.18); }
+
+/* ---------- 布局 ---------- */
+.wrap {
+  display: grid;
+  grid-template-columns: 396px minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  max-width: 1680px;
+  margin: 0 auto;
+  align-items: start;
+}
+@media (max-width: 1180px) {
+  .wrap { grid-template-columns: 1fr; padding: 12px; }
+}
+
+/* ---------- 输入面板 ---------- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.inputs { position: sticky; top: 80px; }
+@media (max-width: 1180px) { .inputs { position: static; } }
+
+.panel-head {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line-2);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel-2);
+}
+.panel-head h2 {
+  margin: 0; font-size: 13.5px; font-weight: 700; letter-spacing: .6px;
+  color: var(--brand);
+}
+.panel-head .hint { font-size: 11px; color: var(--text-3); margin-left: auto; }
+
+.form-body { padding: 6px 16px 16px; max-height: calc(100vh - 210px); overflow-y: auto; }
+.form-body::-webkit-scrollbar { width: 8px; }
+.form-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+
+fieldset {
+  border: 0; margin: 0; padding: 0 0 4px;
+}
+legend {
+  font-size: 11.5px; font-weight: 700; color: var(--text-3);
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 14px 0 8px; display: flex; align-items: center; gap: 7px;
+  width: 100%;
+}
+legend::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+legend .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.field { margin-bottom: 11px; }
+.field > label {
+  display: block; font-size: 12px; color: var(--text-2); margin-bottom: 5px; font-weight: 500;
+}
+.field > label .unit { color: var(--text-3); font-weight: 400; }
+.field .fhint {
+  margin-top: 6px; font-size: 11px; line-height: 1.6;
+  color: var(--text-3);
+  padding: 7px 9px; border-radius: 7px;
+  background: rgba(37, 99, 235, .05);
+  border-left: 2px solid rgba(37, 99, 235, .35);
+}
+.field .fhint b { color: var(--text-2); font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+input[type="number"], input[type="text"], select {
+  width: 100%; height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+select { padding-right: 26px; cursor: pointer; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%), linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+input:focus, select:focus {
+  border-color: var(--brand-2);
+  box-shadow: 0 0 0 3px rgba(31, 95, 143, .12);
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.check {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12.5px; color: var(--text-2); cursor: pointer;
+  padding: 5px 0;
+}
+.check input { margin: 3px 0 0; accent-color: var(--brand-2); width: 14px; height: 14px; }
+
+.calc-btn {
+  width: 100%; height: 44px; margin-top: 14px;
+  border: 0; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(100deg, #16456b, #23689a);
+  color: #fff; font-size: 14.5px; font-weight: 700; letter-spacing: 2px;
+  box-shadow: 0 6px 18px -8px rgba(22,69,107,.9);
+  transition: transform .12s, box-shadow .2s;
+  font-family: inherit;
+}
+.calc-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -8px rgba(22,69,107,.95); }
+.calc-btn:active { transform: translateY(0); }
+
+.tiny-note { font-size: 11px; color: var(--text-3); line-height: 1.55; margin-top: 8px; }
+
+/* ---------- 结果区 ---------- */
+.results { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+
+.kpi {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 15px 13px;
+  box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+}
+.kpi::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--brand-2);
+}
+.kpi.accent::before { background: var(--accent); }
+.kpi.ok::before { background: var(--ok); }
+.kpi .k-label { font-size: 11.5px; color: var(--text-3); letter-spacing: .4px; }
+.kpi .k-val {
+  font-family: var(--mono); font-size: 25px; font-weight: 700; line-height: 1.2;
+  color: var(--text); margin-top: 3px; letter-spacing: -.3px;
+  white-space: nowrap;
+}
+.kpi .k-val small { font-size: 12px; font-weight: 500; color: var(--text-2); margin-left: 4px; font-family: inherit; letter-spacing: 0; vertical-align: 3px; }
+.kpi .k-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  padding: 12px 18px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--panel-2);
+}
+.card-head h3 {
+  margin: 0; font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 9px;
+}
+.step-no {
+  width: 22px; height: 22px; border-radius: 7px;
+  background: var(--brand); color: #fff;
+  font-size: 11.5px; font-weight: 700; font-family: var(--mono);
+  display: grid; place-items: center; flex: 0 0 auto;
+}
+.card-head .tag {
+  margin-left: auto; font-size: 11px; color: var(--text-3);
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 2px 8px; border-radius: 999px;
+}
+.card-body { padding: 15px 18px 17px; }
+
+.calc-block { margin-bottom: 13px; }
+.calc-block:last-child { margin-bottom: 0; }
+
+.formula {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-left: 3px solid var(--brand-2);
+  border-radius: 7px;
+  padding: 9px 12px;
+  margin: 7px 0;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.formula .res { color: var(--accent); font-weight: 700; }
+
+.caption { font-size: 12.5px; color: var(--text-2); }
+.caption b { color: var(--text); font-weight: 600; }
+
+.ref {
+  display: inline-block; font-size: 11px; color: var(--brand);
+  background: rgba(31,95,143,.08);
+  border: 1px solid rgba(31,95,143,.18);
+  padding: 1px 7px; border-radius: 5px;
+  margin: 2px 4px 2px 0;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .ref { background: rgba(127,180,221,.1); border-color: rgba(127,180,221,.24); }
+
+table.dt {
+  width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0;
+}
+table.dt th, table.dt td {
+  border: 1px solid var(--line);
+  padding: 6px 9px; text-align: left;
+}
+table.dt th {
+  background: var(--panel-2); font-weight: 600; color: var(--text-2); font-size: 11.5px;
+  letter-spacing: .3px;
+}
+table.dt td.num { font-family: var(--mono); text-align: right; }
+table.dt td.kvval { font-family: var(--mono); text-align: left; color: var(--text); }
+table.dt tr.hi td { background: rgba(31, 95, 143, .08); font-weight: 600; }
+table.dt tr.hi td:first-child { color: var(--brand); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+}
+.badge.ok { color: var(--ok); background: var(--ok-soft); border: 1px solid rgba(31,122,82,.22); }
+.badge.warn { color: var(--warn); background: var(--warn-soft); border: 1px solid rgba(168,112,15,.25); }
+.badge.no { color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(200,64,46,.22); }
+
+.note {
+  font-size: 12px; color: var(--text-2);
+  background: var(--panel-2); border-radius: 8px; padding: 9px 12px;
+  border: 1px dashed var(--line); margin-top: 9px;
+}
+.note b { color: var(--text); }
+.note.warn { background: var(--warn-soft); border-color: rgba(168,112,15,.3); }
+.note.warn b { color: var(--warn); }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn {
+  height: 40px; padding: 0 18px; border-radius: 9px; cursor: pointer;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: .15s;
+}
+.btn:hover { border-color: var(--brand-2); color: var(--brand); }
+.btn.primary {
+  background: linear-gradient(100deg, #16456b, #23689a); color: #fff; border-color: transparent;
+  box-shadow: 0 6px 16px -8px rgba(22,69,107,.9);
+}
+.btn.primary:hover { color: #fff; transform: translateY(-1px); }
+.btn svg { width: 15px; height: 15px; }
+
+.empty {
+  padding: 60px 20px; text-align: center; color: var(--text-3);
+}
+.empty svg { width: 52px; height: 52px; opacity: .28; margin-bottom: 10px; }
+
+footer.app-foot {
+  text-align: center; font-size: 11.5px; color: var(--text-3);
+  padding: 26px 16px 34px; line-height: 1.9;
+}
+footer.app-foot b { color: var(--text-2); }
+
+/* toast */
+.toast {
+  position: fixed; left: 50%; bottom: 42px; transform: translate(-50%, 20px);
+  background: #10202f; color: #fff; font-size: 13px;
+  padding: 10px 20px; border-radius: 10px; opacity: 0;
+  transition: .25s; pointer-events: none; z-index: 200;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media print {
+  .topbar, .inputs, .actions, footer.app-foot { display: none !important; }
+  .wrap { grid-template-columns: 1fr; padding: 0; }
+  body { background: #fff; }
+  .card, .kpi { box-shadow: none; break-inside: avoid; }
+}
+
+</style>
+</head>
+<body><div style="padding:8px;text-align:center;background:#163a49;color:white">示例体验，数据仅保留在本页；导出与打印请安装后使用。 <button type="button" onclick="resetExample()">恢复示例</button></div>
+
+<header class="topbar">
+  <div class="brand-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.5c3.6 4.2 6 7.3 6 10.2a6 6 0 0 1-12 0c0-2.9 2.4-6 6-10.2z"/>
+      <path d="M9.5 13.2a2.6 2.6 0 0 0 2.5 2.6"/>
+    </svg>
+  </div>
+  <div class="brand-txt">
+    <b>建筑消防给水计算器</b>
+    <span>Fire Water Supply Calculator</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  
+  <button class="icon-btn" id="themeBtn" title="切换浅色/深色">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/>
+    </svg>
+  </button>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= 输入区 ================= -->
+  <aside class="panel inputs">
+    <div class="panel-head">
+      <h2>设计参数</h2>
+      <span class="hint">修改后自动重算</span>
+    </div>
+    <div class="form-body">
+      <form id="form" autocomplete="off">
+
+        <fieldset>
+          <legend><i class="dot"></i>建筑概况</legend>
+
+          <div class="field">
+            <label>工程名称</label>
+            <input type="text" id="projectName" placeholder="如：××小区 3# 住宅楼">
+          </div>
+
+          <div class="field">
+            <label>建筑类别</label>
+            <select id="cat">
+              <option value="civil">民用建筑</option>
+              <option value="underground">地下建筑（含地下车库、地下商店）</option>
+              <option value="rf">人防工程（平战结合）</option>
+              <option value="industrial">工业建筑（厂房、仓库）</option>
+            </select>
+          </div>
+
+          <div class="field" id="fFunc">
+            <label>使用功能</label>
+            <select id="func"></select>
+          </div>
+
+          <div class="field" id="fIndClass" style="display:none">
+            <label>生产/储存火灾危险性</label>
+            <select id="indClass">
+              <option value="AB">甲、乙类</option>
+              <option value="C" selected>丙类</option>
+              <option value="DE">丁、戊类</option>
+            </select>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>建筑高度 H <span class="unit">m</span></label>
+              <input type="number" id="H" value="54" step="0.1" min="3">
+            </div>
+            <div class="field">
+              <label>地上层数 <span class="unit">层</span></label>
+              <input type="number" id="floors" value="18" step="1" min="1">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>层高 <span class="unit">m</span></label>
+              <input type="number" id="floorH" value="3" step="0.1" min="2">
+            </div>
+            <div class="field">
+              <label>建筑体积 V <span class="unit">m³</span></label>
+              <input type="number" id="V" value="30000" step="100" min="1">
+            </div>
+          </div>
+
+          <div class="field">
+            <label style="display:flex;justify-content:space-between;align-items:center">
+              <span>体积估算（标准层面积 × 建筑面积）</span>
+              <button type="button" class="btn" id="calcVBtn" style="height:26px;padding:0 9px;font-size:11px">估算</button>
+            </label>
+            <input type="number" id="areaStd" placeholder="标准层建筑面积，如 1200" step="10" min="1">
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>耐火等级</label>
+              <select id="fire">
+                <option value="1" selected>一、二级</option>
+                <option value="3">三级</option>
+                <option value="4">四级</option>
+              </select>
+            </div>
+            <div class="field" id="fHighClass">
+              <label>高层类别</label>
+              <select id="highClass">
+                <option value="auto" selected>自动判定</option>
+                <option value="class1">一类高层公共建筑</option>
+                <option value="class2">二类高层公共建筑</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field" id="fSeats" style="display:none">
+            <label>座位数 n <span class="unit">个</span></label>
+            <input type="number" id="seats" value="1200" step="50" min="1">
+          </div>
+
+          <div class="field" id="fRfArea" style="display:none">
+            <label>人防工程建筑面积 <span class="unit">m²</span></label>
+            <input type="number" id="rfArea" value="2000" step="100" min="1">
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>地下室层数 <span class="unit">层</span></label>
+              <input type="number" id="basementFloors" value="2" step="1" min="0">
+            </div>
+            <div class="field">
+              <label>地下室层高 <span class="unit">m</span></label>
+              <input type="number" id="basementH" value="3.9" step="0.1" min="2">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><i class="dot"></i>消防水源与市政条件</legend>
+
+          <div class="field">
+            <label>市政消防供水条件</label>
+            <select id="muniSupply">
+              <option value="single" selected>一路消防供水（或仅一条引入管）</option>
+              <option value="two">两路消防供水，能保证室外消防设计流量</option>
+              <option value="twoPartial">两路消防供水，仅能保证部分室外流量</option>
+            </select>
+            <div class="fhint">
+              两路消防供水须<b>同时</b>满足：① 市政给水厂至少两条输水干管；② 市政管网为环状；③ 不同干管上不少于两条引入管（GB 50974 第4.2.2条）。<br>
+              满足且能保证室外消防设计流量时，按第4.3.2条第1款，消防水池<b>只储存室内消防用水量</b>。
+            </div>
+          </div>
+
+          <div class="field" id="fMuniQ1" style="display:none">
+            <label>市政可保证的室外消防流量 <span class="unit">L/s</span></label>
+            <input type="number" id="muniQ1" value="0" step="5" min="0">
+            <div class="fhint">不足部分（室外设计流量 − 本值）仍需由消防水池储存。</div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>市政给水压力 <span class="unit">MPa</span></label>
+              <input type="number" id="pMuni" value="0.28" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label>火灾时补水流量 <span class="unit">L/s</span></label>
+              <input type="number" id="refillQ" value="0" step="1" min="0">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><i class="dot"></i>室内消火栓系统</legend>
+
+          <div class="field">
+            <label>是否设置室内消火栓</label>
+            <select id="hasIndoorHydrant">
+              <option value="auto" selected>按规范自动判断</option>
+              <option value="yes">设置</option>
+              <option value="no">不设置</option>
+            </select>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>栓口动压 P₀ <span class="unit">MPa</span></label>
+              <select id="hydrantP">
+                <option value="0.35" selected>0.35（高层/厂房/净高>8m）</option>
+                <option value="0.25">0.25（其他场所）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>单支水枪流量 <span class="unit">L/s</span></label>
+              <input type="number" id="hydrantQ" value="5" step="0.1" min="2">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>最不利管路长度 <span class="unit">m</span></label>
+              <input type="number" id="pipeLenHydrant" placeholder="留空自动估算" step="1" min="1">
+            </div>
+            <div class="field">
+              <label>单位水力坡降 i <span class="unit">m/m</span></label>
+              <input type="number" id="iHydrant" value="0.025" step="0.001" min="0.001">
+            </div>
+          </div>
+
+          <div class="field">
+            <label>火灾延续时间</label>
+            <select id="tDuration">
+              <option value="auto" selected>按规范自动判定（推荐）</option>
+              <option value="3">3.0 h</option>
+              <option value="2">2.0 h</option>
+              <option value="1">1.0 h（住宅，GB 55037）</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>分区判定：最不利点准工作静压 P<sub>顶</sub> <span class="unit">MPa（消火栓/喷淋共用）</span></label>
+            <select id="pTopZone">
+              <option value="0.15">0.15　稳压泵保障下限（规范最低值）</option>
+              <option value="0.20">0.20</option>
+              <option value="0.25">0.25</option>
+              <option value="0.30" selected>0.30　按稳压泵压力上限，推荐</option>
+            </select>
+            <div class="fhint">
+              分区控制的是<b>最低点静压</b>，不是几何高差：P<sub>底</sub> = P<sub>顶</sub> + Δh×0.00981。GB 50974 第5.3.3条要求最不利点静压 &gt; 0.15MPa，但稳压泵在启泵与停泵压力间波动，实测最高可达 0.25~0.30MPa，宜按上限取值留富余量。
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><i class="dot"></i>自动喷水灭火系统</legend>
+
+          <label class="check"><input type="checkbox" id="hasSprinkler" checked><span>设置自动喷水灭火系统（湿式）</span></label>
+          <label class="check"><input type="checkbox" id="fullSprinkler" checked><span>全楼设置自动喷水等全保护（用于消火栓流量折减）</span></label>
+          <label class="check"><input type="checkbox" id="tallSpace"><span>存在高大净空空间（最大净空高度 &gt; 8m）</span></label>
+
+          <div id="tallPanel" style="display:none;margin:8px 0 10px;padding:10px 11px;border-radius:9px;background:rgba(37,99,235,.055);border:1px solid rgba(37,99,235,.16)">
+            <div class="field">
+              <label>高大空间场所类别 <span class="unit">GB 50084 表5.0.2</span></label>
+              <select id="tallType">
+                <option value="civilAtrium">民用建筑—中庭、体育馆、航站楼等</option>
+                <option value="civilTheater">民用建筑—影剧院、音乐厅、会展中心等</option>
+                <option value="facLight">厂房—制衣制鞋、玩具、木器、电子生产车间等</option>
+                <option value="facTextile">厂房—棉纺厂、麻纺厂、泡沫塑料生产车间等</option>
+                <option value="market">超级市场（大型商场）—净空 &gt; 8m</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>最大净空高度 h <span class="unit">m</span></label>
+              <input type="number" id="tallH" value="10" step="0.5" min="8">
+            </div>
+            <div id="tallHint" class="caption" style="margin:2px 0 0;font-size:11.5px;line-height:1.55"></div>
+          </div>
+
+          <div class="field" style="margin-top:10px">
+            <label>火灾危险等级 / 场所类型</label>
+            <select id="hazard">
+              <option value="light">轻危险级（4 L/min·m²，160 m²）</option>
+              <option value="mid1" selected>中危险级Ⅰ级（6 L/min·m²，160 m²）</option>
+              <option value="mid2">中危险级Ⅱ级（8 L/min·m²，160 m²）</option>
+              <option value="high1">严重危险级Ⅰ级（12 L/min·m²，260 m²）</option>
+              <option value="high2">严重危险级Ⅱ级（16 L/min·m²，260 m²）</option>
+            </select>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>喷水强度 <span class="unit">L/(min·m²)</span></label>
+              <input type="number" id="density" value="6" step="0.5" min="1">
+            </div>
+            <div class="field">
+              <label>作用面积 <span class="unit">m²</span></label>
+              <input type="number" id="area" value="160" step="10" min="50">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>安全系数</label>
+              <input type="number" id="safetyK" value="1.3" step="0.05" min="1">
+            </div>
+            <div class="field">
+              <label>取整规则</label>
+              <select id="roundMode">
+                <option value="auto" selected>自动（≤15取5倍，>15取10倍）</option>
+                <option value="5">取 5 的整数倍</option>
+                <option value="10">取 10 的整数倍</option>
+                <option value="none">不取整</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>最不利喷头压力 <span class="unit">MPa</span></label>
+              <input type="number" id="nozzleP" value="0.10" step="0.01" min="0.05">
+            </div>
+            <div class="field">
+              <label>报警阀损失 <span class="unit">MPa</span></label>
+              <input type="number" id="valveLoss" value="0.02" step="0.01" min="0">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>水流指示器损失 <span class="unit">MPa</span></label>
+              <input type="number" id="flowSwitchLoss" value="0.02" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label>最不利管路长度 <span class="unit">m</span></label>
+              <input type="number" id="pipeLenSprinkler" placeholder="留空自动估算" step="1" min="1">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>单位水力坡降 i <span class="unit">m/m</span></label>
+              <input type="number" id="iSprinkler" value="0.025" step="0.001" min="0.001">
+            </div>
+            <div class="field">
+              <label>安全系数 k₂</label>
+              <input type="number" id="k2" value="1.2" step="0.05" min="1">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><i class="dot"></i>生活给水</legend>
+
+          <div class="row2">
+            <div class="field">
+              <label>用水点最低工作压力 <span class="unit">MPa</span></label>
+              <input type="number" id="pMinPoint" value="0.10" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label>水表及引入管损失 <span class="unit">MPa</span></label>
+              <input type="number" id="pMeter" value="0.05" step="0.01" min="0">
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>生活管路长度 <span class="unit">m</span></label>
+              <input type="number" id="pipeLenWater" placeholder="留空自动估算" step="1" min="1">
+            </div>
+            <div class="field">
+              <label>生活管道 i <span class="unit">m/m</span></label>
+              <input type="number" id="iWater" value="0.03" step="0.005" min="0.001">
+            </div>
+          </div>
+
+          <div class="field">
+            <label>生活最高日用水量 Q<sub>d</sub> <span class="unit">m³/d</span></label>
+            <input type="number" id="qdLife" value="200" step="10" min="1">
+            <div class="fhint">用于估算生活贮水池（水箱）容积与泵房面积。资料不足时贮水池容积按最高日用水量的 20%~25% 取。</div>
+          </div>
+
+          <label class="check"><input type="checkbox" id="centralHotWater"><span>设有集中热水供应系统（分区静压限值取 0.55MPa）</span></label>
+        </fieldset>
+
+        <button type="button" class="calc-btn" id="calcBtn">计 算</button>
+        <div class="tiny-note">
+          依据 GB 50974-2014、GB 55037-2022、GB 50016-2014(2018)、GB 50015-2019、GB 50084-2017 编制。<br>
+          参数留空时按规范推荐值/经验值自动估算。
+        </div>
+      </form>
+    </div>
+  </aside>
+
+  <!-- ================= 结果区 ================= -->
+  <main class="results" id="results">
+    <div class="card">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M4 19V9m4 10V5m4 14v-7m4 7V8m4 11v-4" stroke-linecap="round"/>
+        </svg>
+        <div>填写左侧参数后点击「计算」，结果将显示在此处</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="actions" style="max-width:1680px;margin:0 auto;padding:0 18px 20px" id="actionsBar"></div>
+
+<footer class="app-foot">
+  <b>建筑消防给水计算器</b> · 依据现行国家规范编制<br>
+  本软件为设计辅助计算工具，计算结果不构成正式设计文件，须由设计人复核确认
+</footer>
+
+<div class="toast" id="toast"></div>
+
+
+
+<script>/* 规范数据 */
+/* ============================================================
+   消防给水计算器 — 规范数据表
+   依据：GB 50974-2014 / GB 50084-2017 / GB 50015-2019 / GB 50016 / GB 55037-2022
+
+   ============================================================ */
+
+/* ---------- 表 3.3.2 建筑体积分档边界（m³）---------- */
+const V_BOUNDS = [1500, 3000, 5000, 20000, 50000];
+const V_LABELS = ['V≤1500', '1500<V≤3000', '3000<V≤5000', '5000<V≤20000', '20000<V≤50000', 'V>50000'];
+
+/* 表3.3.2 建筑物室外消火栓设计流量 (L/s)
+   数组：对应 6 个体积分档 */
+const OUTDOOR_T332 = {
+  res:        { label: '住宅',                        vals: [15, 15, 15, 15, 15, 15] },
+  pubLow:     { label: '公共建筑（单层及多层）',        vals: [15, 15, 25, 30, 40, 40] },
+  pubHigh:    { label: '公共建筑（高层）',              vals: [null, null, 25, 30, 40, 40] },
+  underground:{ label: '地下建筑（含地铁）、平战结合人防工程', vals: [15, 15, 20, 25, 30, 30] },
+  civil3:     { label: '单层及多层民用建筑（三级耐火等级）', vals: [15, 20, 25, 30, null, null] },
+  civil4:     { label: '单层及多层民用建筑（四级耐火等级）', vals: [15, 20, 25, null, null, null] },
+  facAB:      { label: '厂房（甲、乙类）',              vals: [15, 20, 25, 30, 35, 35] },
+  facC:       { label: '厂房（丙类）',                  vals: [15, 20, 25, 30, 40, 40] },
+  facDE:      { label: '厂房（丁、戊类）',              vals: [15, 15, 15, 15, 15, 20] },
+  whAB:       { label: '仓库（甲、乙类）',              vals: [15, 15, 25, 25, 25, null] },
+  whC:        { label: '仓库（丙类）',                  vals: [15, 25, 25, 35, 45, 45] },
+  whDE:       { label: '仓库（丁、戊类）',              vals: [15, 15, 15, 15, 15, 20] },
+  facBC3:     { label: '厂房（乙、丙类，三级）',         vals: [15, 20, 30, 40, 45, null] },
+  facDE3:     { label: '厂房（丁、戊类，三级）',         vals: [15, 15, 20, 25, 35, 35] }
+};
+
+/* ---------- 表 3.5.2 室内消火栓设计流量 ----------
+   每条：{ max: 上限(含), q: 流量, gun: 水枪数, riser: 每根竖管最小流量 } */
+
+const INDOOR_T352 = {
+  /* 单层及多层民用建筑 */
+  research:  { name: '科研楼、试验楼', dim: 'V', ranges: [
+    { max: 10000, q: 10, gun: 2, riser: 10 }, { max: Infinity, q: 15, gun: 3, riser: 10 } ] },
+
+  station:   { name: '车站、码头、机场的候车（船、机）楼和展览建筑（包括博物馆）等', dim: 'V', ranges: [
+    { max: 25000, q: 10, gun: 2, riser: 10 }, { max: 50000, q: 15, gun: 3, riser: 10 },
+    { max: Infinity, q: 20, gun: 4, riser: 15 } ] },
+
+  theater:   { name: '剧场、电影院、会堂、礼堂、体育馆等', dim: 'n', ranges: [
+    { max: 1200, q: 10, gun: 2, riser: 10 }, { max: 5000, q: 15, gun: 3, riser: 10 },
+    { max: 10000, q: 20, gun: 4, riser: 15 }, { max: Infinity, q: 30, gun: 6, riser: 15 } ] },
+
+  hotel:     { name: '旅馆', dim: 'V', ranges: [
+    { max: 10000, q: 10, gun: 2, riser: 10 }, { max: 25000, q: 15, gun: 3, riser: 10 },
+    { max: Infinity, q: 20, gun: 4, riser: 15 } ] },
+
+  shop:      { name: '商店、图书馆、档案馆等', dim: 'V', ranges: [
+    { max: 10000, q: 15, gun: 3, riser: 10 }, { max: 25000, q: 25, gun: 5, riser: 15 },
+    { max: Infinity, q: 40, gun: 8, riser: 15 } ] },
+
+  ward:      { name: '病房楼、门诊楼等', dim: 'V', ranges: [
+    { max: 25000, q: 10, gun: 2, riser: 10 }, { max: Infinity, q: 15, gun: 3, riser: 10 } ] },
+
+  office:    { name: '办公楼、教学楼、公寓、宿舍等其他建筑', dim: 'V', ranges: [
+    { max: 10000, q: 15, gun: 3, riser: 10 } ] },
+
+  /* 地下建筑 */
+  basement:  { name: '地下建筑', dim: 'V', ranges: [
+    { max: 5000, q: 10, gun: 2, riser: 10 }, { max: 10000, q: 20, gun: 4, riser: 15 },
+    { max: 25000, q: 30, gun: 6, riser: 15 }, { max: Infinity, q: 40, gun: 8, riser: 20 } ] },
+
+  /* 人防工程 */
+  rfExhibit: { name: '人防工程—展览厅、影院、剧场、礼堂、健身体育场所等', dim: 'V', ranges: [
+    { max: 1000, q: 5, gun: 1, riser: 5 }, { max: 2500, q: 10, gun: 2, riser: 10 },
+    { max: Infinity, q: 15, gun: 3, riser: 10 } ] },
+  rfMarket:  { name: '人防工程—商场、餐厅、旅馆、医院等', dim: 'V', ranges: [
+    { max: 5000, q: 5, gun: 1, riser: 5 }, { max: 10000, q: 10, gun: 2, riser: 10 },
+    { max: 25000, q: 15, gun: 3, riser: 10 }, { max: Infinity, q: 20, gun: 4, riser: 10 } ] },
+
+  /* 工业建筑 */
+  facLow:    { name: '厂房（h≤24m，甲、乙、丁、戊类）', dim: 'V', ranges: [
+    { max: Infinity, q: 10, gun: 2, riser: 10 } ] },
+  facLowC:   { name: '厂房（h≤24m，丙类）', dim: 'V', ranges: [
+    { max: 5000, q: 10, gun: 2, riser: 10 }, { max: Infinity, q: 20, gun: 4, riser: 15 } ] },
+  facMidDE:  { name: '厂房（24＜h≤50m，乙、丁、戊类）', dim: 'V', ranges: [
+    { max: Infinity, q: 25, gun: 5, riser: 15 } ] },
+  facMidC:   { name: '厂房（24＜h≤50m，丙类）', dim: 'V', ranges: [
+    { max: Infinity, q: 30, gun: 6, riser: 15 } ] },
+  facHighDE: { name: '厂房（h>50m，乙、丁、戊类）', dim: 'V', ranges: [
+    { max: Infinity, q: 30, gun: 6, riser: 15 } ] },
+  facHighC:  { name: '厂房（h>50m，丙类）', dim: 'V', ranges: [
+    { max: Infinity, q: 40, gun: 8, riser: 15 } ] },
+  whLow:     { name: '仓库（h≤24m，甲、乙、丁、戊类）', dim: 'V', ranges: [
+    { max: Infinity, q: 10, gun: 2, riser: 10 } ] },
+  whLowC:    { name: '仓库（h≤24m，丙类）', dim: 'V', ranges: [
+    { max: 5000, q: 15, gun: 3, riser: 15 }, { max: Infinity, q: 25, gun: 5, riser: 15 } ] },
+  whMidDE:   { name: '仓库（h>24m，丁、戊类）', dim: 'V', ranges: [
+    { max: Infinity, q: 30, gun: 6, riser: 15 } ] },
+  whMidC:    { name: '仓库（h>24m，丙类）', dim: 'V', ranges: [
+    { max: Infinity, q: 40, gun: 8, riser: 15 } ] }
+};
+
+/* ---------- 表 3.6.2 火灾延续时间 (h) ---------- */
+const DURATION = {
+  res:      { t: 2.0, label: '住宅' },
+  pubCommon:{ t: 2.0, label: '其他公共建筑' },
+  pubMajor: { t: 3.0, label: '高层建筑中的商业楼、展览楼、综合楼，建筑高度大于50m的财贸金融楼、图书馆、书库、重要的档案楼、科研楼和高级宾馆等' },
+  factoryABC:{ t: 3.0, label: '甲、乙、丙类厂房' },
+  factoryDE:{ t: 2.0, label: '丁、戊类厂房' },
+  whABC:    { t: 3.0, label: '甲、乙、丙类仓库' },
+  whDE:     { t: 2.0, label: '丁、戊类仓库' },
+  rfSmall:  { t: 1.0, label: '人防工程（建筑面积小于3000m²）' },
+  rfLarge:  { t: 2.0, label: '人防工程（建筑面积大于或等于3000m²）' },
+  underground:{ t: 2.0, label: '地下建筑、地铁车站' }
+};
+
+/* ---------- GB 50084-2017 表5.0.1 湿式系统设计基本参数 ---------- */
+const SPRINKLER_LEVELS = {
+  light:  { name: '轻危险级',        density: 4,  area: 160, note: '住宅、公寓、宿舍、办公楼、教学楼等' },
+  mid1:   { name: '中危险级Ⅰ级',    density: 6,  area: 160, note: '旅馆、病房楼、门诊楼、图书馆、展览、商店（≤5000m²）等' },
+  mid2:   { name: '中危险级Ⅱ级',    density: 8,  area: 160, note: '商店（>5000m²）、地下商店、书库、舞台葡萄架下等' },
+  high1:  { name: '严重危险级Ⅰ级',  density: 12, area: 260, note: '易燃液体、可燃物品生产/储存等' },
+  high2:  { name: '严重危险级Ⅱ级',  density: 16, area: 260, note: '危险等级更高的场所' }
+};
+
+/* ---------- GB 50084-2017 表5.0.2 民用建筑和厂房高大空间场所（湿式）设计基本参数 ----------
+   注1：表中未列入的场所，应根据本表规定场所的火灾危险性类比确定。
+   注2：当民用建筑高大空间场所的最大净空高度为 12m<h≤18m 时，应采用非仓库型特殊应用喷头。
+   第5.0.3条：最大净空高度超过 8m 的超级市场，应按第5.0.4条、第5.0.5条（仓库危险级）执行。 */
+const TALL_T502 = {
+  civilAtrium: {
+    name: '民用建筑—中庭、体育馆、航站楼等',
+    short: '中庭、体育馆、航站楼',
+    bands: [{ max: 12, d: 12, a: 160 }, { max: 18, d: 15, a: 160 }],
+    span: '1.8≤S≤3.0', maxH: 18, kind: 'civil'
+  },
+  civilTheater: {
+    name: '民用建筑—影剧院、音乐厅、会展中心等',
+    short: '影剧院、音乐厅、会展中心',
+    bands: [{ max: 12, d: 15, a: 160 }, { max: 18, d: 20, a: 160 }],
+    span: '1.8≤S≤3.0', maxH: 18, kind: 'civil'
+  },
+  facLight: {
+    name: '厂房—制衣制鞋、玩具、木器、电子生产车间等',
+    short: '制衣制鞋、玩具、木器、电子车间',
+    bands: [{ max: 12, d: 15, a: 160 }],
+    span: '—', maxH: 12, kind: 'industrial'
+  },
+  facTextile: {
+    name: '厂房—棉纺厂、麻纺厂、泡沫塑料生产车间等',
+    short: '棉纺、麻纺、泡沫塑料车间',
+    bands: [{ max: 12, d: 20, a: 160 }],
+    span: '—', maxH: 12, kind: 'industrial'
+  },
+  market: {
+    name: '超级市场（大型商场）—最大净空高度超过 8m',
+    short: '超级市场',
+    bands: [], span: '—', maxH: 99, kind: 'civil', manual: true
+  }
+};
+
+/* 表5.0.2 全部行（用于计算书列表展示） */
+const TALL_T502_ROWS = [
+  ['民用建筑—中庭、体育馆、航站楼等', '8＜h≤12', '12', '160', '1.8≤S≤3.0'],
+  ['民用建筑—中庭、体育馆、航站楼等', '12＜h≤18', '15', '160', '—'],
+  ['民用建筑—影剧院、音乐厅、会展中心等', '8＜h≤12', '15', '160', '1.8≤S≤3.0'],
+  ['民用建筑—影剧院、音乐厅、会展中心等', '12＜h≤18', '20', '160', '—'],
+  ['厂房—制衣制鞋、玩具、木器、电子生产车间等', '8＜h≤12', '15', '160', '—'],
+  ['厂房—棉纺厂、麻纺厂、泡沫塑料生产车间等', '8＜h≤12', '20', '160', '—']
+];
+
+/* 高档空间场所 → 表5.0.2 行索引 */
+const TALL_ROW_INDEX = {
+  civilAtrium: [0, 1],
+  civilTheater: [2, 3],
+  facLight: [4],
+  facTextile: [5]
+};
+
+
+/* 建筑功能 → 自喷危险等级建议（初选，按 GB 50084-2017 附录A 火灾危险等级举例） */
+const HAZARD_HINT = {
+  res: 'light', apartment: 'light', office: 'light', school: 'light',
+  hotel: 'mid1', ward: 'mid1', research: 'mid1', station: 'mid1', museum: 'mid1',
+  theater: 'mid1', library: 'mid1',
+  shop: 'mid2', shopBig: 'mid2', archive: 'mid2', garage: 'mid2',
+  rf: 'mid2', store: 'high1'
+};
+
+/* ---------- 建筑功能选项 ---------- */
+const FUNC_OPTIONS = {
+  civil: [
+    { v: 'res',      t: '住宅' },
+    { v: 'apartment',t: '公寓、宿舍' },
+    { v: 'office',   t: '办公楼' },
+    { v: 'school',   t: '教学楼' },
+    { v: 'research', t: '科研楼、试验楼' },
+    { v: 'hotel',    t: '旅馆、酒店' },
+    { v: 'shop',     t: '商店、商场（≤5000m²）' },
+    { v: 'shopBig',  t: '商店、商场（>5000m²）' },
+    { v: 'ward',     t: '病房楼、门诊楼' },
+    { v: 'station',  t: '车站、码头、机场候车楼' },
+    { v: 'museum',   t: '展览建筑（含博物馆）' },
+    { v: 'theater',  t: '剧场、电影院、会堂、礼堂、体育馆' },
+    { v: 'library',  t: '图书馆、档案馆' },
+    { v: 'garage',   t: '汽车库、修车库' }
+  ],
+  underground: [
+    { v: 'garage',   t: '地下汽车库' },
+    { v: 'shop',     t: '地下商店' },
+    { v: 'office',   t: '地下办公、设备用房' }
+  ],
+  rf: [
+    { v: 'rfExhibit',t: '展览厅、影院、剧场、礼堂、健身体育场所' },
+    { v: 'rfMarket', t: '商场、餐厅、旅馆、医院' },
+    { v: 'rfWork',   t: '丙、丁、戊类生产车间、自行车库' },
+    { v: 'rfStore',  t: '丙、丁、戊类物品库房、图书资料档案库' }
+  ],
+  industrial: [
+    { v: 'factory',  t: '厂房' },
+    { v: 'warehouse',t: '仓库' }
+  ]
+};
+
+/* ---------- 常量 ---------- */
+const RHO_G = 9.81;            // kN/m³，水重度
+const MPA_TO_M = 1000 / RHO_G; // 1 MPa ≈ 101.94 m 水柱
+const P_MPA_PER_M = RHO_G / 1000; // 0.00981 MPa/m
+
+const SPEC = {
+  gb50974: '《消防给水及消火栓系统技术规范》GB 50974-2014',
+  gb55037: '《建筑防火通用规范》GB 55037-2022',
+  gb50016: '《建筑设计防火规范》GB 50016-2014（2018年版）',
+  gb50015: '《建筑给水排水设计标准》GB 50015-2019',
+  gb50084: '《自动喷水灭火系统设计规范》GB 50084-2017',
+  gb55036: '《消防设施通用规范》GB 55036-2022'
+};
+
+</script>
+<script>/* 计算引擎 */
+/* ============================================================
+   消防给水计算器 — 计算引擎
+   所有结果以 sections 结构返回，页面渲染与 Word 导出共用
+   ============================================================ */
+
+const nf = (v, d = 2) => {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—';
+  let s = Number(v).toFixed(d);
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+};
+
+/* 体积档位索引 */
+function vIndex(V) {
+  for (let i = 0; i < V_BOUNDS.length; i++) if (V <= V_BOUNDS[i]) return i;
+  return 5;
+}
+
+/* 取表值（null 时向左取最近有效值） */
+function pickVal(vals, idx) {
+  if (vals[idx] !== null && vals[idx] !== undefined) return { v: vals[idx], exact: true };
+  for (let i = idx - 1; i >= 0; i--) if (vals[i] !== null) return { v: vals[i], exact: false };
+  for (let i = idx + 1; i < vals.length; i++) if (vals[i] !== null) return { v: vals[i], exact: false };
+  return { v: null, exact: true };
+}
+
+/* 档位描述 */
+function vRangeText(idx) {
+  const lo = idx === 0 ? 0 : V_BOUNDS[idx - 1];
+  const hi = idx === 5 ? Infinity : V_BOUNDS[idx];
+  if (idx === 0) return `V≤${hi}`;
+  if (idx === 5) return `V>${lo}`;
+  return `${lo}<V≤${hi}`;
+}
+
+/* 区间取值 */
+function rangePick(ranges, x) {
+  for (const r of ranges) if (x <= r.max) return r;
+  return ranges[ranges.length - 1];
+}
+
+/* 消火栓泵扬程（GB 50974 10.1.5~10.1.7） */
+function calcHydrantPump(inp, designH, baseDepth) {
+  const hTop = designH - 1.1;
+  const poolLevel = -baseDepth - 0.8;
+  const Hgeo = hTop - poolLevel;
+  const autoL = Math.round(Hgeo * 1.15 + 30);
+  const L = Number(inp.pipeLenHydrant) || autoL;
+  const i = Number(inp.iHydrant) || 0.025;
+  const Pf = i * L * P_MPA_PER_M;   // 水力坡降 m/m → MPa
+  const Pp = Pf * 0.15;
+  const P0 = Number(inp.hydrantP) || 0.35;
+  const k2 = Number(inp.k2) || 1.2;
+  const Pt = k2 * (0.01 * Hgeo + Pf + Pp + P0);
+  return { hTop, poolLevel, Hgeo, L, i, Pf, Pp, P0, k2, Pt, Hpump: Pt * 100, autoL };
+}
+
+/* 喷淋泵扬程 */
+function calcSprinklerPump(inp, designH, baseDepth, poolLevel) {
+  const hTop = designH - 0.3;
+  const Hgeo = hTop - poolLevel;
+  const autoL = Math.round(Hgeo * 1.3 + 60);
+  const L = Number(inp.pipeLenSprinkler) || autoL;
+  const i = Number(inp.iSprinkler) || 0.025;
+  const Pf = i * L * P_MPA_PER_M;
+  const Pp = Pf * 0.30;
+  const Pnozzle = Number(inp.nozzleP) || 0.10;
+  const Pvalve = Number(inp.valveLoss) || 0.02;
+  const Pflow = Number(inp.flowSwitchLoss) || 0.02;
+  const P0 = Pnozzle + Pvalve + Pflow;
+  const k2 = Number(inp.k2) || 1.2;
+  const Pt = k2 * (0.01 * Hgeo + Pf + Pp + P0);
+  return { hTop, Hgeo, L, i, Pf, Pp, P0, k2, Pt, Hpump: Pt * 100, Pnozzle, Pvalve, Pflow, autoL };
+}
+
+/* 高层判定 */
+function isHighPublic(inp) {
+  if (inp.cat !== 'civil') return false;
+  if (inp.func === 'res') return inp.H > 27;
+  if (inp.floors === 1) return false;
+  return inp.H > 24;
+}
+
+/* ============================================================
+   主计算
+   ============================================================ */
+function compute(inp) {
+  const S = [];
+  const warn = [];
+  const P = {}; // 中间量
+
+  /* ---------- 0. 建筑属性判定 ---------- */
+  const high = isHighPublic(inp);
+  const isRes = inp.cat === 'civil' && inp.func === 'res';
+  /* 高层判定（用于第3.5.3条折减）：厂房、仓库 H>24m 亦属高层 */
+  const highDeduct = inp.cat === 'industrial' ? inp.H > 24 : high;
+
+  let highClassText = '';
+  if (isRes) {
+    highClassText = inp.H > 54 ? '一类高层住宅建筑（H>54m）'
+      : (inp.H > 27 ? '二类高层住宅建筑（27m<H≤54m）' : '多层住宅建筑（H≤27m）');
+  } else if (inp.cat === 'civil') {
+    if (!high) highClassText = '单层及多层公共建筑（H≤24m）';
+    else highClassText = inp.highClass === 'class1' ? '一类高层公共建筑' : '二类高层公共建筑';
+  } else if (inp.cat === 'underground') highClassText = '地下建筑';
+  else if (inp.cat === 'rf') highClassText = '平战结合的人防工程';
+  else highClassText = inp.func === 'factory' ? '工业建筑—厂房' : '工业建筑—仓库';
+
+  const designH = inp.H;            // 建筑高度（室外地面至屋面）
+  const baseDepth = inp.basementFloors * inp.basementH;
+
+  /* ============================================================
+     1. 室外消火栓设计流量
+     ============================================================ */
+  {
+    let row = null, dimVal = inp.V, dimName = '建筑体积 V', exact = true, basisRow = '';
+    const fire = inp.fire;
+
+    if (inp.cat === 'civil') {
+      if (isRes) {
+        row = OUTDOOR_T332.res;
+        basisRow = '住宅（一、二级耐火等级）';
+        dimName = '建筑体积';
+      } else if (fire === 1 || fire === 2) {
+        row = high ? OUTDOOR_T332.pubHigh : OUTDOOR_T332.pubLow;
+        basisRow = high ? '公共建筑—高层' : '公共建筑—单层及多层';
+      } else if (fire === 3) {
+        row = OUTDOOR_T332.civil3; basisRow = '单层及多层民用建筑（三级）';
+      } else {
+        row = OUTDOOR_T332.civil4; basisRow = '单层及多层民用建筑（四级）';
+      }
+    } else if (inp.cat === 'underground' || inp.cat === 'rf') {
+      row = OUTDOOR_T332.underground;
+      basisRow = '地下建筑（包括地铁）、平战结合的人防工程';
+    } else {
+      const isFac = inp.func === 'factory';
+      if (inp.indClass === 'AB') row = isFac ? OUTDOOR_T332.facAB : OUTDOOR_T332.whAB;
+      else if (inp.indClass === 'C') row = isFac ? OUTDOOR_T332.facC : OUTDOOR_T332.whC;
+      else row = isFac ? OUTDOOR_T332.facDE : OUTDOOR_T332.whDE;
+      if (fire === 3 && isFac) row = inp.indClass === 'DE' ? OUTDOOR_T332.facDE3 : OUTDOOR_T332.facBC3;
+      basisRow = row.label;
+    }
+
+    const idx = vIndex(inp.V);
+    const r = pickVal(row.vals, idx);
+    exact = r.exact;
+    P.q1 = r.v;
+    P.vIdx = idx;
+    P.outRowLabel = basisRow;
+
+    const blocks = [];
+    const fireText = { 1: '一、二级', 3: '三级', 4: '四级' }[inp.fire] || '一、二级';
+    blocks.push({ t: 'p', text: `建筑类别：<b>${basisRow}</b>；建筑体积 V = <b>${nf(inp.V, 0)} m³</b>，属 <b>${vRangeText(idx)}</b> 档；耐火等级 <b>${fireText}</b>。` });
+
+    const dispRow = row.vals.map(v => (v === null ? '—' : v));
+    blocks.push({
+      t: 'tb',
+      head: ['耐火等级', '建筑物名称及类别', '≤1500', '1500~3000', '3000~5000', '5000~20000', '20000~50000', '>50000'],
+      rows: [[['一、二级', '三级', '四级'][inp.fire > 2 ? (inp.fire === 3 ? 1 : 2) : 0],
+              basisRow].concat(dispRow)],
+      hi: 0,
+      note: '表 3.3.2 建筑物室外消火栓设计流量（L/s），体积分档单位 m³，此处仅列出本建筑所属行'
+    });
+
+    blocks.push({ t: 'f', text: `q₁ = ${nf(P.q1, 0)} L/s`, note: exact ? '' : '本体积档表内未列，按相邻档取值，请复核' });
+    if (!exact) { warn.push(`室外消火栓流量：表3.3.2 中 V=${nf(inp.V, 0)} m³ 所在档未直接给出数值，已按相邻档取值，请按规范原文复核。`); }
+
+    S.push({
+      no: 1, id: 'outdoor', title: '室外消火栓设计流量',
+      tag: '查表法',
+      refs: ['GB 50974-2014 第3.3.2条 表3.3.2'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     2. 火灾延续时间
+     ============================================================ */
+  {
+    let key, label, reason;
+    if (inp.cat === 'civil' && isRes) { key = 'res'; reason = '民用建筑—住宅'; }
+    else if (inp.cat === 'civil') {
+      const isMajor = high && (
+        ['shop', 'shopBig', 'museum', 'station'].includes(inp.func) ||
+        (inp.H > 50 && ['research', 'library', 'archive', 'hotel'].includes(inp.func))
+      );
+      key = isMajor ? 'pubMajor' : 'pubCommon';
+      reason = isMajor
+        ? '高层建筑中的商业楼、展览楼、综合楼，建筑高度大于50m的财贸金融楼、图书馆、书库、重要的档案楼、科研楼和高级宾馆等'
+        : '其他公共建筑';
+    } else if (inp.cat === 'underground') { key = 'underground'; reason = '地下建筑、地铁车站'; }
+    else if (inp.cat === 'rf') {
+      key = inp.rfArea >= 3000 ? 'rfLarge' : 'rfSmall';
+      reason = inp.rfArea >= 3000 ? '人防工程（建筑面积≥3000m²）' : '人防工程（建筑面积<3000m²）';
+    } else {
+      const isFac = inp.func === 'factory';
+      if (inp.indClass === 'DE') key = isFac ? 'factoryDE' : 'whDE';
+      else key = isFac ? 'factoryABC' : 'whABC';
+      reason = DURATION[key].label;
+    }
+    P.t1 = DURATION[key].t;
+    if (inp.tDuration && inp.tDuration !== 'auto') {
+      P.t1 = Number(inp.tDuration);
+      reason = '设计人指定（按项目实际情况确定）';
+    }
+    P.t2 = P.t1;
+
+    const rows = [
+      ['民用建筑—住宅', '2.0'],
+      ['民用建筑—公共建筑（高层商业楼、展览楼、综合楼，H>50m 的财贸金融楼、图书馆、书库、重要档案楼、科研楼、高级宾馆等）', '3.0'],
+      ['民用建筑—其他公共建筑', '2.0'],
+      ['工业建筑—甲、乙、丙类厂房/仓库', '3.0'],
+      ['工业建筑—丁、戊类厂房/仓库', '2.0'],
+      ['人防工程（<3000m² / ≥3000m²）', '1.0 / 2.0'],
+      ['地下建筑、地铁车站', '2.0']
+    ];
+    const blocks = [
+      { t: 'p', text: `本建筑属 <b>${reason}</b>，查表得火灾延续时间 <b>t = ${nf(P.t1, 1)} h</b>。` },
+      { t: 'tb', head: ['场所与火灾危险性', '火灾延续时间 (h)'], rows, hi: -1, note: '表 3.6.2 不同场所的火灾延续时间（摘录民用及工业建筑部分）' },
+      { t: 'f', text: `t₁ = t₂ = ${nf(P.t1, 1)} h` }
+    ];
+    if (isRes) {
+      blocks.push({ t: 'note', kind: 'info', text: '《建筑防火通用规范》GB 55037-2022 表10.1.5 允许一类高层以外的其他住宅建筑火灾延续时间取 1.0h；本软件按 GB 50974-2014 表3.6.2 取 2.0h（较严），如需按 1.0h 计算请在高级参数中修改。' });
+    }
+    S.push({ no: 2, id: 'duration', title: '火灾延续时间', tag: 'GB 50974 表3.6.2', refs: ['GB 50974-2014 第3.6.2条 表3.6.2', 'GB 55037-2022 表10.1.5'], blocks });
+  }
+
+  /* ============================================================
+     3. 室内消火栓设计流量
+     ============================================================ */
+  {
+    let q = 0, gun = 0, riser = 0, rowName = '', basisText = '', noNeedReason = '';
+    let highShopCmp = null;
+    const V = inp.V, h = inp.H;
+
+    if (inp.cat === 'civil' && isRes) {
+      if (h <= 21) {
+        q = 0; rowName = '住宅（H≤21m）';
+        noNeedReason = '按 GB 50016-2014（2018年版）第8.2.2条，建筑高度大于21m的住宅建筑应设置室内消火栓系统；H≤21m 的多层住宅可不设。';
+      } else if (h <= 27) { q = 5; gun = 2; riser = 5; rowName = '住宅（单层及多层，21<H≤27m）'; }
+      else if (h <= 54) { q = 10; gun = 2; riser = 10; rowName = '住宅（高层，27<H≤54m）'; }
+      else { q = 20; gun = 4; riser = 10; rowName = '住宅（高层，H>54m）'; }
+    } else if (inp.cat === 'civil') {
+      if (!high) {
+        const f = inp.func;
+        if (f === 'research') { const r = rangePick(INDOOR_T352.research.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.research.name; }
+        else if (f === 'station' || f === 'museum') { const r = rangePick(INDOOR_T352.station.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.station.name; }
+        else if (f === 'theater') { const r = rangePick(INDOOR_T352.theater.ranges, inp.seats || 1000); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.theater.name; }
+        else if (f === 'hotel') { const r = rangePick(INDOOR_T352.hotel.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.hotel.name; }
+        else if (['shop', 'shopBig', 'library', 'archive', 'garage'].includes(f)) { const r = rangePick(INDOOR_T352.shop.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.shop.name; }
+        else if (f === 'ward') { const r = rangePick(INDOOR_T352.ward.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = INDOOR_T352.ward.name; }
+        else {
+          rowName = INDOOR_T352.office.name;
+          if (h > 15 || V > 10000) { q = 15; gun = 3; riser = 10; }
+          else { q = 0; noNeedReason = '按 GB 50016-2014（2018年版）第8.2.1条第5款，建筑高度大于15m或体积大于10000m³的办公建筑、教学建筑和其他单、多层民用建筑应设室内消火栓系统；本建筑未达到该条件。'; }
+        }
+      } else {
+        /* ---- 高层公共建筑：先取高层基准值 ---- */
+        let baseQ, baseGun, baseRiser, baseName;
+        if (inp.highClass === 'class1') {
+          if (h <= 50) { baseQ = 30; baseGun = 6; baseRiser = 15; baseName = '一类高层公共建筑（H≤50m）'; }
+          else { baseQ = 40; baseGun = 8; baseRiser = 15; baseName = '一类高层公共建筑（H>50m）'; }
+        } else {
+          baseQ = 20; baseGun = 4; baseRiser = 10; baseName = '二类高层公共建筑';
+        }
+        q = baseQ; gun = baseGun; riser = baseRiser; rowName = baseName;
+
+        /* 商店、图书馆、档案馆等：高层时仍应按表3.5.2 该行按体积分档执行，
+           与高层基准值比较取大者——体积 V>25000m³ 时取 40 L/s */
+        if (['shop', 'shopBig', 'library', 'archive', 'garage'].includes(inp.func)) {
+          const r = rangePick(INDOOR_T352.shop.ranges, V);
+          highShopCmp = {
+            baseQ, shopQ: r.q, vText: nf(V, 0),
+            adopted: r.q > baseQ ? 'shop' : 'base'
+          };
+          if (r.q > baseQ) { q = r.q; gun = r.gun; riser = r.riser; }
+          rowName = baseName + ' 与「商店、图书馆、档案馆等」综合确定';
+        }
+      }
+    } else if (inp.cat === 'underground') {
+      const r = rangePick(INDOOR_T352.basement.ranges, V); q = r.q; gun = r.gun; riser = r.riser; rowName = '地下建筑';
+    } else if (inp.cat === 'rf') {
+      const key = { rfExhibit: 'rfExhibit', rfMarket: 'rfMarket', rfWork: 'rfWork', rfStore: 'rfStore' }[inp.func] || 'rfMarket';
+      const tb = INDOOR_T352[key];
+      let rr;
+      if (key === 'rfWork' || key === 'rfStore') {
+        rr = V <= 2500 ? { q: 5, gun: 1, riser: 5 } : { q: 10, gun: 2, riser: 10 };
+        if (key === 'rfStore') rr = V <= 3000 ? { q: 5, gun: 1, riser: 5 } : { q: 10, gun: 2, riser: 10 };
+      } else rr = rangePick(tb.ranges, V);
+      q = rr.q; gun = rr.gun; riser = rr.riser; rowName = tb.name;
+    } else {
+      const isFac = inp.func === 'factory';
+      let key;
+      if (isFac) {
+        if (h <= 24) key = inp.indClass === 'C' ? 'facLowC' : 'facLow';
+        else if (h <= 50) key = inp.indClass === 'C' ? 'facMidC' : (inp.indClass === 'DE' ? 'facMidDE' : 'facMidC');
+        else key = inp.indClass === 'C' ? 'facHighC' : 'facHighDE';
+      } else {
+        if (h <= 24) key = inp.indClass === 'C' ? 'whLowC' : 'whLow';
+        else key = inp.indClass === 'C' ? 'whMidC' : 'whMidDE';
+      }
+      const tb = INDOOR_T352[key];
+      const r = rangePick(tb.ranges, V);
+      q = r.q; gun = r.gun; riser = r.riser; rowName = tb.name;
+    }
+
+    /* 用户强制不设 */
+    if (inp.hasIndoorHydrant === 'no' && q > 0) {
+      noNeedReason = '用户指定本建筑不设室内消火栓系统，室内消火栓设计流量按 0 计。';
+      q = 0;
+    }
+
+    const qBefore = q;
+    let deductText = '', deductNote = '';
+    if (q > 0 && inp.fullSprinkler) {
+      if (highDeduct && h <= 50 && q > 20) {
+        q = q - 5;
+        deductText = `高层建筑（H=${nf(h, 1)}m≤50m）且室内消火栓设计流量 ${qBefore} L/s > 20 L/s，设有自动喷水等全保护，按第3.5.3条可减少 5 L/s：q₂ = ${qBefore} − 5 = ${q} L/s`;
+        deductNote = 'GB 50974-2014 第3.5.3条';
+      } else if (!highDeduct) {
+        const qq = Math.max(10, qBefore * 0.5);
+        q = qq;
+        deductText = `多层建筑设有自动喷水等全保护，按第3.5.3条可减少 50%，且不应小于 10 L/s：q₂ = max(10, ${qBefore}×0.5) = ${nf(q, 1)} L/s`;
+        deductNote = 'GB 50974-2014 第3.5.3条';
+      }
+    }
+
+    P.q2 = q; P.gun = gun; P.riser = riser; P.q2Before = qBefore;
+
+    const blocks = [];
+    blocks.push({ t: 'p', text: `建筑功能对应表3.5.2 中 <b>${rowName || '—'}</b> 行。` });
+    if (highShopCmp) {
+      blocks.push({
+        t: 'p',
+        text: `本建筑为高层商店（图书馆、档案馆等同表列场所），按表3.5.2 中「商店、图书馆、档案馆等」行，以建筑体积 V = ${highShopCmp.vText} m³ 查得室内消火栓设计流量 <b>${highShopCmp.shopQ} L/s</b>；` +
+          `同时高层公共建筑基准值为 <b>${highShopCmp.baseQ} L/s</b>。两者比较<b>取大值</b>，故取 <b>${Math.max(highShopCmp.shopQ, highShopCmp.baseQ)} L/s</b>。` +
+          (highShopCmp.shopQ >= 40 ? '（体积大于 25000m³ 的大型商店，即使为多层亦按 40 L/s 取值；高层建筑同样执行该条。）' : '')
+      });
+      if (highShopCmp.shopQ < highShopCmp.baseQ) {
+        blocks.push({ t: 'note', kind: 'info', text: `该体积档商店行数值（${highShopCmp.shopQ} L/s）低于高层基准值，按高层基准 ${highShopCmp.baseQ} L/s 取定。` });
+      }
+    }
+    if (q === 0) {
+      blocks.push({ t: 'note', kind: 'info', text: noNeedReason || '按规范可不设室内消火栓系统。' });
+      blocks.push({ t: 'f', text: `q₂ = 0 L/s` });
+    } else {
+      blocks.push({ t: 'kv', items: [
+        ['室内消火栓设计流量 q₂', `${nf(qBefore, 0)} L/s`],
+        ['同时使用消防水枪数量', `${gun} 支`],
+        ['每根消防竖管最小流量', `${riser} L/s`],
+        ['单支水枪流量（φ19 水枪）', `${nf(inp.hydrantQ, 1)} L/s`]
+      ] });
+      if (deductText) {
+        blocks.push({ t: 'f', text: deductText.replace(/：/, '：') });
+        blocks.push({ t: 'ref', items: [deductNote] });
+      }
+      blocks.push({ t: 'f', text: `q₂ = ${nf(q, 1)} L/s` });
+    }
+    S.push({
+      no: 3, id: 'indoor', title: '室内消火栓设计流量', tag: '查表 + 折减',
+      refs: ['GB 50974-2014 第3.5.2条 表3.5.2', 'GB 50974-2014 第3.5.3条', 'GB 50016-2014(2018) 第8.2.1、8.2.2条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     4. 自动喷水灭火系统设计流量
+     ============================================================ */
+  {
+    /* ---- 高大净空空间：按 GB 50084-2017 表5.0.2 取值 ---- */
+    const tallOn = !!(inp.hasSprinkler && inp.tallSpace && TALL_T502[inp.tallType]);
+    const tallCfg = tallOn ? TALL_T502[inp.tallType] : null;
+    const tallH = Number(inp.tallH) || 10;
+    let tallBand = null, tallRow = -1, tallOver = false;
+    if (tallCfg && !tallCfg.manual) {
+      const bs = tallCfg.bands;
+      for (let i = 0; i < bs.length; i++) {
+        if (tallH <= bs[i].max) { tallBand = bs[i]; tallRow = TALL_ROW_INDEX[inp.tallType][i]; break; }
+      }
+      if (!tallBand) { tallOver = true; tallBand = bs[bs.length - 1]; tallRow = TALL_ROW_INDEX[inp.tallType][bs.length - 1]; }
+    }
+
+    const lv = SPRINKLER_LEVELS[inp.hazard] || SPRINKLER_LEVELS.mid1;
+    const density = tallBand ? tallBand.d : (Number(inp.density) || lv.density);
+    const area = tallBand ? tallBand.a : (Number(inp.area) || lv.area);
+    const k = Number(inp.safetyK) || 1.3;
+
+    let qRaw = 0, qSafe = 0, qFinal = 0, roundText = '';
+    if (inp.hasSprinkler) {
+      qRaw = density * area / 60;
+      qSafe = qRaw * k;
+      const r5 = Math.ceil(qSafe / 5) * 5;
+      const r10 = Math.ceil(qSafe / 10) * 10;
+      if (inp.roundMode === '5') { qFinal = r5; roundText = `向上取整至 5 的整数倍 → ${r5} L/s`; }
+      else if (inp.roundMode === '10') { qFinal = r10; roundText = `向上取整至 10 的整数倍 → ${r10} L/s`; }
+      else if (inp.roundMode === 'none') { qFinal = Number(qSafe.toFixed(2)); roundText = '不取整'; }
+      else {
+        qFinal = qSafe <= 25 ? r5 : r10;
+        roundText = qSafe <= 25 ? `≤25 L/s，向上取整至 5 的整数倍 → ${r5} L/s` : `>25 L/s，向上取整至 10 的整数倍 → ${r10} L/s`;
+      }
+    }
+
+    P.q3 = qFinal; P.q3Raw = qRaw; P.q3Safe = qSafe;
+    P.density = density; P.area = area;
+    P.hazardName = tallBand ? `高大空间—${tallCfg.short}` : lv.name;
+    P.sprinklerOn = !!inp.hasSprinkler;
+    P.tallOn = tallOn;
+
+    const tbl = [
+      ['轻危险级', '4', '160'],
+      ['中危险级Ⅰ级', '6', '160'],
+      ['中危险级Ⅱ级', '8', '160'],
+      ['严重危险级Ⅰ级', '12', '260'],
+      ['严重危险级Ⅱ级', '16', '260']
+    ];
+
+    const blocks = [];
+    if (!inp.hasSprinkler) {
+      blocks.push({ t: 'note', kind: 'info', text: '本建筑未设置自动喷水灭火系统，自喷用水量按 0 计。若需设置，请勾选"设置自动喷水灭火系统"。' });
+      blocks.push({ t: 'f', text: 'q₃ = 0 L/s' });
+    } else if (tallCfg && tallCfg.manual) {
+      /* 超级市场：第5.0.3条 → 参照仓库危险级标准 */
+      blocks.push({ t: 'p', text: `本建筑为最大净空高度超过 8m 的<b>超级市场</b>，按 GB 50084-2017 <b>第5.0.3条</b>，其设计基本参数应按第5.0.4条、第5.0.5条（仓库危险级）执行，不能直接采用表5.0.2。` });
+      blocks.push({ t: 'note', kind: 'warn', text: '请按 GB 50084-2017 表5.0.4、表5.0.5，结合储物方式（堆垛/托盘/货架）、最大储物高度与最大净空高度确定喷水强度与作用面积后，手工填入参数栏；本软件按所填喷水强度 × 作用面积计算流量。' });
+      blocks.push({ t: 'f', text: `q = q_s × A / 60 = ${density} × ${area} / 60 = ${nf(qRaw, 2)} L/s` });
+      blocks.push({ t: 'f', text: `q₃ = ${nf(qRaw, 2)} × ${nf(k, 2)} = ${nf(qSafe, 2)} L/s　→　${roundText}　⇒　q₃ = <span class="res">${nf(qFinal, 2)} L/s</span>` });
+    } else if (tallBand) {
+      blocks.push({ t: 'p', text: `本建筑存在<b>高大净空空间</b>：场所类别「${tallCfg.name}」，最大净空高度 h = <b>${nf(tallH, 1)} m</b>（${tallH <= 12 ? '8＜h≤12 m' : '12＜h≤18 m'}），按 GB 50084-2017 <b>第5.0.2条 表5.0.2</b> 取值。` });
+      blocks.push({
+        t: 'tb', head: ['适用场所', '最大净空高度 h(m)', '喷水强度 L/(min·m²)', '作用面积 (m²)', '喷头间距 S(m)'],
+        rows: TALL_T502_ROWS, hi: tallRow,
+        note: '表 5.0.2 民用建筑和厂房高大空间场所采用湿式系统的设计基本参数（注1：表中未列入的场所按火灾危险性类比确定；注2：民用建筑 12m＜h≤18m 时应采用非仓库型特殊应用喷头）'
+      });
+      blocks.push({ t: 'f', text: `查表：喷水强度 q_s = ${density} L/(min·m²)，作用面积 A = ${area} m²　〔GB 50084-2017 表5.0.2〕` });
+      blocks.push({ t: 'f', text: `q = q_s × A / 60 = ${density} × ${area} / 60 = ${nf(qRaw, 2)} L/s` });
+      blocks.push({ t: 'f', text: `q₃′ = ${nf(qRaw, 2)} × ${nf(k, 2)}（安全系数）= ${nf(qSafe, 2)} L/s` });
+      blocks.push({ t: 'f', text: `${nf(qSafe, 2)} L/s　→　${roundText}　⇒　q₃ = <span class="res">${nf(qFinal, 2)} L/s</span>` });
+      blocks.push({ t: 'p', text: `取整前后对照：安全系数法 ${nf(qSafe, 2)} L/s；取 5 倍数 <b>${Math.ceil(qSafe / 5) * 5} L/s</b>；取 10 倍数 <b>${Math.ceil(qSafe / 10) * 10} L/s</b>；本次采用 <b>${nf(qFinal, 2)} L/s</b>。` });
+      blocks.push({ t: 'p', text: `持续喷水时间 t₃ = 1.0 h（自动喷水灭火系统按火灾延续时间不小于 1h 确定）。` });
+      if (tallCfg.kind === 'civil' && tallH > 12) {
+        blocks.push({ t: 'note', kind: 'info', text: '最大净空高度 12m＜h≤18m 的民用建筑高大空间场所，应采用非仓库型特殊应用喷头（表5.0.2 注2）。' });
+      }
+      if (tallH <= 8) {
+        blocks.push({ t: 'note', kind: 'info', text: `净空高度 h=${nf(tallH, 1)}m 未超过 8m，不属于表5.0.2 的高大空间范畴，本应按表5.0.1 火灾危险等级取值。` });
+      }
+      if (tallOver) {
+        blocks.push({ t: 'note', kind: 'warn', text: `净空高度 ${nf(tallH, 1)}m 已超出表5.0.2 规定的最大净空高度（${tallCfg.maxH}m），表中无对应参数，本计算按最高档 ${density} L/(min·m²) 取值，实际工程应进行专项技术论证或性能化设计。` });
+      }
+    } else {
+      blocks.push({ t: 'p', text: `火灾危险等级：<b>${lv.name}</b>（${lv.note}）；喷水强度 <b>${density} L/(min·m²)</b>，作用面积 <b>${area} m²</b>。` });
+      blocks.push({ t: 'tb', head: ['火灾危险等级', '喷水强度 L/(min·m²)', '作用面积 (m²)'], rows: tbl, hi: Object.keys(SPRINKLER_LEVELS).indexOf(inp.hazard), note: '表 5.0.1 民用建筑和厂房采用湿式系统时的设计基本参数（最不利点喷头工作压力不应低于0.05MPa）' });
+      blocks.push({ t: 'f', text: `q = q_s × A / 60 = ${density} × ${area} / 60 = ${nf(qRaw, 2)} L/s` });
+      blocks.push({ t: 'f', text: `q₃′ = ${nf(qRaw, 2)} × ${nf(k, 2)}（安全系数）= ${nf(qSafe, 2)} L/s` });
+      blocks.push({ t: 'f', text: `${nf(qSafe, 2)} L/s　→　${roundText}　⇒　q₃ = <span class="res">${nf(qFinal, 2)} L/s</span>` });
+      blocks.push({ t: 'p', text: `取整前后对照：安全系数法 ${nf(qSafe, 2)} L/s；取 5 倍数 <b>${Math.ceil(qSafe / 5) * 5} L/s</b>；取 10 倍数 <b>${Math.ceil(qSafe / 10) * 10} L/s</b>；本次采用 <b>${nf(qFinal, 2)} L/s</b>。` });
+      blocks.push({ t: 'p', text: `持续喷水时间 t₃ = 1.0 h（自动喷水灭火系统按火灾延续时间不小于 1h 确定）。` });
+    }
+    S.push({
+      no: 4, id: 'sprinkler', title: '自动喷水灭火系统设计流量', tag: tallBand ? '表5.0.2 高大空间 + 1.3 系数 + 取整' : '强度×面积 + 1.3 系数 + 取整',
+      refs: tallOn
+        ? ['GB 50084-2017 第5.0.2条 表5.0.2', 'GB 50084-2017 第5.0.3条', 'GB 50084-2017 第5.0.11条', 'GB 50974-2014 第3.6.3条']
+        : ['GB 50084-2017 第5.0.1条 表5.0.1', 'GB 50084-2017 第5.0.11条', 'GB 50974-2014 第3.6.3条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     5. 一起火灾消防用水总量
+     ============================================================ */
+  {
+    const V1 = 3.6 * P.q1 * P.t1;
+    const V2 = 3.6 * P.q2 * P.t2;
+    const V3 = P.sprinklerOn ? 3.6 * P.q3 * 1.0 : 0;
+    const V = V1 + V2 + V3;
+    P.V1 = V1; P.V2 = V2; P.V3 = V3; P.V = V;
+
+    const blocks = [
+      { t: 'p', text: '消防给水一起火灾灭火用水量应按需要同时作用的室内、外消防给水用水量之和计算，自动灭火系统用水量取其中用水量最大的一种系统。' },
+      { t: 'f', text: 'V = V₁ + V₂　(3.6.1-1)' },
+      { t: 'f', text: `V₁ = 3.6 Σ q₁ᵢ·t₁ᵢ = 3.6 × ${nf(P.q1, 0)} × ${nf(P.t1, 1)} = ${nf(V1, 1)} m³　(3.6.1-2)` },
+      { t: 'f', text: `V₂ = 3.6 Σ q₂ᵢ·t₂ᵢ = 3.6 × ${nf(P.q2, 1)} × ${nf(P.t2, 1)} = ${nf(V2, 1)} m³　(3.6.1-3)` },
+      { t: 'f', text: `V₃ = 3.6 × q₃ × t₃ = 3.6 × ${nf(P.q3, 2)} × 1.0 = ${nf(V3, 1)} m³` },
+      {
+        t: 'tb', head: ['系统', '设计流量 (L/s)', '火灾延续时间 (h)', '用水量 (m³)'], rows: [
+          ['室外消火栓系统', nf(P.q1, 0), nf(P.t1, 1), nf(V1, 1)],
+          ['室内消火栓系统', nf(P.q2, 1), nf(P.t2, 1), nf(V2, 1)],
+          ['自动喷水灭火系统', nf(P.q3, 2), '1.0', nf(V3, 1)],
+          ['合计', nf(P.q1 + P.q2 + P.q3, 2), '—', nf(V, 1)]
+        ], hi: 3
+      },
+      { t: 'f', text: `V = ${nf(V1, 1)} + ${nf(V2, 1)} + ${nf(V3, 1)} = <span class="res">${nf(V, 1)} m³</span>` },
+      { t: 'p', text: '注：上式为一起火灾<b>用水总量</b>，是确定消防水源规模的基础数据；其中室外消火栓用水量是否需由消防水池储存，取决于市政给水管网能否保证室外消防给水设计流量，见第 6 章。' }
+    ];
+    S.push({ no: 5, id: 'total', title: '一起火灾消防用水总量', tag: 'GB 50974 式(3.6.1)', refs: ['GB 50974-2014 第3.6.1条 式(3.6.1-1)~(3.6.1-3)', 'GB 55036-2022 第3.0.1条'], blocks });
+  }
+
+  /* ============================================================
+     6. 消防水池有效容积
+     ============================================================ */
+  {
+    const qb = Number(inp.refillQ) || 0;
+    const tUse = P.t1;
+    const Wb = 3.6 * qb * tUse;
+
+    /* 市政两路供水可保证的室外消防流量（GB 50974 第4.2.2条、第4.3.2条） */
+    const muniMode = inp.muniSupply || 'single';
+    let q1Muni = 0;
+    if (muniMode === 'two') q1Muni = P.q1;
+    else if (muniMode === 'twoPartial') q1Muni = Math.min(P.q1, Math.max(0, Number(inp.muniQ1) || 0));
+    const q1Pool = Math.max(0, P.q1 - q1Muni);          // 仍需水池储存的室外流量
+    const V1pool = 3.6 * q1Pool * P.t1;
+    const Vneed = V1pool + P.V2 + P.V3;                 // 需由水池保证的总水量
+    let Vpool = Math.max(0, Vneed - Wb);
+    const vmin = (P.q2 + P.q3) > 0 ? 100 : 50;
+    const vminHit = Vpool < vmin;
+    const VpoolFinal = Math.max(Vpool, vmin);
+
+    P.Vpool = VpoolFinal; P.Wb = Wb; P.vmin = vmin;
+    P.muniMode = muniMode; P.q1Muni = q1Muni; P.q1Pool = q1Pool;
+    P.V1pool = V1pool; P.Vneed = Vneed;
+
+    const blocks = [];
+    blocks.push({ t: 'p', text: '消防水池有效容积应按 GB 50974-2014 <b>第4.3.2条</b> 分两种情形确定：① 市政给水管网<b>能</b>保证室外消防给水设计流量时，水池有效容积只满足火灾延续时间内的<b>室内</b>消防用水量；② <b>不能</b>保证时，应满足室内消防用水量与室外消防用水量<b>不足部分</b>之和。' });
+
+    if (muniMode === 'two') {
+      blocks.push({ t: 'note', kind: 'info', text: `本工程为<b>两路消防供水</b>，且能保证室外消火栓设计流量 ${nf(P.q1, 0)} L/s，故室外消防用水量 <b>${nf(P.V1, 1)} m³ 全部由市政给水管网保证，不计入消防水池</b>（第4.3.2条第1款）。` });
+      blocks.push({ t: 'note', kind: 'warn', text: '两路供水的认定应取得市政供水部门书面确认，须<b>同时</b>满足第4.2.2条三项条件：市政给水厂至少有两条输水干管向管网输水；市政给水管网为环状管网；不同市政给水干管上不少于两条引入管向消防给水系统供水。任一条件不成立即视为<b>一路消防供水</b>，须按全部室外用水量储存。' });
+    } else if (muniMode === 'twoPartial') {
+      blocks.push({ t: 'p', text: `本工程为两路消防供水，市政管网可保证的室外消防流量为 <b>${nf(q1Muni, 0)} L/s</b>，小于室外消火栓设计流量 ${nf(P.q1, 0)} L/s，不足部分 <b>${nf(P.q1 - q1Muni, 0)} L/s</b> 由消防水池储存（第4.3.2条第2款）。` });
+    } else {
+      blocks.push({ t: 'note', kind: 'warn', text: `本工程为<b>一路消防供水</b>（或只有一条引入管），市政给水管网不能保证室外消防给水设计流量，室外消防用水量 <b>${nf(P.V1, 1)} m³</b> 应全部由消防水池储存（第4.3.2条第2款）。` });
+    }
+
+    blocks.push({ t: 'f', text: `V需 = 3.6 × q₁,池 × t₁ + V₂ + V₃ = 3.6 × ${nf(q1Pool, 0)} × ${nf(P.t1, 1)} + ${nf(P.V2, 1)} + ${nf(P.V3, 1)} = ${nf(Vneed, 1)} m³` });
+    blocks.push({ t: 'f', text: `V池 = V需 − 3.6 × q补 × t = ${nf(Vneed, 1)} − 3.6 × ${nf(qb, 2)} × ${nf(tUse, 1)} = ${nf(Vpool, 1)} m³` });
+
+    const muniText = muniMode === 'two' ? '不计入（市政保证）'
+      : muniMode === 'twoPartial' ? `部分计入（${nf(q1Muni, 0)}/${nf(P.q1, 0)} 由市政保证）`
+        : '全部计入';
+    blocks.push({
+      t: 'tb', head: ['储存项目', '流量 (L/s)', '时间 (h)', '水量 (m³)', '是否计入水池'], rows: [
+        ['室外消火栓系统', nf(P.q1, 0), nf(P.t1, 1), nf(P.V1, 1), muniText],
+        ['室内消火栓系统', nf(P.q2, 1), nf(P.t2, 1), nf(P.V2, 1), '计入'],
+        ['自动喷水灭火系统', nf(P.q3, 2), '1.0', nf(P.V3, 1), P.sprinklerOn ? '计入' : '—'],
+        ['需水池保证水量 V需', '—', '—', nf(Vneed, 1), '—'],
+        ['火灾时连续补水', nf(-qb, 1), nf(tUse, 1), nf(-Wb, 1), '扣减'],
+        ['水池有效容积（计算值）', '—', '—', nf(Vpool, 1), '—']
+      ], hi: 5
+    });
+
+    blocks.push({ t: 'f', text: `V池,min = ${vmin} m³（GB 50974-2014 第4.3.4条：${vmin === 100 ? '设置自动灭火系统时不应小于 100 m³' : '仅设消火栓系统时不应小于 50 m³'}）` });
+    blocks.push({ t: 'f', text: `取 V池 = max(${nf(Vpool, 1)}, ${vmin}) = <span class="res">${nf(VpoolFinal, 1)} m³</span>` });
+    blocks.push({ t: 'note', kind: vminHit ? 'warn' : 'info', text: vminHit ? `计算值小于规范规定的最小有效容积 ${vmin} m³，已按 ${vmin} m³ 取定。` : '计算值满足规范规定的最小有效容积要求。' });
+
+    if (VpoolFinal > 500) {
+      blocks.push({ t: 'note', kind: 'info', text: `水池总蓄水有效容积 ${nf(VpoolFinal, 1)} m³，${VpoolFinal > 1000 ? '大于 1000 m³，应设置能独立使用的两座消防水池' : '大于 500 m³，宜设两格能独立使用的消防水池'}；每格（座）应设独立出水管并设满足设计流量要求的连通管（第4.3.6条）。` });
+    }
+    if (muniMode === 'two') {
+      blocks.push({ t: 'p', text: `注：室外消火栓系统由市政管网直接供水，尚应校核市政给水管网在火灾延续时间内的流量与压力，保证最不利室外消火栓的水压与水量；消防车取水口、室外消火栓的保护半径与布置间距另按第7.2、7.3节执行。` });
+    }
+
+    S.push({
+      no: 6, id: 'pool', title: '消防水池有效容积',
+      tag: muniMode === 'two' ? '市政两路供水 · 只存室内' : (muniMode === 'twoPartial' ? '室外不足部分计入' : '室内外全部储存'),
+      refs: ['GB 50974-2014 第4.3.1条', 'GB 50974-2014 第4.3.2条', 'GB 50974-2014 第4.3.4条', 'GB 50974-2014 第4.3.6条', 'GB 50974-2014 第4.2.2条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     7. 消防给水分区
+     ============================================================ */
+  const pumpH0 = calcHydrantPump(inp, designH, baseDepth);
+  const pumpS0 = calcSprinklerPump(inp, designH, baseDepth, pumpH0.poolLevel);
+  P.P_hydrantPump = pumpH0.Pt; P.H_hydrantPump = pumpH0.Hpump;
+  P.P_sprinklerPump = pumpS0.Pt; P.H_sprinklerPump = pumpS0.Hpump;
+  {
+    /* 最不利点准工作状态静压：由稳压泵（或高位水箱最低水位）保障，
+       规范下限 0.15MPa（GB 50974 第5.3.3条），稳压泵启泵压力波动上限
+       可达 0.25~0.30MPa，分区判定应按上限并留富余量取值。 */
+    const pTop = Number(inp.pTopZone) > 0 ? Number(inp.pTopZone) : 0.30;
+    P.pTopZone = pTop;
+
+    /* 消火栓系统 */
+    const hTopHyd = designH - 1.1;                       // 顶层消火栓栓口标高
+    const hBotHyd = -baseDepth + 1.1;                    // 最底层消火栓栓口标高
+    const dH_hyd = hTopHyd - hBotHyd;
+    const allowHyd = Math.max(0.1, (1.0 - pTop)) / P_MPA_PER_M;   // 扣除顶部保障静压后的允许高差
+    const nHyd = Math.max(1, Math.ceil(dH_hyd / allowHyd - 1e-9));
+    const pHydMax = pTop + dH_hyd * P_MPA_PER_M;         // 不分区时最低点栓口静压
+    P.dH_hyd = dH_hyd; P.nHyd = nHyd; P.allowHyd = allowHyd; P.hTopHyd = hTopHyd; P.hBotHyd = hBotHyd;
+    P.pHydMax = pHydMax;
+
+    /* 喷淋系统 */
+    const hTopSpr = designH - 0.3;
+    const hBotSpr = -baseDepth + 0.3;
+    const dH_spr = hTopSpr - hBotSpr;
+    const allowSpr = Math.max(0.1, (1.2 - pTop)) / P_MPA_PER_M;   // 喷头处 1.2MPa
+    const nSpr = inp.hasSprinkler ? Math.max(1, Math.ceil(dH_spr / allowSpr - 1e-9)) : 0;
+    const pSprMax = pTop + dH_spr * P_MPA_PER_M;
+    P.dH_spr = dH_spr; P.nSpr = nSpr; P.allowSpr = allowSpr;
+    P.pSprMax = pSprMax;
+
+    /* 系统工作压力校核（按设计扬程的 1.2 倍估算零流量压力） */
+    const Pwork = P.P_hydrantPump * 1.2;
+    P.Pwork = Pwork;
+
+    const blocks = [];
+    blocks.push({ t: 'p', text: '分区供水判定条件（符合下列任一条件时应分区供水）：① 系统工作压力大于 2.40MPa；② 消火栓栓口处静压大于 1.00MPa；③ 自动水灭火系统报警阀处工作压力大于 1.60MPa 或喷头处工作压力大于 1.20MPa。' });
+    blocks.push({ t: 'note', kind: 'info', text: '注意：分区控制的是<b>最低点静压</b>，不是几何高差。系统在准工作状态（未出水）时，最高点最不利灭火设施的静压由稳压泵维持，该静压会完整地叠加到最低点上。故 <b>P底 = P顶 + Δh × 0.00981</b>，若直接用几何高差判定将低估最低点压力，导致分区不足、底部管件与阀件超压。' });
+    blocks.push({ t: 'p', text: `最不利点准工作静压取 P顶 = <b>${nf(pTop, 2)} MPa</b>。依据 GB 50974-2014 第5.3.3条，稳压泵应保持系统最不利点处水灭火设施准工作状态静水压力大于 0.15MPa，此为<b>规范下限</b>；实际运行时稳压泵在启泵压力与停泵压力间波动，最不利点静压通常会高于该下限，最高可达 0.25~0.30MPa。分区判定属"一次划分、长期有效"的控制性结论，应按压力上限并留富余量取值，故取 ${nf(pTop, 2)} MPa。` });
+
+    blocks.push({ t: 'f', text: `消火栓最低点静压：P底 = ${nf(pTop, 2)} + ${nf(dH_hyd, 2)} × 0.00981 = <span class="res">${nf(pHydMax, 3)} MPa</span>　${pHydMax > 1.0 ? '＞ 1.00 MPa，需分区' : '≤ 1.00 MPa'}` });
+    blocks.push({ t: 'f', text: `允许几何高差（消火栓）：[Δh] = (1.00 − ${nf(pTop, 2)}) ÷ 0.00981 = ${nf(allowHyd, 1)} m` });
+    blocks.push({ t: 'f', text: `消火栓系统高差：Δh = ${nf(hTopHyd, 2)} − (${nf(hBotHyd, 2)}) = ${nf(dH_hyd, 2)} m` });
+    blocks.push({ t: 'f', text: `分区数 n_消 = ⌈${nf(dH_hyd, 1)} ÷ ${nf(allowHyd, 1)}⌉ = <span class="res">${nHyd}</span>` });
+    if (inp.hasSprinkler) {
+      blocks.push({ t: 'f', text: `喷头处最低点静压：P底0 = ${nf(pTop, 2)} + ${nf(dH_spr, 2)} × 0.00981 = <span class="res">${nf(pSprMax, 3)} MPa</span>　${pSprMax > 1.2 ? '＞ 1.20 MPa，需分区' : '≤ 1.20 MPa'}` });
+      blocks.push({ t: 'f', text: `允许几何高差（喷头处 1.20MPa）：[Δh]₀ = (1.20 − ${nf(pTop, 2)}) ÷ 0.00981 = ${nf(allowSpr, 1)} m` });
+      blocks.push({ t: 'f', text: `喷淋系统高差：Δh₀ = ${nf(hTopSpr, 2)} − (${nf(hBotSpr, 2)}) = ${nf(dH_spr, 2)} m` });
+      blocks.push({ t: 'f', text: `分区数 n_喷 = ⌈${nf(dH_spr, 1)} ÷ ${nf(allowSpr, 1)}⌉ = <span class="res">${nSpr}</span>` });
+    } else {
+      blocks.push({ t: 'note', kind: 'info', text: '本建筑未设置自动喷水灭火系统，不作喷淋系统分区判定。' });
+    }
+    blocks.push({ t: 'p', text: '条件① 校核（系统工作压力）：' });
+    blocks.push({ t: 'f', text: `P_系统 ≈ 1.2 × P_设计 = 1.2 × ${nf(P.P_hydrantPump, 3)} = ${nf(Pwork, 3)} MPa ${Pwork > 2.4 ? '> 2.40 MPa（需分区，且须水泵串联或减压水箱）' : '≤ 2.40 MPa（满足）'} ` });
+
+    /* 分区表 */
+    const rowsH = zoneTable(hBotHyd, hTopHyd, allowHyd, nHyd, inp.floorH, baseDepth, inp.basementFloors, pTop, inp.floors);
+    blocks.push({ t: 'p', text: '<b>消火栓系统竖向分区</b>' });
+    blocks.push({
+      t: 'tb', head: ['分区', '服务标高范围 (m)', '对应楼层', '分区高度 (m)', '底部静压 (MPa)'],
+      rows: rowsH.map(r => [r.name, r.range, r.floors, nf(r.height, 1), nf(r.pBot, 3)]), hi: -1,
+      note: `底部静压 = P顶(${nf(pTop, 2)}) + 分区高度 × 0.00981，均 ≤ 1.00MPa`
+    });
+
+    const rowsS = zoneTable(hBotSpr, hTopSpr, allowSpr, nSpr, inp.floorH, baseDepth, inp.basementFloors, pTop, inp.floors);
+    if (nSpr > 1) {
+      blocks.push({ t: 'p', text: '<b>自动喷水系统竖向分区</b>' });
+      blocks.push({
+        t: 'tb', head: ['分区', '服务标高范围 (m)', '对应楼层', '分区高度 (m)', '底部静压 (MPa)'],
+        rows: rowsS.map(r => [r.name, r.range, r.floors, nf(r.height, 1), nf(r.pBot, 3)]), hi: -1,
+        note: `底部静压 = P顶(${nf(pTop, 2)}) + 分区高度 × 0.00981，均 ≤ 1.20MPa`
+      });
+    }
+
+    /* 判定结论 */
+    const needZone = nHyd > 1 || nSpr > 1 || Pwork > 2.4;
+    if (!needZone) {
+      blocks.push({ t: 'note', kind: 'info', text: `最低点栓口静压 ${nf(pHydMax, 3)} MPa 未超过 1.00MPa${inp.hasSprinkler ? `，喷头处最低静压 ${nf(pSprMax, 3)} MPa 未超过 1.20MPa` : ''}，系统工作压力 ${nf(Pwork, 3)} MPa 未超过 2.40MPa，<b>消防给水系统可不分区</b>，采用临时高压消防给水系统统一供水。` });
+    } else {
+      let method;
+      if (Pwork > 2.4) {
+        method = '系统工作压力大于 2.40MPa，应采用<b>消防水泵串联</b>或<b>减压水箱</b>分区供水形式，不应仅采用减压阀减压。';
+      } else {
+        method = '可采用<b>消防水泵并行（各区独立设泵）</b>、<b>减压水箱</b>或<b>减压阀减压</b>的形式；减压阀宜采用比例式，阀前阀后压力比不宜大于 3:1，一级减压不满足时可两级串联。';
+      }
+      blocks.push({ t: 'note', kind: 'warn', text: `本建筑消防给水系统<b>需要分区供水</b>：消火栓 ${nHyd} 个区${nSpr > 1 ? `、喷淋 ${nSpr} 个区` : ''}。${method}各区顶部（最不利点）静压仍按不低于 0.15MPa、宜按 ${nf(pTop, 2)} MPa 控制，减压阀阀后压力应据此设定。` });
+      P.zoneMethod = method;
+    }
+    P.needZone = needZone;
+
+    /* 静压接近限值时的复核提示 */
+    if (inp.hasSprinkler && pSprMax > 1.15 && pSprMax <= 1.2) {
+      blocks.push({ t: 'note', kind: 'warn', text: `喷头处最低静压 ${nf(pSprMax, 3)} MPa 已接近 1.20MPa 限值，富余量不足 0.05MPa。喷水时配水管道工作压力尚应在静压基础上叠加水头损失（GB 50084-2017 第8.0.1条规定配水管道工作压力不应大于 1.20MPa），该部位管道、管件及阀门的压力等级应按工作压力复核，必要时增加分区数或提高管材等级。` });
+    }
+    if (pHydMax > 0.95 && pHydMax <= 1.0) {
+      blocks.push({ t: 'note', kind: 'warn', text: `消火栓最低点静压 ${nf(pHydMax, 3)} MPa 已接近 1.00MPa 限值，建议结合稳压泵实际整定压力复核；若稳压泵停泵压力高于 ${nf(pTop, 2)} MPa，应相应增加分区数。` });
+    }
+
+    S.push({
+      no: 7, id: 'zone', title: '消防给水系统分区', tag: '最低点静压 1.0MPa / 1.2MPa 控制',
+      refs: ['GB 50974-2014 第6.2.1条', 'GB 50974-2014 第6.2.2条', 'GB 50974-2014 第5.3.3条', 'GB 50974-2014 第7.4.12条', 'GB 50084-2017 第8.0.1条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     8. 消火栓泵扬程
+     ============================================================ */
+  {
+    const { hTop, poolLevel, Hgeo, L, i, Pf, Pp, P0, k2, Pt, Hpump } = pumpH0;
+    const q2 = Math.max(P.q2, 5);
+
+    P.HgeoHyd = Hgeo; P.Lhyd = L; P.iHyd = i; P.PfHyd = Pf; P.PpHyd = Pp; P.P0Hyd = P0;
+    P.k2 = k2; P.poolLevel = poolLevel;
+
+    const blocks = [
+      { t: 'p', text: '消防水泵设计扬程按下式计算（GB 50974-2014 第10.1.7条）：' },
+      { t: 'f', text: 'P = k₂ × (0.01H + ΣP_f + ΣP_p + P₀)　(10.1.7)' },
+      { t: 'kv', items: [
+        ['最不利消火栓栓口标高', `${nf(hTop, 2)} m`],
+        ['消防水池最低有效水位标高', `${nf(poolLevel, 2)} m（地下 ${inp.basementFloors} 层，层高 ${nf(inp.basementH, 2)} m）`],
+        ['几何高差 H', `${nf(Hgeo, 2)} m`],
+        ['最不利管路长度 L', `${nf(L, 0)} m${inp.pipeLenHydrant ? '（用户输入）' : '（自动估算：H×1.15+30）'}`],
+        ['单位水力坡降 i', `${nf(i, 4)} m/m`],
+        ['栓口所需压力 P₀', `${nf(P0, 2)} MPa（充实水柱 ${P0 >= 0.35 ? '13' : '10'} m）`],
+        ['安全系数 k₂', nf(k2, 2)]
+      ] },
+      { t: 'f', text: `ΣP_f = i·L·0.00981 = ${nf(i, 4)} × ${nf(L, 0)} × 0.00981 = ${nf(Pf, 4)} MPa　(10.1.5)` },
+      { t: 'f', text: `ΣP_p = 15% × ΣP_f = ${nf(Pp, 4)} MPa（室内消火栓干管取沿程的 10%~20%，取 15%）　(10.1.6)` },
+      { t: 'f', text: `P = ${nf(k2, 2)} × (0.01×${nf(Hgeo, 2)} + ${nf(Pf, 4)} + ${nf(Pp, 4)} + ${nf(P0, 2)})` },
+      { t: 'f', text: `P = ${nf(k2, 2)} × ${nf(0.01 * Hgeo + Pf + Pp + P0, 4)} = <span class="res">${nf(Pt, 3)} MPa</span>` },
+      { t: 'f', text: `H_b = ${nf(Pt, 3)} × 100 = <span class="res">${nf(Hpump, 1)} m</span>` },
+      { t: 'p', text: `选泵建议：流量 <b>${nf(q2, 1)} L/s</b>，扬程 <b>${nf(Hpump, 1)} m</b>（扬程为设计值，选型时按水泵性能曲线校核；零流量压力不应大于系统工作压力限值）。` }
+    ];
+
+    if (P.nHyd > 1) {
+      const hzH = P.dH_hyd / P.nHyd;
+      const zoneRows = [];
+      for (let k = P.nHyd - 1; k >= 0; k--) {
+        const bot = P.hBotHyd + k * hzH;
+        const top = P.hBotHyd + (k + 1) * hzH;
+        const Li = L * (hzH / P.dH_hyd);
+        const Pfi = i * Li * P_MPA_PER_M, Ppi = Pfi * 0.15;
+        const hPar = top - poolLevel;
+        const hSer = hzH;
+        const PiPar = k2 * (0.01 * hPar + Pfi + Ppi + P0);
+        const PiSer = k2 * (0.01 * hSer + Pfi + Ppi + P0);
+        zoneRows.push([`${k + 1} 区`, `${nf(bot, 1)} ~ ${nf(top, 1)}`, nf(hzH, 1), nf(PiPar * 100, 1), nf(PiSer * 100, 1)]);
+      }
+      blocks.push({ t: 'p', text: '<b>分区供水时各区水泵扬程（供选泵参考）</b>' });
+      blocks.push({
+        t: 'tb', head: ['分区', '服务标高 (m)', '区段高度 (m)', '并联供水泵扬程 (m)', '串联供水泵扬程 (m)'],
+        rows: zoneRows, hi: -1,
+        note: '并联：各区泵自消防水池吸水直供本区，扬程含全楼几何高差；串联：高区泵自转输水箱吸水，扬程仅计区段高度'
+      });
+      blocks.push({ t: 'note', kind: 'info', text: '系统工作压力大于 2.40MPa 时应采用串联或减压水箱分区；采用减压阀减压分区时，各区水泵扬程可按并联方案取值，阀后压力应经计算确定。' });
+    }
+
+    S.push({
+      no: 8, id: 'pump-hydrant', title: '消火栓泵扬程', tag: 'GB 50974 式(10.1.7)',
+      refs: ['GB 50974-2014 第10.1.5条', 'GB 50974-2014 第10.1.6条', 'GB 50974-2014 第10.1.7条', 'GB 50974-2014 第7.4.12条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     9. 喷淋泵扬程
+     ============================================================ */
+  {
+    const { hTop, Hgeo, L, i, Pf, Pp, P0, k2, Pt, Hpump, Pnozzle, Pvalve, Pflow } = pumpS0;
+    const poolLevel = pumpH0.poolLevel;
+
+    P.HgeoSpr = Hgeo; P.Lspr = L; P.iSpr = i; P.PfSpr = Pf; P.PpSpr = Pp; P.P0Spr = P0;
+
+    const blocks = [
+      { t: 'p', text: '喷淋水泵扬程同样按 GB 50974-2014 第10.1.7条 计算，P₀ 中计入最不利喷头工作压力、报警阀及水流指示器水头损失；亦符合 GB 50084-2017 第9.2.4条 的组成要求。' },
+      { t: 'kv', items: [
+        ['最不利喷头标高', `${nf(hTop, 2)} m`],
+        ['消防水池最低有效水位标高', `${nf(poolLevel, 2)} m`],
+        ['几何高差 H', `${nf(Hgeo, 2)} m`],
+        ['最不利管路长度 L', `${nf(L, 0)} m${inp.pipeLenSprinkler ? '（用户输入）' : '（自动估算：H×1.3+60）'}`],
+        ['单位水力坡降 i', `${nf(i, 4)} m/m`],
+        ['最不利喷头工作压力', `${nf(Pnozzle, 2)} MPa`],
+        ['报警阀水头损失', `${nf(Pvalve, 2)} MPa`],
+        ['水流指示器水头损失', `${nf(Pflow, 2)} MPa`],
+        ['P₀ 合计', `${nf(P0, 2)} MPa`]
+      ] },
+      { t: 'f', text: `ΣP_f = i·L·0.00981 = ${nf(i, 4)} × ${nf(L, 0)} × 0.00981 = ${nf(Pf, 4)} MPa` },
+      { t: 'f', text: `ΣP_p = 30% × ΣP_f = ${nf(Pp, 4)} MPa（自动喷水支管较多，取 30%）` },
+      { t: 'f', text: `P = ${nf(k2, 2)} × (0.01×${nf(Hgeo, 2)} + ${nf(Pf, 4)} + ${nf(Pp, 4)} + ${nf(P0, 2)}) = <span class="res">${nf(Pt, 3)} MPa</span>` },
+      { t: 'f', text: `H_b,喷 = ${nf(Pt, 3)} × 100 = <span class="res">${nf(Hpump, 1)} m</span>` },
+      inp.hasSprinkler
+        ? { t: 'p', text: `选泵建议：流量 <b>${nf(P.q3, 2)} L/s</b>，扬程 <b>${nf(Hpump, 1)} m</b>；报警阀处工作压力不应大于 1.60MPa，配水管道工作压力不应大于 1.20MPa。` }
+        : { t: 'note', kind: 'info', text: '本建筑未设自动喷水灭火系统，本节仅供参考。' }
+    ];
+    S.push({
+      no: 9, id: 'pump-sprinkler', title: '喷淋泵扬程', tag: 'GB 50974 式(10.1.7)',
+      refs: ['GB 50974-2014 第10.1.7条', 'GB 50084-2017 第9.2.4条', 'GB 50084-2017 第8.0.1条', 'GB 50084-2017 第5.0.1条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     10. 生活给水分区
+     ============================================================ */
+  {
+    const pAllow = inp.centralHotWater ? 0.55 : 0.45;
+    const pMin = Number(inp.pMinPoint) || 0.10;
+    const pMeter = Number(inp.pMeter) || 0.05;
+    const pMuni = Number(inp.pMuni) || 0;
+    const H0 = Math.max(0, (pMuni - pMin - pMeter) * MPA_TO_M);
+    const hDirect = Math.min(H0, designH);
+    const hPress = Math.max(0, designH - hDirect);
+    const hZone = pAllow * MPA_TO_M;
+    const nPress = hPress <= 0.01 ? 0 : Math.max(1, Math.ceil(hPress / hZone - 1e-9));
+
+    P.pAllow = pAllow; P.H0 = H0; P.hDirect = hDirect; P.hPress = hPress; P.hZone = hZone; P.nPress = nPress;
+    P.zoneCountWater = (hDirect > 0.01 ? 1 : 0) + nPress;
+
+    const blocks = [];
+    blocks.push({ t: 'p', text: `生活给水系统分区执行 GB 50015-2019 第3.4.3条：各分区最低卫生器具配水点处的静水压力不宜大于 <b>${nf(pAllow, 2)} MPa</b>${inp.centralHotWater ? '（设有集中热水系统）' : ''}。` });
+    blocks.push({ t: 'f', text: `市政可直供高度 H₀ = (P_市 − P_用水点 − P_损失) × 101.94 = (${nf(pMuni, 2)} − ${nf(pMin, 2)} − ${nf(pMeter, 2)}) × 101.94 = <span class="res">${nf(H0, 1)} m</span>` });
+    blocks.push({ t: 'f', text: `分区允许高度 [h] = ${nf(pAllow, 2)} MPa × 101.94 = ${nf(hZone, 1)} m` });
+    blocks.push({ t: 'f', text: `需加压高度 = ${nf(designH, 1)} − ${nf(hDirect, 1)} = ${nf(hPress, 1)} m` });
+    blocks.push({ t: 'f', text: `加压分区数 n = ⌈${nf(hPress, 1)} ÷ ${nf(hZone, 1)}⌉ = <span class="res">${nPress}</span>，总分区数（含直供区）= ${P.zoneCountWater}` });
+
+    /* 分区表 */
+    const rows = [];
+    let z = 1;
+    if (hDirect > 0.01) {
+      rows.push(['1 区（市政直供）', `0.00 ~ ${nf(hDirect, 1)}`, floorRange(0, hDirect, inp.floorH, baseDepth, inp.basementFloors, inp.floors), nf(hDirect, 1), '—', '市政压力']);
+      z = 2;
+    }
+    if (nPress > 0) {
+      const hz = hPress / nPress;
+      for (let k = 0; k < nPress; k++) {
+        const b = hDirect + k * hz;
+        const top = hDirect + (k + 1) * hz;
+        rows.push([`${z + k} 区（加压）`, `${nf(b, 1)} ~ ${nf(top, 1)}`, floorRange(b, top, inp.floorH, baseDepth, inp.basementFloors, inp.floors), nf(hz, 1), nf(hz * P_MPA_PER_M, 3), `≤${nf(pAllow, 2)}`]);
+      }
+    }
+
+    if (rows.length) {
+      blocks.push({ t: 'tb', head: ['分区', '服务标高 (m)', '对应楼层', '分区高度 (m)', '底部静压 (MPa)', '备注'], rows, hi: -1, note: '分区自下而上划分，各分区最低配水点静压不超过限值' });
+    }
+
+    if (nPress === 0) {
+      blocks.push({ t: 'note', kind: 'info', text: '市政给水压力可满足全楼用水压力要求，<b>生活给水系统可不分区</b>，采用市政管网直接供水。' });
+    } else {
+      blocks.push({ t: 'note', kind: 'warn', text: `生活给水系统<b>需要竖向分区</b>：下部 ${nf(hDirect, 1)}m 采用市政直供，上部 ${nf(hPress, 1)}m 分 ${nPress} 个加压区。${designH > 100 ? '建筑高度大于 100m，宜采用<b>垂直串联供水</b>方式。' : '建筑高度不超过 100m，宜采用<b>垂直分区并联供水</b>或<b>分区减压供水</b>方式。'}` });
+    }
+    blocks.push({ t: 'p', text: '供水方式依据：GB 50015-2019 第3.4.6条——建筑高度不超过 100m 的建筑生活给水系统宜采用垂直分区并联供水或分区减压的供水方式；超过 100m 宜采用垂直串联供水方式。' });
+
+    S.push({
+      no: 10, id: 'water-zone', title: '生活给水系统分区', tag: '静压 0.45 / 0.55MPa 控制',
+      refs: ['GB 50015-2019 第3.4.3条', 'GB 50015-2019 第3.4.5条', 'GB 50015-2019 第3.4.6条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     11. 生活给水泵扬程（最高加压区）
+     ============================================================ */
+  {
+    if (P.nPress > 0) {
+      const hz = P.hPress / P.nPress;
+      const topZone = designH;
+      const botZone = designH - hz;
+      const poolLevel = -baseDepth - 0.5;
+      const Hgeo = topZone - 1.0 - poolLevel;
+      const autoL = Math.round((topZone - botZone) * 1.2 + 25);
+      const L = Number(inp.pipeLenWater) || autoL;
+      const i = Number(inp.iWater) || 0.03;
+      const Pf = i * L * P_MPA_PER_M;
+      const Pp = Pf * 0.25;
+      const Pmin = Number(inp.pMinPoint) || 0.10;
+      const k2 = Number(inp.k2) || 1.2;
+      const Pt = k2 * (0.01 * Hgeo + Pf + Pp + Pmin);
+      const Hpump = Pt * 100;
+
+      P.HgeoWater = Hgeo; P.H_waterPump = Hpump; P.P_waterPump = Pt;
+
+      const blocks = [
+        { t: 'p', text: '按最高加压区（最不利区）计算生活加压泵扬程，采用与消防水泵相同的水力计算式。' },
+        { t: 'kv', items: [
+          ['最高加压区标高范围', `${nf(botZone, 1)} ~ ${nf(topZone, 1)} m`],
+          ['最不利配水点标高', `${nf(topZone - 1.0, 2)} m`],
+          ['生活水池最低水位标高', `${nf(poolLevel, 2)} m`],
+          ['几何高差 H', `${nf(Hgeo, 2)} m`],
+          ['最不利管路长度 L', `${nf(L, 0)} m${inp.pipeLenWater ? '（用户输入）' : '（自动估算）'}`],
+          ['单位水力坡降 i', `${nf(i, 4)} m/m`],
+          ['用水点最低工作压力', `${nf(Pmin, 2)} MPa`]
+        ] },
+        { t: 'f', text: `ΣP_f = ${nf(i, 4)} × ${nf(L, 0)} × 0.00981 = ${nf(Pf, 4)} MPa；ΣP_p = 25% × ΣP_f = ${nf(Pp, 4)} MPa` },
+        { t: 'f', text: `P = ${nf(k2, 2)} × (0.01×${nf(Hgeo, 2)} + ${nf(Pf, 4)} + ${nf(Pp, 4)} + ${nf(Pmin, 2)}) = <span class="res">${nf(Pt, 3)} MPa</span>` },
+        { t: 'f', text: `H_b,生 = <span class="res">${nf(Hpump, 1)} m</span>` },
+        { t: 'note', kind: 'info', text: `分区并联供水时，各分区水泵扬程分别按本区服务高度计算；本值为最高区（最不利区）所需扬程，低区水泵扬程相应减小。` }
+      ];
+      S.push({
+        no: 11, id: 'pump-water', title: '生活给水泵扬程', tag: '最高加压区',
+        refs: ['GB 50974-2014 第10.1.7条（水力计算式）', 'GB 50015-2019 第3.4.4条'],
+        blocks
+      });
+    }
+  }
+
+  /* ============================================================
+     12. 高位消防水箱有效容积（GB 50974 第5.2.1、5.2.2条）
+     ============================================================ */
+  {
+    const isInd = inp.cat === 'industrial';
+    const isShop = inp.func === 'shop' || inp.func === 'shopBig';
+    const isClass1 = inp.cat === 'civil' && high && inp.highClass === 'class1';
+    let vTank = 0, basis = '', rule = '';
+
+    if (isInd) {
+      if (P.q2 <= 25) { vTank = 12; rule = '第5.2.1条第5款'; basis = `工业建筑，室内消防给水设计流量 ${nf(P.q2, 1)} L/s ≤ 25 L/s，不应小于 12 m³`; }
+      else { vTank = 18; rule = '第5.2.1条第5款'; basis = `工业建筑，室内消防给水设计流量 ${nf(P.q2, 1)} L/s ＞ 25 L/s，不应小于 18 m³`; }
+    } else if (isRes) {
+      if (inp.H > 54) {
+        vTank = inp.H > 100 ? 36 : 18; rule = '第5.2.1条第2款';
+        basis = `一类高层住宅，H=${nf(inp.H, 1)}m${inp.H > 100 ? '（超过 100m）' : ''}，不应小于 ${vTank} m³`;
+      } else if (inp.H > 27) {
+        vTank = 12; rule = '第5.2.1条第3款';
+        basis = `二类高层住宅，27m＜H≤54m，不应小于 12 m³`;
+      } else if (inp.H > 21) {
+        vTank = 6; rule = '第5.2.1条第4款';
+        basis = `建筑高度大于 21m 的多层住宅，不应小于 6 m³`;
+      } else {
+        vTank = 6; rule = '第5.2.1条第4款';
+        basis = `建筑高度 ${nf(inp.H, 1)}m ≤ 21m，规范未强制要求设高位消防水箱，如设置不宜小于 6 m³`;
+      }
+    } else {
+      if (isClass1) {
+        vTank = inp.H > 150 ? 100 : (inp.H > 100 ? 50 : 36);
+        rule = '第5.2.1条第1款';
+        basis = `一类高层公共建筑，H=${nf(inp.H, 1)}m${inp.H > 150 ? '（超过 150m）' : (inp.H > 100 ? '（超过 100m）' : '')}，不应小于 ${vTank} m³`;
+      } else if (high) {
+        vTank = 18; rule = '第5.2.1条第2款';
+        basis = `二类高层公共建筑，H=${nf(inp.H, 1)}m，不应小于 18 m³`;
+      } else {
+        vTank = 18; rule = '第5.2.1条第2款';
+        basis = `多层公共建筑，H=${nf(inp.H, 1)}m，不应小于 18 m³`;
+      }
+    }
+
+    /* 商店建筑第6款：取大值 */
+    let shopNote = '';
+    const Aall = (Number(inp.areaStd) || 0) * (Number(inp.floors) || 0);
+    if (isShop && Aall > 0) {
+      let vShop = 0;
+      if (Aall >= 30000) { vShop = 50; shopNote = `商店建筑总建筑面积约 ${nf(Aall, 0)} m² ＞ 30000 m²，按第5.2.1条第6款不应小于 <b>50 m³</b>`; }
+      else if (Aall > 10000) { vShop = 36; shopNote = `商店建筑总建筑面积约 ${nf(Aall, 0)} m²（10000~30000 m²），按第5.2.1条第6款不应小于 <b>36 m³</b>`; }
+      if (vShop > vTank) {
+        vTank = vShop;
+        basis += `；按商店建筑条款取大值后为 ${vShop} m³`;
+        rule = `第5.2.1条 第${isClass1 ? '1、6' : '2、6'}款（取大值）`;
+      }
+    } else if (isShop && Aall <= 0) {
+      shopNote = '商店建筑尚应按第5.2.1条第6款按总建筑面积（＞10000 m² 取 36 m³，＞30000 m² 取 50 m³）校核，请填写标准层建筑面积以便自动计算总建筑面积。';
+    }
+
+    /* 静压要求 5.2.2 */
+    let pReq = 0.07, pReqText = '多层公共建筑、二类高层公共建筑、一类高层住宅 ≥ 0.07 MPa';
+    if (inp.cat === 'civil' && high && inp.highClass === 'class1') {
+      pReq = 0.10; pReqText = '一类高层公共建筑 ≥ 0.10 MPa';
+    } else if (isInd) {
+      pReq = inp.V < 20000 ? 0.07 : 0.10;
+      pReqText = `工业建筑（建筑体积 ${nf(inp.V, 0)} m³ ${inp.V < 20000 ? '＜' : '≥'} 20000 m³）≥ ${nf(pReq, 2)} MPa`;
+    }
+    if (P.sprinklerOn && pReq < 0.10) {
+      pReq = 0.10;
+      pReqText += '；自喷系统喷头处静压 ≥ 0.10 MPa，两者取大值';
+    }
+    const hNeed = pReq * MPA_TO_M;
+
+    const A_tankRoom = Math.round((vTank / 2.0) * 1.55 + 6);
+
+    const blocks = [
+      { t: 'p', text: '临时高压消防给水系统应设高位消防水箱，其有效容积按 GB 50974-2014 <b>第5.2.1条</b> 根据建筑类别、高度与室内消防给水设计流量确定。' },
+      { t: 'kv', items: [
+        ['建筑类别', highClassText],
+        ['建筑高度 H', `${nf(inp.H, 1)} m`],
+        ['室内消防给水设计流量', `${nf(P.q2, 1)} L/s`],
+        ['适用条款', rule],
+        ['高位消防水箱有效容积', `${nf(vTank, 0)} m³`]
+      ] },
+      { t: 'f', text: `V水箱 = <span class="res">${nf(vTank, 0)} m³</span>　（${basis}）` }
+    ];
+    if (shopNote) blocks.push({ t: 'p', text: shopNote });
+
+    if (P.q2 <= 0 && P.q3 <= 0) {
+      blocks.push({ t: 'note', kind: 'warn', text: '本建筑不设室内消火栓与自动喷水灭火系统，<b>无室内消防给水设施，可不设高位消防水箱</b>；表中数值仅供参照。' });
+    } else if (P.q2 <= 0) {
+      blocks.push({ t: 'note', kind: 'info', text: '本建筑不设室内消火栓，高位消防水箱容积应按自动喷水灭火系统初期用水量与喷头工作压力确定，并校核最不利喷头静压不小于 0.10MPa（第5.2.2条第4款）；表中数值按建筑类别取值，供参考。' });
+    }
+
+    blocks.push({ t: 'p', text: '高位消防水箱设置位置与静压要求（<b>第5.2.2条</b>）：' });
+    blocks.push({ t: 'f', text: `所需静压 p ≥ ${nf(pReq, 2)} MPa　（${pReqText}）→ 水箱最低有效水位应高出最不利点 ${nf(hNeed, 1)} m` });
+    blocks.push({ t: 'note', kind: 'info', text: `本工程分区判定按最不利点准工作静压 P顶 = ${nf(P.pTopZone, 2)} MPa 计。当高位水箱最低有效水位与最不利点的高差不足 ${nf(hNeed, 1)} m（即静压达不到 ${nf(pReq, 2)} MPa）时，<b>应设稳压泵</b>增压（第5.3.3条），稳压泵应保证最不利点静压大于 0.15 MPa。` });
+    blocks.push({ t: 'kv', items: [
+      ['水箱间建筑面积（估算）', `约 ${A_tankRoom} m²（有效水深按 2.0m，含超高、通道、爬梯）`],
+      ['配套要求', '就地水位显示、最高/最低报警水位、溢流管（间接排水）、通气管、检修人孔']
+    ] });
+    blocks.push({ t: 'note', kind: 'warn', text: '高位消防水箱的有效容积、进出水管、溢流管、通气管、水位显示与报警等构造要求，应按第5.2.3~5.2.6条及第4.3.9、4.3.10条执行；水箱间应设排水设施并保证环境温度不低于 5℃。' });
+
+    P.Vtank = vTank; P.pTankReq = pReq; P.hTankNeed = hNeed; P.A_tankRoom = A_tankRoom;
+
+    S.push({
+      no: 12, id: 'tank', title: '高位消防水箱有效容积', tag: `≥ ${nf(vTank, 0)} m³`,
+      refs: ['GB 50974-2014 第5.2.1条', 'GB 50974-2014 第5.2.2条', 'GB 50974-2014 第5.3.3条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     13. 泵房面积与生活贮水池（经验估算）
+     ============================================================ */
+  {
+    /* --- 消防水泵房 --- */
+    const nHydP = Math.max(1, P.nHyd) * 2;                       // 每个分区一用一备
+    const nSprP = P.sprinklerOn ? Math.max(1, P.nSpr) * 2 : 0;
+    const nPump = nHydP + nSprP;
+    const qMax = Math.max(P.q2, P.q3);
+    let lP = 2.1, wP = 1.2, sizeText = '中型机组';
+    if (qMax <= 30) { lP = 1.8; wP = 1.0; sizeText = '小型机组'; }
+    else if (qMax > 60) { lP = 2.6; wP = 1.5; sizeText = '大型机组'; }
+
+    const Lroom = nPump * lP + (nPump - 1) * 0.8 + 2 * 1.2;
+    const Wroom = wP + 2 * 1.2;
+    const A_pumpCore = Lroom * Wroom;
+    const A_pumpRoom = A_pumpCore + 20;                          // 配电/控制室、集水坑、楼梯
+    const A_pumpMin = Math.round(A_pumpRoom * 0.85);
+    const A_pumpMax = Math.round(A_pumpRoom * 1.15);
+
+    /* --- 生活贮水池与生活泵房 --- */
+    const Qd = Number(inp.qdLife) || 200;
+    const ratioLow = 0.20, ratioHigh = 0.25;
+    const VlifeMin = Qd * ratioLow, VlifeMax = Qd * ratioHigh;
+    const Vlife = Math.ceil(VlifeMax / 5) * 5;                   // 取 25%，向上取 5 的倍数
+    const hEff = Vlife > 100 ? 2.5 : 2.2;
+    const A_tankLife = Vlife / hEff;
+    const nCell = Vlife > 50 ? 2 : 1;
+    const A_lifeTankRoom = A_tankLife * 1.30 + 6;
+    const A_lifePumpZone = 15;
+    const A_lifeRoom = A_lifeTankRoom + A_lifePumpZone;
+    const A_lifeMin = Math.round(A_lifeRoom * 0.8);
+    const A_lifeMax = Math.round(A_lifeRoom * 1.2);
+
+    P.A_pumpRoom = A_pumpRoom; P.Vlife = Vlife; P.A_lifeRoom = A_lifeRoom;
+    P.nPump = nPump; P.QdLife = Qd;
+
+    const blocks = [];
+
+    /* 消防泵房 */
+    blocks.push({ t: 'p', text: '<b>一、消防水泵房面积（估算）</b>' });
+    blocks.push({ t: 'p', text: `消防水泵按每个供水分区「一用一备」配置：消火栓泵 ${nHydP} 台${nSprP ? `、喷淋泵 ${nSprP} 台` : ''}，合计 <b>${nPump} 台</b>。按 ${sizeText}（单机外形约 ${nf(lP, 1)}×${nf(wP, 1)} m）单排布置计算。` });
+    blocks.push({ t: 'f', text: `泵房净长 L = ${nPump}×${nf(lP, 1)} + (${nPump}-1)×0.8 + 2×1.2 = ${nf(Lroom, 1)} m` });
+    blocks.push({ t: 'f', text: `泵房净宽 B = ${nf(wP, 1)} + 2×1.2 = ${nf(Wroom, 1)} m` });
+    blocks.push({ t: 'f', text: `泵组区净面积 = ${nf(Lroom, 1)} × ${nf(Wroom, 1)} = ${nf(A_pumpCore, 1)} m²` });
+    blocks.push({ t: 'f', text: `消防泵房建筑面积 ≈ ${nf(A_pumpCore, 1)} + 20（配电控制室、集水坑、楼梯）= <span class="res">约 ${Math.round(A_pumpRoom)} m²</span>` });
+    blocks.push({ t: 'tb', head: ['项目', '取值', '说明'], rows: [
+      ['泵组台数', `${nPump} 台`, `消火栓 ${nHydP} 台${nSprP ? ` + 喷淋 ${nSprP} 台` : ''}，每区一用一备`],
+      ['相邻机组净距', '0.8 m', 'GB 50974 第5.5.12条（电机容量 22~55kW）'],
+      ['主要通道宽度', '≥1.2 m', 'GB 50974 第5.5.13条'],
+      ['泵房净高', '≥3.0 m（宜 3.5~4.5 m）', '满足吊装、检修与管道布置'],
+      ['建议建筑面积', `${A_pumpMin} ~ ${A_pumpMax} m²`, '经验区间，按实际泵型与管道布置调整']
+    ], hi: 4, note: '泵房尚应设排水沟、集水坑与排污泵，地面宜有 0.5%~1% 坡度排向集水坑' });
+    if (P.nHyd > 1 || P.nSpr > 1) {
+      blocks.push({ t: 'note', kind: 'info', text: `本工程消防给水分区为消火栓 ${P.nHyd} 区${P.nSpr > 1 ? `、喷淋 ${P.nSpr} 区` : ''}。若采用<b>水泵并联分区</b>（各区独立设泵），泵房需容纳上述全部泵组，面积按本表；若采用<b>串联分区</b>或<b>减压阀分区</b>，高区泵可设于转输层独立泵房，主泵房面积可相应减小。` });
+    }
+
+    /* 生活泵房 */
+    blocks.push({ t: 'p', text: '<b>二、生活贮水池（水箱）与生活泵房面积（估算）</b>' });
+    if (P.nPress > 0) {
+      blocks.push({ t: 'p', text: `生活最高日用水量 Qd = <b>${nf(Qd, 0)} m³/d</b>。按 GB 50015-2019 第3.8.3条，资料不足时生活贮水池（箱）有效容积宜按最高日用水量的 <b>20%~25%</b> 确定。` });
+      blocks.push({ t: 'f', text: `V水池 = (${nf(ratioLow, 2)} ~ ${nf(ratioHigh, 2)}) × ${nf(Qd, 0)} = ${nf(VlifeMin, 0)} ~ ${nf(VlifeMax, 0)} m³` });
+      blocks.push({ t: 'f', text: `取 V水池 = <span class="res">${nf(Vlife, 0)} m³</span>（按 25% 并向上取 5 的倍数）` });
+      blocks.push({ t: 'f', text: `有效水深 h = ${nf(hEff, 2)} m → 平面面积 A = ${nf(Vlife, 0)} ÷ ${nf(hEff, 2)} = ${nf(A_tankLife, 1)} m²` });
+      blocks.push({ t: 'tb', head: ['项目', '取值', '说明'], rows: [
+        ['生活贮水池有效容积', `${nf(Vlife, 0)} m³`, `最高日用水量的 25%（${nf(VlifeMin, 0)}~${nf(VlifeMax, 0)} m³）`],
+        ['水池格数', `${nCell} 格`, Vlife > 50 ? '容积大于 50 m³ 宜分两格，便于清洗检修' : '单格即可'],
+        ['有效水深', `${nf(hEff, 2)} m`, '含超高 0.3m、保护高 0.2m 另计'],
+        ['水池间面积', `约 ${Math.round(A_lifeTankRoom)} m²`, '含四周检修通道、爬梯、液位计'],
+        ['变频泵组区', `约 ${A_lifePumpZone} m²`, '2~3 台变频泵 + 控制柜 + 检修通道'],
+        ['生活泵房建筑面积', `约 ${Math.round(A_lifeRoom)} m²`, `建议 ${A_lifeMin} ~ ${A_lifeMax} m²`]
+      ], hi: 5, note: '生活贮水池与消防水池合建时应有确保消防用水不作他用的技术措施（GB 50974 第4.3.8条）' });
+      blocks.push({ t: 'note', kind: 'info', text: `生活泵房与消防泵房可分建也可合建。合建时水泵间宜分隔，生活水泵吸水管应从生活贮水池独立接出，严禁与消防水池（消防用水）合用吸水管。` });
+    } else {
+      blocks.push({ t: 'note', kind: 'info', text: '市政给水压力可满足全楼用水要求，生活给水采用市政直供，<b>不需设生活贮水池与生活泵房</b>。若因市政供水可靠性要求设置生活贮水箱（下行上给），可参考本条的容积估算方法。' });
+      blocks.push({ t: 'f', text: `参考：若设生活贮水箱，V = 25% × ${nf(Qd, 0)} = ${nf(Vlife, 0)} m³` });
+    }
+
+    blocks.push({ t: 'note', kind: 'warn', text: '上述泵房面积为<b>方案阶段的经验估算值</b>，用于确定机房位置与建筑条件预留。施工图阶段应按所选水泵的实际外形尺寸、机组间距（GB 50974 第5.5.12条、GB 50015 第3.8节）、管道布置、配电柜尺寸、检修与吊装空间详细排布后确定。' });
+
+    S.push({
+      no: 13, id: 'pump-house', title: '泵房面积与生活贮水池', tag: '经验估算',
+      refs: ['GB 50974-2014 第5.5.12条', 'GB 50974-2014 第5.5.13条', 'GB 50015-2019 第3.8.3条'],
+      blocks
+    });
+  }
+
+  /* ============================================================
+     14. 结论汇总
+     ============================================================ */
+  {
+    const rows = [
+      ['室外消火栓设计流量', `${nf(P.q1, 0)} L/s`, '表3.3.2'],
+      ['室内消火栓设计流量', `${nf(P.q2, 1)} L/s${P.q2Before !== P.q2 ? `（折减前 ${nf(P.q2Before, 1)}）` : ''}`, P.q2 > 0 ? '表3.5.2' : '可不设'],
+      ['自动喷水设计流量', P.sprinklerOn ? `${nf(P.q3, 2)} L/s` : '未设置', P.sprinklerOn ? '表5.0.1' : '—'],
+      ['一起火灾用水总量 V', `${nf(P.V, 1)} m³`, '式(3.6.1)'],
+      ['消防水池有效容积', `${nf(P.Vpool, 1)} m³`, P.muniMode === 'two' ? '第4.3.2条第1款：只存室内（市政两路保证室外）' : (P.muniMode === 'twoPartial' ? '第4.3.2条第2款：室外不足部分计入' : '第4.3.2条第2款：室内外全部储存')],
+      ['市政供水条件', P.muniMode === 'two' ? '两路，满足室外消防流量' : (P.muniMode === 'twoPartial' ? `两路，可保证 ${nf(P.q1Muni, 0)} L/s` : '一路（或仅一条引入管）'), P.muniMode === 'two' ? `室外 ${nf(P.V1, 1)} m³ 不储存` : `室外需储存 ${nf(P.V1pool, 1)} m³`],
+      ['消防给水是否分区', P.needZone ? '需要分区' : '可不分区', `消火栓 ${P.nHyd} 区 / 喷淋 ${P.nSpr > 0 ? P.nSpr + ' 区' : '未设置'}（P顶 ${nf(P.pTopZone, 2)} MPa）`],
+      ['消火栓泵扬程', `${nf(P.H_hydrantPump, 1)} m`, `${nf(P.P_hydrantPump, 3)} MPa`],
+      ['喷淋泵扬程', P.sprinklerOn ? `${nf(P.H_sprinklerPump, 1)} m` : '—', P.sprinklerOn ? `${nf(P.P_sprinklerPump, 3)} MPa` : '未设置自喷'],
+      ['生活给水是否分区', P.nPress > 0 ? '需要分区' : '可不分区', `共 ${P.zoneCountWater} 个区`],
+      ['生活给水泵扬程', P.nPress > 0 ? `${nf(P.H_waterPump, 1)} m` : '市政直供，不设泵', P.nPress > 0 ? '最高加压区' : '—'],
+      ['高位消防水箱容积', `${nf(P.Vtank, 0)} m³`, `第5.2.1条；静压要求 ≥ ${nf(P.pTankReq, 2)} MPa`],
+      ['消防泵房建筑面积', `约 ${Math.round(P.A_pumpRoom)} m²`, `${P.nPump} 台泵组，经验估算`],
+      ['生活贮水池容积', P.nPress > 0 ? `${nf(P.Vlife, 0)} m³` : '市政直供，不设', P.nPress > 0 ? `最高日 ${nf(P.QdLife, 0)} m³/d 的 25%` : '—'],
+      ['生活泵房建筑面积', P.nPress > 0 ? `约 ${Math.round(P.A_lifeRoom)} m²` : '—', P.nPress > 0 ? '含水池间与泵组区' : '—']
+    ];
+    S.push({
+      no: 14, id: 'summary', title: '计算结果汇总', tag: '结论',
+      refs: [],
+      blocks: [
+        { t: 'tb', head: ['项目', '结果', '依据/说明'], rows, hi: -1 },
+        { t: 'note', kind: 'info', text: '本计算书为辅助计算成果，参数选取与最终取值应由设计人依据现行规范及项目实际情况复核确认。' }
+      ]
+    });
+  }
+
+  /* KPI */
+  const kpis = [
+    { label: '室外消防用水量', val: nf(P.q1, 0), unit: 'L/s', sub: `火灾延续 ${nf(P.t1, 1)} h` },
+    { label: '室内消防用水量', val: nf(P.q2, 1), unit: 'L/s', sub: P.q2 > 0 ? `${P.gun} 支水枪同时使用` : '本建筑可不设', cls: 'accent' },
+    { label: '自喷消防用水量', val: P.sprinklerOn ? nf(P.q3, 2) : '0', unit: 'L/s', sub: P.sprinklerOn ? `${P.hazardName}` : '未设置自喷', cls: '' },
+    { label: '一起火灾用水总量', val: nf(P.V, 1), unit: 'm³', sub: `水池 ${nf(P.Vpool, 1)} m³`, cls: 'ok' }
+  ];
+  if (P.muniMode === 'two') {
+    kpis[0].sub = '市政两路保证 · 不入池';
+    kpis[3].sub = `水池 ${nf(P.Vpool, 1)} m³（只存室内）`;
+  }
+
+  return {
+    input: inp, P, sections: S, kpis, warnings: warn,
+    meta: {
+      high, highClassText, baseDepth,
+      isRes,
+      zoneCountWater: P.zoneCountWater
+    }
+  };
+}
+
+/* 分区表生成：pBot 为分区底部静压 = 最不利点准工作静压 + 分区高度水压 */
+function zoneTable(hBot, hTop, allow, n, floorH, baseDepth, bFloors, pTop, upF) {
+  const rows = [];
+  const h = (hTop - hBot) / n;
+  const fh = floorH > 0 ? floorH : 3;
+  const pt = (pTop === undefined) ? 0 : pTop;
+  for (let k = 0; k < n; k++) {
+    const b = hBot + k * h;
+    const t = hBot + (k + 1) * h;
+    rows.push({
+      name: `${k + 1} 区`,
+      range: `${nf(b, 1)} ~ ${nf(t, 1)}`,
+      floors: floorRange(b, t, fh, baseDepth, bFloors, upF),
+      height: h,
+      pBot: pt + h * P_MPA_PER_M
+    });
+  }
+  return rows.reverse().map((r, i) => ({ ...r, name: `${n - i} 区` }));
+}
+
+/* 楼层范围换算（upF 为地上实际层数上限，避免标高与层数不符时算出不存在的楼层） */
+function floorRange(b, t, fh, bDepth, bFloors, upF) {
+  if (!fh || fh <= 0) return '—';
+  const bh = (bDepth && bFloors) ? bDepth / bFloors : fh;
+  const cap = (upF && upF > 0) ? upF : Infinity;
+  const up = z => Math.min(cap, Math.max(1, Math.ceil(z / fh)));
+  const dn = z => Math.max(1, Math.ceil(-z / bh));
+  if (t <= 0.001) {
+    const lo = dn(b), hi = dn(t);
+    return lo === hi ? `地下 ${lo} 层` : `地下 ${Math.min(lo, hi)}~${Math.max(lo, hi)} 层`;
+  }
+  if (b < -0.001) return `地下 ${dn(b)} 层 ~ 地上 ${up(t)} 层`;
+  return up(t) <= up(b) ? `第 ${up(b)} 层` : `第 ${up(b)}~${up(t)} 层`;
+}
+
+</script>
+<script>/* Word 导出 */
+/* ============================================================
+   Word 计算书导出（docx）
+   ============================================================ */
+
+const FONT_SONG = '宋体';
+const FONT_HEI = '黑体';
+const FONT_MONO = 'Consolas';
+const C_BRAND = '16456B';
+const C_ACCENT = 'C8402E';
+const C_GRAY = '6B7686';
+
+let DOCX_LIB = null;
+function getDocx() {
+  if (DOCX_LIB) return DOCX_LIB;
+  if (!window.docx) throw new Error('Word 导出组件未加载');
+  DOCX_LIB = window.docx;
+  return DOCX_LIB;
+}
+
+/* 行内标签 → TextRun 数组 */
+function inlineRuns(text, opt = {}) {
+  const d = getDocx();
+  const base = {
+    font: opt.font || FONT_SONG,
+    size: opt.size || 21,
+    color: opt.color || '222222'
+  };
+  const runs = [];
+  const src = String(text).replace(/<br\s*\/?>/g, '\n');
+  const re = /<b>([\s\S]*?)<\/b>|<span class="res">([\s\S]*?)<\/span>|<[^>]+>|([^<]+)/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    if (m[1] !== undefined) {
+      runs.push(new d.TextRun({ ...base, text: m[1], bold: true }));
+    } else if (m[2] !== undefined) {
+      runs.push(new d.TextRun({ ...base, text: m[2], bold: true, color: C_ACCENT }));
+    } else if (m[3] !== undefined) {
+      runs.push(new d.TextRun({ ...base, text: m[3] }));
+    }
+  }
+  if (!runs.length) runs.push(new d.TextRun({ ...base, text: src.replace(/<[^>]+>/g, '') }));
+  return runs;
+}
+
+function P(text, opt = {}) {
+  const d = getDocx();
+  return new d.Paragraph({
+    alignment: opt.align || d.AlignmentType.LEFT,
+    spacing: { before: opt.before ?? 60, after: opt.after ?? 60, line: opt.line || 300 },
+    indent: opt.indent,
+    children: inlineRuns(text, opt)
+  });
+}
+
+/* 章节标题 */
+function H(num, text) {
+  const d = getDocx();
+  return new d.Paragraph({
+    spacing: { before: 300, after: 140 },
+    children: [
+      new d.TextRun({ text: `${num}、`, font: FONT_HEI, size: 26, bold: true, color: C_BRAND }),
+      new d.TextRun({ text, font: FONT_HEI, size: 26, bold: true, color: C_BRAND })
+    ]
+  });
+}
+
+/* 公式段落 */
+function FORMULA(text) {
+  const d = getDocx();
+  return new d.Paragraph({
+    spacing: { before: 80, after: 80, line: 280 },
+    indent: { left: 240 },
+    shading: { fill: 'F3F6FA', type: d.ShadingType.CLEAR, color: 'auto' },
+    children: inlineRuns(text, { font: FONT_MONO, size: 19, color: '1F2937' })
+  });
+}
+
+/* 表格 */
+function TABLE(head, rows, opt = {}) {
+  const d = getDocx();
+  const mkCell = (txt, isHead, align) => new d.TableCell({
+    shading: isHead ? { fill: 'E9EFF6', type: d.ShadingType.CLEAR, color: 'auto' } : undefined,
+    margins: { top: 60, bottom: 60, left: 90, right: 90 },
+    verticalAlign: d.VerticalAlign.CENTER,
+    children: [new d.Paragraph({
+      alignment: align || d.AlignmentType.LEFT,
+      spacing: { before: 20, after: 20, line: 260 },
+      children: [new d.TextRun({
+        text: String(txt),
+        font: FONT_SONG,
+        size: opt.size || 17,
+        bold: !!isHead
+      })]
+    })]
+  });
+
+  const trs = [];
+  if (head && head.length) {
+    trs.push(new d.TableRow({
+      tableHeader: true,
+      children: head.map(h => mkCell(h, true, d.AlignmentType.CENTER))
+    }));
+  }
+  rows.forEach((r, ri) => {
+    trs.push(new d.TableRow({
+      children: r.map((c, ci) => mkCell(c, false, ci === 0 && opt.firstLeft ? d.AlignmentType.LEFT : (opt.align || d.AlignmentType.CENTER)))
+    }));
+  });
+
+  const nCol = head && head.length ? head.length : (rows[0] ? rows[0].length : 1);
+  const totalW = 9000;
+  let widths = opt.widths;
+  if (!widths) {
+    if (nCol >= 6) {
+      const rest = Math.round((totalW - 900 - 2200) / (nCol - 2));
+      widths = [900, 2200].concat(Array(nCol - 2).fill(rest));
+    } else {
+      widths = Array(nCol).fill(Math.round(totalW / nCol));
+    }
+  }
+
+  return new d.Table({
+    width: { size: 100, type: d.WidthType.PERCENTAGE },
+    columnWidths: widths,
+    rows: trs
+  });
+}
+
+/* 小字说明 */
+function NOTE(text, warn) {
+  const d = getDocx();
+  return new d.Paragraph({
+    spacing: { before: 80, after: 80, line: 280 },
+    indent: { left: 120 },
+    children: [
+      new d.TextRun({ text: warn ? '▲ ' : '※ ', font: FONT_SONG, size: 18, color: warn ? C_ACCENT : C_GRAY }),
+      ...inlineRuns(text, { size: 18, color: warn ? '8A3A2A' : C_GRAY })
+    ]
+  });
+}
+
+function REFS(list) {
+  const d = getDocx();
+  return new d.Paragraph({
+    spacing: { before: 80, after: 120, line: 260 },
+    children: [
+      new d.TextRun({ text: '依据：', font: FONT_SONG, size: 17, color: C_GRAY }),
+      new d.TextRun({ text: list.join('；'), font: FONT_SONG, size: 17, color: C_BRAND })
+    ]
+  });
+}
+
+/* ---------- 设计参数表 ---------- */
+function inputRows(inp) {
+  const catText = { civil: '民用建筑', underground: '地下建筑', rf: '人防工程', industrial: '工业建筑' }[inp.cat];
+  let funcText = inp.func;
+  (FUNC_OPTIONS[inp.cat] || []).forEach(o => { if (o.v === inp.func) funcText = o.t; });
+  const tallCfg = TALL_T502[inp.tallType];
+  const sprText = !inp.hasSprinkler ? '不设置'
+    : (inp.tallSpace && tallCfg)
+      ? `设置（高大空间—${tallCfg.short}，按表5.0.2）`
+      : `设置（${(SPRINKLER_LEVELS[inp.hazard] || SPRINKLER_LEVELS.mid1).name}）`;
+  const muniMode = inp.muniSupply || 'single';
+  const muniText = muniMode === 'two'
+    ? '两路消防供水，能保证室外消防设计流量（室外用水量不入池）'
+    : muniMode === 'twoPartial'
+      ? `两路消防供水，市政可保证室外流量 ${nf(inp.muniQ1 || 0, 0)} L/s（不足部分入池）`
+      : '一路消防供水或仅一条引入管（室外用水量全部入池）';
+  const rows = [
+    ['工程名称', inp.projectName || '未命名工程'],
+    ['建筑类别', catText + ' — ' + funcText],
+    ['建筑高度 H', `${nf(inp.H, 1)} m`],
+    ['地上层数', `${inp.floors} 层（层高 ${nf(inp.floorH, 2)} m）`],
+    ['地下层数', inp.basementFloors > 0 ? `${inp.basementFloors} 层（层高 ${nf(inp.basementH, 2)} m）` : '无'],
+    ['建筑体积 V', `${nf(inp.V, 0)} m³`],
+    ['耐火等级', ['', '一、二级', '一、二级', '三级', '四级'][inp.fire]],
+    ['市政给水压力', `${nf(inp.pMuni, 2)} MPa`],
+    ['市政消防供水条件', muniText],
+    ['火灾时补水流量', `${nf(inp.refillQ || 0, 1)} L/s`],
+    ['生活最高日用水量', `${nf(inp.qdLife || 200, 0)} m³/d`],
+    ['室内消火栓', inp.hasIndoorHydrant === 'no' ? '不设置' : '设置'],
+    ['自动喷水灭火系统', sprText],
+    ['高大净空空间', (inp.hasSprinkler && inp.tallSpace)
+      ? `有（${tallCfg ? tallCfg.name : '—'}，最大净空高度 ${nf(inp.tallH, 1)} m）`
+      : '无（按表5.0.1 火灾危险等级取值）'],
+    ['自动喷水全保护', inp.fullSprinkler ? '是' : '否'],
+    ['集中热水供应', inp.centralHotWater ? '有（分区静压 ≤0.55MPa）' : '无（分区静压 ≤0.45MPa）'],
+    ['分区判定用最不利点准工作静压 P顶', `${nf(inp.pTopZone || 0.30, 2)} MPa（GB 50974 第5.3.3条下限 0.15MPa，按稳压泵压力上限取值）`],
+    ['消防水泵安全系数 k₂', nf(inp.k2, 2)],
+    ['计算日期', new Date().toLocaleDateString('zh-CN')]
+  ];
+  return rows;
+}
+
+/* ---------- 构建 docx 文档对象 ---------- */
+function buildDocx(res) {
+  {
+    const d = getDocx();
+    const inp = res.input;
+    const children = [];
+
+    /* 封面标题 */
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.CENTER,
+      spacing: { before: 200, after: 100 },
+      children: [new d.TextRun({ text: '建 筑 消 防 给 水 计 算 书', font: FONT_HEI, size: 40, bold: true, color: '16456B' })]
+    }));
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.CENTER,
+      spacing: { before: 0, after: 300 },
+      children: [new d.TextRun({ text: '室内外消防用水量 · 系统分区 · 水泵扬程', font: FONT_HEI, size: 22, color: '4A6279' })]
+    }));
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.CENTER,
+      spacing: { after: 80 },
+      border: { bottom: { color: 'D5DEE8', size: 8, style: d.BorderStyle.SINGLE, space: 12 } },
+      children: [new d.TextRun({ text: `工程名称：${inp.projectName || '未命名工程'}`, font: FONT_SONG, size: 24, bold: true })]
+    }));
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.CENTER,
+      spacing: { before: 100, after: 300 },
+      children: [new d.TextRun({
+        text: '计算依据：GB 50974-2014、GB 55037-2022、GB 50016-2014(2018年版)、GB 50015-2019、GB 50084-2017',
+        font: FONT_SONG, size: 18, color: C_GRAY
+      })]
+    }));
+
+    /* 一、设计参数 */
+    children.push(H('一', '设计参数'));
+    children.push(TABLE(['项目', '取值'], inputRows(inp), { widths: [2600, 6400], firstLeft: true, align: d.AlignmentType.LEFT }));
+    children.push(P('说明：建筑体积应为建筑总体积（含地下室体积），敞开阳台、不封闭外廊可不计入。', { size: 18, color: C_GRAY }));
+
+    /* 二、计算章节 */
+    const cn = ['二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八'];
+    res.sections.forEach((sec, i) => {
+      children.push(H(cn[i] || String(i + 2), sec.title));
+      if (sec.tag) {
+        children.push(P(`〔${sec.tag}〕`, { size: 17, color: C_GRAY }));
+      }
+      sec.blocks.forEach(b => {
+        if (b.t === 'p') children.push(P(b.text));
+        else if (b.t === 'f') children.push(FORMULA(b.text));
+        else if (b.t === 'kv') {
+          children.push(TABLE(['项目', '数值'], b.items, { widths: [3400, 5600], firstLeft: true, align: d.AlignmentType.LEFT }));
+        } else if (b.t === 'tb') {
+          children.push(TABLE(b.head, b.rows, { firstLeft: true, align: d.AlignmentType.LEFT, size: b.head && b.head.length > 5 ? 15 : 17 }));
+          if (b.note) children.push(NOTE(b.note));
+        } else if (b.t === 'note') {
+          children.push(NOTE(b.text, b.kind === 'warn'));
+        } else if (b.t === 'ref') {
+          children.push(REFS(b.items || []));
+        }
+      });
+      if (sec.refs && sec.refs.length) children.push(REFS(sec.refs));
+    });
+
+    /* 规范依据清单 */
+    children.push(H(cn[res.sections.length] || '十三', '主要计算依据'));
+    [
+      '《消防给水及消火栓系统技术规范》GB 50974-2014：表3.3.2、表3.5.2、第3.5.3条、表3.6.2、式(3.6.1-1)~(3.6.1-3)、第4.2.2条、第4.3.1条~第4.3.6条、第5.2.1条、第5.2.2条、第5.3.3条、第5.5.12条、第5.5.13条、第6.2.1条、第6.2.2条、第7.4.12条、第10.1.5条~第10.1.7条',
+      '《建筑防火通用规范》GB 55037-2022：表10.1.5（火灾延续时间）',
+      '《建筑设计防火规范》GB 50016-2014（2018年版）：第5.1.1条（建筑分类）、第8.2.1条、第8.2.2条（室内消火栓设置范围）',
+      '《建筑给水排水设计标准》GB 50015-2019：第3.4.1条~第3.4.6条（生活给水系统选择与竖向分区）、第3.8.3条（生活贮水池容积）、第3.8节（泵房与水泵机组布置）',
+      '《自动喷水灭火系统设计规范》GB 50084-2017：第5.0.1条 表5.0.1、第5.0.2条 表5.0.2（高大空间场所）、第5.0.3条、第5.0.11条、第8.0.1条、第9.2.4条',
+      '《消防设施通用规范》GB 55036-2022：第3.0.1条'
+    ].forEach(t => children.push(P('· ' + t, { size: 18 })));
+
+    /* 说明 */
+    children.push(H(cn[res.sections.length + 1] || '十四', '说明'));
+    [
+      '1. 本计算书由「建筑消防给水计算器」生成，计算过程中所有查表取值、公式与判据均标注了规范条文出处。',
+      '2. 室外消火栓设计流量按建筑物用途、体积、耐火等级查表确定；当建筑成组布置时，应按消火栓设计流量较大的相邻两座建筑物的体积之和确定。',
+      '3. 室内消火栓设计流量按建筑物功能、高度、体积查表确定；高层商店、图书馆、档案馆等场所，其流量按表3.5.2 该行的体积分档与高层公共建筑基准值比较取大者（体积大于 25000m³ 时取 40 L/s）；当设有自动喷水灭火系统等全保护时，可按第3.5.3条折减。',
+      '4. 自动喷水系统设计流量按喷水强度与作用面积的乘积除以 60 计算，并计入安全系数后取整；系统持续喷水时间不小于 1h。存在高大净空空间时，喷水强度与作用面积按 GB 50084-2017 表5.0.2 取值；最大净空高度超过 8m 的超级市场应按第5.0.3条参照仓库危险级标准（表5.0.4、表5.0.5）执行。',
+      '5. 消防给水分区以消火栓栓口静压 1.00MPa、喷头处静压 1.20MPa、系统工作压力 2.40MPa 为控制条件。分区判定控制的是最低点静压，按 P底 = P顶 + Δh×0.00981 计算，其中 P顶 为最不利点准工作状态静压：GB 50974-2014 第5.3.3条要求稳压泵保持最不利点静水压力大于 0.15MPa（下限），但稳压泵在启泵与停泵压力间波动，实际最高可达 0.25~0.30MPa，故按上限并留富余量取值，避免直接用几何高差判定导致分区不足、底部管阀件超压。分区形式应结合系统压力、建筑特征、维护管理及可靠性综合确定。',
+      '6. 消防水池有效容积按 GB 50974-2014 第4.3.2条分两种情形：市政给水管网能保证室外消防给水设计流量时，水池只满足火灾延续时间内的室内消防用水量；不能保证时，满足室内用水量与室外用水量不足部分之和。两路消防供水的认定须同时满足第4.2.2条三项条件（两条输水干管、环状管网、不同干管不少于两条引入管），任一条件不成立即视为一路消防供水。水池最小有效容积按第4.3.4条取 100m³（仅设消火栓系统时 50m³）。',
+      '7. 高位消防水箱有效容积按 GB 50974-2014 第5.2.1条根据建筑类别、高度与室内消防给水设计流量确定；水箱最低有效水位应满足最不利点静压要求（第5.2.2条），不能满足时应设稳压泵增压（第5.3.3条）。',
+      '8. 泵房面积与生活贮水池容积为方案阶段的经验估算：消防水泵房按泵组台数、机组间距（第5.5.12条）、主要通道宽度（第5.5.13条）排布估算；生活贮水池按最高日用水量的 20%~25% 确定（GB 50015-2019 第3.8.3条）。施工图阶段应按实际泵型、管道与配电布置详细排布后确定。',
+      '9. 水泵扬程按 GB 50974-2014 第10.1.7条计算，几何高差自消防水池最低有效水位算至最不利点；管长、单位水力坡降由设计人按实际管网复核。',
+      '10. 本计算书为设计辅助成果，不构成正式设计文件，最终取值须由具备相应资质的设计人员依据现行规范及工程实际情况复核确认。'
+    ].forEach(t => children.push(P(t, { size: 19 })));
+
+    /* 署名 */
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.RIGHT,
+      spacing: { before: 600, after: 40 },
+      children: [new d.TextRun({ text: '计算：　　　　　　　　校核：　　　　　　　　审核：', font: FONT_SONG, size: 20 })]
+    }));
+    children.push(new d.Paragraph({
+      alignment: d.AlignmentType.RIGHT,
+      spacing: { before: 60, after: 40 },
+      children: [new d.TextRun({ text: new Date().toLocaleDateString('zh-CN'), font: FONT_SONG, size: 20 })]
+    }));
+
+    const doc = new d.Document({
+      creator: '消防给水计算器',
+      title: '建筑消防给水计算书',
+      description: '依据 GB 50974-2014 等现行规范计算',
+      styles: {
+        default: {
+          document: {
+            run: { font: FONT_SONG, size: 21, color: '222222' },
+            paragraph: { spacing: { line: 300 } }
+          }
+        }
+      },
+      sections: [{
+        properties: {
+          page: {
+            margin: { top: 1247, right: 1247, bottom: 1247, left: 1418 }
+          }
+        },
+        children
+      }]
+    });
+    return doc;
+  }
+}
+
+/* 保存 Blob：桌面版走系统对话框，网页版走浏览器下载 */
+async function saveBlob(blob, filename) {
+  const api = (window.pywebview && window.pywebview.api) ? window.pywebview.api : null;
+  if (api && typeof api.save_docx === 'function') {
+    const b64 = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+    const r = await api.save_docx(b64, filename);
+    if (r && r.ok) { toast('计算书已保存：' + r.path); return; }
+    if (r && r.msg === 'cancelled') { toast('已取消保存'); return; }
+    toast('保存失败：' + ((r && r.msg) || '未知错误'));
+    return;
+  }
+  writeViaDownload(blob, filename);
+  toast('计算书已开始下载；如需指定位置，请在浏览器下载提示中选择"另存为"');
+}
+
+/* 传统下载方式（存到浏览器默认下载目录） */
+function writeViaDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1500);
+}
+
+/* 弹出"另存为"对话框让用户自选保存位置（File System Access API） */
+async function pickSaveHandle(filename) {
+  if (typeof window.showSaveFilePicker !== 'function') return undefined;
+  try {
+    return await window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{
+        description: 'Word 文档 (*.docx)',
+        accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] }
+      }]
+    });
+  } catch (e) {
+    if (e && e.name === 'AbortError') return null;   // 用户主动取消
+    return undefined;                                 // 不支持 / 被策略禁止 → 回退
+  }
+}
+
+/* ---------- 主导出 ---------- */
+async function exportDocx(res) {
+  try {
+    const d = getDocx();
+    const inp = res.input;
+    const name = `${(inp.projectName || '未命名工程').replace(/[\\/:*?"<>|]/g, '_')}_消防给水计算书_${dateStr()}.docx`;
+
+    /* 桌面版由 Python 弹系统对话框；网页版先弹"另存为"让用户选路径 */
+    const hasPythonApi = !!(window.pywebview && window.pywebview.api && window.pywebview.api.save_docx);
+    let handle;
+    if (!hasPythonApi) {
+      handle = await pickSaveHandle(name);
+      if (handle === null) { toast('已取消保存'); return; }
+    }
+
+    toast('正在生成计算书…');
+    const doc = buildDocx(res);
+    const blob = await d.Packer.toBlob(doc);
+
+    if (handle) {
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      toast('计算书已保存：' + handle.name);
+      return;
+    }
+    await saveBlob(blob, name);
+  } catch (e) {
+    console.error(e);
+    toast('导出失败：' + e.message);
+  }
+}
+
+function dateStr() {
+  const dt = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${dt.getFullYear()}${p(dt.getMonth() + 1)}${p(dt.getDate())}`;
+}
+
+</script>
+<script>/* 界面 */
+/* ============================================================
+   消防给水计算器 — 界面交互与渲染
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+};
+
+let LAST = null;
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ---------- 主题 ---------- */
+(function initTheme() {
+  const saved = null;
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+$('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  
+});
+
+/* ---------- 建筑类别 / 功能联动 ---------- */
+function rebuildFuncOptions(keep) {
+  const cat = $('cat').value;
+  const sel = $('func');
+  const prev = keep || sel.value;
+  sel.innerHTML = '';
+  FUNC_OPTIONS[cat].forEach(o => {
+    const op = document.createElement('option');
+    op.value = o.v; op.textContent = o.t;
+    sel.appendChild(op);
+  });
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  syncFields();
+}
+
+function syncFields() {
+  const cat = $('cat').value;
+  const func = $('func').value;
+
+  $('fIndClass').style.display = cat === 'industrial' ? '' : 'none';
+  $('fRfArea').style.display = cat === 'rf' ? '' : 'none';
+  $('fSeats').style.display = (cat === 'civil' && func === 'theater') ? '' : 'none';
+  $('fHighClass').style.display = (cat === 'civil' && func !== 'res') ? '' : 'none';
+
+  /* 市政供水：仅"部分满足"时需要填可保证流量 */
+  $('fMuniQ1').style.display = $('muniSupply').value === 'twoPartial' ? '' : 'none';
+
+  /* 建议火灾危险等级 */
+  const hint = HAZARD_HINT[func];
+  if (hint) {
+    $('hazard').value = hint;
+    applyHazard();
+  }
+}
+
+function applyHazard() {
+  const lv = SPRINKLER_LEVELS[$('hazard').value];
+  if (!lv) return;
+  if ($('tallSpace').checked) return;   // 高大空间模式下由表5.0.2 决定
+  $('density').value = lv.density;
+  $('area').value = lv.area;
+}
+
+/* ---------- 高大净空空间（GB 50084 表5.0.2） ---------- */
+function tallBandOf(type, h) {
+  const t = TALL_T502[type];
+  if (!t || t.manual) return null;
+  const bs = t.bands;
+  for (let i = 0; i < bs.length; i++) if (h <= bs[i].max) return bs[i];
+  return bs[bs.length - 1];
+}
+
+function applyTall() {
+  const on = $('tallSpace').checked;
+  $('tallPanel').style.display = on ? '' : 'none';
+  $('hazard').disabled = on;
+  $('density').readOnly = on;
+  $('area').readOnly = on;
+  if (!on) {
+    $('tallHint').innerHTML = '';
+    applyHazard();
+    return;
+  }
+  const type = $('tallType').value;
+  const t = TALL_T502[type];
+  const h = Number($('tallH').value) || 10;
+  const hint = $('tallHint');
+
+  if (t.manual) {
+    hint.innerHTML = '<span style="color:var(--warn)">最大净空高度超过 8m 的超级市场，应按 GB 50084 第5.0.3条参照仓库危险级标准（表5.0.4、5.0.5）确定，本软件请手工填写喷水强度与作用面积。</span>';
+    $('density').readOnly = false;
+    $('area').readOnly = false;
+    return;
+  }
+
+  const b = tallBandOf(type, h);
+  const over = h > t.maxH;
+  $('density').value = b.d;
+  $('area').value = b.a;
+  let s = `表5.0.2 → 档位 <b>${b.max === 12 ? '8＜h≤12' : '12＜h≤18'} m</b>：喷水强度 <b>${b.d}</b> L/(min·m²)，作用面积 <b>${b.a}</b> m²`;
+  if (t.span !== '—') s += `，喷头间距 ${t.span} m`;
+  if (t.kind === 'civil' && b.max > 12) s += '<br>应采用非仓库型特殊应用喷头（注2）';
+  if (h <= 8) s += '<br><span style="color:var(--warn)">净空高度未超过 8m，不属高大空间范畴，宜按表5.0.1 取值</span>';
+  if (over) s += `<br><span style="color:var(--warn)">净空高度已超出表5.0.2 适用范围（≤${t.maxH}m），应专项论证</span>`;
+  hint.innerHTML = s;
+}
+
+$('cat').addEventListener('change', () => rebuildFuncOptions());
+$('func').addEventListener('change', syncFields);
+$('muniSupply').addEventListener('change', syncFields);
+$('hazard').addEventListener('change', applyHazard);
+$('tallSpace').addEventListener('change', applyTall);
+$('tallType').addEventListener('change', applyTall);
+$('tallH').addEventListener('input', applyTall);
+
+/* ---------- 体积估算 ---------- */
+$('calcVBtn').addEventListener('click', () => {
+  const a = Number($('areaStd').value);
+  const fh = Number($('floorH').value) || 3;
+  const fl = Number($('floors').value) || 1;
+  const bf = Number($('basementFloors').value) || 0;
+  const bh = Number($('basementH').value) || 3.9;
+  if (!a) { toast('请先填写标准层建筑面积'); return; }
+  const v = a * (fl * fh + bf * bh);
+  $('V').value = Math.round(v);
+  toast(`已估算建筑体积 ${Math.round(v)} m³`);
+  run();
+});
+
+/* ---------- 输入收集 ---------- */
+function getInput() {
+  const num = (id, d) => {
+    const v = Number($(id).value);
+    return Number.isFinite(v) && $(id).value !== '' ? v : d;
+  };
+  const H = Math.max(3, num('H', 54));
+  const floors = Math.max(1, Math.round(num('floors', 1)));
+  let highClass = $('highClass').value;
+  if (highClass === 'auto') highClass = H > 50 ? 'class1' : 'class2';
+
+  return {
+    projectName: $('projectName').value.trim(),
+    cat: $('cat').value,
+    func: $('func').value,
+    indClass: $('indClass').value,
+    H,
+    floors,
+    floorH: Math.max(1.5, num('floorH', 3)),
+    V: Math.max(1, num('V', 10000)),
+    fire: Number($('fire').value),
+    highClass,
+    seats: num('seats', 1200),
+    rfArea: num('rfArea', 2000),
+    basementFloors: Math.max(0, Math.round(num('basementFloors', 0))),
+    basementH: num('basementH', 3.9),
+
+    hasIndoorHydrant: $('hasIndoorHydrant').value,
+    hydrantP: Number($('hydrantP').value),
+    hydrantQ: num('hydrantQ', 5),
+    pipeLenHydrant: num('pipeLenHydrant', 0),
+    iHydrant: num('iHydrant', 0.025),
+    tDuration: $('tDuration').value,
+    pTopZone: Number($('pTopZone').value) || 0.30,
+    areaStd: num('areaStd', 0),
+    qdLife: num('qdLife', 200),
+
+    hasSprinkler: $('hasSprinkler').checked,
+    fullSprinkler: $('fullSprinkler').checked,
+    tallSpace: $('tallSpace').checked,
+    tallType: $('tallType').value,
+    tallH: num('tallH', 10),
+    hazard: $('hazard').value,
+    density: num('density', 6),
+    area: num('area', 160),
+    safetyK: num('safetyK', 1.3),
+    roundMode: $('roundMode').value,
+    nozzleP: num('nozzleP', 0.10),
+    valveLoss: num('valveLoss', 0.02),
+    flowSwitchLoss: num('flowSwitchLoss', 0.02),
+    pipeLenSprinkler: num('pipeLenSprinkler', 0),
+    iSprinkler: num('iSprinkler', 0.025),
+
+    pMuni: num('pMuni', 0.28),
+    muniSupply: $('muniSupply').value,
+    muniQ1: num('muniQ1', 0),
+    pMinPoint: num('pMinPoint', 0.10),
+    pMeter: num('pMeter', 0.05),
+    pipeLenWater: num('pipeLenWater', 0),
+    iWater: num('iWater', 0.03),
+    centralHotWater: $('centralHotWater').checked,
+    refillQ: num('refillQ', 0),
+    k2: num('k2', 1.2)
+  };
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function renderBlock(b) {
+  switch (b.t) {
+    case 'p':
+      return el('p', 'caption', b.text);
+    case 'kv': {
+      const t = el('table', 'dt');
+      b.items.forEach(([k, v]) => {
+        const tr = el('tr');
+        const td1 = el('td', '', k);
+        td1.style.width = '46%';
+        td1.style.color = 'var(--text-2)';
+        const td2 = el('td', 'kvval', v);
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        t.appendChild(tr);
+      });
+      return t;
+    }
+    case 'f': {
+      const d = el('div', 'formula', b.text);
+      return d;
+    }
+    case 'tb': {
+      const wrap = el('div');
+      const t = el('table', 'dt');
+      if (b.head) {
+        const thead = el('thead');
+        const tr = el('tr');
+        b.head.forEach(h => tr.appendChild(el('th', '', h)));
+        thead.appendChild(tr);
+        t.appendChild(thead);
+      }
+      const tb = el('tbody');
+      (b.rows || []).forEach((r, i) => {
+        const tr = el('tr');
+        if (b.hi === i) tr.className = 'hi';
+        r.forEach((c, j) => {
+          const td = el('td', j === 0 ? '' : 'num', String(c));
+          tr.appendChild(td);
+        });
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb);
+      wrap.appendChild(t);
+      if (b.note) wrap.appendChild(el('div', 'caption', `<span style="font-size:11.5px;color:var(--text-3)">※ ${b.note}</span>`));
+      return wrap;
+    }
+    case 'note': {
+      return el('div', 'note ' + (b.kind === 'warn' ? 'warn' : ''), b.text);
+    }
+    case 'ref': {
+      const d = el('div');
+      (b.items || []).forEach(x => d.appendChild(el('span', 'ref', x)));
+      return d;
+    }
+    default:
+      return el('div');
+  }
+}
+
+function renderResult(res) {
+  const root = $('results');
+  root.innerHTML = '';
+
+  /* 顶部状态条 */
+  const head = el('div', 'card');
+  const hb = el('div', 'card-body');
+  const title = el('div');
+  title.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:4px';
+  title.appendChild(el('div', '', `<b style="font-size:16px">${res.input.projectName || '未命名工程'}</b>`));
+  title.appendChild(el('span', 'badge ok', res.meta.highClassText));
+  if (res.meta.baseDepth > 0) title.appendChild(el('span', 'badge ok', `地下 ${res.input.basementFloors} 层 / ${nf(res.meta.baseDepth, 1)}m`));
+  hb.appendChild(title);
+  hb.appendChild(el('div', 'caption', `建筑高度 ${nf(res.input.H, 1)} m　·　地上 ${res.input.floors} 层　·　建筑体积 ${nf(res.input.V, 0)} m³　·　${['', '一', '二', '三', '四'][res.input.fire]}级耐火等级`));
+  head.appendChild(hb);
+  root.appendChild(head);
+
+  /* KPI */
+  const kpis = el('div', 'kpis');
+  res.kpis.forEach(k => {
+    const d = el('div', 'kpi ' + (k.cls || ''));
+    d.appendChild(el('div', 'k-label', k.label));
+    d.appendChild(el('div', 'k-val', `${k.val}<small>${k.unit}</small>`));
+    d.appendChild(el('div', 'k-sub', k.sub));
+    kpis.appendChild(d);
+  });
+  root.appendChild(kpis);
+
+  /* 警告 */
+  if (res.warnings.length) {
+    const c = el('div', 'card');
+    const b = el('div', 'card-body');
+    res.warnings.forEach(w => b.appendChild(el('div', 'note warn', `<b>提示：</b>${w}`)));
+    c.appendChild(b);
+    root.appendChild(c);
+  }
+
+  /* 各计算章节 */
+  res.sections.forEach(sec => {
+    const card = el('div', 'card');
+    const h = el('div', 'card-head');
+    const h3 = el('h3');
+    h3.appendChild(el('span', 'step-no', String(sec.no)));
+    h3.appendChild(document.createTextNode(sec.title));
+    h.appendChild(h3);
+    if (sec.tag) h.appendChild(el('span', 'tag', sec.tag));
+    card.appendChild(h);
+
+    const body = el('div', 'card-body');
+    sec.blocks.forEach(bb => body.appendChild(renderBlock(bb)));
+
+    if (sec.refs && sec.refs.length) {
+      const r = el('div');
+      r.style.cssText = 'margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)';
+      r.appendChild(el('span', '', `<span style="font-size:11px;color:var(--text-3);margin-right:6px">依据</span>`));
+      sec.refs.forEach(x => r.appendChild(el('span', 'ref', x)));
+      body.appendChild(r);
+    }
+    card.appendChild(body);
+    root.appendChild(card);
+  });
+
+  /* 导出按钮 */
+  const bar = $('actionsBar');
+  bar.innerHTML = '';
+  const b1 = el('button', 'btn primary', `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>导出 Word 计算书`);
+  b1.addEventListener('click', () => exportDocx(res));
+  const b2 = el('button', 'btn', `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>打印 / 存为 PDF`);
+  b1.disabled = true; b2.disabled = true; b1.title = b2.title = '安装后使用';
+  bar.appendChild(b1);
+  bar.appendChild(b2);
+  bar.style.display = 'flex';
+}
+
+/* ============================================================
+   计算主流程
+   ============================================================ */
+function run(silent) {
+  try {
+    const inp = getInput();
+    const res = compute(inp);
+    LAST = res;
+    renderResult(res);
+    if (!silent) toast('计算完成');
+  } catch (e) {
+    console.error(e);
+    toast('计算出错：' + e.message);
+  }
+}
+
+$('calcBtn').addEventListener('click', () => run());
+
+/* 参数变化自动重算 */
+let autoTimer;
+document.querySelectorAll('#form input, #form select').forEach(node => {
+  node.addEventListener('change', () => {
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => run(true), 260);
+  });
+});
+
+function resetExample() {
+  clearTimeout(autoTimer);
+  document.getElementById('form').reset();
+  document.documentElement.setAttribute('data-theme', 'light');
+  rebuildFuncOptions('office'); applyHazard(); applyTall(); run(true);
+}
+
+/* ---------- 初始化 ---------- */
+rebuildFuncOptions('office');
+applyHazard();
+applyTall();
+run(true);
+
+</script>
+</body>
+</html>
