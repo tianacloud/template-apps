@@ -21868,23 +21868,6 @@ function writeViaDownload(blob, filename) {
   }, 1500);
 }
 
-/* 弹出"另存为"对话框让用户自选保存位置（File System Access API） */
-async function pickSaveHandle(filename) {
-  if (typeof window.showSaveFilePicker !== 'function') return undefined;
-  try {
-    return await window.showSaveFilePicker({
-      suggestedName: filename,
-      types: [{
-        description: 'Word 文档 (*.docx)',
-        accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] }
-      }]
-    });
-  } catch (e) {
-    if (e && e.name === 'AbortError') return null;   // 用户主动取消
-    return undefined;                                 // 不支持 / 被策略禁止 → 回退
-  }
-}
-
 /* ---------- 主导出 ---------- */
 async function exportDocx(res) {
   try {
@@ -21892,25 +21875,10 @@ async function exportDocx(res) {
     const inp = res.input;
     const name = `${(inp.projectName || '未命名工程').replace(/[\\/:*?"<>|]/g, '_')}_消防给水计算书_${dateStr()}.docx`;
 
-    /* 桌面版由 Python 弹系统对话框；网页版先弹"另存为"让用户选路径 */
-    const hasPythonApi = !!(window.pywebview && window.pywebview.api && window.pywebview.api.save_docx);
-    let handle;
-    if (!hasPythonApi) {
-      handle = await pickSaveHandle(name);
-      if (handle === null) { toast('已取消保存'); return; }
-    }
-
     toast('正在生成计算书…');
     const doc = buildDocx(res);
     const blob = await d.Packer.toBlob(doc);
 
-    if (handle) {
-      const w = await handle.createWritable();
-      await w.write(blob);
-      await w.close();
-      toast('计算书已保存：' + handle.name);
-      return;
-    }
     await saveBlob(blob, name);
   } catch (e) {
     console.error(e);
