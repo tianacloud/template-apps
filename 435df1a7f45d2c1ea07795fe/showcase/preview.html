@@ -178,7 +178,7 @@
 </style>
 </head>
 <body>
-<div id="preview-bar"><span>示例体验 · 进度仅在本页保存</span><button type="button" onclick="location.reload()">恢复示例</button></div>
+<div id="preview-bar"><span>示例体验 · 进度仅在本页保存</span><button type="button" id="preview-reset">恢复示例</button></div>
 
 <div class="cloud">☁️</div><div class="cloud">⛅</div><div class="cloud">☁️</div><div class="cloud">☁️</div>
 
@@ -251,6 +251,11 @@
 <script>
 (function(){
 'use strict';
+var previewTimers = new Set();
+var nativeTimeout = window.setTimeout.bind(window), nativeInterval = window.setInterval.bind(window);
+function setTimeout(fn, ms) { var id = nativeTimeout(function(){ previewTimers.delete(id); fn(); }, ms); previewTimers.add(id); return id; }
+function setInterval(fn, ms) { var id = nativeInterval(fn, ms); previewTimers.add(id); return id; }
+
 
 /* ================= 数据 ================= */
 var SHAPES = [
@@ -700,6 +705,15 @@ function finishGame(){
   setTimeout(centerBurst, 1100);
 }
 
+$('preview-reset').onclick = function(){
+  previewTimers.forEach(function(id){ window.clearTimeout(id); window.clearInterval(id); });
+  previewTimers.clear(); confettiTimer = null; bubbleTimer = null;
+  document.querySelectorAll('.particle,.confetti').forEach(function(el){ el.remove(); });
+  $('bubble').className = '';
+  state.levelIdx = 0; state.round = 0; state.locked = false; state.focusIndex = 0;
+  state.focusables = []; state.memFirst = null; state.memMatched = 0; state.sortQueue = []; state.sortDone = 0;
+  $('options-area').innerHTML = ''; renderDots(); showScreen('screen-start');
+};
 renderDots();
 })();
 </script>
