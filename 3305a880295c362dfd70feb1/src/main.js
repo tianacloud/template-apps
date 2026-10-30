@@ -597,7 +597,7 @@ function viewToday(e){
              + '<div class="d">' + (e.opUsed > 0.005 ? '本月已扣 ' + fmt1(e.opUsed) + ' · ' : '')
              + '第二道兜底：先动本月已转存（可动用 ' + fmt1(e.savedAvail) + '），再动它</div>'
            : '<div class="v" style="color:var(--ink-3)">停用</div>'
-             + '<div class="d">本月特殊花销豁免 · 11 月起启用（超支先动本月已转存 ' + fmt1(e.savedAvail) + '）</div>')
+             + '<div class="d">超支池未启用（超支先动本月已转存 ' + fmt1(e.savedAvail) + '）</div>')
        + '</div>';
     h += '</div>';
   }
@@ -789,7 +789,7 @@ function viewRepay(){
   h += '<h4>暂无还款安排</h4>';
   h += '<p>这一页为还款预留。数据结构与账目字段均已就位（每月份的 <b>repayments</b> 记录），'
      + '当你有分期、借款或信用卡账单时，可以直接在这里登记：每笔含<b>本金、利率、月供、剩余期数</b>，'
-     + '并按规划书的第一优先级参与分配 —— <b>利率高于 5% 的负债，优先于一切储蓄目标</b>。</p>';
+     + '并按优先级参与分配 —— <b>利率高于 5% 的负债，优先于一切储蓄目标</b>。</p>';
   h += '</div></div>';
   h += '<div class="card"><h3>预留的登记格式</h3>';
   h += '<div class="ledger-line"><span class="why">还款对象（花呗 / 信用卡 / 借款）</span><span class="when">文本</span></div>';
@@ -842,7 +842,7 @@ function viewSet(e){
   h += '</div></div>';
 
   h += '<div class="card"><h3>超支池</h3><div class="set-grid">';
-  h += num('st-buffer', '超支池比例 %', '2026-11 起生效：从日常池剥离单独分账，月底剩余并入存款', st.bufferPct, 0.5);
+  h += num('st-buffer', '超支池比例 %', '从日常池剥离单独分账，月底剩余并入存款', st.bufferPct, 0.5);
   h += '<div class="set-fld"><label>补救顺序</label>'
      + '<input type="text" readonly value="① 本月已转存 → ② 超支池 → ③ 收紧剩余天基准">'
      + '<span class="set-hint">超支先动本月攒下的转存（可动用 ' + fmt1(e.savedAvail)
