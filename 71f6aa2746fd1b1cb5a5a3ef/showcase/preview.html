@@ -237,7 +237,7 @@
 
 <div id="toast"></div>
 
-<div style="position:fixed;right:10px;bottom:10px;z-index:9999;background:white;padding:8px;border-radius:8px">示例体验 <button onclick="location.reload()">恢复示例</button></div>
+<div style="position:fixed;right:10px;bottom:10px;z-index:9999;background:white;padding:8px;border-radius:8px">示例体验 <button id="resetDemo">恢复示例</button></div>
 <script>
 (function(){
   "use strict";
@@ -249,6 +249,8 @@
     typed:"", prevLen:0, prevCaret:-1, curLine:0,
     startTime:0, timer:null, done:false, fs:22, masked:0
   };
+
+  var fileGeneration = 0;
 
   /* ---------------- 小工具 ---------------- */
   function toast(msg){
@@ -444,7 +446,25 @@
     startRun();
   }
 
+  function resetDemo(){
+    fileGeneration++;
+    clearInterval(S.timer); clearTimeout($("toast")._h);
+    S.target = ""; S.base = []; S.spans = []; S.lines = []; S.lineOf = [];
+    S.typed = ""; S.prevLen = 0; S.prevCaret = -1; S.curLine = 0;
+    S.startTime = 0; S.timer = null; S.done = false; S.fs = 22; S.masked = 0;
+    $("src").value = ""; $("file").value = ""; $("typebox").value = "";
+    $("ignoreNL").checked = false; $("hideTyped").checked = false;
+    $("text").innerHTML = ""; $("text").classList.remove("blind");
+    $("peekBody").textContent = ""; $("peek").classList.remove("on");
+    $("result").classList.remove("on"); $("toast").classList.remove("on");
+    $("practice").classList.add("hide"); $("setup").classList.remove("hide");
+    $("cnt").textContent = "0 字"; $("lineNow").firstChild.nodeValue = "1";
+    $("lineAll").textContent = "1"; document.documentElement.style.removeProperty("--fs");
+    updateStats();
+  }
+
   /* ---------------- 事件 ---------------- */
+  $("resetDemo").addEventListener("click", resetDemo);
   $("src").addEventListener("input", function(){
     $("cnt").textContent = $("src").value.replace(/\s/g, "").length + " 字";
   });
@@ -455,8 +475,9 @@
   $("file").addEventListener("change", function(ev){
     var f = ev.target.files && ev.target.files[0];
     if(!f) return;
+    var generation = ++fileGeneration;
     var r = new FileReader();
-    r.onload = function(){ $("src").value = String(r.result || ""); $("src").dispatchEvent(new Event("input")); };
+    r.onload = function(){ if (generation !== fileGeneration) return; $("src").value = String(r.result || ""); $("src").dispatchEvent(new Event("input")); };
     r.readAsText(f, "utf-8");
   });
   $("ignoreNL").addEventListener("change", rebuildInPlace);
