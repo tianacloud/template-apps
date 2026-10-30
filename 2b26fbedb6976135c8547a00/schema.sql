@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS grade_board (id TEXT PRIMARY KEY, document TEXT NOT NULL, revision INTEGER NOT NULL);
