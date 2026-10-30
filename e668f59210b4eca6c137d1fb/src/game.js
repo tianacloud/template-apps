@@ -457,7 +457,7 @@ function renderDay(){
   let html=`<div class="ev"><span class="cat">${catName}</span><h3>${ev.title}</h3>
     <div class="desc">${ev.desc}</div>`;
   ev.opts.forEach((o,oi)=>{
-    html+=`<button class="opt" onclick="choose(${oi})" style="border-color:var(--line)">
+    html+=`<button class="opt" data-action="choose" data-argument="${oi}" style="border-color:var(--line)">
       <div>${o.t}</div></button>`;
   });
   html+='</div>';
@@ -597,7 +597,7 @@ function renderMiniBoard(){
       h+=`<div class="brow"${me}><span>${medal} <b>${r.tp}</b> ${r.name}</span><span class="bv">${r.best}分</span></div>`;
     });
   }
-  h+='<button class="btn sm ghost" style="margin-top:10px" onclick="openBoard()">查看完整 16 队排行榜</button>';
+  h+='<button class="btn sm ghost" style="margin-top:10px" data-action="openBoard">查看完整 16 队排行榜</button>';
   document.getElementById('endBoard').innerHTML=h;
 }
 function openBoard(){
@@ -685,3 +685,11 @@ window.addEventListener('DOMContentLoaded',refreshHomeUnlock);
 Object.assign(window,{startTest,openSelect,closeModal,beginDays,choose,openLog,openBoard,resetBoard,downloadCard,goHome});
 
 refreshRecords().catch(()=>{document.getElementById('homeUnlock').textContent='数据库连接失败，请刷新重试';});
+
+const actions={startTest,openSelect,closeModal,beginDays,choose,openLog,openBoard,resetBoard,downloadCard,goHome};
+document.getElementById('app').addEventListener('click',event=>{
+  const button=event.target.closest('[data-action]');
+  if(!button || !Object.hasOwn(actions,button.dataset.action))return;
+  const argument=button.dataset.argument;
+  actions[button.dataset.action](argument);
+});
