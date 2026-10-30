@@ -80,12 +80,15 @@ const scene = new T.Scene(),
 const pmrem = new T.PMREMGenerator(renderer);
 const paths = ["characters/casual.glb", "characters/suit.glb", "textures/asphalt.jpg", "textures/asphalt-normal.jpg", "textures/sky.hdr", ...["concept", "sedan", "suv", "pickup", "van"].map(x => `vehicles/${x}.glb.bin`)];
 const assetUrls = new Map();
+const assetBlobs = new Map();
 let assetBase;
 try {
   await Promise.all(paths.map(async path => {
     const response = await files.get(`template-assets/${path}`);
     if (!response.ok) throw new Error(`Asset read failed: ${path}`);
-    assetUrls.set(path, URL.createObjectURL(await response.blob()));
+    const blob = await response.blob();
+    assetBlobs.set(path, blob);
+    if (path.startsWith("textures/asphalt")) assetUrls.set(path, URL.createObjectURL(blob));
   }));
   const fontResponse = await files.get("template-assets/fonts/barlow-condensed.woff2");
   if (!fontResponse.ok) throw new Error("Font read failed");
@@ -98,9 +101,18 @@ try {
 }
 try {
   const [, , sky] = await Promise.all([
-    loadCharacters(assetBase),
-    loadVehicles(assetBase),
-    new RGBELoader().loadAsync(assetBase("textures/sky.hdr")),
+    loadCharacters(assetBlobs),
+    loadVehicles(assetBlobs),
+    assetBlobs.get("textures/sky.hdr").arrayBuffer().then(bytes => {
+      const loader = new RGBELoader();
+      const data = loader.parse(bytes);
+      const texture = new T.DataTexture(data.data, data.width, data.height);
+      texture.type = data.type; texture.colorSpace = T.LinearSRGBColorSpace;
+      texture.minFilter = T.LinearFilter; texture.magFilter = T.LinearFilter;
+      texture.generateMipmaps = false; texture.flipY = true;
+      texture.mapping = T.EquirectangularReflectionMapping; texture.needsUpdate = true;
+      return texture;
+    }),
   ]);
   scene.environment = pmrem.fromEquirectangular(sky).texture;
   sky.dispose();

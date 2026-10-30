@@ -2,12 +2,12 @@ import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 const assets = [];
-export async function loadCharacters(assetBase) {
+export async function loadCharacters(assetBlobs) {
   const loader = new GLTFLoader();
   assets.push(
     ...(await Promise.all(
       ["casual", "suit"].map((name) =>
-        loader.loadAsync(assetBase(`characters/${name}.glb`)),
+        assetBlobs.get(`characters/${name}.glb`).arrayBuffer().then(bytes => loader.parseAsync(bytes, "")),
       ),
     )),
   );

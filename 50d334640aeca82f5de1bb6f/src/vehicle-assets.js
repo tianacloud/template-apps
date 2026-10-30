@@ -4,16 +4,14 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { mountWheel } from "./wheels.js";
 import { VEHICLES } from "./state.js";
 const assets = new Map();
-export async function loadVehicles(assetBase) {
+export async function loadVehicles(assetBlobs) {
   const loader = new GLTFLoader();
   await Promise.all(
     ["comet", "sedan", "suv", "pickup", "van"].map(async (id) => {
       const file = id === "comet" ? "concept" : id;
-      const response = await fetch(
-        assetBase(`vehicles/${file}.glb.bin`),
-      );
+      const blob = assetBlobs.get(`vehicles/${file}.glb.bin`);
       const bytes = await new Response(
-        response.body.pipeThrough(new DecompressionStream("gzip")),
+        blob.stream().pipeThrough(new DecompressionStream("gzip")),
       ).arrayBuffer();
       const { scene } = await loader.parseAsync(bytes, "");
       assets.set(id, scene);
