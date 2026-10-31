@@ -216,6 +216,7 @@ async function load(){
   const raw=result.rows?.[0]?.[0]?.value;
   if(raw){const o=JSON.parse(raw); if(o && typeof o==='object') S=Object.assign(S,o);}
 }
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function todayKey(){
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
@@ -595,7 +596,7 @@ function viewToday(){
 
   const listHtml = list.length ? list.map((x,i)=>`
     <div class="logitem">
-      <div class="ln">${x.name}<em>${fmt(x.g)} g</em></div>
+      <div class="ln">${esc(x.name)}<em>${fmt(x.g)} g</em></div>
       <div class="lk">${fmt(x.kcal)} kcal<br>蛋白 ${fmt(x.pro,1)} g</div>
       <button class="del" data-act="delLog" data-i="${i}">×</button>
     </div>`).join('') : `<div class="empty">还没有记录<br>去「冰箱」点一下“吃了一份”，自动开始累计</div>`;
@@ -605,7 +606,7 @@ function viewToday(){
       <div class="meal-h"><b>${m.name}</b><span>${m.time} · ${fmt(m.kcal)} kcal · 蛋白 ${fmt(m.pro,0)}g</span></div>
       <ul>${m.items.map(it=>{
         const p=S.pantry.find(x=>x.name===it.name); const per=p?p.per:CAT_DEFAULT.pro;
-        return `<li>${it.name} <em>${it.g}g · ${fmt(per.kcal*it.g/100)} kcal</em></li>`;
+        return `<li>${esc(it.name)} <em>${it.g}g · ${fmt(per.kcal*it.g/100)} kcal</em></li>`;
       }).join('')}</ul>
       <div class="sum">按你冰箱现有食材自动排的（${fmt(m.kcal)} kcal / 蛋白 ${fmt(m.pro,0)} g）</div>
     </div>`).join('');
@@ -779,9 +780,9 @@ function openQuickLog(){
     <h3>刚才吃了什么</h3>
     <div class="info">点一下就是一份，再点再加。会自动扣掉冰箱库存。</div>
     <div class="qgrid" id="qgrid">${avail.length ? avail.map(p=>`
-      <button class="qitem" data-q="${p.name}">
-        <span class="qn">${p.name}</span>
-        <span class="qc" id="qc_${p.name}">0</span>
+      <button class="qitem" data-q="${esc(p.name)}">
+        <span class="qn">${esc(p.name)}</span>
+        <span class="qc" id="qc_${esc(p.name)}">0</span>
       </button>`).join('') : '<div class="hint">冰箱是空的，先去「冰箱」页加几样食材。</div>'}
     </div>
     <div class="btns">
@@ -852,7 +853,7 @@ function viewChat(){
   return `
   <div class="chatbox">
     <div class="chatlog" id="chatlog">
-      ${msgs.length?msgs.map(m=>`<div class="msg ${m.who==='me'?'me':''}"><div class="bub">${m.text}</div></div>`).join('')
+      ${msgs.length?msgs.map(m=>`<div class="msg ${m.who==='me'?'me':''}"><div class="bub">${esc(m.text)}</div></div>`).join('')
         :`<div class="msg"><div class="bub">我是这台设备里的记录助手。问我：\n· 今天还能吃多少\n· 晚饭吃什么\n· 蛋白还差多少\n· 这个动作练哪</div></div>`}
     </div>
     <div class="quick">
@@ -932,14 +933,14 @@ function viewPantry(){
         const kcal=p.per.kcal*p.g/100, pro=p.per.pro*p.g/100;
         const u=unitOf(FOODS.find(x=>x.name===p.name));
         return `<div class="food ${p.count<=0?'out':''}">
-          <div class="fn">${p.name}</div>
+          <div class="fn">${esc(p.name)}</div>
           <div class="fp">${p.liquid ? `一次吃 ${p.g}ml` : (p.byG ? `一次吃 ${p.g}g` : `按每${u} ${p.g}g`)} · ${fmt(kcal)} kcal · 蛋白 ${fmt(pro,1)}g</div>
           <div class="stockrow">
-            <button data-act="stock" data-name="${p.name}" data-d="1">＋</button>
+            <button data-act="stock" data-name="${esc(p.name)}" data-d="1">＋</button>
             <div class="stock"><b>${p.byG ? Math.round(p.count) : p.count}</b><span>${p.byG ? 'g' : u}</span></div>
-            <button data-act="stock" data-name="${p.name}" data-d="-1">－</button>
+            <button data-act="stock" data-name="${esc(p.name)}" data-d="-1">－</button>
           </div>
-          <button class="editbtn" data-act="editFood" data-name="${p.name}">改份量 / 删除</button>
+          <button class="editbtn" data-act="editFood" data-name="${esc(p.name)}">改份量 / 删除</button>
         </div>`;
       }).join('')}</div>
     </div>`;
@@ -1125,7 +1126,7 @@ function openAddFood(){
       }
     }else{
       cur=null;
-      infoEl.innerHTML=`没收录「${name}」，营养按分类估`;
+      infoEl.innerHTML=`没收录「${esc(name)}」，营养按分类估`;
       qLabel.textContent='总共有多少克';
       gLabel.textContent='每次吃多少克（必填）';
       gEl.value=100;
@@ -1171,7 +1172,7 @@ function editFood(name){
   const u=unitOf(f);
   const unitTxt = p.liquid ? 'ml' : (p.byG ? 'g' : u);
   const el = openModal(`
-    <h3>${p.name}</h3>
+    <h3>${esc(p.name)}</h3>
     <div class="info">${p.byG?'一次吃':'按每'+unitTxt+' '} ${p.g} g（估）· ${fmt(p.per.kcal*p.g/100)} kcal · 蛋白 ${fmt(p.per.pro*p.g/100,1)} g<br>不准就改成实际重量，热量会跟着重算。</div>
     <div class="field">
       <label>现在还剩多少${unitTxt}</label>
