@@ -28,8 +28,12 @@ async function storePhoto(blob) {
   return path;
 }
 async function dataBlob(data) {
-  if (!/^data:image\/(jpeg|png|webp);base64,/i.test(data)) throw new Error('照片格式不支持');
-  return await (await fetch(data)).blob();
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/i.exec(data);
+  if (!match) throw new Error('照片格式不支持');
+  const decoded = atob(match[2]);
+  const bytes = new Uint8Array(decoded.length);
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+  return new Blob([bytes], { type: match[1].toLowerCase() });
 }
 async function preparePhotos(done) {
   for (const record of Object.values(done)) {
