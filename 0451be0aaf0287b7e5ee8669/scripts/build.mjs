@@ -1,0 +1,11 @@
+import {readFile,mkdir,rm,writeFile,copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const commit=process.argv[2]; if(!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(commit||'')) throw Error('需要完整提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+if(process.env.TIANA_TEMPLATE_BUILD!=='1' && (source.git_instance_id.startsWith('__TIANA_') || source.database_instance_id.startsWith('__TIANA_'))) throw Error('需要 Git 实例 ID');
+const html=await readFile('client/index.html','utf8'); const body=html.match(/<div class="app">[\s\S]*?<\/footer>\s*<\/div>/)?.[0]; if(!body) throw Error('界面缺失');
+const css=await readFile('client/style.css','utf8'); const scripts=await Promise.all(['lunar.js','holidays.js','history.js','app.js'].map(f=>readFile('client/'+f,'utf8')));
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+const db=await build({entryPoints:['client/db.js'],bundle:true,write:false,format:'iife',platform:'browser'});
+await writeFile('dist/assets/app.js',db.outputFiles[0].text+`document.title='日历备忘录';const s=document.createElement('style');s.textContent=${JSON.stringify(css)};document.head.appendChild(s);document.getElementById('app').innerHTML=${JSON.stringify(body)};\n`+scripts.join('\n;\n'));
+await copyFile('public/icon.png','dist/icon.png'); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
