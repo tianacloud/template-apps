@@ -165,7 +165,8 @@ function refreshBoardAfterSubmit(b){ /* 游戏榜即时可读，无需回拉 */ 
 /* 存档快照：与 Toy 版同结构，由本文件提供 */
 function snapshot(){
   return {
-    v:1, day:G.day, gold:G.gold, rep:G.rep, pts:G.pts, spend:G.spend|0,
+    v:1, day:G.day+(G.dayOver?1:0), gold:G.gold, rep:G.rep, pts:G.pts, spend:G.spend|0,
+    jewels:(G.jewels||[]), worn:(G.worn||[]), gear:Object.assign({},G.gear),
     skills:Object.assign({}, G.skills),
     treasure:(G.treasure||[]).slice(0,KEEPCAP),
     gifts:(G.gifts||[]).map(g=>({k:g.k,n:g.n,bonus:g.bonus,ds:g.ds,img:g.img})),
@@ -188,6 +189,9 @@ function applySnapshot(o){
   if(typeof o.pts==="number") G.pts=Math.max(0,Math.round(o.pts));
   if(typeof o.spend==="number") G.spend=Math.max(0,Math.round(o.spend));
   if(o.skills && typeof o.skills==="object") G.skills=Object.assign({}, o.skills);
+  if(Array.isArray(o.jewels)) G.jewels=o.jewels;
+  if(Array.isArray(o.worn)) G.worn=o.worn;
+  if(o.gear && typeof o.gear==="object") G.gear=Object.assign({}, G.gear, o.gear);
   if(Array.isArray(o.treasure)) G.treasure=o.treasure.filter(t=>t&&GEMS[t.g]).slice(0,KEEPCAP);
   if(Array.isArray(o.gifts))
     G.gifts=o.gifts.filter(g=>g&&GIFTS.some(x=>x.k===g.k)).map(g=>GIFTS.find(x=>x.k===g.k));

@@ -1026,6 +1026,7 @@ function buySkill(k){
   G.gold-=sk.cost; G.spend+=sk.cost;   // 学费计入铺面开销
   G.rep=cl(G.rep-sk.req,0,REP_MAX);    // 考取技艺耗费声望（原为只设门槛不扣）
   G.skills[k]=true;
+  saveCloudSoon();
   say("技艺考取 · "+sk.n+" · 学费 "+sk.cost+" 金 · 耗声望 "+sk.req,false,"good");
   G.log.unshift("技艺 · 考取"+sk.n+"（-"+sk.cost+" 金 · -"+sk.req+" 声望）");
   showSkills();
@@ -1114,7 +1115,7 @@ function showBankrupt(net){
 }
 function nextDay(){
   G.day++;
-  hideModal(); newDay();
+  hideModal(); newDay(); saveCloudSoon();
 }
 function restart(){
   G.day=1; G.gold=5000; G.rep=20; G.luck=LUCK_START; G.pts=40; G.mindFreeUsed=false;
@@ -1125,7 +1126,7 @@ function restart(){
   G.dead=false; G.settling=false; G.dayOver=false; G._pendingClose=false;
   G.finaleSt=null; BOX=null; G._dayEnd=null;
   gmFix(); G.gamble.ticketsDay=0;
-  hideModal(); newDay();
+  hideModal(); newDay(); saveCloudSoon();
 }
 
 /* ══════════ 输入 ══════════ */
