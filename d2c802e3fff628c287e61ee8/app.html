@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>技术内容创作助手</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d;
+    --text:#e6edf3; --muted:#8b949e; --green:#3fb950; --blue:#58a6ff;
+    --yellow:#f0c674; --pink:#ff7b72; --purple:#bc8cff;
+    --mono:'SF Mono','Fira Code',Consolas,'Courier New',monospace;
+    --sans:'PingFang SC','Microsoft YaHei','Hiragino Sans GB',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;padding-bottom:48px}
+  a{color:var(--blue);text-decoration:none}
+  /* Banner */
+  header{
+    background:linear-gradient(135deg,#0d1117 0%,#1a2233 60%,#10261b 100%);
+    border-bottom:1px solid var(--border);padding:32px 20px 28px;text-align:center;position:relative;overflow:hidden;
+  }
+  header::before{
+    content:"创作";position:absolute;right:-10px;top:-30px;font-family:var(--mono);
+    font-size:160px;font-weight:800;color:rgba(63,185,80,0.06);letter-spacing:-6px;
+  }
+  .logo{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:2px;opacity:.9}
+  h1{font-size:30px;margin:6px 0 4px;font-weight:800}
+  h1 .num{color:var(--yellow);font-family:var(--mono)}
+  .sub{color:var(--muted);font-size:14px;max-width:620px;margin:0 auto}
+  .tagline{margin-top:14px;display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .tagline span{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted)}
+  /* Tabs */
+  nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:18px 12px 4px;max-width:980px;margin:0 auto}
+  .tab{
+    background:var(--panel);border:1px solid var(--border);color:var(--muted);
+    padding:9px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-family:var(--sans);
+    transition:.18s;user-select:none;
+  }
+  .tab:hover{color:var(--text);border-color:var(--blue)}
+  .tab.active{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border-color:transparent;font-weight:600}
+  /* Main */
+  main{max-width:980px;margin:0 auto;padding:14px}
+  .view{display:none;animation:fade .25s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:18px;margin-bottom:4px}
+  .card .desc{color:var(--muted);font-size:13px;margin-bottom:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  input[type=text],textarea,select{
+    width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+    color:var(--text);padding:10px 12px;font-size:14px;font-family:var(--sans);outline:none;transition:.15s;
+  }
+  input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,166,255,.15)}
+  textarea{resize:vertical;min-height:84px;line-height:1.6}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row > div{flex:1;min-width:200px}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg label{margin:0}
+  .chip{
+    border:1px solid var(--border);background:var(--panel2);color:var(--muted);
+    padding:7px 13px;border-radius:999px;cursor:pointer;font-size:13px;transition:.15s;user-select:none;
+  }
+  .chip.on{background:rgba(63,185,80,.15);border-color:var(--green);color:var(--green)}
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button.btn{
+    background:linear-gradient(135deg,var(--green),#2ea043);color:#fff;border:none;
+    padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;font-family:var(--sans);
+  }
+  button.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  button.ghost:hover{color:var(--text);border-color:var(--blue)}
+  /* Result */
+  .result-wrap{margin-top:16px}
+  .result-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .result-head .t{font-size:13px;color:var(--muted)}
+  .result-head .meta{font-size:12px;color:var(--muted);font-family:var(--mono)}
+  pre.result{
+    background:#0b0f14;border:1px solid var(--border);border-radius:12px;padding:18px;
+    white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13.5px;
+    color:#c9d1d9;line-height:1.75;max-height:520px;overflow:auto;
+  }
+  pre.result:empty::before{content:"生成结果会显示在这里 ✨";color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--green);color:#04130a;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;
+    opacity:0;transition:.25s;pointer-events:none;z-index:99;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* About */
+  .feature{display:flex;gap:12px;margin:14px 0;align-items:flex-start}
+  .feature .ic{font-size:20px;flex-shrink:0}
+  .feature .ft{font-size:14px}
+  .feature .ft b{color:var(--text)}
+  .feature .ft p{color:var(--muted);font-size:13px;margin-top:2px}
+  code.inline{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-family:var(--mono);font-size:12.5px;color:var(--yellow)}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">// 技术内容创作助手</div>
+  <h1><span class="num">技术</span> 内容创作助手</h1>
+  <p class="sub">一个离线可用、零依赖的前端应用：把你的技术知识点，一键变成能发的小红书文案、能看的技术博客、能用的 README，外加一份程序员节专属彩蛋。</p>
+  <div class="tagline">
+    <span>📕 小红书文案</span><span>📝 技术博客</span><span>📦 README</span><span>🎉 1024 彩蛋</span><span>⚡ 纯前端离线</span>
+  </div>
+</header>
+
+<nav id="nav">
+  <div class="tab active" data-v="xhs">📕 小红书文案</div>
+  <div class="tab" data-v="blog">📝 技术博客</div>
+  <div class="tab" data-v="readme">📦 README</div>
+  <div class="tab" data-v="egg">🎉 1024 彩蛋</div>
+  <div class="tab" data-v="about">💡 关于作品</div>
+</nav>
+
+<main>
+  <!-- 小红书 -->
+  <section class="view active" id="v-xhs">
+    <div class="card">
+      <h2>📕 小红书技术文案生成器</h2>
+      <p class="desc">填一个技术点，给你一篇带钩子标题、痛点共鸣、干货要点和话题标签的图文文案。</p>
+      <label>技术主题 / 知识点（必填）</label>
+      <input type="text" id="xhs_topic" placeholder="例如：Java 泛型、Vue3 响应式、MySQL 索引" />
+      <div class="row">
+        <div>
+          <label>目标人群</label>
+          <select id="xhs_aud">
+            <option value="零基础">零基础小白</option>
+            <option value="进阶">进阶开发者</option>
+            <option value="求职者">求职面试党</option>
+            <option value="全栈">全栈 / 转岗</option>
+          </select>
+        </div>
+        <div>
+          <label>文案风格</label>
+          <select id="xhs_style">
+            <option value="干货">干货科普</option>
+            <option value="踩坑">踩坑复盘</option>
+            <option value="种草">种草安利</option>
+            <option value="面试">面试突击</option>
+          </select>
+        </div>
+      </div>
+      <label>补充关键词（可选，逗号分隔，让内容更具体）</label>
+      <input type="text" id="xhs_kw" placeholder="例如：性能、常见误区、实战案例" />
+      <div class="actions">
+        <button class="btn" onclick="genXhs()">✨ 一键生成</button>
+        <button class="ghost" onclick="fillDemo('xhs')">🎲 给我个示例</button>
+      </div>
+      <div class="result-wrap">
+        <div class="result-head"><span class="t">生成结果</span><span class="meta" id="xhs_meta"></span></div>
+        <pre class="result" id="xhs_out"></pre>
+        <div class="actions">
+          <button class="ghost" onclick="copy('xhs_out')">📋 复制全文</button>
+        </div>
+        <p class="hint">提示：小红书发布时建议配 3–6 张图（代码截图 / 思维导图 / 对比图），完播率和收藏率会更高。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 博客 -->
+  <section class="view" id="v-blog">
+    <div class="card">
+      <h2>📝 技术博客大纲 + 正文生成器</h2>
+      <p class="desc">选定文章类型，自动产出标题、摘要、多级大纲和每节要点，直接拿去扩写。</p>
+      <label>文章主题</label>
+      <input type="text" id="blog_topic" placeholder="例如：从零实现一个 RPC 框架" />
+      <div class="row">
+        <div>
+          <label>技术栈 / 关键词</label>
+          <input type="text" id="blog_stack" placeholder="例如：Java, Netty, 序列化" />
+        </div>
+        <div>
+          <label>文章类型</label>
+          <select id="blog_type">
+            <option value="教程">实战教程</option>
+            <option value="源码">源码解析</option>
+            <option value="复盘">架构复盘</option>
+            <option value="对比">对比评测</option>
+          </select>
+        </div>
+      </div>
+      <label>目标字数（影响大纲深度）</label>
+      <select id="blog_len">
+        <option value="s">短（1500 字内）</option>
+        <option value="m" selected>中（1500–3500 字）</option>
+        <option value="l">长（3500 字以上）</option>
+      </select>
+      <div class="actions">
+        <button class="btn" onclick="genBlog()">✨ 一键生成</button>
+        <button class="ghost" onclick="fillDemo('blog')">🎲 给我个示例</button>
+      </div>
+      <div class="result-wrap">
+        <div class="result-head"><span class="t">生成结果</span><span class="meta" id="blog_meta"></span></div>
+        <pre class="result" id="blog_out"></pre>
+        <div class="actions"><button class="ghost" onclick="copy('blog_out')">📋 复制全文</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- README -->
+  <section class="view" id="v-readme">
+    <div class="card">
+      <h2>📦 README 文档生成器</h2>
+      <p class="desc">填项目信息，产出结构规范、可直接提交的 README.md。</p>
+      <label>项目名称</label>
+      <input type="text" id="rm_name" placeholder="例如：flowable-bpm-starter" />
+      <label>一句话简介</label>
+      <input type="text" id="rm_desc" placeholder="例如：基于 Flowable 的轻量级工作流 starter" />
+      <div class="row">
+        <div>
+          <label>技术栈（逗号分隔）</label>
+          <input type="text" id="rm_stack" placeholder="Java, Spring Boot, Flowable, MyBatis" />
+        </div>
+        <div>
+          <label>开源协议</label>
+          <select id="rm_lic">
+            <option>MIT</option><option>Apache-2.0</option><option>GPL-3.0</option><option>无</option>
+          </select>
+        </div>
+      </div>
+      <label>核心特性（每行一个）</label>
+      <textarea id="rm_feat" placeholder="动态表单设计&#10;流程一键导入导出&#10;多数据源任务监听器"></textarea>
+      <div class="actions">
+        <button class="btn" onclick="genReadme()">✨ 一键生成</button>
+        <button class="ghost" onclick="fillDemo('readme')">🎲 给我个示例</button>
+      </div>
+      <div class="result-wrap">
+        <div class="result-head"><span class="t">生成结果</span><span class="meta" id="readme_meta"></span></div>
+        <pre class="result" id="readme_out"></pre>
+        <div class="actions"><button class="ghost" onclick="copy('readme_out')">📋 复制全文</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1024 彩蛋 -->
+  <section class="view" id="v-egg">
+    <div class="card">
+      <h2>🎉 1024 程序员节专属彩蛋</h2>
+      <p class="desc">节日文案、朋友圈、自嘲段子、代码版祝福，一键生成，今天发正好。</p>
+      <label>你的昵称 / 团队名</label>
+      <input type="text" id="egg_name" placeholder="例如：祥哥 / 后端小队" />
+      <div class="actions">
+        <button class="btn" onclick="genEgg()">✨ 生成节日文案</button>
+        <button class="ghost" onclick="fillDemo('egg')">🎲 给我个示例</button>
+      </div>
+      <div class="result-wrap">
+        <div class="result-head"><span class="t">生成结果</span><span class="meta" id="egg_meta"></span></div>
+        <pre class="result" id="egg_out"></pre>
+        <div class="actions"><button class="ghost" onclick="copy('egg_out')">📋 复制全文</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section class="view" id="v-about">
+    <div class="card">
+      <h2>💡 关于这件作品</h2>
+      <p class="desc">参赛说明 & 作品亮点，方便你提交时直接引用。</p>
+      <div class="feature"><div class="ic">🎯</div><div class="ft"><b>解决什么痛点</b><p>程序员擅长写代码，却常卡在"把技术讲清楚"。这个工具把知识点一键转成多平台内容，降低技术分享的门槛。</p></div></div>
+      <div class="feature"><div class="ic">⚡</div><div class="ft"><b>纯前端 / 离线可用</b><p>单 HTML 文件，零依赖、零后端、零联网。打开即用，数据不出本机，天然适合作为可运行的应用作品提交。</p></div></div>
+      <div class="feature"><div class="ic">🧩</div><div class="ft"><b>四合一能力</b><p>小红书图文文案、技术博客大纲、README 文档、1024 节日彩蛋，覆盖"技术人也要会表达"的主要场景。</p></div></div>
+      <div class="feature"><div class="ic">🛠️</div><div class="ft"><b>技术实现</b><p>原生 HTML + CSS + JavaScript，内置模板引擎与多候选随机化，让每次生成结果都不重样；支持一键复制。</p></div></div>
+      <div class="feature"><div class="ic">🌱</div><div class="ft"><b>可继续扩展</b><p>接入大模型 API 后即可升级为"智能创作 Agent"；当前离线版已能直接交付使用。</p></div></div>
+      <h2 style="margin-top:22px">📋 一句话参赛介绍（可直接复制）</h2>
+      <pre class="result" id="about_txt">《技术内容创作助手》——一个离线可用的纯前端应用，把技术知识点一键变成小红书文案、技术博客、README 和程序员节专属文案。它想解决的是：程序员写得一手好代码，却常苦于"把技术讲给人听"。工具零依赖、打开即用，既是可运行的应用作品。</pre>
+      <div class="actions"><button class="ghost" onclick="copy('about_txt')">📋 复制介绍</button></div>
+    </div>
+  </section>
+</main>
+
+<footer>Made with ☕ & ⌨️ for 1024 · 纯前端单文件应用 · 数据均在本地处理</footer>
+<div class="toast" id="toast">已复制 ✓</div>
+
+<script>
+/* ---------- 工具函数 ---------- */
+function $(id){return document.getElementById(id);}
+function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function pickN(arr,n){var c=arr.slice(),o=[];while(c.length&&o.length<n){o.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);}return o;}
+function countWords(s){return (s.match(/[一-龥]/g)||[]).length + (s.match(/[a-zA-Z0-9]+/g)||[]).length;}
+function toastMsg(t){var t2=$('toast');t2.textContent=t;t2.classList.add('show');setTimeout(function(){t2.classList.remove('show');},1400);}
+function copy(id){
+  var txt=$(id).innerText;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toastMsg('已复制 ✓');},function(){fallbackCopy(txt);});
+  }else{fallbackCopy(txt);}
+}
+function fallbackCopy(txt){
+  var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{toastMsg(document.execCommand('copy')?'已复制 ✓':'复制失败，请手动选择');}catch(e){toastMsg('复制失败，请手动选择');}
+  document.body.removeChild(ta);
+}
+
+/* ---------- Tab 切换 ---------- */
+document.querySelectorAll('.tab').forEach(function(el){
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+    el.classList.add('active');
+    $('v-'+el.dataset.v).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+/* ---------- 示例填充 ---------- */
+function fillDemo(kind){
+  if(kind==='xhs'){$('xhs_topic').value='Java 泛型';$('xhs_aud').value='进阶';$('xhs_style').value='干货';$('xhs_kw').value='常见误区, 实战案例';}
+  if(kind==='blog'){$('blog_topic').value='从零实现一个轻量 RPC 框架';$('blog_stack').value='Java, Netty, 序列化';$('blog_type').value='教程';$('blog_len').value='m';}
+  if(kind==='readme'){$('rm_name').value='flowable-bpm-starter';$('rm_desc').value='基于 Flowable 的轻量级工作流 starter，开箱即用';$('rm_stack').value='Java, Spring Boot, Flowable, MyBatis Plus';$('rm_lic').value='Apache-2.0';$('rm_feat').value='动态表单设计\n流程一键导入导出\n多数据源 DML 任务监听器\nSa-Token 鉴权集成';}
+  if(kind==='egg'){$('egg_name').value='祥哥';}
+  toastMsg('示例已填好，点生成试试 ✨');
+}
+
+/* ---------- 小红书生成 ---------- */
+var XHS_TITLE={
+  '干货':['{t}到底是个啥？3 分钟给你讲明白 🤔','别再死记硬背了！{t} 这篇一次搞懂 🧠','{t} 入门到上手，我踩过的坑都在这了 💡','不懂 {t} 真的会吃亏，建议码住 📌'],
+  '踩坑':['血泪教训！{t} 这几个坑我替你踩了 🩹','上线前夜，{t} 把我整崩溃了… 😭','{t} 报错排查 8 小时，真相竟然是它 🔍','关于 {t}，我希望有人早点告诉我这些 ⚠️'],
+  '种草':['用了 {t} 之后，我的效率直接起飞 🚀','真心安利 {t}，真香警告 ⚠️','{t} 为什么值得每个程序员都学？🌟','入坑 {t} 半年，真回不去了 💻'],
+  '面试':['面试官最爱问的 {t}，这样答稳了 ✅','{t} 面试八股文，背完就上岸 🎓','{t} 高频考点汇总，秋招码住！📌','被问到 {t} 不再慌，这篇就够了 🙌']
+};
+var XHS_OPEN={
+  '零基础':'说实话，刚接触 {t} 的时候，我和你一样一脸懵，看文档像看天书。',
+  '进阶':'写到第三个项目才发现，{t} 远没有想象中简单，水还挺深。',
+  '求职者':'秋招面试被问到 {t}，当场卡壳的痛谁懂啊，回来连夜补了课。',
+  '全栈':'前后端通吃的路上，{t} 是绕不开的一关，早晚得啃下来。'
+};
+var XHS_PAIN={
+  '干货':'很多人学 {t} 只背概念，一到写代码就抓瞎，其实就是没理解底层逻辑。',
+  '踩坑':'{t} 本身不难，难的是那些文档不会写、搜索引擎也搜不到的隐坑。',
+  '种草':'身边还有人在用老办法硬刚 {t}，重复劳动不说，还容易出 bug。',
+  '面试':'{t} 看着基础，真要讲清楚原理和边界情况，十个有八个答不全。'
+};
+var XHS_GOLDEN=[
+  '工具是死的，思想是活的，先把底层逻辑吃透。',
+  '别怕报错，每一个 error 都是系统在手把手教你。',
+  '真正的高手不是不踩坑，而是踩过的坑不再踩第二次。',
+  '代码写给人看的，能讲明白，才算真懂了。',
+  '慢就是快，基础打牢了，后面都是加速度。'
+];
+var XHS_TAGS=['#程序员','#1024程序员节','#编程干货','#技术分享','#代码人生','#学习打卡','#程序员日常'];
+function genXhs(){
+  var t=$('xhs_topic').value.trim();
+  if(!t){toastMsg('先填个技术主题呀～');$('xhs_topic').focus();return;}
+  var aud=$('xhs_aud').value,style=$('xhs_style').value;
+  var kws=$('xhs_kw').value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean);
+  var title=rand(XHS_TITLE[style]).replace('{t}',t);
+  var open=XHS_OPEN[aud].replace('{t}',t);
+  var pain=XHS_PAIN[style].replace('{t}',t);
+  // 要点
+  var points=[];
+  if(kws.length){
+    kws.forEach(function(k,i){points.push('· '+k+'：围绕「'+t+'」的'+k+'，记住一句话——'+rand(['先理解再套用','别急着抄代码，搞懂原理','实战里最容易翻车的地方','面试高频，务必吃透'])+'。');});
+  }else{
+    points=['· 它是什么：用大白话讲清 '+t+' 的本质，别一上来堆术语。',
+            '· 为什么要用：没有 '+t+' 会多出哪些麻烦，对比一下就懂了。',
+            '· 怎么上手：给一个最小可跑的例子，照着敲一遍比看十篇都强。'];
+  }
+  var golden=rand(XHS_GOLDEN);
+  var interact=['觉得有用的话点个赞收藏一下吧 👍 关注我，持续分享 '+t+' 相关的干货～',
+                '你在使用 '+t+' 时踩过什么坑？评论区聊聊，我帮你看看 👇',
+                '下期想看 '+t+' 的哪块内容？留言告诉我，安排上 📝'][Math.floor(Math.random()*3)];
+  var tagPool=XHS_TAGS.slice();
+  if(/java|spring|后端/i.test(t)) tagPool.push('#Java','#后端开发');
+  if(/vue|react|前端|js/i.test(t)) tagPool.push('#前端','#Vue');
+  if(/sql|mysql|数据库/i.test(t)) tagPool.push('#数据库','#MySQL');
+  if(/算法|数据结构/i.test(t)) tagPool.push('#算法','#刷题');
+  var tags=pickN(tagPool,6).join(' ');
+  var out='【'+title+'】\n\n'+open+'\n\n'+pain+'\n\n📌 重点记这几点：\n'+points.join('\n')+'\n\n💡 '+golden+'\n\n'+interact+'\n\n'+tags;
+  $('xhs_out').textContent=out;
+  $('xhs_meta').textContent=countWords(out)+' 字';
+}
+
+/* ---------- 博客生成 ---------- */
+var BLOG_TITLE={
+  '教程':['{t} 实战：从 0 到 1 完整落地','手把手教你 {t}（附可运行代码）','{t} 入门到上手，这一篇就够了'],
+  '源码':['{t} 源码精读：带你拆透核心实现','从源码看 {t} 是怎么工作的','{t} 设计哲学：一行行读给你听'],
+  '复盘':['{t} 架构演进复盘：我们踩过的坑与解法','半年实践 {t}，这些经验想告诉你','从 0 到 1：{t} 落地全记录'],
+  '对比':['{t} 横向评测：到底该选哪一个？','{t} vs 主流方案：我们为什么这样选','一表看懂 {t} 与替代品的差异']
+};
+var BLOG_OUTLINE={
+  '教程':[['环境准备','列出版本、依赖与最小可运行环境'],['核心概念','把关键术语讲人话，配一张结构图'],['快速上手','一个最小示例，逐步解释每一行'],['进阶技巧','性能、边界、常见坑'],['常见问题 FAQ','汇总社区高频疑问'],['总结','回顾要点 + 下一步学习路径']],
+  '源码':[['背景与定位','它解决什么问题，为什么这样设计'],['整体架构','模块划分与调用关系'],['关键类 / 方法','逐段拆解核心实现'],['执行流程','用时序描述一次完整调用'],['设计亮点','值得借鉴的模式与思想'],['可优化点','客观评价，给出改进思路']],
+  '复盘':[['业务背景','为什么要做这件事'],['旧方案痛点','原来的问题在哪'],['新架构设计','核心思路与取舍'],['落地效果','用数据说话（QPS / 成本 / 稳定性）'],['踩坑与反思','诚实记录失败与改进']],
+  '对比':[['评测维度','性能、易用性、生态、成本'],['参评方案','各自定位与适用面'],['数据对比','表格化呈现关键指标'],['适用场景','什么情况选谁'],['结论','给出选型建议']]
+};
+function genBlog(){
+  var t=$('blog_topic').value.trim();
+  if(!t){toastMsg('先填文章主题～');$('blog_topic').focus();return;}
+  var stack=$('blog_stack').value.trim()||'（待补充技术栈）';
+  var type=$('blog_type').value, len=$('blog_len').value;
+  var title=rand(BLOG_TITLE[type]).replace('{t}',t);
+  var depth=len==='s'?2:(len==='m'?3:4);
+  var outline=BLOG_OUTLINE[type];
+  var lines=[];
+  lines.push('# '+title);
+  lines.push('');
+  lines.push('> TL;DR：'+(len==='s'?'一篇短文':'本文')+'围绕「'+t+'」，技术栈涉及 '+stack+'，目标是让读者读完后能'+(type==='教程'?'直接照着上手':type==='源码'?'理解核心实现':type==='复盘'?'借鉴落地经验':'做出合理选型')+'。');
+  lines.push('');
+  lines.push('## 一、引言');
+  lines.push('为什么写「'+t+'」？它在'+(stack.split(/[,，]/)[0]||'日常开发')+'里解决了什么真实问题，本文的读者画像与前置基础。');
+  lines.push('');
+  lines.push('## 二、正文大纲');
+  outline.forEach(function(sec,i){
+    lines.push((i+1)+'. **'+sec[0]+'** —— '+sec[1]);
+    if(i<depth){
+      lines.push('   - 要点：'+sec[1]);
+      lines.push('   - 代码示例：');
+      lines.push('     ```'+ (stack.toLowerCase().indexOf('java')>=0?'java':stack.toLowerCase().indexOf('js')>=0||stack.toLowerCase().indexOf('vue')>=0?'javascript':'text') );
+      lines.push('     // TODO: 此处放 '+sec[0]+' 的核心代码片段');
+      lines.push('     ```');
+    }
+  });
+  lines.push('');
+  lines.push('## 三、总结');
+  lines.push('回顾「'+t+'」的关键结论，给出可执行的下一步（延伸阅读 / 练手项目 / 避坑清单）。');
+  lines.push('');
+  lines.push('---');
+  lines.push('*本文由「技术内容创作助手」生成大纲骨架，扩写时记得补充真实代码与数据。*');
+  var out=lines.join('\n');
+  $('blog_out').textContent=out;
+  $('blog_meta').textContent=countWords(out)+' 字骨架';
+}
+
+/* ---------- README 生成 ---------- */
+function genReadme(){
+  var name=$('rm_name').value.trim();
+  if(!name){toastMsg('先填项目名称～');$('rm_name').focus();return;}
+  var desc=$('rm_desc').value.trim()||'一个用 '+name+' 实现的小工具。';
+  var stack=($('rm_stack').value.trim()||'').split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean);
+  var lic=$('rm_lic').value;
+  var feats=$('rm_feat').value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  if(!feats.length) feats=['开箱即用','配置简单','文档齐全'];
+  var badge='[![License](https://img.shields.io/badge/license-'+lic+'-blue.svg)](LICENSE) [![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](/)';
+  if(stack.indexOf('Java')>=0||stack.indexOf('java')>=0){badge='[![Maven](https://img.shields.io/badge/build-passing-brightgreen.svg)](/) '+badge;}
+  var L=[];
+  L.push('# '+name);
+  L.push('');
+  L.push(badge);
+  L.push('');
+  L.push('> '+desc);
+  L.push('');
+  L.push('## ✨ 特性');
+  feats.forEach(function(f){L.push('- '+f);});
+  L.push('');
+  L.push('## 📦 技术栈');
+  L.push(stack.length?stack.map(function(s){return '- '+s;}).join('\n'):'- 待补充');
+  L.push('');
+  L.push('## 🚀 快速开始');
+  L.push('### 环境要求');
+  L.push('- JDK 17+（如使用 Java）/ Node 18+（如使用前端）/ 对应运行环境');
+  L.push('');
+  L.push('### 安装');
+  L.push('```bash');
+  L.push('# 克隆仓库');
+  L.push('git clone https://github.com/your-name/'+name+'.git');
+  L.push('cd '+name);
+  if(stack.indexOf('Java')>=0||stack.indexOf('java')>=0){L.push('# 编译');L.push('mvn clean install');}
+  else if(stack.indexOf('node')>=0||stack.indexOf('Vue')>=0||stack.indexOf('vue')>=0){L.push('# 安装依赖');L.push('pnpm install && pnpm dev');}
+  else{L.push('# 按项目说明安装依赖');}
+  L.push('```');
+  L.push('');
+  L.push('### 使用');
+  L.push('```'+ (stack.indexOf('Java')>=0||stack.indexOf('java')>=0?'java':'bash'));
+  L.push('// 这里放一段最小可运行示例，演示核心能力');
+  L.push('```');
+  L.push('');
+  L.push('## 📁 目录结构');
+  L.push('```');
+  L.push(name+'/');
+  L.push('├── src/          核心源码');
+  L.push('├── docs/         文档');
+  L.push('├── examples/     示例');
+  L.push('└── README.md     本文件');
+  L.push('```');
+  L.push('');
+  L.push('## 🤝 贡献');
+  L.push('欢迎提 Issue 和 PR。提交前请先阅读贡献规范，保持代码风格一致。');
+  L.push('');
+  L.push('## 📄 协议');
+  L.push(lic==='无'?'本项目未指定开源协议，保留所有权利。':'本项目基于 **'+lic+'** 协议开源，详见 LICENSE 文件。');
+  L.push('');
+  L.push('---');
+  L.push('*README 由「技术内容创作助手」生成，按项目实际情况补充细节即可。*');
+  var out=L.join('\n');
+  $('readme_out').textContent=out;
+  $('readme_meta').textContent=countWords(out)+' 字';
+}
+
+/* ---------- 1024 彩蛋 ---------- */
+var EGG_JOKE=[
+  '程序员最浪漫的事，就是对着显示器说"这次一定不 bug"。',
+  '别人的情人节是 214，我们的程序员节是 1024——毕竟 1024 是程序员最整的整：2 的 10 次方。',
+  '今天不写业务代码，只写一句：世界那么大，我想去 debug。',
+  '面试官：你有什么缺点？我：太诚实。面试官：这不算缺点。我：我刚才已经说了。',
+  '为什么程序员分不清万圣节和圣诞节？因为 Oct 31 == Dec 25。'
+];
+var EGG_BLESS=[
+  '愿你写的每一行代码都被善待，提交的每一次 MR 都被秒过。',
+  '愿需求永不临时变更，愿线上永不凌晨告警，愿回归测试永远全绿。',
+  '愿你的技术债越来越少，愿你的发际线稳稳当当。'
+];
+function genEgg(){
+  var n=$('egg_name').value.trim()||'程序员朋友';
+  var bless=rand(EGG_BLESS);
+  var joke=rand(EGG_JOKE);
+  var friend='【朋友圈文案】\n今天是 1024，属于我们程序员的节日 💻🍰\n'+n+' 在此祝所有写代码的人：\n'+bless+'\n\n【专属祝福】\n'+n+'，1024 快乐！🎉\n'+bless+'\n\n【今日段子】\n'+joke+'\n\n【代码版祝福】\n';
+  var art=['  ____    _____    ____    _____ ',
+           ' /  __|  /  __  \\  |  _ \\  |__  __|',
+           '|  |    | |  | |  | |_) |    | |  ',
+           '|  |    | |  | |  |  _ <     | |  ',
+           '|  |__  | |__| |  | |_) |   _| |_ ',
+           ' \\____|  \\_____/  |____/   |_____|'].join('\n');
+  var out=friend+'\n'+art+'\n\n（1024 = 2^10，程序员心里最整的整数 ✨）';
+  $('egg_out').textContent=out;
+  $('egg_meta').textContent=countWords(out)+' 字';
+}
+</script>
+</body>
+</html>
