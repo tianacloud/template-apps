@@ -1,0 +1,1552 @@
+const style=document.createElement("style"); style.textContent="\n  /* ===================== 设计变量 ===================== */\n  :root{\n    --bg:#F8F8F7;\n    --mesh-1:rgba(99,91,255,.07);\n    --mesh-2:rgba(139,124,246,.05);\n    --surface:#FFFFFF;\n    --surface-2:#FAFAF9;\n    --surface-3:#F4F4F2;\n    --line:#E9E9E6;\n    --line-s:#DCDCD8;\n    --ink:#111114;\n    --ink-2:#52525B;\n    --ink-3:#A1A1AA;\n    --brand:#635BFF;\n    --brand-dk:#4F46E5;\n    --btn1:#635BFF; --btn2:#4F46E5;\n    --brand-bg:#F1F1FF;\n    --brand-ring:rgba(99,91,255,.16);\n    --ok:#0E8A66;  --ok-bg:rgba(14,138,102,.09);  --ok-br:rgba(14,138,102,.22);\n    --wn:#B3690E;  --wn-bg:rgba(214,138,26,.10);  --wn-br:rgba(214,138,26,.24);\n    --bd:#C2413A;  --bd-bg:rgba(194,65,58,.08);   --bd-br:rgba(194,65,58,.22);\n    --ed-bg:rgba(99,91,255,.10);\n    --sh-1:0 1px 2px rgba(17,17,20,.04);\n    --sh-2:0 1px 2px rgba(17,17,20,.04), 0 10px 30px -14px rgba(17,17,20,.16);\n    --sh-3:0 8px 26px -10px rgba(99,91,255,.45);\n    --r:16px;\n    --arrow:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\");\n  }\n  *{box-sizing:border-box}\n  html{scroll-behavior:smooth}\n  html,body{margin:0}\n  body{\n    background:var(--bg); color:var(--ink);\n    font:400 14px/1.65 \"Inter\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\n         \"Hiragino Sans GB\",\"Microsoft YaHei\",sans-serif;\n    -webkit-font-smoothing:antialiased;\n    font-feature-settings:\"tnum\" 0;\n    transition:background .3s,color .3s;\n  }\n  /* 背景网格 + 柔光 */\n  body::before{\n    content:\"\"; position:fixed; inset:0; z-index:-2; pointer-events:none;\n    background:\n      radial-gradient(720px 420px at 12% -8%, var(--mesh-1), transparent 62%),\n      radial-gradient(620px 380px at 92% 2%, var(--mesh-2), transparent 60%);\n  }\n  body::after{\n    content:\"\"; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;\n    background-image:linear-gradient(var(--line) 1px,transparent 1px),\n                     linear-gradient(90deg,var(--line) 1px,transparent 1px);\n    background-size:56px 56px;\n    mask-image:linear-gradient(180deg,#000 0,transparent 320px);\n    -webkit-mask-image:linear-gradient(180deg,#000 0,transparent 320px);\n  }\n\n  /* ===================== 顶栏 ===================== */\n  .topbar{\n    position:sticky; top:0; z-index:50; height:58px;\n    display:flex; align-items:center; gap:12px;\n    padding:0 22px; margin:0 -22px 30px;\n    background:var(--surface);\n    background:color-mix(in srgb, var(--surface) 85%, transparent);\n    backdrop-filter:saturate(180%) blur(14px);\n    -webkit-backdrop-filter:saturate(180%) blur(14px);\n    border-bottom:1px solid var(--line);\n  }\n  .tb-mark{\n    width:30px;height:30px;border-radius:9px;flex:none;\n    background:linear-gradient(140deg,#27272A 0%,#111114 100%);\n    display:flex;align-items:center;justify-content:center;\n    box-shadow:0 3px 10px -3px rgba(17,17,20,.45), inset 0 1px 0 rgba(255,255,255,.14);\n  }\n  .tb-mark svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:1.9;\n               stroke-linecap:round;stroke-linejoin:round}\n  .tb-name{\n    font-weight:650;font-size:14px;letter-spacing:-.01em;color:var(--ink);\n  }\n  .tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}\n  .pill{\n    font-size:11.5px;color:var(--ink-2);background:var(--surface-2);\n    border:1px solid var(--line);border-radius:999px;padding:4px 11px;\n    display:inline-flex;align-items:center;gap:6px;white-space:nowrap\n  }\n  .dot{width:6px;height:6px;border-radius:50%;background:#16B981;\n       box-shadow:0 0 0 3px rgba(22,185,129,.16)}\n  .icobtn{\n    width:32px;height:32px;border-radius:9px;border:1px solid var(--line);\n    background:var(--surface);display:flex;align-items:center;justify-content:center;\n    cursor:pointer;transition:.18s;padding:0\n  }\n  .icobtn svg{width:16px;height:16px;fill:none;stroke:var(--ink-2);stroke-width:1.7;\n              stroke-linecap:round;stroke-linejoin:round}\n  .icobtn:hover{border-color:var(--brand);background:var(--brand-bg)}\n  .icobtn:hover svg{stroke:var(--brand)}\n\n  .wrap{max-width:1220px;margin:0 auto;padding:0 22px 76px}\n\n  /* ===================== Hero ===================== */\n  .hero{margin-bottom:26px;animation:rise .5s cubic-bezier(.22,.9,.3,1)}\n  .eyebrow{\n    display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;\n    letter-spacing:.1em;text-transform:uppercase;color:var(--brand-dk);\n    background:var(--brand-bg);border:1px solid var(--brand-ring);\n    border-radius:999px;padding:4px 12px;margin-bottom:16px\n  }\n  h1{\n    font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.03em;\n    line-height:1.18;margin:0 0 10px\n  }\n  h1 em{\n    font-style:normal;\n    background:linear-gradient(100deg,#4F46E5 5%,#8B7CFF 55%,#5B54E8 100%);\n    -webkit-background-clip:text;background-clip:text;color:transparent\n  }\n  .feats{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}\n  .feat{\n    font-size:12.5px;color:var(--ink-2);background:var(--surface);\n    border:1px solid var(--line);border-radius:999px;padding:5px 12px;\n    display:inline-flex;align-items:center;gap:7px;box-shadow:var(--sh-1)\n  }\n  .feat svg{width:13px;height:13px;fill:none;stroke:var(--brand);stroke-width:2;\n            stroke-linecap:round;stroke-linejoin:round}\n\n  /* ===================== 步骤轨 ===================== */\n  .rail{\n    display:flex;align-items:center;gap:4px;margin:0 0 22px;\n    background:var(--surface);border:1px solid var(--line);border-radius:999px;\n    padding:7px 16px;box-shadow:var(--sh-1);width:fit-content\n  }\n  .rail .s{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3)}\n  .rail .n{\n    width:20px;height:20px;border-radius:50%;flex:none;display:flex;\n    align-items:center;justify-content:center;font-size:11px;font-weight:700;\n    background:var(--surface-3);color:var(--ink-3);transition:.25s\n  }\n  .rail .ln{width:26px;height:1.5px;background:var(--line);margin:0 6px;transition:.25s}\n  .rail .s.on{color:var(--ink)}\n  .rail .s.on .n{background:var(--brand);color:#fff;box-shadow:0 0 0 4px var(--brand-ring)}\n  .rail .s.done .n{background:var(--ok);color:#fff}\n  .rail .s.done{color:var(--ink-2)}\n\n  /* ===================== 卡片 ===================== */\n  .card{\n    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);\n    padding:22px;margin-bottom:16px;box-shadow:var(--sh-1);\n    transition:box-shadow .25s,border-color .25s;\n  }\n  .card:hover{box-shadow:var(--sh-2)}\n  .card-t{\n    display:flex;align-items:center;gap:9px;margin:0 0 16px;\n    font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;\n    color:var(--ink-3)\n  }\n  .card-t svg{width:14px;height:14px;fill:none;stroke:var(--brand);stroke-width:1.9;\n              stroke-linecap:round;stroke-linejoin:round}\n  .card-t::after{content:\"\";flex:1;height:1px;background:var(--line)}\n\n  /* ===================== 上传区 ===================== */\n  .zones{display:grid;grid-template-columns:1fr 1fr;gap:14px}\n  @media(max-width:860px){.zones{grid-template-columns:1fr}}\n  .zone{\n    position:relative;border:1.5px dashed var(--line-s);border-radius:14px;\n    padding:24px 18px;text-align:center;cursor:pointer;background:var(--surface-2);\n    transition:border-color .2s,background .2s,transform .2s,box-shadow .2s;\n    overflow:hidden\n  }\n  .zone::after{\n    content:\"\";position:absolute;inset:0;border-radius:14px;opacity:0;\n    background:radial-gradient(300px 120px at 50% 0%,var(--brand-ring),transparent 70%);\n    transition:opacity .25s;pointer-events:none\n  }\n  .zone:hover{border-color:var(--brand);background:var(--brand-bg);transform:translateY(-2px);box-shadow:var(--sh-2)}\n  .zone:hover::after{opacity:1}\n  .zone.over{border-color:var(--brand);background:var(--brand-bg);transform:translateY(-2px)}\n  .zone.over::after{opacity:1}\n  .zone.done{border-style:solid;border-color:var(--ok-br);background:var(--ok-bg)}\n  .zi{\n    width:42px;height:42px;margin:0 auto 12px;border-radius:12px;\n    background:var(--surface-3);border:1px solid var(--line);\n    display:flex;align-items:center;justify-content:center;transition:.2s\n  }\n  .zone:hover .zi{background:var(--brand-bg);border-color:var(--brand-ring);transform:scale(1.06)}\n  .zone.done .zi{background:var(--ok-bg);border-color:var(--ok-br)}\n  .zi svg{width:20px;height:20px;fill:none;stroke:var(--brand);stroke-width:1.7;\n          stroke-linecap:round;stroke-linejoin:round;transition:.2s}\n  .zone.done .zi svg{stroke:var(--ok)}\n  .zone b{display:block;font-size:14.5px;font-weight:650;color:var(--ink);letter-spacing:-.01em}\n  .zone span.h{display:block;color:var(--ink-3);font-size:12px;margin-top:3px}\n  .zone .step{\n    position:absolute;top:12px;left:14px;font-size:10.5px;font-weight:700;\n    color:var(--ink-3);letter-spacing:.09em\n  }\n  .zone .okflag{\n    position:absolute;top:12px;right:14px;font-size:11px;font-weight:600;\n    color:var(--ok);display:none;align-items:center;gap:4px\n  }\n  .zone.done .okflag{display:inline-flex}\n\n  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;min-height:0}\n  .chips:empty{margin-top:0}\n  .chip{\n    background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);\n    border-radius:9px;padding:6px 10px 6px 12px;font-size:12.5px;\n    display:inline-flex;align-items:center;gap:7px;transition:.18s\n  }\n  .chip:hover{border-color:var(--line-s)}\n  .chip b{font-weight:650;color:var(--ink)}\n  .chip-bill{background:var(--brand-bg);border-color:var(--brand-ring);color:var(--brand-dk)}\n  .chip-bill b{color:var(--brand-dk)}\n  .chip .x{border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:16px;\n           line-height:1;padding:0 1px;border-radius:5px;transition:.15s}\n  .chip .x:hover{color:var(--bd);background:var(--bd-bg)}\n  .muted{color:var(--ink-3)}\n  .small{font-size:12px}\n\n  /* ===================== 表单 ===================== */\n  label.lb{font-size:12px;color:var(--ink-2);display:block;margin-bottom:7px;font-weight:600}\n  .cmdbox{position:relative}\n  input[type=text],select{\n    width:100%;border:1px solid var(--line-s);border-radius:11px;padding:11px 14px;\n    font-size:13.5px;background:var(--surface);color:var(--ink);outline:none;\n    transition:border-color .16s,box-shadow .16s;font-family:inherit\n  }\n  input[type=text]:focus,select:focus{\n    border-color:var(--brand);box-shadow:0 0 0 3.5px var(--brand-ring)\n  }\n  input[type=text]::placeholder{color:var(--ink-3)}\n  select{cursor:pointer;appearance:none;-webkit-appearance:none;\n    background-image:var(--arrow);\n    background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}\n  #chat{font-size:15px;padding:14px 104px 14px 16px;border-radius:13px;\n        box-shadow:var(--sh-1);border-color:var(--line)}\n  #chat:focus{border-color:var(--brand);box-shadow:0 0 0 3.5px var(--brand-ring),var(--sh-2)}\n  .run{\n    position:absolute;right:7px;top:50%;transform:translateY(-50%);\n    border:0;border-radius:9px;padding:9px 18px;cursor:pointer;\n    background:linear-gradient(135deg,var(--btn1) 0%,var(--btn2) 100%);\n    color:#fff;font-size:13.5px;font-weight:600;font-family:inherit;\n    box-shadow:var(--sh-3);transition:.18s\n  }\n  .run:hover{filter:brightness(1.08);transform:translateY(-50%) translateY(-1px)}\n  .run:active{transform:translateY(-50%) scale(.98)}\n  @media(max-width:640px){#chat{padding-right:96px}}\n\n  .exbar{margin-top:11px;font-size:12px;color:var(--ink-3);display:flex;\n         align-items:center;gap:7px;flex-wrap:wrap}\n  .ex{background:var(--surface);border:1px solid var(--line);border-radius:999px;\n      padding:4px 12px;cursor:pointer;display:inline-block;font-size:12px;color:var(--ink-2);\n      transition:.16s}\n  .ex:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-bg);transform:translateY(-1px)}\n\n  #cmdBar{\n    margin-top:14px;padding:12px 15px;background:var(--surface-2);\n    border:1px solid var(--line);border-left:3px solid var(--brand);\n    border-radius:4px 12px 12px 4px;font-size:13px;color:var(--ink-2);\n    display:flex;align-items:flex-start;gap:10px\n  }\n  #cmdBar svg{width:15px;height:15px;flex:none;margin-top:2px;fill:none;\n              stroke:var(--brand);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}\n  #cmdBar b{color:var(--brand-dk);font-weight:650}\n  .warn{color:var(--wn)}\n\n  button{\n    border:1px solid var(--line-s);background:var(--surface);border-radius:10px;\n    padding:9px 16px;cursor:pointer;font-size:13px;color:var(--ink-2);\n    font-family:inherit;transition:border-color .16s,color .16s,background .16s,transform .16s\n  }\n  button:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-bg)}\n  button.pri{\n    background:linear-gradient(135deg,var(--btn1) 0%,var(--btn2) 100%);\n    border-color:transparent;color:#fff;font-weight:600;box-shadow:var(--sh-3)\n  }\n  button.pri:hover{color:#fff;filter:brightness(1.08);transform:translateY(-1px)}\n  button.pri:active{transform:scale(.98)}\n\n  .ctrls{display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;align-items:flex-end;\n         padding-top:18px;border-top:1px dashed var(--line)}\n  .ctrls>div{display:flex;flex-direction:column}\n  .ckbox{display:flex;gap:8px;flex-wrap:wrap;max-width:660px}\n  .ck{\n    font-size:12.5px;background:var(--surface);border:1px solid var(--line-s);\n    border-radius:9px;padding:7px 12px;cursor:pointer;color:var(--ink-2);\n    transition:.16s;user-select:none;display:inline-flex;align-items:center;gap:6px\n  }\n  .ck:hover{border-color:var(--brand);transform:translateY(-1px)}\n  .ck:has(input:checked){\n    border-color:var(--brand);background:var(--brand-bg);color:var(--brand-dk);font-weight:600\n  }\n  .ck input{margin:0;vertical-align:-1px;accent-color:var(--brand)}\n\n  /* ===================== 统计 ===================== */\n  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin:0 0 18px}\n  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}\n  .stats:empty{display:none}\n  .stat{\n    position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);\n    border-radius:13px;padding:15px 18px;box-shadow:var(--sh-1);transition:.2s\n  }\n  .stat:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}\n  .stat::before{content:\"\";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ink-3)}\n  .stat.ok::before{background:var(--ok)} .stat.warn::before{background:var(--wn)}\n  .stat.bad::before{background:var(--bd)}\n  .stat span{display:block;font-size:29px;font-weight:700;letter-spacing:-.03em;\n             color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}\n  .stat small{color:var(--ink-3);font-size:12px;letter-spacing:.02em}\n  .stat.ok span{color:var(--ok)} .stat.warn span{color:var(--wn)} .stat.bad span{color:var(--bd)}\n\n  /* ===================== 工具条 ===================== */\n  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}\n  body:not(.ready) .bar{display:none}\n  #tabs{display:flex;gap:3px;background:var(--surface-3);padding:3px;border-radius:11px;\n        border:1px solid var(--line)}\n  .tab{border:0;background:transparent;border-radius:8px;padding:6px 14px;cursor:pointer;\n       font-size:12.5px;color:var(--ink-2);font-family:inherit;transition:.16s}\n  .tab:hover{color:var(--ink)}\n  .tab.on{background:var(--surface);color:var(--brand-dk);font-weight:650;box-shadow:var(--sh-1)}\n  .bar .right{margin-left:auto;display:flex;gap:9px;align-items:center}\n  .ck-solo{\n    font-size:12.5px;color:var(--ink-2);display:inline-flex;align-items:center;\n    gap:7px;cursor:pointer;user-select:none;background:var(--surface);\n    border:1px solid var(--line);border-radius:9px;padding:7px 12px;transition:.16s\n  }\n  .ck-solo:hover{border-color:var(--brand);color:var(--brand)}\n  .ck-solo input{accent-color:var(--brand);margin:0}\n  .sep{width:1px;height:22px;background:var(--line)}\n\n  /* ===================== 表格 ===================== */\n  #tableWrap:empty{display:none}\n  #tableWrap{\n    overflow:auto;max-height:62vh;background:var(--surface);\n    border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-2);\n    animation:rise .35s cubic-bezier(.22,.9,.3,1)\n  }\n  table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}\n  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}\n  th{\n    background:var(--surface-2);\n    background:color-mix(in srgb, var(--surface-2) 92%, transparent);\n    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);\n    font-weight:650;font-size:12px;color:var(--ink-2);letter-spacing:.02em;\n    white-space:nowrap;position:sticky;top:0;z-index:2\n  }\n  th::after{content:\"\";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--line)}\n  th.tcol{background:var(--brand-bg);color:var(--brand-dk)}\n  td.tcol{background:var(--surface-2);\n          background:color-mix(in srgb, var(--surface-2) 60%, transparent)}\n  tbody tr{transition:background .12s}\n  tbody tr:hover td{background:var(--surface-2)}\n  tbody tr:hover td.c-ok{background:var(--ok-bg)}\n  tbody tr:hover td.c-warn{background:var(--wn-bg)}\n  tbody tr:hover td.c-bad{background:var(--bd-bg)}\n  tbody tr:hover td.c-edit{background:var(--ed-bg)}\n  td.c-ok{background:var(--ok-bg)} td.c-warn{background:var(--wn-bg)}\n  td.c-bad{background:var(--bd-bg)} td.c-edit{background:var(--ed-bg)}\n  td{font-variant-numeric:tabular-nums}\n  tbody tr:last-child td{border-bottom:0}\n  input.ci{\n    width:100%;border:1px solid transparent;background:transparent;\n    padding:5px 7px;font:inherit;color:inherit;border-radius:7px;transition:.14s\n  }\n  input.ci:hover{border-color:var(--line-s);background:var(--surface)}\n  input.ci:focus{border-color:var(--brand);background:var(--surface);outline:none;\n                 box-shadow:0 0 0 3px var(--brand-ring)}\n  .tag{\n    background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;border-radius:5px;\n    padding:2px 6px;margin-left:7px;letter-spacing:.04em;vertical-align:1px\n  }\n  .bd{font-size:11.5px;font-weight:700;border-radius:7px;padding:3px 9px;white-space:nowrap;\n      display:inline-block;letter-spacing:.02em}\n  .bd.ok{background:var(--ok-bg);color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok-br)}\n  .bd.warn{background:var(--wn-bg);color:var(--wn);box-shadow:inset 0 0 0 1px var(--wn-br)}\n  .bd.bad{background:var(--bd-bg);color:var(--bd);box-shadow:inset 0 0 0 1px var(--bd-br)}\n  .mini{border:1px solid var(--brand-ring);color:var(--brand);background:var(--surface);\n        border-radius:8px;padding:4px 10px;font-size:11.5px;cursor:pointer;\n        margin-top:5px;font-family:inherit;transition:.16s}\n  .mini:hover{background:var(--brand);border-color:var(--brand);color:#fff}\n\n  /* ===================== 说明 / 页脚 ===================== */\n  .note{font-size:13px;color:var(--ink-2);line-height:1.95}\n  .note b{color:var(--ink);font-weight:650}\n  .note>.card-t{margin-bottom:14px}\n  .lg{display:flex;gap:18px;flex-wrap:wrap;margin:12px 0 14px}\n  .lg span{display:inline-flex;align-items:center;font-size:12.5px}\n  .lg i{display:inline-block;width:11px;height:11px;border-radius:3.5px;margin-right:7px;flex:none}\n  .sw-ok{background:var(--ok-bg);box-shadow:inset 0 0 0 1px var(--ok-br)}\n  .sw-wn{background:var(--wn-bg);box-shadow:inset 0 0 0 1px var(--wn-br)}\n  .sw-bd{background:var(--bd-bg);box-shadow:inset 0 0 0 1px var(--bd-br)}\n  .note p{margin:0}\n  .rule{height:1px;background:var(--line);margin:14px 0}\n  .foot{\n    color:var(--ink-3);font-size:12px;text-align:center;margin-top:30px;\n    display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap\n  }\n  .foot b{color:var(--ink-2);font-weight:600}\n\n  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}\n  ::selection{background:var(--brand-bg);color:var(--brand-dk)}\n  ::-webkit-scrollbar{width:11px;height:11px}\n  ::-webkit-scrollbar-thumb{background:var(--line-s);border-radius:99px;border:3px solid var(--bg)}\n  ::-webkit-scrollbar-track{background:transparent}\n"; document.head.appendChild(style);
+document.body.innerHTML="\n<div class=\"wrap\">\n\n  <!-- 顶栏 -->\n  <div class=\"topbar\">\n    <div class=\"tb-mark\">\n      <svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\"/>\n        <path d=\"M3 9.5h18M9.5 9.5V20M15 9.5V20\"/></svg>\n    </div>\n    <span class=\"tb-name\">表格自动填写工具</span>\n    <div class=\"tb-right\">\n      <span class=\"pill\"><span class=\"dot\"></span>本机运行 · 不联网</span>\n    </div>\n  </div>\n\n  <!-- Hero -->\n  <div class=\"hero\">\n    <span class=\"eyebrow\">\n      <svg viewBox=\"0 0 24 24\" style=\"width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round\"><path d=\"M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12z\"/></svg>\n      零依赖 · 离线可用\n    </span>\n    <h1>一句话，<em>把表格填完</em></h1>\n    <div class=\"feats\">\n      <span class=\"feat\"><svg viewBox=\"0 0 24 24\"><path d=\"M20 6L9 17l-5-5\"/></svg>支持 .xls / .xlsx</span>\n      <span class=\"feat\"><svg viewBox=\"0 0 24 24\"><path d=\"M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z\"/></svg>规格不符自动拦截</span>\n      <span class=\"feat\"><svg viewBox=\"0 0 24 24\"><path d=\"M3 17l6-6 4 4 8-8M21 7v5h-5\"/></svg>所见即所得可改</span>\n    </div>\n  </div>\n\n  <!-- 步骤轨 -->\n  <div class=\"rail\">\n    <span class=\"s on\" id=\"s1\"><span class=\"n\">1</span>上传表格</span>\n    <span class=\"ln\"></span>\n    <span class=\"s\" id=\"s2\"><span class=\"n\">2</span>说出要填什么</span>\n    <span class=\"ln\"></span>\n    <span class=\"s\" id=\"s3\"><span class=\"n\">3</span>检查并导出</span>\n  </div>\n\n  <!-- 数据源 -->\n  <div class=\"card\">\n    <p class=\"card-t\">\n      <svg viewBox=\"0 0 24 24\"><path d=\"M12 16V4m0 0L8 8m4-4l4 4\"/><path d=\"M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2\"/></svg>\n      数据源\n    </p>\n    <div class=\"zones\">\n      <div class=\"zone\" id=\"zoneBill\">\n        <span class=\"step\">STEP 01</span>\n        <span class=\"okflag\"><svg viewBox=\"0 0 24 24\" style=\"width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round\"><path d=\"M20 6L9 17l-5-5\"/></svg>已就绪</span>\n        <div class=\"zi\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\"/>\n          <path d=\"M3 9.5h18M9.5 9.5V20M15 9.5V20\"/></svg></div>\n        <b>待填的表</b>\n        <span class=\"h\">点此选择，或直接拖进来（限 1 张）</span>\n      </div>\n      <div class=\"zone\" id=\"zoneSrc\">\n        <span class=\"step\">STEP 02</span>\n        <span class=\"okflag\"><svg viewBox=\"0 0 24 24\" style=\"width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round\"><path d=\"M20 6L9 17l-5-5\"/></svg>已就绪</span>\n        <div class=\"zi\"><svg viewBox=\"0 0 24 24\"><path d=\"M4 5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2H6a2 2 0 01-2-2z\"/>\n          <path d=\"M14 3v6h6\"/><path d=\"M8 13h8M8 17h5\"/></svg></div>\n        <b>内容表</b>\n        <span class=\"h\">价格 / 基准来源，可添加多张</span>\n      </div>\n    </div>\n    <input type=\"file\" id=\"inpBill\" accept=\".xls,.xlsx\" style=\"display:none\">\n    <input type=\"file\" id=\"inpSrc\" accept=\".xls,.xlsx\" multiple style=\"display:none\">\n    <div class=\"chips\" id=\"files\"></div>\n  </div>\n\n  <!-- 指令 -->\n  <div class=\"card\">\n    <p class=\"card-t\">\n      <svg viewBox=\"0 0 24 24\"><path d=\"M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z\"/></svg>\n      填表指令\n    </p>\n    <div class=\"cmdbox\">\n      <label class=\"lb\" for=\"chat\">告诉我填哪一列</label>\n      <input type=\"text\" id=\"chat\" placeholder=\"例如：把主材价填上，价格来源也填，优先用集团集采\">\n      <button class=\"run\" id=\"btnRun\">执行</button>\n    </div>\n    <div class=\"exbar\">\n      <span>试试：</span>\n      <span class=\"ex\" data-t=\"把主材价填上，价格来源也填，优先用集团集采\">把主材价填上，价格来源也填，优先用集团集采</span>\n      <span class=\"ex\" data-t=\"按名称匹配填主材价，取低价\">按名称匹配填主材价，取低价</span>\n      <span class=\"ex\" data-t=\"用竣工结算的价格填主材价\">用竣工结算的价格填主材价</span>\n    </div>\n    <div id=\"cmdBar\">\n      <svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16v-4M12 8h.01\"/></svg>\n      <span class=\"muted\">上传表格后，在这里写一句话告诉我要填哪一列</span>\n    </div>\n\n    <div class=\"ctrls\">\n      <div>\n        <label class=\"lb\">用哪一列匹配</label>\n        <select id=\"selKey\" style=\"min-width:150px\"></select>\n      </div>\n      <div style=\"flex:1;min-width:300px\">\n        <label class=\"lb\">要填哪些列（可多选）</label>\n        <div class=\"ckbox\" id=\"selTargets\"></div>\n      </div>\n      <div>\n        <label class=\"lb\">多个来源取哪个</label>\n        <select id=\"selPrefer\" style=\"min-width:170px\"></select>\n      </div>\n    </div>\n  </div>\n\n  <div class=\"stats\" id=\"stats\"></div>\n\n  <div class=\"bar\">\n    <div id=\"tabs\"></div>\n    <div class=\"right\">\n      <label class=\"ck-solo\"><input type=\"checkbox\" id=\"chkBad\"> 只看待处理的</label>\n      <span class=\"sep\"></span>\n      <button id=\"btnCsv\">导出 CSV</button>\n      <button class=\"pri\" id=\"btnXlsx\">导出 xlsx</button>\n    </div>\n  </div>\n\n  <div id=\"tableWrap\"></div>\n\n  <div class=\"card note\" style=\"margin-top:18px\">\n    <p class=\"card-t\">\n      <svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v5M12 8h.01\"/></svg>\n      颜色怎么看\n    </p>\n    <div class=\"lg\">\n      <span><i class=\"sw-ok\"></i>精确 — 内容表里有同名条目，直接采用</span>\n      <span><i class=\"sw-wn\"></i>近似 — 名称相近（错别字、多了材质词），已填，建议扫一眼</span>\n      <span><i class=\"sw-bd\"></i>待确认 — 内容表里没有，需要你填</span>\n    </div>\n    <div class=\"rule\"></div>\n    <p>名字像但规格不同（如 DN40 与 DN50）会<b>自动拦住不填</b>，避免填错价。所有格子都能直接改，改过的会变蓝；改完点「导出 xlsx」拿成品。</p>\n  </div>\n\n  <div class=\"foot\">\n    <span>支持 <b>.xls / .xlsx</b></span><span>·</span>\n    <span>不联网、不上传任何数据</span><span>·</span>\n    <span>按 <b>Enter</b> 快速执行</span>\n  </div>\n</div>\n\n";
+
+/* xls.js —— 零依赖 .xls (OLE2 复合文档 / BIFF8) 读取器
+ * 浏览器与 Node 通用。用法：XLS.read(arrayBuffer) -> [{name, rows:[[v,...]]}]
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.XLS = api;
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  var FREE = 0xFFFFFFFF, EOC = 0xFFFFFFFE;
+
+  /* ---------------- OLE2 / CFB ---------------- */
+
+  function readCFB(buf) {
+    var ab;
+    if (buf instanceof ArrayBuffer) ab = buf;
+    else if (buf && buf.buffer) ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    else throw new Error("readCFB: 参数必须是 ArrayBuffer 或 TypedArray");
+    buf = ab;
+    var dv = new DataView(buf);
+    if (dv.getUint32(0, true) !== 0xE011CFD0 || dv.getUint32(4, true) !== 0xE11AB1A1) {
+      throw new Error("不是 OLE2 复合文档（可能不是真的 .xls，请另存为 .xlsx 或 .xls 后重试）");
+    }
+    var ssz = 1 << dv.getUint16(0x1E, true);      // 扇区大小，通常 512
+    var mssz = 1 << dv.getUint16(0x20, true);     // mini 扇区，通常 64
+    var nFat = dv.getUint32(0x2C, true);
+    var dirFirst = dv.getUint32(0x30, true);
+    var cutoff = dv.getUint32(0x38, true);
+    var miniFatFirst = dv.getUint32(0x3C, true);
+    var nMiniFat = dv.getUint32(0x40, true);
+    var difatFirst = dv.getUint32(0x44, true);
+    var nDifat = dv.getUint32(0x48, true);
+
+    function sectOff(s) { return (s + 1) * ssz; }
+
+    // DIFAT
+    var difat = [];
+    for (var i = 0; i < 109 && i < nFat; i++) difat.push(dv.getUint32(0x4C + i * 4, true));
+    var s = difatFirst, guard = 0;
+    while (nDifat > 0 && s !== EOC && s !== FREE && guard++ < 10000) {
+      var off = sectOff(s);
+      for (var j = 0; j < ssz / 4 - 1; j++) difat.push(dv.getUint32(off + j * 4, true));
+      s = dv.getUint32(off + ssz - 4, true);
+    }
+
+    // FAT
+    var fat = new Uint32Array(nFat * (ssz / 4));
+    for (var k = 0; k < nFat; k++) {
+      var fs = difat[k];
+      if (fs === FREE || fs === EOC) continue;
+      var fo = sectOff(fs);
+      for (var m = 0; m < ssz / 4; m++) fat[k * (ssz / 4) + m] = dv.getUint32(fo + m * 4, true);
+    }
+
+    function chain(start, table, secSize) {
+      var out = [], cur = start, g = 0;
+      while (cur !== EOC && cur !== FREE && g++ < 200000) {
+        out.push(cur);
+        cur = table[cur];
+      }
+      return out;
+    }
+
+    // 目录
+    var dirSecs = chain(dirFirst, fat, ssz);
+    var entries = [];
+    for (var d = 0; d < dirSecs.length; d++) {
+      var base = sectOff(dirSecs[d]);
+      for (var e = 0; e < ssz / 128; e++) {
+        var p = base + e * 128;
+        var type = dv.getUint8(p + 66);
+        if (type !== 1 && type !== 2 && type !== 5) continue;
+        var name = utf16(dv, p, 64);
+        entries.push({
+          name: name,
+          type: type,
+          start: dv.getUint32(p + 116, true),
+          size: dv.getUint32(p + 120, true),
+          sizeHi: dv.getUint32(p + 124, true)
+        });
+      }
+    }
+
+    var root = null;
+    for (var q = 0; q < entries.length; q++) if (entries[q].type === 5) { root = entries[q]; break; }
+
+    // MiniFAT
+    var mini = null;
+    if (nMiniFat > 0 && miniFatFirst !== EOC && miniFatFirst !== FREE) {
+      var msecs = chain(miniFatFirst, fat, ssz);
+      var mtab = new Uint32Array(msecs.length * (ssz / 4));
+      for (var a = 0; a < msecs.length; a++) {
+        var mo = sectOff(msecs[a]);
+        for (var b = 0; b < ssz / 4; b++) mtab[a * (ssz / 4) + b] = dv.getUint32(mo + b * 4, true);
+      }
+      mini = { table: mtab, stream: chain(root.start, fat, ssz) };
+    }
+
+    function readStream(ent) {
+      var size = ent.size;
+      if (size === 0) return new Uint8Array(0);
+      var out = new Uint8Array(size), w = 0;
+      if (size < cutoff && mini) {
+        var ch = chain(ent.start, mini.table, mssz);
+        for (var i = 0; i < ch.length && w < size; i++) {
+          var off = sectOff(mini.stream[Math.floor(ch[i] * mssz / ssz)]) + (ch[i] * mssz) % ssz;
+          var take = Math.min(mssz, size - w);
+          out.set(new Uint8Array(buf, off, take), w);
+          w += take;
+        }
+      } else {
+        var c2 = chain(ent.start, fat, ssz);
+        for (var j = 0; j < c2.length && w < size; j++) {
+          var o2 = sectOff(c2[j]);
+          var t2 = Math.min(ssz, size - w);
+          out.set(new Uint8Array(buf, o2, t2), w);
+          w += t2;
+        }
+      }
+      return out;
+    }
+
+    return { entries: entries, readStream: readStream };
+  }
+
+  function utf16(dv, off, bytes) {
+    var s = "";
+    for (var i = 0; i < bytes; i += 2) {
+      var c = dv.getUint16(off + i, true);
+      if (c === 0) break;
+      s += String.fromCharCode(c);
+    }
+    return s;
+  }
+
+  /* ---------------- BIFF8 ---------------- */
+
+  var TD_UTF16 = null, TD_LATIN = null;
+  function dec(bytes, high) {
+    if (high) {
+      if (!TD_UTF16) TD_UTF16 = new TextDecoder("utf-16le");
+      return TD_UTF16.decode(bytes);
+    }
+    if (!TD_LATIN) TD_LATIN = new TextDecoder("windows-1252");
+    return TD_LATIN.decode(bytes);
+  }
+
+  // 跨 CONTINUE 的字符串读取器
+  // 关键陷阱：CONTINUE 块开头那个 grbit 字节，只在「上一条字符串还没读完就被截断」时才存在。
+  // 若上一条刚好在块末尾结束，新块直接就是下一条的 cch，没有 grbit —— 无条件读会整体错位。
+  function StrReader(chunks) {
+    this.chunks = chunks; this.ci = 0; this.pos = 0; this.high = false;
+    this.inItem = false;   // 当前是否处于一条未读完的字符串记录内
+  }
+  StrReader.prototype.endItem = function () { this.inItem = false; };
+  StrReader.prototype._advance = function () {
+    while (this.ci < this.chunks.length && this.pos >= this.chunks[this.ci].length) {
+      this.ci++; this.pos = 0;
+      if (this.ci < this.chunks.length && this.chunks[this.ci].length > 0) {
+        if (this.inItem) {                       // 仍在字符串中间 → 本块首字节是 grbit
+          this.high = !!(this.chunks[this.ci][0] & 0x01);
+          this.pos = 1;
+        }
+      }
+    }
+    return this.ci < this.chunks.length;
+  };
+  StrReader.prototype.u8 = function () {
+    if (!this._advance()) return 0;
+    var v = this.chunks[this.ci][this.pos++];
+    this.inItem = true;   // 已经读了本条记录的字节 → 之后再跨块才有 grbit
+    return v;
+  };
+  StrReader.prototype.u16 = function () {
+    var a = this.u8(), b = this.u8();
+    return a | (b << 8);
+  };
+  StrReader.prototype.u32 = function () {
+    var a = this.u8(), b = this.u8(), c = this.u8(), d = this.u8();
+    return (a | (b << 8) | (c << 16) | (d << 24)) >>> 0;
+  };
+  StrReader.prototype.str = function (cch, high) {
+    var out = [], i = 0, guard = 0;
+    while (i < cch && guard++ < 200000) {
+      if (!this._advance()) break;
+      var cur = this.chunks[this.ci];
+      var unit = this.high ? 2 : 1;
+      var avail = cur.length - this.pos;
+      var n = Math.floor(avail / unit);
+      if (n <= 0) { this.pos = cur.length; continue; }
+      if (n > cch - i) n = cch - i;
+      var slice = new Uint8Array(n * unit);
+      for (var k = 0; k < n * unit; k++) slice[k] = cur[this.pos + k];
+      out.push(dec(slice, this.high));
+      this.pos += n * unit; i += n;
+    }
+    return out.join("");
+  };
+
+  function rkValue(dv, off) {
+    var rk = dv.getUint32(off, true) >>> 0;
+    var v;
+    if (rk & 0x02) {
+      var i = rk >>> 2;
+      if (i & 0x20000000) i -= 0x40000000;
+      v = i;
+    } else {
+      var b = new ArrayBuffer(8), v8 = new DataView(b);
+      v8.setUint32(0, 0, true);
+      v8.setUint32(4, rk & 0xFFFFFFFC, true);
+      v = v8.getFloat64(0, true);
+    }
+    if (rk & 0x01) v /= 100;
+    return v;
+  }
+
+  function parseWorkbook(data) {
+    var dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    var len = data.length;
+    var names = [], sheets = [], cur = null;
+    var sst = null, sstChunks = null, lastId = 0, inSst = false;
+    var pos = 0;
+
+    function cell(r, c, v) {
+      if (!cur) return;
+      while (cur.rows.length <= r) cur.rows.push([]);
+      var row = cur.rows[r];
+      while (row.length <= c) row.push("");
+      row[c] = v;
+    }
+
+    while (pos + 4 <= len) {
+      var id = dv.getUint16(pos, true);
+      var sz = dv.getUint16(pos + 2, true);
+      var body = pos + 4;
+      if (body + sz > len + 4) break;
+
+      if (id === 0x0809) {                       // BOF
+        var dt = dv.getUint16(body + 2, true);
+        if (dt === 0x0010) { cur = { name: "", rows: [] }; sheets.push(cur); }
+      } else if (id === 0x0085) {                // BOUNDSHEET
+        var cch = dv.getUint8(body + 6);
+        var flags = dv.getUint8(body + 7);
+        var nb = data.subarray(body + 8, body + 8 + cch * (flags & 0x01 ? 2 : 1));
+        names.push(dec(nb, !!(flags & 0x01)));
+      } else if (id === 0x00FC) {                // SST
+        sstChunks = [data.subarray(body, body + sz)];
+        sst = null; inSst = true;
+      } else if (id === 0x003C) {                // CONTINUE（可能连续多块）
+        if (inSst && sstChunks) sstChunks.push(data.subarray(body, body + sz));
+      } else if (id === 0x00FF) {                // EXTSST，忽略
+      } else if (id === 0x00FD) {                // LABELSST
+        if (sst === null && sstChunks) sst = parseSST(sstChunks);
+        cell(dv.getUint16(body, true), dv.getUint16(body + 2, true),
+             (sst && sst[dv.getUint32(body + 6, true)]) || "");
+      } else if (id === 0x0204) {                // LABEL
+        var lcch = dv.getUint16(body + 6, true);
+        var lf = dv.getUint8(body + 8);
+        var lb = data.subarray(body + 9, body + 9 + lcch * (lf & 0x01 ? 2 : 1));
+        cell(dv.getUint16(body, true), dv.getUint16(body + 2, true), dec(lb, !!(lf & 0x01)));
+      } else if (id === 0x0203) {                // NUMBER
+        cell(dv.getUint16(body, true), dv.getUint16(body + 2, true), dv.getFloat64(body + 6, true));
+      } else if (id === 0x027E) {                // RK
+        cell(dv.getUint16(body, true), dv.getUint16(body + 2, true), rkValue(dv, body + 6));
+      } else if (id === 0x00BD) {                // MULRK
+        var r0 = dv.getUint16(body, true), c0 = dv.getUint16(body + 2, true);
+        var n = (sz - 6) / 6;
+        for (var i = 0; i < n; i++) cell(r0, c0 + i, rkValue(dv, body + 4 + i * 6 + 2));
+      } else if (id === 0x0006) {                // FORMULA（取缓存值）
+        var fr = dv.getUint16(body, true), fc = dv.getUint16(body + 2, true);
+        if (!(dv.getUint8(body + 6) === 0xFF && dv.getUint8(body + 7) === 0xFF)) {
+          cell(fr, fc, dv.getFloat64(body + 6, true));
+        }
+      } else if (id === 0x0207) {                // STRING（公式的字符串结果）
+        var scch = dv.getUint16(body + 6, true);
+        var sf = dv.getUint8(body + 8);
+        var sb = data.subarray(body + 9, body + 9 + scch * (sf & 0x01 ? 2 : 1));
+        cell(dv.getUint16(body, true), dv.getUint16(body + 2, true), dec(sb, !!(sf & 0x01)));
+      } else if (id === 0x000A) {                // EOF
+        // 子流结束
+      }
+
+      if (id !== 0x003C && id !== 0x00FC) inSst = false;
+      lastId = id;
+      pos = body + sz;
+    }
+
+    for (var i = 0; i < sheets.length; i++) sheets[i].name = names[i] || ("Sheet" + (i + 1));
+    return sheets;
+  }
+
+  function parseSST(chunks) {
+    var rd = new StrReader(chunks);
+    var total = rd.u32();
+    rd.u32();                     // 唯一字符串数
+    var out = new Array(total);
+    for (var i = 0; i < total; i++) {
+      var cch = rd.u16();
+      // 注意：即使 cch == 0，后面也跟着 1 字节 flags，必须照样读掉，否则整表错位
+      var flags = rd.u8();
+      var high = !!(flags & 0x01);
+      rd.high = high;
+      // 注意：cRun / cbExtRst 必须每次清 0，否则上一条的残留值会让本条多跳字节（var 是函数作用域）
+      var cRun = 0, cb = 0;
+      if (flags & 0x08) cRun = rd.u16();
+      if (flags & 0x04) cb = rd.u32();
+      var s = cch > 0 ? rd.str(cch, high) : "";
+      for (var r = 0; r < cRun; r++) rd.u32();
+      for (var b = 0; b < cb; b++) rd.u8();
+      rd.endItem();
+      out[i] = s;
+    }
+    return out;
+  }
+
+  /* ---------------- 入口 ---------------- */
+
+  function read(arrayBuffer) {
+    var buf = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
+    var cfb = readCFB(buf);
+    // 找 Workbook / Book 流
+    var target = null;
+    for (var i = 0; i < cfb.entries.length; i++) {
+      var e = cfb.entries[i];
+      if (e.type === 2 && (e.name === "Workbook" || e.name === "Book")) { target = e; break; }
+    }
+    if (!target) {
+      for (var j = 0; j < cfb.entries.length; j++) {
+        if (cfb.entries[j].type === 2 && /Workbook|Book/i.test(cfb.entries[j].name)) { target = cfb.entries[j]; break; }
+      }
+    }
+    if (!target) throw new Error("没找到 Workbook 流，文件可能损坏或是 Excel 5.0 以下的旧格式");
+    return parseWorkbook(cfb.readStream(target));
+  }
+
+  return { read: read, _readCFB: readCFB, _parseWorkbook: parseWorkbook, _parseSST: parseSST, _StrReader: StrReader };
+});
+
+
+
+/* fill.js —— 表格自动填充引擎（零依赖，浏览器 / Node 通用） */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.Fill = api;
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  /* ---------- 归一化 ---------- */
+
+  function norm(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/[（]/g, "(").replace(/[）]/g, ")")
+      .replace(/\s+/g, "")
+      .replace(/(\d)\s*[xX×＊]\s*(\d)/g, "$1*$2")   // 5x16 -> 5*16（仅数字之间，避免误伤 PC20 之类）
+      .replace(/[／]/g, "/")
+      .toLowerCase();
+  }
+
+  function bigrams(s) {
+    var t = norm(s), out = {};
+    if (t.length < 2) { out[t] = 1; return out; }
+    for (var i = 0; i < t.length - 1; i++) out[t.substr(i, 2)] = 1;
+    return out;
+  }
+  function score(a, b) {
+    var A = bigrams(a), B = bigrams(b), ka = Object.keys(A), kb = Object.keys(B);
+    if (!ka.length || !kb.length) return 0;
+    var inter = 0;
+    for (var i = 0; i < ka.length; i++) if (B[ka[i]]) inter++;
+    var uni = {};
+    for (var j = 0; j < ka.length; j++) uni[ka[j]] = 1;
+    for (var k = 0; k < kb.length; k++) uni[kb[k]] = 1;
+    return inter / Object.keys(uni).length;
+  }
+
+  /* 提取规格标记：DN100 / SC20 / PC25 / de110 / Φ10 等 */
+  var SPEC_RE = /(DN|SC|PC|DE|PHI|Φ|JDG|KBG)\s*(\d+(?:\.\d+)?)/gi;
+  function specs(s) {
+    var t = String(s === null || s === undefined ? "" : s).replace(/\s+/g, "").toUpperCase();
+    var m = t.match(SPEC_RE) || [], out = [];
+    for (var i = 0; i < m.length; i++) out.push(m[i].replace(/\s/g, ""));
+    out.sort();
+    return out;
+  }
+  function sameSpec(a, b) {
+    var A = specs(a), B = specs(b);
+    if (!A.length || !B.length) return true;          // 任一方无规格 → 不拦
+    if (A.length !== B.length) return false;
+    for (var i = 0; i < A.length; i++) if (A[i] !== B[i]) return false;
+    return true;
+  }
+
+  /* ---------- 表结构识别 ---------- */
+
+  function findHeaderRow(rows) {
+    var lim = Math.min(rows.length, 20), best = 0, bestScore = -1;
+    for (var r = 0; r < lim; r++) {
+      var row = rows[r] || [], filled = 0, strCnt = 0;
+      for (var c = 0; c < row.length; c++) {
+        var v = row[c];
+        if (v === "" || v === null || v === undefined) continue;
+        filled++;
+        if (typeof v === "string") strCnt++;
+      }
+      if (filled < 2) continue;
+      var sc = strCnt / filled + filled * 0.05;
+      if (sc > bestScore) { bestScore = sc; best = r; }
+    }
+    return best;
+  }
+
+  function findCol(header, name) {
+    if (!name) return -1;
+    var n = norm(name);
+    for (var i = 0; i < header.length; i++) if (norm(header[i]) === n) return i;
+    for (var j = 0; j < header.length; j++) if (norm(header[j]).indexOf(n) >= 0) return j;
+    for (var k = 0; k < header.length; k++) if (n.indexOf(norm(header[k])) >= 0) return k;
+    return -1;
+  }
+
+  /* ---------- 来源索引 ---------- */
+
+  function buildIndex(sources, keyName) {
+    var idx = {};                       // normKey -> [{tag, raw, unit, sheet, vals:{normCol:value}}]
+    var stats = [];
+    sources.forEach(function (src) {
+      var used = 0;
+      src.sheets.forEach(function (sh) {
+        var hIdx = findHeaderRow(sh.rows);
+        var header = sh.rows[hIdx] || [];
+        var ki = findCol(header, keyName);
+        if (ki < 0) return;
+        for (var r = hIdx + 1; r < sh.rows.length; r++) {
+          var row = sh.rows[r] || [];
+          var k = row[ki];
+          if (k === "" || k === null || k === undefined) continue;
+          if (typeof k === "number") continue;
+          var key = norm(k);
+          if (!key) continue;
+          // 把整行每列的值都存下来，这样不同目标列可以取内容表里各自对应的列
+          var vals = {};
+          for (var ci = 0; ci < header.length; ci++) {
+            var hn = header[ci];
+            if (hn === "" || hn === null || hn === undefined) continue;
+            vals[norm(hn)] = row[ci];
+          }
+          (idx[key] = idx[key] || []).push({
+            tag: src.tag, raw: k,
+            unit: vals[norm("单位")] || "", sheet: sh.name, vals: vals
+          });
+          used++;
+        }
+      });
+      stats.push({ tag: src.tag, entries: used });
+    });
+    return { idx: idx, stats: stats };
+  }
+
+  /* ---------- 匹配 ---------- */
+
+  function matchOne(key, index, opts) {
+    var k = norm(key);
+    if (!k) return { ok: false, level: "none", reason: "空名称" };
+    var hit = index.idx[k];
+    if (hit && hit.length) return { ok: true, level: "exact", cands: hit, score: 1 };
+
+    // 模糊：先按 bigram 取 top N，再用规格校验
+    var cands = [], keys = Object.keys(index.idx);
+    for (var i = 0; i < keys.length; i++) {
+      var s = score(k, keys[i]);
+      if (s >= 0.35) cands.push({ k: keys[i], s: s, v: index.idx[keys[i]] });
+    }
+    cands.sort(function (a, b) { return b.s - a.s; });
+    for (var j = 0; j < cands.length && j < 5; j++) {
+      var cd = cands[j];
+      if (cd.s < 0.45) break;
+      // 规格必须一致，否则视为不同物料（钢管 DN100 ≠ 钢管 DN150）
+      var rawKey = cd.v[0].raw;
+      if (!sameSpec(key, rawKey)) continue;
+      if (cd.s >= 0.62) return { ok: true, level: "fuzzy", cands: cd.v, score: cd.s, matchedRaw: rawKey };
+      return { ok: true, level: "weak", cands: cd.v, score: cd.s, matchedRaw: rawKey };
+    }
+    return { ok: false, level: "none", reason: "内容表中没有同名或相近条目" };
+  }
+
+  // 在候选里挑一个：优先 prefer 指定的来源；取低/取高需要具体取值列 valName 才能比较
+  function pickVal(cands, prefer, mode, valName) {
+    if (!cands || !cands.length) return null;
+    var byTag = {};
+    cands.forEach(function (c) { byTag[c.tag] = c; });
+    if (mode === "low" || mode === "high") {
+      var vn = norm(valName || "");
+      var list = cands.filter(function (c) {
+        var v = c.vals[vn];
+        return v !== undefined && v !== "" && !isNaN(parseFloat(v));
+      });
+      if (list.length) {
+        list.sort(function (a, b) { return parseFloat(a.vals[vn]) - parseFloat(b.vals[vn]); });
+        return mode === "low" ? list[0] : list[list.length - 1];
+      }
+    }
+    for (var i = 0; i < (prefer || []).length; i++) if (byTag[prefer[i]]) return byTag[prefer[i]];
+    return cands[0];
+  }
+
+  /* ---------- 指令解析 ---------- */
+
+  var VERBS = ["填到", "填入", "填写", "填", "写到", "写入", "补到", "补上", "补", "更新", "录入", "套用", "取"];
+  var KEYWORDS_KEY = ["按", "根据", "依据", "匹配", "用.*匹配", "以.*为准", "照"];
+
+  function colLetterToIndex(t) {
+    var m = t.match(/^\s*([A-Za-z]{1,2})\s*列?\s*$/);
+    if (!m) return -1;
+    var s = m[1].toUpperCase(), n = 0;
+    for (var i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  /**
+   * 解析用户指令
+   * ctx = { billCols: [...], srcCols: [...], srcTags: [...] }
+   */
+  function parseCommand(text, ctx) {
+    var t = String(text || "").trim();
+    var res = {
+      raw: t, targets: [], keyCol: null, prefer: [], mode: "first",
+      notes: [], ok: false
+    };
+    if (!t) return res;
+
+    // 表头保留真实列号（表头行可能含空格子，比如左上角空白），匹配文字时跳过空名
+    var billCols = ctx.billCols || [];
+    var nonEmpty = billCols.filter(Boolean);
+    var srcCols = (ctx.srcCols || []).filter(Boolean);
+    var tags = ctx.srcTags || [];
+
+    // 1) 来源优先级（用户只会说简称，如"竣工结算"，所以用最长公共子串识别）
+    function lcs(a, b) {
+      var best = 0;
+      for (var i = 0; i < a.length; i++) {
+        for (var j = 0; j < b.length; j++) {
+          var n = 0;
+          while (i + n < a.length && j + n < b.length && a[i + n] === b[j + n]) n++;
+          if (n > best) best = n;
+        }
+      }
+      return best;
+    }
+    var prefer = [];
+    tags.forEach(function (tg) {
+      var base = tg.replace(/\.(xls|xlsx|csv)$/i, "");
+      var at = t.indexOf(base);
+      if (at < 0) {
+        var common = lcs(base, t);
+        if (common >= 3) at = t.length;          // 只作命中标记，位置不重要
+        else return;
+      }
+      prefer.push({ tag: tg, at: at, common: lcs(base, t) });
+    });
+    prefer.sort(function (a, b) { return (b.common - a.common) || (a.at - b.at); });
+    prefer.sort(function (a, b) { return a.at - b.at; });
+    if (/优先|先用|先取|以.*优先/.test(t)) res.prefer = prefer.map(function (p) { return p.tag; });
+    else if (/取低|最低|较低/.test(t)) res.mode = "low";
+    else if (/取高|最高|较高/.test(t)) res.mode = "high";
+    else if (prefer.length) {
+      // 出现在"用/按/取"之后的来源视为指定来源
+      var m = t.match(/(?:用|按|取|依据|根据)\s*([^\s，,。]{2,20})/);
+      if (m) {
+        tags.forEach(function (tg) {
+          var base = tg.replace(/\.(xls|xlsx|csv)$/i, "");
+          if (m[1].indexOf(base) >= 0 || base.indexOf(m[1]) >= 0) res.prefer.push(tg);
+        });
+      }
+      if (!res.prefer.length) res.prefer = prefer.map(function (p) { return p.tag; });
+    }
+
+    // 2) 匹配键列（先定下来，后面找目标列时要把它排除掉，否则"按名称匹配"会把名称列也当目标）
+    ["名称", "材料名称", "项目名称", "材料", "材料名"].forEach(function (k) {
+      if (t.indexOf(k) >= 0 && nonEmpty.indexOf(k) >= 0 && /按|根据|依据|匹配|用|以/.test(t)) res.keyCol = k;
+    });
+    if (!res.keyCol) {
+      var guess = ["名称", "材料名称", "项目名称", "材料", "材料名"];
+      for (var g = 0; g < guess.length; g++) if (nonEmpty.indexOf(guess[g]) >= 0) { res.keyCol = guess[g]; break; }
+    }
+    if (!res.keyCol && nonEmpty.length) res.keyCol = nonEmpty[1] || nonEmpty[0];
+
+    // 3) 目标列：表里有这个列名就说要填它（排除键列；idx 一律用真实列号）
+    var found = [];
+    billCols.forEach(function (c, i) {
+      if (!c) return;                                  // 空表头格子不能当目标名匹配
+      if (c === res.keyCol) return;                    // 键列不是要填的列
+      var at = t.indexOf(c);
+      if (at >= 0) found.push({ col: c, idx: i, at: at, len: c.length });
+    });
+    // 长名优先，避免"价"抢了"主材价"
+    found.sort(function (a, b) { return b.len - a.len || a.at - b.at; });
+    var seen = {};
+    found = found.filter(function (f) { if (seen[f.col]) return false; seen[f.col] = 1; return true; });
+    // 表里的"价格来源/来源"列：应该写来源名，而不是照抄某个价格列
+    found.forEach(function (f) {
+      if (/来源|出处/.test(f.col)) f.from = "__source__";
+    });
+
+    // 列字母 / 第N列
+    var colByIdx = null;
+    var m2 = t.match(/第\s*(\d+)\s*列/);
+    var m3 = t.match(/\b([A-Za-z]{1,2})\s*列/);
+    if (m2) colByIdx = parseInt(m2[1], 10) - 1;
+    else if (m3) colByIdx = colLetterToIndex(m3[1]);
+
+    // 3) 取值列（内容表里取哪一列）
+    var fromCol = null;
+    srcCols.forEach(function (c) { if (fromCol === null && c && c !== res.keyCol && t.indexOf(c) >= 0) fromCol = c; });
+
+    // 5) 组装目标
+    if (colByIdx !== null && colByIdx >= 0 && colByIdx < billCols.length) {
+      res.targets.push({ col: billCols[colByIdx], idx: colByIdx, from: fromCol || billCols[colByIdx] });
+    }
+    found.forEach(function (f) {
+      var already = res.targets.some(function (x) { return x.idx === f.idx; });
+      if (!already) res.targets.push({ col: f.col, idx: f.idx, from: f.from || fromCol || f.col });
+    });
+
+    // 6) 若话里提到"来源"但目标里还没有来源列，补上
+    var srcMarkCol = null;
+    billCols.forEach(function (c, i) { if (/来源|出处/.test(c)) srcMarkCol = { col: c, idx: i }; });
+    if (srcMarkCol && /来源|出处/.test(t)) {
+      if (!res.targets.some(function (x) { return x.idx === srcMarkCol.idx; })) {
+        res.targets.push({ col: srcMarkCol.col, idx: srcMarkCol.idx, from: "__source__" });
+      }
+    }
+
+    res.targets.sort(function (a, b) { return a.idx - b.idx; });   // 按列的自然顺序
+    res.ok = res.targets.length > 0;
+    if (!res.ok) res.notes.push("没听出要填哪一列，请在下面直接选择要填的列");
+    return res;
+  }
+
+  /* ---------- 执行填充 ---------- */
+
+  function fillSheets(bill, sources, opts) {
+    var keyName = opts.keyCol || "名称";
+    var prefer = opts.prefer || [];
+    var mode = opts.mode || "first";
+    var targets = opts.targets || [];
+    var index = buildIndex(sources, keyName);
+
+    // 弱匹配建议时，默认用第一个"取值列"（非来源列）给出建议值
+    var defValName = keyName;
+    for (var d = 0; d < targets.length; d++) {
+      if (targets[d].from && targets[d].from !== "__source__") { defValName = targets[d].from; break; }
+    }
+
+    var out = [];
+    bill.sheets.forEach(function (sh) {
+      var hIdx = findHeaderRow(sh.rows);
+      var header = (sh.rows[hIdx] || []).slice();
+      var ki = findCol(header, keyName);
+      var result = {
+        name: sh.name, header: header, headerRowIdx: hIdx,
+        cols: [], rows: [], stats: { total: 0, exact: 0, fuzzy: 0, weak: 0, none: 0 }
+      };
+      targets.forEach(function (tg) {
+        var ci = typeof tg.idx === "number" ? tg.idx : findCol(header, tg.col);
+        result.cols.push({ col: tg.col, idx: ci, from: tg.from });
+      });
+
+      for (var r = hIdx + 1; r < sh.rows.length; r++) {
+        var row = (sh.rows[r] || []).slice();
+        var key = ki >= 0 ? row[ki] : "";
+        if (key === "" || key === null || key === undefined) continue;
+        if (typeof key === "number") continue;
+        // 跳过小计/合计行
+        if (/^(小计|合计|总计|总计：|合\s*计)/.test(String(key).trim())) continue;
+
+        result.stats.total++;
+        var m = matchOne(key, index, {});
+        // 行级：是否可用（弱匹配不自动填）
+        var okUse = m.ok && m.level !== "weak";
+        var rec = {
+          r: r, key: key, cells: [], level: m.level === "weak" ? "none" : m.level,
+          matched: m.ok ? (m.cands && m.cands[0] ? m.cands[0].raw : null) : null,
+          score: m.score || 0, reason: m.reason || "",
+          suggest: null,
+          cands: m.ok ? m.cands : null
+        };
+        // 弱匹配建议值（取默认取值列）
+        if (m.level === "weak" && m.cands && m.cands.length) {
+          var sd = pickVal(m.cands, prefer, mode, defValName);
+          var sv = sd ? sd.vals[norm(defValName)] : undefined;
+          rec.suggest = { val: sv === undefined ? "" : sv, raw: m.cands[0].raw, score: m.score };
+        }
+
+        targets.forEach(function (tg, ti) {
+          var ci = result.cols[ti].idx;
+          if (ci < 0) { rec.cells.push(null); return; }
+          if (tg.from === "__source__") {
+            var selected = okUse ? pickVal(m.cands, prefer, mode, defValName) : null;
+            rec.cells.push(selected ? selected.tag.replace(/\.(xls|xlsx|csv)$/i, "") : "");
+            return;
+          }
+          // 每个目标列各自从内容表对应的列取值
+          var vn = norm(tg.from);
+          if (!okUse) { rec.cells.push(""); return; }
+          var cand = pickVal(m.cands, prefer, mode, tg.from);
+          var raw = cand ? cand.vals[vn] : undefined;
+          rec.cells.push(raw === undefined ? "" : raw);
+        });
+
+        if (m.ok && m.level === "exact") result.stats.exact++;
+        else if (m.ok && m.level === "fuzzy") result.stats.fuzzy++;
+        else if (m.ok && m.level === "weak") result.stats.weak++;
+        else result.stats.none++;
+
+        result.rows.push(rec);
+      }
+      out.push(result);
+    });
+    return { sheets: out, index: index };
+  }
+
+  return {
+    norm: norm, score: score, specs: specs, sameSpec: sameSpec,
+    findHeaderRow: findHeaderRow, findCol: findCol,
+    buildIndex: buildIndex, matchOne: matchOne, pickVal: pickVal,
+    parseCommand: parseCommand, fillSheets: fillSheets
+  };
+});
+
+
+
+/* xlsxw.js —— 零依赖 xlsx 写出（原生 CompressionStream + 手写 zip / CRC32） */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.XlsxW = api;
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  var CRC_T = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(buf) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) c = CRC_T[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function deflateRaw(u8) {
+    var cs = new CompressionStream("deflate-raw");
+    var st = new Blob([u8]).stream().pipeThrough(cs);
+    return new Response(st).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+  function concat(arrs) {
+    var total = arrs.reduce(function (a, b) { return a + b.length; }, 0);
+    var out = new Uint8Array(total), p = 0;
+    arrs.forEach(function (a) { out.set(a, p); p += a.length; });
+    return out;
+  }
+  function u16(v) { return new Uint8Array([v & 255, (v >> 8) & 255]); }
+  function u32(v) { return new Uint8Array([v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255]); }
+
+  function makeZip(entries) {
+    var enc = new TextEncoder();
+    return Promise.all(entries.map(function (e) {
+      var data = enc.encode(e.data);
+      var nameB = enc.encode(e.name);
+      return deflateRaw(data).then(function (comp) {
+        var payload = comp.length < data.length ? comp : data;
+        var method = comp.length < data.length ? 8 : 0;
+        var crc = crc32(data);
+        // local header: sig4 vers2 flag2 method2 time2 date2 crc4 csize4 usize4 nlen2 elen2
+        var lh = concat([
+          u32(0x04034b50), u16(20), u16(0), u16(method), u16(0), u16(0),
+          u32(crc), u32(payload.length), u32(data.length),
+          u16(nameB.length), u16(0), nameB, payload
+        ]);
+        return { lh: lh, name: nameB, crc: crc, method: method,
+                 csize: payload.length, usize: data.length, offset: 0 };
+      });
+    })).then(function (parts) {
+      var chunks = [], cd = [], off = 0;
+      parts.forEach(function (p) { p.offset = off; chunks.push(p.lh); off += p.lh.length; });
+      parts.forEach(function (p) {
+        // central dir: sig4 vmade2 vneed2 flag2 method2 time2 date2 crc4 csize4 usize4
+        //              nlen2 elen2 clen2 disk2 iattr2 eattr4 offset4 + name
+        cd.push(concat([
+          u32(0x02014b50), u16(20), u16(20), u16(0), u16(p.method), u16(0), u16(0),
+          u32(p.crc), u32(p.csize), u32(p.usize),
+          u16(p.name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(p.offset), p.name
+        ]));
+      });
+      var cdBuf = concat(cd);
+      var eocd = concat([
+        u32(0x06054b50), u16(0), u16(0), u16(parts.length), u16(parts.length),
+        u32(cdBuf.length), u32(off), u16(0)
+      ]);
+      return new Blob([concat(chunks), cdBuf, eocd],
+        { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    });
+  }
+
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+  }
+  function colName(i) {
+    var s = ""; i += 1;
+    while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); }
+    return s;
+  }
+  function isNum(v) {
+    return typeof v === "number" && isFinite(v);
+  }
+
+  // 样式：0 默认 / 1 表头 / 2 文本 / 3 数字 / 4 绿(精确) / 5 黄(近似) / 6 红(未匹配)
+  var STYLES =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="2">' +
+      '<font><sz val="11"/><color theme="1"/><name val="等线"/></font>' +
+      '<font><b/><sz val="11"/><color theme="1"/><name val="等线"/></font>' +
+    '</fonts>' +
+    '<fills count="6">' +
+      '<fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFE2EFDA"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill>' +
+    '</fills>' +
+    '<borders count="2">' +
+      '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right>' +
+      '<top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border>' +
+    '</borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="7">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="2" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+      '<xf numFmtId="2" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+      '<xf numFmtId="2" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
+    '</cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+
+  /**
+   * sheets: [{name, rows:[[v,...]], marks:{"r:c": styleIdx}}]
+   * 返回 Blob（xlsx）
+   */
+  function build(sheets) {
+    var NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    var RNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    var sheetXmls = sheets.map(function (sh) {
+      var rows = sh.rows || [], marks = sh.marks || {};
+      var width = 0;
+      rows.forEach(function (r) { if (r.length > width) width = r.length; });
+
+      // 列宽：按内容估算
+      var cols = [];
+      for (var c = 0; c < width; c++) {
+        var w = 8;
+        for (var r2 = 0; r2 < Math.min(rows.length, 60); r2++) {
+          var v = (rows[r2] || [])[c];
+          if (v === "" || v === null || v === undefined) continue;
+          var len = String(v).replace(/[^\x00-\xff]/g, "aa").length;
+          if (len + 2 > w) w = Math.min(len + 2, 52);
+        }
+        cols.push('<col min="' + (c + 1) + '" max="' + (c + 1) + '" width="' + w + '" customWidth="1"/>');
+      }
+
+      var body = "";
+      rows.forEach(function (row, ri) {
+        var cells = "";
+        for (var ci = 0; ci < row.length; ci++) {
+          var v = row[ci];
+          if (v === "" || v === null || v === undefined) {
+            var st0 = marks[ri + ":" + ci];
+            if (st0) cells += '<c r="' + colName(ci) + (ri + 1) + '" s="' + st0 + '"/>';
+            continue;
+          }
+          var st = marks[ri + ":" + ci];
+          if (st === undefined) st = isNum(v) ? 3 : 2;
+          var ref = colName(ci) + (ri + 1);
+          if (isNum(v)) cells += '<c r="' + ref + '" s="' + st + '"><v>' + v + "</v></c>";
+          else cells += '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">' + esc(v) + "</t></is></c>";
+        }
+        body += '<row r="' + (ri + 1) + '">' + cells + "</row>";
+      });
+
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="' + NS + '" xmlns:r="' + RNS + '">' +
+        '<dimension ref="A1:' + colName(Math.max(width - 1, 0)) + Math.max(rows.length, 1) + '"/>' +
+        '<sheetViews><sheetView workbookViewId="0">' +
+        '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>' +
+        "</sheetView></sheetViews>" +
+        '<sheetFormatPr defaultRowHeight="16"/>' +
+        "<cols>" + cols.join("") + "</cols>" +
+        "<sheetData>" + body + "</sheetData>" +
+        "</worksheet>";
+    });
+
+    var safeNames = sheets.map(function (s, i) {
+      var n = String(s.name || ("Sheet" + (i + 1))).replace(/[\\\/\?\*\[\]:]/g, "_");
+      return n.slice(0, 31);
+    });
+
+    var contentTypes =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      sheetXmls.map(function (_, i) {
+        return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+      }).join("") +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      "</Types>";
+
+    var rootRels =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      "</Relationships>";
+
+    var workbook =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="' + NS + '" xmlns:r="' + RNS + '"><sheets>' +
+      safeNames.map(function (n, i) {
+        return '<sheet name="' + esc(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+      }).join("") +
+      "</sheets></workbook>";
+
+    var wbRels =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      safeNames.map(function (_, i) {
+        return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+      }).join("") +
+      '<Relationship Id="rId' + (safeNames.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+      "</Relationships>";
+
+    var entries = [
+      { name: "[Content_Types].xml", data: contentTypes },
+      { name: "_rels/.rels", data: rootRels },
+      { name: "xl/workbook.xml", data: workbook },
+      { name: "xl/_rels/workbook.xml.rels", data: wbRels },
+      { name: "xl/styles.xml", data: STYLES }
+    ];
+    sheetXmls.forEach(function (x, i) {
+      entries.push({ name: "xl/worksheets/sheet" + (i + 1) + ".xml", data: x });
+    });
+
+    return makeZip(entries);
+  }
+
+  return { build: build };
+});
+
+
+
+/* app.js —— 表格自动填表工具：读表 / 聊天框指令 / 匹配填充 / 预览编辑 / 导出 */
+(function (global) {
+  "use strict";
+
+  var S = {
+    bill: null,            // {tag, sheets:[{name, rows}]}
+    sources: [],           // [{tag, sheets}]
+    cmd: null,             // 解析后的指令（用于展示）
+    targetCols: [],        // 累积的工作集：所有要填的列 [{col, idx, from}]
+    result: null,          // fillSheets 的输出（始终包含 targetCols 全部列）
+    edits: {},             // "sheetIdx:rowIdx:colIdx" -> 手改值
+    curSheet: 0,
+    onlyBad: false
+  };
+
+  /* ---------------- 读表：自动识别 xls / xlsx ---------------- */
+
+  function inflateRaw(u8) {
+    if (typeof DecompressionStream === "undefined") {
+      return Promise.reject(new Error("浏览器不支持 DecompressionStream，请用 Chrome / Edge 103+"));
+    }
+    var ds = new DecompressionStream("deflate-raw");
+    var stream = new Blob([u8]).stream().pipeThrough(ds);
+    return new Response(stream).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+
+  function readZip(buf) {
+    var dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    var eocd = -1, i;
+    for (i = buf.length - 22; i >= 0 && i >= buf.length - 65558; i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error("不是有效的 xlsx / zip 文件");
+    var n = dv.getUint16(eocd + 10, true), p = dv.getUint32(eocd + 16, true);
+    var dec = new TextDecoder("utf-8"), out = {};
+    for (var k = 0; k < n; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      var method = dv.getUint16(p + 10, true);
+      var csize = dv.getUint32(p + 20, true);
+      var nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+      var lho = dv.getUint32(p + 42, true);
+      var name = dec.decode(buf.subarray(p + 46, p + 46 + nlen));
+      var lnlen = dv.getUint16(lho + 26, true), lelen = dv.getUint16(lho + 28, true);
+      var start = lho + 30 + lnlen + lelen;
+      out[name] = { method: method, raw: buf.subarray(start, start + csize) };
+      p += 46 + nlen + elen + clen;
+    }
+    return out;
+  }
+
+  function inflateAll(zip, names) {
+    return Promise.all(names.map(function (nm) {
+      var e = zip[nm];
+      if (!e) return Promise.resolve([nm, null]);
+      if (e.method === 0) return Promise.resolve([nm, e.raw]);
+      return inflateRaw(e.raw).then(function (u) { return [nm, u]; });
+    })).then(function (pairs) {
+      var o = {};
+      pairs.forEach(function (pr) { o[pr[0]] = pr[1]; });
+      return o;
+    });
+  }
+
+  function colIndex(ref) {
+    var m = /^([A-Z]+)/.exec(ref || "");
+    if (!m) return 0;
+    var s = m[1], n = 0;
+    for (var i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  function parseSheet(xmlText, shared) {
+    var doc = new DOMParser().parseFromString(xmlText, "application/xml");
+    var rows = doc.getElementsByTagName("row");
+    var out = [];
+    for (var r = 0; r < rows.length; r++) {
+      var cells = rows[r].getElementsByTagName("c");
+      var arr = [];
+      for (var c = 0; c < cells.length; c++) {
+        var ce = cells[c], t = ce.getAttribute("t"), ci = colIndex(ce.getAttribute("r"));
+        var v = "";
+        if (t === "inlineStr") {
+          var is = ce.getElementsByTagName("t");
+          for (var q = 0; q < is.length; q++) v += is[q].textContent;
+        } else {
+          var vs = ce.getElementsByTagName("v");
+          if (vs.length) {
+            var raw = vs[0].textContent;
+            v = (t === "s") ? (shared[parseInt(raw, 10)] || "") : raw;
+            if (t !== "s" && raw !== "" && !isNaN(Number(raw))) v = Number(raw);
+          }
+        }
+        arr[ci] = v;
+      }
+      for (var z = 0; z < arr.length; z++) if (arr[z] === undefined) arr[z] = "";
+      out.push(arr);
+    }
+    return out;
+  }
+
+  function readXlsx(ab) {
+    var buf = new Uint8Array(ab);
+    var zip = readZip(buf);
+    var dec = new TextDecoder();
+    var names = Object.keys(zip).filter(function (n) {
+      return /xl\/(sharedStrings|workbook|worksheets\/.*)\.xml$/.test(n) || /xl\/_rels\/workbook\.xml\.rels$/.test(n);
+    });
+    return inflateAll(zip, names).then(function (files) {
+      var shared = [];
+      Object.keys(files).forEach(function (n) {
+        if (/sharedStrings\.xml$/.test(n) && files[n]) {
+          var d = new DOMParser().parseFromString(dec.decode(files[n]), "application/xml");
+          var sis = d.getElementsByTagName("si");
+          for (var i = 0; i < sis.length; i++) {
+            var ts = sis[i].getElementsByTagName("t"), s = "";
+            for (var j = 0; j < ts.length; j++) s += ts[j].textContent;
+            shared.push(s);
+          }
+        }
+      });
+      // 工作表顺序与名字
+      var rels = {}, order = [];
+      Object.keys(files).forEach(function (n) {
+        if (/workbook\.xml\.rels$/.test(n) && files[n]) {
+          var d = new DOMParser().parseFromString(dec.decode(files[n]), "application/xml");
+          var rs = d.getElementsByTagName("Relationship");
+          for (var i = 0; i < rs.length; i++) {
+            rels[rs[i].getAttribute("Id")] = rs[i].getAttribute("Target");
+          }
+        }
+      });
+      var wbXml = null;
+      Object.keys(files).forEach(function (n) { if (/xl\/workbook\.xml$/.test(n)) wbXml = files[n]; });
+      if (wbXml) {
+        var dw = new DOMParser().parseFromString(dec.decode(wbXml), "application/xml");
+        var shs = dw.getElementsByTagName("sheet");
+        for (var s = 0; s < shs.length; s++) {
+          var rid = shs[s].getAttribute("r:id") || shs[s].getAttribute("id");
+          var tgt = rels[rid] || "";
+          order.push({ name: shs[s].getAttribute("name"), target: tgt.replace(/^\/?xl\//, "") });
+        }
+      }
+      var sheets = [];
+      order.forEach(function (o) {
+        var key = "xl/" + o.target;
+        var data = files[key];
+        if (!data) {
+          var k2 = Object.keys(files).filter(function (n) { return n.indexOf(o.target) >= 0 && /worksheets/.test(n); })[0];
+          data = k2 ? files[k2] : null;
+        }
+        if (!data) return;
+        sheets.push({ name: o.name, rows: parseSheet(dec.decode(data), shared) });
+      });
+      if (!sheets.length) {
+        var fallback = Object.keys(files).filter(function (n) { return /xl\/worksheets\/.*\.xml$/.test(n); });
+        fallback.forEach(function (n) {
+          sheets.push({ name: n.replace(/.*\//, "").replace(/\.xml$/, ""), rows: parseSheet(dec.decode(files[n]), shared) });
+        });
+      }
+      if (!sheets.length) throw new Error("未找到工作表数据");
+      return sheets;
+    });
+  }
+
+  function readAny(file) {
+    return file.arrayBuffer().then(function (ab) {
+      var u8 = new Uint8Array(ab);
+      if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) {
+        return global.XLS.read(ab);                       // .xls（OLE2 / BIFF8）
+      }
+      return readXlsx(ab);                                // .xlsx
+    }).then(function (sheets) {
+      return { tag: file.name.replace(/\.(xls|xlsx|csv)$/i, ""), sheets: sheets };
+    });
+  }
+
+  /* ---------------- 计算 ---------------- */
+
+  function ctx() {
+    if (!S.bill) return { billCols: [], srcCols: [], srcTags: [] };
+    var b = S.bill.sheets[0] || { rows: [] };
+    var s = (S.sources[0] && S.sources[0].sheets[0]) || { rows: [] };
+    return {
+      billCols: (b.rows[global.Fill.findHeaderRow(b.rows)] || []).slice(),
+      srcCols: (s.rows[global.Fill.findHeaderRow(s.rows)] || []).slice(),
+      srcTags: S.sources.map(function (x) { return x.tag; })
+    };
+  }
+
+  function run() {
+    if (!S.bill || !S.sources.length) return;
+    var c = ctx();
+    if (!S.cmd || !S.cmd.ok) S.cmd = global.Fill.parseCommand("填主材价", c);
+    // 工作集：保留之前填过的列，实现“累加填充”，不再整体冲掉
+    if (!S.targetCols.length) S.targetCols = (S.cmd.targets || []).slice();
+    S.result = global.Fill.fillSheets(S.bill, S.sources, {
+      keyCol: S.cmd.keyCol, prefer: S.cmd.prefer, mode: S.cmd.mode, targets: S.targetCols
+    });
+    S.curSheet = 0;
+    render();
+  }
+
+  /* ---------------- 渲染 ---------------- */
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function renderFiles() {
+    var box = el("files");
+    var html = "";
+    var zb = el("zoneBill"), zs = el("zoneSrc");
+    if (zb) zb.classList.toggle("done", !!S.bill);
+    if (zs) zs.classList.toggle("done", S.sources.length > 0);
+    if (S.bill) {
+      html += '<div class="chip chip-bill"><b>待填表</b> ' + esc(S.bill.tag) +
+        " <span class='muted'>" + S.bill.sheets.length + " 张工作表</span></div>";
+    }
+    S.sources.forEach(function (s, i) {
+      html += '<div class="chip"><b>内容表' + (i + 1) + "</b> " + esc(s.tag) +
+        " <span class='muted'>" + s.sheets.length + " 张表</span>" +
+        '<button class="x" data-delsrc="' + i + '">×</button></div>';
+    });
+    box.innerHTML = html || '<span class="muted">还没上传</span>';
+    var bs = box.querySelectorAll("[data-delsrc]");
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].onclick = function () {
+        S.sources.splice(parseInt(this.getAttribute("data-delsrc"), 10), 1);
+        renderFiles();
+        if (S.result) run();
+      };
+    }
+  }
+
+  function renderCmd() {
+    var c = S.cmd;
+    var box = el("cmdBar");
+    if (!c || !c.ok) {
+      box.innerHTML = '<span class="warn">没听出要填哪一列 —— 直接在下面选要填的列，再点「执行」</span>';
+    } else {
+      var tg = c.targets.map(function (t) {
+        return "【" + esc(t.col) + "】" + (t.from === "__source__" ? "←填来源名" : "←取内容表【" + esc(t.from) + "】");
+      }).join("，");
+      box.innerHTML = '按【<b>' + esc(c.keyCol) + '</b>】匹配 → 填 ' + tg +
+        (c.prefer.length ? "　来源优先：<b>" + esc(c.prefer[0].replace(/\.(xls|xlsx)$/i, "")) + "</b>" : "") +
+        (c.mode !== "first" ? "　（" + (c.mode === "low" ? "取低价" : "取高价") + "）" : "");
+    }
+    // 下拉：键列（空表头列当不了匹配键，不放进下拉）
+    var cc = ctx();
+    var selKey = el("selKey");
+    if (selKey) {
+      selKey.innerHTML = cc.billCols.filter(function (h) { return h !== "" && h !== null && h !== undefined; }).map(function (h) {
+        return '<option value="' + esc(h) + '"' + (h === (c && c.keyCol) ? " selected" : "") + ">" + esc(h) + "</option>";
+      }).join("");
+    }
+    // 下拉：要填的列（多选）—— 以累积工作集 targetCols 为勾选依据
+    var selT = el("selTargets");
+    if (selT) {
+      selT.innerHTML = cc.billCols.map(function (h, i) {
+        var isSrcCol = /来源|出处/.test(h);
+        var checked = S.targetCols.some(function (t) { return t.idx === i; });
+        return '<label class="ck"><input type="checkbox" data-col="' + i + '"' +
+          (checked ? " checked" : "") + "> " + esc(h || "第" + (i + 1) + "列") +
+          (isSrcCol ? ' <span class="muted">(填来源名)</span>' : "") + "</label>";
+      }).join("");
+    }
+    // 下拉：来源优先
+    var selP = el("selPrefer");
+    if (selP) {
+      var opts = ['<option value="">上传顺序优先</option>'];
+      opts.push('<option value="__low__">两者取低价</option>');
+      opts.push('<option value="__high__">两者取高价</option>');
+      S.sources.forEach(function (s) {
+        opts.push('<option value="' + esc(s.tag) + '">' + esc(s.tag) + "</option>");
+      });
+      selP.innerHTML = opts.join("");
+      if (c && c.mode === "low") selP.value = "__low__";
+      else if (c && c.mode === "high") selP.value = "__high__";
+      else if (c && c.prefer.length) selP.value = c.prefer[0];
+    }
+  }
+
+  function levelBadge(lv, rec) {
+    if (lv === "exact") return '<span class="bd ok">精确</span>';
+    if (lv === "fuzzy") return '<span class="bd warn">近似</span>';
+    return '<span class="bd bad">待确认</span>';
+  }
+
+  function render() {
+    renderFiles();
+    renderCmd();
+    if (!S.result) { el("tableWrap").innerHTML = ""; el("stats").innerHTML = ""; return; }
+
+    var sh = S.result.sheets[S.curSheet];
+    var st = sh.stats;
+    var filled = st.exact + st.fuzzy;
+    el("stats").innerHTML =
+      '<div class="stat"><span>' + st.total + "</span><small>条目</small></div>" +
+      '<div class="stat ok"><span>' + st.exact + "</span><small>精确匹配</small></div>" +
+      '<div class="stat warn"><span>' + st.fuzzy + "</span><small>近似匹配</small></div>" +
+      '<div class="stat bad"><span>' + (st.total - filled) + "</span><small>待人工处理</small></div>";
+
+    // 工作表 tab
+    var tabs = el("tabs");
+    tabs.innerHTML = S.result.sheets.map(function (x, i) {
+      return '<button class="tab' + (i === S.curSheet ? " on" : "") + '" data-sh="' + i + '">' +
+        esc(x.name) + " <span class='muted'>" + x.stats.total + "</span></button>";
+    }).join("");
+    var tb = tabs.querySelectorAll("[data-sh]");
+    for (var q = 0; q < tb.length; q++) {
+      tb[q].onclick = function () { S.curSheet = parseInt(this.getAttribute("data-sh"), 10); render(); };
+    }
+
+    // 表格
+    var header = sh.header;
+    var targetIdx = sh.cols.map(function (c) { return c.idx; });
+    var html = "<table><thead><tr>";
+    header.forEach(function (h, i) {
+      var isT = targetIdx.indexOf(i) >= 0;
+      html += "<th" + (isT ? ' class="tcol"' : "") + ">" + esc(h || "第" + (i + 1) + "列") +
+        (isT ? ' <span class="tag">待填</span>' : "") + "</th>";
+    });
+    html += '<th class="tcol">状态</th></tr></thead><tbody>';
+
+    sh.rows.forEach(function (rec, ri) {
+      if (S.onlyBad && rec.level !== "none") return;
+      // 注意：sh.rows 是结果数组（下标 0..n-1），rec.r 是原表行号，两者不是一回事
+      var row = S.bill.sheets[S.curSheet].rows[rec.r];
+      if (!row) return;
+      html += "<tr>";
+      header.forEach(function (h, ci) {
+        var ti = targetIdx.indexOf(ci);
+        var v = row[ci] === undefined ? "" : row[ci];
+        if (ti >= 0) {
+          var key = S.curSheet + ":" + rec.r + ":" + ci;
+          var ev = S.edits[key];
+          var shown = ev !== undefined ? ev : (rec.cells[ti] === null || rec.cells[ti] === undefined ? "" : rec.cells[ti]);
+          var cls = rec.level === "exact" ? "c-ok" : (rec.level === "fuzzy" ? "c-warn" : "c-bad");
+          if (ev !== undefined) cls = "c-edit";
+          html += '<td class="' + cls + '"><input class="ci" data-key="' + key + '" value="' + esc(shown) + '"' +
+            (typeof v === "number" ? ' inputmode="decimal"' : "") + "></td>";
+        } else {
+          html += "<td>" + esc(v) + "</td>";
+        }
+      });
+      var tip = "";
+      if (rec.level === "none") {
+        if (rec.suggest) {
+          tip = '<button class="mini" data-sug="' + S.curSheet + ":" + ri + '">用建议 ' + esc(rec.suggest.val) +
+            "（" + esc(rec.suggest.raw) + "）</button>";
+        } else {
+          tip = '<span class="muted small">' + esc(rec.reason || "内容表无此项") + "</span>";
+        }
+      } else if (rec.level === "fuzzy") {
+        tip = '<span class="small">命中「' + esc(rec.matched) + '」' + rec.score.toFixed(2) + "</span>";
+      }
+      html += '<td class="tcol">' + levelBadge(rec.level, rec) + " " + tip + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    el("tableWrap").innerHTML = html;
+
+    // 单元格编辑
+    var inputs = el("tableWrap").querySelectorAll(".ci");
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].addEventListener("change", function () {
+        S.edits[this.getAttribute("data-key")] = this.value;
+        this.parentNode.className = "c-edit";
+      });
+    }
+    // 采用建议
+    var sugBtns = el("tableWrap").querySelectorAll("[data-sug]");
+    for (var j = 0; j < sugBtns.length; j++) {
+      sugBtns[j].onclick = function () {
+        var p = this.getAttribute("data-sug").split(":");
+        var sh = S.result.sheets[parseInt(p[0], 10)];
+        var rec = sh.rows[parseInt(p[1], 10)];
+        // 取第一个“取值列”（非来源列）作为建议填入目标
+        var ci = sh.cols[0].idx;
+        for (var k = 0; k < sh.cols.length; k++) {
+          if (sh.cols[k].from !== "__source__") { ci = sh.cols[k].idx; break; }
+        }
+        S.edits[p[0] + ":" + rec.r + ":" + ci] = rec.suggest.val;
+        rec.level = "fuzzy"; rec.matched = rec.suggest.raw; rec.score = rec.suggest.score;
+        sh.stats.none--;
+        sh.stats.fuzzy++;
+        render();
+      };
+    }
+  }
+
+  /* ---------------- 导出 ---------------- */
+
+  function buildRows() {
+    return S.result.sheets.map(function (sh, si) {
+      var src = S.bill.sheets[si];
+      var rows = src.rows.map(function (row) { return (row || []).slice(); }), marks = {};
+      var targetIdx = sh.cols.map(function (c) { return c.idx; });
+      sh.rows.forEach(function (rec) {
+        var row = rows[rec.r];
+        targetIdx.forEach(function (ci, ti) {
+          var key = si + ":" + rec.r + ":" + ci;
+          var v = S.edits[key];
+          if (v === undefined) v = rec.cells[ti];
+          row[ci] = (v === null || v === undefined) ? "" : v;
+          // 数字串转数字
+          if (typeof row[ci] === "string" && row[ci] !== "" && !isNaN(Number(row[ci]))) row[ci] = Number(row[ci]);
+          var isEdit = S.edits[key] !== undefined;
+          if (!isEdit) {
+            marks[rec.r + ":" + ci] = rec.level === "exact" ? 4 : (rec.level === "fuzzy" ? 5 : 6);
+          }
+        });
+      });
+      return { name: sh.name, rows: rows, marks: marks };
+    });
+  }
+
+  function doExport() {
+    if (!S.result) return;
+    var sheets = buildRows();
+    global.XlsxW.build(sheets).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = S.bill.tag + "_已填写.xlsx";
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    });
+  }
+
+  function doExportCsv() {
+    if (!S.result) return;
+    var all = [];
+    buildRows().forEach(function (sh) {
+      all.push("# " + sh.name);
+      sh.rows.forEach(function (r) {
+        all.push(r.map(function (v) {
+          var s = String(v === null || v === undefined ? "" : v);
+          return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }).join(","));
+      });
+      all.push("");
+    });
+    var blob = new Blob(["\ufeff" + all.join("\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = S.bill.tag + "_已填写.csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+
+  /* ---------------- 事件 ---------------- */
+
+  function bindDrop(zoneId, inputId, onFiles) {
+    var zone = el(zoneId), input = el(inputId);
+    zone.onclick = function () { input.click(); };
+    input.onchange = function () { onFiles(this.files); this.value = ""; };
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.classList.add("over"); });
+    zone.addEventListener("dragleave", function () { zone.classList.remove("over"); });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault(); zone.classList.remove("over");
+      if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+    });
+  }
+
+  function loadFiles(files, isBill) {
+    var arr = Array.prototype.slice.call(files);
+    var jobs = arr.map(function (f) {
+      return readAny(f).catch(function (e) { return { err: f.name + "：" + e.message }; });
+    });
+    return Promise.all(jobs).then(function (list) {
+      list.forEach(function (r) {
+        if (r.err) { alert(r.err); return; }
+        if (isBill) S.bill = r; else S.sources.push(r);
+      });
+      S.edits = {};
+      if (isBill) S.targetCols = [];   // 换待填表 → 工作集重置（列结构变了）
+      renderFiles();
+      if (S.bill && S.sources.length) {
+        S.cmd = global.Fill.parseCommand(el("chat").value.trim() || "填主材价", ctx());
+        // 把解析出的目标列并入累积工作集
+        (S.cmd.targets || []).forEach(function (t) {
+          if (!S.targetCols.some(function (x) { return x.idx === t.idx; })) S.targetCols.push(t);
+        });
+        run();
+      } else {
+        render();
+      }
+    });
+  }
+
+  function init() {
+    bindDrop("zoneBill", "inpBill", function (f) { loadFiles(f, true); });
+    bindDrop("zoneSrc", "inpSrc", function (f) { loadFiles(f, false); });
+
+    el("btnRun").onclick = function () {
+      if (!S.bill) { alert("先上传待填的表"); return; }
+      if (!S.sources.length) { alert("先上传至少一张内容表"); return; }
+      var txt = el("chat").value.trim();
+      // 1) 解析聊天指令（有话才解析）
+      var parsed = [];
+      if (txt) {
+        S.cmd = global.Fill.parseCommand(txt, ctx());
+        parsed = (S.cmd.targets || []).slice();
+      }
+      // 2) 先读勾选框（读之前不要重绘，否则刚手勾的会被冲掉）
+      var cc = ctx();
+      var boxes = el("selTargets").querySelectorAll("input");
+      var chosen = [];
+      for (var i = 0; i < boxes.length; i++) {
+        if (boxes[i].checked) {
+          var ci = parseInt(boxes[i].getAttribute("data-col"), 10);
+          var name = cc.billCols[ci];
+          chosen.push({ col: name, idx: ci, from: /来源|出处/.test(name) ? "__source__" : name });
+        }
+      }
+      // 3) 工作集 = 本次解析出的列 ∪ 当前勾选的列（勾选框权威：取消勾选即移除）
+      var merged = [];
+      parsed.concat(chosen).forEach(function (t) {
+        if (!merged.some(function (x) { return x.idx === t.idx; })) merged.push(t);
+      });
+      S.targetCols = merged;
+      // 4) 下拉覆盖 + 同步显示，再执行
+      if (S.cmd) {
+        S.cmd.keyCol = el("selKey").value;
+        S.cmd.targets = S.targetCols;
+        var pv = el("selPrefer").value;
+        if (pv === "__low__") { S.cmd.mode = "low"; S.cmd.prefer = []; }
+        else if (pv === "__high__") { S.cmd.mode = "high"; S.cmd.prefer = []; }
+        else if (pv) { S.cmd.mode = "first"; S.cmd.prefer = [pv]; }
+        else if (!txt) { S.cmd.mode = "first"; S.cmd.prefer = []; }
+      }
+      renderCmd();
+      run();
+    };
+    el("chat").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); el("btnRun").click(); }
+    });
+    el("btnXlsx").onclick = doExport;
+    el("btnCsv").onclick = doExportCsv;
+    el("chkBad").onchange = function () { S.onlyBad = this.checked; render(); };
+
+    var ex = document.querySelectorAll(".ex");
+    for (var i = 0; i < ex.length; i++) {
+      ex[i].onclick = function () { el("chat").value = this.getAttribute("data-t"); };
+    }
+    render();
+  }
+
+  global.FillApp = { S: S, run: run, readAny: readAny, buildRows: buildRows, init: init };
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+    else init();
+  }
+})(typeof self !== "undefined" ? self : this);
+
+
+
+(function () {
+  // 步骤轨 & 结果态
+  function sync() {
+    var hasBill = !!document.querySelector("#files .chip-bill");
+    var hasSrc = !!document.querySelector("#files .chip:not(.chip-bill)");
+    var hasRes = !!document.querySelector("#tableWrap table");
+    document.body.classList.toggle("ready", hasRes);
+    var s1 = document.getElementById("s1"), s2 = document.getElementById("s2"), s3 = document.getElementById("s3");
+    s1.classList.toggle("done", hasBill);
+    s1.classList.toggle("on", !hasBill);
+    s2.classList.toggle("done", hasSrc && document.getElementById("cmdBar").innerHTML.indexOf("匹配") > 0);
+    s2.classList.toggle("on", hasBill && !s2.classList.contains("done"));
+    s3.classList.toggle("done", hasRes);
+    s3.classList.toggle("on", hasSrc && !hasRes);
+  }
+  setInterval(sync, 200); sync();
+})();
