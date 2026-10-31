@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS fitness_state (key TEXT PRIMARY KEY, value TEXT NOT NULL, revision INTEGER NOT NULL);
