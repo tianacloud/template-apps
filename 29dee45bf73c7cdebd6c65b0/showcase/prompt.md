@@ -1,0 +1,1 @@
+使用 `tiana web init-template 29dee45bf73c7cdebd6c65b0` 获取 MoneyBook 源码，制作支持多账本、预算、报销、存钱计划和报表的记账应用。
