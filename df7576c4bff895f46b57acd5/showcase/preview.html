@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>批量一键加密生成器 · 帆软单点登录 ssoToken 生成工具</title>
+<meta name="description" content="在浏览器中生成 RSA 单点登录令牌和链接。">
+<style>
+  :root{
+    --ink:#0e1726; --ink2:#495667; --ink3:#8792a3; --ink4:#aab3c0;
+    --bg:#f5f6f8; --card:#ffffff; --line:#e5e8ee; --line2:#d3d9e3;
+    --brand:#1d4ed8; --brand-d:#163fb0; --brand-soft:#eef3ff; --brand-line:#c8d8fb;
+    --ok:#0b6b48; --ok-bg:#e7f6ef; --ok-line:#bfe6d5;
+    --warn:#8a5300; --warn-bg:#fff6e6; --warn-line:#f0dcb4;
+    --err:#b3261e; --err-bg:#fdecea; --err-line:#f5c9c4;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sh:0 1px 2px rgba(16,24,40,.05);
+    --sh-l:0 12px 32px -18px rgba(16,24,40,.28);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+  ::selection{background:#d7e4ff}
+
+  /* ---------------- 顶栏 ---------------- */
+  .topbar{
+    position:sticky;top:0;z-index:40;
+    background:rgba(255,255,255,.86); backdrop-filter:saturate(180%) blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{max-width:1160px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:14px}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+    background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;letter-spacing:.3px;
+    padding:4px 9px;border-radius:5px;
+  }
+  .badge i{width:5px;height:5px;border-radius:50%;background:#6ee7b7;display:block}
+  .brandmark{font-weight:700;font-size:14.5px;letter-spacing:.2px;white-space:nowrap}
+  .brandmark small{font-weight:400;color:var(--ink3);font-size:12.5px;margin-left:7px;letter-spacing:0}
+  .topnav{margin-left:auto;display:flex;align-items:center;gap:2px}
+  .topnav a{
+    color:var(--ink2);text-decoration:none;font-size:13px;font-weight:500;
+    padding:6px 11px;border-radius:6px;transition:background .15s,color .15s;white-space:nowrap;cursor:pointer;
+  }
+  .topnav a:hover{background:#f0f2f6;color:var(--ink)}
+  .topnav a.cta{background:var(--brand);color:#fff;margin-left:6px}
+  .topnav a.cta:hover{background:var(--brand-d);color:#fff}
+
+  /* ---------------- 首屏 ---------------- */
+  .hero{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(900px 380px at 12% -8%,#e8f0ff 0%,rgba(232,240,255,0) 62%),
+      radial-gradient(700px 320px at 92% 0%,#eef7f2 0%,rgba(238,247,242,0) 60%),
+      #fff;
+    border-bottom:1px solid var(--line);
+  }
+  .hero-in{
+    max-width:1160px;margin:0 auto;padding:56px 24px 46px;
+    display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:52px;align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.6px;
+    color:var(--brand);text-transform:uppercase;margin-bottom:16px;
+  }
+  .eyebrow::before{content:"";width:22px;height:2px;background:var(--brand);display:block;border-radius:2px}
+  h1{
+    font-size:clamp(28px,3.35vw,42px);line-height:1.24;letter-spacing:-.6px;
+    margin:0 0 16px;font-weight:700;color:var(--ink);
+  }
+  h1 em{
+    font-style:normal;position:relative;white-space:nowrap;
+    background:linear-gradient(180deg,transparent 66%,#cfe0ff 66%,#cfe0ff 92%,transparent 92%);
+  }
+  .lede{font-size:14.6px;line-height:1.85;color:var(--ink2);margin:0 0 22px;max-width:610px}
+  .lede b{color:var(--ink);font-weight:600}
+  .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--line);padding-top:18px;max-width:640px}
+  .fact{padding-right:12px}
+  .fact+.fact{border-left:1px solid var(--line);padding-left:16px}
+  .fact .n{display:block;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.5px;color:var(--ink);line-height:1.2}
+  .fact .n span{font-size:12px;font-weight:400;color:var(--ink3);letter-spacing:0;margin-left:2px}
+  .fact .l{display:block;font-size:11.8px;color:var(--ink3);margin-top:4px;line-height:1.4}
+
+  /* 右侧链路卡 */
+  .chain{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--sh-l);overflow:hidden;
+  }
+  .chain-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 15px;border-bottom:1px solid var(--line);background:#fbfcfd;
+  }
+  .chain-head .t{font-size:12.5px;font-weight:600;color:var(--ink2)}
+  .chain-head .s{font-family:var(--mono);font-size:10.5px;color:var(--ink3);letter-spacing:.4px}
+  .chain-body{padding:15px}
+  .urlbox{
+    font-family:var(--mono);font-size:11.6px;line-height:1.7;word-break:break-all;
+    background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:14px;
+  }
+  .urlbox .u{color:#334155}
+  .urlbox .k{color:var(--brand);font-weight:700}
+  .urlbox .v{color:#8a6a00;background:#fff8e6;border-radius:3px;padding:0 2px}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  .steps li{
+    position:relative;padding:0 0 12px 30px;font-size:12.8px;color:var(--ink2);line-height:1.55;
+    counter-increment:s;
+  }
+  .steps li:last-child{padding-bottom:0}
+  .steps li::before{
+    content:counter(s);position:absolute;left:0;top:1px;
+    width:19px;height:19px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    font-family:var(--mono);font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--brand-line);
+  }
+  .steps li::after{
+    content:"";position:absolute;left:9px;top:23px;bottom:2px;width:1px;background:var(--line2);
+  }
+  .steps li:last-child::after{display:none}
+  .steps b{color:var(--ink);font-weight:600}
+  .steps code{font-family:var(--mono);font-size:11.4px;background:#f1f4f9;padding:1px 4px;border-radius:3px;color:#2b3a4d}
+
+  /* ---------------- 三张卡 ---------------- */
+  .strip{max-width:1160px;margin:0 auto;padding:40px 24px 8px}
+  .strip-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .strip-head h2{font-size:15px;font-weight:700;margin:0;letter-spacing:.2px}
+  .strip-head span{font-size:12.5px;color:var(--ink3)}
+  .three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .tcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 18px 18px;box-shadow:var(--sh)}
+  .tcard .idx{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--brand);letter-spacing:1px}
+  .tcard h3{font-size:13.8px;margin:7px 0 8px;font-weight:700;letter-spacing:.1px}
+  .tcard p{margin:0;font-size:12.8px;line-height:1.75;color:var(--ink2)}
+  .tcard code{font-family:var(--mono);font-size:11.4px;background:#f1f4f9;padding:1px 4px;border-radius:3px;color:#2b3a4d}
+  .tcard .quote{
+    display:block;margin-top:10px;padding:7px 10px;border-left:2px solid var(--err-line);
+    background:#fdf6f5;border-radius:0 5px 5px 0;font-family:var(--mono);font-size:11.4px;color:#8c2f28;
+  }
+
+  /* ---------------- 工具区 ---------------- */
+  .tool{max-width:1160px;margin:0 auto;padding:44px 24px 30px;scroll-margin-top:70px}
+  .tool-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:2px}
+  .tool-head h2{font-size:19px;margin:0;letter-spacing:-.2px;font-weight:700}
+  .tool-head .d{font-size:13px;color:var(--ink2);margin:4px 0 0}
+  .quicksteps{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:var(--ink3)}
+  .quicksteps i{
+    font-style:normal;background:#fff;border:1px solid var(--line2);border-radius:20px;
+    padding:3px 10px;color:var(--ink2);white-space:nowrap;
+  }
+  .quicksteps i b{color:var(--brand);font-family:var(--mono);font-size:11px;margin-right:4px}
+
+  /* tabs */
+  .tabs{display:flex;gap:2px;margin:16px 0 14px;border-bottom:1px solid var(--line)}
+  .tab{
+    appearance:none;border:0;background:transparent;cursor:pointer;
+    padding:9px 15px;font-size:13.4px;color:var(--ink2);font-weight:500;
+    border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;
+    transition:color .15s,border-color .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+
+  /* 布局 */
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 18px 20px;box-shadow:var(--sh);
+  }
+  .card h2{
+    font-size:11.6px;text-transform:uppercase;letter-spacing:.9px;color:var(--ink3);
+    margin:0 0 15px;font-weight:700;
+  }
+
+  /* 表单 */
+  .field{margin-bottom:16px}
+  .field:last-child{margin-bottom:0}
+  .label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px;color:#28323f}
+  .label .hint{font-weight:400;color:var(--ink3);font-size:12px}
+  input[type=text],input[type=number],textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line2);border-radius:8px;
+    font-size:13.4px;font-family:inherit;color:var(--ink);background:#fff;
+    transition:border-color .15s,box-shadow .15s;outline:none;
+  }
+  textarea{font-family:var(--mono);font-size:12.4px;line-height:1.55;resize:vertical}
+  input::placeholder,textarea::placeholder{color:var(--ink4)}
+  input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(29,78,216,.13)}
+  .muted{color:var(--ink3);font-size:12px;margin-top:5px;line-height:1.6}
+  code{font-family:var(--mono);background:#f1f4f9;padding:1.5px 5px;border-radius:4px;font-size:11.8px;color:#2b3a4d}
+
+  /* 状态条 */
+  .status{display:none;align-items:flex-start;gap:7px;margin-top:8px;padding:7px 10px;border-radius:7px;font-size:12.4px;line-height:1.55}
+  .status.show{display:flex}
+  .status.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+  .status.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line)}
+  .status.err{background:var(--err-bg);color:var(--err);border:1px solid var(--err-line)}
+  .status .ico{font-weight:700;flex:0 0 auto}
+
+  /* 单选卡片 */
+  .radios{display:flex;flex-direction:column;gap:8px}
+  .radio{
+    display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line2);
+    border-radius:8px;cursor:pointer;transition:all .13s;background:#fff;
+  }
+  .radio:hover{border-color:#b8c4d6}
+  .radio.on{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 1px var(--brand) inset}
+  .radio input{margin:3px 0 0;accent-color:var(--brand);flex:0 0 auto}
+  .radio>span{display:block;min-width:0}
+  .radio .t{display:block;font-weight:600;font-size:13px}
+  .radio .d{display:block;color:var(--ink2);font-size:12.1px;line-height:1.45}
+  .radio .d b{color:var(--ink);font-weight:600}
+
+  /* 按钮 */
+  button.btn{
+    appearance:none;border:1px solid var(--brand);background:var(--brand);color:#fff;
+    padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;
+    font-family:inherit;transition:background .14s,transform .06s,box-shadow .14s;
+    box-shadow:0 1px 2px rgba(29,78,216,.22);
+  }
+  button.btn:hover{background:var(--brand-d);border-color:var(--brand-d)}
+  button.btn:active{transform:translateY(1px)}
+  button.btn:disabled{opacity:.55;cursor:not-allowed}
+  button.btn.block{width:100%;padding:11px}
+  button.ghost{
+    border:1px solid var(--line2);background:#fff;color:var(--ink2);
+    padding:6px 12px;border-radius:7px;font-size:12.4px;font-weight:500;cursor:pointer;
+    font-family:inherit;transition:all .13s;white-space:nowrap;
+  }
+  button.ghost:hover{border-color:var(--brand);color:var(--brand);background:#f7faff}
+  button.ghost.copied{border-color:var(--ok-line);color:var(--ok);background:var(--ok-bg)}
+  .btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  .btnrow.sm{gap:7px;margin-top:9px}
+  .btnrow.sm button{padding:5px 10px;font-size:12px}
+  button.ghost.arm{border-color:#e0a83c;color:var(--warn);background:var(--warn-bg)}
+  .label .hint.save-ok{color:var(--ok)}
+  .label .hint.save-dirty{color:var(--warn)}
+  .label .hint.save-off{color:var(--err)}
+
+  /* 结果块 */
+  .result{border:1px solid var(--line);border-radius:9px;margin-bottom:11px;overflow:hidden;background:#fbfcfe}
+  .result:last-child{margin-bottom:0}
+  .result .head{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:7px 10px;background:#f5f7fa;border-bottom:1px solid var(--line);
+  }
+  .result .head .name{font-size:12.1px;font-weight:600;color:var(--ink2)}
+  .result .head .meta{font-size:11.4px;color:var(--ink3);font-weight:400;margin-left:6px}
+  .result .body{
+    padding:10px;font-family:var(--mono);font-size:12.2px;line-height:1.6;
+    word-break:break-all;white-space:pre-wrap;color:#26313f;max-height:190px;overflow:auto;
+  }
+  .result .body.plain{color:#7a4b00}
+  .result .body.empty{color:var(--ink3);font-family:inherit;font-style:italic;font-size:12.5px}
+  .result.hl{border-color:var(--brand-line);background:#fdfdff}
+  .result.hl .head{background:#eef4ff}
+  .result.hl .head .name{color:var(--brand)}
+
+  /* 表格 */
+  .tablebox{border:1px solid var(--line);border-radius:9px;overflow:auto;max-height:460px;background:#fff}
+  table{border-collapse:collapse;width:100%;font-size:12.4px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f5f7fa;font-weight:600;color:var(--ink2);position:sticky;top:0;z-index:1;white-space:nowrap;font-size:11.8px}
+  td.mono{font-family:var(--mono);word-break:break-all;font-size:11.6px;color:#33404f;max-width:340px}
+  tr:last-child td{border-bottom:0}
+
+  /* 导入 */
+  .import-area{
+    border:2px dashed var(--line2);border-radius:10px;padding:20px 16px;text-align:center;
+    background:#fbfcfe;transition:all .15s;cursor:pointer;
+  }
+  .import-area:hover{border-color:var(--brand);background:#f7faff}
+  .import-area.over{border-color:var(--brand);background:var(--brand-soft);border-style:solid}
+  .dz-icon{font-size:19px;color:var(--ink3);line-height:1;margin-bottom:7px}
+  .dz-main{font-size:13.4px;color:var(--ink)}
+  .dz-sub{font-size:12px;color:var(--ink3);margin-top:5px;line-height:1.5}
+  .link{color:var(--brand);text-decoration:underline;cursor:pointer;font-weight:600}
+  .import-opts{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:12px;padding:10px 13px;
+    background:#f5f7fa;border:1px solid var(--line);border-radius:8px;font-size:12.4px;color:var(--ink2);
+  }
+  .import-opts select{
+    padding:4px 8px;border:1px solid var(--line2);border-radius:6px;font-size:12.4px;
+    font-family:inherit;background:#fff;color:var(--ink);max-width:260px;
+  }
+  .import-opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
+  .import-opts input[type=checkbox]{accent-color:var(--brand)}
+
+  /* 导出 */
+  .export-bar{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  }
+  .export-label{font-size:12.4px;color:var(--ink3);font-weight:600;margin-right:2px}
+  .export-sub{display:block;font-weight:400;color:var(--ink4);font-size:10.8px;margin-top:1px}
+  .export-bar .spacer{flex:1 1 auto}
+
+  /* 说明折叠 */
+  details.doc{
+    margin-top:16px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:0;overflow:hidden;box-shadow:var(--sh);
+  }
+  details.doc>summary{
+    cursor:pointer;padding:14px 18px;font-weight:600;font-size:13.4px;list-style:none;
+    display:flex;align-items:center;gap:8px;user-select:none;
+  }
+  details.doc>summary::-webkit-details-marker{display:none}
+  details.doc>summary::before{content:"▸";color:var(--ink3);transition:transform .15s;display:inline-block}
+  details.doc[open]>summary::before{transform:rotate(90deg)}
+  details.doc .inner{padding:0 18px 18px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+  details.doc .inner h3{font-size:13.4px;color:var(--ink);margin:16px 0 7px;font-weight:700}
+  details.doc .inner h3:first-child{margin-top:14px}
+  details.doc .inner ol,details.doc .inner ul{margin:6px 0;padding-left:22px}
+  details.doc .inner li{margin:4px 0}
+  details.doc .inner code{font-family:var(--mono);background:#f1f4f9;padding:1.5px 5px;border-radius:4px;font-size:11.8px;color:#2b3a4d;word-break:break-all}
+  details.doc .inner pre{
+    background:#f7f9fc;border:1px solid var(--line);border-radius:7px;padding:10px 12px;
+    overflow:auto;font-family:var(--mono);font-size:11.8px;margin:7px 0;line-height:1.55;
+  }
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0;font-size:12.4px}
+  .kv b{color:var(--ink);font-weight:600}
+  .note{padding:9px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line);font-size:12.4px;margin:10px 0;line-height:1.65}
+  .note.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+
+  /* ---------------- 底座 ---------------- */
+  .base{background:#fff;border-top:1px solid var(--line);margin-top:26px;scroll-margin-top:70px}
+  .base-in{max-width:1160px;margin:0 auto;padding:42px 24px 46px}
+  .base h2{font-size:16px;margin:0 0 4px;letter-spacing:-.2px}
+  .base .sub{font-size:12.8px;color:var(--ink3);margin:0 0 22px}
+  .base-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .bcard{border:1px solid var(--line);border-radius:11px;padding:15px 16px;background:#fcfdfe}
+  .bcard .t{font-size:12.8px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .bcard .t i{width:6px;height:6px;border-radius:50%;background:var(--brand);display:block;flex:0 0 auto}
+  .bcard .d{font-size:12.3px;color:var(--ink2);line-height:1.7}
+  .bcard .d b{font-family:var(--mono);font-size:11.6px;color:var(--ink);font-weight:600}
+  .base-foot{
+    margin-top:22px;padding-top:16px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;
+    font-size:12px;color:var(--ink3);
+  }
+  .base-foot .l{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;background:var(--ok-bg);color:var(--ok);
+    border:1px solid var(--ok-line);padding:3px 9px;border-radius:20px;font-size:11.6px;font-weight:600;
+  }
+
+  .hidden{display:none!important}
+  .toast{
+    position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(12px);
+    background:#101828;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;
+    opacity:0;pointer-events:none;transition:all .22s;z-index:99;
+    box-shadow:0 8px 24px -8px rgba(16,24,40,.4);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:1000px){
+    .hero-in{grid-template-columns:1fr;gap:30px;padding:42px 24px 36px}
+    .three,.base-grid{grid-template-columns:1fr}
+    .topnav{display:none}
+  }
+  @media(max-width:920px){
+    .grid{grid-template-columns:1fr}
+    .facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 0}
+    .fact:nth-child(3){border-left:0;padding-left:0}
+  }
+  @media(max-width:600px){
+    .wrap,.tool,.strip,.base-in,.hero-in,.topbar-in{padding-left:16px;padding-right:16px}
+    h1{letter-spacing:-.3px}
+    .brandmark small{display:none}
+  }
+</style>
+</head>
+<body><div style="padding:8px;text-align:center;background:#eef2ff">示例体验：使用演示公钥和账号，数据仅在当前页面保存 <button id="resetDemo">恢复示例</button></div>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <span class="badge"><i></i>RSA 加密工具</span>
+    <span class="brandmark">批量一键加密生成器<small>帆软单点登录 · ssoToken 生成器</small></span>
+    <nav class="topnav">
+      <a data-scroll="#tool">打开工具</a>
+      <a data-scroll="#base">技术底座</a>
+      <a class="cta" data-scroll="#tool">立即使用</a>
+    </nav>
+  </div>
+</header>
+
+<main class="tool" id="tool">
+  <div class="tool-head">
+    <div>
+      <h2>打开工具</h2>
+      <p class="d">所有运算都在当前浏览器里完成。页面下方的「使用说明」写了帆软侧怎么配、报错怎么查。</p>
+    </div>
+    <div class="quicksteps">
+      <i><b>1</b>粘公钥</i>
+      <i><b>2</b>填账号</i>
+      <i><b>3</b>拿链接</i>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="single">单个加密</button>
+    <button class="tab" data-tab="batch">批量生成</button>
+    <button class="tab" data-tab="selfcheck">算法自检</button>
+  </div>
+
+  <!-- ================= 单个加密 ================= -->
+  <div id="panel-single">
+    <div class="grid">
+
+      <!-- 左：配置 -->
+      <div class="card">
+        <h2>① 配置与输入</h2>
+
+        <div id="storeWarn" class="status warn" style="margin:0 0 14px"></div>
+
+        <div class="field">
+          <div class="label"><span>帆软访问地址</span><span class="hint">到 decision 为止</span></div>
+          <input type="text" id="baseUrl" placeholder="http://10.0.0.5:8075/webroot/decision" spellcheck="false">
+          <div class="muted">默认工程名为 webroot。最终会拼成 <code>&lt;地址&gt;?ssoToken=&lt;密文&gt;</code></div>
+        </div>
+
+        <div class="field">
+          <div class="label">
+            <span>RSA Public Key</span>
+            <span class="hint" id="pubSaveState">尚未保存</span>
+          </div>
+          <textarea id="pubKey" rows="6" placeholder="粘贴以 MIIBIjANBgkqhkiG9w0BAQEF... 开头的公钥&#10;带换行、带 BEGIN PUBLIC KEY 头尾都可以，会自动清理" spellcheck="false"></textarea>
+          <div class="btnrow sm">
+            <button class="ghost" id="savePubBtn">保存公钥</button>
+            <button class="ghost" disabled title="安装应用后可下载" id="expCfgBtn">导出配置</button>
+            <button class="ghost" id="impCfgBtn">导入配置</button>
+            <button class="ghost" disabled title="安装应用后可下载" id="bakeBtn">生成免粘贴副本</button>
+            <button class="ghost" id="clearCfgBtn">清空</button>
+          </div>
+          <input type="file" id="cfgFile" accept=".json,application/json" style="display:none">
+          <div class="muted">示例数据仅保存在当前页面，关闭后重置。</div>
+          <div id="pubStatus" class="status"></div>
+        </div>
+
+        <div class="field">
+          <div class="label"><span>用户名</span><span class="hint">必须是帆软平台里已存在的账号</span></div>
+          <input type="text" id="username" placeholder="例如：zhangsan" spellcheck="false" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <div class="label"><span>明文格式</span><span class="hint">要和插件版本对应，选错会登录失败</span></div>
+          <div class="radios" id="modeGroup">
+            <label class="radio on" data-mode="plain">
+              <input type="radio" name="mode" value="plain" checked>
+              <span>
+                <span class="t">仅用户名（默认）</span>
+                <span class="d">插件<b>未开启</b>「ssoToken 超时设置」时用这个</span>
+              </span>
+            </label>
+            <label class="radio" data-mode="json">
+              <input type="radio" name="mode" value="json">
+              <span>
+                <span class="t">用户名 + 时间戳 JSON</span>
+                <span class="d">插件 V1.1.0 及以上<b>开启</b>「ssoToken 超时设置」时用这个</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn block" id="genBtn">生成 ssoToken</button>
+        </div>
+      </div>
+
+      <!-- 右：结果 -->
+      <div class="card">
+        <h2>② 生成结果</h2>
+
+        <div class="result">
+          <div class="head"><span class="name">实际加密的明文<span class="meta" id="plainMeta"></span></span>
+            <button class="ghost" data-copy="plainOut">复制</button>
+          </div>
+          <div class="body plain empty" id="plainOut">等待生成…</div>
+        </div>
+
+        <div class="result hl">
+          <div class="head"><span class="name">ssoToken（已 URL 编码）<span class="meta" id="tokenMeta"></span></span>
+            <button class="ghost" data-copy="encodedOut">复制</button>
+          </div>
+          <div class="body empty" id="encodedOut">等待生成…</div>
+        </div>
+
+        <div class="result hl">
+          <div class="head"><span class="name">完整免登链接</span>
+            <button class="ghost" data-copy="urlOut">复制</button>
+          </div>
+          <div class="body empty" id="urlOut">等待生成…</div>
+        </div>
+
+        <details style="margin-top:6px">
+          <summary style="cursor:pointer;font-size:12.4px;color:var(--ink3);padding:4px 0">显示未编码的原始 Base64 密文</summary>
+          <div class="result" style="margin-top:8px">
+            <div class="head"><span class="name">ssoToken（原始 Base64）</span>
+              <button class="ghost" data-copy="rawOut">复制</button>
+            </div>
+            <div class="body empty" id="rawOut">等待生成…</div>
+          </div>
+        </details>
+
+        <div class="btnrow">
+          <button class="ghost" id="openBtn">在浏览器中打开免登链接</button>
+        </div>
+        <div id="resultStatus" class="status"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= 批量 ================= -->
+  <div id="panel-batch" class="hidden">
+    <div class="card">
+      <h2>批量生成 · 支持 Excel 导入导出</h2>
+
+      <div class="import-area" id="dropzone">
+        <div class="dz-icon">↓</div>
+        <div class="dz-main">把 Excel / CSV 文件拖到这里，或 <span class="link" id="pickBtn">点击选择文件</span></div>
+        <div class="dz-sub">支持 .xlsx / .csv / .txt；也可以直接从 Excel 里复制一列，粘贴到下面的框里</div>
+        <input type="file" id="fileInput" accept=".xlsx,.csv,.txt,.xls" hidden>
+      </div>
+
+      <div class="import-opts hidden" id="importOpts">
+        <label>用户名所在列：<select id="colSelect"></select></label>
+        <label><input type="checkbox" id="hasHeader" checked> 首行是表头（不当作用户名）</label>
+      </div>
+      <div id="importStatus" class="status"></div>
+
+      <div class="grid" style="gap:16px;margin-top:16px">
+        <div>
+          <div class="label"><span>用户名列表</span><span class="hint">每行一个，可手动改</span></div>
+          <textarea id="batchUsers" rows="10" placeholder="zhangsan&#10;lisi&#10;wangwu" spellcheck="false"></textarea>
+          <div class="muted">共用上方的访问地址与 RSA 公钥；明文格式由「单个加密」页签选的模式决定。空行自动跳过。</div>
+          <div class="btnrow">
+            <button class="btn" id="batchBtn">批量生成</button>
+            <button class="ghost" id="batchClear">清空</button>
+          </div>
+        </div>
+        <div>
+          <div class="label"><span>生成结果</span><span class="hint" id="batchInfo">尚未生成</span></div>
+          <div class="tablebox"><table id="batchTable"><thead><tr>
+            <th style="width:22%">用户名</th><th style="width:39%">ssoToken（URL 编码）</th><th>免登链接</th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="export-bar">
+        <span class="export-label">导出结果<span class="export-sub">安装应用后可下载结果</span></span>
+        <button class="ghost" disabled title="安装应用后可下载" id="expXlsx">Excel（.xlsx）</button>
+        <button class="ghost" disabled title="安装应用后可下载" id="expCsv">CSV</button>
+        <button class="ghost" disabled title="安装应用后可下载" id="expTxt">TXT（仅链接）</button>
+        <button class="ghost" id="batchCopy">复制为表格</button>
+        <span class="spacer"></span>
+        <button class="ghost" disabled title="安装应用后可下载" id="tplBtn">下载导入模板</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 自检 ================= -->
+  <div id="panel-selfcheck" class="hidden">
+    <div class="card">
+      <h2>算法自检</h2>
+      <p style="margin-top:0;color:var(--ink2);font-size:13px">
+        用临时生成的一对 2048 位测试密钥，跑一遍「加密 → 解密」闭环，确认本工具生成的密文格式与帆软服务端一致。
+        自检密钥仅保存在当前页面内存，与你的真实环境无关。
+      </p>
+      <div class="btnrow"><button class="btn" id="selfBtn">运行自检</button></div>
+      <div id="selfResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- ================= 说明 ================= -->
+  <details class="doc">
+    <summary>使用说明 · 帆软侧怎么配 · 报错怎么查</summary>
+    <div class="inner">
+
+      <h3>帆软后台要做的配置</h3>
+      <ol>
+        <li>安装<b>「后台单点登录插件」</b>（帆软市场可下载），重启工程。</li>
+        <li>超管进平台：<code>管理系统 → 系统管理 → 集成后台单点登录</code>。</li>
+        <li>选择<b>「用户名加密」</b>方案，点<b>「生成 RSA Key」</b> 并保存 —— 插件只支持它自己生成的 Key，不能自定义。</li>
+        <li>把页面上显示的 <b>Public Key</b> 整段复制到本工具左侧。</li>
+        <li>如果开启了 <b>「ssoToken 超时设置」</b>，本工具的明文格式要选「用户名 + 时间戳 JSON」。</li>
+      </ol>
+
+      <h3>两种明文格式怎么选（最稳的办法）</h3>
+      <div class="kv">
+        <b>插件未开超时</b><span>明文 = <code>zhangsan</code></span>
+        <b>插件开了超时</b><span>明文 = <code>{"username":"zhangsan","issueTime":1759225445123}</code></span>
+      </div>
+      <p style="margin:6px 0">拿不准就用<b>帆软后台自带的「解密测试」</b>验证：先按一种模式生成，把密文贴进帆软那个「解密测试」框点解密 ——
+      能解出<b>用户名（或用户名+时间戳）</b>，说明模式选对了；解出来是乱码或报错，就换另一种模式。</p>
+
+      <h3>加密算法（与帆软官方 Java 示例完全一致）</h3>
+      <div class="kv">
+        <b>公钥格式</b><span>X.509 / SubjectPublicKeyInfo（DER）的 Base64</span>
+        <b>算法</b><span>RSA / ECB / PKCS1Padding</span>
+        <b>明文编码</b><span>UTF-8</span>
+        <b>分块长度</b><span>245 字节 / 块（2048 位密钥下 PKCS1 上限），逐块加密后拼接</span>
+        <b>输出</b><span>整体 Base64 → 再做 URL 编码</span>
+        <b>参数名</b><span><code>ssoToken</code></span>
+      </div>
+      <pre>http://ip:port/webroot/decision?ssoToken=&lt;加密后再URL编码的内容&gt;</pre>
+
+      <h3>常见报错</h3>
+      <ul>
+        <li><b>登录超时，请重新登录</b> —— token 过期了。开超时模式时，时间戳必须在「登录超时时间」范围内，所以要在用户点击的<b>那一刻</b>实时生成，不能提前算好存起来。</li>
+        <li><b>Decryption error / 解密失败</b> —— 多半是公钥和帆软当前配置的不是同一对（改过 Key 或重新生成过）。重新复制一次 Public Key。</li>
+        <li><b>用户名不存在</b> —— 帆软平台里没有这个账号，或者开启单点登录后普通登录入口被关了。</li>
+        <li><b>cptx 模板报 Decryption error</b> —— 插件 V1.1.1 之前对新计算引擎的 cptx 模板不兼容，把 cptx 嵌进 frm，或先跳 cpt 再转 cptx。</li>
+      </ul>
+
+      <h3>在 OA 里怎么用</h3>
+      <p style="margin:6px 0">免登链接是<b>一次性、带时效</b>的，正确做法是把加密逻辑放到 OA 服务端：
+      用户点菜单 → OA 后端用公钥加密该用户账号 → 302 跳转到帆软。</p>
+      <p style="margin:6px 0">OA 后端拿不到 Java 环境时，可以照抄本工具的算法（RSA/ECB/PKCS1Padding + Base64 + URLEncode），
+      本工具「批量生成」页签就是给运维临时出链接、对账号用的。</p>
+
+      <div class="note">
+        <b>安全提醒：</b>公钥可以随便存，但明文模式生成的 token 是固定值，谁拿到链接谁就能登录。
+        正式环境建议开启 ssoToken 超时设置，并让 OA 在跳转瞬间实时生成。
+      </div>
+    </div>
+  </details>
+</main>
+
+<section class="base" id="base">
+  <div class="base-in">
+    <h2>技术底座</h2>
+    <p class="sub">没有用任何加密库和表格库。两套内核都是手写的，并且做了双向交叉验证。</p>
+    <div class="base-grid">
+      <div class="bcard">
+        <div class="t"><i></i>RSA 内核</div>
+        <div class="d">自己解 DER 拿模数和指数，自己实现 PKCS#1 v1.5 填充和 BigInt 模幂，245 字节分块。<b>与 OpenSSL 双向交叉</b>：本工具加密、OpenSSL 解密，以及反过来，全部还原正确。</div>
+      </div>
+      <div class="bcard">
+        <div class="t"><i></i>表格内核</div>
+        <div class="d">手工拼 OOXML、手工写 ZIP（含 CRC32 与中央目录），读的时候走浏览器原生 <b>DecompressionStream</b>。<b>与 SheetJS 双向交叉</b>，中文、特殊字符、长文本都一致。</div>
+      </div>
+      <div class="bcard">
+        <div class="t"><i></i>测试</div>
+        <div class="d">支持在页面内运行加密与解密自检。</div>
+      </div>
+      <div class="bcard">
+        <div class="t"><i></i>隐私</div>
+        <div class="d">加密在浏览器中完成。安装应用的配置保存在应用数据库；请谨慎保管生成的登录链接。</div>
+      </div>
+    </div>
+    <div class="base-foot">
+      <div class="l">
+        <span class="pill">纯本地运算</span>
+        <span class="pill">浏览器内加密</span>
+        <span class="pill">支持配置导出</span>
+        <span>批量一键加密工具</span>
+      </div>
+      <div>批量一键加密生成器 · 帆软单点登录 ssoToken 生成工具</div>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     RsaCore —— 加密内核（与 rsa-core.js 完全相同，已通过 OpenSSL 交叉验证）
+     ============================================================ -->
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) { module.exports = factory(); }
+  else { root.RsaCore = factory(); }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  var B64LOOKUP = (function () {
+    var m = Object.create(null);
+    for (var i = 0; i < B64.length; i++) m[B64.charAt(i)] = i;
+    return m;
+  })();
+
+  function bytesToBase64(bytes) {
+    var out = '', i = 0, len = bytes.length;
+    for (; i + 2 < len; i += 3) {
+      var n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+      out += B64.charAt((n >>> 18) & 63) + B64.charAt((n >>> 12) & 63) +
+             B64.charAt((n >>> 6) & 63) + B64.charAt(n & 63);
+    }
+    var rest = len - i;
+    if (rest === 1) {
+      var n1 = bytes[i] << 16;
+      out += B64.charAt((n1 >>> 18) & 63) + B64.charAt((n1 >>> 12) & 63) + '==';
+    } else if (rest === 2) {
+      var n2 = (bytes[i] << 16) | (bytes[i + 1] << 8);
+      out += B64.charAt((n2 >>> 18) & 63) + B64.charAt((n2 >>> 12) & 63) +
+             B64.charAt((n2 >>> 6) & 63) + '=';
+    }
+    return out;
+  }
+
+  function base64ToBytes(input) {
+    var str = String(input).replace(/[\s\r\n\t]+/g, '');
+    var out = [], buffer = 0, bits = 0;
+    for (var i = 0; i < str.length; i++) {
+      var ch = str.charAt(i);
+      if (ch === '=') break;
+      var v = B64LOOKUP[ch];
+      if (v === undefined) throw new Error('非法的 Base64 字符："' + ch + '"');
+      buffer = (buffer << 6) | v;
+      bits += 6;
+      if (bits >= 8) { bits -= 8; out.push((buffer >>> bits) & 0xff); buffer &= (1 << bits) - 1; }
+    }
+    return out;
+  }
+
+  function utf8Encode(str) { return Array.prototype.slice.call(new TextEncoder().encode(String(str))); }
+  function utf8Decode(bytes) { return new TextDecoder('utf-8').decode(new Uint8Array(bytes)); }
+
+  var HEX = [];
+  for (var h = 0; h < 256; h++) HEX.push((h < 16 ? '0' : '') + h.toString(16));
+
+  function bytesToBigInt(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += HEX[bytes[i] & 0xff];
+    return s ? BigInt('0x' + s) : 0n;
+  }
+
+  function bigIntToBytes(value, length) {
+    var hex = value.toString(16);
+    if (hex.length % 2) hex = '0' + hex;
+    var out = [];
+    for (var i = 0; i < hex.length; i += 2) out.push(parseInt(hex.substr(i, 2), 16));
+    while (out.length > length && out[0] === 0) out.shift();
+    while (out.length < length) out.unshift(0);
+    return out;
+  }
+
+  function bitLength(n) { return n === 0n ? 0 : n.toString(2).length; }
+
+  function modPow(base, exp, mod) {
+    base %= mod;
+    if (base < 0n) base += mod;
+    var result = 1n;
+    while (exp > 0n) {
+      if (exp & 1n) result = (result * base) % mod;
+      base = (base * base) % mod;
+      exp >>= 1n;
+    }
+    return result;
+  }
+
+  var randomByte = (function () {
+    var c = (typeof globalThis !== 'undefined' && globalThis.crypto) ? globalThis.crypto : null;
+    if (c && typeof c.getRandomValues === 'function') {
+      var pool = new Uint8Array(256), idx = 256;
+      return function () { if (idx >= 256) { c.getRandomValues(pool); idx = 0; } return pool[idx++]; };
+    }
+    return function () { throw new Error('浏览器缺少安全随机数，无法加密'); };
+  })();
+
+  function derRead(buf, pos, limit) {
+    if (pos >= limit) throw new Error('DER 数据意外结束');
+    var tag = buf[pos++];
+    if (pos >= limit) throw new Error('DER 数据意外结束');
+    var b = buf[pos++], len = 0;
+    if (b & 0x80) {
+      var n = b & 0x7f;
+      if (n === 0 || n > 4) throw new Error('不支持的 DER 长度编码');
+      len = 0;
+      for (var i = 0; i < n; i++) {
+        if (pos >= limit) throw new Error('DER 数据意外结束');
+        len = len * 256 + buf[pos++];
+      }
+    } else { len = b; }
+    var start = pos, end = pos + len;
+    if (end > limit) throw new Error('DER 长度越界');
+    return { tag: tag, start: start, end: end };
+  }
+
+  function stripPemPem(str) {
+    return String(str).replace(/-----BEGIN[^-]*-----/g, '').replace(/-----END[^-]*-----/g, '')
+      .replace(/[\s\r\n\t]+/g, '');
+  }
+
+  function parsePublicKey(keyStr) {
+    var der = base64ToBytes(stripPemPem(keyStr));
+    if (!der.length) throw new Error('公钥内容为空');
+    var outer = derRead(der, 0, der.length);
+    if (outer.tag !== 0x30) throw new Error('不是 RSA 公钥：缺少 DER SEQUENCE 结构');
+    var p = outer.start;
+    var alg = derRead(der, p, outer.end);
+    if (alg.tag !== 0x30) throw new Error('不是 RSA 公钥：缺少 AlgorithmIdentifier');
+    p = alg.start;
+    var oid = derRead(der, p, alg.end);
+    if (oid.tag !== 0x06) throw new Error('不是 RSA 公钥：缺少算法 OID');
+    if (der.slice(oid.start, oid.end).join('.') !== '42.134.72.134.247.13.1.1.1') {
+      throw new Error('这不是 RSA 公钥（算法 OID 不是 rsaEncryption）');
+    }
+    p = alg.end;
+    var bitStr = derRead(der, p, outer.end);
+    if (bitStr.tag !== 0x03) throw new Error('不是 RSA 公钥：缺少 BIT STRING');
+    var inner = derRead(der, bitStr.start + 1, bitStr.end);
+    if (inner.tag !== 0x30) throw new Error('不是 RSA 公钥：缺少 RSAPublicKey 结构');
+    var q = inner.start;
+    var mod = derRead(der, q, inner.end);
+    if (mod.tag !== 0x02) throw new Error('不是 RSA 公钥：缺少 modulus');
+    var modBytes = der.slice(mod.start, mod.end);
+    q = mod.end;
+    var exp = derRead(der, q, inner.end);
+    if (exp.tag !== 0x02) throw new Error('不是 RSA 公钥：缺少 publicExponent');
+    var expBytes = der.slice(exp.start, exp.end);
+    var n = bytesToBigInt(modBytes), e = bytesToBigInt(expBytes);
+    if (n <= 0n || e <= 0n) throw new Error('公钥参数非法');
+    var bits = bitLength(n);
+    return { n: n, e: e, bits: bits, keySize: Math.ceil(bits / 8) };
+  }
+
+  function parsePrivateKey(keyStr) {
+    var pem = String(keyStr);
+    var isPkcs1 = /BEGIN RSA PRIVATE KEY/.test(pem);
+    var der = base64ToBytes(stripPemPem(pem));
+    if (!der.length) throw new Error('私钥内容为空');
+    var outer = derRead(der, 0, der.length);
+    if (outer.tag !== 0x30) throw new Error('不是私钥：缺少 DER SEQUENCE');
+    var rsaSeq = outer;
+    if (!isPkcs1) {
+      var p = outer.start;
+      var ver = derRead(der, p, outer.end); p = ver.end;
+      var alg = derRead(der, p, outer.end); p = alg.end;
+      var octet = derRead(der, p, outer.end);
+      if (octet.tag !== 0x04) throw new Error('不是私钥：缺少 OCTET STRING');
+      rsaSeq = derRead(der, octet.start, octet.end);
+      if (rsaSeq.tag !== 0x30) throw new Error('不是私钥：缺少 RSAPrivateKey 结构');
+    }
+    var q = rsaSeq.start;
+    var version = derRead(der, q, rsaSeq.end); q = version.end;
+    var mod = derRead(der, q, rsaSeq.end); q = mod.end;
+    var pub = derRead(der, q, rsaSeq.end); q = pub.end;
+    var priv = derRead(der, q, rsaSeq.end); q = priv.end;
+    var n = bytesToBigInt(der.slice(mod.start, mod.end));
+    var e = bytesToBigInt(der.slice(pub.start, pub.end));
+    var d = bytesToBigInt(der.slice(priv.start, priv.end));
+    var bits = bitLength(n);
+    return { n: n, e: e, d: d, bits: bits, keySize: Math.ceil(bits / 8) };
+  }
+
+  var FRAGMENT_LENGTH = 245;
+
+  function pkcs1v15Pad(msgBytes, k) {
+    var psLen = k - 3 - msgBytes.length;
+    if (psLen < 8) throw new Error('单块明文过长（' + msgBytes.length + ' 字节）');
+    var em = new Array(k);
+    em[0] = 0x00; em[1] = 0x02;
+    for (var i = 0; i < psLen; i++) { var b = 0; while (b === 0) b = randomByte(); em[2 + i] = b; }
+    em[2 + psLen] = 0x00;
+    for (var j = 0; j < msgBytes.length; j++) em[3 + psLen + j] = msgBytes[j];
+    return em;
+  }
+
+  function pkcs1v15Unpad(em) {
+    if (em.length < 11) throw new Error('解密结果长度异常');
+    if (em[0] !== 0x00 || em[1] !== 0x02) throw new Error('padding 头不正确，可能不是同一对密钥');
+    var i = 2;
+    while (i < em.length && em[i] !== 0x00) i++;
+    if (i >= em.length) throw new Error('padding 分隔符缺失');
+    return em.slice(i + 1);
+  }
+
+  function encryptRaw(msgBytes, pub) {
+    if (!msgBytes.length) return [];
+    var k = pub.keySize;
+    var blockSize = Math.min(FRAGMENT_LENGTH, k - 11);
+    if (blockSize < 1) throw new Error('密钥长度过小，无法加密');
+    var out = [];
+    for (var off = 0; off < msgBytes.length; off += blockSize) {
+      var chunk = msgBytes.slice(off, off + blockSize);
+      var em = pkcs1v15Pad(chunk, k);
+      var c = modPow(bytesToBigInt(em), pub.e, pub.n);
+      var cb = bigIntToBytes(c, k);
+      for (var i = 0; i < cb.length; i++) out.push(cb[i]);
+    }
+    return out;
+  }
+
+  function decryptRaw(ctBytes, priv) {
+    if (!ctBytes.length) return [];
+    var k = priv.keySize;
+    if (ctBytes.length % k !== 0) throw new Error('密文长度不是密钥块长的整数倍');
+    var out = [];
+    for (var off = 0; off < ctBytes.length; off += k) {
+      var block = ctBytes.slice(off, off + k);
+      var m = modPow(bytesToBigInt(block), priv.d, priv.n);
+      var plain = pkcs1v15Unpad(bigIntToBytes(m, k));
+      for (var i = 0; i < plain.length; i++) out.push(plain[i]);
+    }
+    return out;
+  }
+
+  function encryptToBase64(plainText, publicKey) {
+    if (plainText === null || plainText === undefined || String(plainText) === '') return String(plainText || '');
+    var pub = typeof publicKey === 'string' ? parsePublicKey(publicKey) : publicKey;
+    return bytesToBase64(encryptRaw(utf8Encode(plainText), pub));
+  }
+
+  function decryptFromBase64(base64Token, privateKey) {
+    if (!base64Token) return '';
+    var priv = typeof privateKey === 'string' ? parsePrivateKey(privateKey) : privateKey;
+    return utf8Decode(decryptRaw(base64ToBytes(base64Token), priv));
+  }
+
+  return {
+    FRAGMENT_LENGTH: FRAGMENT_LENGTH,
+    bytesToBase64: bytesToBase64, base64ToBytes: base64ToBytes,
+    utf8Encode: utf8Encode, utf8Decode: utf8Decode,
+    bytesToBigInt: bytesToBigInt, bigIntToBytes: bigIntToBytes,
+    bitLength: bitLength, modPow: modPow,
+    parsePublicKey: parsePublicKey, parsePrivateKey: parsePrivateKey,
+    encryptRaw: encryptRaw, decryptRaw: decryptRaw,
+    encryptToBase64: encryptToBase64, decryptFromBase64: decryptFromBase64
+  };
+});
+</script>
+
+<!-- ============================================================
+     XlsxLite —— 精简版 xlsx 读写（与 xlsx-lite.js 相同，已与 SheetJS 交叉验证）
+     ============================================================ -->
+<script>
+/*!
+ * xlsx-lite.js — 精简版 xlsx 读写（零依赖，约 20KB）
+ *
+ * 写：手工构造 OOXML 包，ZIP 用 STORE（不压缩）方式，Excel / WPS / SheetJS 均可正常打开。
+ * 读：解析 ZIP 中央目录取文件；store 直接读，deflate 走浏览器原生 DecompressionStream。
+ *
+ * 只覆盖本工具需要的场景：纯文本单元格、单个/多个工作表、首行加粗。
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) { module.exports = factory(); }
+  else { root.XlsxLite = factory(); }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  /* ------------------------------------------------------------ 基础工具 */
+
+  function utf8(s) { return new TextEncoder().encode(String(s)); }
+  function utf8Decode(bytes) { return new TextDecoder('utf-8').decode(bytes); }
+
+  function concat(chunks) {
+    var total = 0, i;
+    for (i = 0; i < chunks.length; i++) total += chunks[i].length;
+    var out = new Uint8Array(total), off = 0;
+    for (i = 0; i < chunks.length; i++) { out.set(chunks[i], off); off += chunks[i].length; }
+    return out;
+  }
+
+  var CRC_TABLE = (function () {
+    var t = new Int32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    var c = -1;
+    for (var i = 0; i < bytes.length; i++) c = (c >>> 8) ^ CRC_TABLE[(c ^ bytes[i]) & 0xff];
+    return (c ^ -1) >>> 0;
+  }
+
+  /* ------------------------------------------------------------ ZIP 写入 */
+
+  function zipWrite(files) {
+    var now = new Date();
+    var dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xffff;
+    var dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xffff;
+
+    var body = [];
+    var central = [];
+    var offset = 0;
+
+    files.forEach(function (f) {
+      var nameBytes = utf8(f.name);
+      var size = f.data.length;
+      var crc = crc32(f.data);
+
+      var local = new Uint8Array(30 + nameBytes.length);
+      var lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);       // version needed
+      lv.setUint16(6, 0x0800, true);   // flags: 文件名为 UTF-8
+      lv.setUint16(8, 0, true);        // 压缩方式 0 = STORE
+      lv.setUint16(10, dosTime, true);
+      lv.setUint16(12, dosDate, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+      body.push(local, f.data);
+
+      var cen = new Uint8Array(46 + nameBytes.length);
+      var cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);       // version made by
+      cv.setUint16(6, 20, true);       // version needed
+      cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, dosTime, true);
+      cv.setUint16(14, dosDate, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);       // extra len
+      cv.setUint16(32, 0, true);       // comment len
+      cv.setUint16(34, 0, true);       // disk number
+      cv.setUint16(36, 0, true);       // internal attrs
+      cv.setUint32(38, 0, true);       // external attrs
+      cv.setUint32(42, offset, true);  // local header 偏移
+      cen.set(nameBytes, 46);
+      central.push(cen);
+
+      offset += local.length + size;
+    });
+
+    var centralSize = 0;
+    for (var i = 0; i < central.length; i++) centralSize += central[i].length;
+
+    var eocd = new Uint8Array(22);
+    var ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return concat(body.concat(central, [eocd]));
+  }
+
+  /* ------------------------------------------------------------ ZIP 读取 */
+
+  function zipRead(buf) {
+    var dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+
+    var eocd = -1;
+    var floor = Math.max(0, buf.length - 22 - 65535);
+    for (var i = buf.length - 22; i >= floor; i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('不是有效的 xlsx 文件（没找到 ZIP 结束记录）');
+
+    var count = dv.getUint16(eocd + 10, true);
+    var cdOffset = dv.getUint32(eocd + 16, true);
+    if (cdOffset >= buf.length) throw new Error('xlsx 文件结构异常');
+
+    var entries = [];
+    var p = cdOffset;
+    for (var k = 0; k < count; k++) {
+      if (p + 46 > buf.length || dv.getUint32(p, true) !== 0x02014b50) {
+        throw new Error('xlsx 中央目录损坏');
+      }
+      var method = dv.getUint16(p + 10, true);
+      var compSize = dv.getUint32(p + 20, true);
+      var nameLen = dv.getUint16(p + 28, true);
+      var extraLen = dv.getUint16(p + 30, true);
+      var commentLen = dv.getUint16(p + 32, true);
+      var localOffset = dv.getUint32(p + 42, true);
+      var name = utf8Decode(buf.subarray(p + 46, p + 46 + nameLen));
+      p += 46 + nameLen + extraLen + commentLen;
+
+      if (localOffset + 30 > buf.length || dv.getUint32(localOffset, true) !== 0x04034b50) {
+        throw new Error('xlsx 条目本地头损坏：' + name);
+      }
+      var lNameLen = dv.getUint16(localOffset + 26, true);
+      var lExtraLen = dv.getUint16(localOffset + 28, true);
+      var dataStart = localOffset + 30 + lNameLen + lExtraLen;
+      entries.push({
+        name: name,
+        method: method,
+        data: buf.subarray(dataStart, Math.min(dataStart + compSize, buf.length))
+      });
+    }
+    return entries;
+  }
+
+  function inflateRaw(data) {
+    if (typeof DecompressionStream === 'undefined') {
+      return Promise.reject(new Error('当前浏览器不支持解压 xlsx（缺少 DecompressionStream），请把文件另存为 CSV 后再导入'));
+    }
+    var ds = new DecompressionStream('deflate-raw');
+    var stream = new Blob([data.slice()]).stream().pipeThrough(ds);
+    return new Response(stream).arrayBuffer().then(function (ab) { return new Uint8Array(ab); });
+  }
+
+  /* -------------------------------------------------------------- XML */
+
+  function escXml(s) {
+    return String(s)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+
+  function parseXml(text) {
+    var doc = new DOMParser().parseFromString(text, 'application/xml');
+    var err = doc.getElementsByTagName('parsererror');
+    if (err && err.length) throw new Error('XML 解析失败');
+    return doc;
+  }
+
+  function tags(node, name) {
+    return node.getElementsByTagNameNS('*', name);
+  }
+
+  function childNode(node, name) {
+    for (var i = 0; i < node.childNodes.length; i++) {
+      var n = node.childNodes[i];
+      if (n.nodeType === 1 && (n.localName === name || n.nodeName === name)) return n;
+    }
+    return null;
+  }
+
+  function textOf(node) {
+    if (!node) return '';
+    var ts = tags(node, 't');
+    if (ts.length) {
+      var s = '';
+      for (var i = 0; i < ts.length; i++) s += ts[i].textContent;
+      return s;
+    }
+    return node.textContent || '';
+  }
+
+  /* ---------------------------------------------------- 列号 <-> 索引 */
+
+  function colName(index) {
+    var s = '';
+    var n = index + 1;
+    while (n > 0) {
+      var m = (n - 1) % 26;
+      s = String.fromCharCode(65 + m) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function colIndex(ref) {
+    var m = /^([A-Za-z]+)/.exec(String(ref || ''));
+    if (!m) return 0;
+    var s = m[1].toUpperCase(), n = 0;
+    for (var i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  /* ---------------------------------------------------------- 构造 xlsx */
+
+  var NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  var NS_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+  function safeSheetName(n, i) {
+    var s = String(n == null ? '' : n).replace(/[\[\]\*\?\/\\:]/g, '_').replace(/^'+|'+$/g, '').slice(0, 31);
+    return s || ('Sheet' + (i + 1));
+  }
+
+  function contentTypesXml(count) {
+    var s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    for (var i = 0; i < count; i++) {
+      s += '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ' +
+           'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    }
+    return s + '</Types>';
+  }
+
+  function rootRelsXml() {
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="' + NS_REL + '/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>';
+  }
+
+  function workbookXml(sheets) {
+    var s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="' + NS_MAIN + '" xmlns:r="' + NS_REL + '"><sheets>';
+    sheets.forEach(function (sh, i) {
+      s += '<sheet name="' + escXml(safeSheetName(sh.name, i)) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+    });
+    return s + '</sheets></workbook>';
+  }
+
+  function workbookRelsXml(count) {
+    var s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    for (var i = 0; i < count; i++) {
+      s += '<Relationship Id="rId' + (i + 1) + '" Type="' + NS_REL + '/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+    }
+    s += '<Relationship Id="rId' + (count + 1) + '" Type="' + NS_REL + '/styles" Target="styles.xml"/>';
+    return s + '</Relationships>';
+  }
+
+  function stylesXml() {
+    // 0 = 常规，1 = 加粗
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<styleSheet xmlns="' + NS_MAIN + '">' +
+      '<fonts count="2">' +
+      '<font><sz val="11"/><color theme="1"/><name val="Calibri"/></font>' +
+      '<font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/></font>' +
+      '</fonts>' +
+      '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="2">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '</cellXfs>' +
+      '</styleSheet>';
+  }
+
+  function sheetXml(sheet, opts) {
+    var rows = sheet.rows || [];
+    var widths = opts.colWidths || [];
+    var boldHeader = opts.boldHeader !== false;
+
+    var s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="' + NS_MAIN + '">';
+
+    if (widths.length) {
+      s += '<cols>';
+      for (var w = 0; w < widths.length; w++) {
+        s += '<col min="' + (w + 1) + '" max="' + (w + 1) + '" width="' + Number(widths[w]) + '" customWidth="1"/>';
+      }
+      s += '</cols>';
+    }
+
+    s += '<sheetData>';
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r] || [];
+      var cells = '';
+      for (var c = 0; c < row.length; c++) {
+        var v = row[c];
+        if (v === null || v === undefined || v === '') continue;
+        var style = (boldHeader && r === 0) ? ' s="1"' : '';
+        cells += '<c r="' + colName(c) + (r + 1) + '" t="inlineStr"' + style + '>' +
+                 '<is><t xml:space="preserve">' + escXml(v) + '</t></is></c>';
+      }
+      if (cells) s += '<row r="' + (r + 1) + '">' + cells + '</row>';
+    }
+    return s + '</sheetData></worksheet>';
+  }
+
+  /**
+   * 生成 xlsx。
+   * @param {Array<{name:string, rows:Array<Array<string>>}>} sheets
+   * @param {{colWidths?:number[], boldHeader?:boolean}} [opts]
+   * @returns {Uint8Array}
+   */
+  function buildXlsx(sheets, opts) {
+    opts = opts || {};
+    var files = [];
+    var add = function (name, text) { files.push({ name: name, data: utf8(text) }); };
+
+    add('[Content_Types].xml', contentTypesXml(sheets.length));
+    add('_rels/.rels', rootRelsXml());
+    add('xl/workbook.xml', workbookXml(sheets));
+    add('xl/_rels/workbook.xml.rels', workbookRelsXml(sheets.length));
+    add('xl/styles.xml', stylesXml());
+    sheets.forEach(function (sh, i) {
+      add('xl/worksheets/sheet' + (i + 1) + '.xml', sheetXml(sh, opts));
+    });
+    return zipWrite(files);
+  }
+
+  /* ---------------------------------------------------------- 解析 xlsx */
+
+  function parseSharedStrings(text) {
+    var doc = parseXml(text);
+    var out = [];
+    var siList = tags(doc, 'si');
+    for (var i = 0; i < siList.length; i++) out.push(textOf(siList[i]));
+    return out;
+  }
+
+  function parseSheetText(text, shared) {
+    var doc = parseXml(text);
+    var rowNodes = tags(doc, 'row');
+    var rows = [];
+
+    for (var i = 0; i < rowNodes.length; i++) {
+      var rowNode = rowNodes[i];
+      var rIdx = parseInt(rowNode.getAttribute('r'), 10);
+      if (!isFinite(rIdx) || rIdx < 1) rIdx = i + 1;
+
+      var arr = rows[rIdx - 1] || (rows[rIdx - 1] = []);
+      var cellNodes = tags(rowNode, 'c');
+
+      for (var j = 0; j < cellNodes.length; j++) {
+        var c = cellNodes[j];
+        var ref = c.getAttribute('r');
+        var ci = ref ? colIndex(ref) : j;
+        var type = c.getAttribute('t');
+        var value = '';
+
+        if (type === 'inlineStr') {
+          value = textOf(childNode(c, 'is'));
+        } else if (type === 's') {
+          var vn = childNode(c, 'v');
+          var si = vn ? parseInt(vn.textContent, 10) : -1;
+          value = (shared && si >= 0 && si < shared.length) ? shared[si] : '';
+        } else {
+          var v2 = childNode(c, 'v');
+          value = v2 ? v2.textContent : '';
+        }
+        arr[ci] = value;
+      }
+    }
+
+    // 补齐空洞，并把每行都对齐到表格的最大列数
+    var maxCols = 0, k, m;
+    for (k = 0; k < rows.length; k++) {
+      if (!rows[k]) { rows[k] = []; continue; }
+      for (m = 0; m < rows[k].length; m++) {
+        if (rows[k][m] === undefined || rows[k][m] === null) rows[k][m] = '';
+      }
+      if (rows[k].length > maxCols) maxCols = rows[k].length;
+    }
+    for (k = 0; k < rows.length; k++) {
+      while (rows[k].length < maxCols) rows[k].push('');
+    }
+    return rows;
+  }
+
+  /**
+   * 解析 xlsx。
+   * @param {ArrayBuffer|Uint8Array} input
+   * @returns {Promise<Array<{name:string, rows:Array<Array<string>>}>>}
+   */
+  function parseXlsx(input) {
+    var bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+
+    var entries, map = {}, i;
+    try { entries = zipRead(bytes); }
+    catch (e) { return Promise.reject(e); }
+
+    for (i = 0; i < entries.length; i++) map[entries[i].name] = entries[i];
+
+    var cache = {};
+    function readText(name) {
+      if (Object.prototype.hasOwnProperty.call(cache, name)) return Promise.resolve(cache[name]);
+      var e = map[name] || map[name.replace(/^\//, '')] || map[name.replace(/^xl\//, 'xl/')];
+      if (!e) { cache[name] = null; return Promise.resolve(null); }
+      var p = e.method === 0 ? Promise.resolve(e.data) : inflateRaw(e.data);
+      return p.then(function (data) {
+        var text = utf8Decode(data);
+        cache[name] = text;
+        return text;
+      });
+    }
+
+    return readText('xl/sharedStrings.xml').then(function (ssText) {
+      var shared = ssText ? parseSharedStrings(ssText) : [];
+
+      return readText('xl/workbook.xml').then(function (wbText) {
+        var names = [];
+        if (wbText) {
+          var wbDoc = parseXml(wbText);
+          var shNodes = tags(wbDoc, 'sheet');
+          for (var n = 0; n < shNodes.length; n++) {
+            names.push(shNodes[n].getAttribute('name') || ('Sheet' + (n + 1)));
+          }
+        }
+
+        var sheetFiles = entries
+          .filter(function (e) { return /^xl\/worksheets\/sheet\d+\.xml$/.test(e.name); })
+          .map(function (e) { return e.name; })
+          .sort(function (a, b) {
+            return parseInt(a.match(/(\d+)/)[1], 10) - parseInt(b.match(/(\d+)/)[1], 10);
+          });
+
+        if (!sheetFiles.length) throw new Error('xlsx 里没有找到工作表');
+
+        return sheetFiles.reduce(function (chain, file, idx) {
+          return chain.then(function (acc) {
+            return readText(file).then(function (text) {
+              acc.push({ name: names[idx] || ('Sheet' + (idx + 1)), rows: parseSheetText(text, shared) });
+              return acc;
+            });
+          });
+        }, Promise.resolve([]));
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------ CSV 解析 */
+
+  /** 解析 CSV 文本为二维数组（支持引号包裹、转义双引号、引号内换行） */
+  function parseCsv(text) {
+    var s = String(text).replace(/^\uFEFF/, '');
+    var rows = [], row = [], field = '', inQuotes = false, i = 0;
+
+    while (i < s.length) {
+      var ch = s.charAt(i);
+      if (inQuotes) {
+        if (ch === '"') {
+          if (s.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === ',') { row.push(field); field = ''; i++; continue; }
+      if (ch === '\r') { i++; continue; }
+      if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += ch; i++;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function csvEscape(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function buildCsv(rows) {
+    return '\uFEFF' + rows.map(function (r) {
+      return (r || []).map(csvEscape).join(',');
+    }).join('\r\n');
+  }
+
+  return {
+    buildXlsx: buildXlsx,
+    parseXlsx: parseXlsx,
+    parseCsv: parseCsv,
+    buildCsv: buildCsv,
+    colName: colName,
+    colIndex: colIndex,
+    crc32: crc32,
+    zipWrite: zipWrite,
+    zipRead: zipRead
+  };
+});
+
+</script>
+
+<!-- 配置占位槽：点「生成免粘贴副本」时，下面这段 JSON 会被替换成真实配置，
+     副本首次打开就会自动填好公钥，不需要收件人再粘贴一次。 -->
+<script id="bakedCfg" type="application/json">null</script>
+
+<!-- ============================================================
+     页面逻辑
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+  var C = window.RsaCore;
+  var $ = function (id) { return document.getElementById(id); };
+  var CFG_KEY = 'fanruan_sso_tool_v1';
+
+  /* ---------- 内置测试密钥对（仅用于自检，非真实环境） ---------- */
+  var TEST_PUB, TEST_PRIV;
+
+  /* ---------- 工具函数 ---------- */
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.classList.remove('show'); }, 1600);
+  }
+
+  function setStatus(el, type, html) {
+    if (!type) { el.className = 'status'; el.innerHTML = ''; return; }
+    el.className = 'status show ' + type;
+    el.innerHTML = '<span class="ico">' + (type === 'ok' ? '✓' : type === 'warn' ? '!' : '×') + '</span><span>' + html + '</span>';
+  }
+
+  function setBody(el, text, emptyText) {
+    if (!text) { el.textContent = emptyText || '等待生成…'; el.classList.add('empty'); return; }
+    el.textContent = text;
+    el.classList.remove('empty');
+  }
+
+  function copyText(text) {
+    if (!text) { toast('没有可复制的内容'); return; }
+    var done = function () { toast('已复制'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动选中复制'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function download(name, content, mime) {
+    toast("示例体验不支持下载，请安装应用后使用"); return;
+    var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 500);
+  }
+
+  function currentMode() {
+    var r = document.querySelector('input[name=mode]:checked');
+    return r ? r.value : 'plain';
+  }
+
+  /** 根据模式构造待加密的明文 */
+  function buildPlain(username, mode) {
+    if (mode === 'json') {
+      return '{"username":"' + username.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '","issueTime":' + Date.now() + '}';
+    }
+    return username;
+  }
+
+  function buildUrl(base, tokenEncoded) {
+    var b = String(base || '').trim();
+    if (!b) return '';
+    b = b.replace(/[?&]+$/, '');
+    var sep = b.indexOf('?') >= 0 ? '&' : '?';
+    return b + sep + 'ssoToken=' + tokenEncoded;
+  }
+
+  /* ---------- 公钥校验 ---------- */
+  var pubCache = { key: '', obj: null, err: '' };
+
+  function validatePub() {
+    var raw = $('pubKey').value.trim();
+    var box = $('pubStatus');
+    if (!raw) { setStatus(box, null); pubCache = { key: '', obj: null, err: '' }; return null; }
+    if (raw === pubCache.key) return pubCache.obj;
+    try {
+      var obj = C.parsePublicKey(raw);
+      pubCache = { key: raw, obj: obj, err: '' };
+      var txt = '公钥有效：' + obj.bits + ' 位 RSA（每块最多加密 ' + Math.min(245, obj.keySize - 11) + ' 字节明文）';
+      if (obj.bits < 1024) txt += '。密钥偏短，强烈建议重新生成';
+      setStatus(box, obj.bits < 1024 ? 'warn' : 'ok', txt);
+      return obj;
+    } catch (e) {
+      pubCache = { key: raw, obj: null, err: e.message };
+      setStatus(box, 'err', '公钥无法解析：' + e.message);
+      return null;
+    }
+  }
+
+  /* ---------- 生成 ---------- */
+  function generate() {
+    var rbox = $('resultStatus');
+    var pub = validatePub();
+    if (!pub) { setStatus(rbox, 'err', '请先粘贴一个有效的 RSA 公钥'); $('pubKey').focus(); return; }
+    var username = $('username').value.trim();
+    if (!username) { setStatus(rbox, 'warn', '请填写用户名'); $('username').focus(); return; }
+
+    var mode = currentMode();
+    var plain = buildPlain(username, mode);
+    var t0 = performance.now();
+    var raw;
+    try { raw = C.encryptToBase64(plain, pub); }
+    catch (e) { setStatus(rbox, 'err', '加密失败：' + e.message); return; }
+    var ms = Math.round(performance.now() - t0);
+
+    var encoded = encodeURIComponent(raw);
+    var blocks = C.base64ToBytes(raw).length / pub.keySize;
+
+    setBody($('plainOut'), plain);
+    $('plainMeta').textContent = '(' + (mode === 'json' ? 'JSON 模式' : '纯用户名') + ')';
+    setBody($('rawOut'), raw);
+    setBody($('encodedOut'), encoded);
+    setBody($('urlOut'), buildUrl($('baseUrl').value, encoded));
+    $('tokenMeta').textContent = '(' + raw.length + ' 字符 / ' + blocks + ' 块)';
+
+    setStatus(rbox, 'ok', '生成成功，耗时 ' + ms + ' ms。' + (mode === 'json'
+      ? '已带当前毫秒时间戳，请在帆软设定的「登录超时时间」内使用，过期需重新生成。'
+      : '该密文无时效，凡是拿到链接的人都能登录，请只在安全渠道传递。'));
+    saveCfg();
+  }
+
+  /* ---------- 页签 ---------- */
+  var tabs = document.querySelectorAll('.tab');
+  Array.prototype.forEach.call(tabs, function (t) {
+    t.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (x) { x.classList.remove('on'); });
+      t.classList.add('on');
+      ['single', 'batch', 'selfcheck'].forEach(function (n) {
+        $('panel-' + n).classList.toggle('hidden', n !== t.dataset.tab);
+      });
+    });
+  });
+
+  /* ---------- 单选卡片高亮 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('#modeGroup .radio'), function (lab) {
+    lab.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('#modeGroup .radio'), function (x) { x.classList.remove('on'); });
+      lab.classList.add('on');
+      lab.querySelector('input').checked = true;
+      saveCfg();
+    });
+  });
+
+  /* ---------- 复制按钮 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+    btn.addEventListener('click', function () {
+      var el = $(btn.dataset.copy);
+      if (!el || el.classList.contains('empty')) { toast('还没有内容'); return; }
+      copyText(el.textContent);
+      btn.textContent = '已复制'; btn.classList.add('copied');
+      setTimeout(function () { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1300);
+    });
+  });
+
+  /* ---------- 打开链接 ---------- */
+  $('openBtn').addEventListener('click', function () {
+    var url = $('urlOut').textContent;
+    if (!url || $('urlOut').classList.contains('empty')) { toast('请先生成链接'); return; }
+    window.open(url, '_blank');
+  });
+
+  /* ---------- 批量 ---------- */
+  var batchRows = [];
+  var importedRows = null;
+
+  function renderBatchTable() {
+    var tb = $('batchTable').querySelector('tbody');
+    tb.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    batchRows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td'); td1.textContent = r.user;
+      var td2 = document.createElement('td'); td2.className = 'mono'; td2.textContent = r.enc;
+      var td3 = document.createElement('td'); td3.className = 'mono'; td3.textContent = r.url;
+      tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+      frag.appendChild(tr);
+    });
+    tb.appendChild(frag);
+  }
+
+  function runBatch() {
+    var pub = validatePub();
+    if (!pub) { toast('请先在「单个加密」页签粘贴有效的 RSA 公钥'); return; }
+    var mode = currentMode();
+    var base = $('baseUrl').value;
+    var lines = $('batchUsers').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!lines.length) { toast('请先输入用户名，每行一个'); return; }
+
+    var btn = $('batchBtn');
+    btn.disabled = true;
+    batchRows = [];
+    $('batchTable').querySelector('tbody').innerHTML = '';
+
+    // 分片生成，避免几百条时页面卡死
+    var i = 0, CHUNK = 30;
+    (function step() {
+      var end = Math.min(i + CHUNK, lines.length);
+      for (; i < end; i++) {
+        var u = lines[i];
+        var plain = buildPlain(u, mode);
+        var raw = C.encryptToBase64(plain, pub);
+        var enc = encodeURIComponent(raw);
+        batchRows.push({ user: u, plain: plain, raw: raw, enc: enc, url: buildUrl(base, enc) });
+      }
+      if (i < lines.length) {
+        btn.textContent = '生成中 ' + i + ' / ' + lines.length + ' …';
+        setTimeout(step, 0);
+        return;
+      }
+      btn.disabled = false;
+      btn.textContent = '批量生成';
+      renderBatchTable();
+      $('batchInfo').textContent = '共 ' + batchRows.length + ' 条 · ' + (mode === 'json' ? 'JSON+时间戳' : '纯用户名') + ' · 导出含两种 token';
+      toast('已生成 ' + batchRows.length + ' 条');
+    })();
+  }
+
+  $('batchBtn').addEventListener('click', runBatch);
+
+  $('batchClear').addEventListener('click', function () {
+    $('batchUsers').value = '';
+    batchRows = [];
+    importedRows = null;
+    $('batchTable').querySelector('tbody').innerHTML = '';
+    $('batchInfo').textContent = '尚未生成';
+    $('importOpts').classList.add('hidden');
+    setStatus($('importStatus'), null);
+    saveCfg();
+  });
+
+  /* ---------- 导出 ---------- */
+  function needRows() {
+    if (!batchRows.length) { toast('请先生成结果'); return false; }
+    return true;
+  }
+
+  function exportRows() {
+    var rows = [['用户名', 'ssoToken（原始 Base64）', 'ssoToken（URL 编码）', '免登链接', '加密明文']];
+    batchRows.forEach(function (r) { rows.push([r.user, r.raw, r.enc, r.url, r.plain]); });
+    return rows;
+  }
+
+  function stamp() {
+    var d = new Date();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+  }
+
+  var XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  $('expXlsx').addEventListener('click', function () {
+    if (!needRows()) return;
+    var sheetName = currentMode() === 'json' ? '免登token-带时间戳' : '免登token';
+    var buf = XlsxLite.buildXlsx([{ name: sheetName, rows: exportRows() }],
+      { colWidths: [22, 58, 58, 72, 44] });
+    download('帆软免登链接-' + stamp() + '.xlsx', buf, XLSX_MIME);
+    toast('已导出 Excel');
+  });
+
+  $('expCsv').addEventListener('click', function () {
+    if (!needRows()) return;
+    download('帆软免登链接-' + stamp() + '.csv', XlsxLite.buildCsv(exportRows()), 'text/csv;charset=utf-8');
+  });
+
+  $('expTxt').addEventListener('click', function () {
+    if (!needRows()) return;
+    var txt = batchRows.map(function (r) { return r.user + '\t' + r.url; }).join('\r\n');
+    download('帆软免登链接-' + stamp() + '.txt', txt, 'text/plain;charset=utf-8');
+  });
+
+  $('batchCopy').addEventListener('click', function () {
+    if (!needRows()) return;
+    var tsv = ['用户名\tssoToken（原始 Base64）\tssoToken（URL 编码）\t免登链接'].concat(
+      batchRows.map(function (r) { return r.user + '\t' + r.raw + '\t' + r.enc + '\t' + r.url; })
+    ).join('\n');
+    copyText(tsv);
+  });
+
+  $('tplBtn').addEventListener('click', function () {
+    var rows = [
+      ['用户名', '备注'],
+      ['zhangsan', '示例：填帆软平台里已存在的账号'],
+      ['lisi', '这一列随便写，导入时不看'],
+      ['wangwu', '']
+    ];
+    var buf = XlsxLite.buildXlsx([{ name: '用户名名单', rows: rows }], { colWidths: [24, 42] });
+    download('帆软免登-导入模板.xlsx', buf, XLSX_MIME);
+    toast('模板已下载，填好再拖回来');
+  });
+
+  /* ---------- 文件导入 ---------- */
+  function decodeTextFile(bytes) {
+    if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+    if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+      return new TextDecoder('utf-16le').decode(bytes);
+    }
+    var asUtf8 = new TextDecoder('utf-8').decode(bytes);
+    if (asUtf8.indexOf('\uFFFD') < 0) return asUtf8;
+    // 出现替换字符，多半是 Excel 另存为 CSV 时用了 GBK
+    try { return new TextDecoder('gbk').decode(bytes); } catch (e) {}
+    try { return new TextDecoder('gb18030').decode(bytes); } catch (e2) {}
+    return asUtf8;
+  }
+
+  function maxCols() {
+    var n = 0;
+    (importedRows || []).forEach(function (r) { if (r.length > n) n = r.length; });
+    return n;
+  }
+
+  var COL_HINTS = ['用户名', '账号', '帐号', '登录名', '登录账号', 'username', 'user', 'account', 'login',
+                   '用户', '工号', '员工编号', '姓名', 'name'];
+
+  function buildColSelect(auto) {
+    var sel = $('colSelect');
+    var n = maxCols();
+    var head = $('hasHeader').checked ? (importedRows[0] || []) : null;
+    var prev = sel.value;
+    sel.innerHTML = '';
+    if (auto) sel.dataset.auto = '';
+
+    for (var i = 0; i < n; i++) {
+      var opt = document.createElement('option');
+      opt.value = String(i);
+      var label = '第 ' + (i + 1) + ' 列';
+      if (head && head[i]) label += '：' + String(head[i]).slice(0, 12);
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+
+    // 按提示词优先级猜列：外层遍历提示词，内层遍历列
+    var pick = 0;
+    if (auto && head) {
+      var found = -1;
+      for (var k = 0; k < COL_HINTS.length && found < 0; k++) {
+        for (var j = 0; j < n; j++) {
+          if (String(head[j] || '').toLowerCase().indexOf(COL_HINTS[k]) >= 0) { found = j; break; }
+        }
+      }
+      if (found >= 0) pick = found;
+      sel.dataset.auto = found > 0 ? '1' : '';
+    }
+    sel.value = String(pick);
+    if (prev && !auto && parseInt(prev, 10) < n) sel.value = prev;
+  }
+
+  function syncFromImport(fileName) {
+    if (!importedRows) return;
+    var ci = parseInt($('colSelect').value, 10) || 0;
+    var start = $('hasHeader').checked ? 1 : 0;
+    var vals = [], skipped = 0;
+    for (var i = start; i < importedRows.length; i++) {
+      var v = importedRows[i][ci];
+      v = (v === undefined || v === null) ? '' : String(v).trim();
+      if (v) vals.push(v); else skipped++;
+    }
+    $('batchUsers').value = vals.join('\n');
+    var autoTip = $('colSelect').dataset.auto ? '（自动识别的用户名列）' : '';
+    setStatus($('importStatus'), 'ok',
+      (fileName ? '已读取「' + fileName + '」，' : '') +
+      '从第 ' + (ci + 1) + ' 列' + autoTip + '提取到 ' + vals.length + ' 个用户名' +
+      (skipped ? '，跳过 ' + skipped + ' 个空值' : '') + '。可直接编辑后生成。');
+    saveCfg();
+  }
+
+  function applyImported(rows, fileName) {
+    importedRows = (rows || []).filter(function (r) {
+      return r && r.length && r.some(function (c) { return String(c === undefined || c === null ? '' : c).trim() !== ''; });
+    });
+    if (!importedRows.length) {
+      setStatus($('importStatus'), 'err', '文件里没读到任何内容');
+      $('importOpts').classList.add('hidden');
+      return;
+    }
+    $('importOpts').classList.remove('hidden');
+    buildColSelect(true);
+    syncFromImport(fileName);
+  }
+
+  function handleFile(file) {
+    var name = file.name || '';
+    var lower = name.toLowerCase();
+
+    if (/\.xls$/.test(lower)) {
+      setStatus($('importStatus'), 'err',
+        '不支持旧版 .xls 二进制格式。请用 Excel 打开后「另存为」.xlsx 或 .csv，再拖进来。');
+      return;
+    }
+
+    if (/\.xlsx$/.test(lower)) {
+      setStatus($('importStatus'), 'warn', '正在解析 Excel…');
+      var rx = new FileReader();
+      rx.onload = function () {
+        XlsxLite.parseXlsx(new Uint8Array(rx.result)).then(function (sheets) {
+          applyImported(sheets[0].rows, name);
+          if (sheets.length > 1) {
+            setStatus($('importStatus'), 'ok',
+              '文件里有 ' + sheets.length + ' 个工作表（' + sheets.map(function (s) { return s.name; }).join('、') +
+              '），已读取第一个「' + sheets[0].name + '」。');
+          }
+        }, function (err) {
+          setStatus($('importStatus'), 'err', '读取 Excel 失败：' + err.message);
+        });
+      };
+      rx.onerror = function () { setStatus($('importStatus'), 'err', '文件读取失败'); };
+      rx.readAsArrayBuffer(file);
+      return;
+    }
+
+    if (/\.(csv|txt)$/.test(lower)) {
+      var rc = new FileReader();
+      rc.onload = function () {
+        var text = decodeTextFile(new Uint8Array(rc.result));
+        var rows;
+        if (/\.txt$/.test(lower) && text.indexOf(',') < 0 && text.indexOf('\t') >= 0) {
+          rows = text.split(/\r?\n/).map(function (l) { return [l]; });
+        } else {
+          rows = XlsxLite.parseCsv(text);
+        }
+        applyImported(rows, name);
+      };
+      rc.onerror = function () { setStatus($('importStatus'), 'err', '文件读取失败'); };
+      rc.readAsArrayBuffer(file);
+      return;
+    }
+
+    setStatus($('importStatus'), 'err', '不认识的文件类型，请使用 .xlsx 或 .csv');
+  }
+
+  (function bindDropzone() {
+    var dz = $('dropzone');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) {
+        e.preventDefault(); e.stopPropagation();
+        dz.classList.add('over');
+      });
+    });
+    ['dragleave', 'dragend'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) {
+        e.preventDefault();
+        dz.classList.remove('over');
+      });
+    });
+    dz.addEventListener('drop', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dz.classList.remove('over');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+    dz.addEventListener('click', function () { $('fileInput').click(); });
+    $('pickBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      $('fileInput').click();
+    });
+    $('fileInput').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) handleFile(f);
+      e.target.value = '';
+    });
+  })();
+
+  $('colSelect').addEventListener('change', function () {
+    $('colSelect').dataset.auto = '';
+    syncFromImport();
+  });
+  $('hasHeader').addEventListener('change', function () {
+    buildColSelect(true);
+    syncFromImport();
+  });
+
+  /* ---------- 自检 ---------- */
+  $('selfBtn').addEventListener('click', async function () {
+    var box = $('selfResult');
+    var lines = [], pass = 0, fail = 0;
+
+    function T(name, cond, extra) {
+      if (cond) { pass++; lines.push('<div style="color:#0f7a54">✓ ' + name + '</div>'); }
+      else { fail++; lines.push('<div style="color:#be2a49">✗ ' + name + (extra ? ' &nbsp;→ ' + extra : '') + '</div>'); }
+    }
+
+    try {
+      if (!crypto.subtle) throw new Error('浏览器缺少安全密钥生成能力');
+      var pair = await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
+      TEST_PUB = C.bytesToBase64(new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey)));
+      TEST_PRIV = C.bytesToBase64(new Uint8Array(await crypto.subtle.exportKey('pkcs8', pair.privateKey)));
+      var pub = C.parsePublicKey(TEST_PUB);
+      T('测试公钥解析成功（' + pub.bits + ' 位）', pub.bits === 2048);
+
+      // 1. 短用户名往返
+      ['Alice', '张伟', 'admin@corp.com'].forEach(function (u) {
+        var t = C.encryptToBase64(u, TEST_PUB);
+        var back = C.decryptFromBase64(t, TEST_PRIV);
+        T('「' + u + '」加密 → 解密 还原一致', back === u, 'got=' + back);
+      });
+
+      // 2. JSON 模式往返
+      var json = '{"username":"Alice","issueTime":' + Date.now() + '}';
+      var jt = C.encryptToBase64(json, TEST_PUB);
+      var jb = C.decryptFromBase64(jt, TEST_PRIV);
+      var jo = null; try { jo = JSON.parse(jb); } catch (e) {}
+      T('JSON 明文往返正确且可被解析', jb === json && jo && jo.username === 'Alice');
+
+      // 3. 分块边界
+      var t245 = C.base64ToBytes(C.encryptToBase64(new Array(246).join('A'), TEST_PUB));
+      T('245 字节 → 单块密文 256 字节', t245.length === 256, 'len=' + t245.length);
+      var t246 = C.base64ToBytes(C.encryptToBase64(new Array(247).join('A'), TEST_PUB));
+      T('246 字节 → 双块密文 512 字节', t246.length === 512, 'len=' + t246.length);
+
+      // 4. 长文本多块往返
+      var long = '超长文本分块测试'.repeat(40);
+      var lt = C.encryptToBase64(long, TEST_PUB);
+      T('长文本（' + C.utf8Encode(long).length + ' 字节）多块往返正确',
+        C.decryptFromBase64(lt, TEST_PRIV) === long);
+
+      // 5. Base64 与 btoa 交叉
+      var sample = [];
+      for (var i = 0; i < 64; i++) sample.push((i * 7 + 13) & 0xff);
+      var bin = ''; for (var j = 0; j < sample.length; j++) bin += String.fromCharCode(sample[j]);
+      T('Base64 编码与浏览器原生 btoa 一致', C.bytesToBase64(sample) === btoa(bin));
+
+      // 6. 随机性：同明文两次密文不同（PKCS1 随机 padding）
+      var a1 = C.encryptToBase64('Alice', TEST_PUB);
+      var a2 = C.encryptToBase64('Alice', TEST_PUB);
+      T('同明文两次加密密文不同（PKCS1 随机填充生效）', a1 !== a2);
+    } catch (e) {
+      fail++;
+      lines.push('<div style="color:#be2a49">✗ 自检异常：' + e.message + '</div>');
+    }
+
+    var cls = fail === 0 ? 'note ok' : 'note';
+    box.innerHTML = '<div class="' + cls + '" style="margin-bottom:10px">'
+      + (fail === 0 ? '全部通过：' + pass + ' 项。本地加密与解密自检通过。'
+                    : '通过 ' + pass + ' 项，失败 ' + fail + ' 项。请反馈该结果。')
+      + '</div>' + lines.join('');
+  });
+
+  /* ---------- 配置持久化 ---------- */
+  var DEFAULT_URL = 'http://127.0.0.1:8075/webroot/decision';
+
+  var storeOk = true;
+  var memCfg = null;
+  var savedSnap = '';     // 上次成功保存的内容指纹
+  var lastSavedAt = 0;
+  var bakeId = '';        // 「免粘贴副本」的标识，用来识别副本内置的配置
+
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function fmtClock(ts) {
+    var d = new Date(ts || Date.now());
+    return p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+
+  function collectCfg() {
+    return {
+      baseUrl: $('baseUrl').value,
+      pubKey: $('pubKey').value,
+      username: $('username').value,
+      batchUsers: $('batchUsers').value,
+      mode: currentMode(),
+      bakeId: bakeId,
+      savedAt: Date.now()
+    };
+  }
+
+  function snapOf(c) {
+    return [c.baseUrl, c.pubKey, c.username, c.batchUsers, c.mode].join('\u0001');
+  }
+
+  function paintSaveState() {
+    var el = $('pubSaveState');
+    if (!el) return;
+    if (!storeOk) {
+      el.className = 'hint save-off';
+      el.textContent = '页面存储不可用';
+      return;
+    }
+    if (!savedSnap) {
+      el.className = 'hint';
+      el.textContent = '尚未保存';
+      return;
+    }
+    if (snapOf(collectCfg()) !== savedSnap) {
+      el.className = 'hint save-dirty';
+      el.textContent = '有改动，未保存';
+      return;
+    }
+    el.className = 'hint save-ok';
+    el.textContent = '已保存 · ' + fmtClock(lastSavedAt);
+  }
+
+  function saveCfg() { memCfg = collectCfg(); lastSavedAt = memCfg.savedAt; savedSnap = snapOf(memCfg); paintSaveState(); return true; }
+
+  function setMode(m) {
+    Array.prototype.forEach.call(document.querySelectorAll('#modeGroup .radio'), function (x) {
+      var on = x.getAttribute('data-mode') === m;
+      x.classList.toggle('on', on);
+      var inp = x.querySelector('input');
+      if (inp) inp.checked = on;
+    });
+  }
+
+  function applyCfg(c) {
+    if (typeof c.baseUrl === 'string') $('baseUrl').value = c.baseUrl;
+    if (typeof c.pubKey === 'string') $('pubKey').value = c.pubKey;
+    if (typeof c.username === 'string') $('username').value = c.username;
+    if (typeof c.batchUsers === 'string') $('batchUsers').value = c.batchUsers;
+    setMode(c.mode === 'json' ? 'json' : 'plain');
+  }
+
+  // 读取「免粘贴副本」里内置的配置，普通文件里是 null
+  function readBakedCfg() {
+    var el = document.getElementById('bakedCfg');
+    if (!el) return null;
+    try {
+      var c = JSON.parse((el.textContent || '').trim() || 'null');
+      if (c && typeof c === 'object' && (c.pubKey || c.baseUrl)) return c;
+    } catch (e) {}
+    return null;
+  }
+
+  function loadCfg() { var use = memCfg || readBakedCfg(); if (use) { applyCfg(use); savedSnap = snapOf(collectCfg()); } else $('baseUrl').value = DEFAULT_URL; paintSaveState(); }
+
+  /* ---------- 公钥保存 / 配置备份 / 免粘贴副本 ---------- */
+  function flashBtn(btn, text) {
+    var old = btn.textContent;
+    btn.textContent = text;
+    btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = old; btn.classList.remove('copied'); }, 1300);
+  }
+
+  function stampNow() {
+    var d = new Date();
+    return d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes());
+  }
+
+  $('savePubBtn').addEventListener('click', function () {
+    if (!$('pubKey').value.trim()) { toast('公钥还是空的，先粘贴再保存'); $('pubKey').focus(); return; }
+    if (saveCfg()) { flashBtn(this, '已保存'); toast('公钥已保存，下次打开自动填充'); }
+    else { toast('保存失败，请导出配置备份'); }
+  });
+
+  $('expCfgBtn').addEventListener('click', function () {
+    var c = collectCfg();
+    delete c.savedAt;
+    c._tool = 'fanruan-sso-token';
+    c._exportedAt = new Date().toISOString();
+    download('帆软sso配置_' + stampNow() + '.json', JSON.stringify(c, null, 2), 'application/json;charset=utf-8');
+    toast('配置已导出');
+  });
+
+  $('impCfgBtn').addEventListener('click', function () { $('cfgFile').click(); });
+
+  $('cfgFile').addEventListener('change', function () {
+    var self = this;
+    var f = self.files && self.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var c = null;
+      try { c = JSON.parse(String(r.result)); } catch (e) {}
+      if (!c || typeof c !== 'object' || (!c.pubKey && !c.baseUrl)) {
+        toast('导入失败：不是本工具导出的配置文件');
+      } else {
+        bakeId = c.bakeId || '';
+        applyCfg(c);
+        validatePub();
+        saveCfg();
+        toast('配置已导入并保存');
+      }
+      self.value = '';
+    };
+    r.onerror = function () { toast('读取文件失败'); self.value = ''; };
+    r.readAsText(f, 'utf-8');
+  });
+
+  // 清空做成「再点一次确认」，避免确认弹窗在部分环境里被拦截
+  (function () {
+    var btn = $('clearCfgBtn'), armed = false, timer = null;
+    function disarm() { armed = false; btn.textContent = '清空'; btn.classList.remove('arm'); }
+    btn.addEventListener('click', function () {
+      if (!armed) {
+        armed = true;
+        btn.textContent = '再点一次确认';
+        btn.classList.add('arm');
+        timer = setTimeout(disarm, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      disarm();
+      
+      memCfg = null; savedSnap = ''; lastSavedAt = 0; bakeId = '';
+      $('baseUrl').value = DEFAULT_URL;
+      $('pubKey').value = '';
+      $('username').value = '';
+      $('batchUsers').value = '';
+      setMode('plain');
+      setStatus($('pubStatus'), null);
+      paintSaveState();
+      toast('已清空配置');
+    });
+  })();
+
+  // 生成一份把公钥固化进去的副本，发给同事就不用手动粘公钥了
+  $('bakeBtn').addEventListener('click', function () {
+    if (!$('pubKey').value.trim() || !validatePub()) {
+      toast('请先填写有效的 RSA 公钥'); $('pubKey').focus(); return;
+    }
+    var slot = document.getElementById('bakedCfg');
+    if (!slot) { toast('生成失败：文件缺少配置占位标记'); return; }
+
+    var payload = {
+      _tool: 'fanruan-sso-token',
+      bakeId: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      baseUrl: $('baseUrl').value,
+      pubKey: $('pubKey').value,
+      mode: currentMode(),
+      bakedAt: new Date().toISOString()
+    };
+
+    var clone = document.documentElement.cloneNode(true);
+
+    // 清掉副本里的临时状态，别把上一次生成的结果和当前页签带过去
+    ['plainOut', 'encodedOut', 'urlOut', 'rawOut'].forEach(function (id) {
+      var el = clone.querySelector('#' + id);
+      if (el) { el.textContent = '等待生成…'; el.classList.add('empty'); }
+    });
+    ['plainMeta', 'tokenMeta'].forEach(function (id) {
+      var el = clone.querySelector('#' + id);
+      if (el) el.textContent = '';
+    });
+    ['resultStatus', 'pubStatus', 'importStatus'].forEach(function (id) {
+      var el = clone.querySelector('#' + id);
+      if (el) { el.className = 'status'; el.innerHTML = ''; }
+    });
+    var tb = clone.querySelector('#batchTable tbody');
+    if (tb) tb.innerHTML = '';
+    var bi = clone.querySelector('#batchInfo');
+    if (bi) bi.textContent = '尚未生成';
+    var sr = clone.querySelector('#selfResult');
+    if (sr) sr.innerHTML = '';
+    var pw = clone.querySelector('#storeWarn');
+    if (pw) pw.className = 'status warn';
+    Array.prototype.forEach.call(clone.querySelectorAll('textarea'), function (t) { t.textContent = ''; });
+    Array.prototype.forEach.call(clone.querySelectorAll('.tab'), function (t) {
+      t.classList.toggle('on', t.getAttribute('data-tab') === 'single');
+    });
+    var ps = clone.querySelector('#panel-single');
+    if (ps) ps.classList.remove('hidden');
+    ['panel-batch', 'panel-selfcheck'].forEach(function (id) {
+      var el = clone.querySelector('#' + id);
+      if (el) el.classList.add('hidden');
+    });
+
+    var bakedSlot = clone.querySelector('#bakedCfg');
+    if (bakedSlot) {
+      bakedSlot.textContent = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+    }
+
+    download('帆软单点登录加密工具_已内置公钥.html', '<!DOCTYPE html>\n' + clone.outerHTML, 'text/html;charset=utf-8');
+    toast('已生成免粘贴副本，可直接发给同事');
+  });
+
+  /* ---------- 事件绑定 ---------- */
+  $('genBtn').addEventListener('click', generate);
+  $('pubKey').addEventListener('input', function () { validatePub(); saveCfg(); });
+  $('pubKey').addEventListener('blur', function () { validatePub(); saveCfg(); });
+  $('baseUrl').addEventListener('input', saveCfg);
+  $('username').addEventListener('input', saveCfg);
+  $('username').addEventListener('keydown', function (e) { if (e.key === 'Enter') generate(); });
+  $('batchUsers').addEventListener('input', saveCfg);
+
+  function resetDemo() {
+    memCfg = null; savedSnap = ''; lastSavedAt = 0; bakeId = '';
+    $('baseUrl').value = 'https://example.com/webroot/decision'; $('pubKey').value = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvK1QitNRcyGHIhW2KXK5\nqWkXhQe9fKWVY7RtUlkwvaUMRQwTRGX8ZLnwcl27k98+HOHC2ZgCR8Xw4vminQXE\nvoIIvKWclTU9YhVd/koiL/YwuBtrJ90sxFCX8VAeSmhD/Dp7FVDewyHkEwFHJDA+\nyD57ZSG+x67F3ABjNryZyFqVMsSM9FsFFLskKtDada6t/1VsShNc3vgUFxAlfFLT\nP48podM+4tAz6CHaz7jMHrCtAdpySOnuP+yhAX4pasPnew4JJtn2CDTUQh0ljDsu\n2wmCS7I+i7Lq1XKZvLOGQ5BXfwHnILeJGBXnsX1+4Z9jjkwB+eBJJWyGccEfyUQP\nZQIDAQAB\n-----END PUBLIC KEY-----\n"; $('username').value = 'demo'; $('batchUsers').value = 'demo\nexample';
+    setMode('plain'); batchRows = []; importedRows = null; $('batchTable').querySelector('tbody').innerHTML = ''; $('batchInfo').textContent = '尚未生成'; $('importOpts').classList.add('hidden'); $('selfResult').innerHTML = '';
+    ['plainOut','rawOut','encodedOut','urlOut'].forEach(function(id) { $(id).textContent = '等待生成…'; $(id).classList.add('empty'); });
+    ['plainMeta','tokenMeta'].forEach(function(id) { $(id).textContent = ''; });
+    ['resultStatus','pubStatus','importStatus'].forEach(function(id) { setStatus($(id), null); });
+    document.querySelector('.tab[data-tab="single"]').click(); paintSaveState(); validatePub();
+  }
+  $('resetDemo').addEventListener('click', resetDemo);
+  resetDemo();
+  validatePub();
+  if (!$('username').value) $('username').focus();
+})();
+</script>
+
+<!-- 旧浏览器兜底提示（BigInt 不被支持时上面的内核脚本无法执行） -->
+<script>
+(function () {
+  var ok = true;
+  try { if (typeof BigInt === 'undefined') ok = false; } catch (e) { ok = false; }
+  if (typeof TextEncoder === 'undefined' || !window.RsaCore) ok = false;
+  if (ok) return;
+  document.body.innerHTML =
+    '<div style="max-width:620px;margin:70px auto;padding:26px 28px;background:#fff;border:1px solid #e4e8ee;' +
+    'border-radius:12px;font-family:\'Microsoft YaHei\',sans-serif;color:#1e2733;line-height:1.75">' +
+    '<h2 style="margin:0 0 10px;font-size:17px">浏览器版本过低，无法运行</h2>' +
+    '<p style="margin:0;color:#5a6676;font-size:13.5px">本工具的 RSA 加密需要支持 <b>BigInt</b> 的现代浏览器。' +
+    '请改用 <b>Chrome</b>、<b>Edge（Chromium 版）</b>、<b>Firefox</b> 或新版 Safari 打开这个文件。</p>' +
+    '<p style="margin:10px 0 0;color:#5a6676;font-size:13.5px">' +
+    '如果你用的是 IE 或 360 浏览器的「兼容模式」，切换到「极速模式」即可。</p></div>';
+})();
+</script>
+
+<script>
+/* 页面外壳的少量交互，不参与加密逻辑：锚点平滑滚动 + 首屏归位 */
+(function () {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-scroll]'), function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var t = document.querySelector(a.getAttribute('data-scroll'));
+      if (t && typeof t.scrollIntoView === 'function') {
+        try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {}
+      }
+    });
+  });
+
+  // 首次进入时把视口拉回首屏（上面的输入框会自动 focus，浏览器会跟着滚下去）
+  function toTop() {
+    try {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    } catch (e) {}
+  }
+  if (!location.hash) {
+    toTop();
+    window.addEventListener('load', toTop);
+  }
+})();
+</script>
+</body>
+</html>
