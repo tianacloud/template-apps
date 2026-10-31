@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, mkdtemp, rm, readdir } from "node:fs/promis
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { zipSync, unzipSync } from "fflate";
+import { templateFileMaterials, checkSeedBuildOutputs, checkInstallBudgets, encodeInstallManifest } from "./template-files.mjs";
 import { validateTemplateFiles } from "./validate-template.mjs";
 
 export async function packTemplate(root, templateName, sourceCommit = "HEAD") {
@@ -27,6 +28,8 @@ export async function packTemplate(root, templateName, sourceCommit = "HEAD") {
   const entries = {};
   for (const name of Object.keys(files).sort()) entries[name] = files[name];
   const bytes = zipSync(entries, { level: 9, mtime: new Date(1980, 0, 1, 0, 0, 0) });
+  if (bytes.length > 16 * 1024 * 1024 || Object.values(files).some(data => data.length > 16 * 1024 * 1024))
+    throw new Error("Source package or source material exceeds 16 MiB");
   const directory = path.join(root, "dist", templateName);
   await mkdir(directory, { recursive: true });
   const file = path.join(directory, `${commit}.zip`);
@@ -46,6 +49,7 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
   const sourceBytes = await readFile(source.file);
   const files = unzipSync(sourceBytes);
   const metadata = JSON.parse(Buffer.from(files["metadata.json"]).toString());
+  const seeds = templateFileMaterials(files, metadata);
   for (const file of ["showcase/preview.html", "showcase/cover.webp", "showcase/prompt.md"]) {
     if (!files[file]?.length) throw new Error(`Missing showcase material: ${file}`);
   }
@@ -75,6 +79,7 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
     }
     await collect();
     if (!entry || !siteFiles[`data/${entry}`]) throw new Error("Build output is missing its fixed entry");
+    checkSeedBuildOutputs(siteFiles, seeds);
     for (const variable of metadata.site_variables ?? []) {
       for (const file of variable.files) {
         if (!siteFiles[`data/${file}`]?.includes(variable.placeholder))
@@ -108,11 +113,16 @@ export async function packInstallTemplate(root, templateName, sourceCommit = "HE
     const manifest = { metadata, entry, database_required: metadata.database_required, variables };
     for (const key of ["private_database", "web_repository", "repositories", "functions", "site_variables"])
       if (metadata[key] !== undefined) manifest[key] = metadata[key];
-    materials["install.json"] = Buffer.from(JSON.stringify(manifest, null, 2) + "\n");
+    if (seeds) {
+      Object.assign(materials, seeds.materials);
+    }
+    const encodedManifest = encodeInstallManifest(manifest, seeds);
+    materials["install.json"] = encodedManifest.bytes;
     const bytes = archive(materials);
+    checkInstallBudgets(materials, files, siteFiles, bytes.length);
     const file = path.join(directory, `${source.source_commit}.install.zip`);
     await writeFile(file, bytes);
-    const result = { name: templateName, source_commit: source.source_commit, file, source_file: source.file, size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+    const result = { name: templateName, source_commit: source.source_commit, file, source_file: source.file, ...(encodedManifest.file_manifest_sha256 ? { file_manifest_sha256: encodedManifest.file_manifest_sha256, file_count: seeds.manifest.entries.length, file_bytes: seeds.manifest.entries.reduce((sum, entry) => sum + entry.size, 0) } : {}), size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
     await writeFile(path.join(directory, `${source.source_commit}.install.json`), JSON.stringify(result, null, 2) + "\n");
     return result;
   } finally {

@@ -94,3 +94,47 @@ seed.sql               # metadata.seeds 存在时收录
 `private_database: true` 让 SQLite 仅供函数后端使用，Web 不绑定该数据库。安装创建新实例 Token，只写入函数 database 声明的参数；parameters 只允许作者主动筛选的公开业务初值，不导出在线参数全表。函数可选 cors 使用当前函数 CORS 对象。前端经 `context.functions.fetch` 调用新函数，安装器更新 Web 现有函数列表，并替换 site_variables 中的前端引用。
 
 函数源码始终包含在安装包中，安装时必需；用户不保留额外前端源码时，函数使用的 Git 仍保留，同仓前端仍关联它。不同仓库不能因为包含同名文件而合并。发布前应从另一租户实际安装、调用并验证新数据库数据及浏览器凭据隔离；保留一份共享 Git、映射新函数目录、失败重试复用已创建资源均需验收。
+
+## 可选素材文件（格式版本 2）
+
+需要素材的模板在 metadata.json 声明 `"file_seeds":"template-files"`，并将全部素材
+放入 `template-files/`。未声明时不允许夹带该目录；已声明时必须包含 1 至 256 个
+普通文件，累计不超过 16 MiB。拒绝软链接、特殊文件、文件与目录冲突、绝对路径、
+点路径、反斜线、控制字符和百分号编码路径。素材不参与变量替换。
+
+打包器从同一个确定提交读取源码与素材。source.zip 保留 `template-files/<path>`，
+install.zip 另含 `files/<path>`，两者字节完全相同。install.json 包含
+`format_version: 2`、`requires: ["template_files_v1"]` 和以下 files 对象：
+
+```json
+{"version":1,"root":"template-assets/","entries":[{"path":"images/cover.webp","size":24576,"sha256":"<实际字节的64位小写SHA-256>","content_type":"image/webp"}]}
+```
+
+entries 按路径 UTF-8 字节排序。打包回执的 file_manifest_sha256 对 install.json 中
+files 对象的原始 UTF-8 字节计算，不对重新序列化结果计算。回执还记录文件数和总字节。
+无素材包省略新版本、能力及 files 字段，继续原安装步骤。
+
+源码包和单项材料上限为 16 MiB，安装包上限 32 MiB，外层及嵌套归档累计解压不超过
+128 MiB、5,000 项。素材满足自身限制仍须通过整体归档限制。
+
+干净构建不得复制素材到 dist，也不得将素材重新内嵌到 JavaScript。打包器拒绝素材
+目录、相同文件字节及可识别的原始字节/base64 嵌入；任意变换后的素材仍需通过实际
+验收核对。静态小图片优化后、编码前不超过 16,384 字节时应实际内嵌到 JavaScript；
+其余按应用需求使用文件存储。市场预览保持自包含，不访问作者或安装用户的文件。
+平台要求的根部 `data/icon.png` 保留随包例外；相同素材改名放入其他 Web 路径仍会被拒绝。
+
+应用和数据库记录使用 `template-assets/<path>`，通过 context.files 的 get、getUrl、
+bindImage 访问。不得保存作者文件 URL、租户 ID 或文件访问 Token。安装响应取得 Web ID
+后，本地开发先用 `tiana file put` 上传到 `<web-id>/template-assets/<path>` 并检查回执，
+再预览。`tiana web init-template` 仍仅下载解压源码，不修改云端资源。
+
+发布前验证保留源码及直接安装两种模式的桌面和手机路径，保存任务、真实对象摘要、
+Git 初始内容、数据库相对路径及浏览器读取结果。检查刷新、重新打开、另一授权会话、
+跨租户拒绝与安装隔离。使用独立模板，不修改已验收的 Oncall 模板。
+
+新格式发布须等待服务端兼容版 C 已覆盖全部安装节点，以及完整功能、Gaia 续装和
+终止清理、同频异常扫描告警验收完成。此打包器实现本身不代表云端已支持新格式。
+
+## 组合后端与素材
+
+函数模板可以同时声明 `functions`/`repositories` 与 `file_seeds`。此时 install.json 同时保留上述后端字段（`private_database`、`web_repository`、`repositories`、`functions`、`site_variables`）以及 `format_version: 2`、`requires: ["template_files_v1"]` 和 `files` 对象；未声明素材的后端模板仍不写 `format_version`、`requires` 或 `files`。素材只从模板根 `template-files/` 读取，不放入 `repositories/<key>/` 子目录；16 MiB/32 MiB 等上限同时约束整个安装包。前端仍在 `web_repository` 内构建，构建结果不得复制素材或把素材重新嵌入 JavaScript，`site_variables` 占位符必须保留在编译产物中。
