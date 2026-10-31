@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS iron_state (app_id TEXT PRIMARY KEY, payload TEXT NOT NULL, version INTEGER NOT NULL);
