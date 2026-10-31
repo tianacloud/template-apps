@@ -1,0 +1,213 @@
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <div aria-hidden="true" class="brand-mark">检</div>
+        <div>
+          <h1>车辆年检到期提醒工具</h1>
+          <p class="subtitle">按车辆类型与车龄套用检验周期，自动推算到期日、剩余天数与处置建议</p>
+        </div>
+      </div>
+      <nav class="header-actions">
+        <button class="btn ghost" id="btnRules" type="button">检验周期规则</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <!-- ============================ 表单区 ============================ -->
+    <section aria-labelledby="formTitle" class="panel form-panel">
+      <div class="panel-head">
+        <h2 id="formTitle">车辆信息</h2>
+        <p class="hint">带 <span class="req">*</span> 为必填项</p>
+      </div>
+
+      <form id="form" novalidate>
+        <!-- 车辆基本信息 -->
+        <fieldset class="group">
+          <legend>基本信息</legend>
+
+          <div class="field">
+            <label for="plate">车牌号 <span class="req">*</span></label>
+            <input autocomplete="off" id="plate" name="plate" placeholder="例如 京A12345 / 粤BD12345" type="text">
+            <p class="err" data-err="plate"></p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="vehicleType">车辆类型 <span class="req">*</span></label>
+              <select id="vehicleType" name="vehicleType"></select>
+              <p class="err" data-err="vehicleType"></p>
+            </div>
+            <div class="field">
+              <label for="usage">使用性质 <span class="req">*</span></label>
+              <select id="usage" name="usage"></select>
+              <p class="err" data-err="usage"></p>
+            </div>
+          </div>
+
+          <div class="field-row" id="seatsRow">
+            <div class="field">
+              <label for="seats">核定载人数 <span class="req">*</span></label>
+              <input id="seats" max="99" min="1" name="seats" placeholder="例如 5" step="1" type="number">
+              <p class="err" data-err="seats"></p>
+            </div>
+            <div class="field checkbox-field">
+              <label class="switch">
+                <input id="isNewEnergy" name="isNewEnergy" type="checkbox">
+                <span>新能源车辆</span>
+              </label>
+              <p class="err" data-err="isNewEnergy"></p>
+            </div>
+          </div>
+
+          <div class="field" id="eligibilityRow">
+            <label for="eligibility">免上线规则适用条件</label>
+            <select id="eligibility" name="eligibility"><option value="">请选择</option><option value="confirmed">已确认符合免上线条件</option><option value="unknown">不确定或不符合</option></select>
+            <p class="hint">请确认客车为小微型非营运载客汽车（摩托车无需此项）；排除面包车、营转非、造成人员伤亡事故、因非法改装被处罚及出厂超 4 年才登记等情形；具体以交管部门确认结果为准。</p><p class="err" data-err="eligibility"></p>
+          </div>
+          <div class="field hidden" id="dangerRow">
+            <label class="switch">
+              <input id="isDangerous" name="isDangerous" type="checkbox">
+              <span>危险货物运输车辆（检验有效期 6 个月）</span>
+            </label>
+            <p class="err" data-err="isDangerous"></p>
+          </div>
+        </fieldset>
+
+        <!-- 日期与判定方式 -->
+        <fieldset class="group">
+          <legend>日期与判定方式</legend>
+
+          <div class="field">
+            <label for="firstRegDate">首次登记日期 <span class="req">*</span></label>
+            <input id="firstRegDate" name="firstRegDate" type="date">
+            <p class="err" data-err="firstRegDate"></p>
+          </div>
+
+          <div class="field">
+            <label for="officialExpiryDate">已知官方检验有效期（可选）</label>
+            <input id="officialExpiryDate" name="officialExpiryDate" type="date">
+            <p class="hint">行驶证或交管系统标注的有效期；填写后直接用于提醒。</p><p class="err" data-err="officialExpiryDate"></p>
+          </div>
+
+          <div class="field">
+            <label for="lastInspectionDate">上次年检日期</label>
+            <input id="lastInspectionDate" name="lastInspectionDate" type="date">
+            <p class="err" data-err="lastInspectionDate"></p>
+          </div>
+
+          <div class="field">
+            <label for="method">推算方式</label>
+            <select id="method" name="method">
+              <option value="auto">自动（有上次年检日期则按其推算）</option>
+              <option value="lastInspection">按上次年检时间推算</option>
+              <option value="firstRegistration">按首次登记日期推算</option>
+            </select>
+            <p class="err" data-err="method"></p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="baseDate">判定基准日</label>
+              <input id="baseDate" name="baseDate" type="date">
+              <p class="err" data-err="baseDate"></p>
+            </div>
+            <div class="field">
+              <label for="warnDays">到期提醒阈值（天）</label>
+              <input id="warnDays" max="365" min="0" name="warnDays" step="1" type="number" value="30">
+              <p class="err" data-err="warnDays"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <button class="btn primary" type="submit">开始判定</button>
+          <button class="btn" id="btnReset" type="button">重置</button>
+        </div>
+      </form>
+
+      <div class="samples">
+        <p class="samples-title">示例输入（基准日 2026-10-22）</p>
+        <div class="sample-list" id="sampleList"></div>
+      </div>
+    </section>
+
+    <!-- ============================ 结果区 ============================ -->
+    <section aria-live="polite" class="panel result-panel">
+      <div class="empty-state" id="resultEmpty">
+        <div aria-hidden="true" class="empty-icon">📋</div>
+        <h2>请先填写车辆信息并点击"开始判定"</h2>
+        <p>工具会展示：检验周期依据 → 到期日推演 → 估算天数 → 官方核验提示</p>
+      </div>
+
+      <div class="hidden" id="result">
+        <!-- 状态头部 -->
+        <div class="status-head">
+          <div class="status-main">
+            <span class="status-badge" id="statusBadge">估算日期</span>
+            <span class="status-plate" id="statusPlate">京A88888</span>
+          </div>
+          <p class="status-desc" id="statusDesc"></p>
+        </div>
+
+        <!-- 关键指标 -->
+        <div class="metrics" id="metrics"></div>
+
+        <!-- 时间轴 -->
+        <div class="block">
+          <h3>检验周期时间轴</h3>
+          <div class="timeline" id="timeline"></div>
+        </div>
+
+        <!-- 推演过程 -->
+        <div class="block">
+          <h3>判定推演过程 <span class="tag">从输入到结论</span></h3>
+          <ol class="steps" id="steps"></ol>
+        </div>
+
+        <!-- 提示与建议 -->
+        <div class="block hidden" id="warnBox">
+          <h3>风险提示</h3>
+          <ul class="warn-list" id="warnList"></ul>
+        </div>
+
+        <div class="block">
+          <h3>处置建议</h3>
+          <ul class="advice-list" id="adviceList"></ul>
+        </div>
+
+        <div class="block basis-block">
+          <h3>判断依据</h3>
+          <div class="basis" id="basis"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================ 规则表弹层 ============================ -->
+  <div aria-labelledby="rulesTitle" aria-modal="true" class="modal hidden" id="rulesModal" role="dialog">
+    <div class="modal-mask" data-close></div>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="rulesTitle">检验周期规则速查</h2>
+        <button class="btn ghost" data-close type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <table class="rule-table" id="ruleTable"></table>
+        <p class="modal-note">
+          依据：道路交通安全法实施条例及 2022 年深化机动车检验制度改革有关规定。
+          本工具仅作到期提醒推演，最终检验结论以公安交管部门业务系统为准。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>车辆年检到期提醒工具 · 规则引擎与界面分离 · 全部计算在浏览器本地完成，不上传任何车辆信息</p>
+      <p class="disclaimer">免责声明：本工具依据公开法规整理，仅用于年检到期提醒参考，不构成法律意见；各地执行口径可能存在差异，实际检验要求请以当地公安交管部门及检测站通知为准。</p>
+    </div>
+  </footer>
+
+  
