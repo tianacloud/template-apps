@@ -1051,7 +1051,7 @@ function viewSetting(){
   </div>
   <div class="card">
     <div class="card-h"><h2>数据</h2></div>
-    <div class="hint" style="margin-bottom:12px">所有数据只存在你这台设备的浏览器里，不上传、不联网。换设备或清缓存会丢，重要数据请定期导出。</div>
+    <div class="hint" style="margin-bottom:12px">记录保存在此应用的数据库中，可导出 JSON 备份。</div>
     <button class="btn ghost sm" data-act="exportData" style="margin-bottom:9px">导出全部数据（JSON）</button>
     <button class="btn ghost sm danger" data-act="resetAll">清空全部数据</button>
   </div>
