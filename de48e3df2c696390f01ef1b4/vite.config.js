@@ -1,0 +1,1 @@
+import {defineConfig} from 'vite'; export default defineConfig({define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{lib:{entry:'src/app.js',formats:['es'],fileName:'assets/app'},outDir:'dist'}});
