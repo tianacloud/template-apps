@@ -1,0 +1,4241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><script>const previewStorage = {data:{},getItem(k){return this.data[k] ?? null},setItem(k,v){this.data[k]=String(v)},removeItem(k){delete this.data[k]}};</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>群聊模拟器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307c160'/%3E%3Cpath d='M16 20h32v20H28l-8 6v-6h-4z' fill='%23fff'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #ededed;
+    --panel: #f7f7f7;
+    --card: #ffffff;
+    --ink: #191919;
+    --ink2: #4c4c4c;
+    --muted: #9a9a9a;
+    --faint: #c4c4c4;
+    --line: #e2e2e2;
+    --bubble: #ffffff;
+    --mine: #95ec69;
+    --green: #07c160;
+    --red: #e04a3a;
+    --nav: #ededed;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: #d8d8d8;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body { display: flex; justify-content: center; min-height: 100vh; }
+
+  #app {
+    width: 100%;
+    max-width: 440px;
+    height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,.16);
+  }
+
+  .serif { font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", serif; }
+
+  @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes blink { 0%,80%,100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+
+  /* ================= 导航栏 ================= */
+  #nav {
+    flex: 0 0 auto;
+    height: 54px;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    background: rgba(237,237,237,.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    position: relative; z-index: 20;
+    padding-top: env(safe-area-inset-top);
+  }
+  .nav-back {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: #333; cursor: pointer; opacity: .9;
+  }
+  .nav-title { flex: 1; text-align: center; min-width: 0; }
+  .nav-name {
+    font-size: 16px; font-weight: 500; letter-spacing: .2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-sub { font-size: 11px; color: var(--muted); margin-top: -1px; }
+  .nav-more {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; letter-spacing: 1px; color: #333; cursor: pointer;
+  }
+
+  /* ================= 消息区 ================= */
+  #feed {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 12px 8px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  #feed::-webkit-scrollbar { width: 0; }
+
+  .dayline {
+    text-align: center;
+    margin: 14px 0 10px;
+  }
+  .dayline span {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    background: rgba(0,0,0,.06); color: #8a8a8a;
+    font-size: 11.5px; letter-spacing: .3px;
+  }
+
+  .sysline {
+    text-align: center; margin: 9px 0;
+    animation: fadeIn .35s both;
+  }
+  .sysline span {
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    background: rgba(0,0,0,.05); color: #9a9a9a;
+    font-size: 11.5px; max-width: 86%; line-height: 1.5;
+  }
+  .sysline.act span {
+    background: transparent; color: #a8a29a; font-size: 12px;
+    font-style: normal; letter-spacing: .2px;
+  }
+
+  .row {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin: 10px 0;
+    animation: popIn .3s cubic-bezier(.22,1,.36,1) both;
+  }
+  .row.mine { flex-direction: row-reverse; }
+
+  .ava {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 15px; font-weight: 500;
+    user-select: none; letter-spacing: 0;
+  }
+
+  .col { max-width: 74%; min-width: 0; }
+  .who {
+    font-size: 11px; color: #9b9b9b; margin: 0 0 3px 2px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .who .tag {
+    font-size: 9px; padding: 0 3px; border-radius: 2px;
+    background: #e6e6e6; color: #8a8a8a; line-height: 13px;
+  }
+  .row.mine .who { justify-content: flex-end; margin-right: 2px; }
+
+  .bubble {
+    position: relative;
+    display: inline-block;
+    padding: 8px 11px;
+    background: var(--bubble);
+    border-radius: 5px;
+    font-size: 14.7px;
+    line-height: 1.58;
+    color: var(--ink);
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+    box-shadow: 0 1px 1px rgba(0,0,0,.03);
+  }
+  .row.mine .bubble { background: var(--mine); }
+  .bubble::before {
+    content: ''; position: absolute; left: -5px; top: 12px;
+    border: 5px solid transparent; border-right-color: var(--bubble); border-left: 0;
+  }
+  .row.mine .bubble::before {
+    left: auto; right: -5px;
+    border-right-color: transparent; border-left-color: var(--mine); border-left-width: 5px; border-right-width: 0;
+  }
+
+  /* 语音 */
+  .bubble.voice {
+    display: flex; align-items: center; gap: 8px;
+    min-width: 80px; cursor: pointer;
+  }
+  .vwave { display: flex; align-items: center; gap: 2px; height: 14px; }
+  .vwave i { display: block; width: 2px; background: #6b6b6b; border-radius: 1px; }
+  .vlen { font-size: 12px; color: #7a7a7a; }
+  .vtext { font-size: 13.5px; color: #4a4a4a; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ddd; display: none; }
+  .bubble.voice.open .vtext { display: block; }
+
+  /* 图片 */
+  .bubble.img { padding: 3px; }
+  .ph {
+    width: 132px; height: 96px; border-radius: 3px;
+    background:
+      linear-gradient(135deg, #dfe4e0, #cbd3ce);
+    display: flex; align-items: center; justify-content: center;
+    color: #8b948e; font-size: 11.5px; letter-spacing: 1px;
+    position: relative; overflow: hidden;
+  }
+  .ph::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 45%),
+      linear-gradient(200deg, transparent 60%, rgba(255,255,255,.35));
+  }
+  .ph.doc { width: 180px; height: 84px; flex-direction: column; gap: 4px; background: linear-gradient(135deg,#eef0f5,#dde1ea); }
+
+  /* 表情 */
+  .bubble.sticker {
+    background: transparent !important; box-shadow: none; padding: 0;
+    font-size: 46px; line-height: 1;
+  }
+  .bubble.sticker::before { display: none; }
+
+  /* 红包 */
+  .bubble.pack {
+    padding: 0; overflow: hidden; width: 216px;
+    background: #fa9d3b; color: #fff; border-radius: 5px;
+  }
+  .row.mine .bubble.pack { background: #fa9d3b; }
+  .bubble.pack::before { border-right-color: #fa9d3b; }
+  .row.mine .bubble.pack::before { border-left-color: #fa9d3b; }
+  .pk-top { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px; }
+  .pk-ico {
+    width: 34px; height: 34px; border-radius: 3px; background: rgba(255,255,255,.22);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .pk-note { font-size: 14px; line-height: 1.3; }
+  .pk-sub { font-size: 11px; opacity: .8; margin-top: 1px; }
+  .pk-foot { background: rgba(0,0,0,.08); padding: 4px 12px; font-size: 10.5px; letter-spacing: .5px; }
+
+  .recalled { font-size: 11.5px; color: #9a9a9a; text-align: center; margin: 8px 0; }
+
+  /* 正在输入 */
+  .typing { display: flex; align-items: center; gap: 8px; margin: 10px 0; animation: fadeIn .2s both; }
+  .typing .dots { display: flex; gap: 3px; padding: 10px 12px; background: #fff; border-radius: 5px; }
+  .typing .dots i {
+    width: 5px; height: 5px; border-radius: 50%; background: #b9b9b9;
+    animation: blink 1.2s infinite;
+  }
+  .typing .dots i:nth-child(2) { animation-delay: .15s; }
+  .typing .dots i:nth-child(3) { animation-delay: .3s; }
+  .typing .tname { font-size: 10.5px; color: var(--muted); }
+
+  /* 结算灰字 */
+  .note {
+    text-align: center; margin: 10px auto 16px; max-width: 88%;
+    font-size: 11.5px; color: #a09a92; line-height: 1.65;
+    animation: fadeIn .5s both;
+  }
+
+  /* 数值飘字 */
+  .deltas {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;
+    margin: -6px 0 12px; animation: fadeIn .4s both;
+  }
+  .dchip {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 10px;
+    background: rgba(7,193,96,.1); color: #3d8b5f;
+  }
+  .dchip.down { background: rgba(224,74,58,.09); color: #b4523f; }
+
+  /* ================= 阶段卡 ================= */
+  .chapter {
+    margin: 20px 0; text-align: center;
+    animation: popIn .5s both;
+  }
+  .chapter .when {
+    font-size: 11px; color: #a5a09a; letter-spacing: 3px; margin-bottom: 10px;
+  }
+  .chapter .ctitle {
+    font-size: 24px; font-weight: 600; letter-spacing: 2px; color: #2a2724;
+  }
+  .chapter .cdesc {
+    font-size: 12.5px; color: #8d8781; margin-top: 10px; line-height: 1.8;
+    max-width: 280px; margin-left: auto; margin-right: auto;
+  }
+  .chapter .cline { width: 28px; height: 1px; background: #c9c2b8; margin: 14px auto; }
+
+  /* ================= 底部 ================= */
+  #composer {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border-top: 1px solid rgba(0,0,0,.06);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    position: relative; z-index: 30;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; animation: slideUp .28s cubic-bezier(.22,1,.36,1) both; }
+  .choice-hint {
+    font-size: 10.5px; color: #a5a09a; letter-spacing: 1.5px;
+    text-align: center; margin-bottom: 1px;
+  }
+  .choice {
+    display: flex; align-items: flex-start; gap: 9px;
+    width: 100%; text-align: left;
+    padding: 10px 12px;
+    background: #fff; border: 1px solid #e6e6e6; border-radius: 7px;
+    font-size: 13.6px; line-height: 1.5; color: #232323;
+    font-family: inherit; cursor: pointer;
+    transition: transform .12s, background .12s, border-color .12s;
+    animation: popIn .3s both;
+  }
+  .choice:active { transform: scale(.985); background: #f2f2f2; }
+  .choice .ci {
+    flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%;
+    background: #f0f0f0; color: #9a9a9a;
+    font-size: 10px; display: flex; align-items: center; justify-content: center;
+    margin-top: 1px; font-family: "Courier New", monospace;
+  }
+  .choice.act { color: #7a756e; font-style: normal; }
+  .choice.act .ci { background: transparent; border: 1px dashed #d5d0c8; color: #b0aaa1; }
+
+  .inputbar {
+    display: flex; align-items: center; gap: 8px; padding: 2px 0;
+  }
+  .ib-icon {
+    width: 30px; height: 30px; border-radius: 50%; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #777; border: 1px solid #e6e6e6;
+  }
+  .ib-field {
+    flex: 1; height: 34px; background: #fff; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 10px;
+    font-size: 13px; color: #b3b3b3;
+    border: 1px solid #e6e6e6;
+  }
+  .ib-send {
+    height: 32px; padding: 0 14px; border: none; border-radius: 4px;
+    background: var(--green); color: #fff; font-size: 13px;
+    font-family: inherit; cursor: pointer; opacity: .35;
+  }
+  .ib-send.on { opacity: 1; }
+
+  /* ================= 封面 ================= */
+  #cover {
+    position: absolute; inset: 0; z-index: 60;
+    background: #f2f0ec;
+    display: flex; flex-direction: column;
+    padding: 0 26px;
+    overflow-y: auto;
+  }
+  .cv-inner { margin: auto 0; padding: 40px 0; width: 100%; }
+  .cv-kicker {
+    display: flex; align-items: center; gap: 9px; margin-bottom: 30px;
+  }
+  .cv-kicker i { width: 22px; height: 1px; background: #b9b0a4; display: block; }
+  .cv-kicker span {
+    font-size: 10px; letter-spacing: 2.4px; color: #a3988a;
+    font-family: "Courier New", monospace;
+  }
+  .cv-title {
+    font-size: 40px; line-height: 1.2; font-weight: 600; letter-spacing: 3px; color: #23201d;
+  }
+  .cv-sub { margin-top: 14px; font-size: 13.5px; color: #6f675d; line-height: 1.85; }
+
+  .invite {
+    margin: 30px 0 26px;
+    background: #fff; border-radius: 10px; padding: 16px;
+    box-shadow: 0 6px 24px rgba(80,68,52,.09);
+    animation: popIn .6s .15s both;
+  }
+  .invite-top { display: flex; gap: 11px; align-items: center; }
+  .gava {
+    width: 44px; height: 44px; border-radius: 8px; flex: 0 0 auto;
+    background: linear-gradient(140deg,#5c6b52,#3f4a38);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .invite-name { font-size: 15px; font-weight: 500; }
+  .invite-sub { font-size: 11.5px; color: #9a938a; margin-top: 2px; }
+  .invite-body {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0ece5;
+    font-size: 12.5px; color: #7d766c; line-height: 1.75;
+  }
+
+  .nickbox { margin-bottom: 18px; }
+  .nicklabel {
+    display: block; font-size: 10.5px; letter-spacing: 2.5px; color: #a3988a; margin-bottom: 8px;
+  }
+  .nickinput {
+    width: 100%; height: 44px; padding: 0 13px;
+    background: #fff; border: 1px solid #e3ddd2; border-radius: 6px;
+    font-size: 14.5px; font-family: inherit; color: #23201d;
+    outline: none;
+  }
+  .nickinput:focus { border-color: #a8998a; }
+
+  .btn {
+    width: 100%; height: 50px; border: none; border-radius: 6px;
+    background: #23201d; color: #f2f0ec;
+    font-size: 15px; letter-spacing: 3px; font-family: inherit;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn:active { opacity: .82; }
+  .cv-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; font-size: 11px; color: #a89e91;
+  }
+
+  /* ================= 结局 ================= */
+  #end {
+    position: absolute; inset: 0; z-index: 70;
+    background: #f2f0ec;
+    overflow-y: auto;
+    padding: 0 26px 40px;
+    animation: fadeIn .5s both;
+  }
+  .end-inner { padding: 46px 0 0; }
+  .end-kicker {
+    font-size: 10px; letter-spacing: 2.4px; color: #a3988a;
+    font-family: "Courier New", monospace;
+  }
+  .end-day { font-size: 11.5px; color: #a89e91; margin-top: 12px; letter-spacing: 1px; }
+  .end-role {
+    margin-top: 8px;
+    font-size: 33px; line-height: 1.28; font-weight: 600; letter-spacing: 2px; color: #23201d;
+  }
+  .end-desc {
+    margin-top: 16px; font-size: 13.6px; line-height: 1.9; color: #5b534a;
+  }
+  .end-scene {
+    margin-top: 22px; padding: 16px 16px;
+    border-left: 2px solid #c9bfae; background: rgba(255,255,255,.55);
+  }
+  .end-scene .lbl { font-size: 10px; letter-spacing: 2px; color: #a3988a; }
+  .end-scene .nm { font-size: 17px; font-weight: 600; margin-top: 4px; color: #23201d; }
+  .end-scene .tx { font-size: 12.8px; color: #6f675d; line-height: 1.8; margin-top: 7px; }
+
+  .end-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: #ddd6c9; margin-top: 24px; border: 1px solid #ddd6c9;
+  }
+  .estat { background: #f7f5f0; padding: 12px 8px; text-align: center; }
+  .estat b { display: block; font-size: 19px; font-weight: 600; color: #2a2724; font-family: "Courier New", monospace; }
+  .estat span { font-size: 10px; color: #a09889; letter-spacing: 1px; }
+
+  .end-review { margin-top: 26px; }
+  .rv-item { margin-bottom: 13px; }
+  .rv-l { font-size: 10px; letter-spacing: 1.6px; color: #a3988a; }
+  .rv-t { font-size: 13.2px; color: #4a443c; line-height: 1.7; margin-top: 3px; }
+  .end-advice {
+    margin-top: 26px; padding-top: 20px; border-top: 1px solid #ddd6c9;
+    font-size: 13.4px; line-height: 1.95; color: #4a443c;
+    font-family: "Songti SC", "SimSun", serif;
+  }
+  .end-btns { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+  .btn.ghost {
+    background: transparent; color: #6f675d; border: 1px solid #d5cdbf;
+  }
+  .end-tip { text-align: center; font-size: 11px; color: #b0a698; margin-top: 16px; }
+
+  /* ================= 状态面板 ================= */
+  #sheet {
+    position: absolute; inset: 0; z-index: 80;
+    background: rgba(20,18,16,.34);
+    display: none;
+    align-items: flex-end;
+    animation: fadeIn .2s both;
+  }
+  #sheet.on { display: flex; }
+  .sheet-body {
+    width: 100%; background: #f7f7f7;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    animation: slideUp .28s cubic-bezier(.22,1,.36,1) both;
+  }
+  .sheet-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .sheet-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 18px; }
+  .metric { margin-bottom: 15px; }
+  .m-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .m-name { font-size: 12.5px; color: #333; }
+  .m-val { font-size: 11px; color: #999; font-family: "Courier New", monospace; }
+  .m-track { height: 4px; background: #e6e6e6; border-radius: 2px; overflow: hidden; }
+  .m-fill { height: 100%; background: #07c160; border-radius: 2px; transition: width .5s; }
+  .m-fill.warn { background: #e0a43a; }
+  .m-fill.bad { background: #d9604e; }
+  .m-hint { font-size: 10.5px; color: #b0aeaa; margin-top: 4px; }
+  .sheet-row {
+    display: flex; justify-content: space-between;
+    padding: 9px 0; border-top: 1px solid #ececec; font-size: 12.5px;
+  }
+  .sheet-row span:last-child { color: #666; font-family: "Courier New", monospace; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%);
+    background: rgba(0,0,0,.72); color: #fff; font-size: 12px;
+    padding: 7px 13px; border-radius: 16px; z-index: 90;
+    animation: fadeIn .2s both; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="nav" style="display:none">
+    <div class="nav-back" id="nav-back">‹</div>
+    <div class="nav-title">
+      <div class="nav-name" id="nav-name">梧桐里 8 号楼业主群</div>
+      <div class="nav-sub" id="nav-sub">487 人</div>
+    </div>
+    <div class="nav-more" id="nav-more">⋯</div>
+  </header>
+
+  <main id="feed"></main>
+
+  <footer id="composer" style="display:none">
+    <div id="cslot"></div>
+  </footer>
+
+  <section id="cover">
+    <div class="cv-inner">
+      <div class="cv-kicker"><i></i><span>GROUP CHAT · 001</span></div>
+      <h1 class="cv-title serif">群聊<br>模拟器</h1>
+      <p class="cv-sub">你被拉进了一个有 487 个人的群。<br>没人认识你，但每个人都在看你说话。</p>
+
+      <div class="invite">
+        <div class="invite-top">
+          <div class="gava">楼</div>
+          <div>
+            <div class="invite-name">梧桐里 8 号楼业主群</div>
+            <div class="invite-sub">487 人 · 群主 李桂芬</div>
+          </div>
+        </div>
+        <div class="invite-body">
+          「李桂芬」邀请你加入了群聊。<br>
+          你刚搬进 1602，这是你和这栋楼的第一句话。
+        </div>
+      </div>
+
+      <div class="nickbox">
+        <label class="nicklabel">你在群里的名字</label>
+        <input class="nickinput" id="nick" maxlength="12" value="1602 新邻居" />
+      </div>
+
+      <button class="btn" id="go">进 群</button>
+      <div class="cv-foot">
+        <span id="arc-info">还没有群档案</span>
+        <span>一局约 8 分钟</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="sheet">
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<script>/**
+ * core/events.js —— 群聊模拟器 · 事件池（阶段 1—3）
+ *
+ * 一条事件 = 一段群消息流 + 玩家的几种回法。
+ * 消息形态：
+ *   { from, text }                 普通文本
+ *   { from, type:'voice', sec, text } 语音（text 是转文字）
+ *   { from, type:'img', text }     图片
+ *   { from, type:'sticker' }       表情
+ *   { from, type:'redpack', amt, note } 红包
+ *   { from, type:'recalled' }      撤回
+ *   { from:'sys', sys:true, text } 系统提示（居中）
+ *
+ * 选项：
+ *   say    玩家发出的消息（null 表示不发）
+ *   act    玩家动作旁白
+ *   fx     数值变化 {face,fame,weird,cash,info,group}
+ *   flag   打上的标记
+ *   replies 后续 NPC 消息
+ *   result 结算一句话（灰字）
+ */
+
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory()
+  else root.GcEvents = factory()
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+
+const E = []
+
+/* ==================== 阶段 1 · 入群当天 ==================== */
+
+E.push({
+  id: 's1_intro', stage: 1, pin: true, time: '20:14',
+  msgs: [
+    { from: 'sys', sys: true, text: '「李桂芬」邀请你加入了群聊' },
+    { from: 'sys', sys: true, text: '你已加入群聊，当前群成员 487 人' },
+    { from: 'li', text: '欢迎新邻居！@1602 新邻居 是哪一户呀？' },
+    { from: 'wang', text: '1602？那套不是老陈家的吗，卖了啊' },
+    { from: 'li', text: '大炮，人家刚进群' },
+    { from: 'momo', text: '欢迎欢迎🎉 新邻居有需要日用品可以找我，群里姐妹都有内部价' },
+    { from: 'chen', text: '欢迎新邻居[玫瑰][玫瑰]' }
+  ],
+  options: [
+    {
+      say: '大家好，我是 1602 新搬来的，以后多关照',
+      fx: { face: 8, fame: 12 },
+      replies: [
+        { from: 'li', text: '欢迎欢迎！有什么不懂的群里问，别客气' },
+        { from: 'wang', text: '租的还是买的？' },
+        { from: 'li', text: '大炮' },
+        { from: 'wang', text: '我随口一问' }
+      ],
+      result: '你的第一条消息，被七个人看见了。'
+    },
+    {
+      say: '嗯',
+      fx: { face: -4, fame: 3, weird: 6 },
+      replies: [
+        { from: 'li', text: '……' },
+        { from: 'wang', text: '哈哈这新邻居挺酷' },
+        { from: 'zhou', text: '欢迎' }
+      ],
+      result: '一个字，让群里安静了四十秒。'
+    },
+    {
+      say: null,
+      act: '你把手机扣在桌上，想等他们说点别的。',
+      fx: { face: -2, fame: -6, info: 8 },
+      replies: [
+        { from: 'li', text: '@1602 新邻居 在吗？' },
+        { from: 'wang', text: '估计在搬东西' },
+        { from: 'li', text: '那先欢迎着' }
+      ],
+      result: '你选了先看。群里没人催你，但你被记住了"没回话"。'
+    }
+  ]
+})
+
+E.push({
+  id: 's1_redpack', stage: 1, pin: true, time: '20:41',
+  msgs: [
+    { from: 'li', text: '按照老规矩，新邻居进群，我发个红包热闹热闹' },
+    { from: 'li', type: 'redpack', amt: 88, note: '欢迎新邻居' },
+    { from: 'wang', text: '手慢了' },
+    { from: 'momo', text: '谢谢李姐！[双手合十]' },
+    { from: 'sys', sys: true, text: '红包 8 秒被领完' }
+  ],
+  options: [
+    {
+      say: '谢谢李姐，这怎么好意思',
+      fx: { face: 6, cash: 3 },
+      replies: [
+        { from: 'li', text: '拿着，图个吉利' },
+        { from: 'chen', text: '我们群里李姐最大方[强]' }
+      ],
+      result: '你抢到 3 块 2。'
+    },
+    {
+      say: null,
+      act: '你没抢。八秒之后红包没了，你看着"已领完"三个字。',
+      fx: { face: 2, fame: -3 },
+      replies: [
+        { from: 'li', text: '新邻居没抢到吧？我再发一个' },
+        { from: 'li', type: 'redpack', amt: 50, note: '补一个' },
+        { from: 'wang', text: '李姐这待遇，我进群的时候可没有' }
+      ],
+      result: '第二个红包，你抢到了 11 块 6。'
+    },
+    {
+      say: '刚进群就收红包不好，我发一个吧',
+      fx: { face: 14, fame: 15, cash: -50}, flag: ['first_redbag'],
+      replies: [
+        { from: 'sys', sys: true, text: '你发了一个红包（50 元，20 个）' },
+        { from: 'wang', text: '哟，新邻居会来事' },
+        { from: 'sys', sys: true, text: '红包 3 秒被领完' },
+        { from: 'momo', text: '谢谢老板[红包]' },
+        { from: 'li', text: '这孩子实在' },
+        { from: 'zhou', text: '谢谢' }
+      ],
+      result: '五十块钱，换了一整屏的"谢谢老板"。你觉得有点值。'
+    }
+  ]
+})
+
+E.push({
+  id: 's1_momo_dm', stage: 1, time: '21:26',
+  msgs: [
+    { from: 'momo', text: '@1602 新邻居 亲，看你头像挺有气质的，做护肤的吗' },
+    { from: 'momo', text: '我这边有个体验装，免费送，就是想让邻居试试' },
+    { from: 'wang', text: '来了来了' },
+    { from: 'momo', text: '王哥你上次那套还没用完呢' },
+    { from: 'wang', text: '我用完了，挺好用的' }
+  ],
+  options: [
+    {
+      say: '不用了谢谢，我皮肤敏感',
+      fx: { face: 3, weird: 2 },
+      replies: [
+        { from: 'momo', text: '敏感肌更需要修复呀，我这款就是专门针对敏感的' },
+        { from: 'momo', text: '不买也没关系，先加个微信' },
+        { from: 'zhou', text: '她说"不买也没关系"的时候，就是要买了' }
+      ],
+      result: 'Momo 没再追问。但她记住了你。'
+    },
+    {
+      say: '好啊，怎么拿',
+      fx: { face: 2, cash: -168, info: 5}, flag: ['momo_hook'],
+      replies: [
+        { from: 'momo', text: '太好了！体验装是免费的，就是邮费 12' },
+        { from: 'momo', text: '对了你皮肤什么类型？我给你配一套基础的，原价 399 群里 168' },
+        { from: 'momo', text: '我私你哈[亲亲]' }
+      ],
+      result: '你花了 168。那套东西后来一直在卫生间台面上。'
+    },
+    {
+      say: null,
+      act: '你点开她的头像看了一眼朋友圈，退出来，没回。',
+      fx: { info: 10, fame: -2 },
+      replies: [
+        { from: 'momo', text: '亲在吗' },
+        { from: 'momo', text: '体验装还剩三份哦' },
+        { from: 'wang', text: '别催了，人家刚搬来' }
+      ],
+      result: '你翻完了她三年的朋友圈。全是发货单。'
+    }
+  ]
+})
+
+E.push({
+  id: 's1_rumor', stage: 1, time: '07:02', day: 2,
+  msgs: [
+    { from: 'chen', text: '【紧急扩散】转发：这三种菜千万不能一起吃！！！' },
+    { from: 'chen', text: '尤其是菠菜和豆腐，吃了等于吃砒霜，已经有人住院了' },
+    { from: 'chen', type: 'img', text: '[图片]' },
+    { from: 'li', text: '陈阿姨早上好' },
+    { from: 'wang', text: '又来了' }
+  ],
+  options: [
+    {
+      say: '阿姨，这个是谣言，菠菜豆腐一起吃没事的',
+      fx: { face: 5, fame: 10, weird: 4, info: 4 },
+      replies: [
+        { from: 'chen', text: '你年轻不懂，我这是为群里人好' },
+        { from: 'wang', text: '新邻居我劝你别管，我管过' },
+        { from: 'zhou', text: '菠菜里的草酸和豆腐里的钙结合，影响吸收，不是砒霜。焯一下水就没事了' },
+        { from: 'chen', text: '……' },
+        { from: 'li', text: '小周说的这个我信' }
+      ],
+      result: '陈阿姨那天没再发第二条。第二天照旧。'
+    },
+    {
+      say: '谢谢陈阿姨提醒！',
+      fx: { face: 6, info: -2 },
+      replies: [
+        { from: 'chen', text: '[玫瑰][玫瑰]还是新邻居懂事' },
+        { from: 'chen', text: '我再发一个，关于喝水的，也很重要' },
+        { from: 'wang', text: '完了，起头了' }
+      ],
+      result: '陈阿姨接下来发了九条。'
+    },
+    {
+      say: null,
+      act: '你把群消息设成了免打扰。',
+      fx: { info: 2, fame: -4}, flag: ['muted_group'],
+      replies: [
+        { from: 'sys', sys: true, text: '你已将群消息设为免打扰' }
+      ],
+      result: '通知关了以后，群里安静了很多。'
+    }
+  ]
+})
+
+E.push({
+  id: 's1_night', stage: 1, time: '02:11', day: 2,
+  msgs: [
+    { from: 'zhou', text: '有人也睡不着吗' },
+    { from: 'zhou', text: '不是有事，就是睡不着' },
+    { from: 'sys', sys: true, text: '（群里没有别人回话）' }
+  ],
+  options: [
+    {
+      say: '我也没睡',
+      fx: { face: 8, fame: 8, info: 6}, flag: ['zhou_friend'],
+      replies: [
+        { from: 'zhou', text: '哦，新邻居' },
+        { from: 'zhou', text: '你别说话，我就随便说一句' },
+        { from: 'zhou', text: '这楼隔音太差，楼上每天十二点半拖椅子' },
+        { from: 'zhou', text: '我住 1502。就这个事，别在群里说' }
+      ],
+      result: '凌晨两点的群，比白天诚实。'
+    },
+    {
+      say: null,
+      act: '你看了两秒，锁屏。',
+      fx: { fame: -2 },
+      replies: [
+        { from: 'sys', sys: true, text: '小周撤回了一条消息' }
+      ],
+      result: '第二天醒来，那条消息已经不见了。'
+    },
+    {
+      say: '睡不着就早点睡',
+      fx: { face: -3, weird: 5, fame: 4 },
+      replies: [
+        { from: 'zhou', text: '……' },
+        { from: 'zhou', text: '有道理' },
+        { from: 'zhou', text: '谢谢你，我这就去睡' }
+      ],
+      result: '你也不知道自己为什么这么回。'
+    }
+  ]
+})
+
+E.push({
+  id: 's1_rules', stage: 1, time: '21:58',
+  msgs: [
+    { from: 'li', text: '@所有人 群规再发一遍，新进群的邻居看一下' },
+    { from: 'li', text: '一、不发广告　二、不吵架　三、有事说事，不@所有人（除了我）　四、晚上十一点后尽量安静' },
+    { from: 'li', text: '收到的回个"收到"' },
+    { from: 'wang', text: '收到' },
+    { from: 'momo', text: '收到[爱心]' },
+    { from: 'chen', text: '收到' },
+    { from: 'sys', sys: true, text: '还有 41 人回复了"收到"' }
+  ],
+  options: [
+    {
+      say: '收到',
+      fx: { face: 6, fame: 4 },
+      replies: [
+        { from: 'li', text: '好，新邻居也收到了' }
+      ],
+      result: '一个"收到"，成本最低的合群。'
+    },
+    {
+      say: '收到。不过群规第三条和第五条@所有人有点矛盾哈',
+      fx: { face: 2, fame: 14, weird: 8, info: 5}, flag: ['asked_rules'],
+      replies: [
+        { from: 'wang', text: '哈哈哈哈哈' },
+        { from: 'wang', text: '新邻居是个讲究人' },
+        { from: 'li', text: '我是群主，我发通知不算' },
+        { from: 'li', text: '……不过你说得也有道理' },
+        { from: 'zhou', text: '这条我记下了' }
+      ],
+      result: '你成了第一个在群里读群规的人。'
+    },
+    {
+      say: null,
+      act: '你没回。四十三个人回复了"收到"，你不在里面。',
+      fx: { face: -5, fame: -4, info: 3 },
+      replies: [
+        { from: 'li', text: '@1602 新邻居 看到回一下哈' },
+        { from: 'li', text: '新人要融入' }
+      ],
+      result: '李姐单独 @ 了你。这比在群里回一句更显眼。'
+    }
+  ]
+})
+
+/* ==================== 阶段 2 · 头一个星期 ==================== */
+
+E.push({
+  id: 's2_sorting', stage: 2, time: '08:15',
+  msgs: [
+    { from: 'zhang', text: '【通知】本周起垃圾分类调整为每天 7:00—9:00、18:00—20:00 两个时段投放' },
+    { from: 'zhang', text: '非投放时段撤桶，请各位业主配合，谢谢' },
+    { from: 'li', text: '大家注意时间，别乱扔了啊' },
+    { from: 'wang', text: '这时段谁定的？上班的人怎么办' },
+    { from: 'zhang', text: '您好，这是街道统一要求' }
+  ],
+  options: [
+    {
+      say: '上班族确实赶不上晚上八点前，能不能申请延时',
+      fx: { face: 9, fame: 12, info: 5, group: -2 },
+      replies: [
+        { from: 'wang', text: '对！新邻居说到点子上了' },
+        { from: 'wang', text: '我说句公道话，这事就是没考虑上班的' },
+        { from: 'zhang', text: '您的建议我记录一下，反馈给相关部门' },
+        { from: 'li', text: '小张，这个真得反映，我们楼里年轻人多' }
+      ],
+      result: '物业没改。但你在群里第一次被当成"能说话的人"。'
+    },
+    {
+      say: '收到，谢谢提醒',
+      fx: { face: 4 },
+      replies: [
+        { from: 'zhang', text: '感谢您的理解' },
+        { from: 'wang', text: '就你懂事' }
+      ],
+      result: '你配合了。事情没变。'
+    },
+    {
+      say: null,
+      act: '你算了一下自己下班的时间，觉得反正也赶不上。',
+      fx: { info: 3, fame: -3 },
+      replies: [
+        { from: 'wang', text: '没人说话就是默认了啊' },
+        { from: 'li', text: '大家克服一下' }
+      ],
+      result: '那天晚上，你把垃圾放在楼道口。第二天被人拍了照发群里。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_groupbuy', stage: 2, time: '10:33',
+  msgs: [
+    { from: 'li', text: '有要土鸡蛋的吗？我表妹农场直发，30 个 45，30 个起送' },
+    { from: 'li', text: '接龙：' },
+    { from: 'li', text: '1. 李桂芬 30' },
+    { from: 'chen', text: '2. 陈秀兰 30' },
+    { from: 'wang', text: '3. 王大炮 60' },
+    { from: 'momo', text: '4. Momo 30[爱心]' }
+  ],
+  options: [
+    {
+      say: '5. 1602 30',
+      fx: { face: 7, fame: 6}, flag: ['groupbuy_ok'],
+      replies: [
+        { from: 'li', text: '好，够了，明天到' },
+        { from: 'li', text: '明天下午五点在 1 单元门口领，记得带袋子' },
+        { from: 'wang', text: '新邻居第一次跟团啊，欢迎入坑' }
+      ],
+      result: '第二天你拿到三十个鸡蛋，破了两个。'
+    },
+    {
+      say: '这个价格超市也能买到吧',
+      fx: { face: -4, fame: 8, info: 4, weird: 5 },
+      replies: [
+        { from: 'li', text: '超市的是笼养的，我这是散养' },
+        { from: 'wang', text: '新邻居，李姐的东西不会错' },
+        { from: 'chen', text: '我买了三年了，好得很' },
+        { from: 'li', text: '不买没关系，不用这么说' }
+      ],
+      result: '李姐的语气没变。但"不买没关系"这句，群里的人都听懂了。'
+    },
+    {
+      say: null,
+      act: '你往上翻了翻，看有多少人接龙。',
+      fx: { info: 8, fame: -2 },
+      replies: [
+        { from: 'sys', sys: true, text: '接龙到 27 号。三十个人。' },
+        { from: 'li', text: '还差三份，凑个整' }
+      ],
+      result: '三十分钟内，487 人的群有 30 个人买了鸡蛋。你记住了这个比例。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_elevator', stage: 2, time: '19:47',
+  msgs: [
+    { from: 'wang', type: 'voice', sec: 42, text: '又是二单元那部电梯！我跟物业说了八回了，今天我妈被困在里面二十分钟，按铃没人接，你们说这叫什么服务' },
+    { from: 'wang', text: '我说句公道话，这钱我们一分没少交' },
+    { from: 'zhang', text: '王先生您好，二单元电梯今天 19:20 已恢复运行，维保人员已到场处理' },
+    { from: 'wang', text: '已恢复？我妈在里面按了二十分钟铃' },
+    { from: 'zhao', text: '维保记录能公示吗？按规定每半个月一次' },
+    { from: 'zhang', text: '相关资料会在公示栏张贴' }
+  ],
+  options: [
+    {
+      say: '我前天也遇到过，门关到一半卡住了',
+      fx: { face: 10, fame: 10, info: 6, group: -3 },
+      replies: [
+        { from: 'wang', text: '你看！不是一回两回了' },
+        { from: 'wang', text: '新邻居你也遇到过啊' },
+        { from: 'zhao', text: '我记一下，这个要写进材料' },
+        { from: 'zhang', text: '感谢反馈，我们会加强巡检' }
+      ],
+      result: '你的证词让这件事从"王大哥又在闹"变成了"确实有问题"。'
+    },
+    {
+      say: '人没事就好，电梯这东西坏了也没办法',
+      fx: { face: -2, group: 3, fame: 5 },
+      replies: [
+        { from: 'wang', text: '什么叫没办法？' },
+        { from: 'wang', text: '新邻居你这话我不爱听' },
+        { from: 'zhao', text: '小王，人家也是好意' },
+        { from: 'li', text: '都少说两句' }
+      ],
+      result: '群里的火，从物业身上烧到了你身上，一会儿。'
+    },
+    {
+      say: null,
+      act: '你没说话。二单元的电梯你也没坐过几次。',
+      fx: { fame: -3, group: -1 },
+      replies: [
+        { from: 'wang', text: '487 个人，没一个人说话' },
+        { from: 'wang', text: '行，我记住了' },
+        { from: 'zhou', text: '我在。但我在三单元' }
+      ],
+      result: '王大炮记住了 487 个人里的沉默。包括你。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_noise', stage: 2, time: '23:12',
+  msgs: [
+    { from: 'li', text: '楼上的邻居，能不能小点声，孩子明天考试' },
+    { from: 'li', text: '我说的是 1601' },
+    { from: 'wang', text: '1601 那家天天半夜拖椅子' },
+    { from: 'sys', sys: true, text: '（1601 没有回话）' }
+  ],
+  options: [
+    {
+      say: '我住 1602，不是我家，但我这边也听到拖动的声音，像是楼上 1702',
+      fx: { face: 12, fame: 14, info: 8}, flag: ['neighbor_fair'],
+      replies: [
+        { from: 'li', text: '啊，那我搞错了' },
+        { from: 'li', text: '1601 的邻居对不起啊' },
+        { from: 'sys', sys: true, text: '1601 撤回了一条消息' },
+        { from: 'wang', text: '新邻居耳朵挺灵' },
+        { from: 'li', text: '1702 我明天上门说' }
+      ],
+      result: '你替一个没说话的人挡了一下。这件事只有 1601 知道。'
+    },
+    {
+      say: '我家也很吵，可能是楼板的问题',
+      fx: { face: 3, info: -4, weird: 4 },
+      replies: [
+        { from: 'wang', text: '这楼的楼板是薄，我拖个椅子都心虚' },
+        { from: 'li', text: '那还是得注意' }
+      ],
+      result: '你把话题从"谁"引到了"什么"。有人松了口气。'
+    },
+    {
+      say: null,
+      act: '你把手机调暗，怕吵到人。',
+      fx: { fame: -4, face: 2 },
+      replies: [
+        { from: 'li', text: '1601 的，看到回一下' },
+        { from: 'wang', text: '装死' }
+      ],
+      result: '那天之后，1601 再没在群里说过话。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_smallgroup', stage: 2, time: '22:40',
+  msgs: [
+    { from: 'sys', sys: true, text: '「小周」邀请你加入群聊「8号楼真实邻居（41）」' },
+    { from: 'zhou', text: '拉你进个小的' },
+    { from: 'zhou', text: '大群太吵了' },
+  ],
+  cond: s => s.fame > 12,
+  options: [
+    {
+      say: '这个群是干嘛的',
+      fx: { face: 4, fame: 3, info: 12 },
+      replies: [
+        { from: 'zhou', text: '没什么干嘛的，就是能说人话的地方' },
+        { from: 'zhou', text: '大群里李姐在，很多话不好说' },
+        { from: 'zhou', text: '你别在大群提这个群' }
+      ],
+      result: '你进了那个 41 人的群。它安静得不像话。'
+    },
+    {
+      say: '不了，我在大群待着就行',
+      fx: { face: 3, info: -6}, flag: ['refused_small'],
+      replies: [
+        { from: 'zhou', text: '行' },
+        { from: 'zhou', text: '那当我没说' }
+      ],
+      result: '小周没再提。但他对你的态度，从那天起变得客气了。'
+    },
+    {
+      say: null,
+      act: '你把两条群都留着，谁也没告诉。',
+      fx: { info: 14, weird: 3 },
+      replies: [
+        { from: 'sys', sys: true, text: '你加入了群聊「8号楼真实邻居（41）」' }
+      ],
+      result: '从这天起，你同时活在两个群里。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_parcel', stage: 2, time: '18:20',
+  msgs: [
+    { from: 'chen', text: '谁拿错了我的快递？就在 1 号柜，一个大纸箱，里面是给孙子买的棉袄' },
+    { from: 'chen', text: '我找了一下午了[流泪]' },
+    { from: 'li', text: '大家看看自己有没有拿错' },
+    { from: 'wang', text: '柜子那边没监控吗' },
+    { from: 'zhang', text: '快递柜区域监控正在维修' }
+  ],
+  options: [
+    {
+      say: '我下午在柜子那看到一个纸箱放在地上，以为是空的',
+      fx: { face: 10, fame: 12, info: 8 },
+      replies: [
+        { from: 'chen', text: '你看到拿去哪了吗' },
+        { from: 'chen', text: '求求你了孩子' },
+        { from: 'li', text: '新邻居你好好想想' },
+        { from: 'wang', text: '别急，慢慢说' }
+      ],
+      result: '你说完，群里安静了很久。那天晚上纸箱没找到。'
+    },
+    {
+      say: '陈阿姨，你问问 2 单元 302，他经常拿错',
+      fx: { face: -6, fame: 8, info: 6, weird: 10 },
+      replies: [
+        { from: 'chen', text: '302？' },
+        { from: 'li', text: '你怎么知道是 302' },
+        { from: 'wang', text: '新邻居消息挺灵啊' },
+        { from: 'sys', sys: true, text: '302 加入群聊' },
+          ],
+      result: '你提供了一个名字。之后两天，302 在群里被问了四次。'
+    },
+    {
+      say: null,
+      act: '你没说话。棉袄不是你的。',
+      fx: { fame: -3, face: -2 },
+      replies: [
+        { from: 'chen', text: '算了，我再买一件吧' },
+        { from: 'li', text: '陈阿姨别难过' },
+        { from: 'wang', text: '这楼里什么人都有' }
+      ],
+      result: '陈阿姨自己又买了一件。她没再提这件事。'
+    }
+  ]
+})
+
+E.push({
+  id: 's2_vacuum', stage: 2, time: '13:05',
+  msgs: [
+    { from: 'momo', text: '姐妹们！我拿到一批戴森平替，工厂尾单，399 一台，商场 2999' },
+    { from: 'momo', type: 'img', text: '[图片]' },
+    { from: 'momo', text: '就 6 台，先到先得，不议价' },
+    { from: 'wang', text: '上次你说尾单的净水器，我用了仨月就坏了' },
+    { from: 'momo', text: '王哥那是你不会用[捂脸]' }
+  ],
+  options: [
+    {
+      say: '399 的戴森平替，电机成本都不够吧',
+      fx: { face: 5, fame: 14, weird: 6, info: 8}, flag: ['called_momo'],
+      replies: [
+        { from: 'momo', text: '亲你懂电机吗[微笑]' },
+        { from: 'zhou', text: '他不一定懂，但他算得对' },
+        { from: 'wang', text: '哈哈哈哈哈小周' },
+        { from: 'momo', text: '你们不买可以，别影响别人买' },
+        { from: 'li', text: '都别吵，群规第二条' }
+      ],
+      result: '那天 Momo 一台都没卖出去。她记住了你。'
+    },
+    {
+      say: '有链接吗，我看看',
+      fx: { cash: -399, info: 4}, flag: ['momo_hook'],
+      replies: [
+        { from: 'momo', text: '私你！[亲亲]' },
+        { from: 'wang', text: '又一个' },
+        { from: 'momo', text: '王哥你别说话，你都买了' }
+      ],
+      result: '三个月后它不转了。你没在群里说。'
+    },
+    {
+      say: null,
+      act: '你把群消息划过去了。',
+      fx: { info: 2 },
+      replies: [
+        { from: 'momo', text: '还剩 2 台' },
+        { from: 'momo', text: '真的假的，这价格还要犹豫' },
+        { from: 'chen', text: '我要一台[玫瑰]' },
+        { from: 'wang', text: '陈阿姨别买' }
+      ],
+      result: '陈阿姨买了。王大炮在群里劝了三次，没劝住。'
+    }
+  ]
+})
+
+/* ==================== 阶段 3 · 第一个月 ==================== */
+
+E.push({
+  id: 's3_bikes', stage: 3, time: '16:30',
+  msgs: [
+    { from: 'zhang', text: '【通知】消防检查，请各位清理楼道内堆放的杂物，尤其是电动车、纸箱、鞋柜' },
+    { from: 'zhang', text: '本周五前清理完毕，逾期将统一清理' },
+    { from: 'wang', text: '楼道那个大柜子是谁家的？占了一半路' },
+    { from: 'zhao', text: '9 楼那个，放了两年了' },
+    { from: 'li', text: '9 楼的邻居出来说一下吧' },
+    { from: 'sys', sys: true, text: '（9 楼没有回话）' }
+  ],
+  options: [
+    {
+      say: '我门口也放了个鞋架，今晚就收',
+      fx: { face: 9, fame: 8, group: 4}, flag: ['clean_first'],
+      replies: [
+        { from: 'li', text: '新邻居这个态度好，大家学学' },
+        { from: 'wang', text: '我那两箱瓷砖明天拉走' },
+        { from: 'chen', text: '我门口的菜坛子也收' },
+        { from: 'zhao', text: '都动起来就好办了' }
+      ],
+      result: '一晚上，楼道里少了七样东西。'
+    },
+    {
+      say: '鞋架不放门口放哪？家里就那么点地方',
+      fx: { face: -7, fame: 10, weird: 8, group: -2 },
+      replies: [
+        { from: 'wang', text: '这话说得' },
+        { from: 'li', text: '消防通道是保命的，不是讲道理的' },
+        { from: 'zhao', text: '新邻居，这条我支持群主' },
+        { from: 'wang', text: '我也支持' }
+      ],
+      result: '你在群里第一次被三个人同时反驳。'
+    },
+    {
+      say: null,
+      act: '你看了看自己门口的鞋架，决定等周五再说。',
+      fx: { fame: -4, group: -2 },
+      replies: [
+        { from: 'zhang', text: '周五上午开始统一清理，请知悉' },
+        { from: 'wang', text: '到时候别怪人家扔你东西' }
+      ],
+      result: '周五你的鞋架被搬到了楼梯拐角。你找了半小时。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_parking', stage: 3, time: '21:05',
+  msgs: [
+    { from: 'wang', text: '谁的车停我车位了？白色 SUV，尾号 7' },
+    { from: 'wang', type: 'img', text: '[图片]' },
+    { from: 'wang', text: '我按了十分钟喇叭了' },
+    { from: 'li', text: '尾号 7……好像是 15 楼新来的' },
+    { from: 'wang', text: '新来的也不能乱停啊' }
+  ],
+  options: [
+    {
+      say: '是我，不好意思，我马上下来挪',
+      fx: { face: 12, fame: 8, info: 2 },
+      replies: [
+        { from: 'wang', text: '哦，是你啊' },
+        { from: 'wang', text: '下次注意啊，我这车位一年两千四' },
+        { from: 'li', text: '新邻居态度好，大炮你也别上火' },
+        { from: 'wang', text: '我没上火，我就是急' }
+      ],
+      result: '你下去挪车，王大炮在楼下等你，递了根烟。'
+    },
+    {
+      say: null,
+      act: '你看到了，但没回。你想等他走了再下去。',
+      fx: { face: -14, fame: 6, weird: 6}, flag: ['parking_incident'],
+      replies: [
+        { from: 'wang', text: '没人认？' },
+        { from: 'wang', text: '那我叫拖车了啊' },
+        { from: 'li', text: '先别，等等' },
+        { from: 'wang', text: '我等了二十分钟了' },
+        { from: 'sys', sys: true, text: '（你把车挪走了，没人看见）' }
+      ],
+      result: '车挪了，但"1602 停别人车位还不吭声"这句话，在群里留了三天。'
+    },
+    {
+      say: '王哥，那个车位好像是公共的，我看物业画线画到那边了',
+      fx: { face: -3, fame: 12, weird: 6, info: 8}, flag: ['parking_incident'],
+      replies: [
+        { from: 'wang', text: '公共的？我交了两千四' },
+        { from: 'wang', text: '你要是有意见，咱们去物业对账' },
+        { from: 'zhao', text: '这个我 interest，车位划线确实有争议' },
+        { from: 'li', text: '好了好了，先把车挪了再说' }
+      ],
+      result: '一件挪车的小事，被你聊成了产权问题。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_station', stage: 3, time: '09:40',
+  msgs: [
+    { from: 'chen', text: '【速看】小区东边要建垃圾中转站！已经开始动工了！' },
+    { from: 'chen', type: 'img', text: '[图片]' },
+    { from: 'chen', text: '以后我们天天闻臭味，房子也要跌价' },
+    { from: 'wang', text: '真的假的？' },
+    { from: 'momo', text: '房价跌了我这房子怎么办[流泪]' },
+    { from: 'zhao', text: '消息来源是哪？规划公示在哪看到的' },
+    { from: 'chen', text: '我姐妹发的，她住在隔壁小区' }
+  ],
+  options: [
+    {
+      say: '我去查一下规划公示，五分钟',
+      fx: { face: 12, fame: 16, info: 18, group: 5}, flag: ['fact_check'],
+      replies: [
+        { from: 'sys', sys: true, text: '（五分钟后）' },
+        { from: 'me', text: '查到了。东边那块地规划是"环卫设施用地"，但不是中转站，是垃圾收集点，服务半径 500 米' },
+        { from: 'zhao', text: '收集点，不是中转站。这两回事' },
+        { from: 'wang', text: '那就是没事？' },
+        { from: 'chen', text: '那也不好啊，收集点也臭' },
+        { from: 'li', text: '新邻居办事靠谱，比转发强' }
+      ],
+      result: '你花五分钟，拆了一条传了两天的谣言。'
+    },
+    {
+      say: '先别慌，等官方通知吧',
+      fx: { face: 3, group: 2 },
+      replies: [
+        { from: 'chen', text: '等通知就晚了！' },
+        { from: 'wang', text: '陈阿姨说得对，这种事不能等' },
+        { from: 'zhao', text: '但也别瞎传。我先去问问' }
+      ],
+      result: '群里恐慌了两个小时。最后发现是隔壁小区的收集点。'
+    },
+    {
+      say: '垃圾站建哪都比建我家门口强',
+      fx: { face: -5, fame: 12, weird: 14, info: -3, group: -4 },
+      replies: [
+        { from: 'wang', text: '……' },
+        { from: 'momo', text: '你这话什么意思' },
+        { from: 'li', text: '新邻居开玩笑呢吧' },
+        { from: 'chen', text: '年轻人说话要注意' }
+      ],
+      result: '这句话后来被截图了。你自己也觉得不该说。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_sign', stage: 3, time: '20:55',
+  msgs: [
+    { from: 'zhao', text: '各位邻居，我整理了一份材料，关于这两年公共收益的去向' },
+    { from: 'zhao', text: '电梯广告、快递柜、场地租金，加起来不是小数，但账目一直没公示' },
+    { from: 'zhao', text: '我准备提交业委会筹备申请，需要 20 户签名。愿意的接龙' },
+    { from: 'zhao', text: '1. 赵建国 1601' },
+    { from: 'li', text: '老赵，这事你跟物业沟通过吗' },
+    { from: 'zhao', text: '沟通过六次' }
+  ],
+  options: [
+    {
+      say: '2. 1602',
+      fx: { face: 4, fame: 14, info: 12, group: -6}, flag: ['zhao_team'],
+      replies: [
+        { from: 'zhao', text: '谢谢！我把材料发你一份' },
+        { from: 'zhao', text: '这个你留着，别外传' },
+        { from: 'wang', text: '3. 王大炮。我不是针对谁，我就是想知道钱去哪了' },
+        { from: 'li', text: '……你们搞吧，我不参与' }
+      ],
+      result: '签名到第 9 个就停了。老赵说没关系，他不急。'
+    },
+    {
+      say: '签名之前，能不能先看看材料',
+      fx: { face: 8, fame: 10, info: 10}, flag: ['careful'],
+      replies: [
+        { from: 'zhao', text: '应该的。我发群里' },
+        { from: 'zhao', type: 'img', text: '[文件] 公共收益疑问十条.pdf' },
+        { from: 'wang', text: '十二页？' },
+        { from: 'zhou', text: '我看了，第二页那个数对不上' },
+        { from: 'zhao', text: '小周你帮我看看' }
+      ],
+      result: '你没签名，但你让这件事变得可信了一点。'
+    },
+    {
+      say: null,
+      act: '你没接龙。你才住一个月。',
+      fx: { fame: -2, group: 2 },
+      replies: [
+        { from: 'zhao', text: '还差十一户' },
+        { from: 'zhao', text: '不急，慢慢来' },
+        { from: 'li', text: '老赵，别搞得太僵' }
+      ],
+      result: '签名接龙在第九个停住了。你后来有点后悔。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_cat', stage: 3, time: '07:50',
+  msgs: [
+    { from: 'chen', text: '谁家的橘猫丢了？在 3 单元车棚里躲着，不吃东西' },
+    { from: 'chen', type: 'img', text: '[图片]' },
+    { from: 'li', text: '哎呀怪可怜的' },
+    { from: 'momo', text: '是不是 12 楼那家的？她家养了三只' },
+    { from: 'wang', text: '12 楼那家上个月搬走了' }
+  ],
+  options: [
+    {
+      say: '我先去看看，我家有猫粮',
+      fx: { face: 16, fame: 16, info: 5}, flag: ['cat_hero'],
+      replies: [
+        { from: 'chen', text: '好孩子[玫瑰]' },
+        { from: 'sys', sys: true, text: '（二十分钟后）' },
+        { from: 'me', type: 'img', text: '[图片]' },
+        { from: 'me', text: '抓到了，很瘦，身上没伤。先放我家一晚' },
+        { from: 'li', text: '新邻居真是好人' },
+        { from: 'wang', text: '我家有猫砂，一会儿给你送过去' },
+        { from: 'momo', text: '我转发一下朋友圈' }
+      ],
+      result: '那天群里第一次没有人吵架。'
+    },
+    {
+      say: '别喂，喂了它就赖着不走了',
+      fx: { face: -8, fame: 8, weird: 8, group: -3 },
+      replies: [
+        { from: 'chen', text: '……' },
+        { from: 'li', text: '是条命啊' },
+        { from: 'wang', text: '新邻居你这话说的' },
+        { from: 'chen', text: '我去喂' }
+      ],
+      result: '陈阿姨自己去喂了。猫留了下来，现在住在车棚。'
+    },
+    {
+      say: null,
+      act: '你想起自己对猫毛过敏。',
+      fx: { fame: -3, info: 3 },
+      replies: [
+        { from: 'chen', text: '那我先带回家了' },
+        { from: 'li', text: '陈阿姨心善' },
+        { from: 'wang', text: '她家已经四只了' }
+      ],
+      result: '猫被陈阿姨带回了家。她家现在有五只。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_job', stage: 3, time: '14:22',
+  msgs: [
+    { from: 'momo', text: '群里有没有想搞副业的姐妹' },
+    { from: 'momo', text: '我这边团队在扩，不用囤货，发发朋友圈就行' },
+    { from: 'momo', text: '上个月我们组一个小姑娘赚了 8000 多' },
+    { from: 'momo', type: 'img', text: '[图片]' },
+    { from: 'wang', text: '8000？' },
+    { from: 'momo', text: '王哥你要不要也来[偷笑]' }
+  ],
+  options: [
+    {
+      say: '是拉人头还是卖货？',
+      fx: { face: 6, fame: 14, weird: 6, info: 10}, flag: ['called_momo'],
+      replies: [
+        { from: 'momo', text: '都不是，是分享经济[微笑]' },
+        { from: 'zhou', text: '那就是拉人头' },
+        { from: 'wang', text: '哈哈哈哈' },
+        { from: 'momo', text: '小周你别乱说' },
+        { from: 'li', text: 'Momo，群规第一条' }
+      ],
+      result: '那句话之后，Momo 在群里安静了半个月。'
+    },
+    {
+      say: '有兴趣，具体怎么做',
+      fx: { cash: -600, info: 6}, flag: ['momo_team'],
+      replies: [
+        { from: 'momo', text: '先拿个 600 的启动包，后面就是发圈、加人' },
+        { from: 'momo', text: '我带你，一个月回本' },
+        { from: 'zhou', text: '600 买个教训，不算贵' },
+        { from: 'momo', text: '小周！' }
+      ],
+      result: '你进了她的群。群里 200 个人，有 180 个在卖同一批货。'
+    },
+    {
+      say: null,
+      act: '你看了看自己银行卡余额，退出了聊天。',
+      fx: { cash: 0, info: 2 },
+      replies: [
+        { from: 'momo', text: '没人吗' },
+        { from: 'momo', text: '机会不等人哦' }
+      ],
+      result: '没人回。这条消息在群里挂了四个小时。'
+    }
+  ]
+})
+
+E.push({
+  id: 's3_wrongperson', stage: 3, time: '11:18',
+  msgs: [
+    { from: 'wang', text: '@1602 你之前是不是在 5 号楼住过' },
+    { from: 'wang', text: '有个叫张伟的，欠我三千块材料钱，也住 1602' },
+    { from: 'wang', text: '我这不是说你啊，我就是问问' },
+    { from: 'li', text: '大炮' },
+    { from: 'wang', text: '我真就是问问' }
+  ],
+  options: [
+    {
+      say: '不是我。我上个月才搬来，之前那户我不认识',
+      fx: { face: 8, fame: 6, info: 5 },
+      replies: [
+        { from: 'wang', text: '哦哦，那不好意思' },
+        { from: 'wang', text: '主要这名字太常见了' },
+        { from: 'chen', text: '大炮你说话注意点' },
+        { from: 'li', text: '人家新邻居脾气好' }
+      ],
+      result: '误会解开了。但群里有人开始叫你"1602"。'
+    },
+    {
+      say: '他欠你钱你去找他，别在群里 @ 我',
+      fx: { face: 2, fame: 16, weird: 8}, flag: ['hard_edge'],
+      replies: [
+        { from: 'wang', text: '我不是那个意思' },
+        { from: 'wang', text: '你这人怎么这样' },
+        { from: 'zhao', text: '小王确实不该在群里这么问' },
+        { from: 'li', text: '都少一句' }
+      ],
+      result: '你赢了道理。群里安静了十分钟。'
+    },
+    {
+      say: null,
+      act: '你盯着那三条 @，没回。',
+      fx: { face: -10, fame: -4, weird: 6}, flag: ['wrong_person'],
+      replies: [
+        { from: 'wang', text: '不回就是默认了啊' },
+        { from: 'li', text: '大炮！' },
+        { from: 'wang', text: '开玩笑的' },
+        { from: 'zhou', text: '不好笑' }
+      ],
+      result: '"1602 欠钱"这句话，在群里活了整整一周。'
+    }
+  ]
+})
+
+return E
+})
+</script>
+<script>/**
+ * core/events.js —— 群聊模拟器 · 事件池（阶段 4—6）
+ * 格式同 events.js
+ */
+
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory()
+  else root.GcEvents2 = factory()
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+
+const E = []
+
+/* ==================== 阶段 4 · 那件事 ==================== */
+
+E.push({
+  id: 's4_repair', stage: 4, pin: true, time: '19:30',
+  msgs: [
+    { from: 'zhang', text: '【重要通知】8 号楼两部电梯使用年限已达 15 年，经检测需大修，预算 78 万元' },
+    { from: 'zhang', text: '维修基金不足部分，按户分摊，每户 1200 元，本月 30 日前缴纳' },
+    { from: 'zhang', text: '缴费方式：物业办公室现场或转账，备注房号' },
+    { from: 'wang', text: '多少？1200？' },
+    { from: 'wang', text: '维修基金呢？我们买房的时候都交过的' },
+    { from: 'zhao', text: '维修基金账上还剩多少，能不能先公示' },
+    { from: 'zhang', text: '这个需要向上级申请查询' },
+    { from: 'wang', text: '又是向上级申请' }
+  ],
+  options: [
+    {
+      say: '1200 我可以交，但要求先公示维修基金余额和使用明细',
+      fx: { face: 14, fame: 20, info: 12, group: 8}, flag: ['firm_but_fair'],
+      replies: [
+        { from: 'wang', text: '对！这才是讲道理的说法' },
+        { from: 'zhao', text: '我同意，钱可以出，账要清' },
+        { from: 'li', text: '新邻居这话在理，小张你记一下' },
+        { from: 'zhang', text: '好的，我反馈' },
+        { from: 'chen', text: '那我也交，但是要看账' },
+        { from: 'zhou', text: '+1' }
+      ],
+      result: '那天晚上，群里第一次形成了共识。你成了那个说出口的人。'
+    },
+    {
+      say: '凭什么让业主出？这是物业的责任',
+      fx: { face: 2, fame: 16, weird: 8, group: -8}, flag: ['zhao_team'],
+      replies: [
+        { from: 'wang', text: '说得好' },
+        { from: 'zhao', text: '也不能这么说，大修确实是业主共担' },
+        { from: 'wang', text: '老赵你哪边的' },
+        { from: 'li', text: '别吵了，先把事说清楚' },
+        { from: 'zhang', text: '电梯属于共有部分，大修费用由业主共同承担，这是规定' }
+      ],
+      result: '你点燃了情绪，但没有推进事情。'
+    },
+    {
+      say: '我交，什么时候都可以',
+      fx: { face: 4, fame: -4, group: 3, cash: -1200}, flag: ['paid_early'],
+      replies: [
+        { from: 'li', text: '新邻居爽快' },
+        { from: 'wang', text: '就是有你这样的人，物业才敢这么收' },
+        { from: 'zhang', text: '感谢配合，已登记' },
+        { from: 'zhao', text: '……' }
+      ],
+      result: '你第一个交了钱。电梯三个月后修好。'
+    },
+    {
+      say: null,
+      act: '你把通知看了三遍，退出了群聊界面。',
+      fx: { fame: -6, group: -3, cash: 0 },
+      replies: [
+        { from: 'wang', text: '487 户，一户 1200，就是五十八万' },
+        { from: 'zhao', text: '78 万的预算，58 万来自业主，剩下 20 万从哪出，通知里没写' },
+        { from: 'li', text: '老赵你算得真快' },
+        { from: 'zhang', text: '维修基金承担剩余部分' }
+      ],
+      result: '数字被人算清楚了。你没参与，但你记住了 58 万这个数。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_water', stage: 4, time: '06:12', day: 2,
+  msgs: [
+    { from: 'zhang', text: '【停水通知】因主管道抢修，今日 8:00—20:00 全楼停水，请提前储水' },
+    { from: 'zhang', text: '恢复供水后可能出现短时浑浊，请放水几分钟' },
+    { from: 'wang', text: '昨天怎么不说' },
+    { from: 'chen', text: '我家一滴水都没存' },
+    { from: 'li', text: '大家互相帮衬一下，谁家有多余的水' }
+  ],
+  options: [
+    {
+      say: '我家存了两桶，16 楼谁需要可以来拿',
+      fx: { face: 16, fame: 14, group: 6}, flag: ['water_helper'],
+      replies: [
+        { from: 'chen', text: '好孩子，我一会儿让孙子上去拿' },
+        { from: 'li', text: '看看，这就是邻居' },
+        { from: 'momo', text: '我也存了，有需要的说' },
+        { from: 'wang', text: '我车库有一箱矿泉水，谁要下来拿' }
+      ],
+      result: '那天 16 楼来了四个人敲门。你认识了三家。'
+    },
+    {
+      say: '通知太晚了，家里有婴儿的怎么办',
+      fx: { face: 6, fame: 10, group: -2 },
+      replies: [
+        { from: 'zhang', text: '确实是突发情况，给您带来不便非常抱歉' },
+        { from: 'wang', text: '道歉有用的话' },
+        { from: 'li', text: '好了，先解决水的问题' }
+      ],
+      result: '物业第二天在群里发了一箱水，放在门卫。'
+    },
+    {
+      say: null,
+      act: '你打开水龙头，接满了浴缸。',
+      fx: { info: 5, group: 0 },
+      replies: [
+        { from: 'chen', text: '谁能借我一点水，我给钱' },
+        { from: 'sys', sys: true, text: '（没有人回）' },
+        { from: 'li', text: '陈阿姨你上来我家拿' }
+      ],
+      result: '你有水。你没说话。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_shower', stage: 4, time: '00:38', day: 2,
+  msgs: [
+    { from: 'wang', text: '谁家半夜洗澡啊？水声跟瀑布一样' },
+    { from: 'wang', text: '已经第三个晚上了' },
+    { from: 'wang', type: 'voice', sec: 18, text: '你们听听这个声音，这是人睡觉的时候该有的声音吗' },
+    { from: 'li', text: '都这个点了，明天再说吧' },
+    { from: 'wang', text: '我明天还要上班' }
+  ],
+  options: [
+    {
+      say: '是我。我上夜班，十二点半到家，洗完就睡。尽量小声了',
+      fx: { face: 10, fame: 8, info: 8}, flag: ['night_shift'],
+      replies: [
+        { from: 'wang', text: '……' },
+        { from: 'wang', text: '你早说啊' },
+        { from: 'wang', text: '那你也没办法' },
+        { from: 'li', text: '原来是这样，那大炮你也别气了' },
+        { from: 'wang', text: '我不是气，我是睡不着' },
+        { from: 'zhou', text: '我懂' }
+      ],
+      result: '王大炮第二天在群里发了个隔音垫的链接。'
+    },
+    {
+      say: null,
+      act: '不是你。你放下手机，等这场架吵完。',
+      fx: { fame: -4, info: 6 },
+      replies: [
+        { from: 'wang', text: '没人认是吧' },
+        { from: 'wang', text: '那我明天挨家挨户敲门' },
+        { from: 'li', text: '大炮你别这样' },
+        { from: 'zhao', text: '这楼的管道声音确实大，未必是谁在洗澡' }
+      ],
+      result: '第二天王大炮真的敲了六家门。没有一家承认。'
+    },
+    {
+      say: '王哥，这楼的管道是铁管，水声会顺着墙传，不一定是正上方',
+      fx: { face: 8, fame: 12, info: 10, group: 3, weird: 4 },
+      replies: [
+        { from: 'wang', text: '还有这说法？' },
+        { from: 'zhou', text: '对，我家也听得到，但我楼上没人住' },
+        { from: 'wang', text: '……那我骂了三天空气？' },
+        { from: 'li', text: '哈哈哈哈' },
+        { from: 'chen', text: '大炮你笑死我了' }
+      ],
+      result: '群里第一次因为王大炮笑成一片。他没生气。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_fee', stage: 4, time: '10:00', day: 2,
+  msgs: [
+    { from: 'zhang', text: '【公示】自下月起，物业服务费由 2.3 元/㎡ 调整为 2.8 元/㎡' },
+    { from: 'zhang', text: '调整依据：人工成本上涨，服务标准提升（详见附件）' },
+    { from: 'zhang', type: 'img', text: '[图片]' },
+    { from: 'wang', text: '又涨' },
+    { from: 'zhao', text: '服务标准提升在哪？保安还是那两个人，保洁还是三天一次' },
+    { from: 'li', text: '这个确实要说说' }
+  ],
+  options: [
+    {
+      say: '涨价可以，但得先说到做到。建议列个服务清单，季度考核',
+      fx: { face: 14, fame: 18, info: 10, group: 8}, flag: ['service_list'],
+      replies: [
+        { from: 'zhao', text: '这个提议好，我可以起草' },
+        { from: 'wang', text: '我同意，做不到就退钱' },
+        { from: 'zhang', text: '我会把建议提交公司' },
+        { from: 'li', text: '新邻居，你要不要进业委会' },
+        { from: 'wang', text: '我附议' },
+        { from: 'zhou', text: '附议' }
+      ],
+      result: '你第一次被提名进业委会。你没答应，也没拒绝。'
+    },
+    {
+      say: '涨就涨吧，一个月也就多几十块',
+      fx: { face: -8, fame: 6, group: -4 },
+      replies: [
+        { from: 'wang', text: '几十块？一年六百' },
+        { from: 'wang', text: '你这态度就是物业敢涨的原因' },
+        { from: 'li', text: '大炮说话别这么冲' },
+        { from: 'zhao', text: '不过他说得有一点道理' }
+      ],
+      result: '你被当成了"不关心的人"。这个标签贴上就很难撕。'
+    },
+    {
+      say: null,
+      act: '你算了一下，一年多交 600。你决定先不交，看看别人。',
+      fx: { info: 6, group: -2}, flag: ['wait_and_see'],
+      replies: [
+        { from: 'wang', text: '我提议，大家一起缓交' },
+        { from: 'zhao', text: '缓交有风险，可能被起诉' },
+        { from: 'li', text: '别冲动' },
+        { from: 'zhang', text: '如对费用有异议，可通过书面形式提出' }
+      ],
+      result: '最后有 30 多户缓交。你不在名单里，但你也没交。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_pdf', stage: 4, time: '21:20',
+  msgs: [
+    { from: 'zhao', text: '各位，材料整理完了，12 页，我发群里' },
+    { from: 'zhao', type: 'img', text: '[文件] 关于8号楼公共收益的十个疑问.pdf' },
+    { from: 'zhao', text: '第一，电梯广告两年收入约 14 万，未公示；第二，快递柜场地费每年 6000' },
+    { from: 'zhao', text: '第三，去年大修基金支出 32 万，无明细' },
+    { from: 'wang', text: '老赵你是真干了' },
+    { from: 'li', text: '老赵，这东西发群里合适吗' },
+    { from: 'zhao', text: '有什么不合适' }
+  ],
+  options: [
+    {
+      say: '我看了，第五页那个数字和前面对不上，建议再核一遍',
+      fx: { face: 10, fame: 16, info: 20, group: 4}, flag: ['zhao_team'],
+      replies: [
+        { from: 'zhao', text: '哪一页？' },
+        { from: 'me', text: '第五页，年度支出合计比明细多了 2.3 万' },
+        { from: 'zhao', text: '……我看看' },
+        { from: 'zhao', text: '你说得对，是我加错了' },
+        { from: 'zhao', text: '改完再发一版。谢谢' },
+        { from: 'wang', text: '这俩人开始上班了' },
+        { from: 'li', text: '……' }
+      ],
+      result: '你把一份会被攻击的材料，变成了不太容易被攻击的材料。'
+    },
+    {
+      say: '老赵辛苦了，但这个发群里，物业会不会针对你',
+      fx: { face: 12, fame: 12, info: 10}, flag: ['li_friend'],
+      replies: [
+        { from: 'zhao', text: '我一个退休的，怕什么' },
+        { from: 'li', text: '新邻居这话说得对，老赵你注意点' },
+        { from: 'zhao', text: '我注意什么，我又没做亏心事' },
+        { from: 'li', text: '我是为你好' }
+      ],
+      result: '老赵没听。但李姐记住了你替她说了那句她不好意思说的话。'
+    },
+    {
+      say: null,
+      act: '你把 PDF 存到了手机里，没在群里说话。',
+      fx: { info: 16, fame: -2 },
+      replies: [
+        { from: 'wang', text: '我转给我一个做律师的朋友看看' },
+        { from: 'zhao', text: '别外传' },
+        { from: 'wang', text: '晚了，已经转了' },
+        { from: 'zhao', text: '……' }
+      ],
+      result: '三天后，这份 PDF 出现在了隔壁小区的群里。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_momo_exposed', stage: 4, time: '15:45', day: 2,
+  msgs: [
+    { from: 'chen', text: 'Momo，我在你这买的面膜，用了脸过敏，去医院了' },
+    { from: 'chen', type: 'img', text: '[图片]' },
+    { from: 'chen', text: '医生说激素脸，要养半年' },
+    { from: 'momo', text: '阿姨，这个跟个人肤质有关系，我卖了三年没人这样' },
+    { from: 'wang', text: '我早说了' },
+    { from: 'li', text: 'Momo，这事你得给个说法' }
+  ],
+  options: [
+    {
+      say: '先别吵。陈阿姨，把包装和批号拍一下，去查备案',
+      fx: { face: 18, fame: 18, info: 14, group: 8}, flag: ['momo_exposed_help'],
+      replies: [
+        { from: 'chen', text: '我这就拍' },
+        { from: 'chen', type: 'img', text: '[图片]' },
+        { from: 'me', text: '这个批号在药监局网站查不到备案' },
+        { from: 'wang', text: '那就是三无产品' },
+        { from: 'momo', text: '我上家说有的……' },
+        { from: 'li', text: 'Momo，你在群里卖东西，出了事你要负责' },
+        { from: 'momo', text: '我退她钱' },
+        { from: 'chen', text: '退了就完了？我这张脸' }
+      ],
+      result: 'Momo 退了钱，退了群三天。回来的时候头像换回了真人。'
+    },
+    {
+      say: '陈阿姨，便宜面膜本来就有风险，你也别全怪人家',
+      fx: { face: -14, fame: 14, weird: 10, group: -6 },
+      replies: [
+        { from: 'chen', text: '你这话什么意思' },
+        { from: 'chen', text: '我六十八了，我图便宜我活该是吗' },
+        { from: 'wang', text: '新邻居你这话真不行' },
+        { from: 'li', text: '这话我不爱听' },
+        { from: 'zhou', text: '……' }
+      ],
+      result: '你想讲道理，但对面是一个脸烂了的老人。'
+    },
+    {
+      say: null,
+      act: '你想起自己也买过她东西，但没拆封。',
+      fx: { info: 8, weird: 4 },
+      replies: [
+        { from: 'momo', text: '我退，我全退' },
+        { from: 'chen', text: '退钱就完了？' },
+        { from: 'li', text: 'Momo，你以后不要在群里卖了，这是最后一次' },
+        { from: 'momo', text: '知道了' },
+        { from: 'sys', sys: true, text: 'Momo✨全球购 修改了群昵称' }
+      ],
+      result: '那天晚上，你把那盒没拆的东西扔了。'
+    }
+  ]
+})
+
+E.push({
+  id: 's4_media', stage: 4, time: '17:08', day: 2,
+  msgs: [
+    { from: 'zhao', text: '有个记者联系我，想做一期关于物业公共收益的节目' },
+    { from: 'zhao', text: '他们想采访几位业主，愿意出镜的报名' },
+    { from: 'wang', text: '我上' },
+    { from: 'li', text: '老赵，这事闹到电视台，以后还怎么处' },
+    { from: 'zhao', text: '李姐，账目公示了我就撤' },
+    { from: 'zhang', text: '各位业主，物业方面愿意坐下来沟通，不必通过媒体' }
+  ],
+  options: [
+    {
+      say: '我愿意出镜，但只讲事实，不喊口号',
+      fx: { face: 8, fame: 24, info: 12, group: -4}, flag: ['on_tv'],
+      replies: [
+        { from: 'zhao', text: '好！就需要你这样的' },
+        { from: 'wang', text: '我也去，我讲我妈被困电梯那段' },
+        { from: 'li', text: '……你们去吧' },
+        { from: 'zhang', text: '媒体采访可能影响问题解决进度' },
+        { from: 'zhou', text: '这句话本身就很说明问题' }
+      ],
+      result: '节目播了四分钟。你的那句"钱可以出，账要清"被剪进了片头。'
+    },
+    {
+      say: '别上电视了，还是内部解决吧',
+      fx: { face: 8, fame: 4, group: 6}, flag: ['li_friend'],
+      replies: [
+        { from: 'li', text: '新邻居说得对' },
+        { from: 'zhao', text: '内部解决？我内部了两年' },
+        { from: 'wang', text: '和稀泥' },
+        { from: 'li', text: '大炮，人家是为整栋楼好' }
+      ],
+      result: '物业第二天就派人来谈了。老赵说这是你的功劳，你不确定。'
+    },
+    {
+      say: null,
+      act: '你不想上电视。你把群消息转给了朋友，配了句"我们楼疯了"。',
+      fx: { fame: -4, weird: 6, info: 6 },
+      replies: [
+        { from: 'zhao', text: '没人愿意就算了' },
+        { from: 'wang', text: '我一个人去' },
+        { from: 'chen', text: '大炮你说话别太冲，上电视呢' }
+      ],
+      result: '王大炮一个人上了电视，讲了七分钟。他成了名人。'
+    }
+  ]
+})
+
+/* ==================== 阶段 5 · 分群 ==================== */
+
+E.push({
+  id: 's5_split', stage: 5, pin: true, time: '22:15',
+  msgs: [
+    { from: 'zhao', text: '我建了个群，专门跟进公共收益这事，要跟的进来' },
+    { from: 'zhao', text: '这个群只谈这一件事，不谈别的，不发广告' },
+    { from: 'wang', text: '拉我' },
+    { from: 'li', text: '老赵，你在大群里说这个，是要分家吗' },
+    { from: 'zhao', text: '李姐，我不是那个意思' },
+    { from: 'li', text: '那是什么意思' },
+    { from: 'sys', sys: true, text: '（群里安静了六分钟）' }
+  ],
+  options: [
+    {
+      say: '两边都在，不冲突。大群过日子，小群办事',
+      fx: { face: 16, fame: 18, info: 10, group: 10}, flag: ['bridge'],
+      replies: [
+        { from: 'zhao', text: '这话说得对' },
+        { from: 'li', text: '……行吧，我不拦着' },
+        { from: 'wang', text: '新邻居这张嘴，真该进业委会' },
+        { from: 'zhou', text: '他说的就是这个意思，你们俩都别多想' },
+        { from: 'li', text: '我没多想' },
+        { from: 'zhao', text: '我也没' }
+      ],
+      result: '两个群都留了下来。你在两边都被当成"自己人"。'
+    },
+    {
+      say: '我进维权群',
+      fx: { face: 2, fame: 14, group: -10}, flag: ['zhao_team', 'split'],
+      replies: [
+        { from: 'zhao', text: '欢迎' },
+        { from: 'li', text: '……' },
+        { from: 'li', text: '行，你们都去吧' },
+        { from: 'wang', text: '李姐你别这样' },
+        { from: 'li', text: '我怎么样了我' }
+      ],
+      result: '那天晚上，大群里少了 60 个人。'
+    },
+    {
+      say: '我不进，我就在大群待着',
+      fx: { face: 4, fame: -4, group: 6}, flag: ['li_friend'],
+      replies: [
+        { from: 'li', text: '还是有人明白事理的' },
+        { from: 'zhao', text: '理解' },
+        { from: 'wang', text: '行吧' },
+        { from: 'zhou', text: '（他私聊你：你其实两边都能进）' }
+      ],
+      result: '你留在了大群。李姐开始有事找你商量。'
+    }
+  ]
+})
+
+E.push({
+  id: 's5_trade', stage: 5, time: '12:40',
+  msgs: [
+    { from: 'chen', text: '家里老人走了，留下一台轮椅，九成新，谁要？' },
+    { from: 'chen', type: 'img', text: '[图片]' },
+    { from: 'wang', text: '陈阿姨节哀' },
+    { from: 'li', text: '节哀' },
+    { from: 'momo', text: '阿姨这个可以挂闲鱼，能卖三百' },
+    { from: 'chen', text: '不想卖，谁需要就拿去' }
+  ],
+  options: [
+    {
+      say: '我帮您问问 12 楼，他家老爷子刚做完手术',
+      fx: { face: 16, fame: 14, group: 8, info: 10}, flag: ['trade_ok'],
+      replies: [
+        { from: 'chen', text: '好，谢谢你' },
+        { from: 'sys', sys: true, text: '（半小时后）' },
+        { from: 'me', text: '12 楼说要，一会儿下来拿' },
+        { from: 'chen', text: '太好了，总算没白放着' },
+        { from: 'li', text: '这才是群该有的样子' },
+        { from: 'wang', text: '比闲鱼强' }
+      ],
+      result: '一台轮椅，从 16 楼到了 12 楼。群里安静了一会儿，那种舒服的安静。'
+    },
+    {
+      say: '阿姨，我帮您挂闲鱼吧，卖了的钱您留着',
+      fx: { face: 6, fame: 8, cash: 0}, flag: ['trade_ok'],
+      replies: [
+        { from: 'chen', text: '不用，我不缺这点钱' },
+        { from: 'chen', text: '我就是不想扔' },
+        { from: 'momo', text: '阿姨我懂你' },
+        { from: 'li', text: '……' }
+      ],
+      result: '轮椅最后放在了她家储藏室。'
+    },
+    {
+      say: '有需要的人自然会问，发群里挺打扰的',
+      fx: { face: -12, fame: 8, weird: 10, group: -5 },
+      replies: [
+        { from: 'chen', text: '打扰你了，对不起' },
+        { from: 'li', text: '新邻居，这话太过分了' },
+        { from: 'wang', text: '人家刚没了老人' },
+        { from: 'zhou', text: '……' }
+      ],
+      result: '陈阿姨退群了两天。回来之后，她再没在群里说过家里的事。'
+    }
+  ]
+})
+
+E.push({
+  id: 's5_kickmomo', stage: 5, time: '20:30',
+  msgs: [
+    { from: 'wang', text: '我提议把 Momo 踢了，她在群里卖假货，还拉人头' },
+    { from: 'wang', text: '同意踢的打个 1' },
+    { from: 'zhao', text: '1' },
+    { from: 'chen', text: '1' },
+    { from: 'li', text: '等等，先听我说两句' },
+    { from: 'momo', text: '我知道我错了，我以后不发广告了' },
+    { from: 'momo', text: '我在这个群四年了' }
+  ],
+  options: [
+    {
+      say: '她卖的东西出过事，但踢人不解决问题。让她公开道歉、退全款、以后不发广告',
+      fx: { face: 12, fame: 16, group: 10, info: 8}, flag: ['momo_mercy'],
+      replies: [
+        { from: 'chen', text: '……行，我接受' },
+        { from: 'momo', text: '我退，我全退，我道歉' },
+        { from: 'momo', text: '对不起陈阿姨，对不起大家' },
+        { from: 'wang', text: '那要是再发呢' },
+        { from: 'li', text: '再发我踢，我亲自踢' },
+        { from: 'zhao', text: '这个处理可以' }
+      ],
+      result: 'Momo 留下来了。她后来真的没再发过广告——只在朋友圈发。'
+    },
+    {
+      say: '1',
+      fx: { face: -6, fame: 10, group: -6}, flag: ['voted_kick'],
+      replies: [
+        { from: 'sys', sys: true, text: '「Momo✨全球购」已被移出群聊' },
+        { from: 'li', text: '……你们' },
+        { from: 'wang', text: '早该这样' },
+        { from: 'zhou', text: '她被踢了，广告也没了，挺好的' },
+        { from: 'chen', text: '我是不是太过分了' }
+      ],
+      result: 'Momo 被踢了。三天后，李姐又把她拉了回来。'
+    },
+    {
+      say: null,
+      act: '你没打 1。你想起自己还买过她的东西。',
+      fx: { info: 6, fame: -2, group: 2 },
+      replies: [
+        { from: 'wang', text: '不说话的算弃权' },
+        { from: 'li', text: '那就再给她一次机会' },
+        { from: 'momo', text: '谢谢李姐，谢谢大家' },
+        { from: 'wang', text: '……' }
+      ],
+      result: '你弃权了。这个决定没人知道，除了你自己。'
+    }
+  ]
+})
+
+E.push({
+  id: 's5_private', stage: 5, time: '23:50',
+  msgs: [
+    { from: 'li', text: '（私聊）小同志，睡了吗' },
+    { from: 'li', text: '（私聊）有件事想问问你，你别往外说' },
+    { from: 'li', text: '（私聊）老赵那个群，你是不是也在里面' },
+    { from: 'li', text: '（私聊）我不是要干什么，我就是想知道，他们是不是在说我' }
+  ],
+  options: [
+    {
+      say: '在。但没人说您坏话，他们只是在算账',
+      fx: { face: 10, fame: 6, info: 8}, flag: ['li_friend', 'honest_to_li'],
+      replies: [
+        { from: 'li', text: '哦' },
+        { from: 'li', text: '算账是应该的' },
+        { from: 'li', text: '我当群主八年了，说实话我也想知道那些钱去哪了' },
+        { from: 'li', text: '但我不想这个群散' },
+        { from: 'li', text: '你懂我的意思吗' }
+      ],
+      result: '那天晚上，李姐跟你说了很多。你第一次觉得她不是"群主"，是个七十岁的老太太。'
+    },
+    {
+      say: '我不在，我没进那个群',
+      fx: { face: -8, info: -10, group: -2}, flag: ['lied_to_li'],
+      replies: [
+        { from: 'li', text: '那就好' },
+        { from: 'li', text: '我就是怕他们闹得太难看' },
+        { from: 'li', text: '你早点睡' }
+      ],
+      result: '你撒了个谎。三天后，李姐在小群里看到了你的名字。'
+    },
+    {
+      say: '李姐，这事我不方便说',
+      fx: { face: 2, info: 4}, flag: ['neutral_edge'],
+      replies: [
+        { from: 'li', text: '行，我懂了' },
+        { from: 'li', text: '不为难你' },
+        { from: 'li', text: '你是个稳当人' }
+      ],
+      result: '李姐没再问。但她从此对你客气了，客气得像对外人。'
+    }
+  ]
+})
+
+E.push({
+  id: 's5_war', stage: 5, time: '19:00',
+  msgs: [
+    { from: 'wang', text: '有人在隔壁那个群里骂李姐，说她跟物业一伙的' },
+    { from: 'wang', text: '我不说是谁' },
+    { from: 'li', text: '谁说的，让他出来说' },
+    { from: 'zhao', text: '我群里没有骂人的人。我去查' },
+    { from: 'chen', text: '这楼怎么变成这样了' },
+    { from: 'sys', sys: true, text: '（两个群的截图开始在各个小群里流传）' }
+  ],
+  options: [
+    {
+      say: '截图我看了，是拼接的。原话是"李姐也不容易"，被截掉了一半',
+      fx: { face: 20, fame: 22, info: 20, group: 14}, flag: ['peacemaker'],
+      replies: [
+        { from: 'wang', text: '……' },
+        { from: 'wang', text: '谁这么缺德' },
+        { from: 'li', text: '小同志，谢谢你' },
+        { from: 'zhao', text: '我也去查原图' },
+        { from: 'zhao', text: '确实被截了' },
+        { from: 'chen', text: '吓死我了，我还以为真吵起来了' },
+        { from: 'zhou', text: '以后截图先看头像时间' }
+      ],
+      result: '一场架，被一张原图拦住了。群里那天晚上聊到十二点，全是道歉。'
+    },
+    {
+      say: '别在群里吵了，越吵越乱',
+      fx: { face: 6, group: 2 },
+      replies: [
+        { from: 'wang', text: '那就在群里说清楚' },
+        { from: 'li', text: '我不需要谁替我说话' },
+        { from: 'zhao', text: '都冷静一下' }
+      ],
+      result: '没人再吵。但那口气一直没散。'
+    },
+    {
+      say: null,
+      act: '你把两个群都设成了免打扰。',
+      fx: { fame: -8, info: 4, group: -4}, flag: ['checked_out'],
+      replies: [
+        { from: 'sys', sys: true, text: '（那天晚上群里有 214 条消息）' },
+        { from: 'li', text: '我把群公告改了：禁止截图外传' }
+      ],
+      result: '你错过了群史上最热闹的一晚。第二天翻记录，翻了二十分钟。'
+    }
+  ]
+})
+
+E.push({
+  id: 's5_owner_offer', stage: 5, time: '21:00',
+  msgs: [
+    { from: 'li', text: '（私聊）小同志，我想把群主转给你' },
+    { from: 'li', text: '（私聊）我年纪大了，管不动了，天天有人骂我' },
+    { from: 'li', text: '（私聊）你说话公道，两边都服你' },
+    { from: 'li', text: '（私聊）你考虑一下，不着急' }
+  ],
+  cond: s => s.face > 62 && s.fame > 45,
+  options: [
+    {
+      say: '李姐，我接。但我有个条件：群规我改，广告一律踢',
+      fx: { face: 8, fame: 20, group: 6}, flag: ['new_owner'],
+      replies: [
+        { from: 'li', text: '好' },
+        { from: 'li', text: '我早就想踢了，抹不开面' },
+        { from: 'sys', sys: true, text: '「李桂芬」将群主转让给你' },
+        { from: 'sys', sys: true, text: '你现在是本群群主' },
+        { from: 'wang', text: '恭喜新群主' },
+        { from: 'momo', text: '恭喜[玫瑰]' },
+        { from: 'chen', text: '恭喜恭喜' }
+      ],
+      result: '三十七个人发了"恭喜"。你知道这不是升职，是接盘。'
+    },
+    {
+      say: '李姐，我不接。这个群只有您能管',
+      fx: { face: 14, fame: 6, group: 6}, flag: ['li_friend'],
+      replies: [
+        { from: 'li', text: '你这孩子' },
+        { from: 'li', text: '那我就再管两年' },
+        { from: 'li', text: '谢谢你啊' }
+      ],
+      result: '李姐又管了两年。群公告最后一条是她加的："群主永不转让"。'
+    },
+    {
+      say: null,
+      act: '你看着那条消息，不知道怎么回。第二天才回了个"我考虑考虑"。',
+      fx: { face: -4, fame: 2}, flag: ['hesitated'],
+      replies: [
+        { from: 'li', text: '好，你慢慢想' },
+        { from: 'li', text: '（三天后）小同志，想好了吗' },
+        { from: 'li', text: '（三天后）算了，不为难你了' }
+      ],
+      result: '那句"考虑考虑"，你考虑了三个月。'
+    }
+  ]
+})
+
+/* ==================== 阶段 6 · 一年后 ==================== */
+
+E.push({
+  id: 's6_newbie', stage: 6, pin: true, time: '20:05',
+  msgs: [
+    { from: 'sys', sys: true, text: '「李桂芬」邀请「1701 新邻居」加入了群聊' },
+    { from: 'li', text: '欢迎新邻居！@1701 新邻居 是哪一户呀' },
+    { from: 'wang', text: '1701？那套不是一直空着吗' },
+    { from: 'li', text: '大炮' },
+    { from: 'chen', text: '欢迎新邻居[玫瑰]' },
+    { from: 'momo', text: '欢迎欢迎🎉 有需要日用品找我' }
+  ],
+  options: [
+    {
+      say: '欢迎。群里规矩不多，第一别发广告，第二晚上十一点后小声点',
+      fx: { face: 18, fame: 20, group: 8}, flag: ['elder'],
+      replies: [
+        { from: 'li', text: '对，就是这个' },
+        { from: 'li', text: '新邻居你听 1602 的，他在这住一年了' },
+        { from: 'wang', text: '一年就这么懂事了' },
+        { from: 'chen', text: '1602 是好孩子' }
+      ],
+      result: '你成了那个"在这住了一年的人"。这句话从别人嘴里说出来，有点奇怪。'
+    },
+    {
+      say: '欢迎，有事可以在群里问',
+      fx: { face: 10, fame: 8 },
+      replies: [
+        { from: 'li', text: '对，大家都很热心' },
+        { from: 'wang', text: '有事问我，我什么都知道' },
+        { from: 'zhou', text: '别问他' }
+      ],
+      result: '一句普通的欢迎。一年前也有人对你说过类似的话。'
+    },
+    {
+      say: null,
+      act: '你看着这条消息，想起自己进群那天。',
+      fx: { info: 10, fame: -2, weird: 4 },
+      replies: [
+        { from: 'sys', sys: true, text: '（你没有说话）' },
+        { from: 'li', text: '新邻居别怕，群里人都不错' },
+        { from: 'wang', text: '除了我' }
+      ],
+      result: '一年前的你和现在的你，在同一个位置，看着同一句话。'
+    }
+  ]
+})
+
+E.push({
+  id: 's6_recap', stage: 6, time: '09:00', day: 2,
+  msgs: [
+    { from: 'li', text: '@所有人 群建立八年了，今天整整八年' },
+    { from: 'li', text: '我发个红包，谢谢大家这些年的包容' },
+    { from: 'li', type: 'redpack', amt: 200, note: '八年了' },
+    { from: 'wang', text: '李姐破费了' },
+    { from: 'chen', text: '谢谢李姐[玫瑰][玫瑰][玫瑰]' },
+    { from: 'zhao', text: '李姐辛苦了' },
+    { from: 'momo', text: '谢谢李姐' },
+    { from: 'zhou', text: '八年了啊' }
+  ],
+  options: [
+    {
+      say: '谢谢李姐。虽然我只来了一年，但这个群确实像个群',
+      fx: { face: 14, fame: 12, group: 6 },
+      replies: [
+        { from: 'li', text: '你这话我爱听' },
+        { from: 'wang', text: '像个群，说得对' },
+        { from: 'zhao', text: '虽然吵了一年' },
+        { from: 'chen', text: '吵归吵，还是邻居' },
+        { from: 'zhou', text: '明年还吵吗' },
+        { from: 'wang', text: '吵' }
+      ],
+      result: '群里刷了一屏"吵"。这是这个群最像家的一次。'
+    },
+    {
+      say: '谢谢李姐红包',
+      fx: { face: 6, cash: 8, fame: 2 },
+      replies: [
+        { from: 'li', text: '抢了多少' },
+        { from: 'wang', text: '我抢了 0.86' },
+        { from: 'chen', text: '我 12 块[偷笑]' }
+      ],
+      result: '那天群里聊了两百多条，全是抢了多少钱。'
+    },
+    {
+      say: null,
+      act: '你抢了红包，没说话。',
+      fx: { cash: 6, fame: -3 },
+      replies: [
+        { from: 'sys', sys: true, text: '（红包 40 秒被领完）' },
+        { from: 'li', text: '都抢得挺快，就是不说话' }
+      ],
+      result: '李姐那句话，像是说给很多人听的。'
+    }
+  ]
+})
+
+E.push({
+  id: 's6_leave', stage: 6, time: '11:30', day: 2,
+  msgs: [
+    { from: 'li', text: '1602，房东说你要搬走了？' },
+    { from: 'li', text: '我昨天在楼下看见搬家公司' },
+    { from: 'wang', text: '搬走？' },
+    { from: 'chen', text: '才住一年啊' },
+    { from: 'zhou', text: '……' }
+  ],
+  options: [
+    {
+      say: '房租涨了，我换了个远一点的',
+      fx: { face: 10, fame: 12, group: 4 },
+      replies: [
+        { from: 'li', text: '涨多少' },
+        { from: 'me', text: '从 3800 涨到 4600' },
+        { from: 'wang', text: '这房东真敢涨' },
+        { from: 'li', text: '……' },
+        { from: 'chen', text: '以后没人帮我拿快递了' },
+        { from: 'zhou', text: '走之前说一声，我请你吃饭' }
+      ],
+      result: '你搬走那天，只有小周下来帮你搬了两个箱子。'
+    },
+    {
+      say: '还没定，可能续租',
+      fx: { face: 6, fame: 4}, flag: ['stayed'],
+      replies: [
+        { from: 'li', text: '那就好' },
+        { from: 'li', text: '你要真搬了，群里少个说话的人' },
+        { from: 'wang', text: '我说话不算人吗' },
+        { from: 'li', text: '你话太多' }
+      ],
+      result: '你续租了。第二年房租又涨了三百。'
+    },
+    {
+      say: null,
+      act: '你退出了群聊，没打招呼。',
+      fx: { face: -10, fame: -10}, flag: ['quit_group'],
+      replies: [
+        { from: 'sys', sys: true, text: '你已退出群聊' },
+        { from: 'li', text: '1602 退群了？' },
+        { from: 'wang', text: '可能不想说吧' },
+        { from: 'chen', text: '唉' }
+      ],
+      result: '487 个人的群，退出没有提示音。'
+    }
+  ]
+})
+
+E.push({
+  id: 's6_rename', stage: 6, time: '14:20', day: 2,
+  msgs: [
+    { from: 'wang', text: '我提议把群名改了，"梧桐里 8 号楼业主群"太严肃了' },
+    { from: 'wang', text: '改成"梧桐里 8 号楼一家亲"怎么样' },
+    { from: 'chen', text: '好[强]' },
+    { from: 'zhou', text: '不好' },
+    { from: 'wang', text: '小周你能不能别这样' },
+    { from: 'zhang', text: '群名修改需要群主操作' }
+  ],
+  options: [
+    {
+      say: '"一家亲"三年后一定会变成维权群。还是叫业主群，实在',
+      fx: { face: 12, fame: 16, weird: 4, group: 6}, flag: ['kept_name'],
+      replies: [
+        { from: 'zhou', text: '同意' },
+        { from: 'wang', text: '……你这话说得' },
+        { from: 'wang', text: '但好像也没错' },
+        { from: 'zhao', text: '我支持保留原名' },
+        { from: 'li', text: '那就还叫业主群' },
+        { from: 'chen', text: '一家亲也不好听' }
+      ],
+      result: '群名没改。三年后你路过那个群，它还在叫"业主群"。'
+    },
+    {
+      say: '改成"一家亲"挺好的，热闹',
+      fx: { face: 4, fame: 6, group: 2 },
+      replies: [
+        { from: 'li', text: '那就改吧' },
+        { from: 'sys', sys: true, text: '群名已修改为「梧桐里 8 号楼一家亲」' },
+        { from: 'zhou', text: '……' }
+      ],
+      result: '群名改了。第二天有人在群里卖洗衣机。'
+    },
+    {
+      say: null,
+      act: '你觉得改不改都行。',
+      fx: { fame: -3 },
+      replies: [
+        { from: 'li', text: '那就投票吧' },
+        { from: 'sys', sys: true, text: '（参与投票 31 人，赞成 18 票）' },
+        { from: 'wang', text: '改了改了' }
+      ],
+      result: '群名改成了"一家亲"。三十一个人参与了一个487人的群的决定。'
+    }
+  ]
+})
+
+E.push({
+  id: 's6_lastcall', stage: 6, time: '23:40', day: 3,
+  msgs: [
+    { from: 'li', text: '@所有人 最后说一件事' },
+    { from: 'li', text: '我年纪大了，这个群以后可能管不动了' },
+    { from: 'li', text: '不管以后谁当群主，记住一件事：这栋楼里住的是人，不是房号' },
+    { from: 'li', text: '有事说话，别憋着' },
+    { from: 'wang', text: '李姐你说这个干什么' },
+    { from: 'chen', text: '李姐保重身体[玫瑰]' },
+    { from: 'zhou', text: '李姐' },
+    { from: 'zhao', text: '李姐，账目的事，我不提了' },
+    { from: 'li', text: '该提还得提' }
+  ],
+  options: [
+    {
+      say: '李姐，有事您说话。我在。',
+      fx: { face: 18, fame: 10, group: 10}, flag: ['stayed_loyal'],
+      replies: [
+        { from: 'li', text: '哎' },
+        { from: 'li', text: '好孩子' },
+        { from: 'sys', sys: true, text: '（李桂芬撤回了一条消息）' },
+        { from: 'wang', text: '……' },
+        { from: 'chen', text: '……' }
+      ],
+      result: '李姐撤回的那条消息，只有你看见了："我怕我走了没人管这个群"。'
+    },
+    {
+      say: null,
+      act: '你打了一行字，删了。又打一行，又删了。',
+      fx: { face: 2, info: 8, weird: 4 },
+      replies: [
+        { from: 'li', text: '都早点睡吧' },
+        { from: 'sys', sys: true, text: '（群里安静下来）' }
+      ],
+      result: '有些话，你确实没说出来。'
+    },
+    {
+      say: '那我接。李姐您放心。',
+      fx: { face: 12, fame: 20, group: 8}, flag: ['new_owner'],
+      replies: [
+        { from: 'li', text: '好' },
+        { from: 'li', text: '我明天就转' },
+        { from: 'wang', text: '真接啊' },
+        { from: 'zhou', text: '他接了我就留着' },
+        { from: 'chen', text: '那我不退群了' },
+        { from: 'zhao', text: '我也不退' }
+      ],
+      result: '第二天早上九点，群主转让完成。群公告第一行换成了你的名字。'
+    }
+  ]
+})
+
+E.push({
+  id: 's6_final_scene', stage: 6, time: '07:12', day: 4,
+  msgs: [
+    { from: 'li', text: '今日天气：晴，12—21℃，东南风 2 级' },
+    { from: 'li', text: '早晚凉，出门加件外套' },
+    { from: 'chen', text: '谢谢李姐[玫瑰]' },
+    { from: 'wang', text: '收到' },
+    { from: 'momo', text: '早安[太阳]' },
+    { from: 'sys', sys: true, text: '（群里陆续跳出几个"早"）' }
+  ],
+  options: [
+    {
+      say: '早',
+      fx: { face: 6, fame: 4, group: 3 },
+      replies: [
+        { from: 'li', text: '早' },
+        { from: 'chen', text: '早啊孩子' }
+      ],
+      result: '一个字。一年前你也打过类似的一个字。'
+    },
+    {
+      say: '李姐，天气这个，您发了八年了吧',
+      fx: { face: 14, fame: 12, info: 6, group: 5}, flag: ['noticed_li'],
+      replies: [
+        { from: 'li', text: '八年零三个月' },
+        { from: 'li', text: '下雨天也没断过' },
+        { from: 'wang', text: '……' },
+        { from: 'chen', text: '李姐真是' },
+        { from: 'zhou', text: '八年零三个月' }
+      ],
+      result: '那天没有人说话。李姐又发了一条："今天可能下雨，记得带伞。"'
+    },
+    {
+      say: null,
+      act: '你关了群消息，去赶地铁。',
+      fx: { fame: -4, group: -1 },
+      replies: [
+        { from: 'sys', sys: true, text: '（这一天，群里有 62 条消息）' }
+      ],
+      result: '你在群里待了一年。这一年，你说了大概三百句话。'
+    }
+  ]
+})
+
+return E
+})
+</script>
+<script>/**
+ * core/events3.js —— 群聊模拟器 · 事件池（日常纹理，slot 轮换）
+ * 同一 slot 的事件一局只出一条，保证"这种事"每局都有，但不是同一件。
+ */
+
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory()
+  else root.GcEvents3 = factory()
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+
+const E = []
+
+/* ==================== 日常 · 阶段 2—3 ==================== */
+
+/* slot: parcel —— 快递 */
+E.push({
+  id: 'd_parcel_help', stage: 2, slot: 'parcel', time: '18:40',
+  msgs: [
+    { from: 'chen', text: '1602 的小同志在吗，你有快递放我门口了' },
+    { from: 'chen', text: '我给你收着，下来拿' },
+    { from: 'li', text: '陈阿姨人最好了，帮半层楼收快递' }
+  ],
+  options: [
+    {
+      say: '谢谢阿姨！我顺便给您带了一袋桃，楼下买的',
+      fx: { face: 14, fame: 8, cash: -18}, flag: ['gift_giver'],
+      replies: [
+        { from: 'chen', text: '哎哟这怎么好意思[玫瑰]' },
+        { from: 'li', text: '看看人家' },
+        { from: 'wang', text: '我帮人收了三年快递没人送过桃' }
+      ],
+      result: '一袋桃 18 块。陈阿姨后来跟人说起你，都提这袋桃。'
+    },
+    {
+      say: '好的谢谢，我十分钟后下来',
+      fx: { face: 6, fame: 3 },
+      replies: [
+        { from: 'chen', text: '不急不急' }
+      ],
+      result: '你准时下来了。陈阿姨多看了你两眼，记住了这张脸。'
+    },
+    {
+      say: null,
+      act: '你回了个"好"，但加班到十点才下去拿。',
+      fx: { face: -4, fame: -2 },
+      replies: [
+        { from: 'chen', text: '你下班真晚，注意身体' },
+        { from: 'li', text: '年轻人都不容易' }
+      ],
+      result: '那天之后，陈阿姨开始留意你的作息。'
+    }
+  ]
+})
+
+E.push({
+  id: 'd_parcel_lost', stage: 3, slot: 'parcel', time: '12:15',
+  msgs: [
+    { from: 'wang', text: '谁拿了我门口的快递？电动工具，很大一箱' },
+    { from: 'wang', type: 'img', text: '[图片]' },
+    { from: 'wang', text: '值八百多' },
+    { from: 'momo', text: '王哥你放门口本来就不安全吧' },
+    { from: 'wang', text: '放了两年都没事' }
+  ],
+  options: [
+    {
+      say: '我中午回来看到 15 楼门口有个大箱子，不知道是不是',
+      fx: { face: 10, fame: 12, info: 8 },
+      replies: [
+        { from: 'wang', text: '我去看' },
+        { from: 'sys', sys: true, text: '（十分钟后）' },
+        { from: 'wang', text: '找到了！是装修的挪过去了' },
+        { from: 'wang', text: '谢了兄弟' },
+        { from: 'momo', text: '虚惊一场[捂脸]' }
+      ],
+      result: '你的一句"可能在那"，省了王大炮一场官司。他记住了。'
+    },
+    {
+      say: '要不查查电梯监控',
+      fx: { face: 6, fame: 8, info: 6 },
+      replies: [
+        { from: 'wang', text: '物业说电梯坏了半个月没修监控' },
+        { from: 'zhao', text: '这笔维修费我记得，去年列过支出' },
+        { from: 'wang', text: '你看，又绕回账上了' }
+      ],
+      result: '话题从快递漂到了账目。这在这个群很正常。'
+    },
+    {
+      say: null,
+      act: '你想起上周你也丢过一箱橘子，没人帮你。',
+      fx: { weird: 4, info: 4 },
+      replies: [
+        { from: 'wang', text: '算了，自认倒霉' },
+        { from: 'li', text: '大家以后贵重东西别放门口' }
+      ],
+      result: '你的一箱橘子，在这个群里没有被提起过。'
+    }
+  ]
+})
+
+/* slot: vote —— 投票 */
+E.push({
+  id: 'd_vote_gate', stage: 2, slot: 'vote', time: '15:20',
+  msgs: [
+    { from: 'zhang', text: '【投票】小区北门是否加装人脸识别门禁，费用从公共收益支出' },
+    { from: 'zhang', text: '请点击小程序投票，三天后截止' },
+    { from: 'wang', text: '又是小程序，就不能群里举个手吗' },
+    { from: 'li', text: '大家记得投啊' }
+  ],
+  options: [
+    {
+      say: '人脸识别的信息存哪？泄露了谁负责？',
+      fx: { face: 4, fame: 14, weird: 6, info: 10 },
+      replies: [
+        { from: 'wang', text: '……这还真是问题' },
+        { from: 'zhou', text: '一般存服务商服务器，合同里写不清楚就麻烦' },
+        { from: 'zhao', text: '我问了，合同里没写数据条款' },
+        { from: 'li', text: '那这投票先缓缓？' },
+        { from: 'zhang', text: '我们再核对一下合同' }
+      ],
+      result: '投票延期了。你说了一句大多数业主想不到的话。'
+    },
+    {
+      say: '投了，赞成',
+      fx: { face: 4, fame: 2 },
+      replies: [
+        { from: 'zhang', text: '感谢您的参与' }
+      ],
+      result: '三天后门禁装了。你也录了脸。'
+    },
+    {
+      say: null,
+      act: '你没投。三天后投票结束，参与 89 人。',
+      fx: { info: 4, fame: -3 },
+      replies: [
+        { from: 'wang', text: '487 户只有 89 户投票，这也能算数？' },
+        { from: 'zhang', text: '达到三分之二参与即有效……呃，未达到，本次投票延后' },
+        { from: 'zhao', text: '记下了' }
+      ],
+      result: '你的不投票，客观上帮了反对的那一方。虽然你没什么立场。'
+    }
+  ]
+})
+
+/* slot: wifi —— 邻里小事 */
+E.push({
+  id: 'd_wifi', stage: 2, slot: 'small', time: '22:50',
+  msgs: [
+    { from: 'momo', text: '姐妹们，谁家WiFi叫"TP-LINK_5G_666"？我的连不上它了' },
+    { from: 'wang', text: '你连人家WiFi干嘛' },
+    { from: 'momo', text: '我家宽带还没装[可怜]' },
+    { from: 'zhou', text: '密码一般是8个8' }
+  ],
+  options: [
+    {
+      say: '我帮你看看，我家路由器可以开个访客网络',
+      fx: { face: 10, fame: 6, info: 2}, flag: ['wifi_sharing'],
+      replies: [
+        { from: 'momo', text: '真的吗！你是天使[爱心]' },
+        { from: 'wang', text: '小心她蹭你三年' },
+        { from: 'momo', text: '王哥！我第二天就装宽带的好吗' }
+      ],
+      result: '她第二天真装了宽带。但从此你在她的"靠谱名单"上。'
+    },
+    {
+      say: '蹭网不太好哈',
+      fx: { face: -4, fame: 6, weird: 6 },
+      replies: [
+        { from: 'momo', text: '……我就问问' },
+        { from: 'wang', text: '新邻居挺正气' },
+        { from: 'zhou', text: '她说说而已，你别上纲上线' }
+      ],
+      result: '一句话，Momo 对你客气了很多，是那种疏远的客气。'
+    },
+    {
+      say: null,
+      act: '你看着这条消息，想起你家WiFi密码也是8个8。',
+      fx: { weird: 4, info: 2 },
+      replies: [
+        { from: 'momo', text: '算了，我明天去营业厅' },
+        { from: 'momo', text: '还有，我试了8个8，真连上了，谁家这么随便[捂脸]' },
+        { from: 'wang', text: '噗' }
+      ],
+      result: '你默默改掉了密码。'
+    }
+  ]
+})
+
+E.push({
+  id: 'd_light', stage: 3, slot: 'small', time: '19:35',
+  msgs: [
+    { from: 'chen', text: '3 单元楼道的声控灯坏了三天了，黑黢黢的，老人上楼危险' },
+    { from: 'chen', text: '反映了好几次没人来修[流泪]' },
+    { from: 'zhang', text: '已登记，预计本周五前处理' },
+    { from: 'chen', text: '上周五也是这么说的' }
+  ],
+  options: [
+    {
+      say: '陈阿姨，晚上我送您上楼吧，反正我也要遛弯',
+      fx: { face: 18, fame: 12, group: 6}, flag: ['escort'],
+      replies: [
+        { from: 'chen', text: '哎哟，那多不好意思' },
+        { from: 'li', text: '新邻居，你真是这楼的福气' },
+        { from: 'wang', text: '我明天去买个充电灯装楼道，几块钱的事' },
+        { from: 'zhao', text: '我来装，我有电钻' },
+        { from: 'zhou', text: '……行吧，我也出一个灯' }
+      ],
+      result: '三天后，3 单元楼道挂上了两个充电感应灯。物业到周五才来。'
+    },
+    {
+      say: '物业那个"已登记"就是已读不回的意思',
+      fx: { face: 4, fame: 12, weird: 6, group: -2 },
+      replies: [
+        { from: 'zhang', text: '先生您这话我不太认同' },
+        { from: 'wang', text: '认同不认同的，反正灯是没亮' },
+        { from: 'li', text: '都少说一句' }
+      ],
+      result: '灯到下周五才亮。物业在群里发了三张维修照片。'
+    },
+    {
+      say: null,
+      act: '你家在 16 楼，声控灯跟你关系不大。',
+      fx: { fame: -2, group: -1 },
+      replies: [
+        { from: 'chen', text: '算了，我让我孙子扶我' },
+        { from: 'li', text: '陈阿姨你小心点' }
+      ],
+      result: '陈阿姨的孙子每天六点来扶她上楼，扶了一个星期。'
+    }
+  ]
+})
+
+/* slot: redbag —— 红包日常 */
+E.push({
+  id: 'd_redbag_fight', stage: 3, slot: 'redbag', time: '12:02',
+  msgs: [
+    { from: 'wang', text: '中午闲着，发一个，手气最佳的明天请喝奶茶' },
+    { from: 'wang', type: 'redpack', amt: 66, note: '午间福利' },
+    { from: 'sys', sys: true, text: '红包 5 秒被领完' },
+    { from: 'momo', text: '手气最佳：1602 新邻居 12.88' },
+    { from: 'momo', text: '新邻居，明天奶茶安排上[偷笑]' },
+    { from: 'wang', text: '规矩就是规矩' }
+  ],
+  options: [
+    {
+      say: '不明天了，现在就发，都别跟我客气',
+      fx: { face: 14, fame: 16, cash: -60}, flag: ['redbag_king'],
+      replies: [
+        { from: 'sys', sys: true, text: '你发了一个红包（60 元，15 个）' },
+        { from: 'wang', text: '够意思！' },
+        { from: 'li', text: '这孩子大方' },
+        { from: 'zhou', text: '谢谢' },
+        { from: 'chen', text: '谢谢老板[玫瑰]' }
+      ],
+      result: '六十块买了个"大方"的名声。你觉得这买卖不亏。'
+    },
+    {
+      say: '好，明天我发',
+      fx: { face: 4, fame: 8 },
+      replies: [
+        { from: 'wang', text: '群里作证啊' },
+        { from: 'momo', text: '记下了，跑不掉[调皮]' }
+      ],
+      result: '第二天中午你发了个 30 的。没人计较多少。'
+    },
+    {
+      say: null,
+      act: '你盯着 12.88 的数字，沉默了。',
+      fx: { face: -6, fame: 4, weird: 4}, flag: ['miser'],
+      replies: [
+        { from: 'wang', text: '人呢' },
+        { from: 'momo', text: '可能忙吧' },
+        { from: 'wang', text: '抢红包的时候可不忙' },
+        { from: 'zhou', text: '抢红包手速和发红包意愿是两个指标' }
+      ],
+      result: '那一整天，"手气最佳"三个字在群里被提了四次。'
+    }
+  ]
+})
+
+/* slot: kick —— 一次冲动的高潮（阶段 5） */
+E.push({
+  id: 'd_kicked', stage: 5, slot: 'side', time: '21:12', day: 2,
+  msgs: [
+    { from: 'li', text: '@所有人 再说一遍，别在群里发外部链接' },
+    { from: 'li', text: '昨天那个砍价链接，发了三次了' },
+    { from: 'wang', text: '就是，谁都别@我' }
+  ],
+  options: [
+    {
+      say: '李姐，规矩是你定的，那你自己上次发的拼多多链接算什么？',
+      fx: { face: -18, fame: 20, weird: 12, group: -6 },
+      replies: [
+        { from: 'sys', sys: true, text: '（群里安静了三分钟）' },
+        { from: 'li', text: '我发的是团购，不是链接' },
+        { from: 'me', text: '都是要人点进去的' },
+        { from: 'wang', text: '……新邻居你冷静点' },
+        { from: 'sys', sys: true, text: '「1602 新邻居」已被移出群聊' }
+      ],
+      result: '你说了一句实话，代价是群聊界面变成了"你已被移出群聊"。三天后李姐把你拉了回来，谁也没提这事。',
+      flag: ['kicked']
+    },
+    {
+      say: null,
+      act: '你想起了自己发过的那个链接，把手缩了回去。',
+      fx: { info: 8, weird: 2 },
+      replies: [
+        { from: 'sys', sys: true, text: '（没有人说话）' },
+        { from: 'li', text: '都看到回一下' },
+        { from: 'momo', text: '收到' }
+      ],
+      result: '你躲过了一次。规矩这种东西，第一次执行时最吓人。'
+    },
+    {
+      say: '收到，以后注意',
+      fx: { face: 6, fame: 2 },
+      replies: [
+        { from: 'li', text: '好' },
+        { from: 'wang', text: '新邻居懂事' }
+      ],
+      result: '规矩又立住了一次。你在"懂事"名单上又前进了一位。'
+    }
+  ]
+})
+
+/* slot: gossip —— 八卦 */
+E.push({
+  id: 'd_gossip', stage: 3, slot: 'gossip', time: '23:05',
+  msgs: [
+    { from: 'momo', text: '你们听说没，12 楼那两家好像因为装修吵起来了' },
+    { from: 'momo', text: '1204 说 1203 电钻早上七点就用' },
+    { from: 'wang', text: '我怎么没在群里看见' },
+    { from: 'momo', text: '人家在楼道里吵的，我亲耳听到' },
+    { from: 'li', text: '这种事别在群里说，让人家自己解决' },
+    { from: 'momo', text: '好吧好吧' }
+  ],
+  options: [
+    {
+      say: '我住 1602，昨晚确实听到楼下有动静，但不清楚是哪两家',
+      fx: { face: 6, fame: 8, info: 6, weird: 2 },
+      replies: [
+        { from: 'momo', text: '看吧！真有动静' },
+        { from: 'li', text: '好了好了，别传了' },
+        { from: 'wang', text: '新邻居你可别跟着添油' }
+      ],
+      result: '你的半句话被当成了证词。其实你只听到了一点风声。'
+    },
+    {
+      say: '这事别传了，传到当事人家嘴里就变味了',
+      fx: { face: 10, fame: 10, group: 5, info: 4 },
+      replies: [
+        { from: 'momo', text: '知道啦知道啦' },
+        { from: 'li', text: '新邻居这话在理' },
+        { from: 'momo', text: '（她默默撤回了两条消息）' },
+        { from: 'sys', sys: true, text: 'Momo 撤回了一条消息' }
+      ],
+      result: '八卦被掐灭在萌芽里。李姐记住了你每次都站在她这边——一次是因为你自己也烦八卦。'
+    },
+    {
+      say: '后来呢？谁赢了？',
+      fx: { face: -2, fame: 8, weird: 12}, flag: ['gossip_lover'],
+      replies: [
+        { from: 'momo', text: '我就说有人爱听！' },
+        { from: 'momo', text: '1203 说他装修交了钱就正常施工，1204 说要找物业' },
+        { from: 'li', text: '……' },
+        { from: 'wang', text: '新邻居你这八卦劲儿跟 Momo 有一拼' }
+      ],
+      result: '你成了"爱听八卦的 1602"。这个标签很难洗掉。'
+    }
+  ]
+})
+
+/* ==================== 日常 · 阶段 4—5 ==================== */
+
+E.push({
+  id: 'd_groupbuy_fail', stage: 4, slot: 'gb', time: '11:10',
+  msgs: [
+    { from: 'li', text: '上礼拜团的车厘子，有人跟我说收到了一半是烂的' },
+    { from: 'li', text: '我表妹说运输问题，补发要等一周' },
+    { from: 'wang', text: '李姐，这都第四回了' },
+    { from: 'wang', text: '土鸡蛋缩水、大米受潮、 Now 车厘子烂一半' },
+    { from: 'momo', text: '我的芒果也是，收的时候都瘪了' },
+    { from: 'li', text: '……' }
+  ],
+  options: [
+    {
+      say: '李姐，建个退货接龙吧，我帮你统计，统一找她退',
+      fx: { face: 12, fame: 14, info: 8, group: 6}, flag: ['groupbuy_ok'],
+      replies: [
+        { from: 'li', text: '……好，麻烦你了' },
+        { from: 'sys', sys: true, text: '（一小时后）' },
+        { from: 'me', text: '统计好了：23 户，共 1479 元。我整理成表格发您' },
+        { from: 'wang', text: '这就专业了' },
+        { from: 'li', text: '一个星期后钱都退回来了' },
+        { from: 'li', text: '谢谢大家没骂我' }
+      ],
+      result: '一场团购信任危机，被一张表格接住了。'
+    },
+    {
+      say: '便宜没好货，以后别团了',
+      fx: { face: -8, fame: 8, weird: 6, group: -4 },
+      replies: [
+        { from: 'li', text: '……我知道了' },
+        { from: 'wang', text: '话说得难听，理不糙' },
+        { from: 'chen', text: '可是便宜是真的便宜啊' },
+        { from: 'momo', text: '烂了就是烂了，跟便宜没关系' }
+      ],
+      result: '李姐两周没再发团购。群里少了点什么。'
+    },
+    {
+      say: null,
+      act: '你没团过她的东西，这事跟你没关系。',
+      fx: { fame: -2 },
+      replies: [
+        { from: 'li', text: '这期先停了，我核对一下供货' },
+        { from: 'chen', text: '李姐别灰心' }
+      ],
+      result: '你没有立场，所以你没有说话。'
+    }
+  ]
+})
+
+E.push({
+  id: 'd_loan', stage: 4, slot: 'dm', time: '22:20',
+  msgs: [
+    { from: 'wang', text: '（私聊）兄弟，在吗' },
+    { from: 'wang', text: '（私聊）不瞒你说，我资金周转不开，周转三天，借一万，利息按银行算' },
+    { from: 'wang', text: '（私聊）群里就你跟我聊得来' }
+  ],
+  options: [
+    {
+      say: '王哥，一万我拿不出来，500 以内可以，不用利息，也不着急还',
+      fx: { face: 10, cash: -500, info: 10}, flag: ['lent_money'],
+      replies: [
+        { from: 'wang', text: '500也行！' },
+        { from: 'wang', text: '兄弟你放心，三天' },
+        { from: 'wang', text: '（他第 11 天还了钱，附赠一条 30 秒的语音道歉）' }
+      ],
+      result: '500 块，买断了"王大炮欠钱"的可能性。你觉得值。'
+    },
+    {
+      say: '王哥，我不借钱给任何人，包括亲戚。你别多想',
+      fx: { face: 2, info: 8}, flag: ['no_loan'],
+      replies: [
+        { from: 'wang', text: '理解理解' },
+        { from: 'wang', text: '是我冒昧了' },
+        { from: 'wang', text: '（从此他在群里对你格外客气，客气得像防着什么）' }
+      ],
+      result: '你划了一条线。他尊重这条线，但记住了线是冷的。'
+    },
+    {
+      say: null,
+      act: '你看了消息没回。第二天他也没再提。',
+      fx: { face: -4, info: 6, weird: 4 },
+      replies: [
+        { from: 'sys', sys: true, text: '（他后来在群里跟 Momo 借了）' },
+        { from: 'sys', sys: true, text: '（Momo 也没借）' },
+        { from: 'wang', text: '这年头借钱比挣钱难' }
+      ],
+      result: '你装没看见。他也没戳破。从此你们之间有一层看不见的东西。'
+    }
+  ]
+})
+
+E.push({
+  id: 'd_wechat_move', stage: 5, slot: 'side', time: '20:40', day: 2,
+  msgs: [
+    { from: 'zhou', text: '小群有人问你什么时候进来' },
+    { from: 'zhou', text: '老赵说你在电视上那段讲得好，想拉你搞业委会' },
+    { from: 'zhou', text: '我说你再考虑考虑' }
+  ],
+  cond: s => s.fame > 40,
+  options: [
+    {
+      say: '业委会这事，让老赵先干着，我可以帮忙整理材料',
+      fx: { face: 8, fame: 10, info: 10, group: 4}, flag: ['support_no_join'],
+      replies: [
+        { from: 'zhou', text: '他懂了，他说这叫"不当头目当军师"' },
+        { from: 'zhou', text: '他要请你吃饭' },
+      ],
+      result: '你成了那个"幕后的人"。老赵的材料后来都有你的笔迹。'
+    },
+    {
+      say: '行，我进业委会',
+      fx: { face: 6, fame: 22, info: 12, group: -4}, flag: ['committee'],
+      replies: [
+        { from: 'zhou', text: '哦' },
+        { from: 'zhou', text: '那你以后消息会很多，我先说' },
+        { from: 'zhou', text: '业委会群比这个群吵十倍' }
+      ],
+      result: '你进了业委会。你的名字出现在了公示栏上。'
+    },
+    {
+      say: '都别拉我，我就想安静住个房',
+      fx: { face: 2, fame: -8, info: 2}, flag: ['refused_all'],
+      replies: [
+        { from: 'zhou', text: '行' },
+        { from: 'zhou', text: '那以后有事我还在群里@你' },
+        { from: 'zhou', text: '毕竟你说话还是有点用的' }
+      ],
+      result: '你拒绝了所有头衔。神奇的是，两边反而都把你当自己人。'
+    }
+  ]
+})
+
+/* ==================== 日常 · 阶段 6 ==================== */
+
+E.push({
+  id: 'd_old_story', stage: 6, slot: 'old', time: '16:10', day: 2,
+  msgs: [
+    { from: 'wang', text: '今天路过物业，想起去年电梯那事' },
+    { from: 'wang', text: '现在修好了，谁还记得当时要交 1200' },
+    { from: 'zhao', text: '账目后来还是公示了，去年 12 月' },
+    { from: 'wang', text: '对，闹了一年的事，公示那天群里就七个人说话' },
+    { from: 'chen', text: '都过去了[玫瑰]' },
+    { from: 'zhou', text: '常规操作' }
+  ],
+  options: [
+    {
+      say: '我记得。当时第一个签名是我',
+      fx: { face: 8, fame: 12, info: 6, group: 6 },
+      replies: [
+        { from: 'zhao', text: '对，第二行就是你' },
+        { from: 'zhao', text: '那份名单我还留着' },
+        { from: 'wang', text: '说实话，那年多亏你们几个' },
+        { from: 'li', text: '都过去了，都好好的' }
+      ],
+      result: '那些吵过的架，最后都变成了"你还记得吗"。'
+    },
+    {
+      say: '1200 我到现在还觉得贵',
+      fx: { face: -2, fame: 6, weird: 4 },
+      replies: [
+        { from: 'wang', text: '哈哈哈哈你这个人' },
+        { from: 'wang', text: '贵是真贵，修也是真修了' }
+      ],
+      result: '有些账，群里永远算不清。这也是群的常态。'
+    },
+    {
+      say: null,
+      act: '你翻了一下聊天记录，找到了那条 78 万预算的通知。',
+      fx: { info: 8, weird: 6 },
+      replies: [
+        { from: 'sys', sys: true, text: '（你往上翻了 4000 多条消息）' },
+        { from: 'zhou', text: '翻什么呢，一年前的消息' }
+      ],
+      result: '4000 条消息里，藏着这一年所有的吵架、红包和天气。'
+    }
+  ]
+})
+
+E.push({
+  id: 'd_junior', stage: 6, slot: 'junior', time: '21:30', day: 2,
+  msgs: [
+    { from: 'sys', sys: true, text: '「1102 小吴」邀请「0802 新邻居」加入了群聊' },
+    { from: '0802', text: '大家好，刚搬来，请多关照' },
+    { from: 'wang', text: '欢迎欢迎' },
+    { from: 'li', text: '新邻居有什么不懂的群里问' },
+    { from: 'momo', text: '有需要日用品找我呀🎉' }
+  ],
+  options: [
+    {
+      say: '欢迎！我去年也刚来，有需要随时说',
+      fx: { face: 14, fame: 8, group: 8}, flag: ['became_li'],
+      replies: [
+        { from: '0802', text: '谢谢！' },
+        { from: 'li', text: '看看，这就传下去了' },
+        { from: 'wang', text: '一茬接一茬' }
+      ],
+      result: '你对新人说的第一句话，和李姐当年对你说的几乎一样。'
+    },
+    {
+      say: null,
+      act: '你想起自己第一次说话时有多小心，决定让人家自己来。',
+      fx: { info: 6, weird: 4 },
+      replies: [
+        { from: 'wang', text: '新邻居挺腼腆' },
+        { from: 'chen', text: '慢慢就熟了' }
+      ],
+      result: '0802 在群里安安静静潜水了三个月。你有点后悔。'
+    },
+    {
+      say: '先说好，别信 Momo 的"内部价"',
+      fx: { face: -4, fame: 14, weird: 10, group: -2 },
+      replies: [
+        { from: 'momo', text: '？' },
+        { from: 'momo', text: '我改过了好吧，我现在只卖正品' },
+        { from: 'wang', text: '哈哈哈哈哈当年那个面膜的事是吧' },
+        { from: 'li', text: '都过去了' }
+      ],
+      result: '0802 在群里说了第一句"谢谢"。不是对你说的。'
+    }
+  ]
+})
+
+return E
+})
+</script>
+<script>/**
+ * core/data.js —— 群聊模拟器 · 内容层
+ * 群成员、阶段、结局、建议。引擎不认识"故事"，只认识数值和 flag。
+ * UMD：小程序走 module.exports，网页走 window.GcData
+ */
+
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./events'), require('./events2'), require('./events3'))
+  else root.GcData = factory(root.GcEvents, root.GcEvents2, root.GcEvents3)
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (E1, E2, E3) {
+
+const EVENTS = [].concat(E1 || [], E2 || [], E3 || [])
+
+/* ============================ 群成员 ============================ */
+
+const MEMBERS = [
+  {
+    id: 'li',
+    name: '李桂芬（8号楼群主）',
+    short: '李桂芬',
+    tag: '群主',
+    avatar: '桂',
+    hue: 8,
+    desc: '退休小学老师，建群的人。每天六点半发天气预报，谁不说话她记得清清楚楚。'
+  },
+  {
+    id: 'wang',
+    name: '王大炮',
+    short: '王大炮',
+    tag: '',
+    avatar: '王',
+    hue: 210,
+    desc: '做建材生意，声大、话密、爱发六十秒语音。口头禅是"我说句公道话"。'
+  },
+  {
+    id: 'momo',
+    name: 'Momo✨全球购',
+    short: 'Momo',
+    tag: '',
+    avatar: 'M',
+    hue: 330,
+    desc: '微商。头像一天换三次。群规第七条就是为她加的，她当没看见。'
+  },
+  {
+    id: 'zhou',
+    name: '小周',
+    short: '小周',
+    tag: '',
+    avatar: '周',
+    hue: 168,
+    desc: '程序员，凌晨两点在线，白天不回。一开口就能把天聊死，但通常是精准的。'
+  },
+  {
+    id: 'chen',
+    name: '陈阿姨',
+    short: '陈阿姨',
+    tag: '',
+    avatar: '陈',
+    hue: 42,
+    desc: '六十八岁，微信名后带一朵玫瑰。转发一切带"紧急""速看""删前速转"的东西。'
+  },
+  {
+    id: 'zhao',
+    name: '老赵（业委会筹备）',
+    short: '老赵',
+    tag: '筹备组',
+    avatar: '赵',
+    hue: 280,
+    desc: '退休会计，随身带 U 盘。坚信物业账目有问题，并且总有一天能证明。'
+  },
+  {
+    id: 'zhang',
+    name: '物业-小张',
+    short: '物业小张',
+    tag: '物业',
+    avatar: '张',
+    hue: 195,
+    desc: '客服。所有问题在他这里都会变成"已反馈给相关部门"。'
+  }
+]
+
+const MEMBER_MAP = {}
+MEMBERS.forEach(m => { MEMBER_MAP[m.id] = m })
+
+/* ============================ 阶段 ============================ */
+
+const STAGES = {
+  1: {
+    name: '入群当天',
+    range: '第 1 天',
+    tip: '487 个人，你一个都不认识。第一条消息已经打好了，删了三遍。',
+    day: 1
+  },
+  2: {
+    name: '头一个星期',
+    range: '第 2—7 天',
+    tip: '群里的规矩没人明说，但每条都有人执行。',
+    day: 7
+  },
+  3: {
+    name: '第一个月',
+    range: '第 3—4 周',
+    tip: '你开始分得清谁在说真话，谁只是在说话。',
+    day: 30
+  },
+  4: {
+    name: '那件事',
+    range: '第 2 个月',
+    tip: '电梯、钱、责任。这三样凑在一起，群就不再是群了。',
+    day: 62
+  },
+  5: {
+    name: '分群',
+    range: '第 3—5 个月',
+    tip: '一个群装不下所有人的立场，于是第二个群出现了。',
+    day: 120
+  },
+  6: {
+    name: '一年后',
+    range: '第 12 个月',
+    tip: '你翻到群设置，看见"我在本群的名字"。',
+    day: 365
+  }
+}
+
+/* ============================ 结局：身份 ============================ */
+
+/* pri 越大越稀有。judge 返回 0~1 的贴合度，引擎按 pri^3 × 吻合度加权抽。 */
+const IDENTITIES = [
+  {
+    id: 'darling', pri: 6,
+    name: '群里那个好人',
+    desc: '没人说得清你做过什么，但谁提起你都说"那人不错"。你借过梯子、代收过快递、帮人看过一次猫。',
+    judge: s => (s.face - 45) / 55 + (s.fame > 30 ? 0.1 : 0)
+  },
+  {
+    id: 'enemy', pri: 5,
+    name: '被挂过两次的人',
+    desc: '你的名字在这个群里以截图的形式流传过。有人替你说话，但声音不大。',
+    judge: s => (40 - s.face) / 40 + (s.fame > 55 ? 0.25 : 0)
+  },
+  {
+    id: 'ghost', pri: 5,
+    name: '姓什么都不知道的邻居',
+    desc: '你在群里待了一年，说过的话不超过十句。电梯里遇见，谁也不认识谁。',
+    judge: s => (30 - s.fame) / 30
+  },
+  {
+    id: 'mediator', pri: 6,
+    name: '民间调解员',
+    desc: '两家为噪音吵到要报警，最后是你在中间说了四句话。群主后来有事都先问你。',
+    judge: s => (s.face - 55) / 45 + (s.group - 50) / 100
+  },
+  {
+    id: 'redbag', pri: 4,
+    name: '红包侠',
+    desc: '大家不记得你住几楼，但记得你手气最佳之后一定会再发一个。',
+    judge: s => (s.flags.indexOf('redbag_king') >= 0 ? 0.9 : 0) + (s.cash < 800 ? 0.15 : 0)
+  },
+  {
+    id: 'weirdo', pri: 5,
+    name: '群里那个怪人',
+    desc: '你的某几句话被截图流传过。没人说得清是哪几句，但一提起 1602，总会有人笑出声。',
+    judge: s => s.weird / 100 + (s.fame > 40 ? 0.12 : 0)
+  },
+  {
+    id: 'insider', pri: 5,
+    name: '什么都知道的人',
+    desc: '你不站队，你只是知道。谁家漏水、谁跟物业吵过、哪笔钱没公示——问你比问群主快。',
+    judge: s => s.info / 100 + (s.fame > 35 ? 0.1 : 0)
+  },
+  {
+    id: 'sidekick', pri: 5,
+    name: '群主的自己人',
+    desc: '李姐发通知，你是第一个回"收到"的。她后来把群转让给了你——不是信任，是没人接。',
+    judge: s => (s.flags.indexOf('li_friend') >= 0 ? 0.75 : 0) + (s.face - 50) / 200
+  },
+  {
+    id: 'sales', pri: 4,
+    name: '带货二把手',
+    desc: '你从"就看看"到"我给大家争取了个价"，用了不到三个月。你的头像也加了个✨。',
+    judge: s => (s.flags.indexOf('momo_team') >= 0 ? 0.8 : 0) + (s.cash > 5000 ? 0.1 : 0)
+  },
+  {
+    id: 'activist', pri: 5,
+    name: '维权先锋',
+    desc: '你手里有一个 12 页的 PDF，标题是《关于 8 号楼公共收益的十个疑问》。老赵把你当接班人。',
+    judge: s => (s.flags.indexOf('zhao_team') >= 0 ? 0.8 : 0) + (s.group < 45 ? 0.15 : 0)
+  },
+  {
+    id: 'kicked', pri: 4,
+    name: '被移出过群聊的人',
+    desc: '你后来是被李姐拉回来的。回来那天没人提这事，但"你被踢过"这件事，比你先到的。',
+    judge: s => (s.flags.indexOf('kicked') >= 0 ? 0.95 : 0)
+  },
+  {
+    id: 'owner', pri: 3,
+    name: '第二任群主',
+    desc: '群主转让那一刻，群里刷了三十个"恭喜"。你知道这不是升职，是接盘。',
+    judge: s => (s.flags.indexOf('new_owner') >= 0 ? 1 : 0)
+  },
+  {
+    id: 'left', pri: 4,
+    name: '已经退群的人',
+    desc: '你退群那天没人发现。三个月后有人在群里问"1602 是不是搬走了"，没有人回答。',
+    judge: s => (s.flags.indexOf('quit_group') >= 0 ? 1 : 0)
+  },
+  {
+    id: 'normal', pri: 7,
+    name: '一个正常的邻居',
+    desc: '这在这个群里，已经算是一种成就了。',
+    judge: s => 0.4 - Math.abs(s.face - 55) / 300 - Math.abs(s.weird - 20) / 400
+  }
+]
+
+/* ============================ 结局：群运 ============================ */
+
+const OUTCOMES = [
+  {
+    id: 'dead', pri: 5,
+    name: '群凉了',
+    desc: '最后一条消息是三个月前的一条拼多多砍一刀，没人点。487 个人，一个都没退。',
+    judge: s => (35 - s.group) / 35
+  },
+  {
+    id: 'groupbuy', pri: 5,
+    name: '群变成了团购群',
+    desc: '现在置顶的是本周鸡蛋价。没人再提物业费，也没人再吵。某种意义上，这是最好的结局。',
+    judge: s => (s.flags.indexOf('groupbuy_ok') >= 0 ? 0.7 : 0) + (s.group - 50) / 160
+  },
+  {
+    id: 'split', pri: 5,
+    name: '分裂成三个群',
+    desc: '一个维权群，一个拼单群，一个真正的邻居群——最后那个只有 41 个人，最安静。',
+    judge: s => (s.flags.indexOf('split') >= 0 ? 0.85 : 0) + (45 - s.group) / 120
+  },
+  {
+    id: 'same', pri: 8,
+    name: '照旧吵，照旧过',
+    desc: '一年了，群还在吵同一件事。你也还在，早上照样有人发天气预报。',
+    judge: s => 0.55 - Math.abs(s.group - 50) / 160
+  },
+  {
+    id: 'win', pri: 4,
+    name: '物业服软了',
+    desc: '公示栏贴出了盖红章的表。老赵拍了照发群里，那天群里第一次没有人抬杠。',
+    judge: s => (s.group - 60) / 40 + (s.flags.indexOf('zhao_team') >= 0 ? 0.2 : 0)
+  },
+  {
+    id: 'owner', pri: 3,
+    name: '你成了群主',
+    desc: '群公告第一行现在是你的名字。你把它改成了"有事说事，别发广告"。',
+    judge: s => (s.flags.indexOf('new_owner') >= 0 ? 1 : 0)
+  },
+  {
+    id: 'rights', pri: 4,
+    name: '群改名成了维权群',
+    desc: '群名后面加了个感叹号。头像换成了红底白字。李姐不再发天气预报。',
+    judge: s => (s.flags.indexOf('zhao_team') >= 0 ? 0.5 : 0) + (38 - s.group) / 60
+  },
+  {
+    id: 'market', pri: 4,
+    name: '二手市场',
+    desc: '现在群里最活跃的是"9 成新婴儿床自提"。你也在上面卖过一个电饭锅。',
+    judge: s => (s.flags.indexOf('trade_ok') >= 0 ? 0.6 : 0) + (s.cash < 3000 ? 0.15 : 0)
+  },
+  {
+    id: 'silent', pri: 5,
+    name: '安静得像没人住',
+    desc: '偶尔有人发一个"？"，隔两天才有人回"我也想问"。',
+    judge: s => (28 - s.group) / 28
+  },
+  {
+    id: 'warm', pri: 4,
+    name: '变成了熟人楼',
+    desc: '有人在群里借葱，三分钟就有人敲门。你搬走那天，群里发了你一张合影。',
+    judge: s => (s.face - 50) / 50 + (s.group - 55) / 80
+  }
+]
+
+/* ============================ 建议（结局后） ============================ */
+
+const ADVICE = {
+  high: [
+    '你在这个群里学会的事，比在这栋楼里住的时间更值钱。',
+    '会说话不是本事。知道什么时候不说话，才是。',
+    '你把 487 个人的群，处成了三十人的楼。这是很难的事。',
+    '有人记得你帮过他一次。这就够了，别指望更多。'
+  ],
+  mid: [
+    '你没赢，也没输。大部分人在群里都是这样过完一年的。',
+    '群是个很公平的地方：你付出多少存在感，就换回多少存在感。',
+    '有些话你当时没说，后来也没机会说了。这很正常。',
+    '你既没被记住，也没被讨厌。在这种群里，这是种本事。'
+  ],
+  low: [
+    '你不是不适合这个群。你只是没想清楚自己要在这里当什么人。',
+    '在群里，沉默是一种表态，只是没人会问你表了什么态。',
+    '你走的时候，群里的消息还在刷。世界不会为你停三秒。',
+    '下次进一个新群，先看清楚谁最像群主，再决定说什么。'
+  ]
+}
+
+/* ============================ 常用语料 ============================ */
+
+const NICK_POOL = [
+  '1602 新邻居', '1602', '刚搬来的', '8号楼1602', '楼下那位'
+]
+
+const SYSTEM_WELCOME = [
+  '「李桂芬」邀请你加入了群聊',
+  '你已加入群聊，当前群成员 487 人'
+]
+
+/* 数值说明，UI 用 */
+const METRICS = [
+  { key: 'face', label: '人缘', hint: '群里有多少人愿意帮你说话' },
+  { key: 'fame', label: '存在感', hint: '有多少人知道 1602 住着谁' },
+  { key: 'weird', label: '奇葩度', hint: '你在这个群里的传说程度' }
+]
+
+return {
+  EVENTS,
+  MEMBERS,
+  MEMBER_MAP,
+  STAGES,
+  IDENTITIES,
+  OUTCOMES,
+  ADVICE,
+  NICK_POOL,
+  SYSTEM_WELCOME,
+  METRICS,
+  GROUP_NAME: '梧桐里 8 号楼业主群',
+  GROUP_COUNT: 487
+}
+})
+</script>
+<script>/**
+ * core/engine.js —— 群聊模拟器 · 运行层
+ * 只负责：抽事件、结算数值、判结局。文案全部来自 data.js / events*.js
+ */
+
+;(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./data'))
+  else root.GcEngine = factory(root.GcData)
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (data) {
+
+const { EVENTS, MEMBER_MAP, STAGES, IDENTITIES, OUTCOMES, ADVICE, NICK_POOL } = data
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+const rnd = n => Math.floor(Math.random() * n)
+const pick = arr => arr[rnd(arr.length)]
+
+function shuffle(arr) {
+  const a = arr.slice()
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rnd(i + 1)
+    const t = a[i]; a[i] = a[j]; a[j] = t
+  }
+  return a
+}
+
+/* 每阶段实际要出几条。pin 必出，其余随机补足。 */
+const PLAN = { 1: 5, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4 }
+
+const START_CASH = [1800, 6000]
+
+function condOk(s, ev) {
+  if (!ev.cond) return true
+  try { return !!ev.cond(s) } catch (e) { return false }
+}
+
+function byStage(stage) {
+  return EVENTS.filter(e => e.stage === stage)
+}
+
+/* ============================ 建局 ============================ */
+
+function createRun(nick) {
+  const s = {
+    nick: (nick || '').trim() || pick(NICK_POOL),
+    stage: 1,
+    cursor: 0,
+    day: 1,
+    face: 50,
+    fame: 8,
+    weird: 0,
+    cash: Math.round(START_CASH[0] + Math.random() * (START_CASH[1] - START_CASH[0])),
+    info: 0,
+    group: 50,
+    flags: [],
+    queue: [],
+    used: {},
+    log: [],
+    chat: [],
+    done: false,
+    ending: null,
+    startedAt: Date.now()
+  }
+  s.queue = buildQueue(s, 1)
+  return s
+}
+
+/** 为某阶段抽事件队列：pin 全出 + 其余随机补足 PLAN */
+function buildQueue(s, stage) {
+  const all = byStage(stage)
+  const ok = all.filter(e => condOk(s, e))
+  const pinned = ok.filter(e => e.pin)
+  const rest = shuffle(ok.filter(e => !e.pin && !s.used[e.id]))
+
+  // 同一阶段内的 slot 组只出一条（同组轮换）
+  const bySlot = {}
+  const solo = []
+  rest.forEach(e => {
+    if (e.slot) {
+      if (bySlot[e.slot]) { bySlot[e.slot].push(e); return }
+      bySlot[e.slot] = [e]
+      return
+    }
+    solo.push(e)
+  })
+  const slotPicks = shuffle(Object.keys(bySlot).map(k => pick(bySlot[k])))
+
+  const need = Math.max(0, (PLAN[stage] || 4) - pinned.length)
+  // 配额分账：日常纹理（slot 轮换）至少占三分之一，主线事件占其余
+  const slotQuota = Math.min(slotPicks.length, Math.ceil(need / 3))
+  const soloQuota = Math.max(0, need - slotQuota)
+  const chosen = pinned
+    .concat(slotPicks.slice(0, slotQuota), shuffle(solo).slice(0, soloQuota))
+  chosen.forEach(e => { s.used[e.id] = true })
+  // 一天之内消息是有先后的：按（阶段内第几天 + 当天时间）排，别打乱
+  const tKey = e => {
+    const t = e.time || ''
+    const [h, m] = t.split(':').map(x => parseInt(x, 10) || 0)
+    return (e.day || 1) * 1440 + h * 60 + m
+  }
+  chosen.sort((a, b) => tKey(a) - tKey(b))
+  return chosen
+}
+
+/* ============================ 数值 ============================ */
+
+const CAP = { face: [0, 100], fame: [0, 100], weird: [0, 100], info: [0, 100], group: [0, 100] }
+
+function applyFx(s, fx) {
+  if (!fx) return []
+  const deltas = []
+  Object.keys(fx).forEach(k => {
+    const v = fx[k]
+    if (!v) return
+    if (k === 'cash') {
+      s.cash = Math.max(0, Math.round(s.cash + v))
+      deltas.push({ key: 'cash', v: Math.round(v) })
+      return
+    }
+    if (typeof s[k] !== 'number') return
+    const cap = CAP[k] || [0, 100]
+    s[k] = Math.round(clamp(s[k] + v, cap[0], cap[1]))
+    deltas.push({ key: k, v: Math.round(v) })
+  })
+  return deltas
+}
+
+function addFlags(s, flags) {
+  if (!flags) return
+  flags.forEach(f => { if (s.flags.indexOf(f) < 0) s.flags.push(f) })
+}
+
+function hasFlag(s, f) { return s.flags.indexOf(f) >= 0 }
+
+/* ============================ 文本 ============================ */
+
+function fill(s, text) {
+  if (typeof text !== 'string') return text
+  return text.replace(/\{me\}/g, s.nick)
+}
+
+function normMsg(s, m) {
+  let who
+  if (m.from === 'me') who = { id: 'me', name: s.nick, avatar: s.nick.slice(-1), hue: 130 }
+  else if (MEMBER_MAP[m.from]) who = MEMBER_MAP[m.from]
+  else {
+    // 群里的临时面孔（如下一任新邻居）：拿 id 当名字，头像取尾字
+    const nm = m.name || m.from
+    let h = 0
+    for (let i = 0; i < m.from.length; i++) h = (h * 31 + m.from.charCodeAt(i)) % 360
+    who = { id: m.from, name: nm, avatar: nm.slice(-1), hue: h }
+  }
+  return {
+    from: m.from,
+    name: who ? who.name : '',
+    avatar: who ? who.avatar : '?',
+    hue: who ? who.hue : 0,
+    sys: !!m.sys,
+    type: m.type || 'text',
+    text: fill(s, m.text || ''),
+    amt: m.amt,
+    note: m.note,
+    sec: m.sec,
+    mine: m.from === 'me'
+  }
+}
+
+/* ============================ 推进 ============================ */
+
+/**
+ * 取下一个内容块。
+ * 返回 { type:'chapter' } 阶段卡片 / { type:'event', ev } / { type:'end' }
+ */
+function next(s) {
+  if (s.done) return { type: 'end' }
+
+  if (s.cursor >= s.queue.length) {
+    // 本阶段走完
+    if (s.stage >= 6) {
+      s.done = true
+      s.ending = settle(s)
+      return { type: 'end' }
+    }
+    s.stage += 1
+    s.cursor = 0
+    s.day = STAGES[s.stage].day
+    stageSettle(s)
+    s.queue = buildQueue(s, s.stage)
+    return { type: 'chapter', stage: s.stage, info: STAGES[s.stage] }
+  }
+
+  const ev = s.queue[s.cursor]
+  // 运行时二次过滤：走到这里状态可能已变（例如 face 掉了），cond 不成立就跳过
+  if (!condOk(s, ev)) {
+    s.cursor += 1
+    return next(s)
+  }
+  return { type: 'event', ev: ev, stage: s.stage }
+}
+
+/** 当前事件的渲染消息（不含玩家选择） */
+function renderEvent(s, ev) {
+  return (ev.msgs || []).map(m => normMsg(s, m))
+}
+
+/**
+ * 选择。返回本轮所有要追加的内容：
+ * { mine, act, replies, result, deltas, flags }
+ */
+function choose(s, ev, index) {
+  const opt = ev.options[index]
+  if (!opt) return null
+
+  const deltas = []
+  addFlags(s, opt.flag)
+  deltas.push.apply(deltas, applyFx(s, opt.fx))
+
+  const mine = opt.say ? normMsg(s, { from: 'me', text: opt.say }) : null
+  const replies = (opt.replies || []).map(m => normMsg(s, m))
+  const result = fill(s, opt.result || '')
+
+  s.cursor += 1
+  if (ev.day) s.day = (STAGES[s.stage].day || s.day) + ev.day - 1
+
+  s.log.push({
+    stage: s.stage,
+    day: s.day,
+    id: ev.id,
+    title: ev.id,
+    said: opt.say || null,
+    act: opt.act || null,
+    result: result,
+    flags: opt.flag || [],
+    deltas: deltas
+  })
+
+  return {
+    mine: mine,
+    act: opt.act ? fill(s, opt.act) : null,
+    replies: replies,
+    result: result,
+    deltas: deltas,
+    flags: opt.flag || []
+  }
+}
+
+/* ============================ 结局 ============================ */
+
+function scoreOf(list, s) {
+  const rows = list.map(it => {
+    let j = 0
+    try { j = it.judge ? it.judge(s) : 0 } catch (e) { j = 0 }
+    j = clamp(j, 0, 1.4)
+    return { it: it, w: Math.pow(it.pri || 5, 3) * Math.max(0.001, j) }
+  })
+  return rows
+}
+
+function weighted(rows) {
+  const total = rows.reduce((a, r) => a + r.w, 0)
+  if (!total) return rows[0].it
+  let r = Math.random() * total
+  for (const row of rows) {
+    r -= row.w
+    if (r <= 0) return row.it
+  }
+  return rows[rows.length - 1].it
+}
+
+/* 已出过的组合（跨局不放回），存在外部传进来的数组里 */
+let seen = []
+function setSeen(list) { seen = Array.isArray(list) ? list.slice() : [] }
+function getSeen() { return seen.slice() }
+
+function settle(s) {
+  const rows = scoreOf(IDENTITIES, s).filter(r => r.w > 0)
+  const orows = scoreOf(OUTCOMES, s).filter(r => r.w > 0)
+
+  // 先尝试没出过的组合
+  let base = null, sc = null
+  const fresh = []
+  rows.forEach(r => orows.forEach(o => {
+    if (seen.indexOf(r.it.id + '|' + o.it.id) < 0) fresh.push([r, o])
+  }))
+
+  if (fresh.length) {
+    const total = fresh.reduce((a, p) => a + p[0].w * p[1].w, 0)
+    let r = Math.random() * total
+    for (const p of fresh) {
+      r -= p[0].w * p[1].w
+      if (r <= 0) { base = p[0].it; sc = p[1].it; break }
+    }
+  }
+  if (!base || !sc) {
+    base = weighted(rows) || IDENTITIES[IDENTITIES.length - 1]
+    sc = weighted(orows) || OUTCOMES[3]
+  }
+  seen.push(base.id + '|' + sc.id)
+
+  const tone = (s.face + s.group) / 2
+  const bucket = tone > 62 ? 'high' : tone > 42 ? 'mid' : 'low'
+  const advice = pick(ADVICE[bucket])
+
+  return {
+    base: base,
+    scene: sc,
+    advice: advice,
+    bucket: bucket,
+    stats: snapshot(s),
+    review: buildReview(s),
+    day: s.day
+  }
+}
+
+/** 回顾：从玩家实际说过的话里挑三句，不重复 */
+function buildReview(s) {
+  const says = s.log.filter(l => l.said).map(l => l.said)
+  const silents = s.log.filter(l => !l.said && l.act)
+  const out = []
+  const used = []
+
+  const addSaid = (label, text) => {
+    if (!text || used.indexOf(text) >= 0) return
+    used.push(text)
+    out.push({ label: label, text: text })
+  }
+
+  if (says.length) addSaid('你说过', says[0])
+  if (says.length > 2) addSaid('你还说过', says[Math.floor(says.length / 2)])
+  if (silents.length) addSaid('有一次，你没说话', silents[0].act)
+  if (says.length > 1) addSaid('最后你说', says[says.length - 1])
+  return out
+}
+
+function snapshot(s) {
+  return {
+    nick: s.nick,
+    stage: s.stage,
+    stageName: (STAGES[s.stage] || {}).name || '',
+    day: s.day,
+    face: s.face,
+    fame: s.fame,
+    weird: s.weird,
+    cash: s.cash,
+    info: s.info,
+    group: s.group,
+    flags: s.flags.slice(),
+    spoke: s.log.filter(l => l.said).length,
+    total: s.log.length
+  }
+}
+
+/** 阶段结算：群气氛随玩家行为漂移一点，纯装饰性数值 */
+function stageSettle(s) {
+  if (s.face > 65) s.group = clamp(s.group + 3, 0, 100)
+  if (s.weird > 55) s.group = clamp(s.group - 3, 0, 100)
+  if (s.fame < 15) s.group = clamp(s.group - 2, 0, 100)
+}
+
+return {
+  createRun,
+  next,
+  renderEvent,
+  choose,
+  snapshot,
+  settle,
+  stageSettle,
+  setSeen,
+  getSeen,
+  condOk
+}
+})
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id)
+  const feed = $('feed')
+  const nav = $('nav')
+  const composer = $('composer')
+  const cslot = $('cslot')
+
+  const E = window.GcEngine
+  const D = window.GcData
+
+  let S = null
+  let cur = null
+  let busy = false
+  let ended = false
+
+  let generation = 0
+  const sleep = ms => { const current = generation; return new Promise(r => setTimeout(() => { if (current === generation) r() }, ms)) }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+  function scrollDown() {
+    requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight })
+  }
+
+  /* ---------------- 消息渲染 ---------------- */
+
+  function avatarStyle(m) {
+    if (m.mine) return 'background:linear-gradient(140deg,#8fd06a,#63b544)'
+    const h = m.hue || 0
+    return `background:linear-gradient(140deg,hsl(${h} 42% 58%),hsl(${h} 46% 44%))`
+  }
+
+  function pushSys(text, cls) {
+    const d = document.createElement('div')
+    d.className = 'sysline' + (cls ? ' ' + cls : '')
+    d.innerHTML = '<span>' + esc(text) + '</span>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  function pushDay(text) {
+    const d = document.createElement('div')
+    d.className = 'dayline'
+    d.innerHTML = '<span>' + esc(text) + '</span>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  function voiceWave(sec) {
+    const n = Math.max(3, Math.min(9, Math.round(sec / 6) + 2))
+    let h = ''
+    for (let i = 0; i < n; i++) {
+      const hh = 4 + ((i * 7 + sec) % 9)
+      h += `<i style="height:${hh}px"></i>`
+    }
+    return '<div class="vwave">' + h + '</div>'
+  }
+
+  function pushMsg(m) {
+    if (m.from === 'sys' || m.sys) { pushSys(m.text); return }
+
+    // 撤回
+    if (m.type === 'recalled') {
+      const d = document.createElement('div')
+      d.className = 'recalled'
+      d.textContent = (m.name || '有人') + '撤回了一条消息'
+      feed.appendChild(d); scrollDown(); return
+    }
+
+    const row = document.createElement('div')
+    row.className = 'row' + (m.mine ? ' mine' : '')
+
+    const ava = document.createElement('div')
+    ava.className = 'ava'
+    ava.setAttribute('style', avatarStyle(m))
+    ava.textContent = m.avatar || '?'
+
+    const col = document.createElement('div')
+    col.className = 'col'
+
+    if (!m.mine && m.name) {
+      const who = document.createElement('div')
+      who.className = 'who'
+      const mem = D.MEMBERS.find(x => x.name === m.name)
+      who.innerHTML = esc(m.name) + (mem && mem.tag ? `<span class="tag">${esc(mem.tag)}</span>` : '')
+      col.appendChild(who)
+    }
+
+    const b = document.createElement('div')
+    b.className = 'bubble'
+
+    if (m.type === 'redpack') {
+      b.classList.add('pack')
+      b.innerHTML =
+        '<div class="pk-top"><div class="pk-ico">福</div><div>' +
+        '<div class="pk-note">' + esc(m.note || '恭喜发财，大吉大利') + '</div>' +
+        '<div class="pk-sub">' + esc(m.text || '') + '</div></div></div>' +
+        '<div class="pk-foot">微信红包</div>'
+    } else if (m.type === 'voice') {
+      b.classList.add('voice')
+      b.innerHTML = voiceWave(m.sec || 10) + '<span class="vlen">' + (m.sec || 10) + '"</span>' +
+        '<div class="vtext">' + esc(m.text || '') + '</div>'
+      b.onclick = () => b.classList.toggle('open')
+    } else if (m.type === 'img') {
+      b.classList.add('img')
+      const isDoc = /\.pdf|文件/.test(m.text || '')
+      b.innerHTML = '<div class="ph' + (isDoc ? ' doc' : '') + '">' + esc((m.text || '[图片]').replace(/^\[|\]$/g, '')) + '</div>'
+    } else if (m.type === 'sticker') {
+      b.classList.add('sticker')
+      b.textContent = m.text || '🙂'
+    } else {
+      b.textContent = m.text
+    }
+
+    col.appendChild(b)
+    row.appendChild(ava)
+    row.appendChild(col)
+    feed.appendChild(row)
+    scrollDown()
+  }
+
+  function pushTyping(name, hue) {
+    const d = document.createElement('div')
+    d.className = 'typing'
+    d.id = 'typing'
+    d.innerHTML = '<div class="ava" style="background:linear-gradient(140deg,hsl(' + hue + ' 42% 58%),hsl(' + hue + ' 46% 44%))">' +
+      esc((name || '?').slice(-1)) + '</div>' +
+      '<div><div class="dots"><i></i><i></i><i></i></div>' +
+      '<div class="tname">' + esc(name) + ' 正在输入</div></div>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+  function clearTyping() {
+    const t = $('typing')
+    if (t) t.remove()
+  }
+
+  /* ---------------- 事件推进 ---------------- */
+
+  async function pump() {
+    if (busy || ended) return
+    busy = true
+    clearChoices()
+
+    const step = E.next(S)
+
+    if (step.type === 'end') {
+      ended = true
+      busy = false
+      await sleep(400)
+      recordArchive(S.ending)
+      showEnd(S.ending)
+      return
+    }
+
+    if (step.type === 'chapter') {
+      renderChapter(step)
+      busy = false
+      await sleep(1700)
+      pump()
+      return
+    }
+
+    cur = step.ev
+    await playEvent(step.ev, step.stage)
+    busy = false
+  }
+
+  function renderChapter(step) {
+    const info = step.info
+    const d = document.createElement('div')
+    d.className = 'chapter'
+    d.innerHTML =
+      '<div class="when">' + esc(info.range) + '</div>' +
+      '<div class="ctitle serif">' + esc(info.name) + '</div>' +
+      '<div class="cline"></div>' +
+      '<div class="cdesc">' + esc(info.tip) + '</div>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  async function playEvent(ev, stage) {
+    const msgs = E.renderEvent(S, ev)
+
+    // 时间分隔
+    if (ev.time) {
+      pushDay(dayLabel(stage, ev))
+      await sleep(180)
+    }
+
+    for (const m of msgs) {
+      if (m.from !== 'sys' && !m.sys && !m.mine) {
+        const mem = D.MEMBERS.find(x => x.name === m.name)
+        pushTyping(m.name, mem ? mem.hue : 0)
+        await sleep(320 + Math.random() * 420)
+        clearTyping()
+      }
+      pushMsg(m)
+      await sleep(m.type === 'redpack' ? 420 : 230)
+    }
+
+    await sleep(260)
+    showChoices(ev)
+  }
+
+  const DAY_BASE = { 1: 1, 2: 4, 3: 21, 4: 58, 5: 121, 6: 361 }
+
+  function dayLabel(stage, ev) {
+    const dayNum = (DAY_BASE[stage] || 1) + ((ev.day || 1) - 1)
+    return '第 ' + dayNum + ' 天  ' + (ev.time || '')
+  }
+
+  /* ---------------- 选项 ---------------- */
+
+  function clearChoices() { cslot.innerHTML = '' }
+
+  function showChoices(ev) {
+    cslot.innerHTML = ''
+    const wrap = document.createElement('div')
+    wrap.className = 'choices'
+
+    const hint = document.createElement('div')
+    hint.className = 'choice-hint'
+    hint.textContent = '你要说什么'
+    wrap.appendChild(hint)
+
+    ev.options.forEach((o, i) => {
+      const btn = document.createElement('button')
+      btn.className = 'choice' + (o.say ? '' : ' act')
+      btn.style.animationDelay = (i * 55) + 'ms'
+      btn.innerHTML = '<span class="ci">' + (i + 1) + '</span>' +
+        '<span>' + esc(o.say || o.act || '……') + '</span>'
+      btn.onclick = () => pickOption(i)
+      wrap.appendChild(btn)
+    })
+
+    cslot.appendChild(wrap)
+  }
+
+  async function pickOption(i) {
+    if (busy || !cur) return
+    busy = true
+    const ev = cur
+    cur = null
+    clearChoices()
+
+    const out = E.choose(S, ev, i)
+    if (!out) { busy = false; return }
+
+    if (out.mine) {
+      pushMsg(out.mine)
+      await sleep(520)
+    }
+    if (out.act) {
+      pushSys(out.act, 'act')
+      await sleep(680)
+    }
+
+    for (const m of out.replies) {
+      if (m.from !== 'sys' && !m.sys) {
+        const mem = D.MEMBERS.find(x => x.name === m.name)
+        pushTyping(m.name, mem ? mem.hue : 0)
+        await sleep(420 + Math.random() * 520)
+        clearTyping()
+      }
+      pushMsg(m)
+      await sleep(m.type === 'redpack' ? 420 : 240)
+    }
+
+    if (out.result) {
+      await sleep(280)
+      const n = document.createElement('div')
+      n.className = 'note'
+      n.textContent = out.result
+      feed.appendChild(n)
+      scrollDown()
+    }
+
+    if (out.deltas && out.deltas.length) {
+      const dl = document.createElement('div')
+      dl.className = 'deltas'
+      const LABEL = { face: '人缘', fame: '存在感', weird: '奇葩度', info: '内情', group: '群气氛', cash: '余额' }
+      dl.innerHTML = out.deltas.map(d => {
+        const up = d.v > 0
+        return `<span class="dchip${up ? '' : ' down'}">${LABEL[d.key] || d.key} ${up ? '+' : ''}${d.v}${d.key === 'cash' ? '元' : ''}</span>`
+      }).join('')
+      feed.appendChild(dl)
+      scrollDown()
+    }
+
+    updateHud()
+    await sleep(200)
+    busy = false
+    showContinue()
+  }
+
+  function showContinue() {
+    cslot.innerHTML = ''
+    const wrap = document.createElement('div')
+    wrap.className = 'choices'
+    const btn = document.createElement('button')
+    btn.className = 'choice'
+    btn.style.justifyContent = 'center'
+    btn.innerHTML = '<span style="letter-spacing:2px;color:#5a5a5a">继续</span>'
+    btn.onclick = () => { cslot.innerHTML = ''; pump() }
+    wrap.appendChild(btn)
+    cslot.appendChild(wrap)
+  }
+
+  /* ---------------- HUD ---------------- */
+
+  function updateHud() {
+    const snap = E.snapshot(S)
+    $('nav-sub').textContent = snap.stageName + ' · 第 ' + snap.day + ' 天'
+  }
+
+  function openSheet() {
+    if (!S) return
+    const s = E.snapshot(S)
+    const rows = [
+      ['人缘', s.face], ['存在感', s.fame], ['奇葩度', s.weird]
+    ]
+    const hints = { '人缘': '有多少人愿意替你说话', '存在感': '有多少人知道你是谁', '奇葩度': '你在这个群里的传说程度' }
+
+    $('sheet-body').innerHTML =
+      '<div class="sheet-title">' + esc(s.nick) + '</div>' +
+      '<div class="sheet-sub">' + esc(s.stageName) + ' · 已在这个群待了 ' + s.day + ' 天 · 说过 ' + s.spoke + ' 次话</div>' +
+      rows.map(r => {
+        const cls = r[1] < 30 ? ' bad' : r[1] > 68 ? ' warn' : ''
+        return '<div class="metric"><div class="m-top"><span class="m-name">' + r[0] +
+          '</span><span class="m-val">' + r[1] + '</span></div>' +
+          '<div class="m-track"><div class="m-fill' + cls + '" style="width:' + r[1] + '%"></div></div>' +
+          '<div class="m-hint">' + hints[r[0]] + '</div></div>'
+      }).join('') +
+      '<div class="sheet-row"><span>钱包</span><span>¥' + s.cash + '</span></div>' +
+      '<div class="sheet-row"><span>群气氛</span><span>' + s.group + '</span></div>' +
+      '<div class="sheet-row"><span>内情</span><span>' + s.info + '</span></div>'
+    $('sheet').classList.add('on')
+  }
+
+  /* ---------------- 结局 ---------------- */
+
+  let lastEnd = null
+  let floatBtn = null
+
+  function showEnd(end) {
+    lastEnd = end
+    if (floatBtn) { floatBtn.remove(); floatBtn = null }
+    const st = end.stats
+    const el = document.createElement('section')
+    el.id = 'end'
+
+    const rv = end.review.map(r =>
+      '<div class="rv-item"><div class="rv-l">' + esc(r.label) + '</div><div class="rv-t">「' + esc(r.text) + '」</div></div>'
+    ).join('')
+
+    el.innerHTML =
+      '<div class="end-inner">' +
+      '<div class="end-kicker">GROUP ARCHIVE · 你的群档案</div>' +
+      '<div class="end-day">一年后 · 你在「梧桐里 8 号楼业主群」的身份</div>' +
+      '<div class="end-role serif">' + esc(end.base.name) + '</div>' +
+      '<div class="end-desc">' + esc(end.base.desc) + '</div>' +
+      '<div class="end-scene"><div class="lbl">而这个群</div><div class="nm serif">' + esc(end.scene.name) + '</div>' +
+      '<div class="tx">' + esc(end.scene.desc) + '</div></div>' +
+      '<div class="end-stats">' +
+      '<div class="estat"><b>' + st.face + '</b><span>人缘</span></div>' +
+      '<div class="estat"><b>' + st.fame + '</b><span>存在感</span></div>' +
+      '<div class="estat"><b>' + st.spoke + '</b><span>说过的话</span></div>' +
+      '</div>' +
+      '<div class="end-review">' + rv + '</div>' +
+      '<div class="end-advice">' + esc(end.advice) + '</div>' +
+      '<div class="end-btns">' +
+      '<button class="btn" id="again">换一个群，再来一次</button>' +
+      '<button class="btn ghost" id="lookback">回去看看聊天记录</button>' +
+      '</div>' +
+      '<div class="end-tip">你的结局组合已记入群档案</div>' +
+      '</div>'
+
+    document.body.querySelector('#app').appendChild(el)
+    el.scrollTop = 0
+
+    $('again').onclick = () => { el.remove(); resetToCover() }
+    $('lookback').onclick = () => {
+      el.remove()
+      // 右下角留一个入口，随时能回到结局页
+      floatBtn = document.createElement('div')
+      floatBtn.style.cssText = 'position:absolute;right:14px;bottom:86px;z-index:40;background:#23201d;color:#f2f0ec;font-size:12px;padding:9px 14px;border-radius:20px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2);letter-spacing:1px'
+      floatBtn.textContent = '群档案'
+      floatBtn.onclick = () => showEnd(lastEnd)
+      document.getElementById('app').appendChild(floatBtn)
+    }
+  }
+
+  /* ---------------- 启动 ---------------- */
+
+  function resetToCover() {
+    S = null; cur = null; ended = false; busy = false; lastEnd = null
+    if (floatBtn) { floatBtn.remove(); floatBtn = null }
+    feed.innerHTML = ''
+    cslot.innerHTML = ''
+    nav.style.display = 'none'
+    composer.style.display = 'none'
+    $('cover').style.display = 'flex'
+    $('nick').value = previewStorage.getItem('gc_nick') || '1602 新邻居'
+    renderArchiveInfo()
+  }
+
+  function renderArchiveInfo() {
+    const n = Number(previewStorage.getItem('gc_runs') || 0)
+    $('arc-info').textContent = n ? '群档案：' + n + ' 局' : '还没有群档案'
+  }
+
+  function start() {
+    const nick = ($('nick').value || '').trim() || '1602 新邻居'
+    previewStorage.setItem('gc_nick', nick)
+
+    const seen = JSON.parse(previewStorage.getItem('gc_seen') || '[]')
+    E.setSeen(seen)
+
+    S = E.createRun(nick)
+    ended = false; busy = false; cur = null
+    feed.innerHTML = ''
+
+    $('cover').style.display = 'none'
+    nav.style.display = 'flex'
+    composer.style.display = 'block'
+    $('nav-name').textContent = D.GROUP_NAME
+    updateHud()
+
+    // 开场：进群提示（时间线由第一个事件自带）
+    pushSys('你已加入群聊「' + D.GROUP_NAME + '」')
+    const current = generation
+    setTimeout(() => { if (current === generation) pump() }, 700)
+  }
+
+  $('go').onclick = start
+  $('nick').addEventListener('keydown', e => { if (e.key === 'Enter') start() })
+
+  $('nav-more').onclick = openSheet
+  $('sheet').onclick = e => { if (e.target.id === 'sheet') $('sheet').classList.remove('on') }
+  $('nav-back').onclick = () => {
+    if (ended || !S) { resetToCover(); return }
+    if (confirm('退出会丢掉这一局，确定？')) resetToCover()
+  }
+
+  // 每局结束后写入档案（只在结算时调用一次）
+  function recordArchive(end) {
+    const n = Number(previewStorage.getItem('gc_runs') || 0) + 1
+    previewStorage.setItem('gc_runs', String(n))
+    previewStorage.setItem('gc_seen', JSON.stringify(E.getSeen()))
+    const hist = JSON.parse(previewStorage.getItem('gc_hist') || '[]')
+    hist.unshift({ role: end.base.name, scene: end.scene.name, t: Date.now() })
+    previewStorage.setItem('gc_hist', JSON.stringify(hist.slice(0, 30)))
+  }
+
+  window.resetExample = () => { generation++; previewStorage.data = {}; document.getElementById('end')?.remove(); document.getElementById('sheet').classList.remove('on'); resetToCover() }
+  resetToCover()
+})()
+</script>
+<span style="position:fixed;top:10px;left:10px;z-index:10000;background:#fff;padding:4px">示例体验 · 数据仅在当前页面保留</span><button type="button" id="restore-example" onclick="window.resetExample()" style="position:fixed;top:10px;right:10px;z-index:10000">恢复示例</button>
+<!-- portal-back:start -->
+
+<style>
+  #portal-back {
+    position: fixed; left: 10px; top: 10px; z-index: 2147483000;
+    display: flex; align-items: center; gap: 2px;
+    height: 29px; padding: 0 11px 0 7px;
+    border-radius: 15px; box-sizing: border-box;
+    background: rgba(28, 26, 23, .55); color: #fdfaf4;
+    font: 500 12px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    letter-spacing: .12em; text-decoration: none;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+    opacity: .5; transition: opacity .2s ease, transform .2s ease, background .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #portal-back:hover, #portal-back:focus-visible {
+    opacity: 1; background: rgba(28, 26, 23, .82); transform: translateY(-1px); outline: none;
+  }
+  @media (max-width: 480px) { #portal-back { opacity: .42; } }
+  @media print { #portal-back { display: none; } }
+</style>
+<!-- portal-back:end -->
+</body>
+</html>
