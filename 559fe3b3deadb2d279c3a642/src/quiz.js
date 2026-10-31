@@ -16,7 +16,7 @@ export async function initializeQuiz(){
   var CH_JB = {1:'信息化发展',2:'信息技术发展',3:'信息技术服务',4:'信息系统架构',5:'软件工程',6:'数据工程',7:'软硬件系统集成',8:'信息安全工程',9:'项目管理概论',10:'启动过程组',11:'规划过程组',12:'执行过程组',13:'监控过程组',14:'收尾过程组',15:'组织保障',16:'监理基础知识',17:'法律法规和标准规范',18:'职业道德规范',19:'专业英语'};
   var CH_768 = {1:'项目管理概论',2:'项目整合管理',3:'项目范围管理',4:'项目进度管理',5:'项目成本管理',6:'项目质量管理',7:'项目资源管理',8:'项目沟通管理',9:'项目风险管理',10:'项目采购管理',11:'项目干系人管理',12:'项目合同管理',13:'项目文档管理与配置管理',14:'项目收尾管理',15:'监理基础知识',16:'法律法规和标准规范',17:'职业道德规范',18:'信息化发展',19:'信息技术发展',20:'信息技术服务',21:'信息系统架构',22:'软件工程',23:'数据工程',24:'软硬件系统集成',25:'信息安全工程'};
 
-  var state = { pool: [], idx: 0, answered: {}, order: [], mode: 'normal' };
+  var state = { pool: [], idx: 0, answered: {}, order: [], mode: 'normal', lastExam: null };
   var storageKey = '__application_progress__';
   var saveQueue = Promise.resolve();
   var saveFailed = false;
@@ -78,6 +78,7 @@ export async function initializeQuiz(){
   function buildProgressData(){
     return {
       answered: state.answered,
+      lastExam: state.lastExam,
       mode: state.mode,
       order: state.order,
       idx: state.idx,
@@ -97,6 +98,7 @@ export async function initializeQuiz(){
 
   function applyProgressData(d){
     state.answered = d.answered || {};
+    state.lastExam = d.lastExam || null;
     state.mode = d.mode || 'normal';
     state.order = d.order || [];
     state.idx = typeof d.idx === 'number' ? d.idx : 0;
@@ -746,6 +748,12 @@ export async function initializeQuiz(){
     if(examState.submitted) return;
     clearInterval(examState.timer);
     examState.submitted = true;
+    state.lastExam = {questions: examState.questions, answers: examState.answers};
+    saveProgress();
+    renderExamResult();
+  }
+
+  function renderExamResult(){
     var right = 0;
     examState.questions.forEach(function(q, i){
       if(examState.answers[i] === q.ans) right++;
@@ -1055,6 +1063,12 @@ export async function initializeQuiz(){
     render();
   }
   refreshStats();
+  if(state.lastExam && Array.isArray(state.lastExam.questions) && state.lastExam.questions.length){
+    examState.questions = state.lastExam.questions;
+    examState.answers = state.lastExam.answers || {};
+    examState.submitted = true;
+    renderExamResult();
+  }
   refreshCaseSelect();
   renderCases();
   renderFormulas();
