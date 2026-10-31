@@ -33,7 +33,35 @@ try {
   window.hallStore = {getItem(key) { return data.get(key) ?? null; }, setItem(key,value) { value=String(value); persist(key,value); data.set(key,value); }, removeItem(key) { persist(key,null); data.delete(key); }};
   window.addEventListener('beforeunload', event => { if (pending) { event.preventDefault(); event.returnValue = ''; } });
   const frame = document.createElement('iframe'); frame.title = '模拟器大厅';
-  frame.src = new URL('../hall/index.html', import.meta.url).href;
   Object.assign(frame.style,{position:'fixed',inset:'0',width:'100%',height:'100%',border:'0'});
-  document.body.append(frame); status.hidden = true;
+  const hallRoot = new URL('../hall/', import.meta.url);
+  let navigation = 0;
+  async function openPage(url) {
+    const target = new URL(url, hallRoot);
+    if (target.origin !== hallRoot.origin || !target.pathname.startsWith(hallRoot.pathname) || !target.pathname.endsWith('/index.html')) throw Error('页面地址无效');
+    const sequence = ++navigation;
+    const response = await fetch(target.href);
+    if (!response.ok) throw Error('页面读取失败');
+    let html = await response.text();
+    if (sequence !== navigation) return;
+    // The hosted asset response cannot be framed. Load the same page in srcdoc
+    // and resolve its local scripts against the fetched page's URL.
+    html = html.replace(/src="(\.\/[^"]+)"/g, (_, path) => `src="${new URL(path, target).href}"`);
+    frame.onload = () => {
+      const doc = frame.contentDocument;
+      if (!doc) { status.hidden = false; status.textContent = '页面加载失败，请刷新重试。'; return; }
+      doc.addEventListener('click', event => {
+        const link = event.target.closest?.('a[href]');
+        if (!link || link.hasAttribute('download') || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const href = link.getAttribute('href');
+        if (!href || !/^(?:\.\.?\/)/.test(href)) return;
+        event.preventDefault();
+        openPage(new URL(href, target)).catch(() => { status.hidden = false; status.textContent = '页面加载失败，请刷新重试。'; });
+      }, true);
+    };
+    frame.srcdoc = html;
+  }
+  document.body.append(frame);
+  await openPage(new URL('index.html', hallRoot));
+  status.hidden = true;
 } catch (_) { status.textContent = '无法读取云端存档，请检查登录及网络后刷新重试。'; }
