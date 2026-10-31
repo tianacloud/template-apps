@@ -1,0 +1,11 @@
+import {readFile,writeFile,mkdir,copyFile,rm} from 'node:fs/promises';
+import {build} from 'esbuild';
+const html=await readFile('app.html','utf8');
+const body=html.match(/<body[^>]*>([\s\S]*?)<script src="app.js"><\/script>/i)?.[1];
+if (!body) throw Error('Missing body');
+const css=await readFile('styles.css','utf8'), js=await readFile('app.js','utf8');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await build({entryPoints:['app.js'],bundle:true,format:'esm',platform:'browser',outfile:'dist/assets/app.js',banner:{js:`document.title="墨舟 · 自动发布文章";const style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};`}});
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
