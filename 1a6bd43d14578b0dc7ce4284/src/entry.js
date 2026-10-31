@@ -2,7 +2,6 @@ import { createTianaFetch } from '@tianacloud/serverless';
 import body from './body.html';
 import css from './style.css';
 import images from 'inline-images';
-import './data.js';
 import { start } from './app.js';
 
 export async function mount(root, context) {
@@ -22,7 +21,11 @@ export async function mount(root, context) {
     return result.response.result.rows;
   }
   try {
-    if (!context.files?.bindImage) throw Error('素材服务未就绪');
+    if (!context.files?.bindImage || !context.files?.get) throw Error('素材服务未就绪');
+    const bankResponse = await context.files.get('template-assets/data/questions.json');
+    if (!bankResponse.ok) throw Error('题库读取失败');
+    const bank = await bankResponse.json();
+    if (!Array.isArray(bank) || bank.length === 0) throw Error('题库不完整');
     const rows = await sql('SELECT document FROM driving_progress WHERE id=1');
     const data = rows[0]?.[0]?.value ? JSON.parse(rows[0][0].value) : {};
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('进度格式无效');
@@ -44,10 +47,10 @@ export async function mount(root, context) {
     const store = {getItem:key => data[key] ?? null, setItem(key,value) {data[key]=String(value);persist();}, removeItem(key) {delete data[key];persist();}};
     const style = document.createElement('style'); style.textContent = css; document.head.append(style);
     root.innerHTML = body; root.append(warning);
-    start(store, images, context.files);
+    start(store, images, context.files, bank);
     return () => { style.remove(); root.replaceChildren(); };
   } catch (error) {
-    root.textContent = '无法读取学习进度或素材，请检查登录和网络后重新打开。';
+    root.textContent = '无法读取题库、学习进度或素材，请检查登录和网络后重新打开。';
     console.error(error);
   }
 }

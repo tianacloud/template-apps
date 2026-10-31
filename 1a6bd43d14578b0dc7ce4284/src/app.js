@@ -1,5 +1,4 @@
-export function start(store, images, files) {
-const BANK = window.BANK || [];
+export function start(store, images, files, BANK) {
 const QMAP = {}; BANK.forEach(q=>QMAP[q.id]=q);
 
 /* 清理历史残留记录（如旧版哈希 id 的条目，已不在当前题库中） */
