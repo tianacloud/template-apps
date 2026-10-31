@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS listening_sessions (id TEXT PRIMARY KEY, day TEXT NOT NULL, seconds INTEGER NOT NULL);
