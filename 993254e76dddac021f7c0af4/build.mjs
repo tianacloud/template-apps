@@ -1,0 +1,10 @@
+import { readFile, mkdir, cp, rm } from 'node:fs/promises';
+import { build } from 'esbuild';
+await rm('dist', { recursive: true, force: true }); await mkdir('dist/assets', { recursive: true });
+const body = await readFile('src/body.html', 'utf8'); const css = await readFile('src/style.css', 'utf8');
+let js = `import {openProgress} from './src/storage.js';\n(async()=>{\ndocument.title='鼠标小达人 · 小学信息科技课堂';\ndocument.getElementById('app').innerHTML=${JSON.stringify('<div id="storage-status" role="alert" style="background:#fff1ca;padding:8px">正在读取学习记录…</div>'+body)};\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.append(style);\ntry { const store=await openProgress(); window.__initialProgress=store.initial; window.__saveProgress=store.save; document.getElementById('storage-status').hidden=true; } catch(e) { document.getElementById('storage-status').textContent='学习记录读取失败，请登录后重新打开应用。'; document.querySelector('.app').inert=true; return; }\n`;
+for (const f of ['core','learn','track','practice','games','challenge']) js += await readFile(`src/${f}.js`, 'utf8') + '\n';
+js += `document.dispatchEvent(new Event('DOMContentLoaded'));\n})();`;
+await build({ stdin: { contents: js, resolveDir: process.cwd(), loader: 'js' }, bundle: true, outfile: 'dist/assets/app.js', format: 'iife', platform: 'browser' });
+await cp('public/icon.png', 'dist/icon.png'); const source = JSON.parse(await readFile('source.json', 'utf8'));
+console.log('TIANA_PROJECT_PARAMS ' + JSON.stringify({ entry: 'assets/app.js', ...source }));
