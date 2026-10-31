@@ -1,0 +1,182 @@
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">票</div>
+      <div>
+        <h1>PDF 发票合并</h1>
+        <p class="sub">把多张发票 PDF 拼到 A4 纸上打印 · 全部在本地浏览器完成，文件不上传</p>
+      </div>
+    </div>
+    <div class="topact">
+
+      <div class="badge">默认版式：A4 · 每页 4 张（2×2）</div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- 左栏 -->
+    <div class="col">
+      <div id="drop" tabindex="0">
+        <div class="ico">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4M12 4L7 9M12 4l5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+          </svg>
+        </div>
+        <div class="t1">把发票 PDF 拖到这里</div>
+        <div class="t2">或 <b>点击选择文件</b> · 支持一次多选、可多页文件 · 仅支持 .pdf</div>
+        <input id="picker" class="hidden" type="file" accept="application/pdf,.pdf" multiple>
+      </div>
+
+      <ul class="alerts hidden" id="alerts"></ul>
+
+      <div class="card" id="listcard">
+        <div class="card-h">
+          <h2>待合并发票 <span class="stat" id="count">0 份</span></h2>
+          <div class="toolbar">
+            <label class="stat" for="sort">顺序</label>
+            <select id="sort">
+              <option value="name">按文件名（自然序）</option>
+              <option value="file">按上传顺序</option>
+              <option value="time">按修改时间</option>
+            </select>
+            <button class="btn ghost danger" id="clear">清空</button>
+          </div>
+        </div>
+        <ul class="files" id="list"></ul>
+        <div class="empty" id="listempty">还没有文件。发票页会按列表顺序，从左到右、从上到下依次排进每张 A4。</div>
+      </div>
+    </div>
+
+    <!-- 右栏 -->
+    <aside>
+      <div class="card">
+        <div class="card-h"><h2>版面参数</h2><button class="btn ghost" id="reset">恢复默认</button></div>
+        <div class="card-b" style="padding:4px 14px 10px">
+
+          <div class="row">
+            <div><label>每页发票数</label><div class="hint" id="gridhint">2 行 × 2 列</div></div>
+            <select id="perPage">
+              <option value="1">1 张</option>
+              <option value="2">2 张</option>
+              <option value="3">3 张</option>
+              <option value="4" selected>4 张（默认）</option>
+              <option value="6">6 张</option>
+              <option value="8">8 张</option>
+              <option value="9">9 张</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>纸张</label>
+            <div class="ctl">
+              <select id="paper" style="max-width:142px">
+                <option value="a4" selected>A4（210×297）</option>
+                <option value="a5">A5（148×210）</option>
+                <option value="b5">B5（176×250）</option>
+                <option value="letter">Letter（216×279）</option>
+              </select>
+              <span class="unit">方向</span>
+              <div class="seg" id="orient">
+                <button type="button" data-v="portrait" class="on">纵向</button>
+                <button type="button" data-v="landscape">横向</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>缩放方式</label>
+            <select id="scale">
+              <option value="contain" selected>等比缩放，完整放下</option>
+              <option value="fill">拉伸填满格子</option>
+              <option value="actual">原始尺寸（不缩放）</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>页边距 / 间距</label>
+            <div class="ctl">
+              <input id="margin" class="num" type="number" min="0" max="40" step="1" value="8" title="页边距">
+              <span class="unit">mm</span>
+              <span class="unit" style="margin:0 2px">/</span>
+              <input id="gap" class="num" type="number" min="0" max="40" step="1" value="4" title="发票间距">
+              <span class="unit">mm</span>
+            </div>
+          </div>
+
+          <div class="row" style="display:block">
+            <label>裁剪空白边（mm）</label>
+            <div class="crop">
+              <span>上</span><input id="cropT" type="number" min="0" max="200" step="1" value="0">
+              <span>下</span><input id="cropB" type="number" min="0" max="200" step="1" value="0">
+              <span>左</span><input id="cropL" type="number" min="0" max="200" step="1" value="0">
+              <span>右</span><input id="cropR" type="number" min="0" max="200" step="1" value="0">
+            </div>
+            <div class="hint">按显示方向裁四周毫米数，0=不裁，可裁掉多余空白。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>裁剪线 · 输出</h2></div>
+        <div class="card-b" style="padding:4px 14px 10px">
+
+          <div class="row">
+            <label>裁剪线</label>
+            <div class="ctl">
+              <select id="cutMode" style="max-width:116px">
+                <option value="cross" selected>贯穿分割线</option>
+                <option value="cell">格子虚线框</option>
+                <option value="none">不画</option>
+              </select>
+              <span class="unit">线型</span>
+              <div class="seg" id="cutDash">
+                <button type="button" data-v="dash" class="on">虚线</button>
+                <button type="button" data-v="solid">实线</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="chkrow">
+            <label class="chk" title="沿内容区外框也画裁剪线"><input type="checkbox" id="cutOuter"> 外边距也画线</label>
+            <label class="chk" title="没有内容的空白页不参与排版"><input type="checkbox" id="skipEmpty" checked> 跳过空白页</label>
+          </div>
+          <div class="hint">分割线落在格子间隙中线并延伸到纸边，照线裁即可。</div>
+
+          <div class="row" style="display:block">
+            <label>输出文件名</label>
+            <input id="outname" type="text" style="width:100%;margin-top:5px">
+          </div>
+        </div>
+
+        <div class="preview">
+          <div class="sheet" id="sheet"></div>
+          <div class="pnote" id="pnote">单格约 92.6 × 137.4 mm</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="prog hidden" id="prog"><i id="progbar"></i></div>
+    <div class="msg" id="msg">拖入发票 PDF 后即可合并。</div>
+    <div class="namebox hidden" id="namebox">
+      <span class="nl">文件名</span>
+      <input id="outnameBar" type="text" spellcheck="false" autocomplete="off" placeholder="发票合并.pdf">
+    </div>
+    <div class="total hidden" id="totalbox">
+      <span class="tl">合计金额</span><b id="totalval">¥0.00</b><span class="tn" id="totalnote"></span>
+    </div>
+    <div class="stat hidden" id="statbox" title="本次打开的会话内累计，刷新页面会归零">
+      <span class="sl">合并次数</span><b id="statmerges">0</b>
+      <span class="sd">·</span>
+      <span class="sl">发票张数</span><b id="statinvoices">0</b>
+    </div>
+    <button class="btn" id="open" disabled>预览结果</button>
+    <button class="btn primary" id="run" disabled>合并并下载</button>
+  </div>
+</div>
+
