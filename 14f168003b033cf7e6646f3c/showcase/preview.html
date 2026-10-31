@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Backcast · 从终点往回走</title>
+<meta name="description" content="把目标拆成今天该做多少。设一个截止日，Backcast 按剩余量和剩余天数动态计算每日配额——今天不做，明天的数字就变大。">
+<meta property="og:title" content="Backcast · 从终点往回走">
+<meta property="og:description" content="别再立志了，倒推。设一个截止日，它把总量拆成今天必须做完的数字。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a0908">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23ff9f43'/><circle cx='16' cy='16' r='5' fill='%231b1208'/></svg>">
+<style>
+/* ============ tokens ============ */
+:root{
+  --r:16px;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* 深色（默认） */
+  color-scheme:dark;
+  --bg:#0a0908;
+  --panel:#131110;
+  --panel-2:#191614;
+  --line:rgba(255,255,255,.07);
+  --line-2:rgba(255,255,255,.13);
+  --text:#f4f0e9;
+  --dim:#a29b8d;
+  --faint:#615b52;
+  --amber:#ff9f43;
+  --amber-2:#ffcb6b;
+  --amber-deep:#e8792a;
+  --ok:#5ddc8a;
+  --bad:#ff6b6b;
+
+  /* 面 / 轨道 */
+  --field:rgba(255,255,255,.04);
+  --hover:rgba(255,255,255,.05);
+  --track:rgba(255,255,255,.07);
+  --cell:rgba(255,255,255,.045);
+
+  /* 品牌色薄涂 */
+  --tint-a1:rgba(255,159,67,.05);
+  --tint-a2:rgba(255,159,67,.10);
+  --tint-a3:rgba(255,159,67,.20);
+  --tint-ok1:rgba(93,220,138,.05);
+  --tint-ok2:rgba(93,220,138,.14);
+  --tint-ok3:rgba(93,220,138,.30);
+  --tint-bad1:rgba(255,107,107,.12);
+  --tint-bad3:rgba(255,107,107,.30);
+
+  /* 足迹分级 */
+  --heat1:rgba(255,159,67,.22);
+  --heat2:rgba(255,159,67,.48);
+  --heat3:rgba(255,159,67,.80);
+  --heat4:#ffcb6b;
+
+  /* 背景光晕 */
+  --glow1:rgba(255,159,67,.11);
+  --glow2:rgba(255,203,107,.055);
+  --glow3:rgba(93,220,138,.04);
+
+  /* 浮层 */
+  --shade:rgba(6,5,4,.72);
+  --modal:#121110;
+  --toast:#1d1a17;
+
+  /* 图表 */
+  --grid:rgba(255,255,255,.06);
+  --ideal:rgba(255,255,255,.20);
+  --axis:#5c564d;
+  --todayline:rgba(255,255,255,.16);
+}
+
+/* 浅色：同一套语义变量换值，组件不用改 */
+[data-theme="light"]{
+  color-scheme:light;
+  --bg:#faf7f2;
+  --panel:#ffffff;
+  --panel-2:#fdfaf4;
+  --line:rgba(40,30,18,.10);
+  --line-2:rgba(40,30,18,.19);
+  --text:#1b1712;
+  --dim:#5c554c;
+  --faint:#8b8378;
+  --amber:#c96a10;
+  --amber-2:#9e4f09;
+  --amber-deep:#a85510;
+  --ok:#0f8a4d;
+  --bad:#c23434;
+
+  --field:rgba(40,30,18,.035);
+  --hover:rgba(40,30,18,.05);
+  --track:rgba(40,30,18,.09);
+  --cell:rgba(40,30,18,.07);
+
+  --tint-a1:rgba(201,106,16,.055);
+  --tint-a2:rgba(201,106,16,.10);
+  --tint-a3:rgba(201,106,16,.22);
+  --tint-ok1:rgba(15,138,77,.06);
+  --tint-ok2:rgba(15,138,77,.13);
+  --tint-ok3:rgba(15,138,77,.26);
+  --tint-bad1:rgba(194,52,52,.10);
+  --tint-bad3:rgba(194,52,52,.26);
+
+  --heat1:rgba(201,106,16,.20);
+  --heat2:rgba(201,106,16,.45);
+  --heat3:rgba(201,106,16,.75);
+  --heat4:#c96a10;
+
+  --glow1:rgba(201,106,16,.10);
+  --glow2:rgba(216,140,50,.06);
+  --glow3:rgba(15,138,77,.04);
+
+  --shade:rgba(65,50,32,.32);
+  --modal:#ffffff;
+  --toast:#241f19;
+
+  --grid:rgba(40,30,18,.08);
+  --ideal:rgba(40,30,18,.22);
+  --axis:#9a9186;
+  --todayline:rgba(40,30,18,.20);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(900px 520px at 12% -12%, var(--glow1), transparent 62%),
+    radial-gradient(720px 420px at 102% -4%, var(--glow2), transparent 58%),
+    radial-gradient(600px 600px at 50% 120%, var(--glow3), transparent 60%);
+}
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px 96px}
+
+/* ============ header ============ */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:26px 0 30px;
+  animation:fadeUp .5s ease both;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.3px;font-size:16px}
+.brand .mark{
+  width:22px;height:22px;border-radius:7px;position:relative;
+  background:linear-gradient(150deg,var(--amber),var(--amber-deep));
+  box-shadow:0 0 22px var(--tint-a3);
+  display:grid;place-items:center;
+}
+.brand .mark::after{
+  content:"";width:6px;height:6px;border-radius:50%;background:#1b1208;
+}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 13px;border:1px solid var(--line);border-radius:999px;
+  font-size:13px;color:var(--dim);background:var(--field);
+}
+.pill.hot{color:var(--amber-2);border-color:var(--tint-a3);background:var(--tint-a1)}
+.btn-add{
+  padding:8px 15px;border-radius:999px;border:1px solid var(--line-2);
+  background:var(--field);color:var(--text);font-size:13px;font-weight:500;
+  cursor:pointer;transition:.18s;font-family:inherit;
+}
+.btn-add:hover{background:var(--hover);border-color:var(--line-2)}
+.btn-icon{
+  width:34px;height:34px;border-radius:50%;border:1px solid transparent;
+  background:none;color:var(--faint);cursor:pointer;font-size:15px;transition:.18s;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.btn-icon:hover{color:var(--dim);background:var(--hover)}
+
+/* ============ hero ============ */
+.hero{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:32px;
+  padding-bottom:30px;border-bottom:1px solid var(--line);
+  animation:fadeUp .55s .04s ease both;
+}
+.hero-date{
+  font-size:13px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;
+  margin-bottom:10px;font-family:var(--mono);
+}
+.hero-line{
+  font-size:26px;line-height:1.35;font-weight:600;letter-spacing:-.5px;
+  max-width:640px;text-wrap:balance;
+}
+.hero-line em{font-style:normal;color:var(--amber-2)}
+.ring-wrap{position:relative;flex-shrink:0;display:grid;place-items:center}
+.ring-num{
+  position:absolute;text-align:center;line-height:1.1;
+}
+.ring-num b{display:block;font-size:22px;font-weight:600;letter-spacing:-.5px}
+.ring-num span{font-size:10px;color:var(--faint);letter-spacing:.1em}
+
+/* ============ sections ============ */
+.sec-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin:38px 0 16px;gap:16px;
+}
+.sec-head h2{
+  font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+}
+.sec-head .hint{font-size:12.5px;color:var(--faint)}
+
+/* ============ task cards ============ */
+.tasks{display:flex;flex-direction:column;gap:12px}
+.task{
+  position:relative;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px 22px 18px;overflow:hidden;
+  transition:border-color .25s,background .25s,transform .25s;
+  animation:fadeUp .45s ease both;
+}
+.task::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--line-2);transition:.3s;
+}
+.task:hover{border-color:var(--line-2);background:var(--panel-2)}
+.task.done::before{background:var(--ok);box-shadow:0 0 16px var(--tint-ok2)}
+.task.done{background:linear-gradient(90deg,var(--tint-ok1),var(--panel) 45%)}
+.task.rest::before{background:var(--line-2)}
+.task-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:16px}
+.task-title{font-size:16px;font-weight:600;letter-spacing:-.2px;margin-bottom:4px}
+.task-meta{font-size:12.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.task-meta b{color:var(--dim);font-weight:500}
+.task-quota{display:flex;align-items:baseline;gap:8px;flex-shrink:0}
+.q-num{
+  font-size:38px;font-weight:600;letter-spacing:-2px;line-height:1;
+  color:var(--amber-2);font-variant-numeric:tabular-nums;
+}
+.task.done .q-num{color:var(--ok)}
+.q-unit{font-size:13px;color:var(--faint)}
+
+.bar{height:4px;background:var(--track);border-radius:99px;overflow:hidden}
+.bar i{
+  display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--amber),var(--amber-2));
+  transition:width .55s cubic-bezier(.22,1,.36,1);
+}
+.task.done .bar i{background:var(--ok)}
+.bar-label{
+  display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);
+  margin-top:7px;font-variant-numeric:tabular-nums;
+}
+.task-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px}
+.debt{font-size:12px;color:var(--faint);line-height:1.5}
+.debt b{color:var(--bad);font-weight:600}
+.debt.calm b{color:var(--dim)}
+.acts{display:flex;gap:8px;flex-shrink:0}
+.btn{
+  font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;
+  border-radius:10px;padding:9px 15px;transition:.18s;border:1px solid transparent;
+  white-space:nowrap;
+}
+.btn-main{background:linear-gradient(160deg,var(--amber),var(--amber-deep));color:#1a1005;font-weight:600;
+  box-shadow:0 4px 18px var(--tint-a3)}
+.btn-main:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-main:active{transform:translateY(0) scale(.985)}
+.btn-sub{background:var(--hover);border-color:var(--line);color:var(--dim)}
+.btn-sub:hover{background:var(--hover);color:var(--text)}
+.btn-done{background:var(--tint-ok2);border-color:var(--tint-ok3);color:var(--ok)}
+.btn-done:hover{background:var(--tint-ok3)}
+
+/* ============ panels ============ */
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;align-items:start}
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px 22px;animation:fadeUp .5s .06s ease both;
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.panel-head h3{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tab{
+  font-family:inherit;font-size:11.5px;padding:4px 10px;border-radius:99px;cursor:pointer;
+  border:1px solid transparent;background:none;color:var(--faint);transition:.18s;
+  max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tab:hover{color:var(--dim)}
+.tab.on{background:var(--tint-a2);border-color:var(--tint-a3);color:var(--amber-2)}
+
+/* diagnosis */
+.diag{display:flex;flex-direction:column;gap:14px}
+.diag-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding-bottom:12px;border-bottom:1px solid var(--line)}
+.diag-row:last-child{border-bottom:none;padding-bottom:0}
+.diag-k{font-size:12.5px;color:var(--faint);flex-shrink:0}
+.diag-v{font-size:15px;font-weight:600;text-align:right;letter-spacing:-.2px}
+.diag-v.good{color:var(--ok)}
+.diag-v.warn{color:var(--amber-2)}
+.diag-v.bad{color:var(--bad)}
+.diag-note{font-size:11.5px;color:var(--faint);margin-top:-6px;line-height:1.5}
+
+/* quote */
+.quote{position:relative;overflow:hidden}
+.quote-text{font-size:16px;line-height:1.65;letter-spacing:-.15px;color:var(--text);text-wrap:balance}
+.quote-text b{color:var(--amber-2);font-weight:600}
+.quote-sig{margin-top:12px;font-size:11.5px;color:var(--faint);letter-spacing:.08em;font-family:var(--mono)}
+
+/* heatmap */
+.heat{
+  display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);
+  gap:4px;justify-content:start;
+}
+.cell{width:14px;height:14px;border-radius:3px;background:var(--cell);transition:.2s}
+.cell:hover{outline:1px solid var(--line-2);outline-offset:1px}
+.cell.l1{background:var(--heat1)}
+.cell.l2{background:var(--heat2)}
+.cell.l3{background:var(--heat3)}
+.cell.l4{background:var(--heat4);box-shadow:0 0 8px var(--tint-a3)}
+.legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint)}
+.legend .cell{width:9px;height:9px;border-radius:2px}
+.heat-foot{display:flex;justify-content:space-between;margin-top:12px;font-size:11.5px;color:var(--faint)}
+
+/* goal list */
+.goals{display:flex;flex-direction:column;gap:8px}
+.goal-row{
+  display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:12px;
+  border:1px solid transparent;transition:.18s;cursor:pointer;
+}
+.goal-row:hover{background:var(--hover);border-color:var(--line)}
+.goal-row .g-name{font-size:14px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.goal-row .g-pct{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.mini-bar{width:80px;height:3px;background:var(--track);border-radius:99px;overflow:hidden;flex-shrink:0}
+.mini-bar i{display:block;height:100%;background:var(--amber);border-radius:99px;transition:width .5s}
+.goal-row .del{
+  opacity:0;width:24px;height:24px;border-radius:6px;border:none;background:none;
+  color:var(--faint);cursor:pointer;font-size:14px;transition:.18s;flex-shrink:0;
+}
+.goal-row:hover .del{opacity:1}
+.goal-row .del:hover{background:var(--tint-bad1);color:var(--bad)}
+
+/* ============ empty ============ */
+.empty{
+  margin-top:48px;padding:72px 40px;text-align:center;
+  border:1px dashed var(--line-2);border-radius:22px;
+  background:radial-gradient(600px 300px at 50% 0%, var(--tint-a1), transparent 70%);
+  animation:fadeUp .5s ease both;
+}
+.empty h2{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:10px}
+.empty p{color:var(--dim);font-size:14px;max-width:420px;margin:0 auto 28px;line-height:1.7}
+.empty-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-lg{padding:13px 26px;font-size:14px;border-radius:12px}
+.link-btn{
+  background:none;border:1px solid var(--line);color:var(--dim);
+  font-size:14px;cursor:pointer;font-family:inherit;
+  padding:13px 22px;border-radius:12px;transition:.18s;
+}
+.link-btn:hover{color:var(--text);border-color:var(--line-2);background:var(--hover)}
+
+/* ============ modal ============ */
+.scrim{
+  position:fixed;inset:0;z-index:50;background:var(--shade);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:grid;place-items:center;padding:24px;
+  opacity:0;pointer-events:none;transition:.22s;
+}
+.scrim.on{opacity:1;pointer-events:auto}
+.modal{
+  width:100%;max-width:520px;background:var(--modal);border:1px solid var(--line-2);
+  border-radius:20px;padding:28px;max-height:88vh;overflow-y:auto;
+  transform:translateY(14px) scale(.985);transition:.28s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.scrim.on .modal{transform:none}
+.modal h3{font-size:19px;font-weight:600;letter-spacing:-.3px;margin-bottom:6px}
+.modal .sub{font-size:13px;color:var(--faint);margin-bottom:22px;line-height:1.6}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;color:var(--faint);margin-bottom:7px;letter-spacing:.04em}
+input,select{
+  width:100%;font-family:inherit;font-size:14px;color:var(--text);
+  background:var(--field);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;outline:none;transition:.18s;
+}
+input:focus,select:focus{border-color:var(--tint-a3);background:var(--tint-a1)}
+input::placeholder{color:var(--faint)}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.seg{display:flex;gap:4px;background:var(--field);padding:4px;border-radius:11px;margin-bottom:20px}
+.seg button{
+  flex:1;font-family:inherit;font-size:12.5px;padding:8px;border-radius:8px;border:none;
+  background:none;color:var(--faint);cursor:pointer;transition:.18s;
+}
+.seg button.on{background:var(--tint-a2);color:var(--amber-2);font-weight:500}
+.dow{display:flex;gap:6px}
+.dow button{
+  flex:1;font-family:inherit;font-size:12px;padding:9px 0;border-radius:9px;
+  border:1px solid var(--line);background:var(--field);color:var(--faint);
+  cursor:pointer;transition:.18s;
+}
+.dow button.on{background:var(--tint-bad1);border-color:var(--tint-bad3);color:var(--bad)}
+.preview{
+  padding:14px 16px;border-radius:12px;background:var(--tint-a1);
+  border:1px solid var(--tint-a3);font-size:13px;color:var(--dim);
+  line-height:1.6;margin:20px 0;
+}
+.preview b{color:var(--amber-2);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end}
+
+/* ============ howto ============ */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.step{
+  padding:22px 20px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);transition:.2s;
+}
+.step:hover{border-color:var(--line-2);background:var(--panel-2)}
+.step-n{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--amber);margin-bottom:14px}
+.step h4{font-size:14px;font-weight:600;letter-spacing:-.15px;margin-bottom:8px;line-height:1.45}
+.step p{font-size:12.5px;color:var(--dim);line-height:1.7}
+.formula{
+  margin-top:12px;padding:24px 26px;border-radius:var(--r);
+  border:1px solid var(--tint-a3);
+  background:linear-gradient(150deg,var(--tint-a1),transparent);
+}
+.formula-k{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;font-family:var(--mono)}
+.formula code{
+  display:block;font-family:var(--mono);font-size:15px;color:var(--text);
+  margin-bottom:12px;line-height:1.7;letter-spacing:-.2px;
+}
+.formula-n{font-size:12.5px;color:var(--faint);line-height:1.75;max-width:640px}
+
+/* ============ share ============ */
+.btn-add.ghost{background:none;border-color:var(--line);color:var(--dim)}
+.btn-add.ghost:hover{background:var(--hover);border-color:var(--line-2);color:var(--text)}
+.share-modal{max-width:460px}
+.share-preview{
+  border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  background:#0a0908;margin-bottom:18px;line-height:0;
+}
+.share-preview img{width:100%;height:auto;display:block}
+
+/* toast */
+#toast{
+  position:fixed;left:50%;bottom:36px;transform:translate(-50%,16px);z-index:80;
+  background:var(--toast);border:1px solid var(--line-2);border-radius:12px;
+  padding:11px 20px;font-size:13px;color:var(--text);opacity:0;pointer-events:none;
+  transition:.3s;box-shadow:0 12px 40px rgba(0,0,0,.5);
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* float num */
+.float{
+  position:absolute;right:26px;top:16px;font-size:15px;font-weight:600;
+  color:var(--amber-2);pointer-events:none;animation:floatUp 1s ease both;
+  font-variant-numeric:tabular-nums;
+}
+@keyframes floatUp{
+  0%{opacity:0;transform:translateY(6px)}
+  25%{opacity:1}
+  100%{opacity:0;transform:translateY(-26px)}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+.hidden{display:none !important}
+
+@media (max-width:860px){
+  .grid2{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .hero{flex-direction:column;align-items:flex-start;gap:22px}
+  .hero-line{font-size:22px}
+  .ring-wrap{display:none}
+  .task-head{flex-direction:column;gap:10px}
+  .task-quota{align-self:flex-start}
+  .task-foot{flex-direction:column;align-items:stretch}
+  .acts{justify-content:flex-end}
+  .wrap{padding:0 18px 72px}
+  .panel{padding:18px}
+  #btn-reset{display:none}
+  #btn-help{display:none}
+  .hdr-right{gap:6px}
+  /* 小屏上让足迹撑满宽度，格子跟着变大，不然挤在左边一小块 */
+  .heat{
+    grid-auto-columns:1fr;
+    grid-template-rows:repeat(7,1fr);
+    width:100%;
+    height:min(270px,58vw);
+    gap:4px;
+  }
+  .heat .cell{width:auto;height:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><span class="mark"></span>Backcast</div>
+    <div class="hdr-right">
+      <div class="pill" id="streak-pill">🔥 0 天</div>
+      <button class="btn-icon" id="btn-theme" title="切换深浅色">☀</button>
+      <button class="btn-icon" id="btn-help" title="它是怎么算的">?</button>
+      <button class="btn-add ghost" id="btn-share">分享</button>
+      <button class="btn-add" id="btn-add">+ 新目标</button>
+      <button class="btn-icon" id="btn-reset" title="清空所有数据">⋯</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="hero-date" id="hero-date">—</div>
+      <div class="hero-line" id="hero-line">从终点往回走。</div>
+    </div>
+    <div class="ring-wrap">
+      <svg width="104" height="104" viewBox="0 0 104 104">
+        <circle cx="52" cy="52" r="45" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/>
+        <circle id="ring-fg" cx="52" cy="52" r="45" fill="none" stroke="var(--amber)"
+          stroke-width="7" stroke-linecap="round" stroke-dasharray="282.7"
+          stroke-dashoffset="282.7" transform="rotate(-90 52 52)"
+          style="transition:stroke-dashoffset .7s cubic-bezier(.22,1,.36,1)"/>
+      </svg>
+      <div class="ring-num"><b id="ring-b">0%</b><span>今日</span></div>
+    </div>
+  </section>
+
+  <div id="empty" class="empty">
+    <h2>别再立志了。倒推。</h2>
+    <p>设一个截止日和一个总量。Backcast 会把它拆成<br>「今天要做多少」。今天少做一格，明天数字就变大。</p>
+    <div class="empty-acts">
+      <button class="btn btn-main btn-lg" id="btn-create">创建第一个目标</button>
+      <button class="link-btn" id="btn-demo">先看看示例</button>
+    </div>
+  </div>
+
+  <div id="board" class="hidden">
+    <div class="sec-head">
+      <h2>今天</h2>
+      <div class="hint" id="today-hint"></div>
+    </div>
+    <div class="tasks" id="tasks"></div>
+
+    <div class="grid2" style="margin-top:28px">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>燃尽</h3>
+          <div class="tabs" id="tabs"></div>
+        </div>
+        <div id="chart"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel diag" id="diag"></div>
+        <div class="panel quote" id="quote"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-head">
+        <h3>足迹 · 最近 12 周</h3>
+        <div class="legend">
+          少<span class="cell"></span><span class="cell l1"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span>多
+        </div>
+      </div>
+      <div class="heat" id="heat"></div>
+      <div class="heat-foot">
+        <span id="heat-left"></span>
+        <span id="heat-right"></span>
+      </div>
+    </div>
+
+    <div class="sec-head">
+      <h2>全部目标</h2>
+    </div>
+    <div class="goals" id="goals"></div>
+
+    
+    <section id="howto">
+      <div class="sec-head" style="margin-top:46px">
+        <h2>它是怎么算的</h2>
+        <div class="hint">三步，没有黑箱</div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-n">STEP 01</div>
+          <h4>先定终点，不是先定每天</h4>
+          <p>输入总量和截止日就够了。系统先算出这中间有多少个「推进日」——扣掉你选的休息日。</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 02</div>
+          <h4>剩余 ÷ 剩余天数 = 今天的配额</h4>
+          <p>配额每天重算。今天做完，明天的数字变小；今天不做，明天的数字变大。偷懒只有代价，没有清零。</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 03</div>
+          <h4>燃尽图告诉你会不会迟到</h4>
+          <p>实线是你的真实进度，虚线是计划进度。按最近 14 天的速度外推，直接算出「会晚几天」。</p>
+        </div>
+      </div>
+      <div class="formula">
+        <div class="formula-k">今天的配额</div>
+        <code>⌈ (目标总量 − 已完成) ÷ 剩余推进日 ⌉</code>
+        <div class="formula-n">
+          推进日从今天算到截止日，排除你设的休息日。每次打卡后立刻重算，所以这个数字是「活的」。
+          连续达标的天数记为 streak；休息日不打断它，也不计入。
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <h3>新目标</h3>
+    <div class="sub">先想清楚终点在哪。今天的数字由它决定。</div>
+
+    <div class="seg">
+      <button data-mode="once" class="on">一次性目标</button>
+      <button data-mode="daily">每日习惯</button>
+    </div>
+
+    <div class="field">
+      <label>目标是什么</label>
+      <input id="f-title" type="text" placeholder="读完《思考，快与慢》" maxlength="42">
+    </div>
+
+    <div id="pane-once">
+      <div class="row">
+        <div class="field">
+          <label>总量</label>
+          <input id="f-total" type="number" min="1" step="1" placeholder="360">
+        </div>
+        <div class="field">
+          <label>单位</label>
+          <input id="f-unit" type="text" placeholder="页" maxlength="6">
+        </div>
+      </div>
+      <div class="field">
+        <label>截止日期</label>
+        <input id="f-deadline" type="date">
+      </div>
+    </div>
+
+    <div id="pane-daily" class="hidden">
+      <div class="row">
+        <div class="field">
+          <label>每天做多少</label>
+          <input id="f-perday" type="number" min="1" step="1" placeholder="300">
+        </div>
+        <div class="field">
+          <label>单位</label>
+          <input id="f-unit2" type="text" placeholder="字" maxlength="6">
+        </div>
+      </div>
+      <div class="field">
+        <label>持续多少天</label>
+        <input id="f-days" type="number" min="1" max="3650" step="1" placeholder="30">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>哪几天不推进（休息日不计入配额）</label>
+      <div class="dow" id="dow"></div>
+    </div>
+
+    <div class="preview" id="preview">填完自动算给你看。</div>
+
+    <div class="modal-foot">
+      <button class="btn btn-sub" id="m-cancel">取消</button>
+      <button class="btn btn-main" id="m-save">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 分享 -->
+<div class="scrim" id="share-scrim">
+  <div class="modal share-modal">
+    <h3>分享这一刻</h3>
+    <div class="sub">图片可以直接发小红书 / 朋友圈。文案已写好，复制就能用。</div>
+    <div class="share-preview"><img id="share-img" alt="分享卡片"></div>
+    <div class="field">
+      <label>活动话题（可留空，会自动拼进文案）</label>
+      <input id="share-tag" type="text" placeholder="#我的目标" maxlength="30">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sub" id="share-copy">复制文案</button>
+      <button class="btn btn-main" id="share-download">下载图片</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   日期工具 —— 全部用本地 YYYY-MM-DD 字符串，避开时区偏移
+   ============================================================ */
+const pad2 = n => String(n).padStart(2, "0");
+function ymd(d){ return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate()); }
+function parseYmd(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); }
+function addDays(s, n){ const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function daysBetween(a, b){ return Math.round((parseYmd(b) - parseYmd(a)) / 86400000); }
+function todayKey(){ return ymd(new Date()); }
+function dowOf(s){ return (parseYmd(s).getDay() + 6) % 7; } // 周一=0 … 周日=6
+
+const WEEK_CN = ["一","二","三","四","五","六","日"];
+const MONTH_CN = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+
+/* ============================================================
+   状态
+   ============================================================ */
+let previewStore = null, previewTheme = null;
+let S = { goals: [], focus: null };
+
+function load(){
+  try{
+    const raw = previewStore;
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    if(p && Array.isArray(p.goals)) S = { goals: p.goals, focus: p.focus || null };
+  }catch(e){ /* 损坏就重来 */ }
+}
+function save(){
+  previewStore = JSON.stringify(S);
+}
+function uid(){ return "g" + Math.random().toString(36).slice(2,9); }
+
+/* ============================================================
+   核心算法
+   ============================================================ */
+
+// 区间内所有工作日的日期数组（daysOff: 0-6, 周一=0）
+function workDaysInRange(start, end, daysOff){
+  const out = [];
+  if(start > end) return out;
+  let cur = start, guard = 0;
+  while(cur <= end && guard++ < 4000){
+    if(!daysOff.includes(dowOf(cur))) out.push(cur);
+    cur = addDays(cur, 1);
+  }
+  return out;
+}
+
+// 截至某日（含）累计完成量
+function doneThrough(goal, date){
+  let sum = 0;
+  for(const k in goal.log){
+    if(k <= date) sum += goal.log[k];
+  }
+  return sum;
+}
+function doneOn(goal, date){ return goal.log[date] || 0; }
+function doneTotal(goal){ return doneThrough(goal, "9999-12-31"); }
+function remain(goal){ return Math.max(0, goal.total - doneTotal(goal)); }
+
+// 某一天应该做多少（该日清晨视角的配额）
+// 关键：doneBefore 只算这一天之前，所以今天做超了不会让今天的配额变小
+function quotaForDate(goal, date){
+  if(date < goal.start) return 0;
+  if(date > goal.deadline) return 0;
+  if(goal.daysOff.includes(dowOf(date))) return 0;
+  const rd = workDaysInRange(date, goal.deadline, goal.daysOff).length;
+  if(rd <= 0) return 0;
+  const rem = Math.max(0, goal.total - doneThrough(goal, addDays(date, -1)));
+  return Math.ceil(rem / rd);
+}
+
+// 今天是真的休息日，还是已经过了截止日
+function isRestDay(goal, date){
+  return goal.daysOff.includes(dowOf(date)) && date >= goal.start && date <= goal.deadline;
+}
+function isExpired(goal, date){ return date > goal.deadline; }
+function isUpcoming(goal, date){ return date < goal.start; }
+
+// 下一个推进日应做多少（以今天的完成情况为起点）。
+// 今天欠的账会直接推高这个数字 —— 这就是「债务感」的来源。
+function tomorrowQuota(goal){
+  const t = todayKey();
+  if(t >= goal.deadline) return null;
+  let nxt = addDays(t, 1), guard = 0;
+  while(goal.daysOff.includes(dowOf(nxt)) && guard++ < 14) nxt = addDays(nxt, 1);
+  if(nxt > goal.deadline) return null;
+  return quotaForDate(goal, nxt);
+}
+
+// 明天的日期标签，用于文案
+function tomorrowLabel(goal){
+  const t = todayKey();
+  let nxt = addDays(t, 1), guard = 0;
+  while(goal.daysOff.includes(dowOf(nxt)) && guard++ < 14) nxt = addDays(nxt, 1);
+  return "周" + WEEK_CN[dowOf(nxt)];
+}
+
+// 最近 N 天的平均推进速度。
+// 只统计「今天之前」的完整日子 —— 今天还没过完，把它算进平均会拉低速度，
+// 导致「诊断说晚 1 天、分享文案说晚 3 天」这种自相矛盾。
+function recentRate(goal, days = 14){
+  const t = todayKey();
+  let sum = 0, activeDays = 0;
+  for(let i = 1; i <= days; i++){
+    const d = addDays(t, -i);
+    if(d < goal.start) break;
+    const amt = doneOn(goal, d);
+    if(amt > 0){ sum += amt; activeDays++; }
+  }
+  if(activeDays === 0){
+    // 今天之前没有历史，只能用今天的量兜底
+    return doneOn(goal, t) || 0;
+  }
+  return sum / activeDays;
+}
+
+// 按当前速度：还需要多少个工作单位日 vs 还剩多少个工作日
+function forecast(goal){
+  const t = todayKey();
+  const rd = workDaysInRange(t > goal.deadline ? goal.deadline : t, goal.deadline, goal.daysOff).length;
+  const rem = remain(goal);
+  const rate = recentRate(goal);
+  if(rem <= 0) return { state: "done", rd, rem };
+  if(rate <= 0) return { state: "unknown", rd, rem };
+  const need = Math.ceil(rem / rate);
+  return { state: "run", rd, rem, rate, need, gap: need - rd };
+}
+
+/* ============================================================
+   视图计算
+   ============================================================ */
+function activeGoals(date){
+  return S.goals.filter(g => g.start <= date && date <= g.deadline);
+}
+function visibleGoals(){
+  const t = todayKey();
+  return S.goals.filter(g => g.start <= t && (t <= g.deadline || remain(g) > 0));
+}
+
+// 当天状态：达标几件 / 共几件 —— 不同目标的单位不能相加（页 + 字没有意义）
+function dayState(date){
+  const gs = S.goals.filter(g => g.start <= date && date <= g.deadline);
+  if(!gs.length) return { kind: "none", ratio: 0 };
+  let taskCount = 0, metCount = 0;
+  gs.forEach(g => {
+    const q = quotaForDate(g, date);
+    if(q > 0){
+      taskCount++;
+      if(doneOn(g, date) >= q) metCount++;
+    }
+  });
+  // 配额为 0 但当天仍有记录 → 说明已经提前完成，算达标
+  if(!taskCount){
+    const anyDone = gs.some(g => doneOn(g, date) > 0);
+    return anyDone ? { kind: "met", ratio: 1 } : { kind: "rest", ratio: 0 };
+  }
+  const ratio = metCount / taskCount;
+  return { kind: ratio >= 1 ? "met" : (ratio > 0 ? "partial" : "miss"),
+           ratio, need: taskCount, got: metCount };
+}
+
+function streak(){
+  let d = todayKey(), n = 0, guard = 0;
+  const st = dayState(d);
+  if(st.kind === "met") n++;
+  d = addDays(d, -1);
+  while(guard++ < 800){
+    const s = dayState(d);
+    if(s.kind === "met"){ n++; d = addDays(d, -1); }
+    else if(s.kind === "none" || s.kind === "rest"){ d = addDays(d, -1); }
+    else break;
+  }
+  return n;
+}
+
+function todayTotals(){
+  const t = todayKey();
+  const gs = visibleGoals();
+  let total = 0, done = 0;
+  gs.forEach(g => {
+    const q = quotaForDate(g, t);
+    if(q > 0){
+      total++;
+      if(doneOn(g, t) >= q) done++;
+    }
+  });
+  return { total, done, ratio: total > 0 ? done / total : 0 };
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+function render(){
+  const t = todayKey();
+
+  // 日期行
+  const td = parseYmd(t);
+  $("hero-date").textContent =
+    MONTH_CN[td.getMonth()] + " " + td.getDate() + " 日 · 周" + WEEK_CN[dowOf(t)];
+
+  const st = streak();
+  const sp = $("streak-pill");
+  sp.textContent = "🔥 " + st + " 天";
+  sp.className = "pill" + (st > 0 ? " hot" : "");
+
+  const has = visibleGoals().length > 0;
+  $("empty").classList.toggle("hidden", has);
+  $("board").classList.toggle("hidden", !has);
+  // 没有目标时藏掉进度环，0% 会让人以为「什么都没做」
+  document.querySelector(".ring-wrap").classList.toggle("hidden", !has);
+  if(!has){ $("hero-line").innerHTML = "从终点往回走。"; return; }
+
+  const tt = todayTotals();
+  // ring —— 全是休息日时视为满格，别让人看着像没做事
+  const C = 282.7;
+  const ringRatio = tt.total > 0 ? Math.min(1, tt.ratio) : 1;
+  $("ring-fg").setAttribute("stroke-dashoffset", String(C * (1 - ringRatio)));
+  $("ring-fg").setAttribute("stroke", ringRatio >= 1 ? "var(--ok)" : "var(--amber)");
+  $("ring-b").textContent = Math.round(ringRatio * 100) + "%";
+
+  // hero line
+  $("hero-line").innerHTML = heroLine(st, tt);
+
+  // hint
+  $("today-hint").textContent = tt.total > 0
+    ? (tt.done >= tt.total ? "今天 " + tt.total + " 件，全部交完。" : "还差 " + (tt.total - tt.done) + " 件")
+    : "今天没有配额。";
+
+  renderTasks();
+  renderTabs();
+  renderChart();
+  renderDiag();
+  renderQuote(st);
+  renderHeat();
+  renderGoals();
+}
+
+function heroLine(st, tt){
+  if(tt.total === 0) return "今天全部休息。休息也是计划的一部分。";
+  if(tt.ratio >= 1) return "今天的分量已交完。明天的数字自己会变小——<em>这就是复利</em>。";
+  if(st >= 7) return "已经连续 <em>" + st + " 天</em>没有断。别在今天破功。";
+  if(tt.done > 0) return "开了个头。" + tt.total + " 件里还剩 <em>" + (tt.total - tt.done) + "</em> 件。";
+  return "今天有 <em>" + tt.total + "</em> 件。做完就不用再想它了。";
+}
+
+function renderTasks(){
+  const t = todayKey();
+  const wrap = $("tasks");
+  wrap.innerHTML = "";
+  const gs = visibleGoals();
+
+  gs.forEach((g, i) => {
+    const q = quotaForDate(g, t);
+    const got = doneOn(g, t);
+    const done = q > 0 && got >= q;
+    const rest = isRestDay(g, t);
+    const expired = isExpired(g, t);
+    const rem = remain(g);
+    const pct = q > 0 ? Math.min(100, got / q * 100) : (rem === 0 ? 100 : 0);
+    const left = daysBetween(t, g.deadline);
+
+    const el = document.createElement("div");
+    el.className = "task" + (done ? " done" : "") + (rest ? " rest" : "");
+    el.style.animationDelay = (i * 45) + "ms";
+
+    const nxtQ = tomorrowQuota(g);
+    let quotaHtml, debtHtml;
+
+    if(rest){
+      quotaHtml = '<span class="q-num" style="color:var(--faint)">—</span><span class="q-unit">休息日</span>';
+      debtHtml = "今天是休息日，配额已经摊到别的日子上了。";
+    } else if(rem === 0){
+      quotaHtml = '<span class="q-num" style="color:var(--ok)">✓</span><span class="q-unit">已完成</span>';
+      debtHtml = "这个目标已经走完了。";
+    } else if(expired){
+      quotaHtml = '<span class="q-num" style="color:var(--bad)">' + rem + '</span><span class="q-unit">' + esc(g.unit) + '欠账</span>';
+      debtHtml = "已经过了截止日。要么补完，要么承认它需要一个新的截止日。";
+    } else {
+      quotaHtml = '<span class="q-num">' + q + '</span><span class="q-unit">' + esc(g.unit) + '</span>';
+      if(done){
+        if(nxtQ === null){
+          debtHtml = "今天做完了，明天就是终点。";
+        } else {
+          const drop = q - nxtQ;
+          debtHtml = "今天做完了。<b style='color:var(--dim)'>" + tomorrowLabel(g) + "</b>" +
+            (drop > 0 ? "只要" : "还要") + " <b style='color:var(--dim)'>" + nxtQ + " " + esc(g.unit) + "</b>";
+        }
+      } else if(nxtQ === null){
+        debtHtml = "这是最后一个推进日。今天不做，就只能改截止日了。";
+      } else if(nxtQ > q){
+        debtHtml = "今天不做 → 明天要做 <b>" + nxtQ + " " + esc(g.unit) + "</b>";
+      } else {
+        debtHtml = "今天不做 → 明天 " + nxtQ + " " + esc(g.unit) + "，还不算太糟。";
+      }
+    }
+
+    el.innerHTML = `
+      <div class="task-head">
+        <div>
+          <div class="task-title">${esc(g.title)}</div>
+          <div class="task-meta">还剩 <b>${rem}</b> / ${g.total} ${esc(g.unit)} · ${
+            left >= 0 ? "距截止 <b>" + left + "</b> 天" : "已过期 " + (-left) + " 天"}</div>
+        </div>
+        <div class="task-quota">${quotaHtml}</div>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="bar-label">
+        <span>今日 ${got} / ${q > 0 ? q : "—"}</span>
+        <span>${Math.round(doneTotal(g) / g.total * 100)}% 总计</span>
+      </div>
+      <div class="task-foot">
+        <div class="debt ${done ? 'calm' : ''}">${debtHtml}</div>
+        <div class="acts">
+          ${q > 0 && !done ? '<button class="btn btn-sub" data-act="one" data-id="' + g.id + '">+1</button>' : ''}
+          ${q > 0 && !done ? '<button class="btn btn-main" data-act="fill" data-id="' + g.id + '">完成今天 +' + q + '</button>' : ''}
+          ${done ? '<button class="btn btn-done" data-act="undo" data-id="' + g.id + '">✓ 已达标 · 撤销</button>' : ''}
+          ${expired && rem > 0 ? '<button class="btn btn-sub" data-act="extend" data-id="' + g.id + '">顺延 7 天</button>' : ''}
+        </div>
+      </div>`;
+    wrap.appendChild(el);
+  });
+}
+
+function renderTabs(){
+  const tabs = $("tabs");
+  const gs = visibleGoals();
+  if(!S.focus || !gs.find(g => g.id === S.focus)) S.focus = gs[0] ? gs[0].id : null;
+  if(gs.length <= 1){ tabs.innerHTML = ""; return; }
+  tabs.innerHTML = "";
+  gs.forEach(g => {
+    const b = document.createElement("button");
+    b.className = "tab" + (g.id === S.focus ? " on" : "");
+    b.textContent = g.title;
+    b.onclick = () => { S.focus = g.id; save(); renderTabs(); renderChart(); };
+    tabs.appendChild(b);
+  });
+}
+
+/* ---------- 燃尽图 ---------- */
+function renderChart(){
+  const g = S.goals.find(x => x.id === S.focus) || visibleGoals()[0];
+  const host = $("chart");
+  if(!g){ host.innerHTML = ""; return; }
+
+  const W = 640, H = 216, PL = 36, PR = 14, PT = 16, PB = 26;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const span = Math.max(1, daysBetween(g.start, g.deadline));
+  const t = todayKey();
+  const X = d => PL + (daysBetween(g.start, d) / span) * iw;
+  const Y = v => PT + (1 - Math.max(0, Math.min(v, g.total)) / g.total) * ih;
+
+  // 理想线
+  const ideal = `M ${X(g.start).toFixed(1)} ${Y(g.total).toFixed(1)} L ${X(g.deadline).toFixed(1)} ${Y(0).toFixed(1)}`;
+
+  // 实际线（start → min(today, deadline)）
+  const lastDate = t < g.start ? g.start : (t > g.deadline ? g.deadline : t);
+  const steps = Math.min(daysBetween(g.start, lastDate), 400);
+  const step = Math.max(1, Math.ceil((daysBetween(g.start, lastDate) + 1) / 80));
+  let pts = [];
+  for(let i = 0; i <= daysBetween(g.start, lastDate); i += step){
+    const d = addDays(g.start, i);
+    pts.push([X(d), Y(g.total - doneThrough(g, d))]);
+  }
+  const lastD = addDays(g.start, daysBetween(g.start, lastDate));
+  if(!pts.length || pts[pts.length-1][0] !== X(lastD)) pts.push([X(lastD), Y(g.total - doneThrough(g, lastD))]);
+  const actual = "M " + pts.map(p => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L ");
+
+  // 投影线
+  let proj = "", projDot = "";
+  const rate = recentRate(g);
+  if(rate > 0 && remain(g) > 0){
+    const needDays = remain(g) / rate;
+    const endD = addDays(t, Math.ceil(needDays));
+    const x0 = X(t < g.start ? g.start : t), y0 = Y(remain(g));
+    const x1 = X(endD), y1 = Y(0);
+    proj = `M ${x0.toFixed(1)} ${y0.toFixed(1)} L ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    projDot = `<circle cx="${x0.toFixed(1)}" cy="${y0.toFixed(1)}" r="3.5" fill="var(--amber-2)"/>`;
+  }
+
+  // 今天竖线
+  const todayX = (t >= g.start && t <= g.deadline) ? X(t) : null;
+
+  // y 轴刻度
+  const ticks = [0, .5, 1].map(f => {
+    const v = Math.round(g.total * f);
+    return `<text x="${PL-8}" y="${Y(v)+3.5}" text-anchor="end" font-size="10.5"
+      fill="var(--axis)" font-family="ui-monospace,monospace">${v}</text>`;
+  }).join("");
+
+  // x 轴标签
+  const mid = addDays(g.start, Math.floor(span/2));
+  const xlab = `
+    <text x="${X(g.start)}" y="${H-8}" font-size="10.5" fill="var(--axis)" font-family="ui-monospace,monospace">${g.start.slice(5)}</text>
+    <text x="${X(g.deadline)}" y="${H-8}" text-anchor="end" font-size="10.5" fill="var(--axis)" font-family="ui-monospace,monospace">${g.deadline.slice(5)}</text>`;
+
+  host.innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <clipPath id="plot"><rect x="${PL}" y="${PT-6}" width="${iw}" height="${ih+8}"/></clipPath>
+      <linearGradient id="fillA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--amber)" stop-opacity=".22"/>
+        <stop offset="100%" stop-color="var(--amber)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${ticks}
+    <line x1="${PL}" y1="${Y(g.total)}" x2="${PL+iw}" y2="${Y(g.total)}" stroke="var(--grid)"/>
+    <line x1="${PL}" y1="${Y(0)}" x2="${PL+iw}" y2="${Y(0)}" stroke="var(--grid)"/>
+    <g clip-path="url(#plot)">
+      <path d="${ideal}" fill="none" stroke="var(--ideal)" stroke-width="1.5" stroke-dasharray="4 4"/>
+      ${pts.length > 0 ? `<path d="${actual} L ${pts[pts.length-1][0].toFixed(1)} ${Y(0)} L ${pts[0][0].toFixed(1)} ${Y(0)} Z" fill="url(#fillA)" stroke="none"/>` : ""}
+      ${pts.length > 0 ? `<path d="${actual}" fill="none" stroke="var(--amber)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+      ${proj ? `<path d="${proj}" fill="none" stroke="var(--amber-2)" stroke-width="1.8" stroke-dasharray="3 4" opacity=".75"/>` : ""}
+      ${projDot}
+    </g>
+    ${todayX !== null ? `<line x1="${todayX}" y1="${PT-6}" x2="${todayX}" y2="${PT+ih}" stroke="var(--todayline)" stroke-dasharray="2 3"/>` : ""}
+    ${xlab}
+  </svg>`;
+}
+
+/* ---------- 诊断 ---------- */
+function renderDiag(){
+  const g = S.goals.find(x => x.id === S.focus) || visibleGoals()[0];
+  if(!g){ $("diag").innerHTML = ""; return; }
+  const f = forecast(g);
+  const t = todayKey();
+  const left = daysBetween(t, g.deadline);
+  const pct = Math.round(doneTotal(g) / g.total * 100);
+
+  let verdict, cls;
+  if(f.state === "done"){ verdict = "已完成"; cls = "good"; }
+  else if(f.state === "unknown"){ verdict = "还没有数据"; cls = "warn"; }
+  else if(f.gap > 0){ verdict = "会晚 " + f.gap + " 天"; cls = "bad"; }
+  else if(f.gap < 0){ verdict = "会提前 " + (-f.gap) + " 天"; cls = "good"; }
+  else { verdict = "刚好压线"; cls = "warn"; }
+
+  $("diag").innerHTML = `
+    <div class="diag-row">
+      <span class="diag-k">当前速度</span>
+      <span class="diag-v">${f.rate ? f.rate.toFixed(1) : "—"} ${esc(g.unit)}/天</span>
+    </div>
+    <div class="diag-note">${f.rate ? "最近 14 天里，你平均每个推进日完成这么多。" : "还没有完成记录，先做一次。"}</div>
+    <div class="diag-row">
+      <span class="diag-k">按此速度</span>
+      <span class="diag-v ${cls}">${verdict}</span>
+    </div>
+    <div class="diag-note">${f.state === "run"
+      ? "还需要 " + f.need + " 个推进日，实际只剩 " + f.rd + " 个。"
+      : "剩余 " + f.rem + " " + esc(g.unit) + "，剩 " + Math.max(0,left) + " 天。"}</div>
+    <div class="diag-row">
+      <span class="diag-k">总体进度</span>
+      <span class="diag-v">${pct}%</span>
+    </div>
+    <div class="mini-bar" style="width:100%;height:4px"><i style="width:${pct}%"></i></div>`;
+}
+
+/* ---------- 激励 ---------- */
+function renderQuote(st){
+  const tt = todayTotals();
+  const t = todayKey();
+  const gs = visibleGoals();
+  const behind = gs.filter(g => {
+    const f = forecast(g);
+    return f.state === "run" && f.gap > 0;
+  }).length;
+
+  let text, sig;
+  if(tt.ratio >= 1){
+    text = "今天的额度清零了。你刚把「未来的自己」往后挪了一格——<b>他今天轻松一点了</b>。";
+    sig = "DONE · " + t;
+  } else if(st >= 21){
+    text = "<b>" + st + " 天</b>。到这个程度，它已经不是在靠意志力运转了，是你换了个身份。";
+    sig = "STREAK " + st;
+  } else if(st >= 7){
+    text = "连续 <b>" + st + " 天</b>。人对自己的信任，是一次一次兑现小承诺攒出来的。";
+    sig = "STREAK " + st;
+  } else if(behind >= 2){
+    text = "有两个目标正在往后滑。不是要你一次补完，<b>今天先把最大的那格填掉</b>，剩下的明天再说。";
+    sig = "REALIGN";
+  } else if(behind === 1){
+    text = "有一格落后了。落后不可怕，可怕的是让它变成「反正也追不上」。<b>今天追一点就够了</b>。";
+    sig = "REALIGN";
+  } else if(tt.got > 0){
+    text = "已经动了。剩下那部分，<b>拆成两次做完</b>比一次硬扛更容易兑现。";
+    sig = "IN PROGRESS";
+  } else {
+    text = "今天还没开始。别计划了，<b>先做最小的那一步</b>——配额这种东西，开始之后就只剩数字了。";
+    sig = "START";
+  }
+
+  $("quote").innerHTML = `<div class="quote-text">${text}</div><div class="quote-sig">${sig}</div>`;
+}
+
+/* ---------- 热力图 ---------- */
+function renderHeat(){
+  const t = todayKey();
+  const d = parseYmd(t);
+  const dow = (d.getDay() + 6) % 7;
+  const weekEnd = addDays(t, 6 - dow);       // 本周日
+  const start = addDays(weekEnd, -12*7 + 1); // 12 周前
+
+  const host = $("heat");
+  host.innerHTML = "";
+  let met = 0, total = 0;
+
+  for(let i = 0; i < 12*7; i++){
+    const date = addDays(start, i);
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    if(date <= t){
+      const s = dayState(date);
+      if(s.kind === "met"){ cell.classList.add("l4"); met++; total++; }
+      else if(s.kind === "partial"){ cell.classList.add(s.ratio >= .5 ? "l2" : "l1"); total++; }
+      else if(s.kind === "miss"){ total++; }
+      else if(s.kind === "rest" || s.kind === "none"){ /* 留空 */ }
+    }
+    if(date > t) cell.style.opacity = ".25";
+    cell.title = date + " · " + ({
+      met: "达标", partial: "部分完成", miss: "未完成", rest: "休息日", none: "无任务"
+    }[dayState(date).kind] || "");
+    host.appendChild(cell);
+  }
+
+  $("heat-left").textContent = met + " 天达标 / 共 " + total + " 个推进日";
+  $("heat-right").textContent = total > 0 ? "达标率 " + Math.round(met/total*100) + "%" : "";
+}
+
+/* ---------- 目标列表 ---------- */
+function renderGoals(){
+  const host = $("goals");
+  host.innerHTML = "";
+  if(!S.goals.length){ host.innerHTML = '<div style="color:var(--faint);font-size:13px">还没有目标。</div>'; return; }
+  S.goals.forEach(g => {
+    const pct = Math.min(100, Math.round(doneTotal(g) / g.total * 100));
+    const row = document.createElement("div");
+    row.className = "goal-row";
+    row.innerHTML = `
+      <div class="g-name">${esc(g.title)}</div>
+      <div class="g-pct">${doneTotal(g)} / ${g.total} ${esc(g.unit)}</div>
+      <div class="mini-bar"><i style="width:${pct}%"></i></div>
+      <div class="g-pct" style="width:36px;text-align:right">${pct}%</div>
+      <button class="del" data-del="${g.id}" title="删除">✕</button>`;
+    row.querySelector("[data-del]").onclick = async (e) => {
+      e.stopPropagation();
+      if(await previewConfirm("删除「" + g.title + "」？记录会一起消失。")){
+        S.goals = S.goals.filter(x => x.id !== g.id);
+        if(S.focus === g.id) S.focus = null;
+        save(); render();
+      }
+    };
+    host.appendChild(row);
+  });
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+/* ============================================================
+   交互
+   ============================================================ */
+$("tasks").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if(!btn) return;
+  const g = S.goals.find(x => x.id === btn.dataset.id);
+  if(!g) return;
+  const t = todayKey();
+  const q = quotaForDate(g, t);
+  const act = btn.dataset.act;
+  const before = g.log[t] || 0;
+
+  if(act === "extend"){
+    g.deadline = addDays(g.deadline, 7);
+    save(); render();
+    toast("截止日顺延 7 天 · 每天的量重新算了");
+    return;
+  }
+
+  if(act === "one") g.log[t] = before + 1;
+  else if(act === "fill") g.log[t] = Math.max(before, q);
+  else if(act === "undo") delete g.log[t];
+
+  const delta = (g.log[t] || 0) - before;
+  const card = btn.closest(".task");
+  const rect = card.getBoundingClientRect();
+
+  save();
+
+  // 浮动数字挂到 body 上，否则会被随后的重绘一起抹掉
+  if(delta > 0){
+    const f = document.createElement("div");
+    f.className = "float";
+    f.style.position = "fixed";
+    f.style.left = (rect.left + rect.width - 96) + "px";
+    f.style.top = (rect.top + 22) + "px";
+    f.textContent = "+" + delta;
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 1000);
+  }
+
+  render();
+
+  const nst = dayState(t);
+  if(nst.kind === "met" && delta > 0){
+    const s = streak();
+    toast(s > 1 ? "今天全部达标 · 连续 " + s + " 天" : "今天全部达标");
+  }
+});
+
+$("btn-add").onclick = openModal;
+$("btn-create").onclick = openModal;
+$("btn-demo").onclick = seedDemo;
+
+$("btn-reset").onclick = async () => {
+  if(!await previewConfirm("清空所有目标和记录？这个操作不可撤销。")) return;
+  S = { goals: [], focus: null };
+  save(); render(); toast("已清空");
+};
+
+/* ---------- modal ---------- */
+let mode = "once";
+let offDays = [6]; // 默认周日休息
+
+function buildDow(){
+  const host = $("dow");
+  host.innerHTML = "";
+  WEEK_CN.forEach((w, i) => {
+    const b = document.createElement("button");
+    b.textContent = w;
+    b.className = offDays.includes(i) ? "on" : "";
+    b.onclick = () => {
+      if(offDays.includes(i)){
+        if(offDays.length >= 6){ toast("至少留一天推进"); return; }
+        offDays = offDays.filter(x => x !== i);
+      } else {
+        offDays.push(i);
+      }
+      buildDow(); updatePreview();
+    };
+    host.appendChild(b);
+  });
+}
+
+function openModal(){
+  $("scrim").classList.add("on");
+  $("f-title").value = "";
+  $("f-total").value = "";
+  $("f-unit").value = "";
+  $("f-deadline").value = addDays(todayKey(), 60);
+  $("f-perday").value = "";
+  $("f-unit2").value = "";
+  $("f-days").value = 30;
+  offDays = [6];
+  setMode("once");
+  buildDow();
+  updatePreview();
+  setTimeout(() => $("f-title").focus(), 120);
+}
+
+function setMode(m){
+  mode = m;
+  document.querySelectorAll(".seg button").forEach(b => {
+    b.classList.toggle("on", b.dataset.mode === m);
+  });
+  $("pane-once").classList.toggle("hidden", m !== "once");
+  $("pane-daily").classList.toggle("hidden", m !== "daily");
+  updatePreview();
+}
+
+document.querySelectorAll(".seg button").forEach(b => {
+  b.onclick = () => setMode(b.dataset.mode);
+});
+
+function previewData(){
+  const t = todayKey();
+  const off = offDays;
+  if(mode === "once"){
+    const total = parseInt($("f-total").value, 10);
+    const deadline = $("f-deadline").value;
+    const unit = $("f-unit").value.trim() || "单位";
+    if(!total || total <= 0 || !deadline) return null;
+    if(deadline <= t) return { err: "截止日必须在今天之后。" };
+    const rd = workDaysInRange(t, deadline, off).length;
+    if(rd <= 0) return { err: "这段时间里没有可用推进日。" };
+    return { total, deadline, unit, rd, per: Math.ceil(total / rd), title: $("f-title").value.trim() };
+  } else {
+    const per = parseInt($("f-perday").value, 10);
+    const days = parseInt($("f-days").value, 10);
+    const unit = $("f-unit2").value.trim() || "单位";
+    if(!per || per <= 0 || !days || days <= 0) return null;
+    // 从今天起算 days 个推进日
+    let cnt = 0, cur = t, end = t, guard = 0;
+    while(cnt < days && guard++ < 4000){
+      if(!off.includes(dowOf(cur))) cnt++;
+      if(cnt < days) cur = addDays(cur, 1);
+      end = cur;
+    }
+    return { total: per * days, deadline: end, unit, rd: days, per, title: $("f-title").value.trim() };
+  }
+}
+
+function updatePreview(){
+  const d = previewData();
+  const box = $("preview");
+  if(!d){ box.innerHTML = "填完自动算给你看。"; return; }
+  if(d.err){ box.innerHTML = '<span style="color:var(--bad)">' + d.err + "</span>"; return; }
+  box.innerHTML = "接下来 <b>" + d.rd + "</b> 个推进日，每天大约 <b>" + d.per + "</b> " +
+    esc(d.unit) + "。<br>今天开始，第一格就是 <b>" + d.per + "</b>。";
+}
+
+["f-total","f-deadline","f-unit","f-perday","f-unit2","f-days"].forEach(id => {
+  const el = $(id);
+  if(el) el.addEventListener("input", updatePreview);
+});
+
+$("m-cancel").onclick = () => $("scrim").classList.remove("on");
+$("scrim").onclick = (e) => { if(e.target === $("scrim")) $("scrim").classList.remove("on"); };
+
+$("m-save").onclick = () => {
+  const d = previewData();
+  if(!d){ toast("先把必填项填完"); return; }
+  if(d.err){ toast(d.err); return; }
+  if(!d.title){ toast("给目标起个名字"); $("f-title").focus(); return; }
+
+  const g = {
+    id: uid(),
+    title: d.title,
+    unit: d.unit,
+    total: d.total,
+    start: todayKey(),
+    deadline: d.deadline,
+    daysOff: offDays.slice().sort(),
+    log: {},
+    createdAt: new Date().toISOString()
+  };
+  S.goals.push(g);
+  S.focus = g.id;
+  save();
+  $("scrim").classList.remove("on");
+  render();
+  toast("已创建 · 今天 " + d.per + " " + d.unit);
+};
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), 2400);
+}
+
+/* ---------- 分享卡片 ---------- */
+const CN_F = "'PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif";
+const MONO_F = "'SF Mono',Menlo,Consolas,monospace";
+let shareCanvas = null;
+
+function rr(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function wrapText(c, text, x, y, maxW, lh, maxLines){
+  const chars = Array.from(text);
+  const lines = [];
+  let line = "";
+  chars.forEach(ch => {
+    if(c.measureText(line + ch).width > maxW && line){ lines.push(line); line = ch; }
+    else line += ch;
+  });
+  if(line) lines.push(line);
+  const show = lines.slice(0, maxLines || 2);
+  if(lines.length > show.length) show[show.length-1] = show[show.length-1].slice(0, -1) + "…";
+  show.forEach((ln, i) => c.fillText(ln, x, y + i * lh));
+  return show.length;
+}
+
+function drawMiniBurn(c, g, x0, y0, w, h){
+  const span = Math.max(1, daysBetween(g.start, g.deadline));
+  const t = todayKey();
+  const X = d => x0 + (daysBetween(g.start, d) / span) * w;
+  const Y = v => y0 + (1 - Math.max(0, Math.min(v, g.total)) / g.total) * h;
+
+  c.strokeStyle = "rgba(255,255,255,0.07)";
+  c.lineWidth = 1;
+  [0, g.total].forEach(v => {
+    c.beginPath(); c.moveTo(x0, Y(v)); c.lineTo(x0 + w, Y(v)); c.stroke();
+  });
+
+  c.setLineDash([7, 8]);
+  c.strokeStyle = "rgba(255,255,255,0.22)";
+  c.lineWidth = 2;
+  c.beginPath(); c.moveTo(X(g.start), Y(g.total)); c.lineTo(X(g.deadline), Y(0)); c.stroke();
+  c.setLineDash([]);
+
+  const last = t > g.deadline ? g.deadline : (t < g.start ? g.start : t);
+  const n = Math.max(1, daysBetween(g.start, last));
+  c.strokeStyle = "#ff9f43";
+  c.lineWidth = 4;
+  c.lineJoin = "round";
+  c.lineCap = "round";
+  c.beginPath();
+  for(let i = 0; i <= n; i++){
+    const d = addDays(g.start, i);
+    const px = X(d), py = Y(g.total - doneThrough(g, d));
+    i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+  }
+  c.stroke();
+
+  const endD = addDays(g.start, n);
+  c.fillStyle = "#ffcb6b";
+  c.beginPath();
+  c.arc(X(endD), Y(g.total - doneThrough(g, endD)), 7, 0, Math.PI * 2);
+  c.fill();
+}
+
+function buildShareCanvas(){
+  const g = S.goals.find(x => x.id === S.focus) || visibleGoals()[0];
+  if(!g) return null;
+
+  const W = 900, H = 1200, PAD = 68;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const c = cv.getContext("2d");
+  const t = todayKey();
+
+  // 底 + 光晕
+  c.fillStyle = "#0a0908"; c.fillRect(0, 0, W, H);
+  const glow = c.createRadialGradient(W * 0.18, -120, 0, W * 0.18, -120, 1100);
+  glow.addColorStop(0, "rgba(255,159,67,0.20)");
+  glow.addColorStop(1, "rgba(255,159,67,0)");
+  c.fillStyle = glow; c.fillRect(0, 0, W, H);
+  c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = 2;
+  c.strokeRect(1, 1, W - 2, H - 2);
+
+  // 品牌
+  c.fillStyle = "#ff9f43";
+  rr(c, PAD, 60, 32, 32, 10); c.fill();
+  c.fillStyle = "#1b1208";
+  c.beginPath(); c.arc(PAD + 16, 76, 5.5, 0, Math.PI * 2); c.fill();
+
+  c.textBaseline = "middle";
+  c.fillStyle = "#f4f0e9";
+  c.font = "600 28px " + CN_F;
+  c.fillText("Backcast", PAD + 46, 76);
+
+  c.fillStyle = "#615b52";
+  c.font = "400 17px " + MONO_F;
+  c.textAlign = "right";
+  c.fillText(t, W - PAD, 76);
+  c.textAlign = "left";
+
+  // 目标名
+  c.textBaseline = "alphabetic";
+  c.fillStyle = "#615b52";
+  c.font = "400 16px " + MONO_F;
+  c.fillText("TARGET", PAD, 192);
+  c.fillStyle = "#f4f0e9";
+  c.font = "600 38px " + CN_F;
+  wrapText(c, g.title, PAD, 246, W - PAD * 2, 54, 2);
+
+  // 目标元信息 —— 填掉标题和配额之间的空档，也让数据更完整
+  c.fillStyle = "#7d766a";
+  c.font = "400 20px " + CN_F;
+  {
+    const left = Math.max(0, daysBetween(t, g.deadline));
+    const rd = workDaysInRange(t, g.deadline, g.daysOff).length;
+    const parts = [g.total + " " + g.unit, "距截止 " + left + " 天", rd + " 个推进日"];
+    if(g.daysOff.length){
+      parts.push("每周休 " + g.daysOff.map(i => "周" + WEEK_CN[i]).join("、"));
+    }
+    c.fillText(parts.join("  ·  "), PAD, 304);
+  }
+
+  // 今日配额
+  const q = quotaForDate(g, t) || tomorrowQuota(g) || 0;
+  c.fillStyle = "#615b52";
+  c.font = "400 16px " + MONO_F;
+  c.fillText("TODAY'S QUOTA", PAD, 404);
+
+  c.fillStyle = "#ffcb6b";
+  c.font = "700 146px " + CN_F;
+  const qs = String(q);
+  c.fillText(qs, PAD - 4, 546);
+  const qw = c.measureText(qs).width;
+
+  c.fillStyle = "#a29b8d";
+  c.font = "400 36px " + CN_F;
+  c.fillText(g.unit, PAD + qw + 16, 542);
+
+  c.fillStyle = "#615b52";
+  c.font = "400 21px " + CN_F;
+  c.fillText("今天必须做完的分量", PAD, 600);
+
+  c.strokeStyle = "rgba(255,255,255,0.09)";
+  c.lineWidth = 1;
+  c.beginPath(); c.moveTo(PAD, 664); c.lineTo(W - PAD, 664); c.stroke();
+
+  // 三格数据
+  const st = streak();
+  const f = forecast(g);
+  const pct = Math.round(doneTotal(g) / g.total * 100);
+  let verdict = "—", vcolor = "#f4f0e9";
+  if(f.state === "run"){
+    if(f.gap > 0){ verdict = "晚 " + f.gap + " 天"; vcolor = "#ff6b6b"; }
+    else if(f.gap < 0){ verdict = "提前 " + (-f.gap) + " 天"; vcolor = "#5ddc8a"; }
+    else { verdict = "压线"; vcolor = "#ffcb6b"; }
+  } else if(f.state === "done"){ verdict = "已完成"; vcolor = "#5ddc8a"; }
+
+  const cw = (W - PAD * 2) / 3;
+  [
+    { k: "连续", v: String(st) },
+    { k: "总进度", v: pct + "%" },
+    { k: "当前速度", v: verdict, col: vcolor }
+  ].forEach((o, i) => {
+    const x0 = PAD + i * cw;
+    c.fillStyle = "#615b52";
+    c.font = "400 16px " + MONO_F;
+    c.fillText(o.k, x0, 716);
+    c.fillStyle = o.col || "#f4f0e9";
+    c.font = "600 42px " + CN_F;
+    c.fillText(o.v, x0, 774);
+  });
+
+  drawMiniBurn(c, g, PAD, 840, W - PAD * 2, 180);
+
+  // 底部
+  c.fillStyle = "#615b52";
+  c.font = "400 18px " + CN_F;
+  c.fillText("从终点往回走 · 今天只需要走一步", PAD, 1116);
+
+  c.textAlign = "right";
+  c.fillStyle = "#ff9f43";
+  c.font = "500 18px " + CN_F;
+  {
+    const tag = ($("share-tag").value || "").trim();
+    let bottomTag = "#Backcast" + (tag ? "  " + tag : "");
+    if(c.measureText(bottomTag).width > 380){
+      let cut = tag;
+      while(cut.length > 0 && c.measureText("#Backcast  " + cut + "…").width > 380){
+        cut = cut.slice(0, -1);
+      }
+      bottomTag = "#Backcast" + (cut ? "  " + cut + "…" : "");
+    }
+    c.fillText(bottomTag, W - PAD, 1116);
+  }
+  c.textAlign = "left";
+
+  return cv;
+}
+
+function shareText(){
+  const g = S.goals.find(x => x.id === S.focus) || visibleGoals()[0];
+  if(!g) return "";
+  const t = todayKey();
+  const q = quotaForDate(g, t) || tomorrowQuota(g) || 0;
+  const st = streak();
+  const f = forecast(g);
+  const pct = Math.round(doneTotal(g) / g.total * 100);
+  const tag = ($("share-tag").value || "").trim();
+
+  let mid;
+  if(f.state === "done") mid = "已经走完了，总进度 100%。";
+  else if(f.state === "run" && f.gap > 0) mid = "按现在的速度，我会晚 " + f.gap + " 天 —— 但至少我知道晚了几天。";
+  else if(f.state === "run" && f.gap < 0) mid = "按现在的速度，我能提前 " + (-f.gap) + " 天做完。";
+  else if(f.state === "run") mid = "按现在的速度，刚好压线。";
+  else mid = "还在路上，总进度 " + pct + "%。";
+
+  const lines = [
+    "我把「" + g.title + "」的 " + g.total + " " + g.unit + "，",
+    "拆成了今天必须做完的 " + q + " " + g.unit + "。",
+    ""
+  ];
+  if(st > 0) lines.push("连续第 " + st + " 天。");
+  lines.push(mid, "", "用 Backcast 从截止日往回倒推。");
+  lines.push("#Backcast #习惯养成 #倒推计划" + (tag ? " " + tag : ""));
+  return lines.join("\n");
+}
+
+$("btn-share").onclick = () => {
+  shareCanvas = buildShareCanvas();
+  if(!shareCanvas){ toast("先创建一个目标再分享"); return; }
+  $("share-img").src = shareCanvas.toDataURL("image/png");
+  $("share-scrim").classList.add("on");
+};
+
+$("share-scrim").onclick = (e) => {
+  if(e.target === $("share-scrim")) $("share-scrim").classList.remove("on");
+};
+
+// 改话题 → 卡片底部同步重绘
+$("share-tag").addEventListener("input", () => {
+  shareCanvas = buildShareCanvas();
+  if(shareCanvas) $("share-img").src = shareCanvas.toDataURL("image/png");
+});
+
+$("share-download").onclick = () => {
+  if(!shareCanvas) return;
+  shareCanvas.toBlob(blob => {
+    if(!blob){ toast("导出失败"); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "backcast-" + todayKey() + ".png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, "image/png");
+  toast("图片已保存");
+};
+
+$("share-copy").onclick = async () => {
+  const txt = shareText();
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast("文案已复制");
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); toast("文案已复制"); }
+    catch(err){ toast("复制失败，请手动选中"); }
+    ta.remove();
+  }
+};
+
+$("btn-help").onclick = () => {
+  const el = $("howto");
+  if(el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  else toast("先创建一个目标，说明在页面底部");
+};
+
+/* ---------- 示例数据 ---------- */
+// 造一个「一好一坏」的局面：一个目标在追，一个刚好压线。
+// 演示时讲得清楚，也看得出诊断逻辑真的在算。
+function seedDemo(){
+  const t = todayKey();
+  const start = addDays(t, -20);
+
+  const g1 = {
+    id: uid(),
+    title: "读完《思考，快与慢》",
+    unit: "页", total: 720,
+    start, deadline: addDays(t, 18),
+    daysOff: [6], log: {},
+    createdAt: new Date().toISOString()
+  };
+  const g2 = {
+    id: uid(),
+    title: "论文初稿",
+    unit: "字", total: 11000,
+    start, deadline: addDays(t, 35),
+    daysOff: [5, 6], log: {},
+    createdAt: new Date().toISOString()
+  };
+
+  const p1 = [18,22,14,26,12,20,16,24,8,19,21,15,23,17,12,25,16,20,18,22];
+  const p2 = [300,320,280,310,300,290,340,300,310,280,300,320,300,290,310,300,280,330,300,310];
+  let i1 = 0, i2 = 0;
+
+  for(let i = 0; i < 20; i++){
+    const d = addDays(start, i);
+    if(!g1.daysOff.includes(dowOf(d))) g1.log[d] = p1[i1++ % p1.length];
+    if(!g2.daysOff.includes(dowOf(d))) g2.log[d] = p2[i2++ % p2.length];
+  }
+
+  // 把最近若干个推进日补到达标，让示例带着一段真实的连胜进来
+  function topUp(g, n){
+    const ds = workDaysInRange(addDays(t, -n*2 - 4), addDays(t, -1), g.daysOff).slice(-n);
+    ds.forEach(d => {
+      const q = quotaForDate(g, d);
+      if(q > 0 && (g.log[d] || 0) < q) g.log[d] = Math.ceil(q * 1.15);
+    });
+  }
+  topUp(g1, 5);
+  topUp(g2, 5);
+
+  S.goals = [g1, g2];
+  S.focus = g1.id;
+  save();
+  render();
+  toast("示例已加载 · 点右上角 ⋯ 可清空");
+}
+
+/* ---------- 主题 ---------- */
+// 组件全部走 CSS 变量，所以切换只需要换根节点上的 data-theme，
+// 图表、热力图、弹层会自动跟着变，不用重绘。
+const THEME_KEY = "backcast.theme";
+
+// 用 SVG 而不是 ☀/☾ 字形：小字号下那些符号细得几乎看不见
+const ICON_SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.1M12 19.3v2.1M4.3 4.3l1.5 1.5M18.2 18.2l1.5 1.5M2.6 12h2.1M19.3 12h2.1M4.3 19.7l1.5-1.5M18.2 5.8l1.5-1.5"/></svg>';
+const ICON_MOON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20.6 14.3A8.7 8.7 0 1 1 9.7 3.4a6.9 6.9 0 0 0 10.9 10.9z"/></svg>';
+
+function applyTheme(t, persist){
+  document.documentElement.dataset.theme = t;
+  const b = $("btn-theme");
+  if(b){
+    b.innerHTML = t === "dark" ? ICON_SUN : ICON_MOON;
+    b.title = t === "dark" ? "切到浅色模式" : "切到深色模式";
+    b.setAttribute("aria-label", b.title);
+  }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", t === "dark" ? "#0a0908" : "#faf7f2");
+  if(persist){
+    previewTheme = t;
+  }
+}
+
+function initTheme(){
+  let saved = null;
+  saved = previewTheme;
+  if(saved === "light" || saved === "dark"){ applyTheme(saved, false); return; }
+  let sysDark = true;
+  try{ sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches; }catch(e){}
+  applyTheme(sysDark ? "dark" : "light", false);
+}
+
+$("btn-theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  applyTheme(cur === "light" ? "dark" : "light", true);
+};
+
+/* ---------- 启动 ---------- */
+initTheme();
+seedDemo();
+
+// 跨天自动刷新
+let lastDay = todayKey();
+setInterval(() => {
+  if(todayKey() !== lastDay){ lastDay = todayKey(); render(); }
+}, 60000);
+
+// Esc 关弹窗
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") $("scrim").classList.remove("on");
+});
+</script>
+<div style="position:fixed;bottom:8px;right:8px;z-index:10000;background:#201a14;color:white;padding:8px;border-radius:8px;font:13px sans-serif">示例体验 · 数据仅在本页保留 <button id="restore-example">恢复示例</button></div>
+<script>
+function previewConfirm(message) { return new Promise(resolve => { const box=document.createElement('div'); box.style.cssText='position:fixed;inset:0;z-index:100001;background:#000a;display:grid;place-items:center'; const panel=document.createElement('div'); panel.style.cssText='background:#241f19;color:white;padding:24px;border-radius:12px'; const text=document.createElement('p'); text.textContent=message; panel.append(text); for (const [label,value] of [['取消',false],['确认',true]]) {const b=document.createElement('button');b.textContent=label;b.onclick=()=>{box.remove();resolve(value)};panel.append(b)} box.append(panel); document.body.append(box); }); }
+document.getElementById('share-download').disabled=true; document.getElementById('share-download').textContent='安装后可下载';
+document.getElementById('share-copy').disabled=true; document.getElementById('share-copy').textContent='安装后可复制';
+document.getElementById("restore-example").onclick = () => { S = {goals:[], focus:null}; previewStore = null; previewTheme = null; document.querySelectorAll('.scrim').forEach(e => e.classList.remove('on')); initTheme(); seedDemo(); window.scrollTo(0,0); };</script></body>
+</html>

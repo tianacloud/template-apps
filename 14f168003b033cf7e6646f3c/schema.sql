@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS backcast_state (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL);
