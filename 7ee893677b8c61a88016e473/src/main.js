@@ -786,6 +786,9 @@ root.innerHTML = "\n    <header>\n      <h1>中国 365 天宜居 / 宜旅行地�
           document.getElementById("modeHint").textContent =
             "按当天所有城市排名归一化（0–100），区分度最高，适合“今天去哪最舒服”。";
           render();
+          // The viewport may have changed while the climate files were loading.
+          chart.resize();
+          chart2.resize();
           window.addEventListener("resize", () => {
             chart.resize();
             chart2.resize();
