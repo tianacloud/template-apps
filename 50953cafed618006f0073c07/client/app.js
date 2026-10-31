@@ -305,7 +305,14 @@ function save() {
       var result = await execute('UPDATE quiz_state SET payload = ?, revision = revision + 1 WHERE id = 1 AND revision = ?', [{type:'text',value:raw},{type:'integer',value:String(dbRevision)}]);
       if (Number(result.affected_row_count) !== 1) throw new Error('数据已更改');
       dbRevision++;
-    } catch (e) { saveError(); }
+    } catch (e) {
+      // A lost response may follow a committed write. Read back before reporting failure; never replay it.
+      try {
+        var check = await execute('SELECT payload, revision FROM quiz_state WHERE id = 1');
+        if (check.rows.length && Number(check.rows[0][1].value) === dbRevision + 1 && check.rows[0][0].value === raw) { dbRevision++; return; }
+      } catch (readError) { /* Preserve the unknown outcome. */ }
+      saveError();
+    }
   });
 }
 async function load() {
@@ -1547,7 +1554,7 @@ function viewMe() {
   var demoCount = allQuestions().filter(function (q) { return q.demo; }).length;
   var html = '<div class="card profile" style="margin-top:4px">' +
     '<div class="avatar">' + escapeHtml((DB.user.name || '备').slice(0, 1)) + '</div>' +
-    '<div class="grow"><b>' + escapeHtml(DB.user.name) + '</b><small>本地账号 · 数据仅保存在这台设备</small>' +
+    '<div class="grow"><b>' + escapeHtml(DB.user.name) + '</b><small>学习资料和进度保存在云端</small>' +
     '<div class="small muted" style="margin-top:4px">已练 ' + ov.seen + ' / ' + ov.total + ' 题 · 掌握度 ' + ov.mastery + '%</div></div></div>';
 
   html += '<div class="sec"><div class="sec-title">学习设置</div><div class="list">' +
@@ -1570,7 +1577,7 @@ function viewMe() {
     '</div></div>';
 
   html += '<div class="sec"><div class="sec-title">关于</div><div class="list">' +
-    '<div class="li"><div class="grow"><b>版本</b><small>v1.0 · 单文件离线应用</small></div><span class="right">—</span></div>' +
+    '<div class="li"><div class="grow"><b>版本</b><small>职称题库 · 云端版</small></div><span class="right">—</span></div>' +
     '<div class="li"><div class="grow"><b>数据存放</b><small>题库和进度保存在云端数据库</small></div><span class="right">云端</span></div>' +
     '<div class="li"><div class="grow"><b>当前错题</b><small>连对两次自动移出错题本</small></div><span class="right">' + wrongCount + ' 题</span></div>' +
     '</div><div class="hint" style="padding:10px 4px">示例题库仅用于演示功能，题目内容为通用示例，不代表任何考试范围。</div></div>';
