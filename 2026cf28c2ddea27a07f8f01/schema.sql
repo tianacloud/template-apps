@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, payload TEXT NOT NULL);
