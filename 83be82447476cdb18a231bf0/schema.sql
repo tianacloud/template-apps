@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS inventory_state (id INTEGER PRIMARY KEY CHECK (id = 1), revision INTEGER NOT NULL, payload TEXT NOT NULL);
