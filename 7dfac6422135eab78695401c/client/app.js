@@ -1043,7 +1043,9 @@ const Add = {
       photo: null
     };
     if (this.state.photo) {
-      const blob = await (await fetch(this.state.photo)).blob();
+      const encoded = this.state.photo.split(',')[1];
+      const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], {type: 'image/jpeg'});
       const path = `meal-photos/${id}.jpg`;
       try {
         await files.put(path, blob);
