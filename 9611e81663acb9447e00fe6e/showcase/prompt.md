@@ -1,0 +1,1 @@
+使用薄肌训练模板制作训练助手。运行 `tiana web init-template 9611e81663acb9447e00fe6e --dir my-training` 获取源码，保留周计划、动作指导、打卡统计与备份功能。
