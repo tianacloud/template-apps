@@ -713,7 +713,7 @@
     var html = '';
     html += '<section class="card" style="background:linear-gradient(135deg,#fff1e0,#fff5e8);border-color:#ffe0c4">' +
       '<div style="font-size:13px;font-weight:800;line-height:1.8">🔒 <b>家长模式</b>：勾选一下，就代表你确认孩子完成了这项任务。<br>' +
-      '孩子自己无法改动，防止乱点哦。</div></section>';
+      '访问锁用于防止误操作，获授权的应用成员共享数据；它不是服务器权限隔离。</div></section>';
 
     html += '<section class="card"><h3 class="card-title"><span class="ct-emoji">📅</span>选择日期' +
       (isToday ? '<span class="ct-more">今天</span>'
