@@ -484,6 +484,14 @@ import { createTianaFetch } from '@tianacloud/serverless';
       document.getElementById("date").value=state.date; document.getElementById("start").value=state.start; document.getElementById("end").value=state.end; document.getElementById("tzbadge").textContent="基准时区 · " + dz.replace(/_/g," "); render();
     } catch(e) { toast("无法读取已保存方案，请检查连接"); }
   }
+  window.addEventListener("hashchange", function(){
+    if (!location.hash || !readURL()) return;
+    document.getElementById("date").value = state.date;
+    document.getElementById("start").value = state.start;
+    document.getElementById("end").value = state.end;
+    document.getElementById("tzbadge").textContent = "基准时区 · " + dz.replace(/_/g," ");
+    render();
+  });
   // 启动
   initPicker();
   state.date = todayStr();
