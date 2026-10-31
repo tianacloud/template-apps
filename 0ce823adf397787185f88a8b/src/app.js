@@ -1298,7 +1298,11 @@ document.getElementById('view').addEventListener('click',e=>{
   if(act==='resetAll'){
     if(!confirm('确定清空全部数据？不能撤销。')) return;
     if(!confirm('真的要清空吗？食材、记录、打卡都会消失。')) return;
-    S=initialState(); save();
+    S=initialState(); save(); obSex='m'; obGoal='cut';
+    ['obAge','obH','obW','obGoalW','obWaist'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('obAct').value='1.2';
+    document.querySelectorAll('#sexSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v==='m'));
+    document.querySelectorAll('#goalSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v==='cut'));
     document.getElementById('app').classList.add('hidden');
     document.getElementById('onboard').classList.remove('hidden');
     setStep(1);
