@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const esbuild = require('esbuild');
+fs.mkdirSync('dist/assets',{recursive:true});
+const body = fs.readFileSync('body.html','utf8');
+const css = fs.readFileSync('style.css','utf8');
+const app = fs.readFileSync('app.js','utf8');
+const entry = `import { createTianaFetch } from '@tianacloud/serverless';\nexport function mount(root, context) {\n document.title = "课堂白板";\nconst style = document.createElement("style"); style.textContent = ${JSON.stringify(css)}; document.head.append(style);\nroot.innerHTML = ${JSON.stringify(body)};\n${app}\n }`;
+esbuild.buildSync({stdin:{contents:entry,resolveDir:process.cwd(),sourcefile:'entry.js'},bundle:true,format:'esm',platform:'browser',outfile:'dist/assets/app.js'});
+fs.copyFileSync('icon.png','dist/icon.png');
+const source=JSON.parse(fs.readFileSync('source.json'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
