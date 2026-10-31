@@ -3,7 +3,7 @@
  * 使用注入的存储适配器。
  */
 
-var calc = (typeof require === 'function') ? require('./calc.js') : window.PILCalc;
+var calc = (typeof window !== 'undefined') ? window.PILCalc : require('./calc.js');
 
 var KEY_ASSETS = 'pil_assets_v1';
 var KEY_SETTINGS = 'pil_settings_v1';
