@@ -92,7 +92,7 @@ function rollDay(){
     if(S.sprint){ var yk2=todayKey(new Date(Date.now()-86400000)); for(var bk2 in S.sprint){ var sp2=S.sprint[bk2]; if(sp2.n && sp2.day && sp2.day!==k && sp2.day!==yk2) sp2.n=0; } }   // 三日冲刺断档清零（每本书各自算）
   }
 }
-/* 连胜口径：今天第一次「真的学了」才 +1（打开 App 不算） */
+/* 连胜口径：今天第一次「真的学了」才 +1（打开应用不算） */
 function ensureDay(){
   rollDay();
   var k=todayKey();
@@ -235,7 +235,7 @@ function speak(txt, lang){
   }catch(e){}
 }
 
-/* ---- SRS（与 App 同口径：interval / ease / due / reps / lapses） ---- */
+/* ---- SRS（interval / ease / due / reps / lapses） ---- */
 function progOf(id){
   if(!S.prog[id]) S.prog[id]={i:0,e:2.5,d:0,r:0,l:0,s:0};
   return S.prog[id];
@@ -785,7 +785,7 @@ function renderListen(w){
   });
   setTimeout(function(){ speak(w.h, w.lang==='ja'?'ja-JP':'en-US'); },220);
 }
-/* 自动朗读：按卡片身份去重，同一张卡只自动读一次（同 App maybeAutoSpeak） */
+/* 自动朗读：按卡片身份去重，同一张卡只自动读一次 */
 var autoSpokenKey=null;
 function maybeAutoSpeak(w,m){
   if(S.set&&S.set.autoListen===false) return;
