@@ -1,0 +1,510 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>星星打卡</title><style>/* ===========================================================
+   星星打卡 · Q萌儿童任务打卡 H5
+   =========================================================== */
+:root {
+  --pink: #ff8a3d;
+  --pink-d: #f2701f;
+  --yellow: #ffc93c;
+  --yellow-d: #f0a728;
+  --green: #3ec98b;
+  --green-d: #2aa971;
+  --blue: #4bb8ff;
+  --blue-d: #2a90e0;
+  --purple: #a78bfa;
+  --purple-d: #8467ef;
+  --orange: #ff7a59;
+
+  --ink: #4a3f38;
+  --ink-2: #7d7268;
+  --ink-3: #a89e94;
+  --line: #f7e7d5;
+  --card: #ffffff;
+  --bg: #fff8ec;
+
+  --r-lg: 28px;
+  --r-md: 20px;
+  --r-sm: 14px;
+  --shadow: 0 8px 24px rgba(200, 140, 70, .14);
+  --font: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; padding: 0; min-height: 100%;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background:
+    radial-gradient(1000px 500px at 10% -10%, #ffe4cc 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #dff1ff 0%, transparent 55%),
+    radial-gradient(800px 600px at 50% 110%, #fff4d8 0%, transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* 背景漂浮装饰 */
+.bg-deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.blob { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .55; }
+.b1 { width: 160px; height: 160px; left: -40px; top: 8%; background: #ffe8d6; animation: floaty 9s ease-in-out infinite; }
+.b2 { width: 120px; height: 120px; right: -30px; top: 22%; background: #dff1ff; animation: floaty 11s ease-in-out infinite reverse; }
+.b3 { width: 200px; height: 200px; left: 30%; bottom: -60px; background: #fff4d8; animation: floaty 13s ease-in-out infinite; }
+@keyframes floaty { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-24px) scale(1.06); } }
+
+/* ---------- 布局骨架 ---------- */
+.app-root { position: relative; z-index: 1; }
+
+.layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 底部导航栏（看板 / 任务 / 奖励 / 我的），始终固定在页面底部 */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(10px);
+  border-top: 2px solid var(--line);
+  box-shadow: 0 -6px 20px rgba(200, 140, 70, .1);
+}
+.rail-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px; border: 0; background: none; cursor: pointer;
+  color: var(--ink-3); font-family: var(--font); font-size: 11px; font-weight: 700;
+  border-radius: 16px; transition: transform .18s, color .18s;
+}
+.rail-item .ri-emoji { font-size: 22px; line-height: 1; transition: transform .25s; }
+.rail-item.on { color: var(--pink-d); }
+.rail-item.on .ri-emoji { transform: translateY(-3px) scale(1.18); }
+.rail-item:active { transform: scale(.92); }
+
+.main { max-width: 720px; margin: 0 auto; padding: 0 14px 104px; }
+
+/* 宝宝切换条：横向滑动 */
+.child-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; }
+.child-strip::-webkit-scrollbar { display: none; }
+.child-chip {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 5px 13px 5px 5px; border-radius: 999px; font-family: var(--font);
+  font-size: 13px; font-weight: 900; color: var(--ink-2);
+  background: #fff; border: 2px solid var(--line); transition: .18s;
+}
+.child-chip:active { transform: scale(.95); }
+.child-chip .cc-avatar {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 17px; background: #fff2e2;
+}
+.child-chip.on {
+  border-color: var(--pink); background: #fff1e0; color: var(--pink-d);
+  box-shadow: 0 4px 12px rgba(255, 138, 61, .3);
+}
+.cs-hint { flex: 0 0 auto; align-self: center; font-size: 11px; color: var(--ink-3); font-weight: 700; padding-left: 2px; }
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 4px 12px;
+  background: linear-gradient(180deg, rgba(255,248,236,.96) 70%, rgba(255,248,236,0));
+  backdrop-filter: blur(4px);
+}
+.topbar .tb-avatar {
+  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 26px; background: #fff; border: 3px solid #ffe8d6; box-shadow: var(--shadow);
+  animation: wiggle 4s ease-in-out infinite;
+}
+@keyframes wiggle { 0%,100%{transform:rotate(-6deg);} 50%{transform:rotate(6deg);} }
+.topbar .tb-name { font-size: 18px; font-weight: 900; letter-spacing: .5px; }
+.topbar .tb-sub { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.topbar .tb-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+  animation: pop-in .38s cubic-bezier(.2,1.3,.5,1) both;
+}
+@keyframes pop-in { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+
+.card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 900; margin: 0 0 12px;
+}
+.card-title .ct-emoji { font-size: 20px; }
+.card-title .ct-more { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.sec-hd { display: flex; align-items: center; gap: 8px; margin: 18px 4px 10px; font-size: 15px; font-weight: 900; }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 0; border-radius: 999px; cursor: pointer;
+  padding: 12px 20px; font-size: 15px; font-weight: 900; font-family: var(--font);
+  color: #fff; background: var(--pink);
+  box-shadow: 0 5px 0 var(--pink-d);
+  transition: transform .12s, box-shadow .12s, filter .12s;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--pink-d); }
+.btn.yellow { background: var(--yellow); color: #8a5a10; box-shadow: 0 5px 0 var(--yellow-d); }
+.btn.yellow:active { box-shadow: 0 1px 0 var(--yellow-d); }
+.btn.green { background: var(--green); box-shadow: 0 5px 0 var(--green-d); }
+.btn.green:active { box-shadow: 0 1px 0 var(--green-d); }
+.btn.blue { background: var(--blue); box-shadow: 0 5px 0 var(--blue-d); }
+.btn.blue:active { box-shadow: 0 1px 0 var(--blue-d); }
+.btn.purple { background: var(--purple); box-shadow: 0 5px 0 var(--purple-d); }
+.btn.purple:active { box-shadow: 0 1px 0 var(--purple-d); }
+.btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--line); box-shadow: 0 4px 0 #ffecdb; }
+.btn.ghost:active { box-shadow: 0 1px 0 #ffecdb; }
+.btn.sm { padding: 8px 14px; font-size: 13px; box-shadow: 0 4px 0 rgba(0,0,0,.12); }
+.btn.block { width: 100%; }
+.btn[disabled] { filter: grayscale(.6) opacity(.6); cursor: not-allowed; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 800;
+  background: #fff3e4; color: var(--pink-d); border: 2px solid #ffe4cc;
+}
+.chip.g { background: #eafaf0; color: #2f8f63; border-color: #c9f0da; }
+.chip.b { background: #e8f5ff; color: #2a86c9; border-color: #cdeaff; }
+.chip.y { background: #fff6dd; color: #b57d13; border-color: #ffeab0; }
+
+/* ---------- 登录页 ---------- */
+.login-wrap {
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+}
+.login-card {
+  width: 100%; max-width: 420px;
+  background: #fff; border: 3px solid #ffe4cc; border-radius: 34px;
+  padding: 22px 20px 24px; box-shadow: 0 16px 40px rgba(210, 140, 70, .22);
+  animation: pop-in .45s cubic-bezier(.2,1.3,.5,1) both;
+}
+.mascot { text-align: center; font-size: 62px; line-height: 1; animation: bounce 2.4s ease-in-out infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+.brand { text-align: center; font-size: 26px; font-weight: 900; margin: 6px 0 2px; letter-spacing: 1px; }
+.brand span { color: var(--pink-d); }
+.slogan { text-align: center; font-size: 13px; color: var(--ink-2); font-weight: 600; margin-bottom: 16px; }
+
+.seg { display: flex; background: #fff5e8; border-radius: 999px; padding: 4px; margin-bottom: 16px; }
+.seg button {
+  flex: 1; border: 0; background: none; cursor: pointer; font-family: var(--font);
+  padding: 10px; border-radius: 999px; font-size: 14px; font-weight: 900; color: var(--ink-2);
+  transition: .2s;
+}
+.seg button.on { background: #fff; color: var(--pink-d); box-shadow: 0 3px 10px rgba(200,140,70,.18); }
+.seg button:active { transform: scale(.96); }
+.seg button:not(.on):hover { color: var(--pink-d); }
+@media (hover: none) { .seg button:active { background: #fff; color: var(--pink-d); } }
+
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 6px; color: var(--ink-2); }
+.input {
+  width: 100%; border: 2px solid var(--line); background: #fffaf3;
+  border-radius: 16px; padding: 13px 14px; font-size: 15px; font-weight: 700;
+  font-family: var(--font); color: var(--ink); outline: none; transition: .18s;
+}
+.input:focus { border-color: var(--pink); background: #fff; box-shadow: 0 0 0 4px #ffe8cc; }
+
+.avatar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.avatar-grid button {
+  aspect-ratio: 1; border: 2px solid var(--line); background: #fffaf3; border-radius: 14px;
+  font-size: 20px; cursor: pointer; transition: .15s; padding: 0;
+}
+.avatar-grid button.on { border-color: var(--pink); background: #fff1e0; transform: scale(1.12); }
+
+.role-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.role-card {
+  border: 2px solid var(--line); background: #fffaf3; border-radius: 18px; padding: 12px;
+  text-align: center; cursor: pointer; transition: .18s;
+}
+.role-card .rc-emoji { font-size: 28px; }
+.role-card .rc-name { font-size: 13px; font-weight: 900; margin-top: 4px; }
+.role-card .rc-desc { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+.role-card.on { border-color: var(--pink); background: #fff1e0; box-shadow: 0 4px 14px rgba(125,139,161,.25); }
+
+.tip-box {
+  margin-top: 12px; padding: 10px 12px; border-radius: 16px;
+  background: #fff5e8; color: #8a6a45; font-size: 11px; font-weight: 700; line-height: 1.7;
+}
+
+/* 家长确认弹窗 */
+.confirm-box { text-align: center; padding: 6px 2px 2px; }
+.confirm-box .cb-emoji { font-size: 46px; line-height: 1; }
+.confirm-box .cb-text { font-size: 14px; font-weight: 800; line-height: 1.9; margin-top: 10px; }
+
+/* ---------- 密码强度 / 一致性提示 ---------- */
+.pwd-meter { margin-top: 8px; }
+.pm-bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.pm-bar > i {
+  display: block; height: 100%; width: 0; border-radius: 999px;
+  transition: width .25s ease, background .25s ease;
+}
+.pm-bar > i.pm-0 { background: #e0483c; }
+.pm-bar > i.pm-1 { background: var(--orange); }
+.pm-bar > i.pm-2 { background: var(--yellow); }
+.pm-bar > i.pm-3 { background: var(--green); }
+.pm-text {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 11px; font-weight: 800; margin-top: 5px; color: var(--ink-2);
+}
+.pm-text #pm-tips { color: var(--orange); }
+.match-tip { font-size: 11px; font-weight: 800; margin-top: 5px; min-height: 14px; }
+.match-tip.good { color: var(--green-d); }
+.match-tip.bad { color: #e0483c; }
+.pin-input { letter-spacing: 6px; text-align: center; font-size: 20px; font-weight: 900; }
+.me-chip { cursor: pointer; transition: .16s; }
+.me-chip:active { transform: scale(.94); }
+
+.remember { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); margin: 4px 0 14px; }
+.remember input { width: 18px; height: 18px; accent-color: var(--pink); }
+.login-tip { margin-top: 14px; text-align: center; font-size: 12px; color: var(--ink-3); font-weight: 600; line-height: 1.7; }
+.login-tip b { color: var(--pink-d); }
+.link-btn { background: none; border: 0; color: var(--pink-d); font-weight: 900; font-family: var(--font); cursor: pointer; font-size: 13px; padding: 0 2px; }
+
+/* ---------- 数据看板 ---------- */
+.hero {
+  background: linear-gradient(135deg, #ffe8d6 0%, #fff3df 55%, #dff1ff 100%);
+  border: 3px solid #fff; border-radius: 32px; padding: 18px;
+  box-shadow: var(--shadow); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 16px;
+  animation: pop-in .4s cubic-bezier(.2,1.3,.5,1) both;
+}
+.hero-ring { flex: 0 0 auto; }
+.hero-info { flex: 1; min-width: 0; }
+.hero-info .hi-title { font-size: 17px; font-weight: 900; }
+.hero-info .hi-sub { font-size: 12px; color: #7d7268; font-weight: 700; margin-top: 4px; line-height: 1.6; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat {
+  background: #fff; border: 2px solid var(--line); border-radius: 22px; padding: 12px 8px;
+  text-align: center; box-shadow: 0 4px 14px rgba(200,140,70,.1);
+  animation: pop-in .4s cubic-bezier(.2,1.3,.5,1) both;
+}
+.stat .s-emoji { font-size: 22px; }
+.stat .s-num { font-size: 20px; font-weight: 900; line-height: 1.2; }
+.stat .s-label { font-size: 11px; color: var(--ink-3); font-weight: 700; }
+
+/* ---------- 任务项 ---------- */
+.task-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 20px; background: #fffaf3;
+  border: 2px solid var(--line); margin-bottom: 10px;
+  transition: transform .16s, background .2s, border-color .2s;
+  animation: pop-in .35s cubic-bezier(.2,1.3,.5,1) both;
+}
+.task-item:last-child { margin-bottom: 0; }
+.task-item.done { background: #eafaf0; border-color: #c9f0da; }
+.task-item .ti-emoji {
+  width: 44px; height: 44px; flex: 0 0 44px; border-radius: 14px; display: grid; place-items: center;
+  font-size: 24px; background: #fff; border: 2px solid var(--line);
+}
+.task-item .ti-body { flex: 1; min-width: 0; }
+.task-item .ti-title { font-size: 15px; font-weight: 900; }
+.task-item.done .ti-title { text-decoration: line-through; color: var(--ink-3); }
+.task-item .ti-meta { font-size: 11px; color: var(--ink-3); font-weight: 700; margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+.task-item .ti-slot { background: #fff5e8; border-radius: 999px; padding: 3px 9px; color: var(--ink-2); }
+.tick {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
+  border: 3px solid #ffe0c4; background: #fff; cursor: pointer;
+  display: grid; place-items: center; font-size: 20px; transition: .2s;
+}
+.tick.on { background: var(--green); border-color: var(--green-d); color: #fff; animation: tick-pop .35s cubic-bezier(.2,1.5,.4,1); }
+@keyframes tick-pop { 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
+.tick:active { transform: scale(.85); }
+
+.slot-group-hd { display: flex; align-items: center; gap: 8px; margin: 16px 2px 8px; font-size: 14px; font-weight: 900; }
+.slot-group-hd:first-of-type { margin-top: 2px; }
+.slot-group-hd .sg-time {
+  font-size: 11px; font-weight: 800; color: var(--ink-2);
+  background: #fff5e8; border-radius: 999px; padding: 3px 9px;
+}
+.slot-group-hd .sg-count { margin-left: auto; font-size: 12px; font-weight: 900; color: var(--ink-3); }
+
+/* 日期条 */
+.date-strip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
+.date-strip::-webkit-scrollbar { display: none; }
+.date-cell {
+  flex: 0 0 58px; text-align: center; padding: 8px 4px; border-radius: 18px;
+  background: #fff; border: 2px solid var(--line); cursor: pointer; transition: .18s;
+}
+.date-cell .dc-w { font-size: 11px; font-weight: 800; color: var(--ink-3); }
+.date-cell .dc-d { font-size: 16px; font-weight: 900; }
+.date-cell .dc-dot { height: 5px; width: 5px; border-radius: 50%; margin: 4px auto 0; background: #ffe0c4; }
+.date-cell.on { border-color: var(--pink); background: #fff1e0; transform: translateY(-2px); }
+.date-cell.full .dc-dot { background: var(--green); }
+.date-cell.part .dc-dot { background: var(--yellow); }
+
+/* ---------- 进度条 / 目标 ---------- */
+.goal-item { padding: 12px; border-radius: 20px; background: #fffaf3; border: 2px solid var(--line); margin-bottom: 10px; }
+.goal-item.achieved { background: linear-gradient(135deg, #fff3d6, #fff0e4); border-color: #ffdfa8; }
+.goal-item .gi-hd { display: flex; align-items: center; gap: 10px; }
+.goal-item .gi-emoji { font-size: 26px; }
+.goal-item .gi-title { font-size: 15px; font-weight: 900; flex: 1; }
+.goal-item .gi-reward { font-size: 12px; color: var(--ink-2); font-weight: 700; margin-top: 6px; }
+.bar { height: 14px; border-radius: 999px; background: #f7e7d5; overflow: hidden; margin-top: 10px; }
+.bar > i {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--yellow), var(--pink));
+  transition: width .6s cubic-bezier(.2,1.2,.4,1);
+}
+.bar.g > i { background: linear-gradient(90deg, #7fe0b0, var(--green)); }
+
+/* ---------- 奖励 ---------- */
+.reward-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.reward-card {
+  background: linear-gradient(160deg, #fffdf6, #fff3e4);
+  border: 2px solid var(--line); border-radius: 24px; padding: 14px;
+  text-align: center; box-shadow: 0 4px 14px rgba(200,140,70,.1);
+  animation: pop-in .38s cubic-bezier(.2,1.3,.5,1) both;
+}
+.reward-card .rw-emoji { font-size: 40px; }
+.reward-card .rw-name { font-size: 14px; font-weight: 900; margin-top: 6px; }
+.reward-card .rw-desc { font-size: 11px; color: var(--ink-3); font-weight: 600; margin-top: 4px; min-height: 30px; }
+.reward-card .rw-cost { margin-top: 8px; }
+.reward-card .rw-btn { margin-top: 10px; }
+
+.badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.badge-card { text-align: center; padding: 10px 4px; border-radius: 18px; background: #fff3e4; border: 2px solid var(--line); }
+.badge-card.got { background: linear-gradient(160deg, #fff3d6, #fff2e0); border-color: #ffd98a; box-shadow: 0 4px 12px rgba(240, 180, 60, .32); }
+.badge-card .bc-emoji { font-size: 30px; filter: grayscale(1) opacity(.35); }
+.badge-card.got .bc-emoji { filter: none; animation: bounce 3s ease-in-out infinite; }
+.badge-card .bc-name { font-size: 11px; font-weight: 800; margin-top: 4px; color: var(--ink-3); }
+.badge-card.got .bc-name { color: var(--ink); }
+
+/* ---------- 列表行 ---------- */
+.row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 2px dashed var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .r-emoji { font-size: 24px; }
+.row .r-main { flex: 1; min-width: 0; }
+.row .r-title { font-size: 14px; font-weight: 900; }
+.row .r-sub { font-size: 11px; color: var(--ink-3); font-weight: 700; margin-top: 2px; }
+
+.empty { text-align: center; padding: 26px 10px; color: var(--ink-3); font-weight: 700; font-size: 13px; }
+.empty .e-emoji { font-size: 42px; display: block; margin-bottom: 8px; filter: grayscale(.4); }
+
+/* ---------- 弹窗 ---------- */
+.modal-mask {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(90, 64, 40, .45); backdrop-filter: blur(3px);
+  animation: fade .2s both;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  width: 100%; max-width: 460px; background: #fff; border-radius: 30px 30px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  animation: slide-up .32s cubic-bezier(.2,1.2,.4,1) both;
+  max-height: 88vh; overflow-y: auto;
+}
+@keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
+.modal-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.modal-hd h3 { margin: 0; font-size: 18px; font-weight: 900; flex: 1; }
+.modal-hd .close { border: 0; background: #fff3df; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.modal-ft { display: flex; gap: 10px; margin-top: 16px; }
+.modal-ft .btn { flex: 1; }
+
+/* ---------- Toast ---------- */
+.toast-root { position: fixed; left: 0; right: 0; bottom: 110px; z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.toast {
+  background: rgba(74, 58, 44, .94); color: #fff; padding: 11px 20px; border-radius: 999px;
+  font-size: 14px; font-weight: 800; box-shadow: 0 8px 20px rgba(0,0,0,.2);
+  animation: toast-in .3s cubic-bezier(.2,1.3,.5,1) both;
+}
+.toast.ok { background: linear-gradient(135deg, var(--green), var(--green-d)); }
+.toast.warn { background: linear-gradient(135deg, var(--orange), #e8543a); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(16px) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* ---------- 撒花特效 ---------- */
+.fx-root { position: fixed; inset: 0; z-index: 300; pointer-events: none; overflow: hidden; }
+.fx-item { position: absolute; font-size: 26px; animation: fx-fly 1.3s ease-out forwards; }
+@keyframes fx-fly {
+  0% { transform: translate(0,0) scale(.4) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(var(--rot)); opacity: 0; }
+}
+
+/* ---------- 我的 ---------- */
+.me-head { display: flex; align-items: center; gap: 14px; }
+.me-head .mh-avatar {
+  width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 38px;
+  background: linear-gradient(160deg, #fff2e0, #e9f3ff); border: 3px solid #fff; box-shadow: var(--shadow);
+}
+.me-head .mh-name { font-size: 20px; font-weight: 900; }
+.switch-list { display: flex; flex-direction: column; gap: 10px; }
+.switch-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px;
+  background: #fffaf3; border: 2px solid var(--line); cursor: pointer; transition: .18s;
+}
+.switch-item.on { border-color: var(--pink); background: #fff1e0; }
+.switch-item .sw-emoji { font-size: 26px; }
+.switch-item .sw-name { font-size: 15px; font-weight: 900; }
+.switch-item .sw-role { font-size: 11px; color: var(--ink-3); font-weight: 700; }
+
+/* ---------- 看板双列布局 ---------- */
+/* 移动端：用 display:contents 让左右两列的卡片直接参与外层 flex 排序，
+   顺序为 概览 → 今日任务 → 徽章墙 → 目标进度 → 奖励商城 */
+.dash-2col { display: flex; flex-direction: column; }
+.dash-2col > .dc-left, .dash-2col > .dc-right { display: contents; }
+.dc-hero { order: 1; }
+.dc-stats { order: 2; }
+.dc-week { order: 3; }
+.dc-tasks { order: 4; }
+.dc-badges { order: 5; }
+.dc-goals { order: 6; }
+.dc-shop { order: 7; }
+
+/* ---------- 响应式：平板 / 桌面 ---------- */
+@media (min-width: 720px) {
+  /* 桌面端底部导航变成居中的悬浮胶囊 */
+  .tabbar {
+    left: 50%; right: auto; transform: translateX(-50%);
+    bottom: 18px; width: auto; max-width: 86vw;
+    padding: 8px 14px; border: 2px solid var(--line); border-radius: 999px;
+    box-shadow: 0 10px 26px rgba(200, 140, 70, .2);
+  }
+  .tabbar .rail-item { flex: 0 0 auto; min-width: 96px; padding: 8px 16px; font-size: 12px; }
+  .main { max-width: 860px; padding: 0 24px 110px; }
+  .topbar { padding: 18px 4px 14px; }
+  .stat-grid { gap: 14px; }
+  .reward-grid { grid-template-columns: repeat(4, 1fr); }
+  .badge-grid { grid-template-columns: repeat(8, 1fr); }
+  .modal-mask { align-items: center; }
+  .modal { border-radius: 30px; max-height: 86vh; animation: pop-in .3s cubic-bezier(.2,1.3,.5,1) both; }
+  .toast-root { bottom: 40px; }
+}
+
+@media (min-width: 1080px) {
+  .main { max-width: 1080px; }
+  .dash-2col { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; align-items: start; }
+  .dash-2col > .dc-left, .dash-2col > .dc-right { display: block; }
+  .dash-2col > * { margin-bottom: 0; }
+  /* 徽章墙与目标进度同处左列，宽度一致 */
+  .dash-2col .badge-grid { grid-template-columns: repeat(4, 1fr); }
+  /* 右列较窄，奖励商城保持 2 列 */
+  .dash-2col .reward-grid { grid-template-columns: repeat(2, 1fr); }
+  .task-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+}
+
+.preview-tip{position:relative;z-index:5;padding:8px;text-align:center;background:#fff3d8;font-weight:700;font-size:12px}.preview-tip button{margin-left:8px;border:0;border-radius:12px;padding:5px 10px;background:#ffd39e;cursor:pointer}</style><body><div class="bg-deco"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div><div class="preview-tip">示例体验，数据仅保留在本页。点击任务右侧的圆圈试试。<button id="reset">恢复示例</button></div><div id="root"><div class="layout"><div class="main"><header class="topbar"><div class="tb-avatar">🧒</div><div><div class="tb-name">小星星，夜深啦～</div><div class="tb-sub">今日完成 1/6 项 · 连续 1 天</div></div><div class="tb-right"><span class="chip y">⭐ 5</span><button type="button" class="chip b me-chip" data-act="accessLock" title="点击设置访问锁">👩 家长 🔒</button></div></header><div class="child-strip"><button type="button" class="child-chip on" data-act="pickChild" data-id="1"><span class="cc-avatar">🧒</span><span class="cc-name">小星星</span></button></div><div id="page"><div class="dash-2col"><div class="dc-left"><section class="hero dc-hero"><div class="hero-ring"><svg width="124" height="124" viewBox="0 0 124 124"><defs><linearGradient id="ggun16i" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffc93c"></stop><stop offset="55%" stop-color="#ff8a3d"></stop><stop offset="100%" stop-color="#a78bfa"></stop></linearGradient></defs><circle cx="62" cy="62" r="53" fill="none" stroke="#fff" stroke-width="14" opacity=".85"></circle><circle cx="62" cy="62" r="53" fill="none" stroke="url(#ggun16i)" stroke-width="14" stroke-linecap="round" stroke-dasharray="333.0" stroke-dashoffset="276.4" transform="rotate(-90 62 62)"><animate attributeName="stroke-dashoffset" from="333.0" to="276.4" dur="0.9s" fill="freeze" calcMode="spline" keySplines="0.2 0.9 0.3 1" keyTimes="0;1"></animate></circle><text x="50%" y="47%" text-anchor="middle" font-size="32" font-weight="900" fill="#4a3f38">17%</text><text x="50%" y="66%" text-anchor="middle" font-size="15" font-weight="700" fill="#a89e94">今日完成</text></svg></div><div class="hero-info"><div class="hi-title">小星星今天完成 1 / 6 项</div><div class="hi-sub">开了个好头，接着冲鸭～</div><div style="margin-top:8px"><span class="chip g">🔥 连续 1 天</span></div></div></section><div class="stat-grid dc-stats"><div class="stat"><div class="s-emoji">⭐</div><div class="s-num">5</div><div class="s-label">可用积分</div></div><div class="stat"><div class="s-emoji">📈</div><div class="s-num">6%</div><div class="s-label">本周完成率</div></div><div class="stat"><div class="s-emoji">🎯</div><div class="s-num">1%</div><div class="s-label">本月完成率</div></div></div><section class="card dc-week"><h3 class="card-title"><span class="ct-emoji">📊</span>最近 7 天完成情况<span class="ct-more">共打卡 1 次</span></h3><svg viewBox="0 0 340 140" width="100%" height="140" preserveAspectRatio="none" style="overflow:visible"><line x1="0" y1="114" x2="340" y2="114" stroke="#f7e7d5" stroke-width="2"></line><defs><linearGradient id="bg04pi0" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="4.0" y="114" width="38.9" height="0" rx="10" fill="url(#bg04pi0)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0s"></animate></rect><text x="23.4" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="23.4" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">四</text><defs><linearGradient id="bg1plan" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="52.9" y="114" width="38.9" height="0" rx="10" fill="url(#bg1plan)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0.06s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0.06s"></animate></rect><text x="72.3" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="72.3" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">五</text><defs><linearGradient id="bg2eqkh" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="101.7" y="114" width="38.9" height="0" rx="10" fill="url(#bg2eqkh)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0.12s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0.12s"></animate></rect><text x="121.1" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="121.1" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">六</text><defs><linearGradient id="bg33qfv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="150.6" y="114" width="38.9" height="0" rx="10" fill="url(#bg33qfv)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0.18s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0.18s"></animate></rect><text x="170.0" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="170.0" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">日</text><defs><linearGradient id="bg4pdkk" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="199.4" y="114" width="38.9" height="0" rx="10" fill="url(#bg4pdkk)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0.24s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0.24s"></animate></rect><text x="218.9" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="218.9" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">一</text><defs><linearGradient id="bg5m1lj" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="248.3" y="114" width="38.9" height="0" rx="10" fill="url(#bg5m1lj)"><animate attributeName="height" from="0" to="4.0" dur="0.7s" fill="freeze" begin="0.3s"></animate><animate attributeName="y" from="114" to="110.0" dur="0.7s" fill="freeze" begin="0.3s"></animate></rect><text x="267.7" y="105.0" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">0%</text><text x="267.7" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#a89e94">二</text><defs><linearGradient id="bg6xro5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffc9a8"></stop><stop offset="100%" stop-color="#ff8a3d"></stop></linearGradient></defs><rect x="297.1" y="114" width="38.9" height="0" rx="10" fill="url(#bg6xro5)"><animate attributeName="height" from="0" to="16.7" dur="0.7s" fill="freeze" begin="0.36s"></animate><animate attributeName="y" from="114" to="97.3" dur="0.7s" fill="freeze" begin="0.36s"></animate></rect><text x="316.6" y="92.3" text-anchor="middle" font-size="10" font-weight="800" fill="#f2701f">17%</text><text x="316.6" y="130" text-anchor="middle" font-size="11" font-weight="800" fill="#f2701f">三</text></svg></section><section class="card dc-badges"><h3 class="card-title"><span class="ct-emoji">🏅</span>徽章墙<span class="ct-more">1/8</span></h3><div class="badge-grid"><div class="badge-card got" title="完成第一次打卡"><div class="bc-emoji">🌟</div><div class="bc-name">启程之星</div></div><div class="badge-card " title="连续打卡 3 天"><div class="bc-emoji">🔥</div><div class="bc-name">三日火热</div></div><div class="badge-card " title="连续打卡 7 天"><div class="bc-emoji">🏆</div><div class="bc-name">一周坚持</div></div><div class="badge-card " title="连续打卡 30 天"><div class="bc-emoji">👑</div><div class="bc-name">月度王者</div></div><div class="badge-card " title="累计获得 100 积分"><div class="bc-emoji">💎</div><div class="bc-name">百分达人</div></div><div class="badge-card " title="累计获得 500 积分"><div class="bc-emoji">🌈</div><div class="bc-name">彩虹收藏家</div></div><div class="badge-card " title="单日任务全部完成"><div class="bc-emoji">☀️</div><div class="bc-name">完美一天</div></div><div class="badge-card " title="累计打卡 50 次"><div class="bc-emoji">🎖️</div><div class="bc-name">勤勉勋章</div></div></div></section><section class="card dc-goals"><h3 class="card-title"><span class="ct-emoji">🎯</span>目标进度<span class="ct-more">0/3</span></h3><div class="goal-item "><div class="gi-hd"><div class="gi-emoji">🔥</div><div class="gi-title">连续打卡一周</div><span class="chip y">1/7 天</span></div><div class="bar"><i style="width:14%"></i></div><div class="gi-reward">🎁 达成奖励：周末去公园野餐</div></div><div class="goal-item "><div class="gi-hd"><div class="gi-emoji">💰</div><div class="gi-title">攒够 200 积分</div><span class="chip y">5/200 分</span></div><div class="bar"><i style="width:3%"></i></div><div class="gi-reward">🎁 达成奖励：一本新绘本</div></div><div class="goal-item "><div class="gi-hd"><div class="gi-emoji">🎯</div><div class="gi-title">本周完成率达到 80%</div><span class="chip y">6/80 %</span></div><div class="bar"><i style="width:8%"></i></div><div class="gi-reward">🎁 达成奖励：游乐场玩半天</div></div></section></div><div class="dc-right"><section class="card dc-tasks"><h3 class="card-title"><span class="ct-emoji">✅</span>今日任务<span class="ct-more">已完成 1/6</span><button type="button" class="btn sm ghost ct-more" data-act="nav" data-route="tasks" style="margin-left:auto">去确认 →</button></h3><div class="slot-group-hd"><span>🌅 早晨</span><span class="sg-time">06:00-11:00</span><span class="sg-count">1/2</span></div><div class="task-item done" style="margin-bottom:8px"><div class="ti-emoji">👕</div><div class="ti-body"><div class="ti-title">自己穿衣服</div><div class="ti-meta"><span class="chip y">+5 分</span><span class="ti-slot">🌅 早晨 06:00-11:00</span></div></div><div class="tick on" data-act="checkTask" data-id="1" title="家长确认">✓</div></div><div class="task-item " style="margin-bottom:8px"><div class="ti-emoji">🥛</div><div class="ti-body"><div class="ti-title">认真吃早餐</div><div class="ti-meta"><span class="chip y">+5 分</span><span class="ti-slot">🌅 早晨 06:00-11:00</span></div></div><div class="tick " data-act="checkTask" data-id="2" title="家长确认"></div></div><div class="slot-group-hd"><span>🌤️ 下午</span><span class="sg-time">11:00-17:00</span><span class="sg-count">0/2</span></div><div class="task-item " style="margin-bottom:8px"><div class="ti-emoji">📚</div><div class="ti-body"><div class="ti-title">读绘本 20 分钟</div><div class="ti-meta"><span class="chip y">+10 分</span><span class="ti-slot">🌤️ 下午 11:00-17:00</span></div></div><div class="tick " data-act="checkTask" data-id="3" title="家长确认"></div></div><div class="task-item " style="margin-bottom:8px"><div class="ti-emoji">🎹</div><div class="ti-body"><div class="ti-title">练琴 / 练字</div><div class="ti-meta"><span class="chip y">+10 分</span><span class="ti-slot">🌤️ 下午 11:00-17:00</span></div></div><div class="tick " data-act="checkTask" data-id="4" title="家长确认"></div></div><div class="slot-group-hd"><span>🌙 晚上</span><span class="sg-time">17:00-21:00</span><span class="sg-count">0/2</span></div><div class="task-item " style="margin-bottom:8px"><div class="ti-emoji">🧸</div><div class="ti-body"><div class="ti-title">收拾玩具</div><div class="ti-meta"><span class="chip y">+8 分</span><span class="ti-slot">🌙 晚上 17:00-21:00</span></div></div><div class="tick " data-act="checkTask" data-id="5" title="家长确认"></div></div><div class="task-item " style="margin-bottom:8px"><div class="ti-emoji">🌙</div><div class="ti-body"><div class="ti-title">按时上床睡觉</div><div class="ti-meta"><span class="chip y">+10 分</span><span class="ti-slot">🌙 晚上 17:00-21:00</span></div></div><div class="tick " data-act="checkTask" data-id="6" title="家长确认"></div></div></section><section class="card dc-shop"><h3 class="card-title"><span class="ct-emoji">🎁</span>奖励商城<span class="ct-more">可用 ⭐ 5</span><button type="button" class="btn sm ghost ct-more" data-act="nav" data-route="rewards" style="margin-left:auto">管理 →</button></h3><div class="reward-grid"><div class="reward-card"><div class="rw-emoji">📺</div><div class="rw-name">看动画片 30 分钟</div><div class="rw-desc">挑一部最喜欢的动画片</div><div class="rw-cost"><span class="chip ">⭐ 30</span></div><div class="rw-btn"><button type="button" class="btn sm ghost" data-act="applyReward" data-id="1" disabled="">还差 25</button></div></div><div class="reward-card"><div class="rw-emoji">🌳</div><div class="rw-name">周末去公园野餐</div><div class="rw-desc">带上小水壶和小零食</div><div class="rw-cost"><span class="chip ">⭐ 80</span></div><div class="rw-btn"><button type="button" class="btn sm ghost" data-act="applyReward" data-id="2" disabled="">还差 75</button></div></div><div class="reward-card"><div class="rw-emoji">📖</div><div class="rw-name">一本新绘本</div><div class="rw-desc">去书店自己挑一本</div><div class="rw-cost"><span class="chip ">⭐ 150</span></div><div class="rw-btn"><button type="button" class="btn sm ghost" data-act="applyReward" data-id="3" disabled="">还差 145</button></div></div><div class="reward-card"><div class="rw-emoji">🎡</div><div class="rw-name">游乐场玩半天</div><div class="rw-desc">周末狂欢大计划</div><div class="rw-cost"><span class="chip ">⭐ 300</span></div><div class="rw-btn"><button type="button" class="btn sm ghost" data-act="applyReward" data-id="4" disabled="">还差 295</button></div></div></div></section></div></div><section class="card"><h3 class="card-title"><span class="ct-emoji">🧾</span>兑换记录<span class="ct-more">小星星共兑换 0 次</span></h3><div class="empty"><span class="e-emoji">🧾</span>还没有兑换过奖励</div></section></div></div><nav class="tabbar"><button type="button" class="rail-item on" data-act="nav" data-route="home"><span class="ri-emoji">🏠</span><span>看板</span></button><button type="button" class="rail-item " data-act="nav" data-route="tasks"><span class="ri-emoji">✅</span><span>任务 🔒</span></button><button type="button" class="rail-item " data-act="nav" data-route="rewards"><span class="ri-emoji">🎁</span><span>奖励 🔒</span></button><button type="button" class="rail-item " data-act="nav" data-route="me"><span class="ri-emoji">🐻</span><span>我的 🔒</span></button></nav></div></div><div id="modal-root"></div><script>
+const root=document.querySelector('#root'), initial=root.innerHTML, modal=document.querySelector('#modal-root');let done={1:true};const pts=[0,5,5,10,10,8,10];
+function update(){let n=Object.keys(done).length,p=Object.keys(done).reduce((a,k)=>a+pts[+k],0);root.querySelector('.tb-sub').textContent='今日完成 '+n+'/6 项 · 连续 '+(n?1:0)+' 天';root.querySelector('.tb-right .chip').textContent='⭐ '+p;root.querySelector('.hi-title').textContent='小星星今天完成 '+n+' / 6 项';root.querySelector('.s-num').textContent=p;root.querySelector('.hero-ring text').textContent=Math.round(n/6*100)+'%';root.querySelector('.dc-shop .ct-more').textContent='可用 ⭐ '+p;root.querySelectorAll('.reward-card').forEach((card,i)=>{let cost=[30,80,150,300][i];card.querySelector('.rw-btn button').textContent=p>=cost?'安装后兑换':'还差 '+(cost-p)});let head=[...root.querySelectorAll('.card-title')].find(x=>x.textContent.includes('今日任务'));head.querySelector('.ct-more').textContent='已完成 '+n+'/6';root.querySelectorAll('.tick').forEach(t=>{let on=!!done[t.dataset.id];t.classList.toggle('on',on);t.closest('.task-item').classList.toggle('done',on);t.textContent=on?'✓':''});
+root.querySelectorAll('.sg-count').forEach((el,i)=>{el.textContent=((done[i*2+1]?1:0)+(done[i*2+2]?1:0))+'/2'});
+root.querySelector('.dc-week .ct-more').textContent='共打卡 '+n+' 次';
+let week=Math.round(n/18*100),month=Math.round(n/150*100),nums=root.querySelectorAll('.s-num');nums[1].textContent=week+'%';nums[2].textContent=month+'%';
+let goals=root.querySelectorAll('.goal-item'),vals=[n?1:0,p,week],targets=[7,200,80],units=[' 天',' 分',' %'];goals.forEach((g,i)=>{g.querySelector('.chip').textContent=vals[i]+'/'+targets[i]+units[i];g.querySelector('.bar i').style.width=Math.min(100,Math.round(vals[i]/targets[i]*100))+'%'});
+let svg=root.querySelector('.dc-week svg'),rect=[...svg.querySelectorAll('rect')].at(-1),labels=svg.querySelectorAll('text'),pct=Math.round(n/6*100),height=Math.max(4,100*pct/100);rect.querySelectorAll('animate').forEach(x=>x.remove());rect.setAttribute('height',height);rect.setAttribute('y',114-height);labels[labels.length-2].textContent=pct+'%';labels[labels.length-2].setAttribute('y',109-height);
+let ring=root.querySelectorAll('.hero-ring circle')[1];ring.querySelectorAll('animate').forEach(x=>x.remove());ring.setAttribute('stroke-dashoffset',(333*(1-n/6)).toFixed(1));
+}
+root.addEventListener('click',e=>{let t=e.target.closest('[data-act]');if(!t)return;e.preventDefault();if(t.dataset.act!=='checkTask'){return}let id=t.dataset.id,title=t.closest('.task-item').querySelector('.ti-title').textContent;modal.innerHTML='<div class="modal-mask"><div class="modal"><div class="modal-hd"><span>✅</span><h3>家长确认</h3></div><div class="modal-body"></div><div class="modal-ft"><button class="btn ghost" id="cancel">再想想</button><button class="btn green" id="confirm">确认</button></div></div></div>';modal.querySelector('.modal-body').textContent=(done[id]?'取消':'确认')+'「'+title+'」？';modal.querySelector('#cancel').onclick=()=>modal.innerHTML='';modal.querySelector('#confirm').onclick=()=>{if(done[id])delete done[id];else done[id]=true;update();modal.innerHTML=''};});
+document.querySelector('#reset').onclick=()=>{root.innerHTML=initial;done={1:true};modal.innerHTML='';disableOther();update()};
+function disableOther(){root.querySelectorAll('[data-act]:not([data-act="checkTask"])').forEach(el=>{el.disabled=true;el.title='安装后可使用'})} disableOther();
+</script></body></html>
