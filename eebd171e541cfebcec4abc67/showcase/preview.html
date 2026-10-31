@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>到期雷达 · 别再白扣费</title>
+<meta name="description" content="把散落在邮件和账单里的到期日集中登记，自动按「已过期 / 3 天内 / 本周 / 更晚」分堆，一眼看清哪几个马上要扣费或断服。数据只存在本机，不登录也能用。" />
+<meta name="theme-color" content="#07090D" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070A0E'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%232CE0A8' stroke-opacity='.5' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='none' stroke='%232CE0A8' stroke-opacity='.32' stroke-width='1.4'/%3E%3Cpath d='M16 16 L24.5 9.5' stroke='%232CE0A8' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%232CE0A8'/%3E%3C/svg%3E" />
+<style>/* ===========================================================
+   到期雷达 — styles
+   双主题：默认深色（data-theme="dark"），浅色覆盖在 [data-theme="light"]
+   =========================================================== */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #07090D;
+  --panel: #0E141C;
+  --panel-2: #141C26;
+  --panel-3: #1A2431;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --text: #E9EFF6;
+  --text-2: #93A4B7;
+  --text-3: #5C6D80;
+
+  --accent: #2CE0A8;
+  --accent-hover: #46EDB8;
+  --accent-soft: rgba(44, 224, 168, 0.13);
+  --on-accent: #05110C;
+  --focus-ring: rgba(44, 224, 168, 0.09);
+
+  --danger: #FF5B60;
+  --hot: #FF8A3D;
+  --warn: #FFC94A;
+  --calm: #5AA9FF;
+  --danger-text: #FF7C80;
+  --danger-soft: rgba(255, 91, 96, 0.08);
+  --danger-soft-hover: rgba(255, 91, 96, 0.16);
+  --renew: rgba(255, 201, 74, 0.78);
+  --bell: rgba(44, 224, 168, 0.85);
+
+  --fill-1: rgba(255, 255, 255, 0.04);
+  --fill-2: rgba(255, 255, 255, 0.075);
+  --card-bg: linear-gradient(180deg, #141C26, #0E141C);
+  --ov-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  --card-shadow: none;
+  --card-shadow-hover: none;
+
+  --topbar-bg: linear-gradient(180deg, rgba(7, 9, 13, 0.96) 55%, rgba(7, 9, 13, 0));
+  --drawer-bg: #0C1219;
+  --foot-bg: rgba(0, 0, 0, 0.18);
+  --toast-bg: #12202A;
+  --scrim-bg: rgba(3, 5, 8, 0.62);
+  --info-bg: rgba(90, 169, 255, 0.07);
+  --info-border: rgba(90, 169, 255, 0.3);
+  --info-text: #9FC3E8;
+  --date-icon-filter: invert(0.62);
+  --search-cancel-filter: invert(0.5);
+  --tone-glow: 0 0 14px -1px var(--tone);
+  --dot-glow: 0 0 9px var(--tone);
+
+  --r: 16px;
+  --font: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #F4F6F8;
+  --panel: #FFFFFF;
+  --panel-2: #FFFFFF;
+  --panel-3: #EEF2F6;
+  --line: rgba(16, 26, 40, 0.10);
+  --line-2: rgba(16, 26, 40, 0.20);
+  --text: #101825;
+  --text-2: #48576B;
+  --text-3: #7D8B9E;
+
+  --accent: #0B8A66;
+  --accent-hover: #0A7A5B;
+  --accent-soft: rgba(11, 138, 102, 0.10);
+  --on-accent: #FFFFFF;
+  --focus-ring: rgba(11, 138, 102, 0.13);
+
+  --danger: #D93B41;
+  --hot: #D4550B;
+  --warn: #B8860B;
+  --calm: #2B78CB;
+  --danger-text: #C9353B;
+  --danger-soft: rgba(217, 59, 65, 0.07);
+  --danger-soft-hover: rgba(217, 59, 65, 0.14);
+  --renew: #8A6414;
+  --bell: #0B8A66;
+
+  --fill-1: rgba(16, 26, 40, 0.05);
+  --fill-2: rgba(16, 26, 40, 0.07);
+  --card-bg: linear-gradient(180deg, #FFFFFF, #FBFCFD);
+  --ov-bg: #FFFFFF;
+  --card-shadow: 0 1px 2px rgba(16, 26, 40, 0.05), 0 8px 20px -16px rgba(16, 26, 40, 0.20);
+  --card-shadow-hover: 0 2px 4px rgba(16, 26, 40, 0.06), 0 12px 26px -16px rgba(16, 26, 40, 0.24);
+
+  --topbar-bg: linear-gradient(180deg, rgba(244, 246, 248, 0.97) 55%, rgba(244, 246, 248, 0));
+  --drawer-bg: #FFFFFF;
+  --foot-bg: rgba(16, 26, 40, 0.02);
+  --toast-bg: #FFFFFF;
+  --scrim-bg: rgba(23, 33, 46, 0.52);
+  --info-bg: rgba(43, 120, 203, 0.07);
+  --info-border: rgba(43, 120, 203, 0.28);
+  --info-text: #25638F;
+  --date-icon-filter: none;
+  --search-cancel-filter: none;
+  --tone-glow: none;
+  --dot-glow: none;
+}
+
+* , *::before, *::after { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body.no-scroll { overflow: hidden; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.bg-glow {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(820px 440px at 12% -12%, rgba(44, 224, 168, 0.13), transparent 62%),
+    radial-gradient(680px 400px at 92% -6%, rgba(90, 169, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, #07090D 0%, #06080B 100%);
+}
+.bg-glow::after {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(900px 500px at 30% 0%, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(900px 500px at 30% 0%, #000 0%, transparent 78%);
+}
+
+[data-theme="light"] .bg-glow {
+  background:
+    radial-gradient(820px 440px at 12% -12%, rgba(11, 138, 102, 0.04), transparent 62%),
+    radial-gradient(680px 400px at 92% -6%, rgba(43, 120, 203, 0.045), transparent 60%),
+    linear-gradient(180deg, #F7F8FA 0%, #EFF2F5 100%);
+}
+[data-theme="light"] .bg-glow::after {
+  background-image:
+    linear-gradient(rgba(16,26,40,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,26,40,.022) 1px, transparent 1px);
+}
+
+.app {
+  position: relative; z-index: 1;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 26px 70px;
+}
+
+/* ---------------- topbar ---------------- */
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px;
+  padding: 26px 0 20px;
+  position: sticky; top: 0; z-index: 30;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(6px);
+}
+
+.brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+
+.radar-mark {
+  width: 38px; height: 38px; border-radius: 50%; position: relative; flex: none;
+  border: 1px solid rgba(44, 224, 168, 0.32);
+  background: radial-gradient(circle, rgba(44,224,168,.20), rgba(44,224,168,.02) 68%);
+  box-shadow: 0 0 0 5px rgba(44,224,168,.04), inset 0 0 12px rgba(44,224,168,.18);
+  overflow: hidden;
+}
+[data-theme="light"] .radar-mark {
+  border-color: rgba(11, 138, 102, 0.3);
+  background: radial-gradient(circle, rgba(11,138,102,.16), rgba(11,138,102,.02) 68%);
+  box-shadow: 0 0 0 5px rgba(11,138,102,.05), inset 0 0 12px rgba(11,138,102,.10);
+}
+.radar-mark::before {
+  content: ""; position: absolute; inset: 8px; border-radius: 50%;
+  border: 1px solid rgba(44, 224, 168, 0.22);
+}
+[data-theme="light"] .radar-mark::before { border-color: rgba(11, 138, 102, 0.22); }
+.radar-mark::after {
+  content: ""; position: absolute; inset: -2px; border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(44,224,168,.62), rgba(44,224,168,0) 42%);
+  animation: sweep 3.6s linear infinite;
+}
+[data-theme="light"] .radar-mark::after {
+  background: conic-gradient(from 0deg, rgba(11,138,102,.55), rgba(11,138,102,0) 42%);
+}
+.radar-mark i {
+  position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px;
+  background: var(--accent); border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent);
+}
+@keyframes sweep { to { transform: rotate(360deg); } }
+
+.brand-copy h1 {
+  margin: 0; font-size: 19px; font-weight: 650; letter-spacing: .6px;
+}
+.brand-copy p {
+  margin: 1px 0 0; font-size: 12.5px; color: var(--text-3);
+}
+
+.topbar-side { display: flex; align-items: center; gap: 18px; }
+
+.today {
+  font-size: 12.5px; color: var(--text-3); white-space: nowrap;
+  padding-right: 18px; border-right: 1px solid var(--line);
+}
+
+.actions { display: flex; align-items: center; gap: 9px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 36px; padding: 0 14px;
+  border-radius: 10px; border: 1px solid transparent;
+  background: transparent; cursor: pointer;
+  font-size: 13.5px; font-weight: 500;
+  white-space: nowrap;
+  transition: background .16s, border-color .16s, transform .1s, color .16s;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--accent); color: var(--on-accent); font-weight: 620;
+  box-shadow: 0 8px 22px -10px rgba(44, 224, 168, 0.9);
+}
+[data-theme="light"] .btn-primary { box-shadow: 0 8px 20px -12px rgba(11, 138, 102, 0.85); }
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-ghost {
+  background: var(--fill-1);
+  border-color: var(--line);
+  color: var(--text-2);
+}
+.btn-ghost:hover { background: var(--fill-2); color: var(--text); border-color: var(--line-2); }
+
+.btn-mini {
+  height: 32px; padding: 0 11px; font-size: 12.5px; border-radius: 9px;
+  background: var(--fill-1); border-color: var(--line); color: var(--text-2);
+}
+.btn-mini:hover { background: var(--fill-2); color: var(--text); }
+
+.btn-danger-ghost {
+  color: var(--danger-text); border-color: var(--danger-soft-hover); background: var(--danger-soft);
+}
+.btn-danger-ghost:hover { background: var(--danger-soft-hover); }
+
+.icon-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--text-3); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: .15s;
+}
+.icon-btn:hover { background: var(--fill-2); color: var(--text); }
+
+/* 主题切换 */
+.theme-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  border-color: var(--line); background: var(--fill-1);
+  color: var(--text-2); flex: none;
+}
+.theme-btn:hover { background: var(--fill-2); color: var(--text); border-color: var(--line-2); }
+.theme-btn .ico-sun { display: none; }
+.theme-btn .ico-moon { display: block; }
+[data-theme="dark"] .theme-btn .ico-sun { display: block; }
+[data-theme="dark"] .theme-btn .ico-moon { display: none; }
+
+/* ---------------- overview ---------------- */
+
+.overview {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.ov {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  padding: 13px 15px 12px;
+  background: var(--ov-bg);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  cursor: pointer;
+  min-height: 78px;
+  transition: .16s;
+  overflow: hidden;
+}
+.ov::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--tone); opacity: .55;
+}
+.ov:hover { border-color: var(--line-2); background: var(--fill-2); }
+.ov.is-active {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 9%, transparent);
+  box-shadow: 0 0 0 1px var(--tone) inset;
+}
+.ov.is-zero { opacity: .48; }
+.ov.is-zero:hover { opacity: .75; }
+
+.ov-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ov-name { font-size: 12.5px; color: var(--text-2); font-weight: 500; letter-spacing: .2px; }
+.ov-num {
+  font-size: 26px; font-weight: 700; line-height: 1; color: var(--tone);
+  font-variant-numeric: tabular-nums; letter-spacing: -.5px;
+}
+.ov-desc {
+  font-size: 11.5px; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------------- toolbar ---------------- */
+
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 12px;
+  background: var(--fill-1);
+  border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text-3);
+  transition: .16s;
+}
+.search:focus-within { border-color: var(--accent-soft); background: var(--accent-soft); }
+.search input {
+  flex: 1; min-width: 0; background: none; border: none; outline: none;
+  font-size: 13.5px; color: var(--text);
+}
+.search input::placeholder { color: var(--text-3); }
+.search input::-webkit-search-cancel-button { filter: var(--search-cancel-filter); }
+
+.toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+.select {
+  height: 32px; padding: 0 26px 0 10px;
+  background: var(--fill-1) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' fill='none' stroke='%237D8B9E' stroke-width='1.4' stroke-linecap='round'/></svg>") no-repeat right 9px center;
+  border: 1px solid var(--line); border-radius: 9px;
+  font-size: 12.5px; color: var(--text-2);
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  outline: none;
+}
+.select:hover { border-color: var(--line-2); }
+.select option { background: var(--panel); color: var(--text); }
+
+/* ---------------- demo banner ---------------- */
+
+.demo-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px; padding: 9px 13px;
+  background: var(--info-bg);
+  border: 1px dashed var(--info-border);
+  border-radius: 10px;
+  font-size: 12.5px; color: var(--info-text);
+}
+.link-btn {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--calm); font-size: 12.5px; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: currentColor;
+  opacity: .9;
+}
+.link-btn:hover { opacity: 1; }
+
+/* ---------------- board / groups ---------------- */
+
+.board { display: flex; flex-direction: column; gap: 26px; min-height: 120px; }
+
+.group-head {
+  display: flex; align-items: center; gap: 9px;
+  margin-bottom: 11px;
+}
+.group-head .gdot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--tone); flex: none;
+  box-shadow: var(--dot-glow);
+}
+.group-head h2 {
+  margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .3px;
+  color: var(--text);
+}
+.group-head .gcount {
+  font-size: 11.5px; color: var(--text-3);
+  padding: 1px 7px; border-radius: 6px; background: var(--fill-2);
+  font-variant-numeric: tabular-nums;
+}
+.group-head .ghint {
+  font-size: 11.5px; color: var(--text-3); margin-left: auto;
+}
+.group.is-empty .ghint { color: var(--text-3); opacity: .8; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+}
+
+/* ---------------- card ---------------- */
+
+.card {
+  position: relative;
+  display: flex; align-items: center;
+  padding: 14px 86px 14px 17px;
+  min-height: 78px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: border-color .16s, box-shadow .16s, transform .12s;
+  animation: rise .28s ease both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+
+.card:hover { border-color: var(--line-2); transform: translateY(-1px); box-shadow: var(--card-shadow-hover); }
+
+.card::before {
+  content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--tone);
+  box-shadow: var(--tone-glow);
+}
+
+.card.is-expired { background: linear-gradient(180deg, rgba(255,91,96,.075), rgba(255,91,96,.015)); }
+[data-theme="light"] .card.is-expired {
+  background: linear-gradient(180deg, rgba(217,59,65,.06), rgba(217,59,65,.012));
+}
+.card.is-expired::before { top: 0; bottom: 0; }
+
+.card-main { min-width: 0; flex: 1; }
+
+.card-name {
+  font-size: 15px; font-weight: 600; letter-spacing: .1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.card-meta {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: 4px; font-size: 12px; color: var(--text-3);
+}
+.card-meta .sep { width: 2px; height: 2px; border-radius: 50%; background: currentColor; opacity: .6; }
+.cat-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+
+.card-note {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 5px; font-size: 11.5px; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: .92;
+}
+.card-note > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-note .renew { color: var(--renew); flex: none; }
+.card-note .bell {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  color: var(--bell);
+}
+.card-note .bell svg { width: 11px; height: 11px; stroke-width: 1.5; }
+
+.countdown {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  text-align: right; line-height: 1;
+}
+.countdown b {
+  display: block; font-size: 25px; font-weight: 700;
+  color: var(--tone); letter-spacing: -.8px;
+  font-variant-numeric: tabular-nums;
+}
+.countdown.is-text b { font-size: 17px; letter-spacing: 0; }
+.countdown span { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); }
+
+.card-del {
+  position: absolute; top: 5px; right: 6px;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: none; background: transparent; color: var(--text-3);
+  cursor: pointer; opacity: 0; transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.card-del svg { width: 11px; height: 11px; }
+.card:hover .card-del { opacity: .55; }
+.card-del:hover { opacity: 1 !important; color: var(--danger); background: var(--danger-soft-hover); }
+
+/* ---------------- empty states ---------------- */
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px 70px;
+  border: 1px dashed var(--line-2);
+  border-radius: 16px;
+  background: var(--fill-1);
+}
+[data-theme="light"] .empty-state { background: #FBFCFD; }
+.empty-state h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.empty-state p { margin: 0 auto 20px; max-width: 380px; font-size: 13px; color: var(--text-3); line-height: 1.7; }
+.empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.mini-empty {
+  font-size: 12.5px; color: var(--text-3);
+  padding: 12px 15px; border-radius: 11px;
+  border: 1px dashed var(--line);
+}
+
+.foot {
+  display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-top: 40px; padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--text-3);
+}
+.foot b { color: var(--text-2); font-weight: 600; }
+
+/* ---------------- drawer ---------------- */
+
+.scrim {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--scrim-bg);
+  backdrop-filter: blur(2px);
+  animation: fade .18s ease both;
+}
+@keyframes fade { from { opacity: 0; } }
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 70;
+  width: 420px; max-width: 100vw;
+  background: var(--drawer-bg);
+  border-left: 1px solid var(--line-2);
+  box-shadow: -30px 0 70px -30px rgba(0,0,0,.6);
+  transform: translateX(102%);
+  transition: transform .26s cubic-bezier(.4, 0, .2, 1);
+  display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer form { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer-head h2 { margin: 0; font-size: 15.5px; font-weight: 620; }
+
+.drawer-body {
+  padding: 20px 22px 12px;
+  overflow-y: auto; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; gap: 15px;
+}
+
+.field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.row > .field { flex: 1 1 0; }
+.field > .label { font-size: 12px; color: var(--text-2); font-weight: 500; letter-spacing: .2px; }
+.field .label em { color: var(--danger); font-style: normal; }
+
+.field input[type="text"],
+.field input[type="date"],
+.field input[type="number"],
+.field select,
+.field textarea {
+  width: 100%;
+  background: var(--fill-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 13.5px;
+  outline: none;
+  transition: .15s;
+  color: var(--text);
+}
+.field textarea { resize: vertical; min-height: 62px; line-height: 1.6; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--accent-hover);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--text-3); }
+.field select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' fill='none' stroke='%237D8B9E' stroke-width='1.4' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+.field select option { background: var(--panel); color: var(--text); }
+
+input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--date-icon-filter); cursor: pointer; opacity: .85; }
+
+.row { display: flex; gap: 12px; }
+
+.chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.chip {
+  height: 30px; padding: 0 11px;
+  border-radius: 8px; border: 1px solid var(--line);
+  background: var(--fill-1);
+  color: var(--text-2); font-size: 12.5px; cursor: pointer;
+  transition: .14s;
+}
+.chip:hover { background: var(--fill-2); color: var(--text); }
+.chip.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent); font-weight: 550;
+}
+.chip-custom {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 30px; padding: 0 9px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--fill-1);
+  font-size: 12px; color: var(--text-3);
+}
+.chip-custom input {
+  width: 42px; background: none; border: none; outline: none;
+  color: var(--text); font-size: 12.5px; text-align: right;
+  -moz-appearance: textfield;
+}
+.chip-custom input::-webkit-outer-spin-button,
+.chip-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.form-hint {
+  margin: 0; font-size: 11.5px; line-height: 1.65; color: var(--text-3);
+  background: var(--fill-1);
+  border-left: 2px solid var(--accent);
+  padding: 8px 11px; border-radius: 0 8px 8px 0;
+}
+
+.preview {
+  margin-top: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px 13px;
+  background: var(--card-bg);
+  border-left: 2px solid var(--tone, var(--accent));
+  transition: border-color .2s;
+  box-shadow: var(--card-shadow);
+}
+.preview:empty { display: none; }
+.pv-label {
+  font-size: 10.5px; color: var(--text-3); letter-spacing: .4px;
+  margin-bottom: 7px;
+}
+.pv-main { font-size: 13px; color: var(--text-2); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+.pv-main b {
+  font-size: 22px; font-weight: 700; line-height: 1;
+  color: var(--tone, var(--accent));
+  font-variant-numeric: tabular-nums; letter-spacing: -.6px;
+}
+.pv-tag {
+  margin-left: auto; font-size: 11.5px; color: var(--tone, var(--accent));
+  background: var(--fill-2); border-radius: 6px; padding: 2px 7px;
+}
+.pv-sub { margin-top: 7px; font-size: 11.5px; color: var(--text-3); line-height: 1.6; }
+
+.drawer-foot {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--foot-bg);
+}
+.drawer-foot .spacer { flex: 1; }
+
+/* ---------------- toast ---------------- */
+
+.toast {
+  position: fixed; left: 50%; bottom: 34px; z-index: 90;
+  transform: translate(-50%, 14px);
+  background: var(--toast-bg);
+  border: 1px solid var(--accent-soft);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 11px;
+  font-size: 13px;
+  box-shadow: var(--card-shadow), 0 20px 44px -20px rgba(0,0,0,.7);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  max-width: min(90vw, 460px);
+  text-align: center;
+}
+[data-theme="light"] .toast {
+  border-color: rgba(11, 138, 102, 0.28);
+  box-shadow: 0 16px 36px -14px rgba(16, 26, 40, 0.28);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------------- responsive ---------------- */
+
+@media (max-width: 900px) {
+  .today { display: none; }
+  .overview { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ov { padding: 11px 12px; min-height: 70px; }
+  .ov-num { font-size: 22px; }
+  .ov-desc { display: none; }
+}
+
+@media (max-width: 700px) {
+  .app { padding: 0 14px 56px; }
+  .topbar { padding: 16px 0 14px; flex-wrap: wrap; gap: 12px; }
+  .topbar-side { width: 100%; }
+  .actions { width: 100%; }
+  .actions .btn { flex: 1; justify-content: center; }
+  .theme-btn { flex: none; }
+  .overview { grid-template-columns: repeat(2, 1fr); }
+  .ov-desc { display: block; }
+  .toolbar { flex-wrap: wrap; }
+  .search { flex: 1 1 100%; }
+  .toolbar-right { width: 100%; justify-content: space-between; }
+  .cards { grid-template-columns: 1fr; }
+  .card { padding: 14px 78px 14px 15px; }
+  .card-del { opacity: .4; }
+  .row { flex-direction: column; gap: 15px; }
+  .drawer { width: 100%; top: auto; height: 92vh; border-left: none; border-top: 1px solid var(--line-2);
+    border-radius: 16px 16px 0 0; transform: translateY(102%); }
+  .drawer.open { transform: translateY(0); }
+  .ghint { display: none; }
+}
+</style>
+<script>
+var previewStore={data:{},getItem(k){return this.data[k]||null},setItem(k,v){this.data[k]=v}};
+  (function () {
+    try {
+      var saved = previewStore.getItem('expired-radar.theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F6F8' : '#07090D');
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+</head>
+<body><div style="text-align:center;padding:8px;background:#233a35;color:white">示例体验，数据仅保留在本页 <button id="previewReset" type="button">恢复示例</button></div>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="radar-mark" aria-hidden="true"><i></i></div>
+      <div class="brand-copy">
+        <h1>到期雷达</h1>
+        <p id="brandSub">在盯着 0 个服务</p>
+      </div>
+    </div>
+
+    <div class="topbar-side">
+      <div class="today" id="todayLabel"></div>
+      <div class="actions">
+        <button class="icon-btn theme-btn" id="btnTheme" type="button" aria-label="切换夜间 / 白天主题" title="切换到白天主题">
+          <svg class="ico-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1"/><path d="M8 1.3v1.5M8 13.2v1.5M1.3 8h1.5M13.2 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/></svg>
+          <svg class="ico-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 9.8A5.9 5.9 0 0 1 6.2 2.4a5.9 5.9 0 1 0 7.4 7.4z"/></svg>
+        </button>
+        <button class="btn btn-ghost" id="btnCopy" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.2" y="5.2" width="8.3" height="8.3" rx="2"/><path d="M10.6 3.6V3a1.6 1.6 0 0 0-1.6-1.6H3.6A1.6 1.6 0 0 0 2 3v5.4a1.6 1.6 0 0 0 1.6 1.6h.6"/></svg>
+          复制本周清单
+        </button>
+        <button class="btn btn-primary" id="btnAdd" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+          登记一项
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="overview" id="overview" aria-label="到期概览"></section>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14"/></svg>
+      <input id="search" type="search" placeholder="搜索名称、备注" autocomplete="off" aria-label="搜索" />
+    </div>
+    <div class="toolbar-right">
+      <select id="sort" class="select" aria-label="排序方式">
+        <option value="due">按到期先后</option>
+        <option value="amount">按金额从大到小</option>
+        <option value="name">按名称</option>
+      </select>
+      <button class="btn btn-mini" id="btnExport" type="button">导出 CSV</button>
+      <button class="btn btn-mini" id="btnWipe" type="button">清空全部</button>
+    </div>
+  </div>
+
+  <div class="demo-banner" id="demoBanner" hidden>
+    <span class="db-text">当前是示例数据，先随便看看效果。</span>
+    <button class="link-btn" id="btnClearDemo" type="button">清空示例，登记我自己的</button>
+  </div>
+
+  <main class="board" id="board"></main>
+
+  <footer class="foot">
+    <span>示例数据只保存在本页面。安装后记录保存在云端数据库中。点任意卡片可编辑，按 <b>N</b> 新建。</span>
+    <span id="footStat"></span>
+  </footer>
+
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="drawerTitle">
+  <form id="form" novalidate>
+    <div class="drawer-head">
+      <h2 id="drawerTitle">登记一项到期</h2>
+      <button class="icon-btn" id="btnClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      <label class="field">
+        <span class="label">名称 <em>*</em></span>
+        <input id="fName" type="text" maxlength="40" placeholder="Qoder Pro / 阿里云 OSS / 超级猩猩 10 次卡" required />
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span class="label">到期日 <em>*</em></span>
+          <input id="fDate" type="date" required />
+        </label>
+        <label class="field">
+          <span class="label">计费周期</span>
+          <select id="fCycle">
+            <option value="once">一次性 / 不重复</option>
+            <option value="monthly">月付</option>
+            <option value="quarterly">季付</option>
+            <option value="yearly">年付</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span class="label">分类</span>
+          <select id="fCat"></select>
+        </label>
+        <label class="field">
+          <span class="label">金额（元，可选）</span>
+          <input id="fAmount" type="number" min="0" step="1" placeholder="140" inputmode="decimal" />
+        </label>
+      </div>
+
+      <div class="field">
+        <span class="label">提前几天提醒</span>
+        <div class="chips" id="fRemind">
+          <button type="button" class="chip" data-v="3">3 天</button>
+          <button type="button" class="chip" data-v="7">7 天</button>
+          <button type="button" class="chip" data-v="14">14 天</button>
+          <button type="button" class="chip" data-v="30">30 天</button>
+          <span class="chip-custom">
+            <input id="fRemindNum" type="number" min="0" max="365" step="1" aria-label="自定义提醒天数" />
+            <span>天</span>
+          </span>
+        </div>
+      </div>
+
+      <label class="field">
+        <span class="label">备注（可选）</span>
+        <textarea id="fNote" rows="2" maxlength="120" placeholder="账号、付款方式、停用前要记得导出数据…"></textarea>
+      </label>
+
+      <p class="form-hint" id="cycleHint"></p>
+
+      <div class="preview" id="preview"></div>
+    </div>
+
+    <div class="drawer-foot">
+      <button class="btn btn-danger-ghost" id="btnDelete" type="button" hidden>删除</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="btnCancel" type="button">取消</button>
+      <button class="btn btn-primary" id="btnSave" type="button">保存</button>
+    </div>
+  </form>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>function previewConfirm(message){return new Promise(function(resolve){var mask=document.createElement('div'); mask.style.cssText='position:fixed;inset:0;background:#000a;z-index:9999;display:grid;place-items:center'; var box=document.createElement('div');box.style.cssText='background:#172027;color:white;padding:24px;border-radius:16px;max-width:85vw'; var label=document.createElement('p');label.textContent=message;box.appendChild(label);var yes=document.createElement('button');yes.textContent='确认';var no=document.createElement('button');no.textContent='取消';yes.onclick=function(){mask.remove();resolve(true)};no.onclick=function(){mask.remove();resolve(false)};box.append(no,yes);mask.appendChild(box);document.body.appendChild(mask);});}
+/* ===========================================================
+   到期雷达 — 全部逻辑跑在浏览器本地，无依赖
+   =========================================================== */
+(function () {
+  'use strict';
+
+  var KEY = 'expired-radar.v1';
+  var DAY = 86400000;
+
+  var CATS = [
+    { id: 'ai',      name: 'AI 工具',  color: '#2CE0A8' },
+    { id: 'cloud',   name: '云服务',   color: '#5AA9FF' },
+    { id: 'member',  name: '会员订阅', color: '#B58CFF' },
+    { id: 'fitness', name: '课程健身', color: '#FFB03A' },
+    { id: 'other',   name: '其他',     color: '#8FA3B8' }
+  ];
+
+  var CYCLE_NAME = { once: '一次性', monthly: '月付', quarterly: '季付', yearly: '年付' };
+  var CYCLE_STEP = { monthly: 1, quarterly: 3, yearly: 12 };
+
+  var BUCKETS = [
+    { id: 'expired', name: '已过期', hint: '已经失效，确认还要不要续', tone: 'var(--danger)' },
+    { id: 'd3',      name: '3 天内', hint: '马上要扣费或断服', tone: 'var(--hot)' },
+    { id: 'week',    name: '本周内', hint: '4–7 天内到期', tone: 'var(--warn)' },
+    { id: 'later',   name: '更晚',   hint: '7 天以后，先放着', tone: 'var(--calm)' }
+  ];
+
+  /* ---------------- 工具 ---------------- */
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function uid() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function today0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function parseD(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function fmtISO(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function fmtMD(d) { return pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  function addMonths(base, n) {
+    if (!n) return new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    var y = base.getFullYear(), m = base.getMonth() + n, day = base.getDate();
+    var probe = new Date(y, m, 1);
+    var last = new Date(probe.getFullYear(), probe.getMonth() + 1, 0).getDate();
+    return new Date(probe.getFullYear(), probe.getMonth(), Math.min(day, last));
+  }
+
+  var WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  function fmtCN(d) { return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + WD[d.getDay()]; }
+  function fmtShort(d) { return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日'; }
+
+  /* ---------------- 到期推算 ---------------- */
+
+  // 周期类：从锚点日期往后推，直到不早于今天（保持"每月 15 日"这种锚点不漂移）
+  function dueInfo(item, today) {
+    var base = parseD(item.baseDate);
+    var step = CYCLE_STEP[item.cycle];
+    if (!step) return { due: base, prev: null, rollovers: 0 };
+
+    var n = 0;
+    while (n < 800 && addMonths(base, n * step) < today) n++;
+    var due = addMonths(base, n * step);
+    var prev = n > 0 ? addMonths(base, (n - 1) * step) : null;
+    return { due: due, prev: prev, rollovers: n };
+  }
+
+  function bucketOf(item, days) {
+    if (days < 0) return 'expired';
+    if (days <= 3) return 'd3';
+    if (days <= 7) return 'week';
+    return 'later';
+  }
+
+  function catOf(id) {
+    for (var i = 0; i < CATS.length; i++) if (CATS[i].id === id) return CATS[i];
+    return CATS[CATS.length - 1];
+  }
+
+  function yearlyCost(item) {
+    var a = Number(item.amount) || 0;
+    if (item.cycle === 'monthly') return a * 12;
+    if (item.cycle === 'quarterly') return a * 4;
+    if (item.cycle === 'yearly') return a;
+    return 0;
+  }
+
+  /* ---------------- 状态 ---------------- */
+
+  var state = {
+    items: [],
+    query: '',
+    sort: 'due',
+    filter: 'all',
+    editingId: null,
+    remindValue: 7
+  };
+
+  function load() {
+    try {
+      var raw = previewStore.getItem(KEY);
+      if (!raw) return false;
+      var data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.items)) return false;
+      state.items = data.items.filter(function (x) { return x && x.name && x.baseDate; });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function save() {
+    try { previewStore.setItem(KEY, JSON.stringify({ v: 1, items: state.items })); }
+    catch (e) { toast('保存失败，浏览器存储可能被禁用了'); }
+  }
+
+  /* ---------------- 示例数据 ---------------- */
+
+  function demoItems() {
+    var t = today0();
+    function d(n) { var x = new Date(t); x.setDate(x.getDate() + n); return fmtISO(x); }
+    return [
+      // 已过期
+      { id: uid(), name: 'OpenAI API Token',   category: 'cloud',   baseDate: d(-6),  cycle: 'once',    remindDays: 14, amount: 100,  note: '预充值额度，过期不退钱', demo: true },
+      { id: uid(), name: '超级猩猩 10 次卡',    category: 'fitness', baseDate: d(-2),  cycle: 'once',    remindDays: 10, amount: 1200, note: '还剩 4 次没上完', demo: true },
+      { id: uid(), name: 'AWS 免费试用',        category: 'cloud',   baseDate: d(-9),  cycle: 'once',    remindDays: 7,  amount: null, note: '到期会自动转成按量计费', demo: true },
+      // 3 天内
+      { id: uid(), name: 'Qoder Pro',          category: 'ai',      baseDate: d(0),   cycle: 'monthly', remindDays: 7,  amount: 20,   note: '今天自动续费，记得看账单', demo: true },
+      { id: uid(), name: 'ChatGPT Plus',       category: 'ai',      baseDate: d(2),   cycle: 'monthly', remindDays: 3,  amount: 140,  note: '和同事拼的车位', demo: true },
+      { id: uid(), name: '阿里云 OSS 存储',     category: 'cloud',   baseDate: d(3),   cycle: 'monthly', remindDays: 7,  amount: 9,    note: '', demo: true },
+      // 本周内
+      { id: uid(), name: '1Password 家庭版',    category: 'member',  baseDate: d(5),   cycle: 'yearly',  remindDays: 7,  amount: 268,  note: '5 个人分摊', demo: true },
+      { id: uid(), name: 'B 站大会员',          category: 'member',  baseDate: d(6),   cycle: 'monthly', remindDays: 7,  amount: 15,   note: '', demo: true },
+      { id: uid(), name: '腾讯视频 VIP',        category: 'member',  baseDate: d(7),   cycle: 'yearly',  remindDays: 7,  amount: 258,  note: '', demo: true },
+      // 更晚
+      { id: uid(), name: 'Notion Plus',        category: 'member',  baseDate: d(-12), cycle: 'monthly', remindDays: 7,  amount: 60,   note: '', demo: true },
+      { id: uid(), name: 'GitHub Copilot',     category: 'ai',      baseDate: d(28),  cycle: 'yearly',  remindDays: 14, amount: 690,  note: '', demo: true },
+      { id: uid(), name: 'iCloud+ 200G',       category: 'cloud',   baseDate: d(45),  cycle: 'monthly', remindDays: 7,  amount: 21,   note: '照片备份，别断', demo: true }
+    ];
+  }
+
+  /* ---------------- 计算 ---------------- */
+
+  function computeRows() {
+    var t = today0();
+    return state.items.map(function (it) {
+      var info = dueInfo(it, t);
+      var days = Math.round((info.due - t) / DAY);
+      return {
+        it: it,
+        due: info.due,
+        prev: info.prev,
+        days: days,
+        bucket: bucketOf(it, days)
+      };
+    });
+  }
+
+  function visibleRows(all) {
+    var q = state.query.trim().toLowerCase();
+    return all.filter(function (r) {
+      if (!q) return true;
+      var it = r.it;
+      var hay = (it.name + ' ' + (it.note || '') + ' ' + catOf(it.category).name + ' ' + CYCLE_NAME[it.cycle]).toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+
+  function sortRows(rows) {
+    var s = state.sort;
+    rows.sort(function (a, b) {
+      if (s === 'name') return String(a.it.name).localeCompare(String(b.it.name), 'zh-Hans-CN');
+      if (s === 'amount') return yearlyCost(b.it) - yearlyCost(a.it);
+      if (a.days !== b.days) return a.days - b.days;
+      return String(a.it.name).localeCompare(String(b.it.name), 'zh-Hans-CN');
+    });
+    return rows;
+  }
+
+  /* ---------------- 渲染：概览 ---------------- */
+
+  function renderOverview(rows) {
+    var box = $('#overview');
+    var groups = groupBy(rows);
+    var html = '';
+
+    BUCKETS.forEach(function (bk) {
+      var list = sortRows(groups[bk.id] || []);
+      var desc;
+      if (!list.length) {
+        desc = bk.id === 'expired' ? '没有失效的东西' : '这里空着';
+      } else {
+        var head = list[0];
+        var who = esc(head.it.name);
+        desc = who + (head.days === 0 ? ' 今天到期' : head.days > 0 ? ' 还有 ' + head.days + ' 天' : ' 已过期 ' + (-head.days) + ' 天');
+        if (list.length > 1) desc += ' 等 ' + list.length + ' 项';
+      }
+      html += '<button type="button" class="ov' + (list.length ? '' : ' is-zero') +
+        (state.filter === bk.id ? ' is-active' : '') +
+        '" data-bucket="' + bk.id + '" style="--tone:' + bk.tone + '">' +
+        '<span class="ov-top"><span class="ov-name">' + bk.name + '</span><span class="ov-num">' + list.length + '</span></span>' +
+        '<span class="ov-desc">' + desc + '</span>' +
+        '</button>';
+    });
+
+    box.innerHTML = html;
+  }
+
+  function groupBy(rows) {
+    var g = { expired: [], d3: [], week: [], later: [] };
+    rows.forEach(function (r) { (g[r.bucket] || g.later).push(r); });
+    return g;
+  }
+
+  /* ---------------- 渲染：主体 ---------------- */
+
+  function countdownHTML(r) {
+    var tone = '';
+    BUCKETS.forEach(function (b) { if (b.id === r.bucket) tone = b.tone; });
+    if (r.days < 0) {
+      return '<div class="countdown" style="--tone:' + tone + '"><b>' + (-r.days) + '</b><span>天前过期</span></div>';
+    }
+    if (r.days === 0) {
+      return '<div class="countdown is-text" style="--tone:' + tone + '"><b>今天</b><span>到期</span></div>';
+    }
+    if (r.days === 1) {
+      return '<div class="countdown is-text" style="--tone:' + tone + '"><b>明天</b><span>到期</span></div>';
+    }
+    return '<div class="countdown" style="--tone:' + tone + '"><b>' + r.days + '</b><span>天后到期</span></div>';
+  }
+
+  function cardHTML(r) {
+    var it = r.it;
+    var cat = catOf(it.category);
+    var tone = 'var(--calm)';
+    BUCKETS.forEach(function (b) { if (b.id === r.bucket) tone = b.tone; });
+
+    var meta = [];
+    meta.push('<span class="cat-dot" style="background:' + cat.color + '"></span>' + cat.name);
+    if (CYCLE_NAME[it.cycle]) meta.push(CYCLE_NAME[it.cycle]);
+    if (Number(it.amount) > 0) meta.push('¥' + Number(it.amount));
+
+    var noteBits = [];
+    var inWindow = r.days >= 0 && Number(it.remindDays) > 0 && r.days <= Number(it.remindDays);
+    if (it.note) noteBits.push('<span>' + esc(it.note) + '</span>');
+    if (r.prev) {
+      noteBits.push('<span class="renew">上次 ' + fmtMD(r.prev) + ' 已续费 · 下次 ' + fmtShort(r.due) + '</span>');
+    } else if (inWindow) {
+      noteBits.push('<span class="bell">' +
+        '<svg viewBox="0 0 16 16"><path d="M8 2.3a3.3 3.3 0 0 0-3.3 3.3c0 3-1.2 3.9-1.2 3.9h9s-1.2-.9-1.2-3.9A3.3 3.3 0 0 0 8 2.3z"/><path d="M6.7 11.8a1.5 1.5 0 0 0 2.6 0"/></svg>' +
+        '提前 ' + Number(it.remindDays) + ' 天提醒</span>');
+    } else if (it.cycle !== 'once') {
+      noteBits.push('<span>' + fmtShort(r.due) + ' 到期</span>');
+    }
+
+    return '<article class="card' + (r.bucket === 'expired' ? ' is-expired' : '') + '" data-id="' + it.id + '" style="--tone:' + tone + '" role="button" tabindex="0" aria-label="编辑 ' + esc(it.name) + '">' +
+      '<div class="card-main">' +
+        '<div class="card-name">' + esc(it.name) + '</div>' +
+        '<div class="card-meta">' + meta.join('<i class="sep"></i>') + '</div>' +
+        (noteBits.length ? '<div class="card-note">' + noteBits.join('<i class="sep"></i>') + '</div>' : '') +
+      '</div>' +
+      countdownHTML(r) +
+      '<button type="button" class="card-del" data-del="' + it.id + '" aria-label="删除 ' + esc(it.name) + '">' +
+        '<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>' +
+      '</button>' +
+      '</article>';
+  }
+
+  function renderBoard(rows) {
+    var board = $('#board');
+    var groups = groupBy(rows);
+    var html = '';
+    var shownAny = false;
+
+    BUCKETS.forEach(function (bk) {
+      if (state.filter !== 'all' && state.filter !== bk.id) return;
+      var list = sortRows(groups[bk.id] || []);
+      var empty = list.length === 0;
+      if (!empty) shownAny = true;
+
+      html += '<section class="group' + (empty ? ' is-empty' : '') + '" style="--tone:' + bk.tone + '">' +
+        '<header class="group-head">' +
+          '<span class="gdot"></span>' +
+          '<h2>' + bk.name + '</h2>' +
+          '<span class="gcount">' + list.length + '</span>' +
+          '<span class="ghint">' + bk.hint + '</span>' +
+        '</header>';
+
+      if (empty) {
+        html += '<div class="mini-empty">' +
+          (bk.id === 'expired' ? '没有已过期的项目。' :
+           bk.id === 'd3' ? '未来 3 天没有要处理的，安心。' :
+           bk.id === 'week' ? '本周内没有到期项目。' : '暂时没有更远的项目。') +
+          '</div>';
+      } else {
+        html += '<div class="cards">' + list.map(cardHTML).join('') + '</div>';
+      }
+      html += '</section>';
+    });
+
+    if (!shownAny && state.items.length > 0) {
+      html = '<div class="empty-state"><h3>没有匹配的项目</h3>' +
+        '<p>换个关键词试试，或者清空搜索框。</p>' +
+        '<div class="empty-actions"><button class="btn btn-ghost" id="btnResetFilter" type="button">清空筛选</button></div></div>';
+    }
+
+    board.innerHTML = html;
+    var reset = $('#btnResetFilter');
+    if (reset) reset.addEventListener('click', function () {
+      state.query = ''; state.filter = 'all'; $('#search').value = ''; render();
+    });
+  }
+
+  function renderEmptyApp() {
+    $('#board').innerHTML =
+      '<div class="empty-state">' +
+        '<h3>雷达上还什么都没有</h3>' +
+        '<p>把 Qoder、API Token、对象存储、健身课包… 的到期日登记进来。30 秒一条，之后就知道什么时候该续、什么时候该砍。</p>' +
+        '<div class="empty-actions">' +
+          '<button class="btn btn-primary" id="btnEmptyAdd" type="button">登记第一项</button>' +
+          '<button class="btn btn-ghost" id="btnEmptyDemo" type="button">先看看示例</button>' +
+        '</div>' +
+      '</div>';
+    $('#btnEmptyAdd').addEventListener('click', function () { openDrawer(null); });
+    $('#btnEmptyDemo').addEventListener('click', function () {
+      state.items = demoItems(); save(); render();
+    });
+  }
+
+  function renderTop(allRows) {
+    var t = today0();
+    $('#todayLabel').textContent = fmtCN(t);
+
+    var total = state.items.length;
+    var monthly = 0;
+    state.items.forEach(function (it) { monthly += yearlyCost(it) / 12; });
+
+    var sub = '在盯着 ' + total + ' 个服务';
+    if (monthly > 0) sub += ' · 每月约 ¥' + Math.round(monthly).toLocaleString('zh-CN');
+    $('#brandSub').textContent = sub;
+
+    var need = 0;
+    allRows.forEach(function (r) { if (r.bucket !== 'later') need++; });
+    $('#footStat').textContent = total
+      ? '共 ' + total + ' 项 · 本周需处理 ' + need + ' 项'
+      : '还没有数据';
+
+    var hasDemo = state.items.some(function (x) { return x.demo; });
+    $('#demoBanner').hidden = !hasDemo;
+  }
+
+  /* ---------------- 主渲染 ---------------- */
+
+  function render() {
+    var all = computeRows();
+    var rows = visibleRows(all);
+    renderTop(all);
+
+    if (!state.items.length) {
+      $('#overview').innerHTML = '';
+      $('.toolbar').hidden = true;
+      renderEmptyApp();
+      return;
+    }
+    $('.toolbar').hidden = false;
+    renderOverview(rows);
+    renderBoard(rows);
+  }
+
+  /* ---------------- 抽屉表单 ---------------- */
+
+  var drawer = $('#drawer');
+  var scrim = $('#scrim');
+
+  function openDrawer(item) {
+    state.editingId = item ? item.id : null;
+    $('#drawerTitle').textContent = item ? '编辑条目' : '登记一项到期';
+    $('#btnDelete').hidden = !item;
+
+    $('#fName').value = item ? item.name : '';
+    $('#fDate').value = item ? item.baseDate : fmtISO(addDays(today0(), 30));
+    $('#fCycle').value = item ? item.cycle : 'once';
+    $('#fCat').value = item ? item.category : 'ai';
+    $('#fAmount').value = item && item.amount != null ? item.amount : '';
+    $('#fNote').value = item ? (item.note || '') : '';
+    setRemind(item ? item.remindDays : 7);
+    updateCycleHint();
+    updatePreview();
+
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    scrim.hidden = false;
+    document.body.classList.add('no-scroll');
+    setTimeout(function () { $('#fName').focus(); }, 240);
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    scrim.hidden = true;
+    document.body.classList.remove('no-scroll');
+    state.editingId = null;
+  }
+
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+  function setRemind(v) {
+    state.remindValue = Number(v) || 0;
+    $('#fRemindNum').value = state.remindValue;
+    var chips = $('#fRemind').querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) {
+      chips[i].classList.toggle('on', Number(chips[i].dataset.v) === state.remindValue);
+    }
+  }
+
+  function updateCycleHint() {
+    var c = $('#fCycle').value;
+    var hint = $('#cycleHint');
+    if (c === 'once') {
+      hint.textContent = '一次性：到期日就是最后期限，过了会进「已过期」。适合 Token 额度、课包、体验卡。';
+    } else {
+      var stepTxt = c === 'monthly' ? '1 个月' : c === 'quarterly' ? '3 个月' : '1 年';
+      hint.textContent = '周期类：到期后自动往后推 ' + stepTxt + '，日期锚点保持不变（比如每月 15 日就一直算 15 日），所以永远不会因为忘记录入而漏掉下一期。';
+    }
+  }
+
+  var BUCKET_TONE = { expired: 'var(--danger)', d3: 'var(--hot)', week: 'var(--warn)', later: 'var(--calm)' };
+  var BUCKET_NAME = { expired: '已过期', d3: '3 天内', week: '本周内', later: '更晚' };
+
+  function updatePreview() {
+    var el = $('#preview');
+    var dateStr = $('#fDate').value;
+    if (!dateStr) { el.innerHTML = ''; return; }
+
+    var cycle = $('#fCycle').value;
+    var t = today0();
+    var info = dueInfo({ baseDate: dateStr, cycle: cycle }, t);
+    var days = Math.round((info.due - t) / DAY);
+    var bucket = bucketOf({}, days);
+
+    el.style.setProperty('--tone', BUCKET_TONE[bucket]);
+
+    var main, sub;
+    if (days < 0) {
+      main = '<b>' + (-days) + '</b>天前就过期了';
+    } else if (days === 0) {
+      main = '<b>今天</b>到期';
+    } else {
+      main = '<b>' + days + '</b>天后到期';
+    }
+
+    if (cycle === 'once') {
+      sub = '一次性 · 到期日 ' + fmtISO(info.due);
+    } else {
+      var unit = cycle === 'monthly' ? '每月' : cycle === 'quarterly' ? '每季' : '每年';
+      var dayN = parseD(dateStr).getDate();
+      sub = CYCLE_NAME[cycle] + ' · ' + unit + ' ' + dayN + ' 日续费 · 下次 ' + fmtISO(info.due);
+      if (info.prev) sub += '（上次 ' + fmtMD(info.prev) + ' 已扣费）';
+      if (info.rollovers > 0) sub += '，已自动跳过 ' + info.rollovers + ' 期';
+    }
+
+    el.innerHTML = '<div class="pv-label">保存后会这样显示</div>' +
+      '<div class="pv-main">' + main + '<span class="pv-tag">' + BUCKET_NAME[bucket] + '</span></div>' +
+      '<div class="pv-sub">' + sub + '</div>';
+  }
+
+  /* ---------------- 保存 / 删除 ---------------- */
+
+  $('#btnSave').addEventListener('click', function (e) {
+    e.preventDefault();
+    var name = $('#fName').value.trim();
+    var date = $('#fDate').value;
+    if (!name) { toast('先给它起个名字'); $('#fName').focus(); return; }
+    if (!date) { toast('选一个到期日'); $('#fDate').focus(); return; }
+
+    var amountRaw = $('#fAmount').value;
+    var payload = {
+      name: name,
+      baseDate: date,
+      cycle: $('#fCycle').value,
+      category: $('#fCat').value,
+      amount: amountRaw === '' ? null : Math.max(0, Number(amountRaw)),
+      remindDays: Number($('#fRemindNum').value) || 0,
+      note: $('#fNote').value.trim()
+    };
+
+    if (state.editingId) {
+      for (var i = 0; i < state.items.length; i++) {
+        if (state.items[i].id === state.editingId) {
+          var old = state.items[i];
+          state.items[i] = Object.assign({}, old, payload);
+          if (old.demo) delete state.items[i].demo;
+          break;
+        }
+      }
+      toast('已更新「' + name + '」');
+    } else {
+      payload.id = uid();
+      payload.createdAt = Date.now();
+      state.items.push(payload);
+      toast('已登记「' + name + '」');
+    }
+
+    save(); closeDrawer(); render();
+  });
+
+  async function removeItem(id) {
+    var it = state.items.filter(function (x) { return x.id === id; })[0];
+    if (!it) return;
+    if (!await previewConfirm('删除「' + it.name + '」？删掉之后就盯不到了。')) return;
+    state.items = state.items.filter(function (x) { return x.id !== id; });
+    save(); closeDrawer(); render();
+    toast('已删除「' + it.name + '」');
+  }
+
+  $('#btnDelete').addEventListener('click', function () {
+    if (state.editingId) removeItem(state.editingId);
+  });
+
+  /* ---------------- 清单 / 导出 ---------------- */
+
+  function buildChecklist() {
+    var all = computeRows();
+    var rows = all.filter(function (r) { return r.bucket !== 'later'; });
+    rows = sortRows(rows);
+
+    var t = today0();
+    var counts = { expired: 0, d3: 0, week: 0 };
+    rows.forEach(function (r) { counts[r.bucket]++; });
+
+    if (!rows.length) return null;
+
+    var lines = [];
+    lines.push('到期雷达 · 本周待处理清单（' + fmtCN(t) + '）');
+    lines.push('共 ' + rows.length + ' 项：已过期 ' + counts.expired + ' · 3 天内 ' + counts.d3 + ' · 本周内 ' + counts.week);
+    lines.push('');
+
+    var order = ['expired', 'd3', 'week'];
+    order.forEach(function (bid) {
+      var list = rows.filter(function (r) { return r.bucket === bid; });
+      if (!list.length) return;
+      var bk = BUCKETS.filter(function (b) { return b.id === bid; })[0];
+      lines.push('【' + bk.name + '】');
+      list.forEach(function (r) {
+        var it = r.it;
+        var when;
+        if (r.days < 0) when = '已过期 ' + (-r.days) + ' 天';
+        else if (r.days === 0) when = '今天到期';
+        else if (r.days === 1) when = '明天到期';
+        else when = r.days + ' 天后到期';
+
+        var bits = [when];
+        if (it.cycle !== 'once') bits.push(CYCLE_NAME[it.cycle]);
+        if (Number(it.amount) > 0) bits.push('¥' + Number(it.amount));
+        lines.push('· ' + it.name + ' — ' + bits.join(' · ') + (it.note ? '（' + it.note + '）' : ''));
+      });
+      lines.push('');
+    });
+
+    lines.push('— 由「到期雷达」生成');
+    return lines.join('\n');
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () {
+        return fallbackCopy(text);
+      });
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  $('#btnCopy').addEventListener('click', function () {
+    var text = buildChecklist();
+    if (!text) {
+      toast('本周没有要处理的事，安心');
+      return;
+    }
+    var n = text.split('\n').filter(function (l) { return l.indexOf('· ') === 0; }).length;
+    copyText(text).then(function (ok) {
+      toast(ok ? '已复制本周待处理清单（' + n + ' 项）' : '复制失败，请手动选择文本');
+    });
+  });
+
+  function exportCSV() {
+    if (!state.items.length) { toast('还没有可以导出的数据'); return; }
+    var t = today0();
+    var head = ['名称', '分类', '计费周期', '到期日', '下次到期', '剩余天数', '状态', '金额(元)', '提醒(天)', '备注'];
+    var lines = [head.join(',')];
+
+    computeRows().forEach(function (r) {
+      var it = r.it;
+      var status = r.days < 0 ? '已过期' : r.days === 0 ? '今天到期' : r.days <= 3 ? '3 天内' : r.days <= 7 ? '本周内' : '更晚';
+      var cells = [
+        it.name, catOf(it.category).name, CYCLE_NAME[it.cycle] || '',
+        it.baseDate, fmtISO(r.due), String(r.days), status,
+        it.amount == null ? '' : String(it.amount),
+        String(it.remindDays == null ? '' : it.remindDays),
+        it.note || ''
+      ];
+      lines.push(cells.map(function (c) {
+        var s = String(c);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(','));
+    });
+
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '到期雷达-' + fmtISO(t) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
+    toast('已导出 ' + state.items.length + ' 条到 CSV');
+  }
+
+  /* ---------------- toast ---------------- */
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2400);
+  }
+
+  /* ---------------- 主题 ---------------- */
+
+  var THEME_KEY = 'expired-radar.theme';
+
+  function applyTheme(theme, persist) {
+    document.documentElement.setAttribute('data-theme', theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F6F8' : '#07090D');
+    var btn = $('#btnTheme');
+    if (btn) {
+      btn.title = theme === 'light' ? '切换到夜间主题' : '切换到白天主题';
+      btn.setAttribute('aria-label', btn.title);
+    }
+    if (persist) {
+      try { previewStore.setItem(THEME_KEY, theme); } catch (e) {}
+    }
+  }
+
+  $('#btnTheme').addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(next, true);
+  });
+
+  // 没有手动选过主题时，跟随系统设置变化
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: light)');
+    var onSchemeChange = function (e) {
+      var saved = null;
+      try { saved = previewStore.getItem(THEME_KEY); } catch (err) {}
+      if (!saved) applyTheme(e.matches ? 'light' : 'dark', false);
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onSchemeChange);
+    else if (mq.addListener) mq.addListener(onSchemeChange);
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+
+  // 分类下拉
+  $('#fCat').innerHTML = CATS.map(function (c) {
+    return '<option value="' + c.id + '">' + c.name + '</option>';
+  }).join('');
+
+  $('#btnAdd').addEventListener('click', function () { openDrawer(null); });
+  $('#btnClose').addEventListener('click', closeDrawer);
+  $('#btnCancel').addEventListener('click', closeDrawer);
+  scrim.addEventListener('click', closeDrawer);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+    if ((e.key === 'n' || e.key === 'N') && !drawer.classList.contains('open')) {
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      openDrawer(null);
+    }
+  });
+
+  $('#overview').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.ov') : null;
+    if (!btn) return;
+    var b = btn.dataset.bucket;
+    state.filter = (state.filter === b) ? 'all' : b;
+    render();
+    if (state.filter !== 'all') {
+      var first = $('.group');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
+
+  $('#board').addEventListener('click', function (e) {
+    var del = e.target.closest ? e.target.closest('[data-del]') : null;
+    if (del) {
+      e.stopPropagation();
+      removeItem(del.dataset.del);
+      return;
+    }
+    var card = e.target.closest ? e.target.closest('.card') : null;
+    if (!card) return;
+    var it = state.items.filter(function (x) { return x.id === card.dataset.id; })[0];
+    if (it) openDrawer(it);
+  });
+
+  $('#board').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var card = e.target.closest ? e.target.closest('.card') : null;
+    if (!card) return;
+    e.preventDefault();
+    var it = state.items.filter(function (x) { return x.id === card.dataset.id; })[0];
+    if (it) openDrawer(it);
+  });
+
+  $('#search').addEventListener('input', function (e) {
+    state.query = e.target.value;
+    render();
+  });
+
+  $('#sort').addEventListener('change', function (e) {
+    state.sort = e.target.value;
+    render();
+  });
+
+  $('#btnExport').addEventListener('click', function(){ toast('安装后可导出 CSV'); });
+
+  $('#btnWipe').addEventListener('click', async function () {
+    if (!state.items.length) { toast('本来就是空的'); return; }
+    if (!await previewConfirm('清空全部 ' + state.items.length + ' 条记录？这个操作不能撤销。')) return;
+    state.items = [];
+    save();
+    render();
+    toast('已清空');
+  });
+
+  $('#btnClearDemo').addEventListener('click', function () {
+    var n = state.items.filter(function (x) { return x.demo; }).length;
+    state.items = state.items.filter(function (x) { return !x.demo; });
+    save(); render();
+    toast('已清掉 ' + n + ' 条示例');
+  });
+
+  $('#fRemind').addEventListener('click', function (e) {
+    var chip = e.target.closest ? e.target.closest('.chip') : null;
+    if (!chip) return;
+    setRemind(chip.dataset.v);
+  });
+
+  $('#fRemindNum').addEventListener('input', function (e) {
+    state.remindValue = Number(e.target.value) || 0;
+    var chips = $('#fRemind').querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) {
+      chips[i].classList.toggle('on', Number(chips[i].dataset.v) === state.remindValue);
+    }
+  });
+
+  $('#fCycle').addEventListener('change', function () {
+    updateCycleHint();
+    updatePreview();
+  });
+  $('#fDate').addEventListener('input', updatePreview);
+  $('#fDate').addEventListener('change', updatePreview);
+
+  $('#form').addEventListener('submit', function(e){ e.preventDefault(); $('#btnSave').click(); });
+  $('#form').addEventListener('keydown', function(e){ if(e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') { e.preventDefault(); $('#btnSave').click(); } });
+  $('#previewReset').addEventListener('click', function(){ previewStore.data={}; state.items=demoItems(); state.query=''; state.sort='due'; state.filter='all'; state.editingId=null; state.remindValue=7; $('#search').value=''; $('#sort').value='due'; $('#form').reset(); closeDrawer(); applyTheme(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark', false); save(); render(); toast('已恢复示例'); });
+  /* ---------------- 启动 ---------------- */
+
+  (function init() {
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'dark', false);
+    var had = load();
+    if (!had) {
+      state.items = demoItems();
+      save();
+    }
+    render();
+  })();
+
+})();
+</script>
+</body>
+</html>

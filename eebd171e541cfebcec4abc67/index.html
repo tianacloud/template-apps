@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>到期雷达 · 别再白扣费</title>
+<meta name="description" content="把散落在邮件和账单里的到期日集中登记，自动按「已过期 / 3 天内 / 本周 / 更晚」分堆，一眼看清哪几个马上要扣费或断服。记录保存在应用的云端数据库中。" />
+<meta name="theme-color" content="#07090D" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070A0E'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%232CE0A8' stroke-opacity='.5' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='none' stroke='%232CE0A8' stroke-opacity='.32' stroke-width='1.4'/%3E%3Cpath d='M16 16 L24.5 9.5' stroke='%232CE0A8' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%232CE0A8'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+<script>
+  (function () {
+    try {
+      var theme = (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'light' ? '#F4F6F8' : '#07090D');
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<p id="storageStatus" role="status" style="position:relative;z-index:20;text-align:center;color:#ffb03a;padding:8px" hidden></p>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="radar-mark" aria-hidden="true"><i></i></div>
+      <div class="brand-copy">
+        <h1>到期雷达</h1>
+        <p id="brandSub">在盯着 0 个服务</p>
+      </div>
+    </div>
+
+    <div class="topbar-side">
+      <div class="today" id="todayLabel"></div>
+      <div class="actions">
+        <button class="icon-btn theme-btn" id="btnTheme" type="button" aria-label="切换夜间 / 白天主题" title="切换到白天主题">
+          <svg class="ico-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.1"/><path d="M8 1.3v1.5M8 13.2v1.5M1.3 8h1.5M13.2 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M12.6 3.4l-1 1M4.4 11.6l-1 1"/></svg>
+          <svg class="ico-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 9.8A5.9 5.9 0 0 1 6.2 2.4a5.9 5.9 0 1 0 7.4 7.4z"/></svg>
+        </button>
+        <button class="btn btn-ghost" id="btnCopy" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.2" y="5.2" width="8.3" height="8.3" rx="2"/><path d="M10.6 3.6V3a1.6 1.6 0 0 0-1.6-1.6H3.6A1.6 1.6 0 0 0 2 3v5.4a1.6 1.6 0 0 0 1.6 1.6h.6"/></svg>
+          复制本周清单
+        </button>
+        <button class="btn btn-primary" id="btnAdd" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+          登记一项
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="overview" id="overview" aria-label="到期概览"></section>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14"/></svg>
+      <input id="search" type="search" placeholder="搜索名称、备注" autocomplete="off" aria-label="搜索" />
+    </div>
+    <div class="toolbar-right">
+      <select id="sort" class="select" aria-label="排序方式">
+        <option value="due">按到期先后</option>
+        <option value="amount">按金额从大到小</option>
+        <option value="name">按名称</option>
+      </select>
+      <button class="btn btn-mini" id="btnExport" type="button">导出 CSV</button>
+      <button class="btn btn-mini" id="btnWipe" type="button">清空全部</button>
+    </div>
+  </div>
+
+  <div class="demo-banner" id="demoBanner" hidden>
+    <span class="db-text">当前是示例数据，先随便看看效果。</span>
+    <button class="link-btn" id="btnClearDemo" type="button">清空示例，登记我自己的</button>
+  </div>
+
+  <main class="board" id="board"></main>
+
+  <footer class="foot">
+    <span>数据保存在应用的云端数据库中。点任意卡片可编辑，按 <b>N</b> 新建。</span>
+    <span id="footStat"></span>
+  </footer>
+
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="drawerTitle">
+  <form id="form" novalidate>
+    <div class="drawer-head">
+      <h2 id="drawerTitle">登记一项到期</h2>
+      <button class="icon-btn" id="btnClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      <label class="field">
+        <span class="label">名称 <em>*</em></span>
+        <input id="fName" type="text" maxlength="40" placeholder="Qoder Pro / 阿里云 OSS / 超级猩猩 10 次卡" required />
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span class="label">到期日 <em>*</em></span>
+          <input id="fDate" type="date" required />
+        </label>
+        <label class="field">
+          <span class="label">计费周期</span>
+          <select id="fCycle">
+            <option value="once">一次性 / 不重复</option>
+            <option value="monthly">月付</option>
+            <option value="quarterly">季付</option>
+            <option value="yearly">年付</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span class="label">分类</span>
+          <select id="fCat"></select>
+        </label>
+        <label class="field">
+          <span class="label">金额（元，可选）</span>
+          <input id="fAmount" type="number" min="0" step="1" placeholder="140" inputmode="decimal" />
+        </label>
+      </div>
+
+      <div class="field">
+        <span class="label">提前几天提醒</span>
+        <div class="chips" id="fRemind">
+          <button type="button" class="chip" data-v="3">3 天</button>
+          <button type="button" class="chip" data-v="7">7 天</button>
+          <button type="button" class="chip" data-v="14">14 天</button>
+          <button type="button" class="chip" data-v="30">30 天</button>
+          <span class="chip-custom">
+            <input id="fRemindNum" type="number" min="0" max="365" step="1" aria-label="自定义提醒天数" />
+            <span>天</span>
+          </span>
+        </div>
+      </div>
+
+      <label class="field">
+        <span class="label">备注（可选）</span>
+        <textarea id="fNote" rows="2" maxlength="120" placeholder="账号、付款方式、停用前要记得导出数据…"></textarea>
+      </label>
+
+      <p class="form-hint" id="cycleHint"></p>
+
+      <div class="preview" id="preview"></div>
+    </div>
+
+    <div class="drawer-foot">
+      <button class="btn btn-danger-ghost" id="btnDelete" type="button" hidden>删除</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="btnCancel" type="button">取消</button>
+      <button class="btn btn-primary" id="btnSave" type="submit">保存</button>
+    </div>
+  </form>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
