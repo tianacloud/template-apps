@@ -1,0 +1,217 @@
+
+
+<header>
+  <h1>🏃 田径运动会秩序册生成工具 <span style="font-size:13px;opacity:.8">九年一贯制学校版</span></h1>
+  <p>导入运动员 → 设置项目 → 自动分组分道 → 两天赛程编排 → 生成可打印秩序册。数据自动保存在应用数据库。</p>
+  <p id="storageStatus" role="status">正在连接数据库…</p>
+  <div class="toolbar">
+    <button onclick="loadSample()">载入示例数据（先体验流程）</button>
+    <button onclick="exportJSON()">备份/导出数据</button>
+    <button onclick="document.getElementById('importJsonFile').click()">导入备份数据</button>
+    <input type="file" id="importJsonFile" accept=".json" style="display:none" onchange="importJSON(this)">
+  </div>
+</header>
+
+<nav>
+  <button class="active" data-tab="setup" onclick="showTab('setup')">① 基础信息与时间</button>
+  <button data-tab="athletes" onclick="showTab('athletes')">② 运动员管理</button>
+  <button data-tab="events" onclick="showTab('events')">③ 比赛项目设置</button>
+  <button data-tab="schedule" onclick="showTab('schedule')">④ 自动编排</button>
+  <button data-tab="booklet" onclick="showTab('booklet')">⑤ 秩序册预览 / 打印</button>
+</nav>
+
+<main>
+
+<!-- ================= ① 基础信息 ================= -->
+<section id="tab-setup" class="tab active">
+  <div class="card">
+    <h2>运动会基本信息</h2>
+    <div class="row">
+      <div class="field"><label>学校名称</label><input type="text" id="school" style="width:240px" placeholder="如：××市××学校"></div>
+      <div class="field"><label>运动会名称</label><input type="text" id="meetName" style="width:280px" placeholder="如：2026年秋季田径运动会"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>第一天日期</label><input type="date" id="date1"></div>
+      <div class="field"><label>第二天日期</label><input type="date" id="date2"></div>
+      <div class="field"><label>跑道数量</label>
+        <select id="lanes">
+          <option value="4">4 条</option><option value="6">6 条</option>
+          <option value="8" selected>8 条</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <button class="btn" onclick="saveSetup()">保存基础信息</button>
+      <span id="setupMsg" class="ok" style="margin-left:10px"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>两天比赛时段安排（可修改起止时间）</h2>
+    <div class="hint">径赛在跑道上依次进行，田赛按场地（沙坑、铅球场等）同时进行。请按学校作息填写上、下午起止时间，编排时将自动控制每时段不超时。修改后请点击第①张卡片里的"保存基础信息"。</div>
+    <table>
+      <tr><th>时段</th><th>日期</th><th>开始时间</th><th>结束时间</th></tr>
+      <tr><td>第一天 上午</td><td id="d1a"></td><td><input type="time" id="s0s" value="08:00"></td><td><input type="time" id="s0e" value="11:40"></td></tr>
+      <tr><td>第一天 下午</td><td id="d1b"></td><td><input type="time" id="s1s" value="14:30"></td><td><input type="time" id="s1e" value="17:30"></td></tr>
+      <tr><td>第二天 上午</td><td id="d2a"></td><td><input type="time" id="s2s" value="08:00"></td><td><input type="time" id="s2e" value="11:40"></td></tr>
+      <tr><td>第二天 下午</td><td id="d2b"></td><td><input type="time" id="s3s" value="14:30"></td><td><input type="time" id="s3e" value="17:00"></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>使用流程说明（保姆级）</h2>
+    <div class="hint">
+      <b>1️⃣</b> 填好上面学校名称、两天日期、各时段起止时间，点"保存基础信息"。<br>
+      <b>2️⃣</b> 进入「②运动员管理」，把运动员名单粘贴进文本框（在 Excel / WPS 里选中区域复制，直接粘贴即可），点"解析并导入"。格式：号码、姓名、性别、年级、班级、参赛项目（项目可留空 = 自动参加本年级全部项目）。<br>
+      <b>3️⃣</b> 进入「③比赛项目设置」，点项目库快速勾选本届设哪些项目，在卡片里调整参加年级、分组方式、每组用时，还可点"选运动员"手动指定参赛名单（接力必须手动选）。<br>
+      <b>4️⃣</b> 进入「④自动编排」，点"开始自动编排"。系统自动完成：按年级性别分组 → 分道 → 两天四时段排期 → 场地分配，并提示人数异常和超时风险。<br>
+      <b>5️⃣</b> 进入「⑤秩序册预览」，检查后点"打印"（浏览器打印对话框里选"另存为 PDF"）或"下载秩序册网页文件"发给打印店。<br>
+      💡 数据自动保存在应用数据库，下次打开自动恢复。可使用顶部“备份/导出数据”保存副本。
+    </div>
+  </div>
+</section>
+
+<!-- ================= ② 运动员管理 ================= -->
+<section id="tab-athletes" class="tab">
+  <div class="card">
+    <h2>批量导入运动员（从 Excel / WPS 复制粘贴）</h2>
+    <div class="hint">
+      <b>推荐方式：Excel 导入</b> —— 点「下载Excel导入模板(.xlsx)」，在模板里填好名单保存，再点「导入Excel文件(.xlsx)」选择该文件即可；也可以把现有 Excel 名单整理成模板的列顺序后直接导入。「导出当前名单为Excel」可把已录入名单导出继续编辑。<br>
+      粘贴文本方式：每行一名运动员，列顺序：<b>号码（可留空，自动编号）、姓名、性别（男/女）、年级（如 3 或 三年级）、班级（如 2 或 2班）、参赛项目</b>。<br>
+      参赛项目用 / 分隔多个项目，名称必须与第③步中的项目名称一致；<b>留空表示参加本年级设置的全部项目</b>（接力类项目需在项目设置里手动勾选运动员）。<br>
+      支持英文逗号、Tab（Excel 直接粘贴）、中文逗号。首行若是标题行会自动跳过。
+    </div>
+    <textarea id="pasteArea" placeholder="示例：
+1001,张小明,男,4,1,100米/跳远
+1002,李红,女,4,1,
+,王强,男,7,3,800米"></textarea>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>导入方式</label>
+        <select id="importMode"><option value="append">追加到现有名单</option><option value="replace">清空后重新导入</option></select>
+      </div>
+      <button class="btn" onclick="parseAthletes()">解析并导入(粘贴文本)</button>
+      <button class="btn green" onclick="downloadXlsxTemplate()">⬇ 下载Excel导入模板(.xlsx)</button>
+      <button class="btn green" onclick="document.getElementById('xlsxFile').click()">📂 导入Excel文件(.xlsx)</button>
+      <input type="file" id="xlsxFile" accept=".xlsx" style="display:none" onchange="importXlsx(this)">
+      <button class="btn" onclick="document.getElementById('docxFile').click()">📄 导入Word报名表(.docx)</button>
+      <input type="file" id="docxFile" accept=".docx" style="display:none" onchange="importDocx(this)">
+      <button class="btn gray" onclick="exportXlsx()">📤 导出当前名单为Excel</button>
+      <button class="btn gray" onclick="downloadTemplate()">下载CSV模板</button>
+    </div>
+    <div id="importMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>编号规则设置（按年级设起止号，年级内连续编号）</h2>
+    <div class="hint">
+      为每个年级设置<b>班级数</b>和<b>号码起止范围</b>。点「按规则重新编号」时，各年级内先按班级、再按性别（男先女后）、姓名排序，从起始号开始<b>跨班级连续编号</b>（如7年级起始7001，则7.1班编完后7.2班紧接着编）；超过结束号会提示。各年级号码范围请勿重叠。也可只给没号码的运动员补号（已有号码不变但继续占号）。
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" onclick="applyNumRules(false)">🔢 按规则重新编号（覆盖全部号码）</button>
+      <button class="btn green" onclick="applyNumRules(true)">仅补齐空缺号码（按规则占号）</button>
+      <button class="btn gray" onclick="suggestNumRules()">按名单自动填充建议值</button>
+    </div>
+    <table id="numRuleTbl">
+      <thead><tr><th>年级</th><th style="width:90px">班级数</th><th style="width:110px">起始号</th><th style="width:110px">结束号</th><th>本年级实际人数</th></tr></thead>
+      <tbody id="numRuleBody"></tbody>
+    </table>
+    <div id="numRuleMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>运动员名单（<span id="athCount">0</span> 人）
+      <button class="btn small green" style="float:right" onclick="autoNumber()">一键补齐空缺号码</button>
+    </h2>
+    <div class="row">
+      <div class="field"><label>筛选年级</label><select id="fGrade" onchange="renderAthletes()"><option value="">全部</option></select></div>
+      <div class="field"><label>筛选班级</label><input type="text" id="fClass" style="width:80px" onchange="renderAthletes()" placeholder="如 2"></div>
+      <div class="field"><label>搜索姓名</label><input type="text" id="fName" style="width:110px" oninput="renderAthletes()" placeholder="姓名关键字"></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>号码</th><th>姓名</th><th>性别</th><th>年级</th><th>班级</th><th>参赛项目</th><th style="width:130px">操作</th></tr></thead>
+        <tbody id="athBody"></tbody>
+      </table>
+    </div>
+    <h3>单个添加 / 修改（点列表"编辑"后修改再保存）</h3>
+    <div class="row">
+      <input type="hidden" id="eId">
+      <div class="field"><label>号码</label><input type="text" id="eNo" style="width:90px"></div>
+      <div class="field"><label>姓名</label><input type="text" id="eName" style="width:100px"></div>
+      <div class="field"><label>性别</label><select id="eSex"><option>男</option><option>女</option></select></div>
+      <div class="field"><label>年级</label><select id="eGrade"></select></div>
+      <div class="field"><label>班级</label><input type="number" id="eClass" min="1" max="30" style="width:70px"></div>
+      <div class="field"><label>项目(留空=全部)</label><input type="text" id="eEvents" style="width:200px" placeholder="100米/跳远"></div>
+      <button class="btn" onclick="saveAthlete()">保存</button>
+      <button class="btn gray" onclick="clearAthForm()">清空表单</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ③ 项目设置 ================= -->
+<section id="tab-events" class="tab">
+  <div class="card">
+    <h2>从常用项目库快速添加（点击切换加入/移出）</h2>
+    <div class="hint">加入后请在下方卡片里确认参加年级和分组方式。项目名称就是运动员"参赛项目"列需要填写的名称，请勿随意改名。</div>
+    <div id="presetBox"></div>
+  </div>
+  <div class="card">
+    <h2>自定义项目</h2>
+    <div class="row">
+      <div class="field"><label>项目名称</label><input type="text" id="cName" style="width:140px" placeholder="如：一分钟跳绳"></div>
+      <div class="field"><label>类型</label><select id="cType"><option value="track">径赛（跑道）</option><option value="field">田赛（场地）</option></select></div>
+      <div class="field"><label>场地名称(田赛必填)</label><input type="text" id="cVenue" style="width:140px" placeholder="如：跳远沙坑"></div>
+      <button class="btn" onclick="addCustomEvent()">添加项目</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>已设置的项目（点卡片展开详细设置）</h2>
+    <div class="hint">编排时径赛按此处排列顺序依次进行，可用 ▲▼ 调整（一般短距离在前、接力放最后）。</div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn" onclick="autoAddEvents()">⚡ 从报名名单自动补充项目</button>
+      <span class="hint" style="margin:0">扫描所有运动员报名的项目名，未设置的按常用参数自动创建（参加年级按实际报名年级），之后可在卡片中微调。</span>
+    </div>
+    <div id="evList"></div>
+    <div class="hint" id="evStat"></div>
+  </div>
+</section>
+
+<!-- ================= ④ 编排 ================= -->
+<section id="tab-schedule" class="tab">
+  <div class="card">
+    <h2>自动编排</h2>
+    <div class="hint">
+      编排逻辑：①按"年级+性别"（或学段/班级）把运动员分成各组；②分道项目每组超过跑道数时自动拆成多个组次并分配道次；③<b>某年级班级数超过4个（在②的编号规则里设置，未设则按名单实际班级数）且人数超过跑道数时，该组径赛自动设为预赛+决赛，决赛取前N名（默认8）排在预赛之后的时段，决赛道次表留空待赛后填写</b>；④800米及以上不分道，按起跑站位排列；⑤径赛在跑道上按顺序进行，田赛按场地同时进行，自动填入两天四个时段并检查超时。
+    </div>
+    <button class="btn green" style="font-size:15px;padding:10px 26px" onclick="runSchedule()">▶ 开始自动编排</button>
+    <span class="hint" style="margin-left:12px">修改运动员或项目后请重新编排。编排完成后请到第⑤步查看秩序册。</span>
+  </div>
+  <div id="schedResult"></div>
+</section>
+
+<!-- ================= ⑤ 秩序册 ================= -->
+<section id="tab-booklet" class="tab">
+  <div class="card noprint">
+    <h2>导出</h2>
+    <div class="row">
+      <button class="btn" onclick="window.print()">🖨 打印 / 另存为 PDF</button>
+      <button class="btn green" onclick="downloadBooklet()">⬇ 下载秩序册网页文件（发给打印店）</button>
+    </div>
+    <div class="hint">打印建议：A4 纵向，勾选"背景图形"让表格表头有底色。秩序册包含：封面、竞赛日程、径赛分组道次表、田赛分组名单、检录表、运动员号码对照表。</div>
+  </div>
+  <div id="bookletWrap"><div id="booklet" class="bk"></div></div>
+</section>
+
+</main>
+
+<!-- 报名弹窗 -->
+<div class="modal-bg" id="regModal">
+  <div class="modal">
+    <h3 id="regTitle" style="color:var(--primary-dark)"></h3>
+    <div class="hint">勾选该项目的参赛运动员；全部不勾 = 自动参赛（年级范围内、项目列为空的运动员自动参加本项目）。</div>
+    <div style="display:flex;gap:8px"><input type="text" id="regSearch" placeholder="搜索姓名/班级" style="flex:1" oninput="renderRegList()"><button class="btn small gray" id="regToggle" onclick="toggleAllReg()">全选</button></div>
+    <div class="mlist" id="regList"></div>
+    <div style="text-align:right"><button class="btn" onclick="saveReg()">确定</button> <button class="btn gray" onclick="document.getElementById('regModal').style.display='none'">取消</button></div>
+  </div>
+</div>
+
