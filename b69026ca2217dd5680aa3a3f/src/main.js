@@ -1531,27 +1531,39 @@ const state = {
 
 const keys = { up: false, down: false, left: false, right: false, brake: false };
 
+// Preserve physical key codes; some keyboards supply only the logical key.
+function inputCode(e) {
+  if (e.code) return e.code;
+  const key = e.key || '';
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(key)) return key;
+  if (key === ' ' || key === 'Spacebar' || key === 'Space') return 'Space';
+  if (/^[wasdv]$/i.test(key)) return 'Key' + key.toUpperCase();
+  if (/^[1-5]$/.test(key)) return 'Digit' + key;
+  return '';
+}
 window.addEventListener('keydown', e => {
-  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
-  if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
-  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
-  if (e.code === 'Space') keys.brake = true;
-  if (e.code === 'Digit1') switchTheme('sunset');
-  if (e.code === 'Digit2') switchTheme('neon');
-  if (e.code === 'Digit3') switchTheme('aurora');
-  if (e.code === 'Digit4') switchTheme('jungle');
-  if (e.code === 'Digit5') switchTheme('snowfield');
-  if (e.code === 'KeyV' && !e.repeat) toggleView();
-  if (e.code === 'Escape' && state.started) openPicker();
+  const code = inputCode(e);
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(code)) e.preventDefault();
+  if (code === 'ArrowUp' || code === 'KeyW') keys.up = true;
+  if (code === 'ArrowDown' || code === 'KeyS') keys.down = true;
+  if (code === 'ArrowLeft' || code === 'KeyA') keys.left = true;
+  if (code === 'ArrowRight' || code === 'KeyD') keys.right = true;
+  if (code === 'Space') keys.brake = true;
+  if (code === 'Digit1') switchTheme('sunset');
+  if (code === 'Digit2') switchTheme('neon');
+  if (code === 'Digit3') switchTheme('aurora');
+  if (code === 'Digit4') switchTheme('jungle');
+  if (code === 'Digit5') switchTheme('snowfield');
+  if (code === 'KeyV' && !e.repeat) toggleView();
+  if (code === 'Escape' && state.started) openPicker();
 });
 window.addEventListener('keyup', e => {
-  if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
-  if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
-  if (e.code === 'Space') keys.brake = false;
+  const code = inputCode(e);
+  if (code === 'ArrowUp' || code === 'KeyW') keys.up = false;
+  if (code === 'ArrowDown' || code === 'KeyS') keys.down = false;
+  if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
+  if (code === 'ArrowRight' || code === 'KeyD') keys.right = false;
+  if (code === 'Space') keys.brake = false;
 });
 
 /* ============================================================
