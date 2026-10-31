@@ -356,6 +356,8 @@
         MK.progress.reset();
         if (MK.resetChallenge) MK.resetChallenge();
         if (MK.resetLearn) MK.resetLearn();
+        var certName = document.getElementById('certName');
+        if (certName) certName.value = '';
         MK.toast('已清空记录，重新开始吧！', 'warn');
         MK.go('learn');
       }

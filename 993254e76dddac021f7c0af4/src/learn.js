@@ -177,7 +177,7 @@
     });
   }
 
-  MK.resetLearn = function () { currentView = ''; switchView('top'); };
+  MK.resetLearn = function () { learnedSet = {}; lastId = null; currentView = ''; switchView('top'); };
 
   function bindStage() {
     stage.querySelectorAll('.hit').forEach(function (h) {
