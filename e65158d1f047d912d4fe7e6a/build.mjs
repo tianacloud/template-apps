@@ -19,6 +19,7 @@ async function cloudQuery(sql,values=[]) {
 async function cloudPreference(key,value){await cloudQuery('INSERT INTO preferences (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',[key,value]);}
 async function cloudLoadPreferences(){const result=await cloudQuery('SELECT key,value FROM preferences');return Object.fromEntries(result.rows.map(row=>[row[0].value,row[1].value]));}
 document.head.appendChild(Object.assign(document.createElement('style'),{textContent:${JSON.stringify(style)}}));
+root.style.minHeight='100dvh';
 root.innerHTML=${JSON.stringify(body)};
 `;
 await fs.writeFile('dist/generated-entry.js',boot+scripts.join('\n;\n')+'\n}\n');
