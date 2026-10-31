@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS woodfish_state (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
