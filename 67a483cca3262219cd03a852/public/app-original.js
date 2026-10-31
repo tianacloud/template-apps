@@ -19,7 +19,7 @@ if (window.tiana) for (const type of ['click','change','input','keydown']) {
 }
 
 /* ===========================================================
-   小课表 · 小朋友的上课打卡 · 单文件离线版
+   小课表 · 小朋友的上课打卡
    数据模型: { id, date, time, subject, location, duration }
    字段兼容旧版本 (type/status/note) — 自动忽略
 =========================================================== */
@@ -1766,7 +1766,7 @@ function cloudStart(key, mode) {
           if (!db) { cloudSetMsg('连接失败'); return; }
           db.from('sync_store').select('payload').eq('sync_key', key).maybeSingle()
             .then(({ data, error }) => {
-              if (error || !data || !data.payload) { cloudSetMsg('云端还没有数据，稍后自动重试'); cloudStartTimers(); cloudPush(); return; }
+              if (error || !data || !data.payload) { cloudStop(); const message=error ? '读取配对数据失败，请重试' : '未找到配对数据，请检查配对码'; cloudSetMsg(message); toast(message, 'danger'); return; }
               // 整体采用云端数据
               state.records = sortRecordsDesc(sanitizeRecords((data.payload.records || [])
                 .filter(r => !((data.payload.tombs || {}).rec || {})[recSign(r)])));
@@ -1786,9 +1786,16 @@ function cloudStart(key, mode) {
               cloudPush();
             });
         });
+      } else if (mode === 'merge') {
+        cloudEnsureDb(db => {
+          db.from('sync_store').select('payload').eq('sync_key', key).maybeSingle().then(({data, error}) => {
+            if (error || !data || !data.payload) { cloudStop(); const message=error ? '读取配对数据失败，请重试' : '未找到配对数据，请检查配对码'; cloudSetMsg(message); toast(message, 'danger'); return; }
+            cloudStartTimers(); cloudPull();
+          });
+        });
       } else {
         cloudStartTimers();
-        cloudPull();     // 先拉合并、再上传
+        cloudPull();
       }
     };
     go();
@@ -1835,8 +1842,7 @@ function openCloudModal() {
   if (!avail) {
     html = `<div class="sync-tip">云同步需要在已登录且数据库连接正常的应用中使用。</div>`;
   } else if (pref && pref.key) {
-    html = `<div class="sync-tip">两台设备配了同一个配对码，打卡数据就会<b>自动保持一致</b>——
-      这台设备新增 / 修改 / 删除的记录都会同步到对方。</div>
+    html = `<div class="sync-tip">访问同一应用的成员共用课程数据。配对功能可在本应用内合并配对码对应的数据。</div>
       <div class="sync-step" style="margin-top:10px">配对码（另一台设备填这个）</div>
       <div class="sync-ops">
         <input class="input" id="cloud-key-show" readonly value="${escapeHtml(pref.key)}"
@@ -1849,26 +1855,25 @@ function openCloudModal() {
         <button class="btn btn-primary btn-sm" type="button" onclick="cloudSyncNow()">立即同步</button>
         <button class="btn btn-danger btn-sm" type="button" onclick="cloudUnbind()">解除配对</button>
       </div>
-      <div class="sync-tip" style="margin-top:8px;color:var(--text-2)">解除只停用这台设备的自动同步，<b>不会删除</b>云端和对方设备的数据。</div>`;
+      <div class="sync-tip" style="margin-top:8px;color:var(--text-2)">解除会停止本应用的配对同步，<b>不会删除</b>现有记录或配对数据。</div>`;
   } else {
-    html = `<div class="sync-tip">在<b>第一台设备</b>（数据最全的那台）点「生成配对码并开启」，然后在<b>另一台</b>填同一个配对码即可。
-      之后两边打卡都自动同步，不用再搬数据。<br>注意：配对码就是数据钥匙，<b>不要发到群里</b>，只发给要配对的设备。</div>
+    html = `<div class="sync-tip">同一应用的成员默认共用课程数据。可生成配对码，或加入本应用数据库已有的配对数据。<br>注意：配对码就是数据钥匙，<b>不要发到群里</b>，只发给要配对的设备。</div>
       <div class="sync-ops" style="margin-top:12px">
         <button class="btn btn-primary btn-sm" type="button" onclick="cloudEnableNew()">生成配对码并开启</button>
         <span class="sync-note" id="cloud-gen-note"></span>
       </div>
       <div class="sync-sep"></div>
-      <div class="sync-step">另一台设备：填入配对码加入</div>
+      <div class="sync-step">填入本应用已有的配对码</div>
       <div class="sync-ops">
         <input class="input" id="cloud-key-in" placeholder="如 AB3D-5FGH-JK2M" style="flex:1;min-width:0;text-transform:uppercase">
         <button class="btn btn-primary btn-sm" type="button" onclick="cloudJoin()">加入</button>
       </div>
       <div class="sync-ops" style="margin-top:6px">
         <label style="font-size:13px;color:var(--text-1);display:flex;gap:6px;align-items:center">
-          <input type="checkbox" id="cloud-adopt" checked> 这台设备的数据只是示例数据，开启时<b>&nbsp;以云端为准整体替换</b>
+          <input type="checkbox" id="cloud-adopt"> <b>用配对数据替换本应用全部课程记录和课时包</b>（影响所有成员）
         </label>
       </div>
-      <div class="sync-tip" style="margin-top:8px;color:var(--text-2)">不勾选则按「合并」加入：云端没有的记录会补进来，本机已有的保留。</div>`;
+      <div class="sync-tip" style="margin-top:8px;color:var(--text-2)">不勾选则按「合并」加入：配对数据中没有的记录仍会保留。</div>`;
   }
   openFormModal('☁ 云同步 · 自动保持一致', html, '完成', null);
   $('#modal-cancel').style.display = 'none';
@@ -1884,7 +1889,7 @@ function cloudEnableNew() {
   const key = cloudGenKey();
   cloudStart(key, 'publish');
   const note = $('#cloud-gen-note');
-  if (note) note.innerHTML = `配对码：<b>${escapeHtml(key)}</b>（已开启，到另一台设备填入它）`;
+  if (note) note.innerHTML = `配对码：<b>${escapeHtml(key)}</b>（已开启）`;
   toast('云同步已开启', 'good');
   setTimeout(openCloudModal, 600);   // 重绘弹窗展示配对码
 }
@@ -1900,7 +1905,7 @@ function cloudJoin() {
 }
 
 function cloudUnbind() {
-  openModal('解除云同步配对?', '这台设备将停止自动同步。云端数据和其他设备不受影响，本机现有数据也保留不动。', '解除', () => {
+  openModal('解除云同步配对?', '本应用将停止配对同步，当前记录与配对数据仍会保留。', '解除', () => {
     cloudStop();
     toast('已解除配对', 'good');
     closeModal();
@@ -2134,7 +2139,7 @@ window.NEON = window.APP = { state, refreshAll, switchPage, addRecord, deleteRec
   showSubjectManager, renameSubjectAt, deleteSubjectAt, subjectAllNames,
   setQuotaAt, renderChips, recentValues, lastUsedValue, DEFAULT_DURATION,
   openSyncModal, buildSyncCode, parseSyncCode, previewSync, mergeSyncData, applySyncCode, SYNC_PREFIX,
-  // 云同步（探针验收用）
+  // 云同步
   cloud: { CLOUD_CFG, state: cloud, loadTombs, saveTombs, tombAdd, tombForget,
     quotaTombAdd, quotaTombForget, cloudBuildPayload, cloudMergeRemote, cloudStart, cloudStop,
     cloudSyncNow, cloudInit, cloudAvailable, cloudEnsureDb, recSign, sortRecordsDesc, sanitizeRecords } };
