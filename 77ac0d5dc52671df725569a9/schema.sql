@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS pet_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
