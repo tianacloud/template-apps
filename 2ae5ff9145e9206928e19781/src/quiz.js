@@ -279,7 +279,7 @@ function renderPoints(){
 
 /* ---------- 挑战流程 ---------- */
 let qs=[],cur=0,qStreak=[],qWrong=[],roundWrong=0,currentRound=1,curMult=1,locked=false;
-function saveProgress(){ls("daily",{date:todayStr(),round:currentRound,qs,cur,qStreak,qWrong,roundWrong});}
+function saveProgress(pending=null){saveState();ls("daily",{date:todayStr(),round:currentRound,qs,cur,qStreak,qWrong,roundWrong,pending});}
 
 function renderChallenge(){
   const body=$("#challengeBody");
@@ -294,6 +294,11 @@ function renderChallenge(){
   const saved=ls("daily");
   if(saved&&saved.date===today&&saved.round===currentRound){
     qs=saved.qs;cur=saved.cur;qStreak=saved.qStreak;qWrong=saved.qWrong;roundWrong=saved.roundWrong;
+    if(saved.pending){
+      if(saved.pending.advance){if(cur+1>=qs.length){finishRound();return;}cur++;}
+      else qs[cur].opts=shuffle(qs[cur].opts.slice(),()=>Math.random());
+      saveProgress();
+    }
   }else{
     qs=dailyQuestions(currentRound);cur=0;
     qStreak=qs.map(()=>0);qWrong=qs.map(()=>false);roundWrong=0;
@@ -368,7 +373,7 @@ function chooseConc(i){
     <div class="kv"><span class="lab">所属概念</span><span class="val">${C.n}</span></div></div>
     <div class="row"><button class="btn" id="nextBtn">${advance?(cur+1<qs.length?"下一题":"完成本次挑战"):"继续答题"}</button></div>`;
   document.getElementById("nextBtn").onclick=advance?nextQ:retryQ;
-  saveProgress();
+  saveProgress({advance});
 }
 function paintConc(q,i,correct){
   const box=document.getElementById("optBox");
@@ -424,7 +429,7 @@ function chooseSingle(i){
   fb.innerHTML=`<div class="feedback"><div class="fb-h">${icon}${msg}</div>${knowledgeHTML(st2,q)}</div>
     <div class="row"><button class="btn" id="nextBtn">${advance?(cur+1<qs.length?"下一题":"完成本次挑战"):"继续答题"}</button></div>`;
   document.getElementById("nextBtn").onclick=advance?nextQ:retryQ;
-  saveProgress();
+  saveProgress({advance});
 }
 function paintSingle(q,i,correct){
   const box=document.getElementById("optBox");
@@ -469,7 +474,7 @@ function confirmMulti(q,sel){
     <div class="kv"><span class="lab">提示</span><span class="val" style="color:var(--ink2)">${q.kind==="ind"?("这几家都属于「"+q.label+"」行业"):(q.kind==="board"?("这几家都是「"+q.label+"」股票"):("这几只都属于「"+q.label+"」概念"))}</span></div></div>
     <div class="row"><button class="btn" id="nextBtn">${advance?(cur+1<qs.length?"下一题":"完成本次挑战"):"继续答题"}</button></div>`;
   document.getElementById("nextBtn").onclick=advance?nextQ:retryQ;
-  saveProgress();
+  saveProgress({advance});
 }
 function knowledgeHTML(st,q){
   const ansLabel=q.t==="code"?"正确答案（代码）":"正确答案（主营业务）";
@@ -509,11 +514,11 @@ function finishRound(){
     state.lastDone=todayStr();
   }
   state.todayRounds++;
-  saveState();ls("daily",null);
   if(!state.ach.includes("first"))state.ach.push("first");
   if(roundWrong===0&&!state.ach.includes("perfect"))state.ach.push("perfect");
   if(state.streak>=10&&!state.ach.includes("streak10"))state.ach.push("streak10");
   if(state.totalCorrect>=100&&!state.ach.includes("hundred"))state.ach.push("hundred");
+  saveState();ls("daily",null);
   renderHead();renderToday();renderPoints();
   const body=$("#challengeBody");
   body.innerHTML=`<div class="empty" style="padding:24px 10px">
@@ -564,7 +569,7 @@ function startDrill(){
     opts.forEach((o,i)=>{const b=document.createElement("button");b.className="opt";b.innerHTML=`<span class="k">${"ABCD"[i]}</span>${o}`;b.onclick=()=>{
       const ok=o===answer;
       ob.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===i)x.classList.add(ok?"correct":"wrong");else if(opts[j]===answer)x.classList.add("correct");else x.classList.add("dim");});
-      state.wrong=state.wrong.filter(x=>x.key!==w.key);
+      if(ok)state.wrong=state.wrong.filter(x=>x.key!==w.key);
       if(ok&&!state.ach.includes("killer"))state.ach.push("killer");
       saveState();renderPoints();
       const fb=document.getElementById("fbBox");
