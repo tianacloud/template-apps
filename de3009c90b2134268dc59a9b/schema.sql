@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS archive_state (app_id TEXT PRIMARY KEY, payload TEXT NOT NULL, revision INTEGER NOT NULL);
