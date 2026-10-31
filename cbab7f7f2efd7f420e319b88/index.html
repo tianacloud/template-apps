@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title data-pnid-children="5dNqqqUbH6jOl77HAFcV1b">密图 — 文本图像编解码器</title>
+<style data-pnid-children="jTmZ4qJwdmjYBYZVVDNRAF">
+  :root {
+    --bg: #0a0a0f;
+    --bg-elevated: #12121a;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-border-hover: rgba(255,255,255,0.15);
+    --text-primary: #f0f0f5;
+    --text-secondary: #8a8a9a;
+    --text-muted: #5a5a6a;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --accent-glow: rgba(108,92,231,0.25);
+    --success: #00b894;
+    --success-glow: rgba(0,184,148,0.2);
+    --warning: #fdcb6e;
+    --danger: #e17055;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --transition: 0.3s cubic-bezier(0.16,1,0.3,1);
+    --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  }
+
+  [data-theme="light"] {
+    --bg: #f5f5fa;
+    --bg-elevated: #ffffff;
+    --surface: rgba(0,0,0,0.03);
+    --surface-hover: rgba(0,0,0,0.06);
+    --glass: rgba(255,255,255,0.6);
+    --glass-border: rgba(0,0,0,0.08);
+    --glass-border-hover: rgba(0,0,0,0.12);
+    --text-primary: #1a1a2e;
+    --text-secondary: #6a6a7e;
+    --text-muted: #9a9aae;
+    --accent: #5f3dc4;
+    --accent-light: #7950f2;
+    --accent-glow: rgba(95,61,196,0.15);
+    --success: #0ca678;
+    --success-glow: rgba(12,166,120,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-size: 16px; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  .atmosphere {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, var(--accent-glow), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 80%, var(--success-glow), transparent);
+    opacity: 0.5;
+    transition: opacity var(--transition);
+  }
+  .atmosphere::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  .header { text-align: center; margin-bottom: 48px; }
+  .logo { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px var(--accent-glow);
+    font-size: 24px; color: white;
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
+  .logo-icon:hover { transform: scale(1.08) translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+  .logo-text {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent-light));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle { color: var(--text-secondary); font-size: 15px; line-height: 1.6; max-width: 560px; margin: 0 auto; }
+
+  .theme-toggle {
+    position: fixed; top: 24px; right: 24px; z-index: 100;
+    width: 44px; height: 44px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    backdrop-filter: blur(20px);
+    font-size: 20px; color: var(--text-secondary);
+  }
+  .theme-toggle:hover {
+    background: var(--surface-hover);
+    border-color: var(--glass-border-hover);
+    transform: scale(1.05);
+  }
+
+  .mode-switcher {
+    display: flex; gap: 4px; padding: 4px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    margin-bottom: 32px;
+    backdrop-filter: blur(20px);
+  }
+  .mode-btn {
+    flex: 1; padding: 14px 24px;
+    background: transparent;
+    border: none; border-radius: var(--radius-xs);
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 15px; font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 12px var(--accent-glow);
+  }
+  .mode-btn:not(.active):hover { color: var(--text-primary); background: var(--surface-hover); }
+
+  .panel {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 32px;
+    backdrop-filter: blur(30px) saturate(180%);
+    transition: all var(--transition);
+    margin-bottom: 24px;
+  }
+  .panel:hover { border-color: var(--glass-border-hover); }
+  .panel-title {
+    font-size: 18px; font-weight: 600;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel-title .icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: white;
+  }
+
+  .input-group { margin-bottom: 20px; }
+  .input-label {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .input-label .hint { color: var(--text-muted); font-weight: 400; }
+
+  textarea, input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    color: var(--text-primary);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    transition: all var(--transition);
+    outline: none;
+  }
+  textarea:focus, input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  textarea::placeholder, input::placeholder { color: var(--text-muted); }
+
+  .charset-info {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .charset-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    font-size: 12px; color: var(--text-secondary);
+    font-family: var(--mono);
+    transition: all var(--transition);
+  }
+  .charset-tag:hover { border-color: var(--glass-border-hover); }
+  .charset-tag .count { color: var(--accent-light); font-weight: 600; }
+
+  .drop-zone {
+    border: 2px dashed var(--glass-border);
+    border-radius: var(--radius);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .drop-zone .icon { font-size: 40px; color: var(--text-muted); margin-bottom: 12px; display: block; }
+  .drop-zone .label { color: var(--text-secondary); font-size: 15px; }
+  .drop-zone .label em { color: var(--accent-light); font-style: normal; font-weight: 500; }
+  .drop-zone .sub { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+  .drop-zone input[type="file"] { display: none; }
+  .drop-zone.has-image { padding: 16px; border-style: solid; border-color: var(--glass-border); }
+  .drop-zone.has-image .placeholder-text { display: none; }
+  .preview-img {
+    max-width: 100%; max-height: 320px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    display: block; margin: 0 auto;
+  }
+  .image-meta {
+    margin-top: 12px;
+    font-size: 12px; color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 28px;
+    background: var(--accent);
+    color: white;
+    border: none; border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: 0 2px 12px var(--accent-glow);
+    position: relative; overflow: hidden;
+  }
+  .btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 24px var(--accent-glow); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn.success { background: var(--success); box-shadow: 0 2px 12px var(--success-glow); }
+  .btn.success:hover { box-shadow: 0 6px 24px var(--success-glow); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    box-shadow: none;
+  }
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: none;
+  }
+
+  .result-area { min-height: 60px; }
+  .result-box {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-primary);
+    word-break: break-all;
+    transition: all var(--transition);
+  }
+  .result-box.success-border { border-color: var(--success); }
+  .result-box.error-border { border-color: var(--danger); }
+  .result-label {
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 8px;
+    font-family: var(--font);
+  }
+
+  .codepoints-box {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    padding: 12px;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    word-break: break-all;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .capacity-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 12px; font-size: 13px; color: var(--text-secondary);
+  }
+  .capacity-track {
+    flex: 1; height: 6px;
+    background: var(--surface);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .capacity-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--success), var(--accent));
+    transition: width var(--transition);
+  }
+  .capacity-fill.over { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-top: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    padding: 14px;
+    text-align: center;
+    transition: all var(--transition);
+  }
+  .stat-card:hover { border-color: var(--glass-border-hover); transform: translateY(-1px); }
+  .stat-value { font-size: 20px; font-weight: 700; color: var(--accent-light); font-family: var(--mono); }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; }
+  .toast {
+    padding: 14px 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 14px;
+    backdrop-filter: blur(30px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    animation: toastIn 0.4s cubic-bezier(0.16,1,0.3,1);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.error { border-color: var(--danger); }
+  .toast.success { border-color: var(--success); }
+  .toast.warning { border-color: var(--warning); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+  .algo-section { margin-top: 40px; }
+  .algo-card {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all var(--transition);
+  }
+  .algo-card:hover { border-color: var(--glass-border-hover); }
+  .algo-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .algo-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+  .algo-code {
+    background: var(--bg);
+    border-radius: var(--radius-xs);
+    padding: 16px;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .footer { text-align: center; margin-top: 48px; padding-bottom: 24px; font-size: 13px; color: var(--text-muted); }
+
+  @media (max-width: 640px) {
+    .app { padding: 24px 16px; }
+    .logo-text { font-size: 24px; }
+    .panel { padding: 20px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .btn { padding: 12px 20px; font-size: 14px; }
+  }
+
+  .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16,1,0.3,1); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Verification badge */
+  .verify-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    margin-top: 12px;
+  }
+  .verify-badge.pass { background: var(--success-glow); color: var(--success); border: 1px solid var(--success); }
+  .verify-badge.fail { background: rgba(225,112,85,0.15); color: var(--danger); border: 1px solid var(--danger); }
+
+  /* Password input */
+  .password-wrapper { position: relative; }
+  .password-wrapper input { padding-right: 48px; }
+  .password-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: var(--text-muted);
+    transition: color var(--transition); padding: 4px;
+  }
+  .password-toggle:hover { color: var(--text-secondary); }
+  .encrypt-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; font-family: var(--mono);
+  }
+  .encrypt-badge.encrypted { background: var(--accent-glow); color: var(--accent-light); border: 1px solid var(--accent); }
+  .encrypt-badge.plain { background: var(--surface); color: var(--text-muted); border: 1px solid var(--glass-border); }
+  .password-hint {
+    margin-top: 8px; padding: 10px 14px;
+    background: var(--accent-glow); border: 1px solid var(--accent);
+    border-radius: var(--radius-xs);
+    font-size: 12px; color: var(--accent-light); display: none;
+  }
+  .password-hint.show { display: block; }
+
+  /* Unicode table */
+  .unicode-table {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px;
+    margin-top: 12px;
+  }
+  .unicode-cell {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    padding: 8px 4px;
+    text-align: center;
+    transition: all var(--transition);
+    font-family: var(--mono);
+  }
+  .unicode-cell:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .unicode-cell .char { font-size: 16px; font-weight: 700; color: var(--text-primary); font-family: var(--font); }
+  .unicode-cell .cp { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="atmosphere"></div>
+<div class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌙</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app">
+  <header class="header fade-in">
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <div class="logo-text">密图</div>
+    </div>
+    <p class="subtitle">将文本隐写编码为图像载体，或将图像逆向解码还原原始文本。支持数字、大小写字母、标点符号、中文字符等任意字符。基于 LSB 隐写术 + BigInt + Unicode 码点算法，可选 AES-256 加密保护，PNG 无损存储确保数据完整可逆。</p>
+  </header>
+
+  <div class="mode-switcher fade-in">
+    <button class="mode-btn active" data-mode="encode" onclick="switchMode('encode')">编码模式</button>
+    <button class="mode-btn" data-mode="decode" onclick="switchMode('decode')">解码模式</button>
+  </div>
+
+  <!-- Encode Panel -->
+  <div class="fade-in" id="encodePanel">
+    <div class="panel">
+      <div class="panel-title"><span class="icon">📝</span> 输入文本内容</div>
+      <div class="input-group">
+        <div class="input-label">文本内容 <span class="hint">（支持数字、大小写字母、标点符号、空格等任意字符）</span></div>
+        <textarea id="textInput" placeholder="例如: Hello, World!&#10;或: The answer is 42.&#10;混合内容: ABC123!@# xyz&#10;中文也支持: 你好世界" rows="4"></textarea>
+      </div>
+      <div class="charset-info" id="charsetInfo" style="display:none"></div>
+      <div class="capacity-bar" id="capacityInfo" style="display:none">
+        <span>容量占用</span>
+        <div class="capacity-track"><div class="capacity-fill" id="capacityFill" style="width:0%"></div></div>
+        <span id="capacityText">0%</span>
+      </div>
+      <div class="input-group" style="margin-top:16px">
+        <div class="input-label">加密密码 <span class="hint">（可选 — 设置后解码时需输入相同密码）</span></div>
+        <div class="password-wrapper">
+          <input id="encodePassword" placeholder="留空则不加密，填写则启用 AES-256 加密" type="password">
+          <button class="password-toggle" onclick="togglePasswordVisibility('encodePassword')" type="button">👁</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="icon">🖼️</span> 载体图片</div>
+      <div class="drop-zone" id="carrierDropZone" onclick="document.getElementById('carrierFileInput').click()">
+        <span class="icon">📁</span>
+        <div class="placeholder-text">
+          <div class="label">拖拽图片到此处，或 <em>点击上传</em></div>
+          <div class="sub">支持 PNG / JPG / BMP 格式 · 建议使用 ≥100×100 的图片</div>
+        </div>
+        <input accept="image/png,image/jpeg,image/bmp,image/webp" id="carrierFileInput" onchange="handleCarrierUpload(event)" type="file">
+        <img class="preview-img" id="carrierPreview" style="display:none">
+        <div class="image-meta" id="carrierMeta" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="btn-group" style="margin-bottom:24px">
+      <button class="btn" disabled id="encodeBtn" onclick="doEncode()">🔐 开始编码</button>
+      <button class="btn-secondary btn" onclick="generateCarrier()">🎨 生成随机载体</button>
+      <button class="btn-secondary btn" onclick="clearEncode()">✖ 清空</button>
+    </div>
+
+    <div class="panel result-area" id="encodeResult" style="display:none">
+      <div class="panel-title"><span class="icon">✅</span> 编码结果</div>
+      <div class="result-label">编码后的图像（右键保存或点击下载按钮）</div>
+      <canvas id="encodeCanvas" style="display:none"></canvas>
+      <img class="preview-img" id="encodeResultImg">
+      <div id="verifyBadge"></div>
+      <div class="stats-grid" id="encodeStats"></div>
+      <div class="btn-group" style="margin-top:16px">
+        <button class="btn success" onclick="downloadEncodedImage()">💾 下载 PNG 图像</button>
+        <button class="btn-secondary btn" onclick="selfTest()">🧪 自测验证</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decode Panel -->
+  <div class="fade-in" id="decodePanel" style="display:none">
+    <div class="panel">
+      <div class="panel-title"><span class="icon">🖼️</span> 上传编码图像</div>
+      <div class="drop-zone" id="decodeDropZone" onclick="document.getElementById('decodeFileInput').click()">
+        <span class="icon">📁</span>
+        <div class="placeholder-text">
+          <div class="label">拖拽编码图像到此处，或 <em>点击上传</em></div>
+          <div class="sub">仅支持 PNG 格式 · JPG 有损压缩会破坏 LSB 数据</div>
+        </div>
+        <input accept="image/png" id="decodeFileInput" onchange="handleDecodeUpload(event)" type="file">
+        <img class="preview-img" id="decodePreview" style="display:none">
+        <div class="image-meta" id="decodeMeta" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="icon">🔑</span> 解密密码</div>
+      <div class="input-group" style="margin-bottom:0">
+        <div class="input-label">密码 <span class="hint">（如果编码时设置了密码，请输入相同密码）</span></div>
+        <div class="password-wrapper">
+          <input id="decodePassword" placeholder="未加密的图像留空即可" type="password">
+          <button class="password-toggle" onclick="togglePasswordVisibility('decodePassword')" type="button">👁</button>
+        </div>
+        <div class="password-hint" id="decodePasswordHint">检测到此图像已加密，请输入正确的解密密码</div>
+      </div>
+    </div>
+
+    <div class="btn-group" style="margin-bottom:24px">
+      <button class="btn" disabled id="decodeBtn" onclick="doDecode()">🔓 开始解码</button>
+      <button class="btn-secondary btn" id="directDecodeBtn" onclick="directDecode()" style="display:none">⚡ 直接解码（编码结果）</button>
+      <button class="btn-secondary btn" onclick="clearDecode()">✖ 清空</button>
+    </div>
+
+    <div class="panel result-area" id="decodeResult" style="display:none">
+      <div class="panel-title"><span class="icon">✅</span> 解码结果</div>
+      <div class="result-label">还原的文本内容</div>
+      <div class="result-box" id="decodedText"></div>
+      <div class="result-label" style="margin-top:12px">码点对照 <span style="color:var(--text-muted)">（每个字符的 Unicode 码点值）</span></div>
+      <div class="codepoints-box" id="decodedCodepoints"></div>
+      <div id="decodeVerifyBadge"></div>
+      <div class="stats-grid" id="decodeStats"></div>
+      <div class="btn-group" style="margin-top:16px">
+        <button class="btn success" onclick="copyDecoded()">📋 复制文本</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Algorithm Explanation (hidden) -->
+  <div class="algo-section fade-in" style="display:none">
+    <div class="panel">
+      <div class="panel-title"><span class="icon">🧠</span> 算法原理</div>
+      <div class="algo-card">
+        <div class="algo-title">1️⃣ Unicode 码点映射</div>
+        <div class="algo-desc">
+          每个字符通过 <code data-pnid-children="dqhbGVeqKwCM8rYgM90SrX">charCodeAt()</code> 映射为 Unicode 码点数值，然后使用 BigInt LSB 算法编码到图像像素中。解码时读取 LSB 位还原码点数值，再通过 <code data-pnid-children="Xqm7ZaiP2quLlsLtNjrcmY">String.fromCodePoint()</code> 还原原始字符。
+          <br><br>
+          <strong>支持的字符范围：</strong>
+          <ul style="margin-top:8px; padding-left:20px">
+            <li>数字：0-9（码点 48-57）</li>
+            <li>大写字母：A-Z（码点 65-90）</li>
+            <li>小写字母：a-z（码点 97-122）</li>
+            <li>常用标点：!@#$%^&amp;*() 等（码点 33-47, 58-64 等）</li>
+            <li>空格、换行、制表符等</li>
+            <li>中文字符（码点 0x4E00-0x9FFF 范围）</li>
+            <li>理论上支持任何 Unicode 字符</li>
+          </ul>
+        </div>
+        <div class="algo-code">
+'A' → 码点 65 → BigInt(65) → 7bit 二进制 → 嵌入像素 LSB<br>
+'a' → 码点 97 → BigInt(97) → 7bit 二进制 → 嵌入像素 LSB<br>
+'!' → 码点 33 → BigInt(33) → 6bit 二进制 → 嵌入像素 LSB<br>
+'中' → 码点 20013 → BigInt(20013) → 15bit → 嵌入像素 LSB
+        </div>
+      </div>
+      <div class="algo-card">
+        <div class="algo-title">2️⃣ LSB 隐写编码（BigInt 安全）</div>
+        <div class="algo-desc">
+          将每个码点转换为二进制位流。在载体图像的每个像素中，RGB 三通道各占用 1 个最低有效位（LSB），每个像素可携带 3 bit 数据。
+          <strong>全程使用 BigInt 位运算</strong>，突破 JavaScript 32位位移限制，支持任意大码点值。
+        </div>
+        <div class="algo-code">
+BigInt(v) >> BigInt(i) & 1n → 安全提取任意位宽的每一位<br>
+像素(R,G,B) → (R&amp;0xFE|bit1, G&amp;0xFE|bit2, B&amp;0xFE|bit3)<br>
+每像素 3 bit，256×256 图像可存储 ≈ 24,576 bit
+        </div>
+      </div>
+      <div class="algo-card">
+        <div class="algo-title">3️⃣ 数据头部格式</div>
+        <div class="algo-desc">
+          编码数据前 32 bit 为头部：前 16 bit 表示数据项个数 N，后 16 bit 表示位宽 W。
+          <strong>W=0 为加密模式魔数值</strong>，表示数据区为 AES-256 加密后的字节流（每字节 8bit）。
+          W≥1 为明文模式，每个码点用 W bit 定长编码。
+        </div>
+        <div class="algo-code">
+明文: [16bit: count=N] [16bit: width=W≥1] [N × Wbit: codepoints]<br>
+加密: [16bit: count=N] [16bit: width=0] [N × 8bit: salt(16B)+IV(12B)+ciphertext]
+        </div>
+      </div>
+      <div class="algo-card">
+        <div class="algo-title">4️⃣ AES-256 加密层（可选）</div>
+        <div class="algo-desc">
+          设置密码后，文本先经 UTF-8 编码为字节，再使用 <strong>AES-GCM-256</strong> 加密。
+          密钥通过 <strong>PBKDF2-SHA256</strong>（100,000 次迭代）从用户密码派生。
+          加密后的字节流（含随机 salt + IV + 密文 + 认证标签）嵌入图像 LSB。
+          <br><br>
+          <strong>安全性：</strong>无密码无法解密；错误密码会被 AES-GCM 认证标签拒绝（不会输出乱码）。
+          每次编码使用不同的随机 salt 和 IV，即使相同文本和密码也会产生不同的密文。
+        </div>
+        <div class="algo-code">
+password → PBKDF2(100K iterations, SHA-256) → 256-bit key<br>
+text → UTF-8 → AES-GCM-256(key, random IV) → ciphertext<br>
+[salt(16B) + IV(12B) + ciphertext] → bytes → 8bit each → LSB embed
+        </div>
+      </div>
+
+      <!-- Quick Reference Table -->
+      <div class="algo-card">
+        <div class="algo-title">5️⃣ 常用字符码点速查</div>
+        <div class="unicode-table" id="unicodeRefTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    密图 v4 · 文本图像隐写编解码器 · LSB + BigInt + Unicode + AES-256 加密
+  </footer>
+</div>
+
+<script data-pnid-children="fxQudOndUxaErqpRuYQK8W">
+// ==================== State ====================
+let currentMode = 'encode';
+let carrierImageData = null;
+let carrierImage = null;
+let encodedCanvas = null;
+let encodedImageData = null;
+let lastEncodedText = null;
+let lastEncodedCodepoints = null;
+let lastEncodedPassword = null;
+let decodeImageData = null;
+let decodeImage = null;
+
+// ==================== Theme ====================
+let themeGeneration = 0;
+let themeWrites = Promise.resolve();
+function applyTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  document.querySelector('.theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+async function settingsSql(sql) {
+  if (typeof window.tiana?.auth?.getAccessToken !== 'function') throw new Error('账号连接不可用');
+  const c = await window.tiana.connection();
+  const http = createTianaFetch({origin:c.origin, auth:window.tiana.auth, ...(c.sql_api === 'tiana-http' ? {protocol:'tiana-http'} : {requestBodyMode:'buffered'})});
+  if (c.sql_api === 'tiana-http') {
+    const response = await http(`${c.origin}/v1/sql`, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sql})});
+    const body = await response.json();
+    if (!response.ok || body.ok !== true || body.results?.some(x => x.error)) throw new Error('设置读写失败');
+    return body.results?.[0]?.result?.rows || [];
+  }
+  if (c.sql_api !== 'hrana-v3') throw new Error('不支持的数据库连接');
+  const response = await http(`${c.origin}/v3/pipeline`, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({requests:[{type:'execute',stmt:{sql,args:[],want_rows:true}},{type:'close'}]})});
+  const body = await response.json();
+  if (!response.ok || body.results?.[0]?.type !== 'ok' || body.results[0].response?.type !== 'execute') throw new Error('设置读写失败');
+  return body.results[0].response.result.rows || [];
+}
+function toggleTheme() {
+  const next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  themeGeneration++;
+  applyTheme(next);
+  themeWrites = themeWrites.catch(() => {}).then(() => settingsSql(`INSERT INTO app_settings (key,value) VALUES ('theme','${next}') ON CONFLICT(key) DO UPDATE SET value=excluded.value`)).catch(() => showToast('主题未能保存，请检查连接后重试', 'error'));
+}
+(async function loadTheme() {
+  const generation = themeGeneration;
+  try {
+    const rows = await settingsSql("SELECT value FROM app_settings WHERE key='theme'");
+    const cell = rows[0]?.[0]; const value = typeof cell === 'string' ? cell : cell?.value;
+    if (generation === themeGeneration && (value === 'light' || value === 'dark')) applyTheme(value);
+  } catch (_) { showToast('主题设置读取失败，请检查连接', 'error'); }
+})();
+
+// ==================== Unicode Reference Table ====================
+(function() {
+  const refs = [
+    {char:'A',cp:65},{char:'B',cp:66},{char:'C',cp:67},{char:'Z',cp:90},
+    {char:'a',cp:97},{char:'b',cp:98},{char:'z',cp:122},
+    {char:'0',cp:48},{char:'9',cp:57},
+    {char:'!',cp:33},{char:'@',cp:64},{char:'#',cp:35},{char:'$',cp:36},
+    {char:'%',cp:37},{char:'&',cp:38},{char:'*',cp:42},{char:'(',cp:40},
+    {char:')',cp:41},{char:'-',cp:45},{char:'=',cp:61},{char:'+',cp:43},
+    {char:'.',cp:46},{char:',',cp:44},{char:'?',cp:63},{char:'/',cp:47},
+    {char:' ',cp:32},{char:'~',cp:126},{char:'^',cp:94},{char:'_',cp:95},
+  ];
+  const table = document.getElementById('unicodeRefTable');
+  refs.forEach(r => {
+    const cell = document.createElement('div');
+    cell.className = 'unicode-cell';
+    cell.innerHTML = `<div class="char">${r.char === ' ' ? '␣' : r.char}</div><div class="cp">U+${r.cp.toString(16).toUpperCase().padStart(4,'0')} (${r.cp})</div>`;
+    table.appendChild(cell);
+  });
+})();
+
+// ==================== Toast ====================
+function showToast(msg, type='info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  const icons = { info: '💡', error: '❌', success: '✅', warning: '⚠️' };
+  toast.innerHTML = `<span>${icons[type] || '💡'}</span> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.3s forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ==================== Mode Switch ====================
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('encodePanel').style.display = mode === 'encode' ? '' : 'none';
+  document.getElementById('decodePanel').style.display = mode === 'decode' ? '' : 'none';
+  document.getElementById('directDecodeBtn').style.display = (mode === 'decode' && encodedCanvas) ? '' : 'none';
+}
+
+// ==================== Drag & Drop ====================
+function setupDropZone(zoneId, handler) {
+  const zone = document.getElementById(zoneId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', e => { zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handler({ target: { files: [file] } });
+  });
+}
+setupDropZone('carrierDropZone', handleCarrierUpload);
+setupDropZone('decodeDropZone', handleDecodeUpload);
+
+// ==================== BigInt Bit Operations ====================
+
+function calculateBitWidth(codepoints) {
+  let maxVal = 0n;
+  for (const n of codepoints) {
+    const v = BigInt(n);
+    if (v > maxVal) maxVal = v;
+  }
+  if (maxVal === 0n) return 1;
+  let width = 0;
+  let temp = maxVal;
+  while (temp > 0n) { width++; temp >>= 1n; }
+  return width;
+}
+
+function bigIntToBits(value, width) {
+  const v = BigInt(value);
+  const bits = [];
+  for (let i = width - 1; i >= 0; i--) {
+    bits.push(Number((v >> BigInt(i)) & 1n));
+  }
+  return bits;
+}
+
+function bitsToBigInt(bits, offset, width) {
+  let v = 0n;
+  for (let b = 0; b < width; b++) {
+    v = (v << 1n) | BigInt(bits[offset + b]);
+  }
+  return v;
+}
+
+// ==================== AES-GCM Encryption (Web Crypto API) ====================
+const PBKDF2_ITERATIONS = 100000;
+const SALT_LENGTH = 16;
+const IV_LENGTH = 12;
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptText(text, password) {
+  const enc = new TextEncoder();
+  const plaintext = enc.encode(text);
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const key = await deriveKey(password, salt);
+  const ciphertext = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, plaintext)
+  );
+  const combined = new Uint8Array(SALT_LENGTH + IV_LENGTH + ciphertext.length);
+  combined.set(salt, 0);
+  combined.set(iv, SALT_LENGTH);
+  combined.set(ciphertext, SALT_LENGTH + IV_LENGTH);
+  return combined;
+}
+
+async function decryptBytes(encryptedBytes, password) {
+  const salt = encryptedBytes.slice(0, SALT_LENGTH);
+  const iv = encryptedBytes.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const ciphertext = encryptedBytes.slice(SALT_LENGTH + IV_LENGTH);
+  const key = await deriveKey(password, salt);
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
+  return new TextDecoder().decode(plaintext);
+}
+
+function bytesToBits(bytes) {
+  const bits = [];
+  for (const byte of bytes) {
+    for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
+  }
+  return bits;
+}
+
+function bitsToBytes(bits, offset, byteCount) {
+  const bytes = new Uint8Array(byteCount);
+  for (let n = 0; n < byteCount; n++) {
+    let byte = 0;
+    for (let b = 0; b < 8; b++) byte = (byte << 1) | bits[offset + n * 8 + b];
+    bytes[n] = byte;
+  }
+  return bytes;
+}
+
+// ==================== Text → Codepoints ====================
+function textToCodepoints(text) {
+  const codepoints = [];
+  for (let i = 0; i < text.length;) {
+    const cp = text.codePointAt(i);
+    codepoints.push(cp);
+    if (cp > 0xFFFF) { i += 2; } else { i += 1; }
+  }
+  return codepoints;
+}
+
+function codepointsToText(codepoints) {
+  return String.fromCodePoint(...codepoints);
+}
+
+function classifyChar(cp) {
+  if (cp >= 48 && cp <= 57) return '数字';
+  if (cp >= 65 && cp <= 90) return '大写字母';
+  if (cp >= 97 && cp <= 122) return '小写字母';
+  if (cp === 32) return '空格';
+  if (cp >= 0x4E00 && cp <= 0x9FFF) return '中文';
+  if (cp >= 0x3000 && cp <= 0x303F) return '中文标点';
+  if (cp >= 33 && cp <= 47) return '标点符号';
+  if (cp >= 58 && cp <= 64) return '标点符号';
+  if (cp >= 91 && cp <= 96) return '标点符号';
+  if (cp >= 123 && cp <= 126) return '标点符号';
+  if (cp > 0xFFFF) return '扩展字符';
+  return '其他';
+}
+
+// ==================== Charset Analysis ====================
+function updateCharsetInfo() {
+  const text = document.getElementById('textInput').value;
+  if (!text) {
+    document.getElementById('charsetInfo').style.display = 'none';
+    return;
+  }
+  const codepoints = textToCodepoints(text);
+  const categories = {};
+  for (const cp of codepoints) {
+    const cat = classifyChar(cp);
+    categories[cat] = (categories[cat] || 0) + 1;
+  }
+  const infoEl = document.getElementById('charsetInfo');
+  infoEl.style.display = '';
+  infoEl.innerHTML = Object.entries(categories)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, count]) => `<span class="charset-tag">${cat} <span class="count">${count}</span></span>`)
+    .join('');
+}
+
+// ==================== Carrier Upload ====================
+function handleCarrierUpload(e) {
+  const file = e.target.files ? e.target.files[0] : null;
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    carrierImage = img;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const rawImageData = ctx.getImageData(0, 0, img.width, img.height);
+    const d = rawImageData.data;
+    for (let i = 0; i < d.length; i += 4) d[i + 3] = 255;
+    carrierImageData = rawImageData;
+    const preview = document.getElementById('carrierPreview');
+    preview.src = img.src; preview.style.display = '';
+    const meta = document.getElementById('carrierMeta');
+    meta.textContent = `${img.width}×${img.height} · ${file.name} · ${(file.size/1024).toFixed(1)}KB · 可存储 ${(img.width*img.height*3/8).toFixed(0)} 字节`;
+    meta.style.display = '';
+    document.getElementById('carrierDropZone').classList.add('has-image');
+    updateEncodeButton();
+    updateCapacity();
+    showToast(`载体图片已加载 (${img.width}×${img.height})`, 'success');
+  };
+  img.onerror = () => showToast('图片加载失败，请检查文件格式', 'error');
+  img.src = URL.createObjectURL(file);
+}
+
+// ==================== Generate Random Carrier ====================
+function generateCarrier() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const seed = Math.random() * 10000;
+  const imgData = ctx.createImageData(size, size);
+  const d = imgData.data;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const idx = (y * size + x) * 4;
+      const r = Math.floor(128 + 40 * Math.sin(x * 0.05 + seed) + 20 * Math.cos(y * 0.03 + seed));
+      const g = Math.floor(128 + 40 * Math.cos(y * 0.04 + seed * 0.7) + 20 * Math.sin(x * 0.06 + seed));
+      const b = Math.floor(128 + 40 * Math.sin((x + y) * 0.02 + seed * 0.5) + 15 * Math.cos(x * 0.07 + seed));
+      const noise = Math.floor(Math.random() * 4);
+      d[idx]     = ((r + noise) & 0xFF);
+      d[idx + 1] = ((g + noise) & 0xFF);
+      d[idx + 2] = ((b + noise) & 0xFF);
+      d[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+  carrierImageData = imgData;
+  const dataURL = canvas.toDataURL('image/png');
+  const previewImg = new Image();
+  previewImg.onload = () => {
+    carrierImage = previewImg;
+    const preview = document.getElementById('carrierPreview');
+    preview.src = dataURL; preview.style.display = '';
+    const meta = document.getElementById('carrierMeta');
+    meta.textContent = `${size}×${size} · 随机生成 · 可存储 ${(size*size*3/8).toFixed(0)} 字节`;
+    meta.style.display = '';
+    document.getElementById('carrierDropZone').classList.add('has-image');
+    updateEncodeButton();
+    updateCapacity();
+    showToast('已生成随机载体图片 (256×256)', 'success');
+  };
+  previewImg.src = dataURL;
+}
+
+// ==================== Capacity Update ====================
+function updateCapacity() {
+  const text = document.getElementById('textInput').value;
+  if (!text || !carrierImageData) {
+    document.getElementById('capacityInfo').style.display = 'none';
+    return;
+  }
+  const password = document.getElementById('encodePassword').value;
+  const maxBits = carrierImageData.width * carrierImageData.height * 3;
+  let totalBits;
+  if (password) {
+    const utf8Bytes = new TextEncoder().encode(text).length;
+    const estimatedBytes = utf8Bytes + 16 + 12 + 16;
+    totalBits = 32 + estimatedBytes * 8;
+  } else {
+    const codepoints = textToCodepoints(text);
+    if (codepoints.length === 0) { document.getElementById('capacityInfo').style.display = 'none'; return; }
+    const bitWidth = calculateBitWidth(codepoints);
+    totalBits = 32 + codepoints.length * bitWidth;
+  }
+  const pct = Math.min(100, (totalBits / maxBits) * 100);
+  document.getElementById('capacityInfo').style.display = '';
+  const fill = document.getElementById('capacityFill');
+  fill.style.width = pct + '%';
+  fill.classList.toggle('over', pct > 90);
+  document.getElementById('capacityText').textContent = pct.toFixed(1) + '%';
+}
+
+function updateEncodeButton() {
+  const hasText = document.getElementById('textInput').value.length > 0;
+  document.getElementById('encodeBtn').disabled = !(carrierImageData && hasText);
+}
+
+document.getElementById('textInput').addEventListener('input', function() {
+  updateCharsetInfo();
+  updateCapacity();
+  updateEncodeButton();
+});
+
+document.getElementById('encodePassword').addEventListener('input', updateCapacity);
+
+// ==================== Core Encode (BigInt + Unicode + AES-256) ====================
+async function doEncode() {
+  const text = document.getElementById('textInput').value;
+  if (!text) { showToast('请输入文本内容', 'warning'); return; }
+  if (!carrierImageData) { showToast('请上传载体图片', 'warning'); return; }
+
+  const password = document.getElementById('encodePassword').value;
+  const isEncrypted = password.length > 0;
+  let bits = [], count, bitWidth = 0;
+
+  if (isEncrypted) {
+    let encryptedBytes;
+    try { encryptedBytes = await encryptText(text, password); }
+    catch (err) { showToast('加密失败: ' + err.message, 'error'); return; }
+    count = encryptedBytes.length;
+    if (count > 65535) { showToast("加密数据超过 65535 字节上限", "error"); return; }
+    bitWidth = 0;
+    const totalBits = 32 + count * 8;
+    const maxBits = carrierImageData.width * carrierImageData.height * 3;
+    if (totalBits > maxBits) {
+      showToast(`加密后数据量(${totalBits}bit)超出图片容量(${maxBits}bit)`, 'error');
+      return;
+    }
+    bits.push(...bigIntToBits(BigInt(count), 16));
+    bits.push(...bigIntToBits(BigInt(0), 16));
+    for (const bit of bytesToBits(encryptedBytes)) bits.push(bit);
+  } else {
+    const codepoints = textToCodepoints(text);
+    if (codepoints.length === 0) { showToast('文本内容为空', 'error'); return; }
+    count = codepoints.length;
+    if (count > 65535) { showToast("字符数超过 65535 上限", "error"); return; }
+    bitWidth = calculateBitWidth(codepoints);
+    if (bitWidth > 65535) { showToast('字符码点过大，位宽超过 65535 bit 上限', 'error'); return; }
+    const totalBits = 32 + count * bitWidth;
+    const maxBits = carrierImageData.width * carrierImageData.height * 3;
+    if (totalBits > maxBits) {
+      showToast(`数据量(${totalBits}bit)超出图片容量(${maxBits}bit)`, 'error');
+      return;
+    }
+    bits.push(...bigIntToBits(BigInt(count), 16));
+    bits.push(...bigIntToBits(BigInt(bitWidth), 16));
+    for (const cp of codepoints) bits.push(...bigIntToBits(BigInt(cp), bitWidth));
+  }
+
+  const result = new ImageData(
+    new Uint8ClampedArray(carrierImageData.data),
+    carrierImageData.width,
+    carrierImageData.height
+  );
+  const pixels = result.data;
+  for (let i = 0; i < pixels.length; i += 4) pixels[i + 3] = 255;
+  let bitIndex = 0;
+  for (let i = 0; i < pixels.length && bitIndex < bits.length; i += 4) {
+    if (bitIndex < bits.length) pixels[i] = (pixels[i] & 0xFE) | bits[bitIndex++];
+    if (bitIndex < bits.length) pixels[i + 1] = (pixels[i + 1] & 0xFE) | bits[bitIndex++];
+    if (bitIndex < bits.length) pixels[i + 2] = (pixels[i + 2] & 0xFE) | bits[bitIndex++];
+  }
+
+  encodedImageData = new ImageData(
+    new Uint8ClampedArray(pixels),
+    result.width, result.height
+  );
+  const canvas = document.createElement('canvas');
+  canvas.width = result.width; canvas.height = result.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.putImageData(result, 0, 0);
+  encodedCanvas = canvas;
+  lastEncodedText = text;
+  lastEncodedPassword = isEncrypted ? password : null;
+
+  const resultImg = document.getElementById('encodeResultImg');
+  resultImg.src = canvas.toDataURL('image/png');
+  resultImg.style.display = '';
+
+  const totalBits = 32 + (isEncrypted ? count * 8 : count * bitWidth);
+  const maxBits = carrierImageData.width * carrierImageData.height * 3;
+  const encryptBadge = isEncrypted
+    ? '<span class="encrypt-badge encrypted">🔒 AES-256</span>'
+    : '<span class="encrypt-badge plain">🔓 明文</span>';
+
+  document.getElementById('encodeStats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${isEncrypted ? count + 'B' : count}</div><div class="stat-label">${isEncrypted ? '加密数据' : '字符个数'}</div></div>
+    <div class="stat-card"><div class="stat-value">${isEncrypted ? 'AES-256' : bitWidth}</div><div class="stat-label">${isEncrypted ? '加密算法' : '码点位宽'}</div></div>
+    <div class="stat-card"><div class="stat-value">${totalBits}</div><div class="stat-label">总比特数</div></div>
+    <div class="stat-card"><div class="stat-value">${(totalBits/maxBits*100).toFixed(1)}%</div><div class="stat-label">容量占用</div></div>
+    <div class="stat-card"><div class="stat-value">${result.width}×${result.height}</div><div class="stat-label">图像尺寸</div></div>
+    <div class="stat-card"><div class="stat-value">${encryptBadge}</div><div class="stat-label">加密状态</div></div>
+  `;
+
+  document.getElementById('verifyBadge').innerHTML = '';
+  document.getElementById('encodeResult').style.display = '';
+  document.getElementById('directDecodeBtn').style.display = '';
+  selfTest();
+  showToast(`编码成功！${isEncrypted ? '已加密 ' : ''}${isEncrypted ? count + ' 字节' : count + ' 个字符'}已隐写至图像`, 'success');
+}
+
+// ==================== Self-Test ====================
+async function selfTest() {
+  if (!encodedImageData || !lastEncodedText) { showToast('请先完成编码', 'warning'); return; }
+  const decoded = decodeFromImageData(encodedImageData);
+  if (!decoded) {
+    const diagBits = [];
+    const px = encodedImageData.data;
+    for (let i = 0; i < Math.min(px.length, 48); i += 4) diagBits.push(px[i] & 1, px[i+1] & 1, px[i+2] & 1);
+    const diagCount = bitsToBigInt(diagBits, 0, 16);
+    const diagWidth = bitsToBigInt(diagBits, 16, 16);
+    document.getElementById('verifyBadge').innerHTML =
+      `<div class="verify-badge fail">❌ 自测失败：解码异常（count=${Number(diagCount)}, bitWidth=${Number(diagWidth)}）</div>`;
+    showToast('自测验证失败，解码过程异常', 'error');
+    return;
+  }
+  let decodedText;
+  if (decoded.encrypted) {
+    if (!lastEncodedPassword) {
+      document.getElementById('verifyBadge').innerHTML = '<div class="verify-badge fail">❌ 自测失败：缺少解密密码</div>';
+      return;
+    }
+    try { decodedText = await decryptBytes(decoded.bytes, lastEncodedPassword); }
+    catch (err) {
+      document.getElementById('verifyBadge').innerHTML = '<div class="verify-badge fail">❌ 自测失败：解密错误</div>';
+      showToast('自测验证失败：解密错误', 'error');
+      return;
+    }
+  } else {
+    decodedText = codepointsToText(decoded.codepoints);
+  }
+  const match = decodedText === lastEncodedText;
+  if (match) {
+    document.getElementById('verifyBadge').innerHTML = '<div class="verify-badge pass">✅ 自测通过：编码→解码完全对称</div>';
+    showToast('自测验证通过！编解码完全对称', 'success');
+  } else {
+    document.getElementById('verifyBadge').innerHTML = '<div class="verify-badge fail">❌ 自测失败：还原文本不一致</div>';
+    showToast('自测验证失败，还原文本不一致', 'error');
+  }
+}
+
+// ==================== Core Decode Logic ====================
+// Returns { encrypted: true, bytes, count } or { encrypted: false, codepoints, count, bitWidth } or null
+function decodeFromImageData(imgData) {
+  const pixels = imgData.data;
+  const bits = [];
+  for (let i = 0; i < pixels.length; i += 4) {
+    bits.push(pixels[i] & 1);
+    bits.push(pixels[i + 1] & 1);
+    bits.push(pixels[i + 2] & 1);
+  }
+  if (bits.length < 32) return null;
+  const countNum = Number(bitsToBigInt(bits, 0, 16));
+  const bitWidthNum = Number(bitsToBigInt(bits, 16, 16));
+  console.log('decodeFromImageData: header count=', countNum, 'bitWidth=', bitWidthNum);
+  if (countNum === 0 || countNum > 65535) return null;
+  if (bitWidthNum === 0) {
+    const totalDataBits = 32 + countNum * 8;
+    if (totalDataBits > bits.length) return null;
+    const bytes = bitsToBytes(bits, 32, countNum);
+    return { encrypted: true, bytes: bytes, count: countNum };
+  } else {
+    if (bitWidthNum > 65535) return null;
+    const totalDataBits = 32 + countNum * bitWidthNum;
+    if (totalDataBits > bits.length) return null;
+    const codepoints = [];
+    let offset = 32;
+    for (let n = 0; n < countNum; n++) {
+      codepoints.push(Number(bitsToBigInt(bits, offset, bitWidthNum)));
+      offset += bitWidthNum;
+    }
+    return { encrypted: false, codepoints: codepoints, count: countNum, bitWidth: bitWidthNum };
+  }
+}
+
+// ==================== Decode from uploaded file ====================
+function handleDecodeUpload(e) {
+  const file = e.target.files ? e.target.files[0] : null;
+  if (!file) return;
+  if (!file.type.includes('png')) {
+    showToast('解码仅支持 PNG 格式，JPEG 有损压缩会破坏 LSB 数据', 'warning');
+  }
+  const img = new Image();
+  img.onload = () => {
+    decodeImage = img;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const rawImageData = ctx.getImageData(0, 0, img.width, img.height);
+    const d = rawImageData.data;
+    for (let i = 0; i < d.length; i += 4) d[i + 3] = 255;
+    decodeImageData = rawImageData;
+
+    const checkBits = [];
+    for (let i = 0; i < Math.min(d.length, 48); i += 4) checkBits.push(d[i] & 1, d[i+1] & 1, d[i+2] & 1);
+    const bw = Number(bitsToBigInt(checkBits, 16, 16));
+    const hintEl = document.getElementById('decodePasswordHint');
+    if (bw === 0) hintEl.classList.add('show'); else hintEl.classList.remove('show');
+
+    const preview = document.getElementById('decodePreview');
+    preview.src = img.src; preview.style.display = '';
+    const meta = document.getElementById('decodeMeta');
+    meta.textContent = `${img.width}×${img.height} · ${file.name} · ${(file.size/1024).toFixed(1)}KB${bw === 0 ? ' · 🔒 已加密' : ''}`;
+    meta.style.display = '';
+    document.getElementById('decodeDropZone').classList.add('has-image');
+    document.getElementById('decodeBtn').disabled = false;
+    showToast('编码图像已加载', 'success');
+  };
+  img.onerror = () => showToast('图片加载失败', 'error');
+  img.src = URL.createObjectURL(file);
+}
+
+function displayDecodeResult(codepoints, imgData) {
+  const decodedTextStr = codepointsToText(codepoints);
+  const textEl = document.getElementById('decodedText');
+  textEl.textContent = decodedTextStr;
+  textEl.className = 'result-box success-border';
+  const cpEl = document.getElementById('decodedCodepoints');
+  const cpLines = codepoints.slice(0, 50).map((cp, i) => {
+    const ch = String.fromCodePoint(cp);
+    const displayChar = ch === ' ' ? '␣' : (ch === '\n' ? '↵' : (ch === '\t' ? '⇥' : ch));
+    return `[${i}] ${displayChar} → U+${cp.toString(16).toUpperCase().padStart(4,'0')} (${cp})`;
+  });
+  cpEl.innerHTML = cpLines.join('\n') + (codepoints.length > 50 ? `\n... (共${codepoints.length}个)` : '');
+  const badgeEl = document.getElementById('decodeVerifyBadge');
+  if (lastEncodedText) {
+    const match = decodedTextStr === lastEncodedText;
+    badgeEl.innerHTML = match
+      ? '<div class="verify-badge pass">✅ 验证通过：与原始编码文本一致</div>'
+      : '<div class="verify-badge fail">❌ 验证失败：与原始编码文本不一致</div>';
+  } else { badgeEl.innerHTML = ''; }
+  const bits = [];
+  const pixels = imgData.data;
+  for (let i = 0; i < Math.min(pixels.length, 400); i += 4) bits.push(pixels[i] & 1, pixels[i+1] & 1, pixels[i+2] & 1);
+  const bw = Number(bitsToBigInt(bits, 16, 16));
+  const totalDataBits = 32 + codepoints.length * bw;
+  document.getElementById('decodeStats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${codepoints.length}</div><div class="stat-label">字符个数</div></div>
+    <div class="stat-card"><div class="stat-value">${bw}</div><div class="stat-label">码点位宽 (bit)</div></div>
+    <div class="stat-card"><div class="stat-value">${totalDataBits}</div><div class="stat-label">总比特数</div></div>
+  `;
+  document.getElementById('decodeResult').style.display = '';
+  showToast(`解码成功！还原了 ${codepoints.length} 个字符`, 'success');
+}
+
+function displayDecryptedResult(text, decoded, imgData) {
+  const textEl = document.getElementById('decodedText');
+  textEl.textContent = text;
+  textEl.className = 'result-box success-border';
+  document.getElementById('decodedCodepoints').innerHTML = '🔒 加密模式 — 码点对照不可用';
+  const badgeEl = document.getElementById('decodeVerifyBadge');
+  if (lastEncodedText) {
+    const match = text === lastEncodedText;
+    badgeEl.innerHTML = match
+      ? '<div class="verify-badge pass">✅ 验证通过：与原始编码文本一致</div>'
+      : '<div class="verify-badge fail">❌ 验证失败：与原始编码文本不一致</div>';
+  } else { badgeEl.innerHTML = ''; }
+  const totalDataBits = 32 + decoded.count * 8;
+  document.getElementById('decodeStats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${decoded.count}</div><div class="stat-label">数据字节数</div></div>
+    <div class="stat-card"><div class="stat-value">AES-256</div><div class="stat-label">加密算法</div></div>
+    <div class="stat-card"><div class="stat-value">${totalDataBits}</div><div class="stat-label">总比特数</div></div>
+    <div class="stat-card"><div class="stat-value">${text.length}</div><div class="stat-label">还原字符数</div></div>
+  `;
+  document.getElementById('decodeResult').style.display = '';
+  showToast(`解密成功！还原了 ${text.length} 个字符`, 'success');
+}
+
+async function doDecode() {
+  if (!decodeImageData) { showToast('请上传编码图像', 'warning'); return; }
+  const decoded = decodeFromImageData(decodeImageData);
+  if (!decoded) {
+    showToast('解码失败：头部数据异常或不是有效编码图像', 'error');
+    document.getElementById('decodedText').textContent = '解码失败';
+    document.getElementById('decodedText').className = 'result-box error-border';
+    document.getElementById('decodeResult').style.display = '';
+    return;
+  }
+  if (decoded.encrypted) {
+    const password = document.getElementById('decodePassword').value;
+    if (!password) { showToast('此图像已加密，请输入解密密码', 'warning'); return; }
+    try {
+      const text = await decryptBytes(decoded.bytes, password);
+      displayDecryptedResult(text, decoded, decodeImageData);
+    } catch (err) {
+      showToast('解密失败：密码错误', 'error');
+      document.getElementById('decodedText').textContent = '解密失败：密码错误';
+      document.getElementById('decodedText').className = 'result-box error-border';
+      document.getElementById('decodeResult').style.display = '';
+    }
+  } else {
+    displayDecodeResult(decoded.codepoints, decodeImageData);
+  }
+}
+
+// ==================== Direct Decode ====================
+async function directDecode() {
+  if (!encodedImageData) { showToast('没有可用的编码数据，请先在编码模式完成编码', 'warning'); return; }
+  const decoded = decodeFromImageData(encodedImageData);
+  if (!decoded) { showToast('直接解码失败', 'error'); return; }
+  if (decoded.encrypted) {
+    const password = lastEncodedPassword || document.getElementById('decodePassword').value;
+    if (!password) { showToast('加密数据需要密码', 'warning'); return; }
+    try {
+      const text = await decryptBytes(decoded.bytes, password);
+      displayDecryptedResult(text, decoded, encodedImageData);
+    } catch (err) { showToast('解密失败', 'error'); }
+  } else {
+    displayDecodeResult(decoded.codepoints, encodedImageData);
+  }
+}
+
+// ==================== Download ====================
+function downloadEncodedImage() {
+  if (!encodedCanvas) return;
+  encodedCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = '密图_encoded.png';
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('PNG 图像已下载', 'success');
+  }, 'image/png');
+}
+
+// ==================== Copy ====================
+function copyDecoded() {
+  const text = document.getElementById('decodedText').textContent;
+  navigator.clipboard.writeText(text).then(
+    () => showToast('已复制文本到剪贴板', 'success'),
+    () => showToast('复制失败，请手动复制', 'warning')
+  );
+}
+
+// ==================== Password Toggle ====================
+function togglePasswordVisibility(inputId) {
+  const input = document.getElementById(inputId);
+  const btn = input.nextElementSibling;
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+  else { input.type = 'password'; btn.textContent = '👁'; }
+}
+
+// ==================== Clear ====================
+function clearEncode() {
+  document.getElementById('textInput').value = '';
+  document.getElementById('encodePassword').value = '';
+  carrierImageData = null; carrierImage = null; encodedCanvas = null; encodedImageData = null;
+  lastEncodedText = null; lastEncodedCodepoints = null; lastEncodedPassword = null;
+  document.getElementById('carrierPreview').style.display = 'none';
+  document.getElementById('carrierMeta').style.display = 'none';
+  document.getElementById('carrierDropZone').classList.remove('has-image');
+  document.getElementById('encodeResult').style.display = 'none';
+  document.getElementById('capacityInfo').style.display = 'none';
+  document.getElementById('charsetInfo').style.display = 'none';
+  document.getElementById('directDecodeBtn').style.display = 'none';
+  updateEncodeButton();
+}
+
+function clearDecode() {
+  decodeImageData = null; decodeImage = null;
+  document.getElementById('decodePassword').value = '';
+  document.getElementById('decodePasswordHint').classList.remove('show');
+  document.getElementById('decodePreview').style.display = 'none';
+  document.getElementById('decodeMeta').style.display = 'none';
+  document.getElementById('decodeDropZone').classList.remove('has-image');
+  document.getElementById('decodeResult').style.display = 'none';
+  document.getElementById('decodeBtn').disabled = true;
+}
+</script>
+</body>
+</html>
