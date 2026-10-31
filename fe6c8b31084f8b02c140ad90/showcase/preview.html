@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漏误 · 练判断的地方：答完不给分，只告诉你漏了什么、白做了什么</title>
+<style id="cssPlayer">
+:root{
+  --bg:#f7fafb; --blue:#2c7fb8; --teal:#20B2AA; --ink:#2b3a42; --ink2:#5b6f7a;
+  --gold:#B8860B; --line:#d9e3e8; --soft:#eef4f6; --warn:#c0392b; --amber:#b9770e; --ok:#1e8e5a;
+  --card:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.pl{max-width:860px;margin:0 auto;padding:0 18px 80px}
+.pl-hd{padding:26px 0 16px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.pl-hd h1{font-size:30px;line-height:1.35;color:var(--blue);margin:0 0 8px;font-weight:800;letter-spacing:.5px}
+.pl-hd .sub{font-size:15.5px;color:var(--ink2);margin:0}
+.pl-hd .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.chip{font-size:12.5px;background:var(--soft);color:var(--blue);border:1px solid var(--line);
+  border-radius:999px;padding:3px 11px;white-space:nowrap}
+.chip.gold{color:var(--gold);border-color:#ecd9a6;background:#fffaf0}
+
+/* 这是什么 —— 首屏必须先说清楚 */
+.what{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);
+  border-radius:0 12px 12px 0;padding:15px 19px;margin:0 0 12px;
+  font-size:15px;line-height:1.85;color:#3d4f59}
+.what .lead{font-size:15.5px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.what b{color:var(--blue)}
+.what .km{color:var(--amber);font-weight:800}
+.what .kx{color:var(--warn);font-weight:800}
+.what .why{font-size:14px;color:var(--ink2);margin-top:6px}
+
+/* 怎么用 */
+.howto{background:#f4fafd;border:1px solid #cfe4f0;border-radius:12px;margin:0 0 18px;overflow:hidden}
+.howto>summary{cursor:pointer;padding:11px 16px;font-size:14.5px;font-weight:700;color:var(--blue);
+  list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
+.howto>summary::-webkit-details-marker{display:none}
+.howto>summary::after{content:"展开";margin-left:auto;font-size:12px;font-weight:600;color:#7d9dad}
+.howto[open]>summary::after{content:"收起"}
+.howto .ht-body{padding:2px 16px 14px;border-top:1px solid #cfe4f0}
+.ht-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:13px 0 4px}
+@media(max-width:860px){.ht-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.ht-grid{grid-template-columns:1fr}}
+.ht-item .n{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:12px;font-weight:700;align-items:center;justify-content:center;margin-right:6px;vertical-align:1px}
+.ht-item b{font-size:14px;color:var(--ink)}
+.ht-item p{margin:5px 0 0;font-size:13.2px;line-height:1.65;color:#41677d}
+.ht-warn{background:#fff8ef;border-left:3px solid var(--gold);border-radius:0 8px 8px 0;
+  padding:8px 12px;font-size:13.5px;color:#6d5113;margin-top:12px;line-height:1.7}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0;
+  box-shadow:0 1px 2px rgba(43,58,66,.04)}
+.card.pt{border:2px solid var(--teal)}
+.card.pt .pt-hd{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.card.pt .pt-hd b{font-size:16px;color:var(--teal);letter-spacing:3px}
+.pt-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15.5px}
+.pt-row:last-child{border-bottom:none}
+.pt-row .k{flex:0 0 62px;color:var(--blue);font-weight:700}
+.pt-row .v{flex:1;color:var(--ink)}
+.pt-note{margin-top:12px;background:#fffaf0;border-left:4px solid var(--gold);border-radius:0 8px 8px 0;
+  padding:10px 14px;font-size:14.5px;color:#7a5c14}
+.st-hd{display:flex;align-items:baseline;gap:11px;margin-bottom:8px}
+.st-no{font-size:12.5px;background:var(--blue);color:#fff;border-radius:7px;padding:2px 9px;font-weight:700;white-space:nowrap}
+.st-hd h3{margin:0;font-size:18.5px;color:var(--ink);font-weight:800;line-height:1.5}
+.st-prompt{font-size:15.5px;color:var(--ink2);margin:0 0 15px}
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--line);border-radius:11px;
+  padding:12px 15px;cursor:pointer;background:#fbfdfe;transition:.14s;font-size:15.5px;user-select:none}
+.opt:hover{border-color:#9fc4da;background:#f4fafd}
+.opt input{appearance:none;-webkit-appearance:none;width:19px;height:19px;flex:0 0 19px;margin:3px 0 0;
+  border:1.5px solid #b7c8d2;border-radius:5px;background:#fff;cursor:pointer;position:relative;transition:.14s}
+.opt input:checked{background:var(--blue);border-color:var(--blue)}
+.opt input:checked::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.opt.picked{border-color:var(--blue);background:#eef7fc}
+.opt.right{border-color:#8fd3b4;background:#effaf4}
+.opt.right::after{content:"✓ 该做";margin-left:auto;font-size:13px;color:var(--ok);font-weight:700;white-space:nowrap}
+.opt.missed{border-color:#e8bd8f;background:#fff8ef;border-style:dashed}
+.opt.missed::after{content:"✗ 你漏了";margin-left:auto;font-size:13px;color:var(--amber);font-weight:700;white-space:nowrap}
+.opt.wrongpick{border-color:#e0a9a1;background:#fdeeec}
+.opt.wrongpick::after{content:"⚠ 多做了";margin-left:auto;font-size:13px;color:var(--warn);font-weight:700;white-space:nowrap}
+.opt.locked{cursor:default}
+.opt.locked:hover{border-color:inherit}
+.fb{margin-top:15px;display:none}
+.fb.on{display:block}
+.fb-t{font-size:13px;font-weight:800;letter-spacing:.6px;margin:14px 0 7px;display:flex;align-items:center;gap:7px}
+.fb-t.miss{color:var(--amber)}
+.fb-t.wrong{color:var(--warn)}
+.fb-t.ok{color:var(--ok)}
+.fb-i{font-size:14.8px;line-height:1.8;padding:9px 13px;border-radius:9px;margin-bottom:8px;color:#3d4f59}
+.fb-i.miss{background:#fff8ef;border-left:3px solid #e8bd8f}
+.fb-i.wrong{background:#fdeeec;border-left:3px solid #e0a9a1}
+.fb-i b{color:var(--ink)}
+.fb-ok{background:#effaf4;border-left:3px solid #8fd3b4;border-radius:9px;padding:11px 14px;
+  font-size:15px;color:var(--ok);font-weight:700}
+.pr{background:#fffaf0;border:1px solid #ecd9a6;border-left:5px solid var(--gold);border-radius:0 10px 10px 0;
+  padding:13px 16px;margin-top:14px;font-size:14.8px;line-height:1.8;color:#5c4a15}
+.pr b{color:var(--gold);letter-spacing:.5px;display:block;margin-bottom:3px;font-size:13.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:10px;
+  padding:11px 22px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+.btn.pri{background:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(44,127,184,.25)}
+.btn.pri:hover{background:#256d9f;box-shadow:0 4px 12px rgba(44,127,184,.32)}
+.btn.ghost{background:#fff;color:var(--blue);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--blue);background:#f4fafd}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-row{margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hint-sm{font-size:13px;color:#8b9ba4;margin-left:2px}
+.report{margin-top:26px}
+.report-card{background:#fff;border:2px solid var(--blue);border-radius:16px;padding:24px;box-shadow:0 6px 22px rgba(44,127,184,.12)}
+.report-hd{font-size:21px;font-weight:800;color:var(--blue);margin-bottom:5px}
+.report-sub{font-size:14px;color:var(--ink2);margin-bottom:18px}
+.score-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.sc{flex:1;min-width:120px;background:var(--soft);border-radius:12px;padding:14px 16px;text-align:center}
+.sc .n{font-size:30px;font-weight:800;line-height:1.2}
+.sc .l{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.sc.m .n{color:var(--amber)} .sc.w .n{color:var(--warn)} .sc.g .n{color:var(--ok)}
+.bar{height:8px;background:var(--soft);border-radius:999px;overflow:hidden;margin:6px 0 16px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:999px;transition:width .5s}
+.rp-list{font-size:14.8px;line-height:1.85}
+.rp-list .lbl{font-weight:800;font-size:13px;letter-spacing:.6px;margin:14px 0 6px}
+.rp-list .lbl.miss{color:var(--amber)} .rp-list .lbl.wrong{color:var(--warn)}
+.rp-list li{margin-bottom:5px}
+.disclaimer{font-size:12.5px;color:#8b9ba4;line-height:1.7;margin-top:22px;padding-top:14px;border-top:1px dashed var(--line)}
+@media(max-width:600px){
+  .pl{padding:0 13px 70px}
+  .pl-hd h1{font-size:23px}
+  .card{padding:16px}
+  .pt-row{flex-direction:column;gap:2px}
+  .pt-row .k{flex:none}
+}
+</style>
+<style id="cssApp">
+.appbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.appbar-in{max-width:1180px;margin:0 auto;padding:0 18px;display:flex;align-items:center;gap:16px;height:58px}
+.logo{font-weight:800;font-size:19px;color:var(--blue);letter-spacing:4px;white-space:nowrap}
+.logo em{font-style:normal;color:var(--teal)}
+.logo-sub{font-size:12px;color:#6f8591;letter-spacing:.5px;white-space:nowrap;
+  border-left:1px solid var(--line);padding-left:14px}
+@media(max-width:760px){.logo-sub{display:none}}
+.tabs{display:flex;gap:4px;margin-left:auto;background:var(--soft);border-radius:10px;padding:4px}
+.tab{border:none;background:transparent;font-family:inherit;font-size:14.5px;font-weight:700;color:var(--ink2);
+  padding:7px 16px;border-radius:7px;cursor:pointer;transition:.15s;white-space:nowrap}
+.tab.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(43,58,66,.1)}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 90px}
+.view{display:none}
+.view.on{display:block}
+
+/* 样例切换 */
+.picker{max-width:860px;margin:0 auto;padding:0 18px 14px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.picker .lb{font-size:12.5px;color:#8b9ba4;margin-right:2px}
+.pick{border:1.5px solid var(--line);background:#fff;color:var(--ink2);border-radius:999px;
+  padding:6px 15px;font-size:13.5px;font-family:inherit;cursor:pointer;transition:.15s;font-weight:600}
+.pick:hover{border-color:#9fc4da;color:var(--blue)}
+.pick.on{border-color:var(--blue);background:#eef7fc;color:var(--blue);font-weight:700}
+
+.build-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+@media(max-width:1050px){.build-grid{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px}
+.panel h3{margin:0 0 4px;font-size:16.5px;color:var(--ink)}
+.panel .ph{font-size:13px;color:#8b9ba4;margin:0 0 14px;line-height:1.7}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:5px;letter-spacing:.3px}
+.inp,textarea.inp{width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;
+  font-family:inherit;font-size:14.5px;color:var(--ink);background:#fbfdfe;transition:.15s;line-height:1.6}
+.inp:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(44,127,184,.1)}
+textarea.inp{resize:vertical;min-height:58px}
+.prow{display:flex;gap:8px;margin-bottom:7px;align-items:flex-start}
+.prow .inp.k{flex:0 0 76px}
+.mini{border:none;background:#fdeeec;color:var(--warn);width:30px;height:30px;border-radius:8px;cursor:pointer;
+  font-size:15px;line-height:1;flex:0 0 auto;margin-top:4px;font-family:inherit;transition:.15s}
+.mini:hover{background:#fbdcd8}
+.mini.add{background:var(--soft);color:var(--blue);width:auto;padding:6px 14px;font-size:13px;font-weight:700;height:auto;margin-top:0}
+.mini.add:hover{background:#e2eef4}
+.stepbox{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:13px;background:#fcfdfe}
+.stepbox-hd{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.stepbox-hd .n{background:var(--blue);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px}
+.stepbox-hd .sp{flex:1}
+.tag{font-size:11.5px;font-weight:700;border-radius:5px;padding:2px 8px}
+.tag.ok{color:var(--ok);background:#effaf4}
+.tag.bad{color:var(--warn);background:#fdeeec}
+.optrow{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#fff}
+.optrow-top{display:flex;gap:8px;align-items:center}
+.optrow-top input[type=checkbox]{appearance:none;width:18px;height:18px;flex:0 0 18px;border:1.5px solid #b7c8d2;
+  border-radius:5px;background:#fff;cursor:pointer;position:relative;margin:0}
+.optrow-top input[type=checkbox]:checked{background:var(--ok);border-color:var(--ok)}
+.optrow-top input[type=checkbox]:checked::after{content:"";position:absolute;left:5.5px;top:1.5px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.optrow .expl{margin-top:7px;display:none}
+.optrow.expl-on .expl{display:block}
+.optrow .expl label{font-size:12px;color:var(--amber);font-weight:700;display:block;margin-bottom:3px}
+.optrow.is-wrong .expl label{color:var(--warn)}
+.optrow textarea{min-height:52px;font-size:13.5px}
+.preview-pane{position:sticky;top:76px;background:#fff;border:1px solid var(--line);border-radius:14px;
+  max-height:calc(100vh - 98px);overflow:auto}
+.preview-bar{display:flex;align-items:center;gap:9px;padding:10px 15px;border-bottom:1px solid var(--line);
+  background:var(--soft);border-radius:14px 14px 0 0;position:sticky;top:0;z-index:5}
+.preview-bar b{font-size:13px;color:var(--blue);letter-spacing:.5px}
+.preview-bar .live{font-size:11.5px;color:var(--ok);margin-left:auto}
+#previewMount{padding:6px 10px 24px}
+#previewMount .pl{max-width:none;padding:10px 8px 30px}
+#previewMount .pl-hd{padding:12px 0 12px}
+#previewMount .pl-hd h1{font-size:21px}
+#previewMount .card{padding:14px 15px}
+.exp-box{border:2px dashed #cfe4f0;border-radius:14px;padding:22px;background:#f9fcfe;text-align:center}
+.exp-box .big{font-size:17px;font-weight:800;color:var(--blue);margin-bottom:6px}
+.exp-box p{font-size:14px;color:var(--ink2);margin:0 0 16px}
+.exp-meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:#8b9ba4}
+.warnbar{background:#fff8ef;border:1px solid #ecd9a6;color:#7a5c14;border-radius:10px;padding:10px 14px;
+  font-size:13.5px;margin-bottom:14px;display:none;line-height:1.8}
+.warnbar.on{display:block}
+.toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(12px);background:#2b3a42;color:#fff;
+  padding:11px 22px;border-radius:10px;font-size:14.5px;opacity:0;pointer-events:none;transition:.25s;z-index:999}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.restore-example{border:1px solid #cfe4f0;background:#fff;color:#367da5;border-radius:8px;padding:7px 10px;white-space:nowrap;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="appbar-in">
+    <div class="logo">漏<em>误</em></div>
+    <div class="logo-sub">练判断的地方</div><button class="restore-example" id="restoreExample">恢复示例</button>
+    <div class="tabs">
+      <button class="tab on" data-view="play">训练</button>
+      <button class="tab" data-view="build">造课</button>
+      <button class="tab" data-view="export">导出</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= 训练 ================= -->
+  <section class="view on" id="view-play">
+    <div class="picker" id="picker"></div>
+    <div id="playerMount"></div>
+  </section>
+
+  <!-- ================= 造课 ================= -->
+  <section class="view" id="view-build">
+    <div class="build-grid">
+      <div>
+        <div class="panel">
+          <h3>情境基本信息</h3>
+          <p class="ph">这些会出现在训练页顶部，也是导出文件的标题。</p>
+          <div class="fld"><label>标题</label><input class="inp" id="ed-title" data-meta="title"></div>
+          <div class="fld"><label>一句话说明（副标题）</label><input class="inp" id="ed-sub" data-meta="subtitle"></div>
+          <div class="fld"><label>题眼提醒（选填，显示在情境卡底部）</label><input class="inp" id="ed-note" data-meta="note"></div>
+        </div>
+
+        <div class="panel">
+          <h3>情境信息行</h3>
+          <p class="ph">左边写标签（如「背景」「现象」「已知数据」），右边写内容。学习者拿到的就是这几行，别写成故事。</p>
+          <div id="ed-context"></div>
+          <button class="mini add" id="btnAddPt">+ 加一行</button>
+        </div>
+
+        <div class="panel">
+          <h3>决策节点</h3>
+          <p class="ph">每个节点 = 一个「你会怎么做」的岔口。<b>勾选的项＝这一步该做</b>，要写「漏了会怎样」；<b>没勾的项＝不该抢先做</b>，要写「为什么不是现在」。</p>
+          <div id="ed-steps"></div>
+          <button class="mini add" id="btnAddStep">+ 加一个节点</button>
+        </div>
+      </div>
+
+      <div class="preview-pane">
+        <div class="preview-bar">
+          <b>实时预览</b>
+          <span class="hint-sm">改动后自动刷新</span>
+          <span class="live" id="liveTag">已同步</span>
+        </div>
+        <div id="previewMount"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 导出 ================= -->
+  <section class="view" id="view-export">
+    <div class="warnbar" id="expWarn"></div>
+    <div class="panel">
+      <h3>导出一个能单独发出去的训练页</h3>
+      <p class="ph">生成的文件自带全部样式、判分逻辑和使用说明，双击就能用——不需要联网、不需要服务器、不需要装任何东西。可以直接发给别人，或放到任意静态托管上。</p>
+      <div class="exp-box">
+        <div class="big" id="expName">—</div>
+        <p id="expDesc">—</p>
+        <button class="btn pri" id="btnDownload">下载训练页 HTML</button>
+        <div class="exp-meta" id="expMeta"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>或者：只导出数据</h3>
+      <p class="ph">JSON 格式。方便自己存档、做版本管理，或者以后批量生成——同一个格式，可以喂给别的工具。</p>
+      <button class="btn ghost" id="btnJson">复制 JSON</button>
+      <button class="btn ghost" id="btnImport">从 JSON 载入</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="playerRuntime">
+window.Player = (function(){
+  "use strict";
+
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  // 稳定的打乱：同一步在同一会话里顺序不变，但每次打开都与原始顺序不同
+  function shuffle(arr, seed){
+    var a = arr.slice(), s = seed || 7;
+    function rnd(){ s = (s * 9301 + 49297) % 233280; return s / 233280; }
+    for(var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(rnd() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  var WHAT =
+    '<div class="what">'
+    + '<div class="lead">这是一个练判断的练习。</div>'
+    + '给你一个局面，你说你会怎么办。答完它<b>不给分</b>——它把你的错分成两种告诉你：'
+    + '<span class="km">你漏了什么</span>（该做没做）、<span class="kx">你白做了什么</span>（不该先做）。'
+    + '<div class="why">这两种错不一样：<b>漏掉会让结论直接错，白做只是浪费。</b>'
+    + '普通测验只会告诉你「你错了」，说不出你错在哪一类——而这两类的改法完全不同。</div>'
+    + '</div>';
+
+  var HOWTO =
+    '<details class="howto"><summary>怎么用 · 四步</summary><div class="ht-body">'
+    + '<div class="ht-grid">'
+    + '<div class="ht-item"><span class="n">1</span><b>读情境</b><p>那几行不是背景故事，是你手上已有的信息。信息不全本身就是考点。</p></div>'
+    + '<div class="ht-item"><span class="n">2</span><b>只勾你会做的</b><p>勾「如果是我，我会想到、会做」的项。别的都不用考虑。</p></div>'
+    + '<div class="ht-item"><span class="n">3</span><b>提交看拆分</b><p>它不比总分，只把你的选择和该做的比，分出「漏了什么」和「多做了什么」。</p></div>'
+    + '<div class="ht-item"><span class="n">4</span><b>看复盘</b><p>命中、漏、多做三个数字。漏比多做危险得多：多做只是浪费，漏掉会让结论直接错。</p></div>'
+    + '</div>'
+    + '<div class="ht-warn"><b>一条重要的规矩：别猜标准答案。</b>你勾的必须是你真实的判断，否则这份复盘对你毫无用处——它只会告诉你「你没背下来」，而不会告诉你「你哪里想偏了」。</div>'
+    + '</div></details>';
+
+  function mount(root, lesson, opts){
+    if(!root) return;
+    opts = opts || {};
+    var L = lesson || {};
+    var steps = (L.steps || []).map(function(st, si){
+      var o = shuffle(st.options || [], si * 31 + 13);
+      return {
+        title: st.title || ("第 " + (si + 1) + " 步"),
+        prompt: st.prompt || "",
+        principle: st.principle || "",
+        options: o.map(function(x){
+          return { id:x.id, label:x.label || "", correct: !!x.correct,
+                   miss: (st.miss && st.miss[x.id]) || "",
+                   wrong: (st.wrong && st.wrong[x.id]) || "" };
+        })
+      };
+    });
+    var sel = steps.map(function(){ return {}; });
+    var done = steps.map(function(){ return false; });
+
+    function renderAll(){
+      var h = '';
+      h += '<div class="pl">';
+      h += '<div class="pl-hd">';
+      h += '<h1>' + esc(L.meta && L.meta.title || "未命名情境") + '</h1>';
+      if(L.meta && L.meta.subtitle) h += '<p class="sub">' + esc(L.meta.subtitle) + '</p>';
+      h += '<div class="meta"><span class="chip">' + steps.length + ' 步</span>';
+      if(L.meta && L.meta.source) h += '<span class="chip">' + esc(L.meta.source) + '</span>';
+      h += '</div></div>';
+
+      if(opts.guide !== false){
+        h += WHAT;
+        h += HOWTO;
+      }
+
+      var rows = L.context || L.patient || [];
+      if(rows.length){
+        h += '<div class="card pt"><div class="pt-hd"><b>情 境</b></div>';
+        rows.forEach(function(r){
+          if(!r || (!r.k && !r.v)) return;
+          h += '<div class="pt-row"><div class="k">' + esc(r.k) + '</div><div class="v">' + esc(r.v) + '</div></div>';
+        });
+        if(L.meta && L.meta.note) h += '<div class="pt-note">' + esc(L.meta.note) + '</div>';
+        h += '</div>';
+      }
+
+      steps.forEach(function(st, si){
+        h += '<div class="card st" data-step="' + si + '">';
+        h += '<div class="st-hd"><span class="st-no">第 ' + (si + 1) + ' 步</span><h3>' + esc(st.title) + '</h3></div>';
+        if(st.prompt) h += '<p class="st-prompt">' + esc(st.prompt) + '</p>';
+        h += '<div class="opts">';
+        st.options.forEach(function(o){
+          h += '<label class="opt" data-opt="' + esc(o.id) + '">'
+             + '<input type="checkbox" value="' + esc(o.id) + '">'
+             + '<span>' + esc(o.label) + '</span></label>';
+        });
+        h += '</div>';
+        h += '<div class="btn-row"><button class="btn pri act-submit">提交本步</button>'
+           + '<span class="hint-sm">勾完再提交，提交后不能改</span></div>';
+        h += '<div class="fb"></div>';
+        h += '</div>';
+      });
+
+      h += '<div class="report" id="rpRoot"></div>';
+      h += '<div class="disclaimer">' + esc(L.meta && L.meta.disclaimer || "本页为教学演示内容。") + '</div>';
+      h += '</div>';
+      root.innerHTML = h;
+      bind();
+    }
+
+    function bind(){
+      root.querySelectorAll(".st").forEach(function(card){
+        var si = +card.getAttribute("data-step");
+        card.querySelectorAll(".opt input").forEach(function(inp){
+          inp.addEventListener("change", function(){
+            if(done[si]) return;
+            var id = inp.value;
+            if(inp.checked) sel[si][id] = true; else delete sel[si][id];
+            inp.closest(".opt").classList.toggle("picked", inp.checked);
+          });
+        });
+        card.querySelector(".act-submit").addEventListener("click", function(){
+          if(done[si]) return;
+          submitStep(si, card);
+        });
+      });
+    }
+
+    function submitStep(si, card){
+      var st = steps[si];
+      var picked = sel[si];
+      var missed = st.options.filter(function(o){ return o.correct && !picked[o.id]; });
+      var extra = st.options.filter(function(o){ return !o.correct && picked[o.id]; });
+
+      done[si] = true;
+      card.querySelectorAll(".opt").forEach(function(lb){
+        var id = lb.getAttribute("data-opt");
+        var o = st.options.filter(function(x){ return x.id === id; })[0];
+        lb.classList.add("locked");
+        lb.classList.remove("picked");
+        lb.querySelector("input").disabled = true;
+        if(!o) return;
+        if(o.correct && picked[o.id]) lb.classList.add("right");
+        else if(o.correct && !picked[o.id]) lb.classList.add("missed");
+        else if(!o.correct && picked[o.id]) lb.classList.add("wrongpick");
+      });
+
+      var fb = card.querySelector(".fb");
+      var h = "";
+      if(missed.length){
+        h += '<div class="fb-t miss">✗ 你漏掉了（该做没做）</div>';
+        missed.forEach(function(o){
+          h += '<div class="fb-i miss"><b>' + esc(o.label) + '</b><br>' + esc(o.miss || "这一项在你当前的判断里没有位置，但它属于这一步的必做项。") + '</div>';
+        });
+      }
+      if(extra.length){
+        h += '<div class="fb-t wrong">⚠ 你多做了（不该在这一步做）</div>';
+        extra.forEach(function(o){
+          h += '<div class="fb-i wrong"><b>' + esc(o.label) + '</b><br>' + esc(o.wrong || "这一项不是这一步该优先做的动作。") + '</div>';
+        });
+      }
+      if(!missed.length && !extra.length){
+        h += '<div class="fb-t ok">🎯 本步没有遗漏，也没有多余动作</div>'
+           + '<div class="fb-ok">判断完整：该想到的都想到了，也没做不该抢先做的。</div>';
+      }
+      if(st.principle) h += '<div class="pr"><b>第一性原理</b>' + esc(st.principle) + '</div>';
+
+      fb.innerHTML = h;
+      fb.classList.add("on");
+      card.querySelector(".act-submit").disabled = true;
+      card.querySelector(".act-submit").textContent = "已提交";
+      card.querySelector(".btn-row .hint-sm").textContent = "";
+      if(done.every(Boolean)) showReport();
+    }
+
+    function showReport(){
+      var totalMiss = 0, totalExtra = 0, detail = [];
+      steps.forEach(function(st, si){
+        var p = sel[si];
+        var m = st.options.filter(function(o){ return o.correct && !p[o.id]; });
+        var e = st.options.filter(function(o){ return !o.correct && p[o.id]; });
+        totalMiss += m.length; totalExtra += e.length;
+        if(m.length || e.length) detail.push({ n:si + 1, title:st.title, m:m, e:e });
+      });
+      var totalCorrect = steps.reduce(function(a, st){
+        return a + st.options.filter(function(o){ return o.correct; }).length; }, 0);
+      var hit = totalCorrect - totalMiss;
+      var rate = totalCorrect ? Math.round(hit / totalCorrect * 100) : 0;
+
+      var grade, gcolor;
+      if(totalMiss === 0 && totalExtra === 0){ grade = "判断完整"; gcolor = "var(--ok)"; }
+      else if(totalMiss === 0){ grade = "没漏，但有多余动作"; gcolor = "var(--amber)"; }
+      else if(totalMiss <= 2 && totalExtra === 0){ grade = "基本完整，有小漏"; gcolor = "var(--blue)"; }
+      else { grade = "存在漏项，结论可能出错"; gcolor = "var(--warn)"; }
+
+      var h = '<div class="report-card">';
+      h += '<div class="report-hd">复盘</div>';
+      h += '<div class="report-sub">关键不在「对了几个」，而在<b>漏</b>和<b>多做</b>各占多少——它们指向两种完全不同的薄弱点。</div>';
+      h += '<div class="score-row">';
+      h += '<div class="sc g"><div class="n">' + hit + '/' + totalCorrect + '</div><div class="l">命中的必做项</div></div>';
+      h += '<div class="sc m"><div class="n">' + totalMiss + '</div><div class="l">漏（该做没做）</div></div>';
+      h += '<div class="sc w"><div class="n">' + totalExtra + '</div><div class="l">多做（不该抢先做）</div></div>';
+      h += '</div>';
+      h += '<div style="font-size:13px;color:var(--ink2)">必做项命中率</div>';
+      h += '<div class="bar"><i style="width:' + rate + '%"></i></div>';
+      h += '<div style="font-size:15.5px;font-weight:800;color:' + gcolor + '">' + grade + '</div>';
+
+      if(detail.length){
+        h += '<div class="rp-list">';
+        detail.forEach(function(d){
+          h += '<div style="font-weight:800;color:var(--blue);margin-top:16px;font-size:14.5px">第 ' + d.n + ' 步 · ' + esc(d.title) + '</div>';
+          if(d.m.length){
+            h += '<div class="lbl miss">✗ 漏：</div><ul>';
+            d.m.forEach(function(o){ h += '<li>' + esc(o.label) + '</li>'; });
+            h += '</ul>';
+          }
+          if(d.e.length){
+            h += '<div class="lbl wrong">⚠ 多做：</div><ul>';
+            d.e.forEach(function(o){ h += '<li>' + esc(o.label) + '</li>'; });
+            h += '</ul>';
+          }
+        });
+        h += '</div>';
+      } else {
+        h += '<div class="fb-ok" style="margin-top:16px">每个节点都完整，也没有多余动作。这一例的判断链你已经拿下了。</div>';
+      }
+
+      h += '<div class="btn-row"><button class="btn ghost act-restart">重做一遍</button></div>';
+      h += '</div>';
+
+      var rp = root.querySelector("#rpRoot");
+      rp.innerHTML = h;
+      rp.querySelector(".act-restart").addEventListener("click", function(){
+        sel = steps.map(function(){ return {}; });
+        done = steps.map(function(){ return false; });
+        renderAll();
+        var top = root.querySelector(".pl");
+        if(top && top.scrollIntoView) top.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      setTimeout(function(){
+        if(rp.scrollIntoView) rp.scrollIntoView({behavior:"smooth", block:"start"});
+      }, 260);
+    }
+
+    renderAll();
+  }
+
+  return { mount: mount };
+})();
+</script>
+
+<script>
+/* ==================================================================
+   漏误 · 编辑器与应用层
+   ================================================================== */
+(function(){
+  "use strict";
+
+  var DISCLAIMER = "本页内容仅用于训练判断的完整性，不构成任何专业建议；实际决策请遵循你所在领域与机构的规范。";
+
+  /* ---------- 样例 1：临床推理（自编，非教材原文） ---------- */
+  var SAMPLE_MED = {
+    meta: {
+      title: "上腹痛三小时",
+      subtitle: "一个「看起来像胃病」的情境——考的不是你会不会想到胰腺炎，而是你会不会漏掉另外两个能在几十分钟内致死的诊断。",
+      note: "注意一件事：疼痛程度很重，但腹部体征很轻。这个「不匹配」是本题的题眼。",
+      source: "样例 · 临床推理",
+      disclaimer: "本页为教学演示内容，仅用于判断训练，不构成诊疗建议；实际诊疗请遵循所在机构规范与最新指南。"
+    },
+    context: [
+      { k: "背景", v: "男，62 岁。高血压 10 年，服药不规律，平时未监测血压。吸烟 30 年，每日约 1 包。" },
+      { k: "现象", v: "突发上腹部剧痛 3 小时，向背部放射，伴大汗、恶心，无呕吐。" },
+      { k: "已知", v: "T 36.8℃，P 102 次/分，R 22 次/分，BP 168/96 mmHg（双上肢对称）。腹软，上腹轻压痛，无反跳痛，肠鸣音 4 次/分。" },
+      { k: "手上", v: "指尖血糖 7.1 mmol/L。床旁心电图尚未做。" }
+    ],
+    steps: [
+      {
+        title: "先列出必须同时想到的方向",
+        prompt: "疼痛剧烈，但腹部查体只有轻压痛、没有反跳痛——症状与体征错位。以下哪些在第一时间必须同时纳入考虑？（多选）",
+        options: [
+          { id: "a", label: "急性胰腺炎", correct: true },
+          { id: "b", label: "急性心肌梗死（下壁）", correct: true },
+          { id: "c", label: "腹主动脉瘤先兆破裂", correct: true },
+          { id: "d", label: "急性胆囊炎", correct: false },
+          { id: "e", label: "消化性溃疡穿孔", correct: false },
+          { id: "f", label: "右侧输尿管结石", correct: false }
+        ],
+        miss: {
+          a: "漏掉胰腺炎，等于放弃了「上腹痛向背部放射 + 大汗」最常见的解释。更关键的是：重症急性胰腺炎早期体征也可以很轻，等你摸到肌紧张、看到瘀斑时，往往已进入胰腺坏死渗出期。",
+          b: "漏掉下壁心梗是本题最致命的漏诊。下壁心梗的疼痛常被描述成「胃痛」，可以没有典型压榨感；这个病人有 10 年未控制的高血压加 30 年吸烟史，本就是冠心病高危。不查心电图，你永远不会知道。",
+          c: "漏掉腹主动脉瘤，是这个情境里唯一能在几十分钟内致死的诊断。双上肢血压对称只能说明还没累及锁骨下动脉；腹部「软、摸不到搏动性包块」也不能排除——瘤体偏后壁、体型偏瘦时，触诊可以完全阴性。"
+        },
+        wrong: {
+          d: "胆囊炎的疼多在右上腹、Murphy 征阳性、常伴发热。本例上腹轻压痛、无发热，不该在这一步当主线。把它当主诊断，注意力会被锁在胆道，从而漏掉上面三个。",
+          e: "穿孔的典型表现是突发刀割样剧痛、腹肌板样强直、肝浊音界消失。本例腹软、无反跳痛，与穿孔不符——但立位腹平片仍然要在下一步做，因为它便宜，而且能一句话把这条排除掉。",
+          f: "输尿管结石是阵发性绞痛、向会阴部放射，患者常辗转不安、找不到舒服体位。本例疼痛向背部放射、大汗、体位固定，性质不符。"
+        },
+        principle: "「症状重、体征轻」不是好消息，而是危险信号：它提示病变在腹膜后或脏器内部，还没被激惹。这一条决定了你必须先把「能立刻致死」的三个方向排完，再去想常见病。"
+      },
+      {
+        title: "开出第一批检查",
+        prompt: "病人已经躺在急诊床上。哪些检查必须现在做——而且要在镇痛之前或同时完成？（多选）",
+        options: [
+          { id: "a", label: "12 导联心电图 + 肌钙蛋白", correct: true },
+          { id: "b", label: "血淀粉酶、脂肪酶 + 腹部超声", correct: true },
+          { id: "c", label: "腹部增强 CT 血管成像（CTA）", correct: true },
+          { id: "d", label: "血常规、凝血功能、肾功能、电解质", correct: true },
+          { id: "e", label: "立位腹平片", correct: false }
+        ],
+        miss: {
+          a: "心电图加肌钙蛋白，是唯一能把下壁心梗从「胃痛」里揪出来的手段。漏掉它，你不是在排除心梗，你是在赌。",
+          b: "淀粉酶/脂肪酶是胰腺炎的定性依据，腹部超声同时看胆囊和胆道——一次回答两个问题，性价比最高。",
+          c: "CTA 是唯一能在破裂前看清腹主动脉瘤的检查。普通平片看不清，床旁超声对后壁瘤体也容易漏。",
+          d: "不查肾功能和电解质，后面的增强 CT 就是禁忌风险；不查凝血，任何有创操作都没有底。"
+        },
+        wrong: {
+          e: "立位腹平片该做，但它的价值只有一条——「一句话排除穿孔」。游离气体阴性也不能停，它替代不了 CTA，更替代不了心电图。把平片当主检查，是这一步最常见的误判。"
+        },
+        principle: "急诊检查的排序标准不是「哪个最常见」，而是「哪个结果会改变我下一步的动作」。会改变动作的先做，只用来安心的往后放。"
+      },
+      {
+        title: "定处置顺序",
+        prompt: "检查还在排队。此刻你能做、也必须做的事，应该按什么顺序做？（多选）",
+        options: [
+          { id: "a", label: "建立两条静脉通路 + 心电监护 + 吸氧", correct: true },
+          { id: "b", label: "禁食、留置胃管", correct: true },
+          { id: "c", label: "排除禁忌后尽早静脉镇痛", correct: true },
+          { id: "d", label: "先送 CT 室把检查做完，回来再统一处理", correct: false },
+          { id: "e", label: "立即经验性静脉抗感染", correct: false }
+        ],
+        miss: {
+          a: "通路和监护是所有后续动作的地基。没有通路，病情一旦变化，你只能看着。",
+          b: "禁食加胃肠减压同时适用于胰腺炎、穿孔、肠梗阻三条线，是不用等结果就能做的「无害且有益」动作。",
+          c: "剧烈疼痛本身会加重交感兴奋、升高心肌耗氧——在这个可能是心梗的病人身上，不给镇痛就是在加重病情。「镇痛会掩盖诊断」是过时的顾虑，不该成为不给药的理由。"
+        },
+        wrong: {
+          d: "把「先做完检查」当成处置顺序，等于把病人交给流程，而不是交给自己。这个病人随时可能恶化，转运本身就是风险。",
+          e: "没有感染证据就上抗生素，会掩盖后续的发热曲线，也可能让真正的胆道感染在培养结果出来之前，被压成「看起来好转」。"
+        },
+        principle: "急诊处置的排序是「先保命、再定性、后治疗」。任何要求你先做完检查再动手的流程，都默认了病人不会在这段时间里死掉——这个假设不成立。"
+      }
+    ]
+  };
+
+  /* ---------- 样例 2：线上故障排查（证明引擎与领域无关） ---------- */
+  var SAMPLE_OPS = {
+    meta: {
+      title: "凌晨两点，接口全红",
+      subtitle: "告警很凶，但看板上所有资源指标都正常。这种「症状重、数据轻」的局面，考的是你会不会漏掉那一层。",
+      note: "错误率 34%，CPU 21%，内存 46%，连接数正常。这个「不匹配」就是题眼。",
+      source: "样例 · 故障排查",
+      disclaimer: "本页为教学演示内容，情境与数据均为虚构，仅用于判断训练。"
+    },
+    context: [
+      { k: "现象", v: "支付回调接口 5xx 比例从 0.1% 涨到 34%，已持续 12 分钟，没有自行恢复的迹象。" },
+      { k: "时间", v: "12 分钟前刚完成一次灰度发布，当前灰度比例 20%。没有其他变更。" },
+      { k: "已知", v: "CPU 21%、内存 46%、DB 连接数正常、网关限流未触发、磁盘 IO 正常。" },
+      { k: "手上", v: "错误日志和链路追踪都还没看。客服群里已经在问了。" }
+    ],
+    steps: [
+      {
+        title: "先列出必须同时怀疑的方向",
+        prompt: "资源指标全都正常，但错误率一直在高位。以下哪些方向必须在第一时间同时纳入怀疑？（多选）",
+        options: [
+          { id: "a", label: "本次灰度发布引入的代码缺陷", correct: true },
+          { id: "b", label: "下游依赖（第三方支付）超时或返回异常", correct: true },
+          { id: "c", label: "配置漂移：证书、环境变量或密钥在新实例上不一致", correct: true },
+          { id: "d", label: "流量突增导致容量不足", correct: false },
+          { id: "e", label: "数据库慢查询把连接池拖死", correct: false },
+          { id: "f", label: "机房网络故障", correct: false }
+        ],
+        miss: {
+          a: "漏掉发布，等于放弃了时间相关性最强的一条线索——12 分钟前变更，错误从那一刻开始。相关性不等于因果，但它必须排在第一顺位被检验，而不是被假设掉。",
+          b: "漏掉下游，就会漏掉「我们没错，但我们在替别人的故障返错」这种最常见的情况。回调链路里 5xx 的成因，有一大半不在自己这一侧。",
+          c: "漏掉配置漂移，会漏掉一类特别隐蔽的故障：代码没变、依赖也没挂，但新实例拿到的证书/密钥/开关和旧的不一样。它只影响「新上来的那部分」，所以错误率会卡在一个不上不下的数字上。"
+        },
+        wrong: {
+          d: "流量突增会同时把 CPU、连接数、网络带宽推上去——这三个指标现在全正常，容量假设在数据上站不住。把它当主线，会让你去扩容，而扩容治不好正确性问题。",
+          e: "慢查询会顶高 DB 连接数和 CPU，还会在链路追踪里表现为数据库段耗时突增。连接数正常，说明这条优先级要往后放，不是不能查，是不该在这一步抢先。",
+          f: "机房网络故障的影响面通常跨多个服务、多个机房，不会只卡在支付回调这一条链路上；而且网络层指标会先动。影响面不匹配，优先级靠后。"
+        },
+        principle: "「告警很凶、指标正常」说明问题不在容量，在正确性。容量问题看资源，正确性问题看差异——凡是只有一个子集在出错，就去找那个子集和全量的差别在哪。"
+      },
+      {
+        title: "第一分钟先拿哪些证据",
+        prompt: "现在可以选择先做什么。哪些证据必须在这一分钟里拿到？（多选）",
+        options: [
+          { id: "a", label: "错误日志里的 Top 错误栈", correct: true },
+          { id: "b", label: "灰度 20% 与全量的错误率对比", correct: true },
+          { id: "c", label: "一条失败请求的完整链路追踪", correct: true },
+          { id: "d", label: "立刻重启所有实例试试", correct: false },
+          { id: "e", label: "先全量回滚，再慢慢查原因", correct: false },
+          { id: "f", label: "查数据库慢查询日志", correct: false }
+        ],
+        miss: {
+          a: "错误栈是最便宜的定性证据——一行异常类型就能把方向从六个收敛到一两个，而且它不需要任何权限和工具。",
+          b: "灰度对比是这一分钟里信息量最大的一件事：如果错误只出现在灰度的 20%，发布就是主要嫌疑；如果两边一样错，发布基本可以排除，方向立刻转向依赖或配置。这一个对比能省掉你半小时的猜测。",
+          c: "链路追踪能回答「错在我们这一段还是下游那一段」。没有它，你会一直在两种叙事之间来回摇摆——这两种叙事对应的处置动作完全相反。"
+        },
+        wrong: {
+          d: "重启是最贵的动作：它会清掉现场，把一份可以直接读的证据变成「重启后恢复了，原因不明」。在还没拿到任何定性证据之前重启，是拿确定性换舒服。",
+          e: "全量回滚看起来果断，其实先掐掉 20% 的灰度更精准——它同时是止损和控制变量：如果错误停了，你就有了因果证据；如果没停，你就省下了一次全量回滚的代价和一次额外的变更。先做能产生信息的动作，再做代价最大的动作。",
+          f: "慢查询日志要开、要等、要聚合，成本高、见效慢；而连接数正常已经把这个方向的先验概率压低了一大截。它属于下一步，不属于这一分钟。"
+        },
+        principle: "事故里的第一分钟，目标不是「修好」，是「拿到能排除方向的信息」。所有不能产生信息的动作，无论看起来多果断，都是在消耗时间。"
+      },
+      {
+        title: "定处置顺序",
+        prompt: "证据还在收。此刻你能做、也应该做的事，按什么顺序做？（多选）",
+        options: [
+          { id: "a", label: "把灰度比例调到 0，先掐掉新增流量", correct: true },
+          { id: "b", label: "保留现场：抓一份错误样本、留一台实例不重启", correct: true },
+          { id: "c", label: "同步下游与客服，给出下一次更新时间", correct: true },
+          { id: "d", label: "等定位到根因，再统一处置", correct: false },
+          { id: "e", label: "立即全量回滚所有版本", correct: false }
+        ],
+        miss: {
+          a: "把灰度调到 0 是这一步性价比最高的动作：它同时是止损和实验——错误率掉下来，因果就基本确认了；没掉，你就把发布这条排除了，还不用付出全量回滚的代价。",
+          b: "不保留现场，你就永远只能得到「好像好了」。事故的复盘价值全在证据里，而证据在重启和回滚中消失得最快。",
+          c: "同步不是公关动作，是止损动作：下游和客服不知道情况，会各自做判断——重复报障、自己重试、把压力打回你的接口。一个更新时间就能把这三件事都压下去。"
+        },
+        wrong: {
+          d: "等定位到根因再动手，默认了影响面不会扩大。这条在事故里几乎总是错的：你可以在不确定原因的情况下先收窄影响面，两件事不冲突。",
+          e: "全量回滚是最后一张牌，不是第一张。它代价最高、信息量最低，而且如果问题不在发布上，你回滚完还是一样的错，同时失去了灰度这个对照组。"
+        },
+        principle: "事故处置的顺序是「先收窄影响面、再保留证据、后定根因」。任何要求你先查清原因再动手的流程，都默认了这段时间里损失不会继续累积——这个假设不成立。"
+      }
+    ]
+  };
+
+  var SAMPLES = [
+    { name: "凌晨两点，接口全红", data: SAMPLE_OPS },
+    { name: "上腹痛三小时", data: SAMPLE_MED }
+  ];
+
+  /* ---------- 状态 ---------- */
+  var cur = 0;
+  var DATA = JSON.parse(JSON.stringify(SAMPLES[0].data));
+  var stepSeq = 100;
+  var playerDirty = false;
+
+  function $(id){ return document.getElementById(id); }
+  function cp(o){ return JSON.parse(JSON.stringify(o)); }
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function toast(msg){
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function(){ t.classList.remove("on"); }, 1900);
+  }
+
+  /* ---------- Tab ---------- */
+  var TABS = document.querySelectorAll(".tab");
+  var VIEWS = document.querySelectorAll(".view");
+  TABS.forEach(function(b){
+    b.addEventListener("click", function(){
+      TABS.forEach(function(x){ x.classList.remove("on"); });
+      VIEWS.forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      $("view-" + b.getAttribute("data-view")).classList.add("on");
+      if(b.getAttribute("data-view") === "play" && playerDirty) mountPlayer();
+      if(b.getAttribute("data-view") === "build") renderPreview();
+      if(b.getAttribute("data-view") === "export") renderExport();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    });
+  });
+
+  /* ---------- 样例切换 ---------- */
+  function renderPicker(){
+    var box = $("picker");
+    var h = '<span class="lb">换个样例看：</span>';
+    SAMPLES.forEach(function(s, i){
+      h += '<button class="pick' + (i === cur ? " on" : "") + '" data-sample="' + i + '">' + esc(s.name) + '</button>';
+    });
+    box.innerHTML = h;
+  }
+  function loadSample(i){
+    cur = i;
+    DATA = cp(SAMPLES[i].data);
+    renderPicker();
+    mountPlayer();
+    renderEditor();
+    renderPreview();
+    renderExport();
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+
+  /* ---------- 训练页 ---------- */
+  function mountPlayer(){
+    window.Player.mount($("playerMount"), DATA);
+    playerDirty = false;
+  }
+
+  /* ---------- 编辑器 ---------- */
+  function renderContext(focusIdx){
+    var box = $("ed-context");
+    var h = "";
+    (DATA.context || []).forEach(function(r, i){
+      h += '<div class="prow" data-i="' + i + '">'
+         + '<input class="inp k" data-pf="k" value="' + esc(r.k) + '" placeholder="标签">'
+         + '<input class="inp" data-pf="v" value="' + esc(r.v) + '" placeholder="内容">'
+         + '<button class="mini" data-delpt="' + i + '" title="删除这一行">×</button>'
+         + '</div>';
+    });
+    box.innerHTML = h || '<p class="ph" style="margin:0 0 10px">还没有信息行。</p>';
+    if(focusIdx != null){
+      var last = box.querySelector('[data-i="' + focusIdx + '"] .inp.k');
+      if(last) last.focus();
+    }
+  }
+
+  function renderSteps(){
+    var box = $("ed-steps");
+    var h = "";
+    DATA.steps.forEach(function(st, si){
+      var nCorrect = st.options.filter(function(o){ return o.correct; }).length;
+      h += '<div class="stepbox" data-si="' + si + '">';
+      h += '<div class="stepbox-hd"><span class="n">第 ' + (si + 1) + ' 步</span><span class="sp"></span>'
+         + '<span class="tag' + (nCorrect ? " ok" : " bad") + '">' + (nCorrect ? ("必做 " + nCorrect + " 项") : "还没勾必做项") + '</span>'
+         + '<button class="mini" data-delstep="' + si + '" title="删除这个节点">×</button></div>';
+
+      h += '<div class="fld"><label>这个节点问什么（标题）</label><input class="inp" data-sf="title" data-si="' + si + '" value="' + esc(st.title) + '"></div>';
+      h += '<div class="fld"><label>完整提问</label><textarea class="inp" data-sf="prompt" data-si="' + si + '">' + esc(st.prompt) + '</textarea></div>';
+
+      h += '<div class="fld"><label>候选项（勾选＝这一步该做的）</label>';
+      st.options.forEach(function(o, oi){
+        var hasExpl = o.correct ? st.miss[o.id] : st.wrong[o.id];
+        var cls = "optrow" + (o.correct ? "" : " is-wrong") + (hasExpl ? " expl-on" : "");
+        h += '<div class="' + cls + '" data-oi="' + oi + '">';
+        h += '<div class="optrow-top">'
+           + '<input type="checkbox" data-of="correct" data-si="' + si + '" data-oi="' + oi + '"' + (o.correct ? " checked" : "") + '>'
+           + '<input class="inp" data-of="label" data-si="' + si + '" data-oi="' + oi + '" value="' + esc(o.label) + '" placeholder="选项文字">'
+           + '<button class="mini" data-delopt="' + si + '_' + oi + '" title="删除这个选项">×</button>'
+           + '</div>';
+        h += '<div class="expl"><label>' + (o.correct ? "漏了会怎样" : "为什么不该在这一步做") + '</label>'
+           + '<textarea class="inp" data-of="expl" data-si="' + si + '" data-oi="' + oi + '">'
+           + esc(o.correct ? (st.miss[o.id] || "") : (st.wrong[o.id] || "")) + '</textarea></div>';
+        h += '</div>';
+      });
+      h += '<button class="mini add" data-addopt="' + si + '">+ 加选项</button>';
+      h += '</div>';
+
+      h += '<div class="fld"><label>第一性原理（这个节点想让人记住的那句话）</label><textarea class="inp" data-sf="principle" data-si="' + si + '">' + esc(st.principle) + '</textarea></div>';
+      h += '</div>';
+    });
+    box.innerHTML = h || '<p class="ph" style="margin:0 0 10px">还没有节点。</p>';
+  }
+
+  function renderEditor(){
+    $("ed-title").value = DATA.meta.title || "";
+    $("ed-sub").value = DATA.meta.subtitle || "";
+    $("ed-note").value = DATA.meta.note || "";
+    renderContext();
+    renderSteps();
+  }
+
+  /* ---------- 事件 ---------- */
+  document.addEventListener("input", function(e){
+    var el = e.target;
+    if(el.hasAttribute && el.hasAttribute("data-meta")){
+      DATA.meta[el.getAttribute("data-meta")] = el.value;
+      schedulePreview(); return;
+    }
+    if(el.hasAttribute && el.hasAttribute("data-pf")){
+      var i = +el.closest(".prow").getAttribute("data-i");
+      DATA.context[i][el.getAttribute("data-pf")] = el.value;
+      schedulePreview(); return;
+    }
+    if(el.hasAttribute && el.hasAttribute("data-sf")){
+      DATA.steps[+el.getAttribute("data-si")][el.getAttribute("data-sf")] = el.value;
+      schedulePreview(); return;
+    }
+    if(el.hasAttribute && el.hasAttribute("data-of")){
+      var s2 = +el.getAttribute("data-si"), o2 = +el.getAttribute("data-oi");
+      var f = el.getAttribute("data-of");
+      var opt = DATA.steps[s2].options[o2];
+      if(f === "label") opt.label = el.value;
+      else if(f === "expl"){
+        var map = opt.correct ? DATA.steps[s2].miss : DATA.steps[s2].wrong;
+        map[opt.id] = el.value;
+      }
+      schedulePreview(); return;
+    }
+  });
+
+  document.addEventListener("change", function(e){
+    var el = e.target;
+    if(el.matches && el.matches('input[type=checkbox][data-of="correct"]')){
+      var si = +el.getAttribute("data-si"), oi = +el.getAttribute("data-oi");
+      var st = DATA.steps[si], opt = st.options[oi];
+      opt.correct = el.checked;
+      var srcMap = opt.correct ? st.wrong : st.miss;
+      var dstMap = opt.correct ? st.miss : st.wrong;
+      if(srcMap[opt.id]){ dstMap[opt.id] = srcMap[opt.id]; delete srcMap[opt.id]; }
+      renderSteps(); schedulePreview();
+    }
+  });
+
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    if(t.id === "restoreExample"){ loadSample(0); TABS[0].click(); toast("已恢复示例"); return; }
+    if(t.hasAttribute && t.hasAttribute("data-sample")){ loadSample(+t.getAttribute("data-sample")); return; }
+    if(t.hasAttribute && t.hasAttribute("data-delpt")){
+      DATA.context.splice(+t.getAttribute("data-delpt"), 1);
+      renderContext(); schedulePreview(); return;
+    }
+    if(t.hasAttribute && t.hasAttribute("data-delstep")){
+      if(DATA.steps.length <= 1){ toast("至少保留一个节点"); return; }
+      DATA.steps.splice(+t.getAttribute("data-delstep"), 1);
+      renderSteps(); schedulePreview(); return;
+    }
+    if(t.hasAttribute && t.hasAttribute("data-addopt")){
+      stepSeq++;
+      DATA.steps[+t.getAttribute("data-addopt")].options.push({ id:"x" + stepSeq, label:"", correct:false });
+      renderSteps(); schedulePreview(); return;
+    }
+    if(t.hasAttribute && t.hasAttribute("data-delopt")){
+      var pair = t.getAttribute("data-delopt").split("_");
+      var s3 = +pair[0], o3 = +pair[1];
+      var st3 = DATA.steps[s3], op = st3.options[o3];
+      delete st3.miss[op.id]; delete st3.wrong[op.id];
+      st3.options.splice(o3, 1);
+      renderSteps(); schedulePreview(); return;
+    }
+    if(t.id === "btnAddPt"){
+      DATA.context.push({ k:"", v:"" });
+      renderContext(DATA.context.length - 1); schedulePreview(); return;
+    }
+    if(t.id === "btnAddStep"){
+      stepSeq++;
+      DATA.steps.push({
+        title: "第 " + (DATA.steps.length + 1) + " 个节点", prompt: "",
+        options: [
+          { id:"x" + stepSeq + "a", label:"", correct:true },
+          { id:"x" + stepSeq + "b", label:"", correct:false }
+        ],
+        miss:{}, wrong:{}, principle:""
+      });
+      renderSteps(); schedulePreview();
+      var bs = $("ed-steps").querySelectorAll(".stepbox");
+      if(bs.length) bs[bs.length - 1].scrollIntoView({ behavior:"smooth", block:"center" });
+      return;
+    }
+    if(t.id === "btnDownload"){ downloadHtml(); return; }
+    if(t.id === "btnJson"){ copyJson(); return; }
+    if(t.id === "btnImport"){ importJson(); return; }
+  });
+
+  /* ---------- 预览 ---------- */
+  var pvTimer = null;
+  function schedulePreview(){
+    playerDirty = true;
+    var tag = $("liveTag");
+    if(tag) tag.textContent = "同步中…";
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(function(){
+      renderPreview();
+      if(tag) tag.textContent = "已同步";
+      renderExport();
+    }, 500);
+  }
+  function renderPreview(){
+    var m = $("previewMount");
+    if(!m) return;
+    if(!DATA.steps.length){
+      m.innerHTML = '<p class="ph" style="padding:20px">还没有节点，右边暂时没东西可预览。</p>';
+      return;
+    }
+    window.Player.mount(m, DATA, { guide:false });
+  }
+
+  /* ---------- 校验 ---------- */
+  function validate(){
+    var errs = [];
+    if(!(DATA.meta.title || "").trim()) errs.push("还没有标题");
+    if(!DATA.steps.length) errs.push("至少要有一个节点");
+    DATA.steps.forEach(function(st, i){
+      var n = i + 1;
+      if(!(st.title || "").trim()) errs.push("第 " + n + " 个节点还没有名字");
+      if(!st.options.length) errs.push("第 " + n + " 个节点没有候选项");
+      var corr = st.options.filter(function(o){ return o.correct; });
+      if(!corr.length) errs.push("第 " + n + " 个节点没有勾任何「必做项」，这样永远判不出漏");
+      var empty = st.options.filter(function(o){ return !(o.label || "").trim(); });
+      if(empty.length) errs.push("第 " + n + " 个节点有 " + empty.length + " 个选项没填文字");
+      corr.forEach(function(o){
+        if(!(st.miss[o.id] || "").trim()) errs.push("第 " + n + " 步「" + (o.label || "未命名") + "」还没写「漏了会怎样」");
+      });
+      st.options.filter(function(o){ return !o.correct; }).forEach(function(o){
+        if(!(st.wrong[o.id] || "").trim()) errs.push("第 " + n + " 步「" + (o.label || "未命名") + "」还没写「为什么不该在这一步做」");
+      });
+    });
+    return errs;
+  }
+
+  /* ---------- 导出 ---------- */
+  function renderExport(){
+    var errs = validate();
+    var warn = $("expWarn");
+    if(errs.length){
+      warn.innerHTML = "导出前还有 " + errs.length + " 处没填完，现在导出的页面会缺反馈内容：<br>· "
+        + esc(errs.slice(0, 6).join("<br>· ")) + (errs.length > 6 ? "<br>· 还有 " + (errs.length - 6) + " 处…" : "");
+      warn.classList.add("on");
+    } else {
+      warn.classList.remove("on"); warn.innerHTML = "";
+    }
+    $("expName").textContent = DATA.meta.title || "未命名情境";
+    $("expDesc").textContent = DATA.meta.subtitle || "（还没有写副标题）";
+    var nOpt = DATA.steps.reduce(function(a, s){ return a + s.options.length; }, 0);
+    var nCorr = DATA.steps.reduce(function(a, s){
+      return a + s.options.filter(function(o){ return o.correct; }).length; }, 0);
+    $("expMeta").innerHTML = "<span>" + DATA.steps.length + " 个决策节点</span><span>·</span><span>"
+      + nOpt + " 个候选项</span><span>·</span><span>必做 " + nCorr + " 项</span>";
+  }
+
+  function buildStandalone(){
+    var css = $("cssPlayer").textContent;
+    var runtime = $("playerRuntime").textContent;
+    var data = cp(DATA);
+    data.meta.disclaimer = data.meta.disclaimer || DISCLAIMER;
+    var json = JSON.stringify(data).replace(/<\//g, "<\\/");
+    return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n'
+      + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+      + '<title>' + esc(data.meta.title || "判断训练") + '</title>\n'
+      + '<style>\n' + css + '\n</style>\n</head>\n<body>\n<div id="app"></div>\n'
+      + '<scr' + 'ipt>\n' + runtime + '\n<\/scr' + 'ipt>\n'
+      + '<scr' + 'ipt>\nvar LESSON = ' + json + ';\n'
+      + 'window.Player.mount(document.getElementById("app"), LESSON);\n<\/scr' + 'ipt>\n'
+      + '</body>\n</html>';
+  }
+
+  function downloadHtml(){
+    var html = buildStandalone();
+    var blob = new Blob([html], { type:"text/html;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var name = (DATA.meta.title || "判断训练").replace(/[\\/:*?"<>|]/g, "_");
+    a.href = url; a.download = name + ".html";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    toast("已导出：" + name + ".html");
+  }
+
+  function copyJson(){
+    var txt = JSON.stringify(DATA, null, 2);
+    function done(){ toast("JSON 已复制到剪贴板"); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = txt; ta.style.position = "fixed"; ta.style.left = "-9999px";
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); done(); }catch(err){ toast("复制失败，请手动选择"); }
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, fallback);
+    } else fallback();
+  }
+
+  function importJson(){
+    var txt = window.prompt("把之前导出的 JSON 粘贴进来：");
+    if(!txt) return;
+    try{
+      var obj = JSON.parse(txt);
+      if(!obj.steps || !obj.steps.length) throw new Error("没有 steps");
+      obj.meta = obj.meta || {};
+      obj.context = obj.context || obj.patient || [];
+      obj.steps.forEach(function(st){
+        st.miss = st.miss || {}; st.wrong = st.wrong || {}; st.options = st.options || [];
+      });
+      DATA = obj;
+      playerDirty = true;
+      renderEditor(); renderPreview(); renderExport();
+      toast("已载入");
+    }catch(err){
+      toast("JSON 格式不对：" + err.message);
+    }
+  }
+
+  /* ---------- 启动 ---------- */
+  renderPicker();
+  mountPlayer();
+  renderEditor();
+  renderPreview();
+  renderExport();
+})();
+</script>
+</body>
+</html>
