@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日历备忘录 · 节日与历史上的今天</title>
+  <style>:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --card-2: #f7f9fc;
+  --text: #1f2733;
+  --text-soft: #6b7686;
+  --border: #e6eaf0;
+  --accent: #4f46e5;
+  --accent-soft: #eef0ff;
+  --shadow: 0 10px 30px rgba(31, 39, 51, .08);
+  --legal: #ef4444;
+  --traditional: #f59e0b;
+  --intl: #3b82f6;
+  --term: #10b981;
+  --memo: #8b5cf6;
+  --radius: 16px;
+}
+[data-theme="dark"] {
+  --bg: #0f1320;
+  --card: #181d2c;
+  --card-2: #1f2536;
+  --text: #e8ecf4;
+  --text-soft: #9aa6bd;
+  --border: #2a3145;
+  --accent: #7c83ff;
+  --accent-soft: #232a44;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --legal: #ff6b6b;
+  --traditional: #ffbe4d;
+  --intl: #6aa8ff;
+  --term: #4ade80;
+  --memo: #b79cff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 18px 40px;
+}
+
+/* 顶部栏 */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo {
+  font-size: 30px;
+  width: 50px; height: 50px;
+  display: grid; place-items: center;
+  background: var(--accent-soft);
+  border-radius: 14px;
+}
+.brand-text h1 { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+.brand-text p { font-size: 12.5px; color: var(--text-soft); }
+
+.topbar-actions { display: flex; gap: 10px; }
+.icon-btn, .primary-btn {
+  border: none; cursor: pointer; font-family: inherit;
+  border-radius: 10px; transition: .15s;
+}
+.icon-btn {
+  width: 42px; height: 42px; font-size: 18px;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border);
+}
+.icon-btn:hover { background: var(--card-2); }
+.primary-btn {
+  background: var(--accent); color: #fff;
+  padding: 10px 18px; font-size: 14px; font-weight: 600;
+}
+.primary-btn:hover { filter: brightness(1.06); }
+.primary-btn.sm { padding: 8px 14px; font-size: 13px; }
+
+/* 布局 */
+.layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.calendar-card, .detail-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* 日历头 */
+.cal-header {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin-bottom: 14px;
+}
+.cal-title { font-size: 18px; font-weight: 700; min-width: 130px; text-align: center; }
+.nav-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card-2);
+  color: var(--text); font-size: 20px; cursor: pointer; line-height: 1;
+}
+.nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* 星期行 */
+.week-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center; font-size: 13px; color: var(--text-soft);
+  padding-bottom: 8px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.wk-sun { color: var(--legal); }
+.wk-sat { color: var(--intl); }
+
+/* 日期格 */
+.day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.day-cell {
+  position: relative;
+  min-height: 64px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: var(--card-2);
+  padding: 6px 7px;
+  cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+  transition: .12s;
+  overflow: hidden;
+}
+.day-cell:hover { border-color: var(--accent); transform: translateY(-1px); }
+.day-cell.outside { opacity: .35; }
+.day-cell.today { border-color: var(--accent); background: var(--accent-soft); }
+.day-cell.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dc-solar { font-size: 16px; font-weight: 700; }
+.day-cell.today .dc-solar { color: var(--accent); }
+.dc-lunar { font-size: 11px; color: var(--text-soft); line-height: 1.2; }
+.dc-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; }
+.dc-tag {
+  font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 5px;
+  color: #fff; white-space: nowrap; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.tag-legal { background: var(--legal); }
+.tag-traditional { background: var(--traditional); }
+.tag-intl { background: var(--intl); }
+.tag-term { background: var(--term); }
+.dc-memo-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--memo);
+}
+
+/* 图例 */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-soft);
+}
+.lg { display: inline-flex; align-items: center; gap: 5px; }
+.lg::before {
+  content: ""; width: 11px; height: 11px; border-radius: 3px; display: inline-block;
+}
+.lg-legal::before { background: var(--legal); }
+.lg-traditional::before { background: var(--traditional); }
+.lg-intl::before { background: var(--intl); }
+.lg-term::before { background: var(--term); }
+.lg-memo::before { background: var(--memo); border-radius: 50%; }
+
+/* 详情卡 */
+.detail-card { position: sticky; top: 18px; }
+.detail-date {
+  background: var(--card-2); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+}
+.dd-main { display: flex; align-items: baseline; gap: 10px; }
+#ddDay { font-size: 34px; font-weight: 800; }
+.dd-week { font-size: 14px; color: var(--text-soft); }
+.dd-sub { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
+
+.block { margin-bottom: 16px; }
+.block-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.holiday-chip {
+  font-size: 12.5px; padding: 4px 10px; border-radius: 20px; color: #fff; font-weight: 600;
+}
+.empty-hint { font-size: 13px; color: var(--text-soft); }
+
+.meta-line { font-size: 12px; color: var(--text-soft); margin-bottom: 8px; }
+.history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.history-list li {
+  font-size: 13.5px; padding: 9px 11px; border-radius: 10px;
+  background: var(--card-2); border-left: 3px solid var(--accent);
+}
+.history-list li .hy { font-weight: 700; color: var(--accent); margin-right: 6px; }
+
+/* 备忘 */
+.memo-form { display: flex; gap: 8px; margin-bottom: 10px; }
+.memo-form input {
+  flex: 1; border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 12px; font-size: 13.5px; font-family: inherit;
+  background: var(--card-2); color: var(--text);
+}
+.memo-form input:focus { outline: none; border-color: var(--accent); }
+.memo-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.memo-item {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--card-2); border-radius: 10px; padding: 9px 11px; font-size: 13.5px;
+}
+.memo-item .chk {
+  width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border);
+  cursor: pointer; flex: 0 0 auto; display: grid; place-items: center; font-size: 12px; color: #fff;
+}
+.memo-item.done .chk { background: var(--memo); border-color: var(--memo); }
+.memo-item.done .mt { text-decoration: line-through; color: var(--text-soft); }
+.memo-item .mt { flex: 1; word-break: break-word; }
+.memo-item .del {
+  border: none; background: transparent; color: var(--text-soft);
+  cursor: pointer; font-size: 16px; padding: 2px 5px; border-radius: 6px;
+}
+.memo-item .del:hover { color: var(--legal); background: var(--card); }
+
+.foot { text-align: center; font-size: 12px; color: var(--text-soft); margin-top: 22px; }
+
+/* 响应式 */
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; }
+  .detail-card { position: static; }
+  .day-cell { min-height: 56px; }
+  .dc-solar { font-size: 14px; }
+}
+@media (max-width: 480px) {
+  .brand-text p { display: none; }
+  .day-cell { min-height: 48px; padding: 4px 4px; }
+  .dc-lunar { font-size: 10px; }
+}
+</style>
+</head>
+<body><div style="text-align:center;padding:8px">示例体验，数据仅保留在本页 <button id="resetDemo">恢复示例</button></div>
+  <div class="app">
+    <!-- 顶部栏 -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">📅</span>
+        <div class="brand-text">
+          <h1>日历备忘录</h1>
+          <p>节日 · 节气 · 历史上的今天 · 我的备忘</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeBtn" class="icon-btn" title="切换主题">🌗</button>
+        <button id="todayBtn" class="primary-btn">今天</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- 左：日历 -->
+      <section class="calendar-card">
+        <div class="cal-header">
+          <button id="prevBtn" class="nav-btn" aria-label="上个月">‹</button>
+          <div class="cal-title" id="calTitle">2026 年 10 月</div>
+          <button id="nextBtn" class="nav-btn" aria-label="下个月">›</button>
+        </div>
+        <div class="week-row">
+          <span class="wk wk-sun">日</span>
+          <span>一</span><span>二</span><span>三</span>
+          <span>四</span><span>五</span>
+          <span class="wk wk-sat">六</span>
+        </div>
+        <div class="day-grid" id="dayGrid"><!-- JS 渲染 --></div>
+        <div class="legend">
+          <span class="lg lg-legal">法定</span>
+          <span class="lg lg-traditional">传统</span>
+          <span class="lg lg-intl">节日</span>
+          <span class="lg lg-term">节气</span>
+          <span class="lg lg-memo">备忘</span>
+        </div>
+      </section>
+
+      <!-- 右：详情 -->
+      <section class="detail-card" id="detailCard">
+        <div class="detail-date">
+          <div class="dd-main">
+            <span id="ddDay">22</span>
+            <span class="dd-week" id="ddWeek">星期四</span>
+          </div>
+          <div class="dd-sub" id="ddSub">2026 年 10 月 · 农历 九月十三</div>
+        </div>
+
+        <div class="block">
+          <h3 class="block-title">🎏 节日 / 节气</h3>
+          <div id="holidayList" class="tag-list"></div>
+        </div>
+
+        <div class="block">
+          <h3 class="block-title">📜 历史上的今天</h3>
+          <div id="historyMeta" class="meta-line"></div>
+          <ul id="historyList" class="history-list"></ul>
+        </div>
+
+        <div class="block">
+          <h3 class="block-title">📝 我的备忘</h3>
+          <form id="memoForm" class="memo-form">
+            <input id="memoInput" type="text" maxlength="120" placeholder="写点什么提醒自己…" autocomplete="off" />
+            <button type="submit" class="primary-btn sm">添加</button>
+          </form>
+          <ul id="memoList" class="memo-list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      农历与二十四节气为天文推算 · 历史上的今天为本地精选
+    </footer>
+  </div>
+
+<script>const memoryStorage={data:{},getItem(k){return this.data[k]||null},setItem(k,v){this.data[k]=v}};
+/* ============================================================
+ * lunar.js —— 农历 + 二十四节气 转换引擎（1900-2100）
+ * 纯前端、零依赖、可离线运行
+ * 数据基于公开的 lunarInfo 算法
+ * ============================================================ */
+(function (global) {
+  'use strict';
+
+  // 1900-2100 每年农历信息（位运算编码大小月与闰月）
+  var lunarInfo = [
+    0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+    0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+    0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+    0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+    0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+    0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0,
+    0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+    0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
+    0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+    0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
+    0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+    0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+    0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+    0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+    0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+    0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+    0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+    0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+    0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+    0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+    0x0d520
+  ];
+
+  // 二十四节气计算基准（分钟偏移）
+  var sTermInfo = [
+    0, 21208, 42467, 63836, 85337, 107014, 128867, 150921, 173149, 195551,
+    218072, 240693, 263343, 285989, 308563, 331033, 353350, 375494, 397447, 419210,
+    440795, 462224, 483532, 504758
+  ];
+
+  var termNames = [
+    '小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨', '立夏', '小满',
+    '芒种', '夏至', '小暑', '大暑', '立秋', '处暑', '白露', '秋分', '寒露', '霜降',
+    '立冬', '小雪', '大雪', '冬至'
+  ];
+
+  var Gan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+  var Zhi = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+  var Animals = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+  var lunarMonths = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
+  var lunarDays = [
+    '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'
+  ];
+
+  function lYearDays(y) {
+    var sum = 348;
+    for (var i = 0x8000; i > 0x8; i >>= 1) sum += (lunarInfo[y - 1900] & i) ? 1 : 0;
+    return sum + leapDays(y);
+  }
+  function leapDays(y) {
+    if (leapMonth(y)) return (lunarInfo[y - 1900] & 0x10000) ? 30 : 29;
+    return 0;
+  }
+  function leapMonth(y) { return lunarInfo[y - 1900] & 0xf; }
+  function monthDays(y, m) { return (lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29; }
+
+  // 公历 -> 农历
+  function solarToLunar(y, m, d) {
+    var baseDate = Date.UTC(1900, 0, 31);
+    var objDate = Date.UTC(y, m - 1, d);
+    var offset = Math.round((objDate - baseDate) / 86400000);
+    var temp = 0, lunarYear = 1900;
+    for (lunarYear = 1900; lunarYear < 2101 && offset > 0; lunarYear++) {
+      temp = lYearDays(lunarYear);
+      offset -= temp;
+    }
+    if (offset < 0) { offset += temp; lunarYear--; }
+    var leap = leapMonth(lunarYear);
+    var isLeap = false;
+    var lunarMonth;
+    for (lunarMonth = 1; lunarMonth < 13 && offset > 0; lunarMonth++) {
+      if (leap > 0 && lunarMonth === (leap + 1) && !isLeap) {
+        --lunarMonth; isLeap = true; temp = leapDays(lunarYear);
+      } else {
+        temp = monthDays(lunarYear, lunarMonth);
+      }
+      if (isLeap && lunarMonth === (leap + 1)) isLeap = false;
+      offset -= temp;
+    }
+    if (offset === 0 && leap > 0 && lunarMonth === leap + 1) {
+      if (isLeap) { isLeap = false; } else { isLeap = true; --lunarMonth; }
+    }
+    if (offset < 0) { offset += temp; --lunarMonth; }
+    var lunarDay = offset + 1;
+    return {
+      year: lunarYear,
+      month: lunarMonth,
+      day: lunarDay,
+      isLeap: isLeap
+    };
+  }
+
+  // 农历中文表示
+  function lunarText(l) {
+    var m = (l.isLeap ? '闰' : '') + lunarMonths[l.month - 1] + '月';
+    var d = lunarDays[l.day - 1] || ('#' + l.day);
+    return m + d;
+  }
+  function lunarMonthDay(l) {
+    // 用于节日匹配：返回 {lm, ld}
+    return { lm: l.month, ld: l.day, isLeap: l.isLeap };
+  }
+
+  // 农历生肖年
+  function lunarAnimal(l) { return Animals[(l.year - 4) % 12]; }
+  // 农历干支年
+  function lunarGanZhiYear(l) {
+    var g = (l.year - 4) % 10, z = (l.year - 4) % 12;
+    return Gan[g] + Zhi[z];
+  }
+
+  // 二十四节气：返回当天节气名，无则返回 null
+  function getTerm(y, n) {
+    var calday = new Date((31556925974.7 * (y - 1900) + sTermInfo[n] * 60000) + Date.UTC(1900, 0, 6, 2, 5));
+    return calday.getUTCDate();
+  }
+  function solarTerm(y, m, d) {
+    var idx = (m - 1) * 2;
+    if (getTerm(y, idx) === d) return termNames[idx];
+    if (getTerm(y, idx + 1) === d) return termNames[idx + 1];
+    return null;
+  }
+
+  global.Lunar = {
+    solarToLunar: solarToLunar,
+    lunarText: lunarText,
+    lunarMonthDay: lunarMonthDay,
+    lunarAnimal: lunarAnimal,
+    lunarGanZhiYear: lunarGanZhiYear,
+    solarTerm: solarTerm,
+    termNames: termNames
+  };
+})(window);
+
+;
+/* ============================================================
+ * holidays.js —— 节日数据库
+ *  type: legal(法定·红) / traditional(传统·橙) / intl(国际/普通·蓝) / term(节气·绿)
+ *  公历以 "MM-DD" 为键；农历以 {lm, ld} 匹配
+ * ============================================================ */
+(function (global) {
+  'use strict';
+
+  // 公历固定节日
+  var solarHolidays = {
+    '01-01': [{ name: '元旦', type: 'legal' }],
+    '02-02': [{ name: '世界湿地日', type: 'intl' }],
+    '02-10': [{ name: '国际气象节', type: 'intl' }],
+    '02-14': [{ name: '情人节', type: 'intl' }],
+    '03-03': [{ name: '全国爱耳日', type: 'intl' }],
+    '03-05': [{ name: '学雷锋纪念日', type: 'intl' }],
+    '03-08': [{ name: '妇女节', type: 'intl' }],
+    '03-12': [{ name: '植树节', type: 'intl' }],
+    '03-15': [{ name: '消费者权益日', type: 'intl' }],
+    '03-21': [{ name: '世界森林日', type: 'intl' }],
+    '03-22': [{ name: '世界水日', type: 'intl' }],
+    '04-01': [{ name: '愚人节', type: 'intl' }],
+    '04-07': [{ name: '世界卫生日', type: 'intl' }],
+    '04-22': [{ name: '世界地球日', type: 'intl' }],
+    '04-23': [{ name: '世界读书日', type: 'intl' }],
+    '05-01': [{ name: '劳动节', type: 'legal' }],
+    '05-04': [{ name: '青年节', type: 'intl' }],
+    '05-08': [{ name: '世界红十字日', type: 'intl' }],
+    '05-12': [{ name: '国际护士节', type: 'intl' }],
+    '05-15': [{ name: '国际家庭日', type: 'intl' }],
+    '05-20': [{ name: '网络情人节', type: 'intl' }],
+    '05-31': [{ name: '世界无烟日', type: 'intl' }],
+    '06-01': [{ name: '儿童节', type: 'intl' }],
+    '06-05': [{ name: '世界环境日', type: 'intl' }],
+    '06-06': [{ name: '全国爱眼日', type: 'intl' }],
+    '06-14': [{ name: '世界献血者日', type: 'intl' }],
+    '06-21': [{ name: '国际瑜伽日', type: 'intl' }],
+    '06-26': [{ name: '国际禁毒日', type: 'intl' }],
+    '07-01': [{ name: '建党节', type: 'intl' }],
+    '07-07': [{ name: '七夕·抗战纪念日', type: 'intl' }],
+    '07-11': [{ name: '世界人口日', type: 'intl' }],
+    '08-01': [{ name: '建军节', type: 'intl' }],
+    '08-08': [{ name: '全民健身日', type: 'intl' }],
+    '08-12': [{ name: '国际青年日', type: 'intl' }],
+    '08-19': [{ name: '中国医师节', type: 'intl' }],
+    '09-03': [{ name: '抗战胜利纪念日', type: 'intl' }],
+    '09-08': [{ name: '国际扫盲日', type: 'intl' }],
+    '09-10': [{ name: '教师节', type: 'intl' }],
+    '09-18': [{ name: '九一八事变纪念日', type: 'intl' }],
+    '09-21': [{ name: '国际和平日', type: 'intl' }],
+    '09-27': [{ name: '世界旅游日', type: 'intl' }],
+    '10-01': [{ name: '国庆节', type: 'legal' }],
+    '10-04': [{ name: '世界动物日', type: 'intl' }],
+    '10-10': [{ name: '辛亥革命纪念日', type: 'intl' }],
+    '10-16': [{ name: '世界粮食日', type: 'intl' }],
+    '10-24': [{ name: '联合国日', type: 'intl' }],
+    '10-31': [{ name: '万圣夜', type: 'intl' }],
+    '11-08': [{ name: '记者节', type: 'intl' }],
+    '11-09': [{ name: '全国消防日', type: 'intl' }],
+    '11-11': [{ name: '双十一', type: 'intl' }],
+    '11-20': [{ name: '世界儿童日', type: 'intl' }],
+    '11-28': [{ name: '感恩节', type: 'intl' }], // 近似（美式）
+    '12-01': [{ name: '世界艾滋病日', type: 'intl' }],
+    '12-03': [{ name: '国际残疾人日', type: 'intl' }],
+    '12-05': [{ name: '国际志愿者日', type: 'intl' }],
+    '12-09': [{ name: '一二·九运动纪念日', type: 'intl' }],
+    '12-10': [{ name: '世界人权日', type: 'intl' }],
+    '12-13': [{ name: '南京大屠杀死难者国家公祭日', type: 'intl' }],
+    '12-20': [{ name: '澳门回归纪念日', type: 'intl' }],
+    '12-24': [{ name: '平安夜', type: 'intl' }],
+    '12-25': [{ name: '圣诞节', type: 'intl' }]
+  };
+
+  // 农历固定节日（lm: 农历月, ld: 农历日，均非闰月匹配）
+  var lunarHolidays = [
+    { lm: 1, ld: 1, name: '春节', type: 'legal' },
+    { lm: 1, ld: 15, name: '元宵节', type: 'traditional' },
+    { lm: 2, ld: 2, name: '龙抬头', type: 'traditional' },
+    { lm: 5, ld: 5, name: '端午节', type: 'legal' },
+    { lm: 7, ld: 7, name: '七夕', type: 'traditional' },
+    { lm: 7, ld: 15, name: '中元节', type: 'traditional' },
+    { lm: 8, ld: 15, name: '中秋节', type: 'legal' },
+    { lm: 9, ld: 9, name: '重阳节', type: 'traditional' },
+    { lm: 10, ld: 1, name: '寒衣节', type: 'traditional' },
+    { lm: 12, ld: 8, name: '腊八节', type: 'traditional' },
+    { lm: 12, ld: 23, name: '北方小年', type: 'traditional' },
+    { lm: 12, ld: 24, name: '南方小年', type: 'traditional' },
+    { lm: 12, ld: 30, name: '除夕', type: 'legal' }
+  ];
+
+  global.Holidays = {
+    solarHolidays: solarHolidays,
+    lunarHolidays: lunarHolidays,
+    // 返回某公历日期的所有节日 [{name,type}]
+    getHolidays: function (y, m, d) {
+      var list = [];
+      var key = (m < 10 ? '0' + m : '' + m) + '-' + (d < 10 ? '0' + d : '' + d);
+      if (solarHolidays[key]) {
+        solarHolidays[key].forEach(function (h) { list.push(h); });
+      }
+      var l = Lunar.solarToLunar(y, m, d);
+      lunarHolidays.forEach(function (h) {
+        if (!l.isLeap && l.month === h.lm && l.day === h.ld) list.push(h);
+      });
+      return list;
+    }
+  };
+})(window);
+
+;
+/* ============================================================
+ * history.js —— 历史上的今天（本地精选数据集 + 联网补充）
+ * 本地数据为离线兜底；联网失败自动回退本地
+ * 每条: { y: 年份, t: 事件 }  （y 可为 null 表示泛指）
+ * ============================================================ */
+(function (global) {
+  'use strict';
+
+  var localData = {
+    '01-01': [
+      { y: 1912, t: '中华民国成立，孙中山就任临时大总统' },
+      { y: 1949, t: '联合国促成《防止及惩治灭绝种族罪公约》生效' },
+      { y: 1979, t: '中华人民共和国与美利坚合众国正式建立外交关系' },
+      { y: 1995, t: '世界贸易组织（WTO）成立' },
+      { y: 1999, t: '欧元在欧盟11国正式启用' }
+    ],
+    '01-06': [
+      { y: 1997, t: '国家决定在全国范围实行职工每周五天工作制（双休）' }
+    ],
+    '01-08': [
+      { y: 1976, t: '周恩来总理在北京逝世' }
+    ],
+    '01-21': [
+      { y: 1924, t: '列宁逝世' },
+      { y: 1954, t: '世界上第一艘核潜艇“鹦鹉螺号”下水' }
+    ],
+    '02-02': [
+      { y: 1922, t: '华盛顿会议闭幕，通过《九国公约》' },
+      { y: 1943, t: '二战中德军在斯大林格勒战役投降' }
+    ],
+    '02-10': [
+      { y: 1964, t: '全国开展“农业学大寨”运动' }
+    ],
+    '02-14': [
+      { y: 270, t: '（传说）基督教圣瓦伦丁殉道，后演变为情人节' },
+      { y: 1946, t: '世界上第一台通用电子计算机 ENIAC 启用' }
+    ],
+    '02-19': [
+      { y: 1997, t: '邓小平同志在北京逝世' },
+      { y: 2001, t: '吴文俊、袁隆平获首届国家最高科学技术奖' }
+    ],
+    '02-21': [
+      { y: 1972, t: '美国总统尼克松访华，开启中美关系正常化' }
+    ],
+    '03-05': [
+      { y: 1963, t: '《人民日报》发表题词“向雷锋同志学习”' },
+      { y: 1898, t: '周恩来诞生于江苏淮安' }
+    ],
+    '03-08': [
+      { y: 1909, t: '美国妇女争取平等，后定“三八国际妇女节”' },
+      { y: 1917, t: '俄国“二月革命”爆发' }
+    ],
+    '03-12': [
+      { y: 1925, t: '孙中山在北京逝世' },
+      { y: 1979, t: '五届全国人大常委会决定设立植树节' }
+    ],
+    '03-15': [
+      { y: 1962, t: '美国总统肯尼迪首次提出消费者权益保护' },
+      { y: 1983, t: '国际消费者联盟确定“3·15”为国际消费者权益日' }
+    ],
+    '03-22': [
+      { y: 1993, t: '《科学》杂志报道人类基因组计划启动' }
+    ],
+    '04-01': [
+      { y: 2003, t: '香港艺人张国荣跳楼自杀，享年46岁' },
+      { y: 1976, t: '苹果公司（Apple）成立' }
+    ],
+    '04-05': [
+      { y: 1976, t: '北京发生“四五运动”，悼念周恩来' },
+      { y: 1959, t: '中共八届七中全会在上海召开' }
+    ],
+    '04-12': [
+      { y: 1961, t: '苏联宇航员加加林成为首位进入太空的人' },
+      { y: 1981, t: '美国首架航天飞机“哥伦比亚号”首飞' }
+    ],
+    '04-22': [
+      { y: 1970, t: '首个“世界地球日”，全球环保运动兴起' }
+    ],
+    '04-24': [
+      { y: 1970, t: '中国第一颗人造地球卫星“东方红一号”发射成功' }
+    ],
+    '05-01': [
+      { y: 1886, t: '美国芝加哥工人大罢工，后定“五一国际劳动节”' },
+      { y: 1931, t: '帝国大厦在纽约落成，曾是世界最高建筑' }
+    ],
+    '05-04': [
+      { y: 1919, t: '五四运动在北京爆发' }
+    ],
+    '05-12': [
+      { y: 2008, t: '四川汶川发生8.0级特大地震' },
+      { y: 2008, t: '中国第19个“国际护士节”' }
+    ],
+    '05-27': [
+      { y: 1949, t: '上海解放' }
+    ],
+    '06-01': [
+      { y: 1949, t: '国际民主妇女联合会定“六一”为国际儿童节' },
+      { y: 1997, t: '香港回归前，英国将香港防务移交' }
+    ],
+    '06-05': [
+      { y: 1972, t: '联合国人类环境会议在斯德哥尔摩召开' },
+      { y: 2003, t: '世界卫生组织宣布SARS疫情受控' }
+    ],
+    '06-11': [
+      { y: 1898, t: '戊戌变法开始' }
+    ],
+    '07-01': [
+      { y: 1921, t: '中国共产党第一次全国代表大会召开（建党）' },
+      { y: 1997, t: '中国对香港恢复行使主权，香港特别行政区成立' },
+      { y: 1999, t: '中国乒协通知暂停国内乒乓球俱乐部比赛' }
+    ],
+    '07-04': [
+      { y: 1776, t: '美利坚合众国《独立宣言》发表' }
+    ],
+    '07-07': [
+      { y: 1937, t: '卢沟桥事变（七七事变），全面抗战爆发' }
+    ],
+    '07-15': [
+      { y: 1979, t: '人民大会堂正式对外开放' }
+    ],
+    '08-01': [
+      { y: 1927, t: '南昌起义爆发，打响武装反抗第一枪（建军节）' }
+    ],
+    '08-08': [
+      { y: 2008, t: '第29届北京奥运会开幕' },
+      { y: 2009, t: '首个“全民健身日”' }
+    ],
+    '08-15': [
+      { y: 1945, t: '日本宣布无条件投降，抗日战争胜利' }
+    ],
+    '09-03': [
+      { y: 1945, t: '中国人民抗日战争暨世界反法西斯战争胜利纪念日' }
+    ],
+    '09-09': [
+      { y: 1976, t: '毛泽东主席在北京逝世' }
+    ],
+    '09-18': [
+      { y: 1931, t: '九一八事变，日本关东军侵占中国东北' }
+    ],
+    '09-21': [
+      { y: 1949, t: '中国人民政治协商会议第一届全体会议开幕' }
+    ],
+    '09-27': [
+      { y: 1949, t: '中国人民政治协商会议定都北平并改名北京，决定国旗、国歌' }
+    ],
+    '10-01': [
+      { y: 1949, t: '开国大典，毛泽东宣告中华人民共和国中央人民政府成立' },
+      { y: 1960, t: '尼日利亚独立' }
+    ],
+    '10-10': [
+      { y: 1911, t: '武昌起义（辛亥革命）爆发' }
+    ],
+    '10-16': [
+      { y: 1964, t: '中国第一颗原子弹爆炸成功' }
+    ],
+    '10-25': [
+      { y: 1971, t: '联合国大会通过2758号决议，恢复中华人民共和国席位' },
+      { y: 1950, t: '中国人民志愿军赴朝参战（抗美援朝）' }
+    ],
+    '11-11': [
+      { y: 1918, t: '第一次世界大战停战' },
+      { y: 2009, t: '“双十一”成为中国网络购物节' }
+    ],
+    '11-24': [
+      { y: 1969, t: '美国发射“阿波罗12号”载人登月飞船' }
+    ],
+    '12-01': [
+      { y: 1948, t: '世界卫生组织定“12·1”为世界艾滋病日' }
+    ],
+    '12-09': [
+      { y: 1935, t: '北平学生发起“一二·九”抗日救亡运动' }
+    ],
+    '12-12': [
+      { y: 1936, t: '西安事变爆发，张学良、杨虎城兵谏蒋介石' }
+    ],
+    '12-20': [
+      { y: 1999, t: '中国对澳门恢复行使主权，澳门特别行政区成立' }
+    ],
+    '12-25': [
+      { y: 1991, t: '苏联解体，戈尔巴乔夫辞去总统职务' }
+    ],
+    '12-26': [
+      { y: 1893, t: '毛泽东诞生于湖南湘潭' }
+    ]
+  };
+
+  global.HistoryToday = {
+    localData: localData,
+    getLocal: function (m, d) {
+      var key = (m < 10 ? '0' + m : '' + m) + '-' + (d < 10 ? '0' + d : '' + d);
+      return localData[key] || [];
+    }
+  };
+})(window);
+
+;
+/* ============================================================
+ * app.js —— 日历渲染 + 节日/节气/历史 + 备忘录（memoryStorage）
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  var WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  var STORE_KEY = 'calendar_memos_v1';
+  var THEME_KEY = 'calendar_theme_v1';
+
+  var state = {
+    viewY: 0,
+    viewM: 0,        // 1-12
+    selected: null   // Date 对象（选中日）
+  };
+
+  // ---------- 备忘录存储 ----------
+  function loadMemos() {
+    try { return JSON.parse(memoryStorage.getItem(STORE_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveMemos(obj) {
+    try { memoryStorage.setItem(STORE_KEY, JSON.stringify(obj)); } catch (e) {}
+  }
+  function dateKey(d) {
+    return d.getFullYear() + '-' +
+      (d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1)) + '-' +
+      (d.getDate() < 10 ? '0' + d.getDate() : d.getDate());
+  }
+  function getMemoFor(d) { return loadMemos()[dateKey(d)] || []; }
+
+  // ---------- 工具 ----------
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  // ---------- 渲染日历 ----------
+  function renderCalendar() {
+    var grid = document.getElementById('dayGrid');
+    var y = state.viewY, m = state.viewM;
+    document.getElementById('calTitle').textContent = y + ' 年 ' + m + ' 月';
+
+    var first = new Date(y, m - 1, 1);
+    var startWeekday = first.getDay(); // 0=日
+    var daysInMonth = new Date(y, m, 0).getDate();
+
+    // 上个月的补齐
+    var prevDays = new Date(y, m - 1, 0).getDate();
+    var cells = [];
+    for (var i = startWeekday - 1; i >= 0; i--) {
+      cells.push(makeCell(new Date(y, m - 2, prevDays - i), true));
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      cells.push(makeCell(new Date(y, m - 1, d), false));
+    }
+    // 补满 6 行
+    while (cells.length % 7 !== 0) {
+      var extra = cells.length - (startWeekday + daysInMonth);
+      cells.push(makeCell(new Date(y, m, extra + 1), true));
+    }
+
+    grid.innerHTML = '';
+    cells.forEach(function (cell) { grid.appendChild(cell); });
+  }
+
+  function makeCell(date, outside) {
+    var y = date.getFullYear(), m = date.getMonth() + 1, d = date.getDate();
+    var cell = document.createElement('div');
+    cell.className = 'day-cell' + (outside ? ' outside' : '');
+
+    var today = new Date();
+    if (y === today.getFullYear() && m === today.getMonth() + 1 && d === today.getDate()) {
+      cell.classList.add('today');
+    }
+    if (state.selected && dateKey(date) === dateKey(state.selected)) {
+      cell.classList.add('selected');
+    }
+
+    var lunar = Lunar.solarToLunar(y, m, d);
+    var term = Lunar.solarTerm(y, m, d);
+    var holi = Holidays.getHolidays(y, m, d);
+
+    var solarEl = document.createElement('div');
+    solarEl.className = 'dc-solar';
+    solarEl.textContent = d;
+    cell.appendChild(solarEl);
+
+    var lunarEl = document.createElement('div');
+    lunarEl.className = 'dc-lunar';
+    lunarEl.textContent = term ? term : Lunar.lunarText(lunar);
+    cell.appendChild(lunarEl);
+
+    // 标签（最多展示 2 个）
+    var tagsEl = document.createElement('div');
+    tagsEl.className = 'dc-tags';
+    var labelPool = [];
+    holi.forEach(function (h) {
+      labelPool.push({ cls: 'tag-' + h.type, text: h.name });
+    });
+    if (term) labelPool.push({ cls: 'tag-term', text: term });
+
+    labelPool.slice(0, 2).forEach(function (t) {
+      var tag = document.createElement('span');
+      tag.className = 'dc-tag ' + t.cls;
+      tag.textContent = (t.text.length > 4 ? t.text.slice(0, 4) : t.text);
+      tag.title = t.text;
+      tagsEl.appendChild(tag);
+    });
+    if (labelPool.length > 2) {
+      var more = document.createElement('span');
+      more.className = 'dc-tag';
+      more.style.background = 'var(--text-soft)';
+      more.textContent = '+' + (labelPool.length - 2);
+      more.title = labelPool.slice(2).map(function (x) { return x.text; }).join('、');
+      tagsEl.appendChild(more);
+    }
+    cell.appendChild(tagsEl);
+
+    // 备忘小红点
+    if (getMemoFor(date).length > 0) {
+      var dot = document.createElement('span');
+      dot.className = 'dc-memo-dot';
+      cell.appendChild(dot);
+    }
+
+    cell.addEventListener('click', function () {
+      state.selected = date;
+      renderCalendar();
+      renderDetail(date);
+    });
+    return cell;
+  }
+
+  // ---------- 渲染详情 ----------
+  function renderDetail(date) {
+    var y = date.getFullYear(), m = date.getMonth() + 1, d = date.getDate();
+    var lunar = Lunar.solarToLunar(y, m, d);
+    var term = Lunar.solarTerm(y, m, d);
+
+    document.getElementById('ddDay').textContent = d;
+    document.getElementById('ddWeek').textContent = WEEK[date.getDay()];
+    var sub = y + ' 年 ' + m + ' 月 · 农历 ' + Lunar.lunarText(lunar) +
+      '（' + Lunar.lunarGanZhiYear(lunar) + Lunar.lunarAnimal(lunar) + '年）';
+    if (term) sub += ' · ' + term;
+    document.getElementById('ddSub').textContent = sub;
+
+    // 节日
+    var holi = Holidays.getHolidays(y, m, d);
+    var holiBox = document.getElementById('holidayList');
+    holiBox.innerHTML = '';
+    if (term) {
+      var tc = document.createElement('span');
+      tc.className = 'holiday-chip tag-term';
+      tc.textContent = term + '（节气）';
+      holiBox.appendChild(tc);
+    }
+    if (holi.length === 0 && !term) {
+      holiBox.innerHTML = '<span class="empty-hint">这一天没有收录的节日 / 节气</span>';
+    } else {
+      holi.forEach(function (h) {
+        var c = document.createElement('span');
+        c.className = 'holiday-chip tag-' + h.type;
+        c.textContent = h.name;
+        holiBox.appendChild(c);
+      });
+    }
+
+    // 历史上的今天
+    renderHistory(m, d);
+
+    // 备忘录
+    renderMemos(date);
+  }
+
+  function renderHistory(m, d) {
+    var box = document.getElementById('historyList');
+    var meta = document.getElementById('historyMeta');
+    box.innerHTML = '';
+    meta.textContent = '加载中…';
+
+    var local = HistoryToday.getLocal(m, d);
+    function paint(items, source) {
+      box.innerHTML = '';
+      if (!items || items.length === 0) {
+        box.innerHTML = '<li class="empty-hint">暂无收录的历史事件</li>';
+        meta.textContent = source;
+        return;
+      }
+      items.forEach(function (it) {
+        var li = document.createElement('li');
+        if (it.y) {
+          var yspan = document.createElement('span');
+          yspan.className = 'hy';
+          yspan.textContent = it.y + '年';
+          li.appendChild(yspan);
+        }
+        li.appendChild(document.createTextNode(it.t));
+        box.appendChild(li);
+      });
+      meta.textContent = source;
+    }
+
+    paint(local, '本地精选数据（离线可用）');
+
+
+  }
+
+  function renderMemos(date) {
+    var ul = document.getElementById('memoList');
+    var items = getMemoFor(date);
+    ul.innerHTML = '';
+    if (items.length === 0) {
+      ul.innerHTML = '<li class="empty-hint">还没有备忘，添加一条吧</li>';
+      return;
+    }
+    items.forEach(function (it) {
+      var li = document.createElement('li');
+      li.className = 'memo-item' + (it.done ? ' done' : '');
+
+      var chk = document.createElement('span');
+      chk.className = 'chk';
+      chk.textContent = it.done ? '✓' : '';
+      chk.addEventListener('click', function () {
+        toggleMemo(date, it.id);
+      });
+
+      var txt = document.createElement('span');
+      txt.className = 'mt';
+      txt.textContent = it.text;
+
+      var del = document.createElement('button');
+      del.className = 'del';
+      del.textContent = '×';
+      del.title = '删除';
+      del.addEventListener('click', function () {
+        removeMemo(date, it.id);
+      });
+
+      li.appendChild(chk);
+      li.appendChild(txt);
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  // ---------- 备忘增删改 ----------
+  function addMemo(date, text) {
+    var all = loadMemos();
+    var k = dateKey(date);
+    if (!all[k]) all[k] = [];
+    all[k].push({ id: Date.now() + '_' + Math.random().toString(36).slice(2, 7), text: text, done: false });
+    saveMemos(all);
+    renderMemos(date);
+    renderCalendar();
+  }
+  function toggleMemo(date, id) {
+    var all = loadMemos();
+    var k = dateKey(date);
+    if (all[k]) {
+      all[k] = all[k].map(function (it) {
+        if (it.id === id) it.done = !it.done;
+        return it;
+      });
+      saveMemos(all);
+    }
+    renderMemos(date);
+  }
+  function removeMemo(date, id) {
+    var all = loadMemos();
+    var k = dateKey(date);
+    if (all[k]) {
+      all[k] = all[k].filter(function (it) { return it.id !== id; });
+      if (all[k].length === 0) delete all[k];
+      saveMemos(all);
+    }
+    renderMemos(date);
+    renderCalendar();
+  }
+
+  // ---------- 主题 ----------
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { memoryStorage.setItem(THEME_KEY, t); } catch (e) {}
+  }
+
+  // ---------- 初始化 ----------
+  function init() {
+    var now = new Date();
+    state.viewY = now.getFullYear();
+    state.viewM = now.getMonth() + 1;
+    state.selected = now;
+
+    try {
+      var savedTheme = memoryStorage.getItem(THEME_KEY);
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    } catch (e) {}
+
+    document.getElementById('prevBtn').addEventListener('click', function () {
+      state.viewM--;
+      if (state.viewM < 1) { state.viewM = 12; state.viewY--; }
+      renderCalendar();
+    });
+    document.getElementById('nextBtn').addEventListener('click', function () {
+      state.viewM++;
+      if (state.viewM > 12) { state.viewM = 1; state.viewY++; }
+      renderCalendar();
+    });
+    document.getElementById('todayBtn').addEventListener('click', function () {
+      var n = new Date();
+      state.viewY = n.getFullYear(); state.viewM = n.getMonth() + 1; state.selected = n;
+      renderCalendar();
+      renderDetail(n);
+    });
+    document.getElementById('themeBtn').addEventListener('click', function () {
+      var cur = document.documentElement.getAttribute('data-theme');
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+    document.getElementById('memoForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var inp = document.getElementById('memoInput');
+      var v = inp.value.trim();
+      if (!v) return;
+      addMemo(state.selected, v);
+      inp.value = '';
+    });
+
+    renderCalendar();
+    renderDetail(state.selected);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+document.querySelector("#memoForm button").type="button";document.querySelector("#memoForm button").onclick=()=>document.querySelector("#memoForm").dispatchEvent(new Event("submit",{cancelable:true}));document.querySelector("#resetDemo").onclick=()=>{memoryStorage.data={};document.documentElement.setAttribute("data-theme", "light");document.querySelector("#memoInput").value="";document.querySelector("#todayBtn").click()};</script></body></html>
