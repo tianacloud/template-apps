@@ -127,6 +127,7 @@ function addEvent(){
   save();$id("eventForm").classList.add("hide");renderAll();
 }
 function addLedger(){
+  if(!person(+$id("ldPerson").value))return alert("请先添加并选择亲友");
   const amount=+$id("ldAmount").value;
   if(!amount||amount<=0)return alert("请填写金额");
   db.ledger.push({id:Date.now(),pid:+$id("ldPerson").value,dir:$id("ldDir").value,occ:$id("ldOcc").value,amount,date:$id("ldDate").value||new Date().toISOString().slice(0,10),note:safe($id("ldNote").value.trim())});
