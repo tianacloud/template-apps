@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>深冬雪屋 · Snow Cabin</title>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0a101c;}
+  canvas{display:block;}
+  #tint{position:fixed;inset:0;pointer-events:none;
+        background:radial-gradient(circle at 55% 60%, rgba(140,170,230,.06), rgba(0,0,0,0) 62%);}
+  #vg{position:fixed;inset:0;pointer-events:none;mix-blend-mode:multiply;
+      background:radial-gradient(ellipse at 50% 48%, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 44%, rgba(118,128,150,1) 78%, rgba(42,48,66,1) 100%);}
+  #snd{position:fixed;top:10px;right:12px;z-index:10;display:flex;align-items:center;gap:6px;
+       opacity:.45;transition:opacity .25s;}
+  #snd:hover{opacity:.95;}
+  #sndBtn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(170,200,240,.35);
+          background:rgba(10,16,30,.55);color:#c4d6f2;cursor:pointer;padding:0;
+          display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  #sndBtn:hover{border-color:rgba(170,200,240,.7);}
+  #sndBar{display:none;align-items:center;}
+  #snd:hover #sndBar{display:flex;}
+  #sndVol{-webkit-appearance:none;appearance:none;width:58px;height:3px;border-radius:2px;
+          background:rgba(170,200,240,.35);outline:none;cursor:pointer;}
+  #sndVol::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;
+          background:#c4d6f2;border:none;}
+  #sndVol::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:#c4d6f2;border:none;}
+</style>
+</head>
+<body>
+<div id="tint"></div>
+<div id="vg"></div>
+<div id="snd">
+  <button id="sndBtn" title="风声 开/关">
+    <svg id="icOff" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path d="M16 9l6 6M22 9l-6 6"/></svg>
+    <svg id="icOn" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+  </button>
+  <div id="sndBar"><input id="sndVol" type="range" min="0" max="100" value="55"></div>
+</div>
+<script src="lib/three.min.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   深冬雪屋 · 半山木屋微缩景观  (three.js r128 / 完全离线)
+   ============================================================ */
+const T = THREE;
+const R  = (a,b)=> a + Math.random()*(b-a);
+const clamp = T.MathUtils.clamp;
+
+/* ---------------- 渲染器 / 场景 / 相机 ---------------- */
+const renderer = new T.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.75));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0c1322, 1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new T.Scene();
+scene.background = new T.Color(0x0c1322);
+scene.fog = new T.Fog(0x16233c, 34, 105);
+
+const camera = new T.PerspectiveCamera(30, window.innerWidth/window.innerHeight, 0.5, 400);
+
+/* ---------------- 自由轨道控制 ---------------- */
+const ctrl = { target:new T.Vector3(0,1.4,-0.8), r:26.5, theta:0.72, phi:1.04,
+               dth:0, dph:0, dr:0, idle:0, dragging:false };
+(function(){
+  const el = renderer.domElement;
+  el.style.touchAction = 'none';
+  const pts = new Map();
+  let lx=0, ly=0, ld=0;
+  el.addEventListener('pointerdown', e=>{
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    lx=e.clientX; ly=e.clientY; ctrl.idle=0; ctrl.dragging=true;
+  });
+  el.addEventListener('pointermove', e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){
+      ctrl.dth -= (e.clientX-lx)*0.0058;
+      ctrl.dph -= (e.clientY-ly)*0.0045;
+    }else if(pts.size===2){
+      const p=[...pts.values()];
+      const d=Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+      if(ld) ctrl.dr += (ld-d)*0.045;
+      ld=d;
+    }
+    lx=e.clientX; ly=e.clientY; ctrl.idle=0;
+  });
+  const up = e=>{ pts.delete(e.pointerId); if(pts.size<2) ld=0; if(pts.size===0) ctrl.dragging=false; };
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',up);
+  el.addEventListener('wheel', e=>{ e.preventDefault(); ctrl.dr += e.deltaY*0.014; ctrl.idle=0; }, {passive:false});
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+/* ---------------- 卡通渐变（三渲二关键） ---------------- */
+function makeRamp(steps, vals){
+  const d = new Uint8Array(steps);
+  for(let i=0;i<steps;i++) d[i] = Math.round(255*vals[i]);
+  const t = new T.DataTexture(d, steps, 1, T.LuminanceFormat);
+  t.minFilter = t.magFilter = T.NearestFilter;
+  t.generateMipmaps = false;
+  t.needsUpdate = true;
+  return t;
+}
+const RAMP = makeRamp(5, [0.36,0.56,0.74,0.89,1.0]);
+
+/* ---------------- 材质 / 几何工具 ---------------- */
+const OLM      = new T.MeshBasicMaterial({color:0x101626, side:T.BackSide});
+const OLM_WARM = new T.MeshBasicMaterial({color:0x2a1c10, side:T.BackSide});
+
+function MK(color, o){
+  o = o || {};
+  const p = { color:color, gradientMap:RAMP };
+  if(o.emissive!==undefined){ p.emissive=new T.Color(o.emissive); p.emissiveIntensity = (o.ei!==undefined?o.ei:1); }
+  if(o.map) p.map = o.map;
+  if(o.side) p.side = o.side;
+  if(o.transparent){ p.transparent=true; p.opacity=(o.opacity!==undefined?o.opacity:1); p.depthWrite=!!o.depthWrite; }
+  return new T.MeshToonMaterial(p);
+}
+function MB(color, o){
+  o = o||{};
+  const p = { color:color };
+  if(o.map) p.map=o.map;
+  if(o.side) p.side=o.side;
+  if(o.transparent!==undefined){ p.transparent=o.transparent; p.opacity=(o.opacity!==undefined?o.opacity:1); p.depthWrite=!!o.depthWrite; }
+  if(o.blending!==undefined) p.blending=o.blending;
+  return new T.MeshBasicMaterial(p);
+}
+function addOL(mesh, t, warm){
+  const g = mesh.geometry;
+  if(!g.boundingBox) g.computeBoundingBox();
+  const s = g.boundingBox.getSize(new T.Vector3());
+  if(Math.min(s.x,s.y,s.z) < 0.055) return null;
+  const k = t===undefined?0.017:t;
+  const o = new T.Mesh(g, warm?OLM_WARM:OLM);
+  o.scale.set((s.x+2*k)/s.x, (s.y+2*k)/s.y, (s.z+2*k)/s.z);
+  mesh.add(o);
+  return o;
+}
+function BX(pa, w,h,d, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.BoxGeometry(w,h,d), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0 && !m.transparent) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+function PL(pa, w,h, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.PlaneGeometry(w,h), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  return mesh;
+}
+function CY(pa, rt,rb,h,seg, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.CylinderGeometry(rt,rb,h,seg||12), m);
+  mesh.position.set(x,y,z);
+  if(o.rx) mesh.rotation.x=o.rx; if(o.ry) mesh.rotation.y=o.ry; if(o.rz) mesh.rotation.z=o.rz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0 && !m.transparent) addOL(mesh, o.olt, o.warm);
+  return mesh;
+}
+function SP(pa, r, m, x,y,z, o){
+  o = o||{};
+  const mesh = new T.Mesh(new T.SphereGeometry(r, 14, 11), m);
+  mesh.position.set(x,y,z);
+  if(o.sx) mesh.scale.x=o.sx; if(o.sy) mesh.scale.y=o.sy; if(o.sz) mesh.scale.z=o.sz;
+  (pa||scene).add(mesh);
+  if(o.ol!==0) addOL(mesh, o.olt);
+  return mesh;
+}
+
+/* ---------------- 画布贴图 ---------------- */
+function CV(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function TX(c, rx, ry){
+  const t = new T.CanvasTexture(c);
+  t.anisotropy = 4;
+  if(rx){ t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rx, ry||rx); }
+  return t;
+}
+function speckle(ctx,w,h,n,size,alpha){
+  for(let i=0;i<n;i++){
+    const x=Math.random()*w, y=Math.random()*h, r=Math.random()*size+0.4;
+    ctx.fillStyle = (Math.random()>0.5? 'rgba(255,255,255,' : 'rgba(30,50,90,') + (alpha*Math.random()).toFixed(3)+')';
+    ctx.beginPath(); ctx.arc(x,y,r,0,6.2832); ctx.fill();
+  }
+}
+
+/* 径向光晕 */
+const RAD_TEX = (function(){
+  const c=CV(128,128), x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.25,'rgba(255,255,255,0.55)');
+  g.addColorStop(0.55,'rgba(255,255,255,0.16)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  return TX(c);
+})();
+/* 接触阴影 */
+const SHADOW_TEX = (function(){
+  const c=CV(128,128), x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,2,64,64,62);
+  g.addColorStop(0,'rgba(0,0,0,0.7)'); g.addColorStop(0.55,'rgba(0,0,0,0.28)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,128,128);
+  return TX(c);
+})();
+
+/* 雪面 */
+const SNOW = (function(){
+  const c=CV(512,512), x=c.getContext('2d');
+  x.fillStyle='#e7eef8'; x.fillRect(0,0,512,512);
+  for(let i=0;i<60;i++){
+    x.fillStyle='rgba('+R(200,226).toFixed(0)+','+R(212,232).toFixed(0)+',255,0.35)';
+    x.beginPath(); x.ellipse(Math.random()*512, Math.random()*512, R(26,90), R(18,66), Math.random()*3, 0, 6.2832); x.fill();
+  }
+  speckle(x,512,512,3200,1.8,0.07);
+  return TX(c,3,3);
+})();
+/* 踩实的小径雪 */
+const PATH = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#c3d1e4'; x.fillRect(0,0,256,256);
+  speckle(x,256,256,1700,2.0,0.10);
+  for(let i=0;i<24;i++){
+    x.strokeStyle='rgba(150,168,196,0.35)'; x.lineWidth=R(1,2.5);
+    x.beginPath(); x.moveTo(Math.random()*256, Math.random()*256);
+    x.quadraticCurveTo(Math.random()*256, Math.random()*256, Math.random()*256, Math.random()*256); x.stroke();
+  }
+  return TX(c,1,1);
+})();
+/* 岩石 */
+const ROCK = (function(){
+  const c=CV(512,512), x=c.getContext('2d');
+  x.fillStyle='#5b6880'; x.fillRect(0,0,512,512);
+  for(let i=0;i<70;i++){
+    x.fillStyle='rgba('+R(58,92).toFixed(0)+','+R(68,104).toFixed(0)+','+R(92,130).toFixed(0)+',0.5)';
+    x.beginPath(); x.ellipse(Math.random()*512, Math.random()*512, R(24,90), R(16,64), Math.random()*3, 0, 6.2832); x.fill();
+  }
+  speckle(x,512,512,2600,2.0,0.12);
+  return TX(c,2,2);
+})();
+/* 原木墙（横叠圆木） */
+const LOG = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#8a6848'; x.fillRect(0,0,256,256);
+  for(let r=0;r<8;r++){
+    const y=r*32;
+    const g=x.createLinearGradient(0,y,0,y+32);
+    g.addColorStop(0,'#9a7854'); g.addColorStop(0.55,'#82613f'); g.addColorStop(1,'#5e4429');
+    x.fillStyle=g; x.fillRect(0,y,256,32);
+    x.fillStyle='rgba(46,32,18,0.75)'; x.fillRect(0,y+30,256,2);
+    x.fillStyle='rgba(255,235,200,0.10)'; x.fillRect(0,y+3,256,3);
+    if(Math.random()>0.5){
+      x.fillStyle='rgba(60,42,24,0.6)'; x.beginPath();
+      x.ellipse(Math.random()*256, y+16, 5, 8, 0, 0, 6.2832); x.fill();
+    }
+  }
+  speckle(x,256,256,900,1.4,0.06);
+  return TX(c,2,2);
+})();
+/* 木地板 / 露台木板 */
+const WOODF = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#9c7248'; x.fillRect(0,0,256,256);
+  for(let r=0;r<8;r++){
+    const y=r*32;
+    x.fillStyle='rgba(90,62,36,0.85)'; x.fillRect(0,y,256,2);
+    x.fillStyle='rgba(255,230,190,0.08)'; x.fillRect(0,y+2,256,2);
+    for(let i=0;i<3;i++){
+      x.strokeStyle='rgba(120,86,52,0.4)'; x.lineWidth=1;
+      x.beginPath(); x.moveTo(Math.random()*256, y+4); x.lineTo(Math.random()*256, y+30); x.stroke();
+    }
+  }
+  return TX(c,2,2);
+})();
+/* 石砌 */
+const STONE = (function(){
+  const c=CV(256,256), x=c.getContext('2d');
+  x.fillStyle='#5d6474'; x.fillRect(0,0,256,256);
+  for(let r=0;r<5;r++) for(let i=0;i<4;i++){
+    const bx=i*64+(r%2?32:0), by=r*52, w=58, h=46;
+    const g=90+Math.random()*40;
+    x.fillStyle='rgb('+(g-8).toFixed(0)+','+(g).toFixed(0)+','+(g+16).toFixed(0)+')';
+    x.fillRect(bx+2, by+2, w-4, h-4);
+    x.strokeStyle='rgba(30,36,48,0.8)'; x.lineWidth=3; x.strokeRect(bx+2, by+2, w-4, h-4);
+    x.fillStyle='rgba(255,255,255,0.10)'; x.fillRect(bx+4, by+4, w-8, 5);
+  }
+  speckle(x,256,256,900,1.6,0.10);
+  return TX(c,1,1);
+})();
+
+/* ---------------- 大类材质 ---------------- */
+const M = {
+  baseSide : MK(0x141a28, {map:ROCK}),
+  baseTrim : MK(0x232c40),
+  snow     : MK(0xe9f0fa, {map:SNOW, emissive:0x1a2438, ei:0.28}),
+  snowPath : MK(0xc3d1e4, {map:PATH}),
+  rock     : MK(0x64718c, {map:ROCK}),
+  rockD    : MK(0x4c5870, {map:ROCK}),
+  log      : MK(0x9a7854, {map:LOG, emissive:0x4a3118, ei:0.30}),
+  wood     : MK(0x83603e),
+  woodD    : MK(0x5e4227),
+  deck     : MK(0xa07a50, {map:WOODF}),
+  stone    : MK(0x6d7484, {map:STONE}),
+  metal    : MK(0x8d95a4),
+  darkIron : MK(0x33383f),
+  glass    : MK(0xcfe2f2, {transparent:true, opacity:0.16, emissive:0x50401e, ei:0.45}),
+  ice      : MK(0xd6ecff, {transparent:true, opacity:0.82, emissive:0x2a4664, ei:0.5}),
+  trunk    : MK(0x4f3c2c),
+  branch   : MK(0x453426),
+  sofa     : MK(0xb8684e, {emissive:0x5a2a16, ei:0.42}),
+  cushionA : MK(0xd9a05a, {emissive:0x6a421a, ei:0.45}),
+  cushionB : MK(0x5f8a92, {emissive:0x223c42, ei:0.4}),
+  rug      : MK(0xa04c3e, {emissive:0x4a1c12, ei:0.4}),
+  bookA    : MK(0xb04a3e, {emissive:0x40150e, ei:0.4}),
+  bookB    : MK(0x4a6a9e, {emissive:0x16263e, ei:0.4}),
+  bookC    : MK(0xc9a04e, {emissive:0x4e3a10, ei:0.4}),
+  cream    : MK(0xead9bd, {emissive:0x6a5028, ei:0.45}),
+  floorIn  : MK(0xa87c50, {map:WOODF, emissive:0x6a4418, ei:0.5}),
+  terra    : MK(0xa85638),
+  snowM    : MK(0xf2f7fd, {emissive:0x223048, ei:0.22})
+};
+const PAL = [0xb04a3e, 0x4a6a9e, 0xc9a04e, 0x5f8a6a, 0x8a5f9e, 0xd9d0be, 0x4f7d9e, 0xb87a5a];
+
+/* ---------------- 灯光 ---------------- */
+scene.add(new T.HemisphereLight(0x33486e, 0x0a0e18, 0.62));
+scene.add(new T.AmbientLight(0x1e2c4a, 0.5));
+const moon = new T.DirectionalLight(0xa8c2ee, 0.5);
+moon.position.set(-12, 20, 8); scene.add(moon);
+const fill = new T.DirectionalLight(0x6f86c0, 0.2);
+fill.position.set(12, 9, -12); scene.add(fill);
+
+const L = {};
+function ptLight(name, color, intensity, dist, x,y,z){
+  const l = new T.PointLight(color, intensity, dist, 2);
+  l.position.set(x,y,z); scene.add(l); L[name]=l; return l;
+}
+
+/* ============================================================
+   底座（正方形雪原）
+   ============================================================ */
+const root = new T.Group();
+scene.add(root);
+
+BX(root, 16, 1.5, 16, M.baseSide, 0, -0.75, 0, {ol:0});
+PL(root, 16, 16, M.snow, 0, 0.001, 0, {rx:-Math.PI/2, ol:0});
+BX(root, 16.5, 0.22, 16.5, M.baseTrim, 0, -1.55, 0, {ol:0});
+BX(root, 16.9, 0.18, 16.9, MK(0x10141f), 0, -1.74, 0, {ol:0});
+const fr = 0.34;
+[[0, 8-fr/2, 16, fr],[0,-8+fr/2,16,fr],[8-fr/2,0,fr,16],[-8+fr/2,0,fr,16]].forEach(p=>
+  BX(root, p[2], 0.06, p[3], M.baseTrim, p[0], 0.03, p[1], {olt:0.01}));
+
+/* ============================================================
+   地形：崖壁 + 高原台地 + 雪坡 + 山谷
+   ============================================================ */
+const Y_PL = 2.0;
+
+/* ---- 背面避风崖壁 ---- */
+BX(root, 16, 4.3, 1.9, M.rockD, 0, 2.15, -7.05, {olt:0.03});
+BX(root, 16, 0.5, 2.05, M.snow, 0, 4.55, -7.05, {olt:0.02});
+[[-4.6,-6.55,1.1,0.8],[3.4,-6.6,1.4,0.6],[0.2,-6.5,0.9,1.0]].forEach(p=>{
+  const rk = SP(root, 1, M.rock, p[0], p[3]+0.4, p[1], {sx:p[2], sy:p[3]*0.9, sz:0.8, olt:0.02});
+  SP(rk, 0.55, M.snowM, 0, 0.55, 0, {sx:1.1, sy:0.4, sz:1.1, ol:0});
+});
+for(let i=0;i<6;i++){
+  const ix = -6.5 + i*2.4 + R(-0.4,0.4), il = R(0.6,1.5);
+  const ic = new T.Mesh(new T.ConeGeometry(0.14, il, 6), M.ice);
+  ic.rotation.x = Math.PI; ic.position.set(ix, 3.4-il/2, -6.02); root.add(ic);
+}
+
+/* ---- 高原台地（木屋层） ---- */
+BX(root, 16, Y_PL, 4.8, M.rock, 0, Y_PL/2, -3.8, {ol:0});
+PL(root, 16, 4.8, M.snow, 0, Y_PL+0.002, -3.8, {rx:-Math.PI/2, ol:0});
+BX(root, 16, 0.12, 0.3, M.snowM, 0, Y_PL+0.02, -1.42, {ol:0});
+
+/* ---- 雪坡（台地 → 山谷） ---- */
+(function(){
+  BX(root, 16, 0.22, 2.83, M.snow, 0, 1.0, -0.4, {rx:Math.PI/4, ol:0});
+  [[-1.15,1.85],[-0.65,1.35],[-0.15,0.85],[0.35,0.35]].forEach(f=>
+    BX(root, 16, f[1], 0.52, M.rock, 0, f[1]/2, f[0], {ol:0}));
+})();
+
+/* ============================================================
+   木屋
+   ============================================================ */
+const cab = new T.Group();
+cab.position.set(-0.8, Y_PL, -4.3);
+root.add(cab);
+const F0 = 0.36;
+const WALL_T = 2.7;
+const RIDGE = 4.2;
+
+function shadowBlob(x, y, z, w, d, op){
+  const m = MB(0x0a1020, {transparent:true, map:SHADOW_TEX, opacity:op===undefined?0.5:op, depthWrite:false});
+  return PL(root, w, d, m, x, y, z, {rx:-Math.PI/2});
+}
+function pool(x, y, z, w, d, color, op){
+  const m = MB(color, {transparent:true, map:RAD_TEX, blending:T.AdditiveBlending, opacity:op, depthWrite:false});
+  return PL(root, w, d, m, x, y, z, {rx:-Math.PI/2});
+}
+function glowSprite(x,y,z, size, color, op){
+  const s = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:color, blending:T.AdditiveBlending, opacity:op, transparent:true, depthWrite:false}));
+  s.position.set(x,y,z); s.scale.set(size, size, 1); root.add(s); return s;
+}
+
+function buildCabin(){
+  BX(cab, 4.8, 0.3, 3.9, M.stone, 0, 0.15, 0, {olt:0.016});
+  BX(cab, 4.2, 0.12, 3.5, M.floorIn, 0, 0.30, 0, {olt:0.01, warm:true});
+  // ---- 墙体 ----
+  BX(cab, 4.44, 2.4, 0.18, M.log, 0, 1.53, -1.7, {olt:0.02});
+  BX(cab, 0.18, 2.4, 3.4, M.log, -2.2, 1.53, 0, {olt:0.02});
+  BX(cab, 0.18, 2.4, 3.4, M.log,  2.2, 1.53, 0, {olt:0.02});
+  // 右墙小窗
+  BX(cab, 0.2, 0.9, 0.06, M.darkIron, 2.2, 1.75, 0.6, {ol:0});
+  PL(cab, 0.6, 0.8, M.glass, 2.13, 1.75, 0.6, {ry:Math.PI/2});
+  // ---- 正面（大落地窗 + 推拉门） ----
+  BX(cab, 0.6, 2.4, 0.2, M.log, -1.9, 1.53, 1.7, {olt:0.02});
+  BX(cab, 0.16, 2.4, 0.2, M.woodD, -1.6, 1.53, 1.7, {olt:0.012});
+  BX(cab, 0.16, 2.4, 0.2, M.woodD, -0.3, 1.53, 1.7, {olt:0.012});
+  BX(cab, 0.16, 2.4, 0.2, M.woodD,  1.0, 1.53, 1.7, {olt:0.012});
+  BX(cab, 0.16, 2.4, 0.2, M.woodD,  2.2, 1.53, 1.7, {olt:0.012});
+  BX(cab, 2.72, 0.14, 0.2, M.woodD, -0.3, 2.63, 1.7, {olt:0.012});
+  BX(cab, 2.72, 0.1, 0.22, M.woodD, -0.3, 0.41, 1.7, {ol:0});
+  PL(cab, 2.6, 2.26, M.glass, -0.3, 1.53, 1.7);
+  // 推拉门
+  BX(cab, 1.14, 0.95, 0.1, M.wood, 1.6, 0.835, 1.7, {olt:0.012});
+  BX(cab, 1.14, 1.05, 0.08, M.glass, 1.6, 1.81, 1.7, {ol:0});
+  BX(cab, 1.2, 0.08, 0.14, M.woodD, 1.6, 1.34, 1.7, {ol:0});
+  CY(cab, 0.03,0.03,0.16, 8, M.metal, 1.08, 1.56, 1.78, {ol:0});
+  // ---- 三角山墙 ----
+  const shp = new T.Shape();
+  shp.moveTo(-2.22, WALL_T); shp.lineTo(2.22, WALL_T); shp.lineTo(0, RIDGE); shp.closePath();
+  const gGeo = new T.ExtrudeGeometry(shp, {depth:0.18, bevelEnabled:false});
+  [-1.7, 1.52].forEach(pz=>{
+    const gm = new T.Mesh(gGeo, M.log);
+    gm.position.set(0, 0, pz); cab.add(gm); addOL(gm, 0.02);
+  });
+  // ---- 屋顶（双坡 + 厚雪） ----
+  const ang = Math.atan2(1.65, 2.75);
+  const slopeLen = Math.hypot(2.75, 1.65);
+  [[1,-ang],[-1,ang]].forEach(s=>{
+    const slab = BX(cab, slopeLen, 0.16, 4.5, M.woodD, s[0]*1.375, 3.525, 0, {rz:s[1], olt:0.02});
+    BX(slab, slopeLen, 0.13, 4.56, M.snowM, 0, 0.14, 0, {ol:0});
+  });
+  BX(cab, 0.34, 0.16, 4.56, M.snowM, 0, RIDGE+0.14, 0, {ol:0});
+  for(let i=0;i<9;i++){
+    const lx = -2.55 + i*0.64;
+    const ey = RIDGE - Math.abs(lx)*0.6 - 0.05;
+    SP(cab, R(0.14,0.24), M.snowM, lx, ey, 2.3, {sy:0.55, ol:0});
+    SP(cab, R(0.12,0.2), M.snowM, lx, ey, -2.3, {sy:0.55, ol:0});
+  }
+  // ---- 烟囱 ----
+  BX(cab, 0.55, 1.9, 0.55, M.stone, 1.4, 4.05, -0.6, {olt:0.014});
+  BX(cab, 0.55, 0.16, 0.55, M.snowM, 1.4, 5.05, -0.6, {ol:0});
+  BX(cab, 0.34, 0.1, 0.34, MB(0x0a0a10), 1.4, 5.0, -0.6, {ol:0});
+  // ---- 屋檐冰棱 ----
+  for(let i=0;i<11;i++){
+    const lx = -2.5 + i*0.5 + R(-0.08,0.08);
+    const topY = RIDGE - Math.abs(lx)*0.6 - 0.06;
+    const il = R(0.14, 0.42);
+    const ic = new T.Mesh(new T.ConeGeometry(0.032, il, 6), M.ice);
+    ic.rotation.x = Math.PI; ic.position.set(lx, topY - il/2, 2.26); cab.add(ic);
+    if(i%2===0){
+      const ic2 = new T.Mesh(new T.ConeGeometry(0.028, il*0.8, 6), M.ice);
+      ic2.rotation.x = Math.PI; ic2.position.set(lx+0.12, topY - il*0.4, -2.26); cab.add(ic2);
+    }
+  }
+}
+buildCabin();
+
+/* ============================================================
+   露台 / 户外木阶梯
+   ============================================================ */
+const DECK_Y = F0 + Y_PL;
+const deckPiles = [];
+function buildDeck(){
+  const dx=-0.5;
+  BX(root, 4.8, 0.12, 1.25, M.deck, dx, DECK_Y-0.06, -1.98, {olt:0.012});
+  [[-2.7,-1.5],[1.7,-1.5],[-2.7,-2.4],[1.7,-2.4]].forEach(p=>
+    CY(root, 0.06,0.07,0.34, 8, M.woodD, dx+p[0], Y_PL+0.17, p[1], {ol:0}));
+  function rail(x0,z0,x1,z1){
+    const len = Math.hypot(x1-x0, z1-z0);
+    const ry = Math.atan2(x1-x0, z1-z0);
+    const n = Math.max(2, Math.round(len/0.9));
+    for(let i=0;i<=n;i++){
+      const t=i/n;
+      CY(root, 0.035,0.04,0.62, 8, M.wood, x0+(x1-x0)*t, DECK_Y+0.31, z0+(z1-z0)*t, {ol:0});
+    }
+    [0.58, 0.3].forEach(h=>{
+      const b = BX(root, 0.06, 0.07, len, M.wood, (x0+x1)/2, DECK_Y+h, (z0+z1)/2, {ol:0});
+      b.rotation.y = ry;
+    });
+  }
+  rail(dx-2.36, -1.4, dx-2.36, -2.56);
+  rail(dx+2.36, -1.4, dx+2.36, -2.56);
+  rail(dx-2.36, -2.56, dx-0.75, -2.56);
+  rail(dx+0.75, -2.56, dx+2.36, -2.56);
+  for(let i=0;i<5;i++){
+    const p = BX(root, R(0.5,0.9), 0.05, R(0.35,0.6), M.snowM,
+      dx+R(-1.9,1.9), DECK_Y+0.02, R(-2.4,-1.7), {ol:0});
+    deckPiles.push({m:p, s0:R(0.4,0.8), s1:R(1.6,2.6), t:Math.random()});
+  }
+  BX(root, 1.3, 0.12, 0.4, M.deck, dx-1.4, Y_PL+0.06, -1.28, {olt:0.01});
+}
+buildDeck();
+
+function buildStairs(){
+  const n=10, sx=-0.5, sh=0.23, sd=0.225;
+  for(let i=0;i<n;i++){
+    const topY = DECK_Y - (i+1)*sh;
+    BX(root, 1.3, sh, sd+0.02, M.deck, sx, topY - sh/2, -1.4 + i*sd + sd/2, {olt:0.008});
+  }
+  [-0.72, 0.72].forEach(p=>{
+    const st = BX(root, 0.09, 0.3, 3.25, M.woodD, sx+p[0], DECK_Y/2 - 0.02, -0.28, {ol:0});
+    st.rotation.x = Math.atan2(2.3, 2.25);
+  });
+  for(let i=0;i<=4;i++){
+    const t=i/4;
+    CY(root, 0.035,0.04,0.85, 8, M.wood, sx+0.72, DECK_Y - t*2.3 + 0.42, -1.4 + t*2.25, {ol:0});
+  }
+  const hr = BX(root, 0.07, 0.07, 3.25, M.wood, sx+0.72, DECK_Y/2 + 0.42, -0.28, {ol:0});
+  hr.rotation.x = Math.atan2(2.3, 2.25);
+}
+buildStairs();
+
+/* ---- 台缘简易护栏 ---- */
+(function(){
+  function seg(x0,x1){
+    const n = Math.max(2, Math.round((x1-x0)/1.1));
+    for(let i=0;i<=n;i++)
+      CY(root, 0.04,0.05,0.72, 8, M.wood, x0+(x1-x0)*i/n, Y_PL+0.36, -1.42, {ol:0});
+    [0.68,0.38].forEach(h=>
+      BX(root, x1-x0, 0.06, 0.06, M.wood, (x0+x1)/2, Y_PL+h, -1.42, {ol:0}));
+  }
+  seg(-6.8, -1.55);
+  seg(0.55, 6.8);
+})();
+
+/* ============================================================
+   山谷小径 / 围栏 / 树木 / 山石 / 石墩
+   ============================================================ */
+function pathSeg(x0,z0,x1,z1,w){
+  const len = Math.hypot(x1-x0, z1-z0)+0.3;
+  const m = new T.Mesh(new T.BoxGeometry(w, 0.03, len), M.snowPath);
+  m.position.set((x0+x1)/2, 0.018, (z0+z1)/2);
+  m.rotation.y = Math.atan2(x1-x0, z1-z0);
+  root.add(m);
+}
+pathSeg(-0.5, 0.9, 0.3, 2.3, 1.0);
+pathSeg(0.3, 2.3, 2.2, 3.5, 0.95);
+pathSeg(2.2, 3.5, 4.5, 4.6, 0.9);
+pathSeg(4.5, 4.6, 6.0, 6.8, 0.9);
+pathSeg(-0.5, 0.9, -1.9, 1.7, 0.8);
+
+function fenceLine(x0,z0,x1,z1,y0){
+  const len = Math.hypot(x1-x0, z1-z0);
+  const n = Math.max(2, Math.round(len/0.85));
+  const ry = Math.atan2(x1-x0, z1-z0);
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    CY(root, 0.05,0.06,0.6+R(0,0.06), 7, M.wood, x0+(x1-x0)*t, y0+0.3, z0+(z1-z0)*t, {ol:0});
+    SP(root, 0.06, M.snowM, x0+(x1-x0)*t, y0+0.62, z0+(z1-z0)*t, {sy:0.7, ol:0});
+  }
+  [0.5,0.22].forEach(h=>{
+    const b = BX(root, 0.05, 0.06, len, M.wood, (x0+x1)/2, y0+h, (z0+z1)/2, {ol:0});
+    b.rotation.y = ry;
+  });
+}
+fenceLine(2.6, 1.0, 4.9, 4.3, 0);
+fenceLine(-3.2, 1.0, -5.4, 4.0, 0);
+fenceLine(-6.4, 5.6, -2.2, 6.6, 0);
+
+/* 光秃矮树 */
+function bareTree(x, z, y0, s){
+  const g = new T.Group(); g.position.set(x, y0, z); g.scale.setScalar(s); root.add(g);
+  CY(g, 0.05, 0.11, 1.5, 8, M.trunk, 0, 0.75, 0, {ol:0});
+  const br = [[0.5,0.5,1.05],[-0.55,0.62,0.9],[0.15,0.75,1.25],[-0.3,0.4,0.7]];
+  br.forEach((b,i)=>{
+    const len = 0.7 + Math.random()*0.3;
+    const bm = CY(g, 0.025, 0.05, len, 6, M.branch, b[0]*0.5, b[2], b[1]*0.5, {ol:0});
+    bm.rotation.z = (i%2?1:-1)*R(0.6,1.0);
+    bm.rotation.x = R(-0.3,0.3);
+    const tip = new T.Vector3(0, len/2, 0).applyEuler(bm.rotation);
+    SP(g, R(0.06,0.1), M.snowM, bm.position.x + tip.x, bm.position.y + tip.y, bm.position.z + tip.z, {sy:0.6, ol:0});
+  });
+  SP(g, 0.34, M.snowM, 0, 0.06, 0, {sy:0.4, ol:0});
+  shadowBlob(x, y0+0.012, z, 1.4*s, 1.4*s, 0.4);
+}
+bareTree(-6.2, -5.2, Y_PL, 1.15);
+bareTree(5.6, -4.8, Y_PL, 1.0);
+bareTree(-3.9, -5.6, Y_PL, 0.8);
+bareTree(5.3, 2.9, 0, 1.2);
+bareTree(-5.7, 2.4, 0, 1.05);
+bareTree(-4.3, 5.6, 0, 0.85);
+
+/* 覆雪山石 */
+function rockCluster(x, z, y0, s){
+  const g = new T.Group(); g.position.set(x, y0, z); g.scale.setScalar(s); root.add(g);
+  const rk = SP(g, 0.55, M.rock, 0, 0.32, 0, {sx:1.25, sy:0.75, sz:1.0, olt:0.02});
+  rk.rotation.y = R(0, 3);
+  SP(g, 0.42, M.snowM, 0.05, 0.52, 0, {sx:1.15, sy:0.42, sz:0.95, ol:0});
+  SP(g, 0.28, M.rock, 0.55, 0.16, 0.25, {sy:0.7, olt:0.014});
+  SP(g, 0.2, M.snowM, 0.55, 0.3, 0.25, {sy:0.5, ol:0});
+  shadowBlob(x, y0+0.012, z, 2.0*s, 2.0*s, 0.42);
+}
+rockCluster(-4.4, -5.9, Y_PL, 0.9);
+rockCluster(4.7, -5.7, Y_PL, 1.0);
+rockCluster(-6.3, 1.5, 0, 1.1);
+rockCluster(6.4, 0.4, 0, 0.8);
+
+/* 雪堆石墩 */
+[[1.9,0.6],[-2.6,2.9],[3.4,2.4],[-1.5,4.6],[5.9,5.4],[-6.6,6.0],[6.9,2.2]].forEach(p=>
+  SP(root, R(0.3,0.5), M.snowM, p[0], 0.1, p[1], {sy:0.45, ol:0}));
+
+/* ============================================================
+   落地式庭院雪灯
+   ============================================================ */
+function gardenLamp(x, z, y0, s){
+  const g = new T.Group(); g.position.set(x, y0, z); g.scale.setScalar(s); root.add(g);
+  CY(g, 0.24, 0.3, 0.16, 10, M.stone, 0, 0.08, 0, {ol:0});
+  CY(g, 0.09, 0.12, 0.95, 8, M.stone, 0, 0.62, 0, {olt:0.012});
+  BX(g, 0.34, 0.36, 0.34, MB(0xffe2b0), 0, 1.28, 0, {ol:0});
+  BX(g, 0.4, 0.05, 0.4, M.woodD, 0, 1.06, 0, {ol:0});
+  const roof = CY(g, 0.03, 0.4, 0.3, 4, M.woodD, 0, 1.6, 0, {ry:Math.PI/4, olt:0.012});
+  CY(roof, 0.03, 0.44, 0.1, 4, M.snowM, 0, 0.15, 0, {ry:Math.PI/4, ol:0});
+  SP(g, 0.06, M.snowM, 0, 1.79, 0, {ol:0});
+  SP(g, 0.2, M.snowM, 0.14, 0.16, 0.1, {sy:0.5, ol:0});
+  shadowBlob(x, y0+0.012, z, 1.3*s, 1.3*s, 0.45);
+  return g;
+}
+gardenLamp(-3.5, -2.1, Y_PL, 1.0);
+gardenLamp(1.6, 2.0, 0, 0.9);
+
+/* 灯光 */
+ptLight('inA', 0xffd9a0, 1.5, 7.5, -0.8, 4.35, -4.4);
+ptLight('inB', 0xffd4a0, 0.8, 5.5, -2.1, 3.7, -3.6);
+ptLight('fire', 0xff9a4a, 1.3, 5.0, -2.55, 3.15, -4.4);
+ptLight('lampIn', 0xffe2b0, 0.65, 4.0, -2.0, 4.0, -3.5);
+ptLight('gA', 0xffe8c0, 0.9, 5.0, -3.5, 3.45, -2.1);
+ptLight('gB', 0xffe8c0, 0.8, 4.5, 1.6, 1.45, 2.0);
+
+/* 雪面暖光漫反射 */
+pool(-1.1, Y_PL+0.012, -1.9, 4.2, 2.0, 0xffcf90, 0.24);
+pool(-3.5, Y_PL+0.014, -2.1, 2.4, 2.4, 0xffd9a0, 0.3);
+pool(1.6, 0.014, 2.0, 2.2, 2.2, 0xffd9a0, 0.3);
+
+/* ============================================================
+   室内陈设
+   ============================================================ */
+const fireSprites = [];
+function buildInterior(){
+  // 地毯
+  CY(cab, 0.95, 0.95, 0.03, 26, M.rug, -0.35, F0+0.015, -0.25, {ol:0});
+  CY(cab, 0.55, 0.55, 0.032, 26, MK(0xc4785e), -0.35, F0+0.016, -0.25, {ol:0});
+
+  // ---- 壁炉（左墙） ----
+  BX(cab, 0.78, 1.4, 1.5, M.stone, -1.82, F0+0.7, -0.1, {olt:0.014});
+  BX(cab, 0.12, 0.85, 0.95, MB(0x160b05), -1.42, F0+0.55, -0.1, {ol:0});
+  BX(cab, 0.95, 0.09, 1.66, M.woodD, -1.78, F0+1.45, -0.1, {olt:0.01});
+  for(let i=0;i<5;i++){
+    CY(cab, 0.055, 0.055, 0.5, 7, M.trunk, -1.85+R(-0.03,0.03), F0+0.06+Math.floor(i/3)*0.12, 0.95+(i%3)*0.13, {rz:Math.PI/2, ol:0});
+  }
+  for(let i=0;i<3;i++){
+    const s = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:i===2?0xffe0a0:0xff8a30, blending:T.AdditiveBlending, transparent:true, opacity:0.8, depthWrite:false}));
+    s.position.set(-1.5, F0+0.5, -0.1+R(-0.1,0.1));
+    s.scale.set(0.5,0.6,1);
+    cab.add(s);
+    fireSprites.push({s:s, ph:R(0,6.28), bx:-1.5, bz:-0.1});
+  }
+
+  // ---- 布艺沙发（面朝壁炉） ----
+  BX(cab, 0.78, 0.4, 1.62, M.sofa, 0.6, F0+0.2, -0.1, {olt:0.012, warm:true});
+  BX(cab, 0.22, 0.8, 1.62, M.sofa, 1.06, F0+0.4, -0.1, {olt:0.012, warm:true});
+  BX(cab, 0.98, 0.32, 0.2, M.sofa, 0.6, F0+0.16, 0.75, {olt:0.01, warm:true});
+  BX(cab, 0.98, 0.32, 0.2, M.sofa, 0.6, F0+0.16, -0.95, {olt:0.01, warm:true});
+  const c1 = BX(cab, 0.34, 0.34, 0.13, M.cushionA, 0.72, F0+0.58, -0.62, {ol:0});
+  c1.rotation.z = 0.25;
+  const c2 = BX(cab, 0.32, 0.32, 0.13, M.cushionB, 0.7, F0+0.56, 0.42, {ol:0});
+  c2.rotation.z = -0.2;
+
+  // ---- 原木矮桌 + 书 + 茶杯 ----
+  BX(cab, 0.88, 0.06, 0.52, M.wood, -0.42, F0+0.34, -0.2, {olt:0.01, warm:true});
+  [[-0.78,-0.4],[-0.06,-0.4],[-0.78,0.0],[-0.06,0.0]].forEach(p=>
+    CY(cab, 0.03,0.035,0.3, 8, M.woodD, p[0], F0+0.15, p[1], {ol:0}));
+  BX(cab, 0.24, 0.035, 0.17, M.bookA, -0.5, F0+0.39, -0.25, {ol:0});
+  BX(cab, 0.22, 0.035, 0.16, M.bookB, -0.5, F0+0.425, -0.24, {ry:0.15, ol:0});
+  BX(cab, 0.2, 0.035, 0.15, M.bookC, -0.49, F0+0.46, -0.23, {ry:-0.1, ol:0});
+  CY(cab, 0.05, 0.04, 0.07, 10, M.cream, -0.22, F0+0.4, -0.05, {ol:0});
+
+  // ---- 书架（背墙） ----
+  BX(cab, 1.55, 1.85, 0.34, M.wood, 0.85, F0+0.925, -1.48, {olt:0.014, warm:true});
+  [0.62, 1.14, 1.66].forEach(sy=>{
+    BX(cab, 1.45, 0.045, 0.3, M.woodD, 0.85, F0+sy, -1.48, {ol:0});
+    const n = 5 + (Math.random()*3|0);
+    for(let i=0;i<n;i++){
+      const bw = R(0.08, 0.14), bh = R(0.28, 0.42);
+      BX(cab, bw, bh, 0.2, MK(PAL[(Math.random()*PAL.length)|0], {emissive:0x3a2a12, ei:0.4}),
+        0.22 + i*0.26 + R(-0.02,0.02), F0+sy+bh/2+0.02, -1.48, {ry:R(-0.04,0.04), ol:0});
+    }
+  });
+  BX(cab, 0.3, 0.05, 0.22, M.bookA, 1.4, F0+1.74, -1.48, {ol:0});
+  BX(cab, 0.28, 0.05, 0.2, M.bookB, 1.4, F0+1.79, -1.48, {ry:0.1, ol:0});
+
+  // ---- 落地灯 ----
+  CY(cab, 0.17, 0.2, 0.05, 12, M.darkIron, -1.15, F0+0.03, 0.95, {ol:0});
+  CY(cab, 0.025, 0.025, 1.5, 8, M.darkIron, -1.15, F0+0.8, 0.95, {ol:0});
+  CY(cab, 0.24, 0.17, 0.32, 12, MB(0xffe8c2), -1.15, F0+1.72, 0.95, {ol:0});
+  glowSprite(-1.95, 4.1, -3.35, 1.6, 0xffd9a0, 0.4);
+
+  // ---- 储物柜（右墙） ----
+  BX(cab, 0.44, 1.35, 1.2, M.wood, 1.95, F0+0.675, -0.8, {olt:0.012, warm:true});
+  BX(cab, 0.05, 1.2, 1.05, M.woodD, 1.72, F0+0.675, -0.8, {ol:0});
+  CY(cab, 0.02, 0.02, 0.06, 8, M.metal, 1.71, F0+0.7, -0.45, {rx:Math.PI/2, ol:0});
+  CY(cab, 0.02, 0.02, 0.06, 8, M.metal, 1.71, F0+0.7, -1.15, {rx:Math.PI/2, ol:0});
+
+  // ---- 窗边盆栽 ----
+  CY(cab, 0.14, 0.11, 0.22, 10, M.terra, 0.9, F0+0.11, 1.15, {ol:0});
+  [[0,0.32,0,0.16],[0.1,0.44,0.05,0.12],[-0.09,0.42,-0.04,0.11],[0.02,0.55,0,0.1]].forEach(p=>
+    SP(cab, p[3], M.green, 0.9+p[0], F0+0.22+p[1], 1.15+p[2], {sy:0.85, olt:0.01}));
+
+  // ---- 取暖炉（角落小铁炉） ----
+  BX(cab, 0.5, 0.6, 0.5, M.darkIron, -1.7, F0+0.3, -1.35, {olt:0.012});
+  CY(cab, 0.07, 0.07, 1.55, 8, M.darkIron, -1.7, F0+1.35, -1.35, {ol:0});
+  PL(cab, 0.2, 0.14, MB(0xffb060), -1.44, F0+0.32, -1.35, {ry:Math.PI/2});
+
+  // ---- 悬挂针织围巾（门边） ----
+  CY(cab, 0.015, 0.015, 0.1, 6, M.metal, 2.08, 2.2, 1.2, {rx:Math.PI/2, ol:0});
+  BX(cab, 0.04, 0.5, 0.12, MK(0xb8433c,{emissive:0x3e100c, ei:0.45}), 2.08, 1.9, 1.2, {ol:0});
+  BX(cab, 0.04, 0.4, 0.11, MK(0xd9cbb2,{emissive:0x4a3e28, ei:0.4}), 2.08, 1.94, 0.98, {ol:0});
+
+  // ---- 墙面挂画（背墙） ----
+  const art1 = (function(){
+    const c=CV(128,96), x=c.getContext('2d');
+    x.fillStyle='#f0e8d8'; x.fillRect(0,0,128,96);
+    x.fillStyle='#8fa8c8'; x.beginPath(); x.moveTo(0,70); x.lineTo(40,30); x.lineTo(80,70); x.closePath(); x.fill();
+    x.fillStyle='#e8b060'; x.beginPath(); x.arc(100,26,12,0,6.2832); x.fill();
+    x.fillStyle='#6a8a5a'; x.fillRect(0,70,128,26);
+    x.strokeStyle='#5e4227'; x.lineWidth=8; x.strokeRect(0,0,128,96);
+    return TX(c);
+  })();
+  const art2 = (function(){
+    const c=CV(128,96), x=c.getContext('2d');
+    x.fillStyle='#2a3448'; x.fillRect(0,0,128,96);
+    x.fillStyle='#f2e8d0';
+    for(let i=0;i<9;i++){ x.beginPath(); x.arc(20+ (i*13)%96, 20+(i*29)%60, 2.5, 0, 6.2832); x.fill(); }
+    x.fillStyle='#e8ecf4'; x.fillRect(0,76,128,20);
+    x.fillStyle='#4a5a72'; x.font='bold 13px sans-serif'; x.fillText('やまみち', 34, 90);
+    x.strokeStyle='#5e4227'; x.lineWidth=8; x.strokeRect(0,0,128,96);
+    return TX(c);
+  })();
+  PL(cab, 0.52, 0.4, MB(0xffffff,{map:art1}), -0.75, F0+1.85, -1.59, {});
+  PL(cab, 0.52, 0.4, MB(0xffffff,{map:art2}), 0.0, F0+1.9, -1.59, {});
+
+  // ---- 天花 + 横梁 + 吊灯 ----
+  PL(cab, 4.2, 3.5, MK(0xc9a878,{emissive:0x5a3e1c, ei:0.4}), 0, 2.68, -0.2, {rx:Math.PI/2});
+  BX(cab, 4.2, 0.12, 0.28, M.woodD, 0, 2.6, 0.4, {ol:0});
+  BX(cab, 4.2, 0.12, 0.28, M.woodD, 0, 2.6, -0.8, {ol:0});
+  CY(cab, 0.012, 0.012, 0.3, 6, M.darkIron, 0.1, 2.5, -0.2, {ol:0});
+  CY(cab, 0.26, 0.13, 0.24, 12, MB(0xfff0cd), 0.1, 2.28, -0.2, {ol:0});
+  SP(cab, 0.07, MB(0xfff6dd), 0.1, 2.2, -0.2, {ol:0});
+  glowSprite(-0.7, 4.5, -4.5, 3.2, 0xffe2b0, 0.34);
+  // 大窗透光光晕
+  glowSprite(-1.1, 3.4, -2.5, 4.6, 0xffd9a0, 0.3);
+}
+buildInterior();
+
+/* ---- 窗玻璃凝雾（着色器） ---- */
+const fogMats = [];
+function makeGlassFog(w,h, x,y,z, ry){
+  const mat = new T.ShaderMaterial({
+    uniforms:{ uTime:{value:0}, uAspect:{value:w/h}, uOpacity:{value:0.20},
+               uColor:{value:new T.Color(0xdfeaf6)} },
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:[
+      'varying vec2 vUv; uniform float uTime; uniform float uAspect; uniform float uOpacity; uniform vec3 uColor;',
+      'float h11(float p){ return fract(sin(p*127.1)*43758.5453); }',
+      'void main(){',
+      '  vec2 uv=vUv; float a=0.0;',
+      '  for(int i=0;i<10;i++){ float fi=float(i);',
+      '    float cx=h11(fi*1.37); float cy=h11(fi*3.11);',
+      '    float r=0.14+h11(fi*5.7)*0.16;',
+      '    float yy=fract(cy+uTime*(0.02+0.03*h11(fi*7.3)));',
+      '    vec2 c=vec2(cx, yy);',
+      '    float d=distance(vec2(uv.x*uAspect,uv.y), vec2(c.x*uAspect,c.y));',
+      '    a += smoothstep(r,0.0,d)*0.55; }',
+      '  a *= 0.6+0.4*sin(uv.y*6.0-uTime*0.35);',
+      '  gl_FragColor=vec4(uColor, clamp(a,0.0,1.0)*uOpacity); }'
+    ].join('\n'),
+    transparent:true, depthWrite:false
+  });
+  fogMats.push(mat);
+  const p = new T.Mesh(new T.PlaneGeometry(w,h), mat);
+  p.position.set(x,y,z); if(ry) p.rotation.y = ry;
+  root.add(p);
+}
+makeGlassFog(2.6, 2.26, -1.1, 3.53, -2.585, 0);
+makeGlassFog(1.1, 1.0, 0.8, 3.81, -2.585, 0);
+
+/* ============================================================
+   动效：落雪 / 滴水 / 风卷雪 / 山雾 / 炊烟
+   ============================================================ */
+const SOLID = [
+  {x0:-3.7, x1:2.1,  z0:-6.35, z1:-2.15, h:6.4},
+  {x0:-8,   x1:8,    z0:-8,    z1:-6.1,  h:4.8},
+  {x0:-2.9, x1:1.9,  z0:-2.6,  z1:-1.4,  h:2.36}
+];
+function inSolid(x,z){
+  for(let i=0;i<SOLID.length;i++){ const s=SOLID[i];
+    if(x>s.x0 && x<s.x1 && z>s.z0 && z<s.z1) return s.h; }
+  return 0;
+}
+function groundY(x,z){
+  if(z < -1.4) return 2.0;
+  if(z < 0.6)  return Math.max(0, 0.6 - z);
+  return 0;
+}
+
+/* ---- 漫天落雪 ---- */
+const SNOW_N = 1400;
+const snowGeo = new T.BufferGeometry();
+const spArr = new Float32Array(SNOW_N*3);
+const svArr = new Float32Array(SNOW_N);
+const sphArr = new Float32Array(SNOW_N);
+for(let i=0;i<SNOW_N;i++){
+  spArr[i*3]=R(-15,15); spArr[i*3+1]=R(0,15); spArr[i*3+2]=R(-15,15);
+  svArr[i]=R(1.1,2.6); sphArr[i]=R(0,6.283);
+}
+snowGeo.setAttribute('position', new T.BufferAttribute(spArr, 3));
+const snowDot = (function(){
+  const c=CV(32,32), x=c.getContext('2d');
+  const g=x.createRadialGradient(16,16,0,16,16,16);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.5,'rgba(255,255,255,0.85)');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,32,32);
+  return TX(c);
+})();
+const snowPts = new T.Points(snowGeo, new T.PointsMaterial({
+  color:0xffffff, size:0.16, map:snowDot, transparent:true, opacity:0.9,
+  depthWrite:false, sizeAttenuation:true }));
+snowPts.frustumCulled = false; root.add(snowPts);
+
+function updateSnow(dt, time){
+  const p = spArr;
+  for(let i=0;i<SNOW_N;i++){
+    let y = p[i*3+1] - svArr[i]*dt;
+    const sway = Math.sin(time*0.8 + sphArr[i])*dt*0.5;
+    p[i*3] += sway + dt*0.55;
+    p[i*3+2] += Math.cos(time*0.6 + sphArr[i])*dt*0.3;
+    if(p[i*3] > 15) p[i*3] -= 30;
+    if(p[i*3+2] > 15) p[i*3+2] -= 30;
+    const x = p[i*3], z = p[i*3+2];
+    const solid = inSolid(x,z);
+    if(y < -0.1 || (solid && y < solid) || (!solid && y < groundY(x,z))){
+      y = R(12,15);
+      p[i*3]=R(-15,15); p[i*3+2]=R(-15,15);
+    }
+    p[i*3+1] = y;
+  }
+  snowGeo.attributes.position.needsUpdate = true;
+}
+
+/* ---- 屋檐冰棱滴融 ---- */
+const drips = [];
+[[0.7, -2.04],[ -0.9, -2.04],[ -2.2, -2.04]].forEach(p=>{
+  const m = SP(root, 0.03, MB(0xd6ecff,{transparent:true, opacity:0.85}), p[0], 4.6, p[1], {sy:2.0, ol:0});
+  drips.push({m:m, x:p[0], z:p[1], y:R(0.5,4.4), v:R(1.6,2.4), wait:R(0,3)});
+});
+function updateDrips(dt){
+  drips.forEach(d=>{
+    d.wait -= dt;
+    if(d.wait > 0){ d.m.visible=false; return; }
+    d.m.visible = true;
+    d.y -= d.v*dt;
+    if(d.y < DECK_Y+0.05){ d.y = 4.62; d.wait = R(2.5,7); }
+    d.m.position.set(d.x, d.y, d.z);
+  });
+}
+
+/* ---- 露台积雪堆叠 ---- */
+function updatePiles(dt){
+  deckPiles.forEach(p=>{
+    p.t += dt/48;
+    if(p.t > 1) p.t -= 1;
+    const k = Math.sin(p.t*Math.PI);
+    p.m.scale.y = p.s0 + (p.s1-p.s0)*k;
+  });
+}
+
+/* ---- 微风卷雪 ---- */
+const drifts = [];
+for(let i=0;i<6;i++){
+  const s = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xe8f0fc, transparent:true, opacity:0, depthWrite:false}));
+  s.scale.set(R(2,3.4), R(0.35,0.6), 1);
+  root.add(s);
+  drifts.push({s:s, y:(i%2?0.35:Y_PL+0.3)+R(-0.05,0.05), x:R(-9,9), z:R(-1,6), v:R(1.8,3.6), ph:R(0,6.28)});
+}
+function updateDrifts(dt, time){
+  drifts.forEach(d=>{
+    d.x += d.v*dt;
+    if(d.x > 10){ d.x = -10; d.z = R(-1,6); }
+    d.s.position.set(d.x, d.y + Math.sin(time*2+d.ph)*0.06, d.z);
+    d.s.material.opacity = 0.16 + 0.1*Math.sin(time*1.3+d.ph);
+  });
+}
+
+/* ---- 山间薄雾 ---- */
+const mists = [];
+for(let i=0;i<4;i++){
+  const s = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xbcd0ea, transparent:true, opacity:0, depthWrite:false}));
+  s.scale.set(R(7,11), R(2.2,3.4), 1);
+  root.add(s);
+  mists.push({s:s, x:R(-6,6), y:R(0.7,1.6), z:R(1.5,6), v:R(0.25,0.5), ph:R(0,6.28)});
+}
+function updateMist(dt, time){
+  mists.forEach(m=>{
+    m.x += m.v*dt;
+    if(m.x > 9) m.x = -9;
+    m.s.position.set(m.x, m.y + Math.sin(time*0.4+m.ph)*0.12, m.z);
+    m.s.material.opacity = 0.10 + 0.05*Math.sin(time*0.3+m.ph);
+  });
+}
+
+/* ---- 炊烟 ---- */
+const smoke = [];
+for(let i=0;i<6;i++){
+  const s = new T.Sprite(new T.SpriteMaterial({map:RAD_TEX, color:0xcfd8e6, transparent:true, opacity:0, depthWrite:false}));
+  root.add(s);
+  smoke.push({s:s, t:Math.random()});
+}
+function updateSmoke(dt){
+  smoke.forEach(sm=>{
+    sm.t += dt*0.16;
+    if(sm.t > 1) sm.t -= 1;
+    const t = sm.t;
+    sm.s.position.set(0.6 + t*0.9 + Math.sin(t*7)*0.12, 7.1 + t*2.6, -4.9 + t*0.3);
+    const sc = 0.4 + t*1.7;
+    sm.s.scale.set(sc, sc, 1);
+    sm.s.material.opacity = Math.sin(t*Math.PI)*0.24;
+  });
+}
+
+/* ============================================================
+   风声音效（Web Audio 程序化合成，间歇阵风，完全离线）
+   ============================================================ */
+const snd = { ctx:null, gain:null, bp:null, lfoG:null, on:false, vol:0.55 };
+function sndBuild(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return;
+  snd.ctx = new AC();
+  const len = snd.ctx.sampleRate * 3;
+  const buf = snd.ctx.createBuffer(1, len, snd.ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  let l0=0, l1=0;
+  for(let i=0;i<len;i++){
+    const w = Math.random()*2-1;
+    l0 = 0.96*l0 + 0.04*w;
+    l1 = 0.82*l1 + 0.18*w;
+    d[i] = (l0*2.4 + l1*0.7 + w*0.1) * 0.4;
+  }
+  const src = snd.ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+  snd.bp = snd.ctx.createBiquadFilter(); snd.bp.type='bandpass';
+  snd.bp.frequency.value=420; snd.bp.Q.value=0.7;
+  snd.gain = snd.ctx.createGain(); snd.gain.gain.value=0;
+  src.connect(snd.bp); snd.bp.connect(snd.gain); snd.gain.connect(snd.ctx.destination);
+  src.start();
+  // 缓慢起伏（风的呼吸感）
+  const lfo = snd.ctx.createOscillator(); lfo.frequency.value=0.07;
+  snd.lfoG = snd.ctx.createGain(); snd.lfoG.gain.value=0;
+  lfo.connect(snd.lfoG); snd.lfoG.connect(snd.gain.gain); lfo.start();
+  // 口哨般的高频层
+  const src2 = snd.ctx.createBufferSource(); src2.buffer=buf; src2.loop=true; src2.playbackRate.value=1.7;
+  const bp2 = snd.ctx.createBiquadFilter(); bp2.type='bandpass'; bp2.frequency.value=1300; bp2.Q.value=6;
+  snd.g2 = snd.ctx.createGain(); snd.g2.gain.value=0;
+  src2.connect(bp2); bp2.connect(snd.g2); snd.g2.connect(snd.ctx.destination);
+  src2.start();
+}
+let gustT = 2;
+function updateWindSound(dt){
+  if(!snd.on || !snd.ctx) return;
+  gustT -= dt;
+  if(gustT <= 0){
+    gustT = R(5, 13);
+    const t = snd.ctx.currentTime;
+    const peak = snd.vol*R(0.55, 1.0);
+    const dur = R(2, 4);
+    snd.gain.gain.setTargetAtTime(peak*0.85, t, R(0.7, 1.4));
+    snd.gain.gain.setTargetAtTime(snd.vol*0.14, t+dur, R(1.4, 2.6));
+    snd.g2.gain.setTargetAtTime(peak*0.10, t+R(0.3,1), 0.8);
+    snd.g2.gain.setTargetAtTime(0, t+dur, 1.2);
+    snd.bp.frequency.setTargetAtTime(R(300, 640), t, 1.2);
+  }
+}
+(function(){
+  const btn=document.getElementById('sndBtn'), vol=document.getElementById('sndVol'),
+        icOn=document.getElementById('icOn'), icOff=document.getElementById('icOff');
+  btn.addEventListener('click', ()=>{
+    if(!snd.ctx) sndBuild();
+    if(!snd.ctx) return;
+    if(snd.ctx.state==='suspended') snd.ctx.resume();
+    snd.on = !snd.on;
+    icOn.style.display  = snd.on ? 'block' : 'none';
+    icOff.style.display = snd.on ? 'none'  : 'block';
+    gustT = 0.5;
+    const t = snd.ctx.currentTime;
+    snd.gain.gain.setTargetAtTime(snd.on ? snd.vol*0.3 : 0, t, 0.6);
+    snd.lfoG.gain.setTargetAtTime(snd.on ? snd.vol*0.10 : 0, t, 0.6);
+    if(!snd.on) snd.g2.gain.setTargetAtTime(0, t, 0.4);
+  });
+  vol.addEventListener('input', ()=>{
+    snd.vol = vol.value/100;
+  });
+  renderer.domElement.addEventListener('pointerdown', ()=>{
+    if(snd.ctx && snd.ctx.state==='suspended') snd.ctx.resume();
+  });
+})();
+
+/* ============================================================
+   动画主循环
+   ============================================================ */
+let time = 0, last = performance.now();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  let dt = (now - last)/1000; last = now;
+  if(dt > 0.06) dt = 0.06;
+  time += dt;
+
+  /* 相机 */
+  ctrl.theta += ctrl.dth; ctrl.phi += ctrl.dph; ctrl.r += ctrl.dr;
+  ctrl.dth *= 0.86; ctrl.dph *= 0.86; ctrl.dr *= 0.88;
+  ctrl.phi = clamp(ctrl.phi, 0.20, 1.36);
+  ctrl.r   = clamp(ctrl.r, 9, 60);
+  if(ctrl.dragging) ctrl.idle = 0; else ctrl.idle += dt;
+  if(ctrl.idle > 5) ctrl.theta += dt*0.009;
+  const sp = Math.sin(ctrl.phi);
+  camera.position.set(
+    ctrl.target.x + ctrl.r*sp*Math.sin(ctrl.theta),
+    ctrl.target.y + ctrl.r*Math.cos(ctrl.phi),
+    ctrl.target.z + ctrl.r*sp*Math.cos(ctrl.theta)
+  );
+  camera.lookAt(ctrl.target);
+
+  /* 动效更新 */
+  updateSnow(dt, time);
+  updateDrips(dt);
+  updatePiles(dt);
+  updateDrifts(dt, time);
+  updateMist(dt, time);
+  updateSmoke(dt);
+  updateWindSound(dt);
+  fogMats.forEach(m=> m.uniforms.uTime.value = time);
+
+  /* 壁炉火光跳动 */
+  fireSprites.forEach(f=>{
+    const k = 0.75 + 0.25*Math.sin(time*7 + f.ph) + 0.12*Math.sin(time*13.7 + f.ph*2);
+    f.s.scale.set(0.42*k + 0.1, 0.55*k + 0.1, 1);
+    f.s.material.opacity = 0.55 + 0.3*k;
+    f.s.position.x = f.bx + Math.sin(time*9 + f.ph)*0.03;
+    f.s.position.y = F0 + 0.45 + 0.08*k;
+  });
+  L.fire.intensity = 1.3 + 0.35*Math.sin(time*8.3) + 0.18*Math.sin(time*14.1);
+
+  /* 庭院灯柔和呼吸 */
+  L.gA.intensity = 0.9 + 0.08*Math.sin(time*1.1);
+  L.gB.intensity = 0.8 + 0.08*Math.sin(time*1.4 + 1);
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
