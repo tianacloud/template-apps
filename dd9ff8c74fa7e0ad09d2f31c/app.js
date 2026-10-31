@@ -30,8 +30,11 @@ async function convertImportedImages(doc) {
   for (const page of doc.pages) for (const obj of page.objects || []) {
     if (obj.type !== 'image') continue;
     if (typeof obj.src !== 'string' || !obj.src.startsWith('data:image/')) throw new Error('白板文件中的图片格式不受支持');
-    const blob = await (await fetch(obj.src)).blob();
-    obj.src = await uploadImage(blob);
+    const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([a-zA-Z0-9+/=]+)$/.exec(obj.src);
+    if (!match) throw new Error('图片格式不受支持');
+    const raw = atob(match[2]);
+    const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+    obj.src = await uploadImage(new Blob([bytes], {type:match[1]}));
   }
 }
 async function portableDoc() {
@@ -462,7 +465,7 @@ function openFile(f){
       S.undo.length = 0; S.redo.length = 0;
       applyBg(); scheduleSave(); syncPages(); syncTools(); fitView();
       toast('白板已打开');
-    }catch(e){ toast('这个文件不是白板文件'); }
+    }catch(e){ toast('打开失败，请检查文件格式和网络连接'); }
   };
   fr.readAsText(f);
 }
