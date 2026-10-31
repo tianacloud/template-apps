@@ -198,6 +198,8 @@ function renderStats(){
 
 /* ---------- 渲染 ---------- */
 function render(){
+  document.getElementById("sub1").classList.toggle("on",S.sub===1);
+  document.getElementById("sub4").classList.toggle("on",S.sub===4);
   loadScope(); // 载入当前(科目+模式)独立的答题记录，避免切换标签串扰
   renderModes();
   const stage = document.getElementById('stage');
