@@ -159,7 +159,7 @@ function stage(sp,months){
 }
 
 let db=seed(),cur=null,tab='sched';
-let connection, transport, queue=Promise.resolve();
+let connection, transport, queue=Promise.resolve(), revision=null;
 async function execute(sql,args=[]){
   if(!connection){connection=await window.tiana.connection();if(connection.sql_api!=='hrana-v3'||!window.tiana.auth?.getAccessToken)throw Error('数据库连接不可用');transport=createTianaFetch({origin:connection.origin,auth:window.tiana.auth,requestBodyMode:'buffered'});}
   const response=await transport(`${connection.origin}/v3/pipeline`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({requests:[{type:'execute',stmt:{sql,args,want_rows:true}},{type:'close'}]})});
@@ -185,7 +185,17 @@ function seed(){
   ]};
 }
 const canStore=true;
-function save(){const value=JSON.stringify(db);const write=queue.then(()=>execute('INSERT INTO petcare_state(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',[{type:'text',value}]));queue=write;write.catch(()=>{document.querySelector('.grid').inert=true;document.getElementById('stamp').textContent='保存结果未知，请刷新核对';alert('保存结果未知，请刷新并核对数据后继续。');});}
+function save(){
+  const value=JSON.stringify(db);
+  const write=queue.then(async()=>{
+    const result=revision===null
+      ? await execute('INSERT INTO petcare_state(id,data,revision) VALUES(1,?,1) ON CONFLICT(id) DO NOTHING',[{type:'text',value}])
+      : await execute('UPDATE petcare_state SET data=?,revision=revision+1 WHERE id=1 AND revision=?',[{type:'text',value},{type:'integer',value:String(revision)}]);
+    if(Number(result.affected_row_count)!==1)throw Error('数据已在其他页面更改');
+    revision=revision===null?1:revision+1;
+  });
+  queue=write;write.catch(()=>{document.querySelector('.grid').inert=true;document.getElementById('stamp').textContent='保存失败或数据已更改，请刷新核对';alert('保存失败或数据已在其他页面更改，请刷新并核对数据后继续。');});
+}
 const pet=()=>db.pets.find(p=>p.id===cur)||null;
 
 function nextDue(p,r){
@@ -583,9 +593,9 @@ function add(o){
 document.getElementById('overview').innerHTML='<div class="skel" style="height:62px"></div>';
 document.querySelector('.shell').inert=true;
 (async()=>{try{
-  const result=await execute('SELECT data FROM petcare_state WHERE id=1');
+  const result=await execute('SELECT data,revision FROM petcare_state WHERE id=1');
   const value=result.rows?.[0]?.[0]?.value;
-  if(value){const data=JSON.parse(value);if(!Array.isArray(data.pets))throw Error('档案格式无效');db=data;}
+  if(value){const data=JSON.parse(value);if(!Array.isArray(data.pets))throw Error('档案格式无效');db=data;revision=Number(result.rows[0][1].value);}
   const restored=fromHash();cur=db.pets[0]?.id||null;render();
   if(restored)document.getElementById('stamp').textContent='已恢复 '+db.pets.length+' 份档案';
   window.addEventListener('hashchange',()=>{if(fromHash()){cur=db.pets[0]?.id||null;render();}});
