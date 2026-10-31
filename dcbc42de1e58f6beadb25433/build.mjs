@@ -1,0 +1,12 @@
+import {readFile,mkdir,writeFile,cp,rm,readdir} from 'node:fs/promises';
+import {build} from 'esbuild';
+const html=await readFile('index.html','utf8');
+const body=html.split('<body class="theme-gallery" data-realm="echo" data-appearance="classic">')[1].split('<script src="./script.js"></script>')[0];
+let js=await readFile('script.js','utf8');
+js=js.replace(/"\.\/assets\/works_v2\/([^" ]+)"/g,(_,name)=>`assetUrls[${JSON.stringify(name)}]`);
+const names=await readdir('template-files/works_v2');
+const bootstrap=`import {openStorage} from './cloud.js';\ndocument.body.className="theme-gallery";document.body.dataset.realm="echo";document.body.dataset.appearance="classic";document.getElementById("app").innerHTML=${JSON.stringify(body)};const css=document.createElement("link");css.rel="stylesheet";css.href=new URL("styles.css",import.meta.url);document.head.appendChild(css);\nlet cloudStorage,assetUrls={};try {cloudStorage=await openStorage();if(!window.tiana?.files)throw Error('文件服务不可用');for(const name of ${JSON.stringify(names)})assetUrls[name]=await window.tiana.files.getUrl('template-assets/works_v2/'+name);}catch(error){document.getElementById('app').innerHTML='<p role="alert" style="color:white;padding:2rem">云端记录或图片加载失败，请检查连接后重新打开应用。</p>';throw error;}\n`;
+await rm('dist',{recursive:true,force:true});await mkdir('dist/assets',{recursive:true});
+await build({stdin:{contents:bootstrap+js,resolveDir:process.cwd(),sourcefile:'app-entry.js',loader:'js'},outfile:'dist/assets/app.js',bundle:true,format:'esm',target:'es2022'});
+await cp('styles.css','dist/assets/styles.css');await cp('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
