@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS sync_slots (code TEXT PRIMARY KEY, progress TEXT NOT NULL);
