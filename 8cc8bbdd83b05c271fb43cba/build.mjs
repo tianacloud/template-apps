@@ -1,0 +1,12 @@
+import {readFile, mkdir, copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
+const html=await readFile('index.html','utf8');
+const css=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script>/)[1];
+const js=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const storage=await readFile('storage.js','utf8');
+await mkdir('dist/assets',{recursive:true});
+await build({stdin:{contents:storage+`\ndocument.title="工资计算器";const style=document.createElement("style");style.textContent=${JSON.stringify(css)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+js,resolveDir:process.cwd(),sourcefile:'entry.js'},bundle:true,format:'esm',outfile:'dist/assets/app.js'});
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));

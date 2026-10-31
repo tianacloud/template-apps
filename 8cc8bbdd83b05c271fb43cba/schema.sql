@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS salary_state (name TEXT PRIMARY KEY, value TEXT NOT NULL);
