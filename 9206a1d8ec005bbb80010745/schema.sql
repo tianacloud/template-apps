@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS study_state (id INTEGER PRIMARY KEY CHECK (id = 1), document TEXT NOT NULL, revision INTEGER NOT NULL);
