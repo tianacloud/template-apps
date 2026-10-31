@@ -57,15 +57,15 @@ export function initialize(files) {
   // ---- 统一播放入口：优先内嵌音频，其次浏览器 TTS ----
   async function playClip(id, btn, isListen){
     var requestToken = ++playToken;
-    if (audioEl) { audioEl.pause(); if (audioEl.src.startsWith('blob:')) URL.revokeObjectURL(audioEl.src); }
+    if (audioEl) audioEl.pause();
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     document.querySelectorAll('.playing').forEach(function(b){ b.classList.remove('playing'); if (b.dataset.label) b.textContent = b.dataset.label; });
     var uri = '';
     if (files && /^c\d+$/.test(id)) {
-      try { const response = await files.get('template-assets/audio/' + id + '-' + accent + '.mp3'); if (!response.ok) throw new Error('音频读取失败'); uri = URL.createObjectURL(await response.blob()); }
+      try { uri = await files.getUrl('template-assets/audio/' + id + '-' + accent + '.mp3'); }
       catch (error) { showToast('音频读取失败，尝试使用浏览器朗读'); }
     } else { var clips = AUDIO[id] || {}; uri = clips[accent] || clips['en-US'] || clips['en-GB'] || ''; }
-    if (requestToken !== playToken) { if (uri.startsWith('blob:')) URL.revokeObjectURL(uri); return; }
+    if (requestToken !== playToken) return;
     var label = btn ? (btn.getAttribute('data-label') || btn.textContent) : '';
     var times = (isListen && examMode) ? 2 : 1;
 
@@ -102,10 +102,10 @@ export function initialize(files) {
       audioEl.onended = function(){
         if(tok !== playToken) return;
         if(i < times){ setTimeout(step, 1400); }
-        else { if (uri.startsWith('blob:')) URL.revokeObjectURL(uri); if(btn){ btn.classList.remove('playing'); if(isListen) btn.textContent = label; } }
+        else { if(btn){ btn.classList.remove('playing'); if(isListen) btn.textContent = label; } }
       };
       var pr = audioEl.play();
-      if(pr && pr.catch) pr.catch(function(){ if (uri.startsWith('blob:')) URL.revokeObjectURL(uri); if(btn) { btn.classList.remove('playing'); if(isListen) btn.textContent = label; } showToast('音频播放失败，请重试'); });
+      if(pr && pr.catch) pr.catch(function(){ if(btn) { btn.classList.remove('playing'); if(isListen) btn.textContent = label; } showToast('音频播放失败，请重试'); });
     })();
   }
 
