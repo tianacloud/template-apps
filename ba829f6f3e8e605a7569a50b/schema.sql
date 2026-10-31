@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS simulator_storage (key TEXT PRIMARY KEY, value TEXT NOT NULL);
