@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS flashcard_state (id INTEGER PRIMARY KEY CHECK (id = 1), state TEXT NOT NULL);
