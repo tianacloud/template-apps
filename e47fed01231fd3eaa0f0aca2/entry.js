@@ -38,6 +38,7 @@ export async function mount(root, context) {
     window.gameAssets = {...smallImages};
     const assets = await Promise.allSettled(externalImages.map(async name => { const response = await context.files.get('template-assets/images/' + name); const url = URL.createObjectURL(await response.blob()); objectUrls.push(url); window.gameAssets[name] = url; }));
     if (assets.some(result => result.status === 'rejected')) throw Error('素材读取失败');
+    await Promise.all(Object.entries(window.gameAssets).map(([name, url]) => new Promise((resolve,reject) => { const image = new Image(); image.onload = () => { window.gameAssets[name] = image; resolve(); }; image.onerror = () => reject(Error('图片解码失败')); image.src = url; }))); 
   } catch (error) { objectUrls.forEach(URL.revokeObjectURL); status.hidden = false; status.textContent = '无法读取存档或游戏素材，请检查登录和网络后重新打开。'; return; }
   const style=document.createElement('style'); style.textContent='html,body{margin:0;padding:0;background:#080808;height:100%}body{min-height:100vh;overflow:hidden;-webkit-tap-highlight-color:transparent}#game-container{position:fixed;inset:0;width:100vw;height:100vh}canvas{display:block;touch-action:none}'; document.head.append(style);
   const container=document.createElement('div'); container.id='game-container'; root.append(container);

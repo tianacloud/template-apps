@@ -615,15 +615,10 @@ class BootScene extends Phaser.Scene {
         const bar = this.add.rectangle(424, 360, 0, 12, C.goldNum, 1).setOrigin(0, 0.5);
         this.load.on('progress', p => { bar.width = 352 * p; });
 
-        // ===== 场景背景图 =====
-        ['bg_entrance', 'bg_corridor', 'bg_hall', 'bg_room', 'bg_swarm', 'bg_lair', 'bg_vault', 'bg_front', 'bg_main', 'bg_secret']
-            .forEach(k => this.load.image(k, window.gameAssets[k + '.jpg']));
-        // ===== 道具图标 =====
-        ['item_map', 'item_torch', 'item_bamboo1', 'item_bamboo2', 'item_bronze', 'item_key', 'item_herb', 'item_charm']
-            .forEach(k => this.load.image(k, window.gameAssets[k + '.png']));
-        // ===== UI 素材 =====
-        this.load.image('ui_btn', window.gameAssets['ui_btn.png']);
-        this.load.image('ui_puzzle_bg', window.gameAssets['ui_puzzle_bg.png']);
+        // 图片由文件服务授权读取并解码，直接加入纹理以避免加载器丢失授权。
+        for (const [name, image] of Object.entries(window.gameAssets)) {
+            this.textures.addImage(name.replace(/\.(jpg|png)$/, ''), image);
+        }
     }
     create() {
         FX.buildTextures(this);
