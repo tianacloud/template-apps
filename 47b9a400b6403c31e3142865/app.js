@@ -544,7 +544,7 @@ function startTyping() {
 
     // 副标题
     cx2.fillStyle = '#8b98ab'; cx2.font = '16px sans-serif';
-    cx2.fillText('兹证明以下造物者，在过去一年里持续向世界提交美好：', 70, 200);
+    cx2.fillText('献给以下造物者：星图与统计为昵称生成的模拟内容', 70, 200);
 
     // 名字
     cx2.fillStyle = '#ffffff';
@@ -558,7 +558,7 @@ function startTyping() {
     cx2.fillText('称号 · ' + species, 92, 335);
 
     // 统计
-    const sArr = [['全年提交', stats.total], ['最长连击', stats.streak], ['单日峰值', stats.best]];
+    const sArr = [['模拟提交', stats.total], ['最长连击', stats.streak], ['单日峰值', stats.best]];
     sArr.forEach((s, i) => {
       const x = 70 + i * 330;
       cx2.fillStyle = '#22d3ee'; cx2.font = '800 46px "JetBrains Mono",monospace';
@@ -582,7 +582,7 @@ function startTyping() {
     cx2.beginPath(); cx2.arc(0, 0, 56, 0, 7); cx2.stroke();
     cx2.fillStyle = '#f472b6'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
     cx2.font = '800 30px "JetBrains Mono",monospace'; cx2.fillText('1024', 0, -6);
-    cx2.font = '11px "JetBrains Mono",monospace'; cx2.fillText('VERIFIED', 0, 20);
+    cx2.font = '11px "JetBrains Mono",monospace'; cx2.fillText('IMAGINED', 0, 20);
     cx2.restore();
 
     $('#certCard').hidden = false;
