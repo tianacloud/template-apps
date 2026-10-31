@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   1024 · CODE COSMOS  —  app.js
+   造物者宇宙  —  app.js
    零外部依赖 · 原生 Canvas / DOM / Web API
    ══════════════════════════════════════════════════════════════ */
 'use strict';
@@ -521,13 +521,13 @@ function startTyping() {
       cx2.fillStyle = `rgba(${180 + rnd() * 60 | 0},${220},${255},${a})`;
       cx2.beginPath(); cx2.arc(x, y, s, 0, 7); cx2.fill();
     }
-    // 巨型 1024 水印
+    // 证书品牌水印
     cx2.save();
-    cx2.font = '900 360px "JetBrains Mono",monospace';
+    cx2.font = '900 160px sans-serif';
     cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
     const grd = cx2.createLinearGradient(0, CH / 2 - 180, 0, CH / 2 + 180);
     grd.addColorStop(0, 'rgba(34,211,238,0.10)'); grd.addColorStop(1, 'rgba(167,139,250,0.10)');
-    cx2.fillStyle = grd; cx2.fillText('1024', CW / 2, CH / 2 + 10);
+    cx2.fillStyle = grd; cx2.fillText('造物者宇宙', CW / 2, CH / 2 + 10);
     cx2.restore();
     // 边框
     cx2.strokeStyle = 'rgba(34,211,238,0.55)'; cx2.lineWidth = 2;
@@ -538,7 +538,7 @@ function startTyping() {
     // 头部
     cx2.textAlign = 'left'; cx2.textBaseline = 'alphabetic';
     cx2.fillStyle = '#22d3ee'; cx2.font = '600 22px "JetBrains Mono",monospace';
-    cx2.fillText('1024 · CODE COSMOS', 70, 90);
+    cx2.fillText('造物者宇宙', 70, 90);
     cx2.fillStyle = '#8b98ab'; cx2.font = '14px "JetBrains Mono",monospace';
     cx2.fillText('CERTIFICATE OF CODE · 造物者证书', 70, 116);
 
@@ -574,14 +574,14 @@ function startTyping() {
     // 底部
     const date = new Date().toISOString().slice(0, 10);
     cx2.fillStyle = '#8b98ab'; cx2.font = '14px "JetBrains Mono",monospace';
-    cx2.fillText('ISSUED ' + date + ' · CODE COSMOS', 70, CH - 56);
+    cx2.fillText('ISSUED ' + date + ' · 造物者宇宙', 70, CH - 56);
     // 印章
     cx2.save();
     cx2.translate(CW - 130, CH - 120);
     cx2.strokeStyle = 'rgba(244,114,182,0.8)'; cx2.lineWidth = 3;
     cx2.beginPath(); cx2.arc(0, 0, 56, 0, 7); cx2.stroke();
     cx2.fillStyle = '#f472b6'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
-    cx2.font = '800 30px "JetBrains Mono",monospace'; cx2.fillText('1024', 0, -6);
+    cx2.font = '800 30px "JetBrains Mono",monospace'; cx2.fillText('✦', 0, -6);
     cx2.font = '11px "JetBrains Mono",monospace'; cx2.fillText('IMAGINED', 0, 20);
     cx2.restore();
 
@@ -602,7 +602,7 @@ function startTyping() {
 
   $('#certDownload').onclick = () => {
     const a = document.createElement('a');
-    a.download = '1024-cert-' + ($('#forgeName').value.trim() || 'cosmos') + '.png';
+    a.download = 'cosmos-cert-' + ($('#forgeName').value.trim() || 'cosmos') + '.png';
     a.href = cc.toDataURL('image/png');
     a.click();
     toast('证书已下载到本地 ✦');
