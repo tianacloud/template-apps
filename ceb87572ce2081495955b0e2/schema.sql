@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS bug_soother_state (id INTEGER PRIMARY KEY CHECK (id = 1), payload TEXT NOT NULL);
