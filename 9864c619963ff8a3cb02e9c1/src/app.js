@@ -272,7 +272,7 @@ function renderShell() {
   $("#accessBadge").textContent = state.mode === "edit"
     ? (hostAdapter ? "可编辑" : "编辑链接")
     : state.mode === "demo"
-      ? (document.body.dataset.deliveryMode === "ui-review" ? "UI 样式预览" : "静态只读预览")
+      ? (window.TRAVEL_PREVIEW ? "示例体验 · 只读" : "只读示例")
       : "只读分享";
   $("#exportButton").hidden = false;
   $("#manifestButton").hidden = state.mode !== "edit";
@@ -845,11 +845,11 @@ async function ensureEditReady() {
 }
 
 document.addEventListener("click", async (event) => {
-  const button = event.target.closest("button");
-  const detailTrigger = event.target.closest("[data-open-place-detail]");
+  const button = event.target.closest?.("button");
+  const detailTrigger = event.target.closest?.("[data-open-place-detail]");
   if (!state.pack) return;
   if (detailTrigger) {
-    if (!event.target.closest("a")) openPlaceDialog(detailTrigger.dataset.openPlaceDetail);
+    if (!event.target.closest?.("a")) openPlaceDialog(detailTrigger.dataset.openPlaceDetail);
     return;
   }
   if (!button) return;
@@ -932,7 +932,7 @@ document.addEventListener("click", async (event) => {
 });
 
 document.addEventListener("change", async (event) => {
-  const input = event.target.closest("input[data-toggle-task]");
+  const input = event.target.closest?.("input[data-toggle-task]");
   if (input && state.pack) {
     input.disabled = true;
     const saved = await toggleTaskStatus(input.dataset.toggleTask);
@@ -942,15 +942,15 @@ document.addEventListener("change", async (event) => {
 });
 
 document.addEventListener("dragstart", (event) => {
-  if (event.target.closest("[data-touch-drag], [data-drag-item]")) event.preventDefault();
+  if (event.target.closest?.("[data-touch-drag], [data-drag-item]")) event.preventDefault();
 });
 
 document.addEventListener("selectstart", (event) => {
-  if (event.target.closest("[data-touch-drag]")) event.preventDefault();
+  if (event.target.closest?.("[data-touch-drag]")) event.preventDefault();
 });
 
 document.addEventListener("pointerdown", (event) => {
-  const handle = event.target.closest("[data-touch-drag]");
+  const handle = event.target.closest?.("[data-touch-drag]");
   if (!handle || state.mode !== "edit" || (event.pointerType === "mouse" && event.button !== 0)) return;
   state.dragItemId = handle.dataset.touchDrag;
   state.touchDropTarget = null;
@@ -1043,7 +1043,7 @@ function applyStyle(style, persist = true) {
 
 $("#styleButton").addEventListener("click", () => $("#styleDialog").showModal());
 $("#styleDialog").addEventListener("click", (event) => {
-  const choice = event.target.closest("[data-style-choice]");
+  const choice = event.target.closest?.("[data-style-choice]");
   if (choice) applyStyle(choice.dataset.styleChoice);
 });
 $("#styleDialogClose").addEventListener("click", () => $("#styleDialog").close());
@@ -1479,7 +1479,7 @@ $("#maintenanceCancel").addEventListener("click", closeMaintenance);
 
 $("#maintenanceDialog").addEventListener("click", async (event) => {
   event.stopPropagation();
-  const button = event.target.closest("button");
+  const button = event.target.closest?.("button");
   if (!button) return;
   const data = button.dataset;
   if (data.maintenanceSection) {
@@ -1548,12 +1548,12 @@ $("#maintenanceDialog").addEventListener("click", async (event) => {
 });
 
 $("#maintenanceDialog").addEventListener("input", (event) => {
-  const form = event.target.closest("[data-form-kind='expense']");
+  const form = event.target.closest?.("[data-form-kind='expense']");
   if (form) syncExpenseSplit(form);
 });
 
 $("#maintenanceDialog").addEventListener("change", (event) => {
-  const form = event.target.closest("[data-form-kind='expense']");
+  const form = event.target.closest?.("[data-form-kind='expense']");
   if (form) syncExpenseSplit(form);
 });
 
@@ -1815,7 +1815,7 @@ $("#linksDialogClose").addEventListener("click", closeLinksDialog);
 $("#linksCancel").addEventListener("click", closeLinksDialog);
 $("#rotateLinksButton").addEventListener("click", rotateLinks);
 $("#linksDialog").addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-copy-link]");
+  const button = event.target.closest?.("[data-copy-link]");
   if (!button) return;
   const value = $(`#${button.dataset.copyLink}`).value;
   await navigator.clipboard.writeText(value);
