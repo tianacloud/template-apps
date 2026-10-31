@@ -507,7 +507,7 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
   };
 
   /* ---------------- 持久化 ---------------- */
-  var stats = { games: 0, wins: 0, streak: 0, bestStreak: 0, score: 0,
+  var stats = { games: 0, bets: 0, wins: 0, streak: 0, bestStreak: 0, score: 0,
     algoWins: ALGOS.map(function () { return 0; }), history: [] };
   var dbReady = false;
   var saving = false;
@@ -534,6 +534,7 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
         var value = JSON.parse(result.rows[0][0].value);
         if (!value || !Array.isArray(value.history) || !Array.isArray(value.algoWins)) throw new Error('战绩数据格式无效');
         stats = value;
+        if (!Number.isInteger(stats.bets)) stats.bets = stats.games > stats.history.length ? null : stats.history.filter(function (item) { return !!item.bet; }).length;
         while (stats.algoWins.length < ALGOS.length) stats.algoWins.push(0);
       }
       dbReady = true; refreshRankChip();
@@ -1043,6 +1044,7 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
     stats.games++;
     var gain = 0;
     if (bet) {
+      if (stats.bets !== null) stats.bets++;
       if (hit) {
         stats.wins++;
         stats.streak++;
@@ -1319,7 +1321,8 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
   function renderStats() {
     var games = stats.games;
     var wins = stats.wins;
-    var rate = games ? Math.round(wins / games * 100) : 0;
+    var bets = stats.bets;
+    var rate = bets === null ? '—' : (bets ? Math.round(wins / bets * 100) : 0);
     var rk = D.rankFor(games, wins);
 
     // 段位卡
@@ -1348,7 +1351,7 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
     var cells = [
       { k: '总局数', v: games, sub: '每局都有记录' },
       { k: '押中次数', v: wins, sub: '冠军竞猜命中' },
-      { k: '命中率', v: rate, unit: '%', sub: games ? '共 ' + games + ' 次下注' : '还没下过注' },
+      { k: '命中率', v: rate, unit: bets === null ? '' : '%', sub: bets === null ? '历史下注数不完整' : (bets ? '共 ' + bets + ' 次下注' : '还没下过注') },
       { k: '当前连击', v: stats.streak, sub: '最长 ' + stats.bestStreak + ' 连' },
       { k: '累计得分', v: stats.score, sub: '押中 +10，连击加成' }
     ];
@@ -1441,7 +1444,7 @@ document.getElementById("app").innerHTML = "\n<div class=\"wrap\">\n\n  <div cla
   $('resetBtn').onclick = function () {
     if (!dbReady || saving) { toast('战绩未就绪，请稍候'); return; }
     if (!confirm('确定要清空所有战绩吗？此操作不可撤销。')) return;
-    stats = { games: 0, wins: 0, streak: 0, bestStreak: 0, score: 0, algoWins: ALGOS.map(function () { return 0; }), history: [] };
+    stats = { games: 0, bets: 0, wins: 0, streak: 0, bestStreak: 0, score: 0, algoWins: ALGOS.map(function () { return 0; }), history: [] };
     saveStats(stats);
     refreshRankChip();
     renderStats();
