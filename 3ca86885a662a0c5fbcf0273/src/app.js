@@ -615,7 +615,7 @@ document.body.innerHTML="\n<div class=\"wrap\">\n\n  <!-- 顶栏 -->\n  <div cla
 
     // 3) 取值列（内容表里取哪一列）
     var fromCol = null;
-    srcCols.forEach(function (c) { if (fromCol === null && c && t.indexOf(c) >= 0) fromCol = c; });
+    srcCols.forEach(function (c) { if (fromCol === null && c && c !== res.keyCol && t.indexOf(c) >= 0) fromCol = c; });
 
     // 5) 组装目标
     if (colByIdx !== null && colByIdx >= 0 && colByIdx < billCols.length) {
@@ -1505,7 +1505,7 @@ document.body.innerHTML="\n<div class=\"wrap\">\n\n  <!-- 顶栏 -->\n  <div cla
         if (pv === "__low__") { S.cmd.mode = "low"; S.cmd.prefer = []; }
         else if (pv === "__high__") { S.cmd.mode = "high"; S.cmd.prefer = []; }
         else if (pv) { S.cmd.mode = "first"; S.cmd.prefer = [pv]; }
-        else { S.cmd.mode = "first"; S.cmd.prefer = []; }
+        else if (!txt) { S.cmd.mode = "first"; S.cmd.prefer = []; }
       }
       renderCmd();
       run();
