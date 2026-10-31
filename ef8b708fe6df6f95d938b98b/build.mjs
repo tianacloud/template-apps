@@ -1,0 +1,12 @@
+import {readFile, mkdir, rm, cp, writeFile, readdir} from 'node:fs/promises';
+const body=await readFile('src/body.html','utf8');
+const css=await readFile('public/vendor/katex.min.css','utf8');
+const names=(await readdir('template-files/fonts')).filter(n=>n.endsWith('.woff2'));
+const fontCss=css.replace(/url\(fonts\/([^.)]+)\.woff2\) format\("woff2"\),url\(fonts\/[^)]+\) format\("woff"\),url\(fonts\/[^)]+\) format\("truetype"\)/g, 'url(__FONT_$1.woff2__) format("woff2")');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await cp('public/vendor','dist/assets/vendor',{recursive:true});
+await rm('dist/assets/vendor/katex.min.css');
+await cp('public/icon.png','dist/icon.png'); await cp('src/lab.js','dist/assets/lab.js'); await cp('src/style.css','dist/assets/style.css');
+const loader=`export async function mount(root, context) {\nroot.innerHTML='正在加载公式字体…';\ntry {\nconst names=${JSON.stringify(names)}, css=${JSON.stringify(fontCss)};\nconst urls=await Promise.all(names.map(async name=>{const response=await context.files.get('template-assets/fonts/'+name);if(!response.ok)throw new Error('字体读取失败');const bytes=new Uint8Array(await response.arrayBuffer());let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return 'data:font/woff2;base64,'+btoa(binary)}));\nconst style=document.createElement('style'); style.textContent=css.replace(/__FONT_(.+?)__/g, (_,name)=>JSON.stringify(urls[names.indexOf(name)])); document.head.appendChild(style);\nroot.innerHTML=${JSON.stringify(body)};\nfor (const file of ['style.css']) { const link=document.createElement('link'); link.rel='stylesheet'; link.href=new URL(file,import.meta.url); document.head.appendChild(link); }\nfor (const file of ['vendor/math.min.js','vendor/plotly.min.js','vendor/katex.min.js','lab.js']) await new Promise((resolve,reject)=>{const s=document.createElement('script');if(file==='lab.js')s.type='module';s.charset='utf-8';s.src=new URL(file,import.meta.url);s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});\n} catch(error) { root.innerHTML='<p role="alert">公式字体加载失败，请检查连接并重新打开。</p>'; }\n}\n`;
+await writeFile('dist/assets/app.js',loader);
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:JSON.parse(await readFile('source.json','utf8')).git_instance_id}));
