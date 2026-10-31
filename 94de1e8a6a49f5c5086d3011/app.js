@@ -67,7 +67,7 @@ function openSettings(){
     </div>
     <div class="row">
       <button class="btn-ghost" id="dImport">导入并覆盖</button>
-      <button class="btn-primary" onclick="closeSheet()">完成</button>
+      <button class="btn-primary" data-close-sheet>完成</button>
     </div>`);
   document.getElementById("dExport").onclick=()=>{
     const blob=new Blob([JSON.stringify({...state,imgs:[]},null,2)],{type:"application/json"});
@@ -191,7 +191,7 @@ function taskForm(q, t){
   showSheet(`<h3>${isEdit?"编辑":"添加"}任务 · ${QNAMES[q]}</h3>
     <label>任务内容</label><textarea id="taskTxt" placeholder="输入任务…">${escapeHtml(cur.text||"")}</textarea>
     <label>完成时间（可选，会提示还剩几天）</label><input id="taskDue" type="date" value="${cur.due||""}">
-    <div class="row"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" id="taskSave">${isEdit?"保存":"添加"}</button></div>`);
+    <div class="row"><button class="btn-ghost" data-close-sheet>取消</button><button class="btn-primary" id="taskSave">${isEdit?"保存":"添加"}</button></div>`);
   document.getElementById("taskSave").onclick=()=>{
     const text=document.getElementById("taskTxt").value.trim();
     const due=document.getElementById("taskDue").value||"";
@@ -248,7 +248,7 @@ function renderDayPanel(dateStr){
   document.getElementById("addPlan").onclick=()=>{
     showSheet(`<h3>添加安排 · ${dateStr}</h3>
       <label>安排内容</label><textarea id="planTxt" placeholder="例如：提交周报、团建活动…"></textarea>
-      <div class="row"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" id="planSave">保存</button></div>`);
+      <div class="row"><button class="btn-ghost" data-close-sheet>取消</button><button class="btn-primary" id="planSave">保存</button></div>`);
     document.getElementById("planSave").onclick=()=>{
       const v=document.getElementById("planTxt").value.trim(); if(!v){ toast("请输入内容"); return; }
       (state.plans[dateStr]=state.plans[dateStr]||[]).push(v);
@@ -307,7 +307,7 @@ function vipForm(v){
     <label>到期日期</label><input id="vExp" type="date" value="${v.expire||""}">
     <label>服务链接（可选，点开查看账户）</label><input id="vLink" value="${escapeHtml(v.link||"")}" placeholder="https://...">
     <label>备注（可选）</label><input id="vNote" value="${escapeHtml(v.note||"")}" placeholder="例如：连续包月、自动续费">
-    <div class="row"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" id="vSave">保存</button></div>`);
+    <div class="row"><button class="btn-ghost" data-close-sheet>取消</button><button class="btn-primary" id="vSave">保存</button></div>`);
   document.getElementById("vSave").onclick=()=>{
     const name=document.getElementById("vName").value.trim();
     const expire=document.getElementById("vExp").value;
@@ -347,7 +347,7 @@ function fixedForm(v){
   showSheet(`<h3>${isEdit?"编辑":"添加"}每日固定安排</h3>
     <label>时间（每天固定）</label><input id="fTime" type="time" value="${escapeHtml(v.time||"")}">
     <label>要做的安排</label><textarea id="fText" placeholder="例如：健身、看书 30 分钟、背单词…">${escapeHtml(v.text||"")}</textarea>
-    <div class="row"><button class="btn-ghost" onclick="closeSheet()">取消</button><button class="btn-primary" id="fSave">保存</button></div>`);
+    <div class="row"><button class="btn-ghost" data-close-sheet>取消</button><button class="btn-primary" id="fSave">保存</button></div>`);
   document.getElementById("fSave").onclick=()=>{
     const time=document.getElementById("fTime").value;
     const text=document.getElementById("fText").value.trim();
@@ -376,7 +376,7 @@ function renderImages(){
 /* ============ 弹窗 ============ */
 function showSheet(html){ document.getElementById("sheet").innerHTML=html; document.getElementById("mask").classList.add("show"); }
 function closeSheet(){ document.getElementById("mask").classList.remove("show"); }
-document.getElementById("mask").onclick=e=>{ if(e.target.id==="mask") closeSheet(); };
+document.getElementById("mask").onclick=e=>{ if(e.target.id==="mask" || e.target.closest("[data-close-sheet]")) closeSheet(); };
 
 /* ============ 视图切换 ============ */
 function switchView(name){
