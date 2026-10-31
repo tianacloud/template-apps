@@ -1,0 +1,1272 @@
+import css from './style.css?inline';
+const style=document.createElement('style'); style.textContent=css; document.head.appendChild(style);
+document.body.innerHTML = "\n<div class=\"wrap\">\n  <header>\n    <span class=\"kicker\">探索函数之美</span>\n    <h1>函数图像<em>实验室</em></h1>\n    <p class=\"sub\">拖一下滑块，图像立刻变形。零点、极值、切线斜率、定积分面积全部实时算给你看——把「抽象的函数」变成看得见、摸得着、能自己动手试的东西。</p>\n    <ul class=\"pills\">\n      <li>8 个函数家族</li>\n      <li>实时数值分析</li>\n      <li>可拖 · 可缩 · 可导曲</li>\n      <li>一键导出图片</li>\n    </ul>\n  </header>\n\n  <div class=\"stage\">\n    <section class=\"card board\">\n      <div class=\"board-top\">\n        <span class=\"fam-chip\" id=\"famChip\">二次函数</span>\n        <div class=\"expr\" id=\"expr\">y = x² − 2x − 1</div>\n        <div class=\"tools\">\n          <button class=\"btn\" id=\"btnFit\" type=\"button\">适配视图</button>\n          <button class=\"btn\" id=\"btnReset\" type=\"button\">复位</button>\n          <button class=\"btn primary\" id=\"btnPng\" type=\"button\">导出图片</button>\n        </div>\n      </div>\n      <div class=\"canvas-wrap\">\n        <canvas aria-label=\"函数图像画布，可拖动平移、滚轮缩放\" id=\"cv\"></canvas>\n        <div class=\"hint\">滚轮缩放 · 拖动平移 · 双击复位 · 拖动橙色圆点改切线位置</div>\n      </div>\n      <div class=\"readouts\">\n        <div class=\"ro\"><b>切线斜率 f′(x₀)</b><span id=\"roK\">—</span></div>\n        <div class=\"ro\"><b>函数值 f(x₀)</b><span id=\"roY\">—</span></div>\n        <div class=\"ro pos\"><b>定积分 ∫ₐᵇ f(x)dx</b><span id=\"roI\">—</span></div>\n        <div class=\"ro\"><b>零点 / 极值</b><span class=\"small\" id=\"roZ\">—</span></div>\n      </div>\n      <div class=\"pt-bar\">\n        <span class=\"pt-label\">快速预设</span>\n        <div class=\"presets\" id=\"presets\"></div>\n      </div>\n    </section>\n\n    <aside class=\"card panel\">\n      <div class=\"sec\">\n        <div class=\"sec-h\"><h2>函数家族</h2><i>点一下换一条曲线</i></div>\n        <div class=\"fams\" id=\"fams\"></div>\n      </div>\n\n      <div class=\"sec\">\n        <div class=\"sec-h\"><h2>参数</h2><i id=\"paramHint\">拖动试试</i></div>\n        <div id=\"sliders\"></div>\n        <div class=\"custom\" id=\"customBox\">\n          <div class=\"custom-row\">\n            <input autocomplete=\"off\" id=\"customInput\" placeholder=\"例如 x^3 - 3*x 或 sin(x)/x\" spellcheck=\"false\" type=\"text\" value=\"x^3 - 3*x\">\n            <button class=\"btn primary\" id=\"btnApply\" type=\"button\">应用</button>\n          </div>\n          <div class=\"msg\" id=\"customMsg\">支持 + − * / ^ 与 sin cos tan ln log sqrt abs exp，常数 pi、e。</div>\n        </div>\n        <p class=\"note\" id=\"famNote\">开口向上，顶点在 (1, −2)。</p>\n      </div>\n\n      <div class=\"sec\">\n        <div class=\"sec-h\"><h2>画什么</h2><i>按需开合</i></div>\n        <div class=\"togs\" id=\"togs\"></div>\n      </div>\n\n      <div class=\"tip\" id=\"tipBox\">\n        <b>课堂用法：</b>把 <b>a</b> 从 1 拖到 −1，看抛物线「翻个身」；再开「定积分」，把区间改成 0→2，面积就是 ∫₀² f(x)dx。\n      </div>\n    </aside>\n  </div>\n\n  <section class=\"howto\">\n    <div class=\"step\"><b>1</b><div><strong>选一个家族</strong><span>二次、指数、对数、三角……或点「自定义」自己写 f(x)</span></div></div>\n    <div class=\"step\"><b>2</b><div><strong>拖一下滑块</strong><span>参数一变，曲线、零点、极值立刻跟着变，右侧一句话告诉你变在哪</span></div></div>\n    <div class=\"step\"><b>3</b><div><strong>把结论拖出来</strong><span>拖动橙色圆点看切线斜率，拖动 a、b 看定积分面积，一键导出成图片</span></div></div>\n  </section>\n</div>\n<footer>\n  <span>函数图像实验室 · 纯前端单页，无需安装，打开即用</span>\n  <span>函数图像实验室</span>\n</footer>\n<div class=\"toast\" id=\"toast\"></div>\n\n";
+
+/* ============================ MATH START ============================ */
+var FL = (function () {
+  'use strict';
+
+  function makeParser(src) {
+    var s = String(src == null ? '' : src)
+      .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')
+      .replace(/π/g, 'pi').replace(/，/g, ',');
+    var i = 0;
+
+    function ws() { while (i < s.length && /\s/.test(s.charAt(i))) i++; }
+    function peek() { ws(); return s.charAt(i); }
+    function fail(msg) { throw new Error(msg); }
+
+    function expr() {
+      var v = term();
+      for (;;) {
+        var c = peek();
+        if (c === '+') { i++; v = bin(v, term(), 1); }
+        else if (c === '-') { i++; v = bin(v, term(), -1); }
+        else return v;
+      }
+    }
+    function term() {
+      var v = unary();
+      for (;;) {
+        var c = peek();
+        if (c === '*') { i++; v = mul(v, unary()); }
+        else if (c === '/') { i++; v = div(v, unary()); }
+        else return v;
+      }
+    }
+    function unary() {
+      var c = peek();
+      if (c === '-') { i++; var v = unary(); return function (x) { return -v(x); }; }
+      if (c === '+') { i++; return unary(); }
+      return power();
+    }
+    function power() {
+      var base = primary();
+      if (peek() === '^') { i++; var ex = unary(); return function (x) { return Math.pow(base(x), ex(x)); }; }
+      return base;
+    }
+    function primary() {
+      var c = peek();
+      if (c === '(') {
+        i++; var v = expr();
+        if (peek() !== ')') fail('括号没有成对，少一个右括号');
+        i++; return v;
+      }
+      if (c === '|') {
+        i++; var v2 = expr();
+        if (peek() !== '|') fail('绝对值符号没有成对，少一个 |');
+        i++; return function (x) { return Math.abs(v2(x)); };
+      }
+      if (/[0-9.]/.test(c)) {
+        var m = /^\d*\.?\d+/.exec(s.slice(i));
+        if (!m) fail('数字写错了，比如 1.2.3');
+        i += m[0].length;
+        var k = parseFloat(m[0]);
+        return function () { return k; };
+      }
+      if (/[a-zA-Z]/.test(c)) {
+        var id = /^[a-zA-Z]+/.exec(s.slice(i))[0];
+        i += id.length;
+        var low = id.toLowerCase();
+        if (low === 'x') return function (x) { return x; };
+        if (low === 'pi') return function () { return Math.PI; };
+        if (low === 'e') return function () { return Math.E; };
+        var fns = {
+          sin: Math.sin, cos: Math.cos, tan: Math.tan, ln: Math.log,
+          log: function (v) { return Math.log(v) / Math.LN10; },
+          lg: function (v) { return Math.log(v) / Math.LN10; },
+          sqrt: Math.sqrt, abs: Math.abs, exp: Math.exp,
+          asin: Math.asin, acos: Math.acos, atan: Math.atan
+        };
+        if (fns[low]) {
+          if (peek() !== '(') fail('函数 ' + low + ' 后面要跟括号，例如 ' + low + '(x)');
+          i++;
+          var arg = expr();
+          if (peek() !== ')') fail('括号没有成对，少一个右括号');
+          i++;
+          var fn = fns[low];
+          return function (x) { return fn(arg(x)); };
+        }
+        fail('看不懂的符号「' + id + '」，变量请用 x');
+      }
+      fail('表达式没写完，检查一下末尾');
+    }
+    function bin(a, b, sgn) {
+      return function (x) { return a(x) + sgn * b(x); };
+    }
+    function mul(a, b) {
+      return function (x) { return a(x) * b(x); };
+    }
+    function div(a, b) {
+      return function (x) { return a(x) / b(x); };
+    }
+
+    try {
+      var fn = expr();
+      ws();
+      if (i < s.length) {
+        var rest = s.slice(i);
+        if (/^[0-9.]/.test(rest)) fail('数字写得不对：' + rest);
+        fail('多了「' + rest + '」，乘法请写成 a*x');
+      }
+      var probe = fn(0.37);
+      if (typeof probe !== 'number') fail('表达式无法计算');
+      return { ok: true, fn: fn };
+    } catch (e) {
+      return { ok: false, error: e && e.message ? e.message : '表达式有误' };
+    }
+  }
+
+  function bisect(f, x1, x2) {
+    var f1 = f(x1), f2 = f(x2), k, m, fm;
+    if (!isFinite(f1) || !isFinite(f2)) return null;
+    for (k = 0; k < 90; k++) {
+      m = (x1 + x2) / 2;
+      fm = f(m);
+      if (!isFinite(fm)) return null;
+      if (f1 * fm <= 0) { x2 = m; f2 = fm; } else { x1 = m; f1 = fm; }
+    }
+    var r = (x1 + x2) / 2;
+    return Math.abs(f(r)) < 1e-6 ? r : null;
+  }
+
+  function pushUnique(list, v, span, extra) {
+    var tol = Math.abs(span) * 1e-5 + 1e-9;
+    for (var k = 0; k < list.length; k++) {
+      if (Math.abs(list[k].x - v) < tol) return;
+    }
+    var item = { x: v };
+    if (extra) { item.y = extra.y; item.kind = extra.kind; }
+    list.push(item);
+  }
+
+  function roots(f, a, b, n) {
+    n = n || 1400;
+    var out = [], px = a, py = f(a), k, x, y, r;
+    for (k = 1; k <= n; k++) {
+      x = a + (b - a) * k / n;
+      y = f(x);
+      if (isFinite(py) && isFinite(y)) {
+        if (py === 0) pushUnique(out, px, b - a, null);
+        else if (py * y < 0) {
+          r = bisect(f, px, x);
+          if (r !== null) pushUnique(out, r, b - a, null);
+        }
+      }
+      px = x; py = y;
+    }
+    return out;
+  }
+
+  /* 单点无定义时，若左右极限相等（可去奇点）就补上极限值；否则视为奇点 */
+  function safeVal(f, x) {
+    var y = f(x);
+    if (isFinite(y)) return y;
+    var h = 1e-7 * Math.max(1, Math.abs(x));
+    var y1 = f(x + h), y2 = f(x - h);
+    if (!isFinite(y1) || !isFinite(y2)) return NaN;
+    if (Math.abs(y1 - y2) > 1e-3 * (1 + Math.abs(y1))) return NaN;
+    return (y1 + y2) / 2;
+  }
+
+  function deriv(f, x) {
+    var h = 1e-5 * (1 + Math.abs(x));
+    var v = (f(x + h) - f(x - h)) / (2 * h);
+    return isFinite(v) ? v : NaN;
+  }
+
+  function extrema(f, a, b, n) {
+    n = n || 700;
+    var out = [], h = (b - a) / n * 0.5, px = a, pd, k, x, d, xm, ym, lo, hi, m1, m2, isMax, step;
+    pd = (f(a + h) - f(a - h)) / (2 * h);
+    for (k = 1; k <= n; k++) {
+      x = a + (b - a) * k / n;
+      d = (f(x + h) - f(x - h)) / (2 * h);
+      if (isFinite(pd) && isFinite(d) && pd * d < 0) {
+        isMax = pd > 0;
+        lo = px; hi = x;
+        for (step = 0; step < 70; step++) {
+          m1 = lo + (hi - lo) / 3;
+          m2 = hi - (hi - lo) / 3;
+          var f1 = f(m1), f2 = f(m2);
+          if (!isFinite(f1) || !isFinite(f2)) break;
+          if (isMax ? (f1 > f2) : (f1 < f2)) hi = m2; else lo = m1;
+        }
+        xm = (lo + hi) / 2;
+        ym = f(xm);
+        if (isFinite(ym) && Math.abs(deriv(f, xm)) < 1e-2 * (1 + Math.abs(d))) {
+          pushUnique(out, xm, b - a, { y: ym, kind: isMax ? 'max' : 'min' });
+        }
+      }
+      px = x; pd = d;
+    }
+    return out;
+  }
+
+  function hasPole(f, a, b) {
+    var n = 600, px = a, py = safeVal(f, a), k, x, y, m;
+    for (k = 1; k <= n; k++) {
+      x = a + (b - a) * k / n;
+      y = safeVal(f, x);
+      if (!isFinite(y)) return true;
+      if (isFinite(py) && py * y < 0) {
+        var lm = Math.max(Math.abs(py), Math.abs(y));
+        if (lm > 20) {
+          m = (px + x) / 2;
+          var fm = f(m);
+          if (!isFinite(fm) || Math.abs(fm) > lm * 3) return true;
+        }
+      }
+      px = x; py = y;
+    }
+    return false;
+  }
+
+  function integrate(f, a, b, n) {
+    if (a === b) return { ok: true, value: 0 };
+    n = n || 1000;
+    if (n % 2) n++;
+    if (hasPole(f, a, b)) return { ok: false, value: NaN };
+    var h = (b - a) / n, fa = safeVal(f, a), fb = safeVal(f, b), sum, k, y, maxAbs = Math.max(Math.abs(fa), Math.abs(fb));
+    if (!isFinite(fa) || !isFinite(fb)) return { ok: false, value: NaN };
+    sum = fa + fb;
+    for (k = 1; k < n; k++) {
+      y = safeVal(f, a + h * k);
+      if (!isFinite(y)) return { ok: false, value: NaN };
+      if (Math.abs(y) > maxAbs) maxAbs = Math.abs(y);
+      sum += y * (k % 2 ? 4 : 2);
+    }
+    if (maxAbs > 1e5) return { ok: false, value: NaN };
+    var val = sum * h / 3;
+    return isFinite(val) ? { ok: true, value: val } : { ok: false, value: NaN };
+  }
+
+  function niceStep(pxPerUnit, targetPx) {
+    var raw = (targetPx || 66) / pxPerUnit;
+    var p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var m = raw / p;
+    var mult = m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10;
+    return mult * p;
+  }
+
+  return {
+    makeParser: makeParser,
+    roots: roots,
+    safeVal: safeVal,
+    extrema: extrema,
+    deriv: deriv,
+    integrate: integrate,
+    bisect: bisect,
+    niceStep: niceStep
+  };
+})();
+
+/* ---------- 函数家族 ---------- */
+var SUP = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻', '.': '·' };
+
+function nf(v, d) {
+  if (v === null || v === undefined || !isFinite(v)) return '—';
+  d = d === undefined ? 2 : d;
+  var s = Number(v).toFixed(d);
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  if (s === '-0') s = '0';
+  return s;
+}
+function sup(n) {
+  var s = String(n), out = '', k;
+  for (k = 0; k < s.length; k++) out += (SUP[s.charAt(k)] || s.charAt(k));
+  return out;
+}
+function coefX(a) {
+  if (a === 1) return '';
+  if (a === -1) return '−';
+  return nf(a);
+}
+function tail(v) {
+  if (v === 0) return '';
+  return v > 0 ? ' + ' + nf(v) : ' − ' + nf(Math.abs(v));
+}
+
+var FAMILIES = [
+  {
+    id: 'quad', name: '二次函数', short: 'y = ax² + bx + c',
+    params: [
+      { k: 'a', label: '二次项 a', min: -3, max: 3, step: 0.05, def: 1 },
+      { k: 'b', label: '一次项 b', min: -6, max: 6, step: 0.1, def: -2 },
+      { k: 'c', label: '常数项 c', min: -8, max: 8, step: 0.5, def: -1 }
+    ],
+    f: function (x, p) { return p.a * x * x + p.b * x + p.c; },
+    expr: function (p) {
+      var s = 'y = ';
+      if (p.a !== 0) s += coefX(p.a) + 'x²';
+      if (p.b !== 0) s += (s === 'y = ' ? '' : (p.b > 0 ? ' + ' : ' − ')) + (Math.abs(p.b) === 1 ? '' : nf(Math.abs(p.b))) + 'x';
+      if (p.c !== 0) s += (s === 'y = ' ? '' : (p.c > 0 ? ' + ' : ' − ')) + nf(Math.abs(p.c));
+      return s === 'y = ' ? 'y = 0' : s;
+    },
+    note: function (p) {
+      if (p.a === 0) return 'a = 0，二次项消失了，这条其实是一条直线——刚好说明「二次函数必须有 a ≠ 0」。';
+      var h = -p.b / (2 * p.a), k = p.c - p.b * p.b / (4 * p.a);
+      return '开口向' + (p.a > 0 ? '上' : '下') + '，顶点在 (' + nf(h) + ', ' + nf(k) + ')，对称轴 x = ' + nf(h) + '。|a| 越大，开口越窄。';
+    }
+  },
+  {
+    id: 'linear', name: '一次函数', short: 'y = ax + b',
+    params: [
+      { k: 'a', label: '斜率 a', min: -5, max: 5, step: 0.1, def: 1 },
+      { k: 'b', label: '截距 b', min: -8, max: 8, step: 0.5, def: -2 }
+    ],
+    f: function (x, p) { return p.a * x + p.b; },
+    expr: function (p) { return 'y = ' + coefX(p.a) + 'x' + tail(p.b); },
+    note: function (p) {
+      if (p.a === 0) return '斜率为 0，图像是一条水平线 y = ' + nf(p.b) + '，它不是一次函数。';
+      return '斜率 a = ' + nf(p.a) + '，图像从左到右' + (p.a > 0 ? '上升' : '下降') + '；|a| 越大越陡，b 决定它和 y 轴交在哪里。';
+    }
+  },
+  {
+    id: 'sine', name: '正弦型', short: 'y = A·sin(ωx + φ)',
+    params: [
+      { k: 'A', label: '振幅 A', min: -3, max: 3, step: 0.1, def: 1 },
+      { k: 'w', label: '角频率 ω', min: 0.2, max: 4, step: 0.1, def: 1 },
+      { k: 'p', label: '初相 φ', min: -3.2, max: 3.2, step: 0.1, def: 0 }
+    ],
+    f: function (x, p) { return p.A * Math.sin(p.w * x + p.p); },
+    expr: function (p) {
+      var aPart = p.A === 1 ? '' : p.A === -1 ? '−' : nf(p.A);
+      var inner = (p.w === 1 ? 'x' : nf(p.w) + 'x') + (p.p === 0 ? '' : (p.p > 0 ? ' + ' : ' − ') + nf(Math.abs(p.p)));
+      return 'y = ' + aPart + 'sin(' + inner + ')';
+    },
+    note: function (p) {
+      var T = 2 * Math.PI / p.w;
+      return '振幅 ' + nf(Math.abs(p.A)) + '，周期 T = 2π/ω ≈ ' + nf(T) + '。拖动 ω，整条波被横向「压缩」或「拉伸」。';
+    }
+  },
+  {
+    id: 'expo', name: '指数函数', short: 'y = a·bˣ',
+    params: [
+      { k: 'a', label: '系数 a', min: 0.2, max: 5, step: 0.1, def: 1 },
+      { k: 'b', label: '底数 b', min: 0.2, max: 3, step: 0.05, def: 2 }
+    ],
+    f: function (x, p) { return p.a * Math.pow(p.b, x); },
+    expr: function (p) { return 'y = ' + (p.a === 1 ? '' : coefX(p.a) + ' · ') + nf(p.b) + 'ˣ'; },
+    note: function (p) {
+      var trend = p.b > 1 ? '单调递增，越往右涨得越猛' : '单调递减，越往右越贴近 x 轴';
+      return '底数 ' + nf(p.b) + (p.b > 1 ? ' > 1，' : ' < 1，') + trend + '；x 轴是水平渐近线，图像恒过 (0, ' + nf(p.a) + ')。';
+    }
+  },
+  {
+    id: 'log', name: '对数函数', short: 'y = a·ln x',
+    params: [
+      { k: 'a', label: '系数 a', min: -3, max: 3, step: 0.1, def: 1 }
+    ],
+    f: function (x, p) { return p.a * Math.log(x); },
+    expr: function (p) { return 'y = ' + coefX(p.a) + 'ln x'; },
+    note: function (p) {
+      return '定义域 x > 0，图像只画在 y 轴右边；恒过 (1, 0)，y 轴是竖直渐近线。它和指数函数互为反函数。';
+    }
+  },
+  {
+    id: 'inverse', name: '反比例', short: 'y = k / x',
+    params: [
+      { k: 'k', label: '比例系数 k', min: -10, max: 10, step: 0.5, def: 2 }
+    ],
+    f: function (x, p) { return p.k / x; },
+    expr: function (p) { return 'y = ' + nf(p.k) + ' / x'; },
+    note: function (p) {
+      return 'k = ' + nf(p.k) + (p.k > 0 ? ' > 0，图像在第一、三象限；' : ' < 0，图像在第二、四象限；') + '两条坐标轴都是它的渐近线，x = 0 处无定义。';
+    }
+  },
+  {
+    id: 'power', name: '幂函数', short: 'y = a·xⁿ',
+    params: [
+      { k: 'a', label: '系数 a', min: -3, max: 3, step: 0.1, def: 1 },
+      { k: 'n', label: '指数 n', min: -3, max: 4, step: 0.1, def: 3 }
+    ],
+    f: function (x, p) { return p.a * Math.pow(x, p.n); },
+    expr: function (p) { return 'y = ' + coefX(p.a) + 'x' + sup(nf(p.n, 1)); },
+    note: function (p) {
+      var t = '指数 n = ' + nf(p.n);
+      if (p.n < 0) t += '，定义域 x ≠ 0，两条坐标轴都是渐近线';
+      else if (Math.abs(p.n - Math.round(p.n)) < 1e-9) t += (Math.round(p.n) % 2 === 0 ? '，偶次幂，图像关于 y 轴对称' : '，奇次幂，图像关于原点对称');
+      else t += '，负半轴不一定有定义（实数范围内）';
+      return t + '。';
+    }
+  },
+  {
+    id: 'custom', name: '自定义', short: 'f(x) 你来写',
+    params: [],
+    f: function (x, p) { return p.fn ? p.fn(x) : NaN; },
+    expr: function (p) { return 'y = ' + (p.text || 'x^2 - 1'); },
+    note: function () { return '自己写一个函数：支持 + − * / ^、括号、绝对值，以及 sin cos tan ln log sqrt abs exp，常数 pi、e。'; }
+  }
+];
+
+function famById(id) {
+  for (var k = 0; k < FAMILIES.length; k++) if (FAMILIES[k].id === id) return FAMILIES[k];
+  return FAMILIES[0];
+}
+/* ============================= MATH END ============================= */
+
+/* ============================== UI START ============================== */
+(function () {
+  'use strict';
+
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var W = 0, H = 0, DPR = 1;
+
+  var C = {
+    gridMinor: '#f4f6fa',
+    gridMajor: '#e6eaf2',
+    axis: '#9aa4b2',
+    axisText: '#8d99a8',
+    curve: '#4f46e5',
+    curveSoft: 'rgba(79,70,229,.17)',
+    tangent: '#f59e0b',
+    root: '#0284c7',
+    ext: '#e11d48',
+    pos: 'rgba(15,118,110,.17)',
+    neg: 'rgba(225,29,72,.14)',
+    handle: '#0f766e',
+    hover: '#64748b'
+  };
+
+  var FAM = famById('quad');
+  var state = {
+    fam: 'quad',
+    store: {},
+    show: { integral: true, tangent: true, roots: true, extrema: true, grid: true },
+    t: 0.6,
+    ia: -1,
+    ib: 2,
+    view: { cx: 0.6, cy: 0, s: 62 },
+    hover: null,
+    drag: null
+  };
+
+  /* ---- 参数存取 ---- */
+  function defaults(fam) {
+    var p = {}, k;
+    for (k = 0; k < fam.params.length; k++) p[fam.params[k].k] = fam.params[k].def;
+    if (fam.id === 'custom') { p.text = 'x^3 - 3*x'; p.fn = null; }
+    return p;
+  }
+  function params() {
+    if (!state.store[state.fam]) state.store[state.fam] = defaults(FAM);
+    return state.store[state.fam];
+  }
+  function fval(x) {
+    var p = params(), y;
+    try { y = FAM.f(x, p); } catch (e) { return NaN; }
+    if (typeof y === 'number' && isFinite(y)) return y;
+    /* 单点无定义时试一下左右极限（如 sin(x)/x 在 x = 0） */
+    var h = 1e-7 * (1 + Math.abs(x)), y1, y2;
+    try { y1 = FAM.f(x + h, p); y2 = FAM.f(x - h, p); } catch (e2) { return NaN; }
+    if (!isFinite(y1) || !isFinite(y2)) return NaN;
+    if (Math.abs(y1 - y2) > 1e-3 * (1 + Math.abs(y1))) return NaN;
+    return (y1 + y2) / 2;
+  }
+
+  /* ---- 坐标变换 ---- */
+  function xToPx(x) { return W / 2 + (x - state.view.cx) * state.view.s; }
+  function pxToX(px) { return state.view.cx + (px - W / 2) / state.view.s; }
+  function yToPx(y) { return H / 2 - (y - state.view.cy) * state.view.s; }
+  function pxToY(py) { return state.view.cy - (py - H / 2) / state.view.s; }
+  function xRange() { return [pxToX(0), pxToX(W)]; }
+  function yRange() { return [pxToY(H), pxToY(0)]; }
+
+  /* ---- 画布尺寸 ---- */
+  function resize() {
+    var rect = cv.getBoundingClientRect();
+    DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+    W = Math.max(240, Math.round(rect.width));
+    H = Math.max(200, Math.round(rect.height));
+    cv.width = Math.round(W * DPR);
+    cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    draw();
+  }
+
+  /* ---- 文本（带白底） ---- */
+  function text(str, x, y, color, align, size) {
+    ctx.font = (size || 11.5) + 'px "PingFang SC","Microsoft YaHei",ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign = align || 'center';
+    ctx.textBaseline = 'middle';
+    var w = ctx.measureText(str).width;
+    var bx = align === 'left' ? x - 3 : align === 'right' ? x - w - 3 : x - w / 2 - 3;
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.fillRect(bx - 1, y - 8.5, w + 8, 17);
+    ctx.fillStyle = color;
+    ctx.fillText(str, x, y);
+  }
+
+  function handleXs() {
+    return state.show.integral ? [xToPx(state.ia), xToPx(state.ib)] : [];
+  }
+  function nearAny(px, list, tol) {
+    for (var k = 0; k < list.length; k++) if (Math.abs(px - list[k]) < tol) return true;
+    return false;
+  }
+
+  /* ---- 网格 ---- */
+  function drawGrid() {
+    var step = FL.niceStep(state.view.s, 68);
+    var minor = step / 5;
+    var xr = xRange(), yr = yRange(), k, v, px, py;
+    var dec = Math.max(0, Math.min(6, Math.ceil(-Math.log(step) / Math.LN10) + (step < 0.1 ? 0 : 0)));
+
+    if (minor * state.view.s > 7) {
+      ctx.strokeStyle = C.gridMinor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (k = Math.ceil(xr[0] / minor); k * minor <= xr[1]; k++) {
+        px = Math.round(xToPx(k * minor)) + 0.5;
+        ctx.moveTo(px, 0); ctx.lineTo(px, H);
+      }
+      for (k = Math.ceil(yr[0] / minor); k * minor <= yr[1]; k++) {
+        py = Math.round(yToPx(k * minor)) + 0.5;
+        ctx.moveTo(0, py); ctx.lineTo(W, py);
+      }
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = C.gridMajor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (k = Math.ceil(xr[0] / step); k * step <= xr[1]; k++) {
+      v = k * step;
+      px = Math.round(xToPx(v)) + 0.5;
+      ctx.moveTo(px, 0); ctx.lineTo(px, H);
+    }
+    for (k = Math.ceil(yr[0] / step); k * step <= yr[1]; k++) {
+      v = k * step;
+      py = Math.round(yToPx(v)) + 0.5;
+      ctx.moveTo(0, py); ctx.lineTo(W, py);
+    }
+    ctx.stroke();
+
+    /* 刻度数字 */
+    var ay = yToPx(0), ax = xToPx(0);
+    var axisYVisible = ay >= -1 && ay <= H + 1;
+    var axisXVisible = ax >= -1 && ax <= W + 1;
+    var labY = axisYVisible ? Math.min(Math.max(ay + 13, 12), H - 10) : H - 12;
+    var labX = axisXVisible ? Math.min(Math.max(ax - 8, 20), W - 22) : 22;
+
+    for (k = Math.ceil(xr[0] / step); k * step <= xr[1]; k++) {
+      v = k * step;
+      if (Math.abs(v) < step * 1e-6) continue;
+      px = xToPx(v);
+      if (px < 18 || px > W - 8) continue;
+      text(nf(v, dec), px, labY, C.axisText);
+    }
+    for (k = Math.ceil(yr[0] / step); k * step <= yr[1]; k++) {
+      v = k * step;
+      if (Math.abs(v) < step * 1e-6) continue;
+      py = yToPx(v);
+      if (py < 8 || py > H - 16) continue;
+      text(nf(v, dec), labX, py, C.axisText, axisXVisible ? 'right' : 'left');
+    }
+    if (axisXVisible && axisYVisible) text('O', ax - 9, ay + 11, C.axisText, 'center', 11);
+  }
+
+  /* ---- 坐标轴 ---- */
+  function drawAxes() {
+    var ay = yToPx(0), ax = xToPx(0);
+    ctx.strokeStyle = C.axis;
+    ctx.lineWidth = 1.4;
+    if (ay > -1 && ay < H + 1) {
+      ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(W, ay); ctx.stroke();
+    }
+    if (ax > -1 && ax < W + 1) {
+      ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, H); ctx.stroke();
+    }
+  }
+
+  /* ---- 曲线 ---- */
+  function drawCurve() {
+    var px, x, y, py, prevPy = null, started = false, guard = H * 2.2;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    /* 柔光 */
+    ctx.beginPath();
+    started = false; prevPy = null;
+    for (px = 0; px <= W; px++) {
+      x = pxToX(px); y = fval(x);
+      if (!isFinite(y)) { started = false; prevPy = null; continue; }
+      py = yToPx(y);
+      if (!isFinite(py) || Math.abs(py) > H * 40) { started = false; prevPy = null; continue; }
+      if (prevPy !== null && Math.abs(py - prevPy) > guard) started = false;
+      if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
+      prevPy = py;
+    }
+    ctx.strokeStyle = C.curveSoft;
+    ctx.lineWidth = 9;
+    ctx.stroke();
+
+    /* 主线 */
+    ctx.beginPath();
+    started = false; prevPy = null;
+    for (px = 0; px <= W; px++) {
+      x = pxToX(px); y = fval(x);
+      if (!isFinite(y)) { started = false; prevPy = null; continue; }
+      py = yToPx(y);
+      if (!isFinite(py) || Math.abs(py) > H * 40) { started = false; prevPy = null; continue; }
+      if (prevPy !== null && Math.abs(py - prevPy) > guard) started = false;
+      if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
+      prevPy = py;
+    }
+    ctx.strokeStyle = C.curve;
+    ctx.lineWidth = 2.6;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- 定积分着色 ---- */
+  function drawIntegral() {
+    var ax0 = xToPx(state.ia), bx0 = xToPx(state.ib);
+    var a = Math.max(Math.min(ax0, bx0), -2), b = Math.min(Math.max(ax0, bx0), W + 2);
+    var ay = yToPx(0), px, x, y, py, top, hgt;
+    for (px = Math.floor(a); px <= b; px++) {
+      x = pxToX(px); y = fval(x);
+      if (!isFinite(y)) continue;
+      py = yToPx(y);
+      if (Math.abs(py) > H * 6) continue;
+      top = Math.min(py, ay); hgt = Math.abs(py - ay);
+      ctx.fillStyle = y >= 0 ? C.pos : C.neg;
+      ctx.fillRect(px, top, 1, Math.max(hgt, 0.5));
+    }
+    /* 边界虚线 */
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(15,118,110,.55)';
+    ctx.lineWidth = 1.2;
+    var k;
+    for (k = 0; k < 2; k++) {
+      var vx = Math.round(xToPx(k === 0 ? state.ia : state.ib)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(vx, 0); ctx.lineTo(vx, H); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* ---- 切线 ---- */
+  function drawTangent() {
+    var y0 = fval(state.t), m = FL.deriv(fval, state.t);
+    if (!isFinite(y0) || !isFinite(m)) return;
+    var xr = xRange();
+    var y1 = y0 + m * (xr[0] - state.t), y2 = y0 + m * (xr[1] - state.t);
+    ctx.save();
+    ctx.strokeStyle = C.tangent;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([7, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, yToPx(y1));
+    ctx.lineTo(W, yToPx(y2));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- 零点 / 极值 ---- */
+  function drawRoots() {
+    var xr = xRange();
+    var rs = FL.roots(fval, xr[0], xr[1], 1200), k;
+    var ay = yToPx(0);
+    var placed = [], maxLabel = 6;
+    for (k = 0; k < rs.length; k++) {
+      var px = xToPx(rs[k].x);
+      if (px < 4 || px > W - 4) continue;
+      ctx.beginPath();
+      ctx.arc(px, ay, 4.6, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = C.root;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (placed.length >= maxLabel) continue;
+      if (nearAny(px, placed, 42)) continue;
+      placed.push(px);
+      var ly = ay - 15;
+      if (ly < 12) ly = ay + 17;
+      text(nf(rs[k].x), px, ly, C.root, 'center', 11);
+    }
+    return rs;
+  }
+  function drawExtrema() {
+    var xr = xRange();
+    var es = FL.extrema(fval, xr[0], xr[1], 600), k;
+    var center = W / 2, placed = [], maxLabel = 4;
+    var order = es.map(function (e, i) { return { i: i, d: Math.abs(xToPx(e.x) - center) }; })
+      .sort(function (a, b) { return a.d - b.d; });
+    for (k = 0; k < es.length; k++) {
+      var px = xToPx(es[k].x), py = yToPx(es[k].y);
+      if (px < 2 || px > W - 2 || py < -6 || py > H + 6) continue;
+      ctx.beginPath();
+      ctx.arc(px, py, 4.6, 0, Math.PI * 2);
+      ctx.fillStyle = C.ext;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+    for (k = 0; k < order.length; k++) {
+      if (placed.length >= maxLabel) break;
+      var e = es[order[k].i];
+      var ex = xToPx(e.x), ey = yToPx(e.y);
+      if (ex < 2 || ex > W - 2 || ey < -6 || ey > H + 6) continue;
+      if (nearAny(ex, placed, 96)) continue;
+      placed.push(ex);
+      var lbl = (e.kind === 'max' ? '极大 ' : '极小 ') + '(' + nf(e.x) + ', ' + nf(e.y) + ')';
+      var ly = ey + (e.kind === 'max' ? -16 : 18);
+      if (ly < 14) ly = ey + 18;
+      if (ly > H - 10) ly = ey - 16;
+      text(lbl, Math.min(Math.max(ex, 50), W - 50), ly, C.ext, 'center', 11);
+    }
+    return es;
+  }
+
+  /* ---- 交互控点 ---- */
+  function drawTangentPoint() {
+    var y = fval(state.t);
+    if (!isFinite(y)) return;
+    var px = xToPx(state.t), py = yToPx(y);
+    if (px < -10 || px > W + 10) return;
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(245,158,11,.22)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px, py, 5.2, 0, Math.PI * 2);
+    ctx.fillStyle = C.tangent;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  function drawHandles() {
+    var ay = yToPx(0);
+    var pts = [{ x: state.ia, k: 'a' }, { x: state.ib, k: 'b' }], i;
+    for (i = 0; i < 2; i++) {
+      var px = xToPx(pts[i].x);
+      if (px < -20 || px > W + 20) continue;
+      ctx.beginPath();
+      ctx.moveTo(px, ay - 6);
+      ctx.lineTo(px - 6, ay + 6);
+      ctx.lineTo(px + 6, ay + 6);
+      ctx.closePath();
+      ctx.fillStyle = C.handle;
+      ctx.fill();
+      var ly = ay + 34;
+      if (ly > H - 10) ly = ay - 16;
+      text(pts[i].k + ' = ' + nf(pts[i].x, 1), px, ly, C.handle, 'center', 11);
+    }
+  }
+  function drawHover() {
+    if (!state.hover) return;
+    var x = pxToX(state.hover.x), y = fval(x);
+    if (!isFinite(y)) return;
+    var px = state.hover.x, py = yToPx(y);
+    if (py < -20 || py > H + 20) return;
+    ctx.save();
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(100,116,139,.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(px, py, 3.4, 0, Math.PI * 2);
+    ctx.fillStyle = C.hover;
+    ctx.fill();
+    var label = 'x = ' + nf(x) + '   f(x) = ' + nf(y);
+    ctx.font = '11.5px "PingFang SC",ui-sans-serif,system-ui,sans-serif';
+    var w = ctx.measureText(label).width;
+    var bx = Math.min(Math.max(px + 12, 6), W - w - 22);
+    var by = Math.min(Math.max(py - 34, 6), H - 30);
+    ctx.fillStyle = 'rgba(15,23,42,.9)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, w + 16, 24, 7);
+    else ctx.rect(bx, by, w + 16, 24);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx + 8, by + 12.5);
+  }
+
+  /* ---- 主绘制 ---- */
+  var rootsCache = [], extCache = [];
+
+  function draw() {
+    if (!W || !H) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, W, H);
+
+    if (state.show.grid) drawGrid();
+    drawAxes();
+    if (state.show.integral) drawIntegral();
+    drawCurve();
+    if (state.show.tangent) { drawTangent(); drawTangentPoint(); }
+    rootsCache = state.show.roots ? drawRoots() : [];
+    extCache = state.show.extrema ? drawExtrema() : [];
+    if (state.show.integral) drawHandles();
+    drawHover();
+    updateReadouts();
+  }
+
+  var rafId = 0;
+  function requestDraw() {
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(function () { rafId = 0; draw(); });
+  }
+
+  /* ---- 读数 ---- */
+  function updateReadouts() {
+    var y0 = fval(state.t), m = FL.deriv(fval, state.t);
+    var elK = document.getElementById('roK'), elY = document.getElementById('roY'), elI = document.getElementById('roI'), elZ = document.getElementById('roZ');
+    elK.textContent = isFinite(m) ? nf(m) : '不存在';
+    elK.parentNode.className = 'ro' + (isFinite(m) && m < 0 ? '' : '');
+    elY.textContent = isFinite(y0) ? nf(y0) : '不存在';
+
+    var I = FL.integrate(fval, state.ia, state.ib, 800);
+    if (I.ok) {
+      elI.textContent = nf(I.value);
+      elI.parentNode.className = 'ro pos';
+    } else {
+      elI.textContent = '发散';
+      elI.parentNode.className = 'ro warn';
+    }
+
+    var zs = state.show.roots ? rootsCache : FL.roots(fval, xRange()[0], xRange()[1], 900);
+    var es = state.show.extrema ? extCache : FL.extrema(fval, xRange()[0], xRange()[1], 500);
+    var txt = zs.length + ' 个 / ' + es.length + ' 个';
+    elZ.textContent = txt;
+    elZ.parentNode.className = 'ro';
+  }
+
+  /* ---- 交互 ---- */
+  function localPos(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function dist2(a, b, c, d) { var dx = a - c, dy = b - d; return dx * dx + dy * dy; }
+
+  function hitTest(p) {
+    var y = fval(state.t);
+    if (isFinite(y) && dist2(p.x, p.y, xToPx(state.t), yToPx(y)) < 20 * 20) return 't';
+    if (state.show.integral) {
+      var ay = yToPx(0);
+      if (Math.abs(p.y - ay) < 26) {
+        if (Math.abs(p.x - xToPx(state.ia)) < 20) return 'a';
+        if (Math.abs(p.x - xToPx(state.ib)) < 20) return 'b';
+      }
+    }
+    return null;
+  }
+
+  var pointers = {};
+
+  cv.addEventListener('pointerdown', function (e) {
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 某些浏览器/合成事件不支持捕获 */ }
+    pointers[e.pointerId] = localPos(e);
+    var keys = Object.keys(pointers);
+    if (keys.length === 2) {
+      state.drag = { mode: 'pinch', d0: null, mid: null };
+      startPinch();
+      return;
+    }
+    var p = localPos(e);
+    var hit = hitTest(p);
+    state.drag = hit ? { mode: hit } : { mode: 'pan', last: p };
+    if (hit === 't' || hit === 'a' || hit === 'b') applyDrag(p);
+    cv.style.cursor = 'grabbing';
+  });
+
+  cv.addEventListener('pointermove', function (e) {
+    var p = localPos(e);
+    if (pointers[e.pointerId]) pointers[e.pointerId] = p;
+    if (state.drag && state.drag.mode === 'pinch') { movePinch(); return; }
+    if (state.drag) {
+      if (state.drag.mode === 'pan') {
+        var dx = p.x - state.drag.last.x, dy = p.y - state.drag.last.y;
+        state.view.cx -= dx / state.view.s;
+        state.view.cy += dy / state.view.s;
+        state.drag.last = p;
+      } else {
+        applyDrag(p);
+      }
+      requestDraw();
+      return;
+    }
+    state.hover = p;
+    requestDraw();
+  });
+
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    if (Object.keys(pointers).length === 0) {
+      state.drag = null;
+      cv.style.cursor = 'crosshair';
+    }
+  }
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+  cv.addEventListener('pointerleave', function () {
+    state.hover = null;
+    requestDraw();
+  });
+
+  function applyDrag(p) {
+    var x = pxToX(p.x);
+    if (state.drag.mode === 't') {
+      state.t = x;
+      syncNote();
+    } else if (state.drag.mode === 'a') {
+      state.ia = x;
+    } else if (state.drag.mode === 'b') {
+      state.ib = x;
+    }
+  }
+
+  var pinchStart = null;
+  function startPinch() {
+    var ks = Object.keys(pointers), p1 = pointers[ks[0]], p2 = pointers[ks[1]];
+    pinchStart = {
+      d: Math.hypot(p1.x - p2.x, p1.y - p2.y),
+      s: state.view.s,
+      mid: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 },
+      cx: state.view.cx, cy: state.view.cy
+    };
+  }
+  function movePinch() {
+    if (!pinchStart) { startPinch(); return; }
+    var ks = Object.keys(pointers);
+    if (ks.length < 2) return;
+    var p1 = pointers[ks[0]], p2 = pointers[ks[1]];
+    var d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    if (!d || !pinchStart.d) return;
+    var mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    var fx = pinchStart.mid.x, fy = pinchStart.mid.y;
+    var wx = pinchStart.cx + (fx - W / 2) / pinchStart.s;
+    var wy = pinchStart.cy - (fy - H / 2) / pinchStart.s;
+    var ns = Math.min(Math.max(pinchStart.s * (d / pinchStart.d), 3), 6000);
+    state.view.s = ns;
+    state.view.cx = wx - (mid.x - W / 2) / ns;
+    state.view.cy = wy + (mid.y - H / 2) / ns;
+    requestDraw();
+  }
+
+  cv.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var p = localPos(e);
+    var wx = pxToX(p.x), wy = pxToY(p.y);
+    var factor = Math.exp(-e.deltaY * 0.0016);
+    var ns = Math.min(Math.max(state.view.s * factor, 3), 6000);
+    state.view.s = ns;
+    state.view.cx = wx - (p.x - W / 2) / ns;
+    state.view.cy = wy + (p.y - H / 2) / ns;
+    requestDraw();
+  }, { passive: false });
+
+  cv.addEventListener('dblclick', function () {
+    state.view = { cx: 0, cy: 0, s: 62 };
+    requestDraw();
+  });
+
+  /* ---- 面板 ---- */
+  function el(tag, cls, txt) {
+    var d = document.createElement(tag);
+    if (cls) d.className = cls;
+    if (txt !== undefined) d.textContent = txt;
+    return d;
+  }
+
+  function buildFamilies() {
+    var box = document.getElementById('fams');
+    box.textContent = '';
+    FAMILIES.forEach(function (f) {
+      var b = el('button', 'fam' + (f.id === state.fam ? ' on' : ''));
+      b.type = 'button';
+      b.appendChild(el('strong', null, f.name));
+      b.appendChild(el('small', null, f.short));
+      b.setAttribute('data-fam', f.id);
+      b.addEventListener('click', function () { switchFam(f.id); });
+      box.appendChild(b);
+    });
+  }
+
+  function buildToggles() {
+    var box = document.getElementById('togs');
+    box.textContent = '';
+    var defs = [
+      { k: 'roots', label: '零点' },
+      { k: 'extrema', label: '极值点' },
+      { k: 'tangent', label: '切线' },
+      { k: 'integral', label: '定积分' },
+      { k: 'grid', label: '网格' }
+    ];
+    defs.forEach(function (d) {
+      var b = el('button', 'tog' + (state.show[d.k] ? ' on' : ''));
+      b.type = 'button';
+      b.appendChild(el('span', 'dot'));
+      b.appendChild(document.createTextNode(d.label));
+      b.addEventListener('click', function () {
+        state.show[d.k] = !state.show[d.k];
+        b.classList.toggle('on', state.show[d.k]);
+        requestDraw();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function buildSliders() {
+    var box = document.getElementById('sliders');
+    box.textContent = '';
+    var fam = FAM;
+    var p = params();
+    var customBox = document.getElementById('customBox');
+    customBox.classList.toggle('on', fam.id === 'custom');
+
+    if (!fam.params.length) {
+      document.getElementById('paramHint').textContent = '输入表达式';
+      return;
+    }
+    document.getElementById('paramHint').textContent = '拖动试试';
+
+    fam.params.forEach(function (meta) {
+      var row = el('div', 'sl');
+      var head = el('div', 'sl-h');
+      head.appendChild(el('b', null, meta.label));
+      var val = el('span', null, nf(p[meta.k], 2));
+      head.appendChild(val);
+      row.appendChild(head);
+
+      var input = document.createElement('input');
+      input.type = 'range';
+      input.min = meta.min;
+      input.max = meta.max;
+      input.step = meta.step;
+      input.value = p[meta.k];
+      input.setAttribute('aria-label', meta.label);
+      input.addEventListener('input', function () {
+        p[meta.k] = parseFloat(input.value);
+        val.textContent = nf(p[meta.k], 2);
+        syncExpr();
+        syncNote();
+        requestDraw();
+      });
+      row.appendChild(input);
+      box.appendChild(row);
+    });
+  }
+
+  function buildPresets() {
+    var list = [
+      { name: '抛物线为什么有顶点', fam: 'quad', p: { a: 1, b: -2, c: -1 }, view: { cx: 1, cy: -2, s: 62 } },
+      { name: 'a 变负，开口翻个身', fam: 'quad', p: { a: -0.8, b: 2, c: 1 }, view: { cx: 1.2, cy: 1, s: 62 } },
+      { name: '面积就是定积分', fam: 'quad', p: { a: 1, b: 0, c: 0 }, ia: 0, ib: 2, tx: 1, view: { cx: 1, cy: 1, s: 62 } },
+      { name: '斜率 = 陡不陡', fam: 'linear', p: { a: 2.5, b: -2 }, view: { cx: 0, cy: 0, s: 55 } },
+      { name: '指数为什么会爆炸', fam: 'expo', p: { a: 0.6, b: 1.8 }, view: { cx: 1, cy: 2, s: 55 } },
+      { name: '反比例的两条渐近线', fam: 'inverse', p: { k: 3 }, view: { cx: 0, cy: 0, s: 55 } },
+      { name: '对数的增长真的很慢', fam: 'log', p: { a: 1 }, view: { cx: 2, cy: 0.5, s: 55 } },
+      { name: 'ω 越大，波越密', fam: 'sine', p: { A: 1.2, w: 2, p: 0 }, view: { cx: 0, cy: 0, s: 62 } },
+      { name: 'n 一变，形状全变', fam: 'power', p: { a: 1, n: 3 }, view: { cx: 0, cy: 0, s: 55 } },
+      { name: '试试 sin(x)/x', fam: 'custom', p: { text: 'sin(x)/x', fn: null }, view: { cx: 0, cy: 0, s: 60 } }
+    ];
+    var box = document.getElementById('presets');
+    box.textContent = '';
+    list.forEach(function (item) {
+      var b = el('button', 'pre');
+      b.type = 'button';
+      b.appendChild(document.createTextNode(item.name));
+      b.addEventListener('click', function () { applyPreset(item); });
+      box.appendChild(b);
+    });
+  }
+
+  function applyPreset(item) {
+    if (item.fam !== state.fam) {
+      state.fam = item.fam;
+      FAM = famById(item.fam);
+      state.store[item.fam] = defaults(FAM);
+      buildFamilies();
+      buildSliders();
+    }
+    var p = params();
+    Object.keys(item.p).forEach(function (k) { p[k] = item.p[k]; });
+    if (FAM.id === 'custom') {
+      applyCustom(item.p.text, true);
+      document.getElementById('customInput').value = item.p.text;
+    }
+    if (item.ia !== undefined) state.ia = item.ia;
+    if (item.ib !== undefined) state.ib = item.ib;
+    if (item.tx !== undefined) state.t = item.tx;
+    if (item.view) state.view = { cx: item.view.cx, cy: item.view.cy, s: item.view.s };
+    buildSliders();
+    syncAll();
+    draw();
+    toast('已切换到「' + item.name + '」');
+  }
+
+  function switchFam(id) {
+    if (id === state.fam) return;
+    state.fam = id;
+    FAM = famById(id);
+    if (!state.store[id]) state.store[id] = defaults(FAM);
+    buildFamilies();
+    buildSliders();
+    if (id === 'custom') {
+      var p = params();
+      if (!p.fn) applyCustom(p.text || 'x^2 - 1', true);
+      document.getElementById('customInput').value = p.text || 'x^2 - 1';
+    }
+    state.view = { cx: 0, cy: 0, s: 62 };
+    syncAll();
+    requestDraw();
+  }
+
+  function applyCustom(text, silent) {
+    var p = params();
+    var res = FL.makeParser(text);
+    var msg = document.getElementById('customMsg');
+    if (!res.ok) {
+      msg.className = 'msg';
+      msg.textContent = '写法有误：' + res.error;
+      if (!silent) return false;
+    } else {
+      msg.className = 'msg ok';
+      msg.textContent = '已生效：把 x 拖到滑块上看看图像怎么变。';
+      p.text = text;
+      p.fn = res.fn;
+    }
+    syncExpr();
+    syncNote();
+    requestDraw();
+    return res.ok;
+  }
+
+  function syncExpr() {
+    var e = document.getElementById('expr');
+    e.textContent = FAM.expr(params());
+    document.getElementById('famChip').textContent = FAM.name;
+  }
+  function syncNote() {
+    var p = params();
+    document.getElementById('famNote').textContent = FAM.note(p);
+    document.getElementById('roK').textContent = nf(FL.deriv(fval, state.t));
+  }
+  function syncAll() {
+    syncExpr();
+    syncNote();
+    updateReadouts();
+  }
+
+  /* ---- 按钮 ---- */
+  function fitView() {
+    var xr = xRange(), k, ys = [], y;
+    for (k = 0; k <= 400; k++) {
+      y = fval(xr[0] + (xr[1] - xr[0]) * k / 400);
+      if (isFinite(y) && Math.abs(y) < 1e5) ys.push(y);
+    }
+    if (!ys.length) { toast('这条曲线在这个范围内没有可显示的点'); return; }
+    ys.sort(function (a, b) { return a - b; });
+    var lo = ys[Math.floor(ys.length * 0.02)], hi = ys[Math.floor(ys.length * 0.98)];
+    if (hi - lo < 1e-6) { lo -= 2; hi += 2; }
+    var spanY = hi - lo;
+    var spanX = xr[1] - xr[0];
+    var s = Math.min(H / (spanY * 1.35), W / (spanX * 1.1));
+    s = Math.min(Math.max(s, 3), 6000);
+    state.view.cy = (hi + lo) / 2;
+    state.view.s = s;
+    requestDraw();
+    toast('已按曲线高度适配视图');
+  }
+
+  function exportPNG() {
+    draw();
+    var pad = 16, barH = 54;
+    var out = document.createElement('canvas');
+    out.width = cv.width + pad * 2;
+    out.height = cv.height + pad * 2 + barH;
+    var g = out.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, out.width, out.height);
+    g.drawImage(cv, pad, pad);
+    g.strokeStyle = '#e6eaf2';
+    g.lineWidth = 1;
+    g.strokeRect(pad + 0.5, pad + 0.5, cv.width - 1, cv.height - 1);
+
+    g.fillStyle = '#0f172a';
+    g.font = '600 20px "PingFang SC",ui-sans-serif,system-ui,sans-serif';
+    g.textBaseline = 'middle';
+    g.fillText('函数图像实验室', pad, cv.height + pad + 20);
+    g.fillStyle = '#4f46e5';
+    g.font = '600 18px "PingFang SC",ui-sans-serif,system-ui,sans-serif';
+    var exprTxt = FAM.expr(params());
+    g.fillText(exprTxt, pad, cv.height + pad + 42);
+    g.fillStyle = '#94a3b8';
+    g.font = '13px "PingFang SC",ui-sans-serif,system-ui,sans-serif';
+    g.textAlign = 'right';
+    g.fillText('函数图像实验室', out.width - pad, cv.height + pad + 42);
+    g.textAlign = 'left';
+
+    try {
+      var url = out.toDataURL('image/png');
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = '函数图像-' + FAM.name + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('图片已导出');
+    } catch (err) {
+      toast('导出失败，请直接截图');
+    }
+  }
+
+  var toastTimer = 0;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 1800);
+  }
+
+  /* ---- 启动 ---- */
+  function init() {
+    state.store.quad = defaults(FAM);
+    buildFamilies();
+    buildToggles();
+    buildSliders();
+    buildPresets();
+    syncAll();
+    resize();
+
+    document.getElementById('btnFit').addEventListener('click', fitView);
+    document.getElementById('btnReset').addEventListener('click', function () {
+      state.view = { cx: 0, cy: 0, s: 62 };
+      requestDraw();
+      toast('视图已复位');
+    });
+    document.getElementById('btnPng').addEventListener('click', exportPNG);
+    document.getElementById('btnApply').addEventListener('click', function () {
+      applyCustom(document.getElementById('customInput').value, false);
+    });
+    document.getElementById('customInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') applyCustom(this.value, false);
+    });
+
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { resize(); }).observe(cv);
+    } else {
+      window.addEventListener('resize', resize);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+/* =============================== UI END =============================== */
