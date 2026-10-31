@@ -127,7 +127,7 @@ document.body.innerHTML = "\n\n<header class=\"top\">\n  <div class=\"wrap top-i
     });
   }
 
-  function draw(forceWhiteBg){
+  function draw(forceWhiteBg, exporting){
     var L = layout();
     var sz = canvasSize();
     var W = sz.W, H = sz.H;
@@ -155,12 +155,13 @@ document.body.innerHTML = "\n\n<header class=\"top\">\n  <div class=\"wrap top-i
       var x = pad + col * (cw + gap);
       var y = pad + row * (ch + gap);
       geom.push({ x: x, y: y, w: cw, h: ch });
-      drawCell(slots[i], x, y, cw, ch, r);
+      drawCell(slots[i], x, y, cw, ch, r, exporting);
     }
   }
 
-  function drawCell(slot, x, y, w, h, r){
+  function drawCell(slot, x, y, w, h, r, exporting){
     if (!slot || !slot.img) {
+      if (exporting) return;
       ctx.save();
       roundedPath(ctx, x, y, w, h, r);
       ctx.fillStyle = "rgba(128,138,150,.10)";
@@ -516,7 +517,7 @@ document.body.innerHTML = "\n\n<header class=\"top\">\n  <div class=\"wrap top-i
     if (!filled) { toast("还没有放入图片"); return; }
     var sz = canvasSize();
     var mime = state.fmt === "jpg" ? "image/jpeg" : "image/png";
-    draw(state.fmt === "jpg" && state.bg === "transparent");
+    draw(state.fmt === "jpg" && state.bg === "transparent", true);
     canvas.toBlob(function(blob){
       draw();
       if (!blob) { toast("导出失败，请换一种格式再试"); return; }
