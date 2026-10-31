@@ -5,9 +5,14 @@ export async function initPreferences() {
   const preview = window.TRAVEL_PREVIEW === true;
   let ready = preview;
   let queue = Promise.resolve();
+  let noticeTimer;
   function notice(message) {
     const el = document.querySelector('#preferenceNotice');
-    if (el) { el.hidden = false; el.textContent = message; }
+    if (el) {
+      clearTimeout(noticeTimer);
+      el.hidden = false; el.textContent = message;
+      if (message === "设置已保存") noticeTimer = setTimeout(() => { el.hidden = true; }, 2500);
+    }
   }
   if (!preview) {
     try {
