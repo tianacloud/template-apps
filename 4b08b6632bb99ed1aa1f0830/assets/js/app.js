@@ -60,10 +60,13 @@
   function loadFavs() {
     try { return JSON.parse(window.medregStorage.getItem("medreg.favs") || "[]"); } catch (e) { return []; }
   }
-  function saveFavs() {
-    try { window.medregStorage.setItem("medreg.favs", JSON.stringify(Array.from(state.favs))); } catch (e) {}
+  function updateFavCount() {
     const el = $("#favCount");
     if (el) { el.textContent = state.favs.size; el.style.display = state.favs.size ? "" : "none"; }
+  }
+  function saveFavs() {
+    try { window.medregStorage.setItem("medreg.favs", JSON.stringify(Array.from(state.favs))); } catch (e) {}
+    updateFavCount();
   }
 
   /* ------------------------------ 检索 ------------------------------ */
@@ -3513,6 +3516,7 @@
   function boot() {
     if (!ALL.length) { $("#main").innerHTML = '<div class="panel empty"><div class="big">⚠️</div><h3>数据未加载</h3><p>请确认 data/ 目录下的数据文件存在，或通过本地服务方式打开页面。</p></div>'; return; }
     $("#q").value = "";
+    updateFavCount();
     if (typeof ftLoad === "function") ftLoad();
     if (typeof mkLoad === "function") mkLoad();
     if (typeof scLoad === "function") scLoad();
