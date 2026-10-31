@@ -1,0 +1,12 @@
+import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
+const commit=process.argv[2]; if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('需要完整源码提交号');
+const source=JSON.parse(await readFile('source.json','utf8'));
+await mkdir('dist/assets',{recursive:true});
+const html=await readFile('index.html','utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const style=html.match(/<style>([\s\S]*?)<\/style>/)[1];
+const body=html.match(/<body>([\s\S]*?)<script>/)[1].replace(' onclick="document.getElementById(\'notice\').classList.toggle(\'open\')"','');
+await writeFile('dist/assets/app.css',style);
+await writeFile('dist/assets/app.js',`const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('./app.css',import.meta.url).href;document.head.appendChild(link);\ndocument.title='电控掌中工具箱 · PID 调参实验室';document.getElementById('app').innerHTML=${JSON.stringify(body)};\ndocument.querySelector('.notice-h').addEventListener('click',()=>document.getElementById('notice').classList.toggle('open'));\n${script}`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
