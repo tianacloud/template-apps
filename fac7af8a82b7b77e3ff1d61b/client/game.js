@@ -1162,12 +1162,20 @@
     'Space': 'jump'
   };
 
+  var KEY_FALLBACK = { w: 'KeyW', s: 'KeyS', a: 'KeyA', d: 'KeyD', p: 'KeyP', ' ': 'Space', ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Escape: 'Escape' };
+  function eventCode(e) {
+    if (e.code) return e.code;
+    var key = e.key && e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    return KEY_FALLBACK[key] || '';
+  }
+
   window.addEventListener('keydown', function (e) {
-    if (e.code === 'KeyP' || e.code === 'Escape') {
+    var code = eventCode(e);
+    if (code === 'KeyP' || code === 'Escape') {
       togglePause();
       return;
     }
-    var k = KEYMAP[e.code];
+    var k = KEYMAP[eventCode(e)];
     if (!k) return;
     e.preventDefault();
     if (k === 'jump') {
@@ -1179,7 +1187,7 @@
   }, { passive: false });
 
   window.addEventListener('keyup', function (e) {
-    var k = KEYMAP[e.code];
+    var k = KEYMAP[eventCode(e)];
     if (!k) return;
     if (k === 'jump') { jumpLatch = false; }
     else input[k] = false;
