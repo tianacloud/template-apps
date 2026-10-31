@@ -1,0 +1,11 @@
+import {readFile,mkdir,copyFile,rm} from 'node:fs/promises';
+import {build} from 'esbuild';
+const html=await readFile('app.html','utf8');
+const js=html.match(/<script type="module" crossorigin>([\s\S]*?)<\/script>/)?.[1];
+const css=html.match(/<style rel="stylesheet" crossorigin>([\s\S]*?)<\/style>/)?.[1];
+if(!js||!css) throw Error('Missing app script or style');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+const app=`document.title="Indie Hacker 里程碑";const style=document.createElement("style");style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\n${js}`;
+await build({stdin:{contents:`import {initializeStore} from './storage.js';\ntry { await initializeStore();\n${app}\n} catch (error) { const e=document.createElement('div'); e.setAttribute('role','alert'); e.textContent='无法加载数据，请检查登录和数据库连接后重新打开。'; document.body.append(e); console.error(error); }`,resolveDir:process.cwd(),sourcefile:'entry.js',loader:'js'},bundle:true,format:'esm',target:'es2022',outfile:'dist/assets/app.js'});
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8')); console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
