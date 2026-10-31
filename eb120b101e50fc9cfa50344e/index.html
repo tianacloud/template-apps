@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="递减诊所 Decline Doctor —— 把油气井产量下降拆到每一个因素上。Arps 递减拟合 + LMDI 因素分解，纯前端本地计算。">
+<meta name="theme-color" content="#0A0E14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232DD4BF'/%3E%3Ctext x='16' y='23' font-size='19' font-family='monospace' font-weight='bold' text-anchor='middle' fill='%2306201C'%3ED%3C/text%3E%3C/svg%3E">
+<title>递减诊所 · Decline Doctor</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================ 侧栏 ============================ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <h1>递减诊所</h1>
+        <p>Decline Doctor</p>
+      </div>
+    </div>
+
+    <div class="side-section" data-role="source">
+      <div class="side-label">数据源</div>
+      <button class="btn btn-primary btn-block" id="btnDemo">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 11.5V13h12v-1.5M8 2v8M4.5 6.5L8 10l3.5-3.5"/></svg>
+        载入示范井组
+      </button>
+      <button class="btn btn-block" id="btnPaste">粘贴 CSV 数据</button>
+      <button class="btn btn-block" id="btnUpload">上传 CSV 文件</button>
+      <input type="file" id="fileInput" accept=".csv,.txt,text/csv" hidden>
+      <div class="hint" style="font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:2px;">
+        数据只在本机浏览器内计算，不会上传到任何服务器。
+      </div>
+    </div>
+
+    <div class="side-section" data-role="window">
+      <div class="side-label">分析窗口</div>
+      <div class="segmented" id="windowSeg">
+        <button data-win="6">6 月</button>
+        <button data-win="12" class="active">12 月</button>
+        <button data-win="24">24 月</button>
+        <button data-win="0">全部</button>
+      </div>
+      <div class="hint" style="font-size:10.5px;color:var(--faint);line-height:1.5;">
+        分因素采用阶段对比法，窗口决定「期初 vs 期末」的取点。
+      </div>
+    </div>
+
+    <button class="btn btn-sm more-toggle" id="moreToggle" style="display:none;">展开数据集与导出</button>
+
+    <div class="side-section optional">
+      <div class="side-label">数据集</div>
+      <dl class="meta-list" id="metaList">
+        <div class="meta-row"><dt>状态</dt><dd>未载入</dd></div>
+      </dl>
+    </div>
+
+    <div class="side-section optional">
+      <div class="side-label">井分组</div>
+      <div class="well-list" id="wellList">
+        <div style="font-size:11.5px;color:var(--faint);">载入数据后显示</div>
+      </div>
+    </div>
+
+    <div class="side-section optional">
+      <div class="side-label">模型参数</div>
+      <div class="field">
+        <label for="qLimit" style="font-size:11.5px;color:var(--muted);">经济极限产量（t/d）</label>
+        <input type="number" id="qLimit" value="0.5" min="0.05" max="20" step="0.1">
+        <div class="hint">低于此值视为无经济效益，用于计算可采储量与剩余年限。</div>
+      </div>
+    </div>
+
+    <div class="side-section optional">
+      <div class="side-label">导出</div>
+      <button class="btn btn-block btn-sm" id="btnReport">导出分析报告 (.md)</button>
+      <button class="btn btn-block btn-sm" id="btnCsv">导出分解结果 (.csv)</button>
+    </div>
+  </aside>
+
+  <!-- ============================ 主区 ============================ -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h2 id="pageTitle">递减诊断</h2>
+        <div class="sub" id="pageSub">
+          <span class="chip">Arps 递减方程</span>
+          <span class="chip">LMDI 因素分解</span>
+          <span class="chip">纯本地计算</span>
+        </div>
+      </div>
+      <div class="kpis" style="grid-template-columns:auto;margin:0;gap:8px;display:flex;" id="healthWrap"></div>
+    </div>
+
+    <div id="warnArea"></div>
+
+    <div id="verdictArea"></div>
+
+    <div class="kpis" id="kpiArea"></div>
+
+    <!-- 递减曲线 -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="num">01</span> 递减规律</div>
+        <div class="legend">
+          <span><i style="background:#5AA9FF"></i>总产量</span>
+          <span><i style="background:#2DD4BF"></i>老井产量</span>
+          <span style="color:#F5A524"><i class="dash" style="background:#F5A524"></i>Arps 拟合 / 预测</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" id="declineChart"></div>
+        <div class="card-desc" id="fitNote" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- 因素分解 -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="num">02</span> 产量变化分因素分解</div>
+        <div class="card-desc" id="decompRange"></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap" id="waterfallChart"></div>
+      </div>
+      <div class="card-body tight">
+        <table class="dt" id="decompTable"></table>
+      </div>
+    </section>
+
+    <!-- 辅助指标 -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="num">03</span> 关键指标趋势</div>
+        <div class="card-desc">含水率上升与生产时率下降，是产量损失最直接的两个来源</div>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+              <span style="font-size:12px;color:var(--text-2);">综合含水率</span>
+              <span id="fwNow" style="font-family:var(--mono);font-size:13px;color:var(--amber);"></span>
+            </div>
+            <div class="chart-wrap" id="fwChart"></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+              <span style="font-size:12px;color:var(--text-2);">生产时率</span>
+              <span id="trNow" style="font-family:var(--mono);font-size:13px;color:var(--blue);"></span>
+            </div>
+            <div class="chart-wrap" id="trChart"></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+              <span style="font-size:12px;color:var(--text-2);">注采比</span>
+              <span id="irNow" style="font-family:var(--mono);font-size:13px;color:var(--teal);"></span>
+            </div>
+            <div class="chart-wrap" id="irChart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 诊断清单 -->
+    <section class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="num">04</span> 诊断结论</div>
+        <div class="card-desc" id="findingCount"></div>
+      </div>
+      <div class="findings" id="findingList"></div>
+    </section>
+
+    <!-- 措施复盘 -->
+    <section class="card" id="measureCard" style="display:none;">
+      <div class="card-head">
+        <div class="card-title"><span class="num">05</span> 措施复盘</div>
+        <div class="card-desc">以措施前 3 个月均产为基线，对比期末产量</div>
+      </div>
+      <div class="card-body tight">
+        <table class="dt" id="measureTable"></table>
+      </div>
+    </section>
+
+    <div class="foot">
+      <div>
+        递减诊所 Decline Doctor v1.0 · Arps 递减方程 + LMDI 因素分解 · 全部计算在浏览器本地完成<br>
+        用 <code>node tests/engine.test.js</code> 可复核算法（58 项断言，含分解闭合性检验）
+      </div>
+      <div style="text-align:right;" id="footNote"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============================ CSV 弹层 ============================ -->
+<div class="modal-mask" id="csvModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>粘贴 CSV 数据</h3>
+      <button class="btn btn-sm" id="btnCloseModal" style="border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:2px 8px;">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="hint">
+        首行表头，支持中文或英文字段名。最少需要 <code>日期</code> <code>井号</code> <code>日产油</code> 三列。<br>
+        可选：<code>日产液</code>（缺省时按含水反算）、<code>含水</code>（支持 55 或 0.55 两种写法）、
+        <code>日注水</code>、<code>开井天数</code>、<code>措施</code>（填写措施名称即视为措施井）。
+      </div>
+      <textarea id="csvInput" spellcheck="false" placeholder="日期,井号,日产油,日产液,含水,日注水,开井天数,措施
+2026-01-01,A-1,12.4,28.1,55.9,15,1,
+2026-01-02,A-1,12.1,28.4,57.4,15,1,"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="btnCancelCsv">取消</button>
+      <button class="btn btn-primary" id="btnApplyCsv">解析并分析</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/engine.js"></script>
+<script src="assets/charts.js"></script>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
