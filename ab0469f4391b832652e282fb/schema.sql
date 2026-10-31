@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS dance_custom_actions (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS dance_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);

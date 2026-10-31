@@ -1,0 +1,423 @@
+
+<!-- 开屏动画：纯 CSS 节奏光效 + 字母键闪现，2.6s 后自动淡出，点任意处可跳过（不影响 3D 渲染与回归测试） -->
+<div id="bootSplash" aria-hidden="true">
+  <div class="bs-ring"></div>
+  <div class="bs-logo"><span>C</span><span>H</span><span>E</span><span>E</span><span>R</span><span>S</span><span>Y</span><span>N</span><span>C</span></div>
+  <div class="bs-sub">舞蹈卡点 · 音游闯关</div>
+  <div class="bs-keys"><b>A</b><b>B</b><b>C</b><b>D</b><b>GO</b></div>
+  <div class="bs-beats"></div>
+  <button class="bs-skip" id="bsSkip" type="button">跳过 · 进入</button>
+</div>
+<div class="app">
+
+  <header class="topbar">
+    <div class="logo">
+      <span class="spark"></span>
+      <b>CHEER<span class="accent">SYNC</span></b>
+      <em>3D 舞蹈卡点模拟器</em>
+    </div>
+    <nav class="modes" id="modes">
+      <button data-mode="edit" class="on">编排</button>
+      <button data-mode="train">训练</button>
+      <button data-mode="battle">比赛</button>
+      <button data-mode="duel">斗舞</button>
+      <button data-mode="quest">闯关</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+
+    <section class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="c"></canvas>
+
+        <!-- 物理灯光引擎：屏幕灯带预览（32 段 LED），随节奏/判定实时变化，驱动真实 ESP32 灯带时也是它同步 -->
+        <div id="lightStrip" aria-hidden="true"></div>
+
+        <div class="hud hud-tl">
+          <div class="chip"><span class="k">BPM</span><span class="v" id="hudBpm">110</span></div>
+          <div class="chip"><span class="k">节奏</span><span class="v" id="hudStyle">HIPHOP</span></div>
+          <div class="chip"><span class="k">队伍</span><span class="v" id="hudTeam">3 人 · V 字</span></div>
+        </div>
+
+        <div class="hud hud-tr">
+          <button class="ghost" data-cam="front" title="正面">正</button>
+          <button class="ghost" data-cam="side" title="侧面">侧</button>
+          <button class="ghost" data-cam="top" title="俯视">俯</button>
+          <button class="ghost" data-cam="orbit" title="环绕">环</button>
+        </div>
+
+        <div class="cue" id="cue"></div>
+
+        <div class="name-layer" id="nameLayer"></div>
+
+        <div class="load-chip" id="loadChip">真人模型加载中…</div>
+
+        <div class="hud hud-bl">
+          <div class="nowbar">
+            <span class="beat" id="beatNum">01</span>
+            <div class="nowtext">
+              <div class="nowname" id="nowName">拍点律动</div>
+              <div class="nowtip" id="nowTip">按播放开始</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="score-panel hidden" id="scorePanel">
+          <div class="sp-head">比赛评分</div>
+          <div class="sp-main">
+            <div class="sp-grade" id="spGrade">S</div>
+            <div class="sp-total" id="spTotal">0.0</div>
+          </div>
+          <ul class="sp-list" id="spList"></ul>
+          <div class="sp-actions">
+            <button id="spAgain" class="primary">再演一次</button>
+            <button id="spClose" class="ghost">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <div class="tp-left">
+          <button id="btnPlay" class="play">
+            <span class="ico" id="playIco"></span><span id="playTxt">播放</span>
+          </button>
+          <button id="btnStop" class="ghost small">重置</button>
+          <div class="progress"><div class="fill" id="progressFill"></div></div>
+          <div class="bar-count" id="barCount">1 / 4 小节</div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+        <div class="batchbar">
+          <span class="selinfo" id="selInfo">未选拍 · 点格子放单拍，按住拖动可连刷多拍</span>
+          <span class="bbtns">
+            <button id="btnSelAll" class="ghost small">选全部</button>
+            <button id="btnSelOdd" class="ghost small">隔拍选</button>
+            <button id="btnSelNone" class="ghost small">取消选择</button>
+            <button id="btnFill16" class="ghost small">填满 16 拍</button>
+            <button id="btnFill8a" class="ghost small">填前 8 拍</button>
+            <button id="btnFill8b" class="ghost small">填后 8 拍</button>
+            <button id="btnClearAll" class="ghost small">清空</button>
+            <button id="btnUndo" class="ghost small">撤消</button>
+          </span>
+        </div>
+        <div class="duelbar hidden" id="duelPanel">
+          <span class="db-label">斗舞对拼</span>
+          <button id="btnDuelA" class="ghost small on">编排 A 队（右）</button>
+          <button id="btnDuelB" class="ghost small">编排 B 队（左）</button>
+          <span class="duel-style-pick" id="duelStylePick">
+            <label>A <select id="selStyleA"><option value="safe">保守稳</option><option value="mid">均衡</option><option value="bold">激进炫</option></select></label>
+            <label>B <select id="selStyleB"><option value="safe">保守稳</option><option value="mid">均衡</option><option value="bold" selected>激进炫</option></select></label>
+          </span>
+          <button id="btnDuelStart" class="primary small">⚔ 开拼</button>
+          <span class="duel-roundhud" id="duelRoundHud"></span>
+        </div>
+        <div class="questbar hidden" id="questPanel">
+          <span class="qp-label">闯关</span>
+          <button id="btnQuestRun" class="primary small">▶ 挑战本关</button>
+          <button id="btnQuestMusic" class="ghost small">🎵 用这首歌生成关卡</button>
+          <button id="btnQuestReset" class="ghost small">回到第 1 关</button>
+          <span class="qp-how">每拍弹出目标动作 → 按它显示的字母键（或点卡）→ Perfect/Good/Miss · 连击加分 · 血空失败 · 撑满过关</span>
+          <span class="quest-hud" id="questHud"></span>
+        </div>
+        <div class="quest-touchbar" id="questTouchbar" aria-label="触控打击区">
+          <div class="qtouch-help"><b>触控模式</b><span>没有键盘？按下方发光字母，像音游打击一样跟拍</span></div>
+          <div class="qtouch-keys" id="questTouchKeys"></div>
+        </div>
+        </div>
+    </section>
+
+    <aside class="side">
+      <div class="tabs">
+        <button class="on" data-pane="lib">动作库</button>
+        <button data-pane="setup">设置</button>
+      </div>
+
+      <div class="pane" id="paneLib">
+        <div class="sub-title">编排对象</div>
+        <div class="seg wrap" id="segTarget"></div>
+        <p class="hint">选「全体」= 所有人同步；选某个队员 = 只给他排动作（其余人跟随全体）。</p>
+        <div class="row-btns" style="margin-top:6px">
+          <button id="btnClearSolo" class="ghost small">清除此人的单独编排</button>
+        </div>
+        <div class="sub-title">动作库</div>
+        <div class="seg wrap" id="segActCat">
+          <button data-c="all" class="on">全部</button>
+          <button data-c="basic">基础律动</button>
+          <button data-c="star">七彩星级</button>
+          <button data-c="dance">舞种律动</button>
+          <button data-c="hand">官方手位</button>
+          <button data-c="comp">比赛专业</button>
+          <button data-c="custom">自定义</button>
+        </div>
+        <div class="seg wrap hidden" id="segStarLv" style="margin-top:6px">
+          <button data-lv="all" class="on">全部级别</button>
+          <button data-lv="1">红</button>
+          <button data-lv="2">橙</button>
+          <button data-lv="3">黄</button>
+          <button data-lv="4">绿</button>
+          <button data-lv="5">青</button>
+          <button data-lv="6">蓝</button>
+          <button data-lv="7">紫</button>
+          <button data-lv="kid">幼儿</button>
+        </div>
+        <div class="seg wrap hidden" id="segDanceSub" style="margin-top:6px">
+          <button data-sub="all" class="on">全部舞种</button>
+          <button data-sub="hiphop">街舞</button>
+          <button data-sub="latin">拉丁</button>
+          <button data-sub="jazz">爵士</button>
+          <button data-sub="tiktok">热舞</button>
+        </div>
+        <p class="hint">选动作 → 点节拍格放入（单拍）；<b>按住拖动</b>划过节拍格可连刷多拍；点「选全部 / 隔拍选」后再点动作 = <b>自动拆段铺满</b>（16 拍 + 8 段动作 = 完整动作走 2 遍，按住 Alt 才是同一个单拍重复）。</p>
+        <div class="action-grid" id="actionGrid"></div>
+        <div class="row-btns">
+          <button id="btnRandom" class="primary">随机编舞</button>
+          <button id="btnClear" class="ghost">清空</button>
+        </div>
+        <div class="row-btns" style="margin-top:6px">
+          <button id="btnCustomNew" class="ghost small">＋ 新建自定义动作</button>
+          <button id="btnCustomEdit" class="ghost small">编辑选中</button>
+          <button id="btnCustomDel" class="ghost small">删除</button>
+        </div>
+        <div class="row-btns" style="margin-top:4px">
+          <button id="btnSplitFill" class="primary small">智能拆分铺满</button>
+          <button id="btnBreak" class="ghost small">慢动作分解</button>
+        </div>
+        <div class="seg wrap" id="segSlow" style="margin-top:4px">
+          <button data-slow="1" class="on">原速</button>
+          <button data-slow="0.5">慢放 1/2</button>
+          <button data-slow="0.25">慢放 1/4</button>
+        </div>
+        <div class="preset-wrap">
+          <div class="sub-title">成品套路</div>
+          <div class="presets" id="presets"></div>
+        </div>
+      </div>
+
+      <div class="pane hidden" id="paneSetup">
+        <div class="sub-title">队伍人数</div>
+        <div class="seg wrap" id="segCount">
+          <button data-count="1">独舞</button>
+          <button data-count="3" class="on">3 人</button>
+          <button data-count="5">5 人</button>
+          <button data-count="12">12 人</button>
+          <button data-count="24">24 人</button>
+          <button data-count="32">32 人</button>
+        </div>
+
+        <div class="sub-title">队形</div>
+        <div class="seg" id="segFormation">
+          <button data-f="line">横排</button>
+          <button data-f="v" class="on">V 字</button>
+          <button data-f="triangle">三角</button>
+          <button data-f="circle">圆形</button>
+          <button data-f="free">自由</button>
+        </div>
+        <div class="row-btns" style="margin-top:8px">
+          <button id="btnResetPos" class="ghost small">重置摆位</button>
+        </div>
+
+        <div class="sub-title">人物模型</div>
+        <div class="seg" id="segModel">
+          <button data-m="real" class="on">真人写实</button>
+          <button data-m="toon">动漫卡通</button>
+        </div>
+
+        <div class="sub-title">队员名字（教练点名用）</div>
+        <div class="name-inputs" id="nameInputs"></div>
+
+        <div class="sub-title">伴奏音乐</div>
+        <div class="row-btns">
+          <button id="btnPickMusic" class="primary small">上传音乐</button>
+          <button id="btnClearMusic" class="ghost small">内置鼓点</button>
+        </div>
+        <input type="file" id="fileMusic" accept="audio/*" style="display:none">
+        <div class="music-info" id="musicInfo">内置合成鼓点（嘻哈/电子/啦啦队）</div>
+        <div class="row-btns" id="nudgeRow" style="display:none">
+          <button id="btnNudgeL" class="ghost small">◀ 早一点</button>
+          <button id="btnNudgeR" class="ghost small">晚一点 ▶</button>
+          <button id="btnAutoDance" class="ghost small">重新卡点</button>
+        </div>
+
+        <div class="sub-title">队服配色</div>
+        <div class="swatches" id="swatches">
+          <button data-u="0" class="on" style="--c:#ff2d6f"></button>
+          <button data-u="1" style="--c:#22d3ee"></button>
+          <button data-u="2" style="--c:#ffc93c"></button>
+          <button data-u="3" style="--c:#a855f7"></button>
+        </div>
+
+        <div class="sub-title">队服图案（换装）</div>
+        <div class="pat-grid" id="patGrid">
+          <button data-p="solid" class="on">纯色</button>
+          <button data-p="neon">霓虹星</button>
+          <button data-p="stripe">条纹</button>
+          <button data-p="flame">火焰</button>
+          <button data-p="dot">波点</button>
+          <button data-p="grad">渐变</button>
+          <button data-p="camo">迷彩</button>
+        </div>
+        <div class="row-btns">
+          <button id="btnPickCostume" class="primary small">上传服装图</button>
+          <button id="btnAICostume" class="ghost small">AI 队服</button>
+        </div>
+        <input type="file" id="fileCostume" accept="image/*" style="display:none">
+        <div class="music-info" id="costumeInfo">当前：纯色队服</div>
+        <div class="ai-costume-panel hidden" id="aiCostumePanel">
+          <div class="ai-costume-title">AI 生成队服 · 点击试穿</div>
+          <div class="ai-costume-list" id="aiCostumeList"></div>
+        </div>
+
+        <div class="sub-title">节奏 <span class="range-val" id="bpmVal">110</span> BPM</div>
+        <input type="range" id="bpmRange" min="70" max="160" step="1" value="110" class="range">
+        <div class="range-ticks"><span>70</span><span>115</span><span>160</span></div>
+
+        <div class="sub-title">伴奏风格</div>
+        <div class="seg" id="segStyle">
+          <button data-s="hiphop" class="on">嘻哈</button>
+          <button data-s="edm">电子</button>
+          <button data-s="cheer">啦啦队</button>
+        </div>
+
+        <div class="sub-title">动作强度</div>
+        <div class="seg" id="segEnergy">
+          <button data-e="0.75">训练</button>
+          <button data-e="1" class="on">标准</button>
+          <button data-e="1.25">比赛</button>
+        </div>
+
+        <div class="sub-title">声音</div>
+        <div class="audio-row">
+          <button class="ghost" id="btnTestAudio">试听一声</button>
+          <span id="audioState">检测中…</span>
+        </div>
+
+        <div class="sub-title">物理灯光控制</div>
+        <div class="hint">演奏 / 闯关时把节奏、击打、判定、血量推给真实灯带（如 ESP32 + WS2812）。没接硬件也能在屏幕底部看到同步的灯带预览。</div>
+        <div class="light-row">
+          <button id="btnLightOn" class="primary small">点亮灯光</button>
+          <button id="btnLightOff" class="ghost small">关闭</button>
+          <span class="light-status" id="lightStatus">未开启</span>
+        </div>
+        <div class="light-row">
+          <label class="light-sel">灯光风格
+            <select id="lightPreset">
+              <option value="follow">跟节奏·跟随</option>
+              <option value="beat">节拍脉冲</option>
+              <option value="judg">闯关·判定色</option>
+              <option value="wave">律动波浪</option>
+            </select>
+          </label>
+          <label class="light-sel">强度
+            <select id="lightGain">
+              <option value="0.6">柔和</option>
+              <option value="1" selected>标准</option>
+              <option value="1.5">强烈</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="hint dim">人数与队形会实时重建舞台，改编排不会丢失。</p>
+      </div>
+    </aside>
+    <button class="drawer-handle" id="drawerHandle" title="展开 / 收起功能面板" aria-label="切换功能面板"><span class="dh-arrow">›</span><span class="dh-label">功能面板</span></button>
+  </main>
+</div>
+
+<div id="loadingHint" style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99998;background:rgba(20,16,32,.92);border:1px solid rgba(255,255,255,.14);color:#d9d2e8;font:13px/1.6 system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:10px 18px;border-radius:99px;box-shadow:0 8px 28px rgba(0,0,0,.45);backdrop-filter:blur(8px)">
+  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff2d6f;margin-right:8px;animation:_pulse 1.1s ease-in-out infinite"></span>
+  正在准备 3D 舞台…首次加载需要几秒
+</div>
+<style>@keyframes _pulse{0%,100%{opacity:.35}50%{opacity:1}}</style>
+
+<div id="fallback" style="display:none;position:fixed;inset:0;z-index:99999;background:#07060c;color:#f4f1fa;font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:36px 26px;overflow:auto">
+  <div style="max-width:620px;margin:8vh auto 0">
+    <div style="display:inline-block;padding:4px 10px;border-radius:99px;background:rgba(255,45,111,.16);color:#ff6b95;font-size:12px;font-weight:700;letter-spacing:.08em">CHEERSYNC</div>
+    <h1 style="font-size:22px;margin:16px 0 10px">3D 场景没能启动</h1>
+    <p id="fbMsg" style="color:#b9b1c9;font-size:14px;line-height:1.8;margin:0 0 18px">当前环境不支持 WebGL。</p>
+    <ol style="color:#b9b1c9;font-size:14px;line-height:2;padding-left:20px;margin:0 0 20px">
+      <li>用 <b style="color:#fff">Chrome 或 Edge</b> 打开本文件（不要用 IE / 兼容模式 / 应用内预览窗口）</li>
+      <li>如果在<b style="color:#fff">微信里打开</b>：点右上角「···」→「在浏览器中打开」</li>
+      <li>地址栏确认是 <code style="background:#1a1526;padding:2px 6px;border-radius:5px">file:///...</code> 或 http 开头，而不是白屏的外壳页面</li>
+      <li>浏览器设置里开启「使用硬件加速」，然后重启浏览器</li>
+      <li>如果是远程桌面 / 虚拟机，显卡加速常被禁用，需在本机运行</li>
+    </ol>
+    <button id="fbRetry" style="appearance:none;border:0;cursor:pointer;background:linear-gradient(135deg,#ff2d6f,#ff6b95);color:#fff;font:600 14px/1 system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:12px 26px;border-radius:99px;box-shadow:0 8px 24px rgba(255,45,111,.35)">重新加载试试</button>
+    <p style="color:#6f6685;font-size:12.5px;line-height:1.9;margin-top:16px">仍然不行就把这行提示截图发我：<span id="fbDetail" style="color:#9f95b8"></span></p>
+  </div>
+</div>
+
+
+
+
+<!-- ============ 自定义动作编辑器 ============ -->
+<div class="modal hidden" id="modalCustom">
+  <div class="modal-box">
+    <div class="modal-head">
+      <b>自定义动作</b>
+      <span class="modal-tip">拖动滑块 → 上方角色实时变化</span>
+      <button id="btnCustomClose" class="ghost small">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="mrow">
+        <label class="mfld"><span>名称</span><input id="cName" maxlength="14" placeholder="例如：我的甩手"></label>
+        <button id="btnCustomCapture" class="ghost small">抓当前姿势为新帧</button>
+        <button id="btnCustomDelFrame" class="ghost small">删末帧</button>
+      </div>
+      <div class="mrow">
+        <span class="mhint">帧</span>
+        <div class="seg wrap" id="segFrame" style="flex:1"></div>
+      </div>
+      <div id="cSliders" class="sliders"></div>
+      <div class="mrow" style="margin-top:10px">
+        <button id="btnCustomPreview" class="ghost small">▶ 预览整段</button>
+        <button id="btnCustomSave" class="primary">保存</button>
+      </div>
+      <p class="hint" style="margin-top:6px">保存后出现在动作库「自定义」分类，保存在应用数据库中。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 慢动作分解 ============ -->
+<div class="modal hidden" id="modalBreak">
+  <div class="modal-box">
+    <div class="modal-head">
+      <b>慢动作分解</b>
+      <span class="modal-tip" id="bkTitle">—</span>
+      <button id="btnBreakClose" class="ghost small">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div class="mrow">
+        <button id="btnBkPrev" class="ghost small">← 上一步</button>
+        <span class="bkstep" id="bkStep">1 / 8</span>
+        <button id="btnBkNext" class="ghost small">下一步 →</button>
+        <button id="btnBkAuto" class="primary small">▶ 自动慢放</button>
+      </div>
+      <div class="mrow">
+        <span class="mhint">每步停顿</span>
+        <div class="seg wrap" id="segBkSpeed">
+          <button data-ms="1600">慢 1.6s</button>
+          <button data-ms="1100" class="on">中 1.1s</button>
+          <button data-ms="700">快 0.7s</button>
+        </div>
+      </div>
+      <div class="bkdots" id="bkDots"></div>
+      <div class="bkdesc" id="bkDesc">—</div>
+      <div class="mrow" style="margin-top:10px">
+        <button id="btnBkToTimeline" class="ghost small">把这一整套铺进时间轴</button>
+      </div>
+      <p class="hint" style="margin-top:6px">分解 = 把这一个动作按成型位切开定格；自动慢放会从第 1 步走到最后一步。</p>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
