@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS typing_progress (key TEXT PRIMARY KEY, value TEXT NOT NULL);
