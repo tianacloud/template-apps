@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS litebox_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
