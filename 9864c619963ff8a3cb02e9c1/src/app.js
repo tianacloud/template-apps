@@ -766,7 +766,7 @@ function expensesView() {
     ${heading("EXPENSES", "同行记账", "按参与人核对个人应摊、实际支付和最终结算建议。")}
     ${state.mode === "edit" ? `<div class="module-actions"><button class="text-button primary-action" data-open-editor="expense">${icon("plus")} 记一笔</button></div>` : ""}
     <div class="tabs">${currencies.map((currency) => `<button class="tab-chip ${currency === state.currency ? "active" : ""}" data-currency="${currency}">${currency}</button>`).join("")}</div>
-    <div class="summary-band">
+    <div class="summary-band expense-summary">
       <div class="summary-cell"><small>总支出</small><strong>${expenses.length ? esc(formatMoney(total, state.currency)) : "—"}</strong></div>
       <div class="summary-cell"><small>账单笔数</small><strong>${expenses.length}</strong></div>
       <div class="summary-cell"><small>同行人数</small><strong>${state.pack.companions.length}</strong></div>
