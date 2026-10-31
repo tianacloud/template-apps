@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import { build } from 'esbuild';
+fs.mkdirSync('dist/assets',{recursive:true});
+const body=fs.readFileSync('src/body.html','utf8');
+const css=fs.readFileSync('src/style.css','utf8');
+await build({entryPoints:['src/storage.js'], bundle:true, format:'iife', platform:'browser', outfile:'dist/assets/storage.js'});
+const entry=`document.head.insertAdjacentHTML('beforeend', ${JSON.stringify('<style>'+css+'</style>')});\ndocument.getElementById('app').innerHTML = ${JSON.stringify(body)};\ndocument.getElementById('app').insertAdjacentHTML('beforeend', '<div id=\"storage-loading\" style=\"position:fixed;inset:0;background:#1B3A1B;color:white;z-index:10000;display:grid;place-items:center\">正在读取游戏进度…</div><div id=\"storage-status\" hidden style=\"position:fixed;top:0;left:0;right:0;background:#9b2226;color:white;z-index:10001;padding:12px;text-align:center\"></div>');
+const s=document.createElement('script'); s.src=new URL('./storage.js',import.meta.url).href; s.onload=()=>{const g=document.createElement('script');g.src=new URL('./game.js',import.meta.url).href;document.body.appendChild(g)}; document.body.appendChild(s);\n`;
+fs.writeFileSync('dist/assets/app.js',entry);
+fs.copyFileSync('src/game.js','dist/assets/game.js');
+fs.copyFileSync('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...JSON.parse(fs.readFileSync('source.json','utf8'))}));
