@@ -64,6 +64,37 @@ seed.sql               # metadata.seeds 存在时收录
 
 发布前同时验证源码方式与一键安装方式。showcase 的示例数据不等同于真实初始数据，安装后的数据只由 schema、seed 及应用已实现的初始化逻辑决定。
 
+## 函数后端与共享仓库
+
+函数模板在 metadata.json 增加 `repositories`、`functions`、`web_repository`、`private_database` 和 `site_variables`；打包器将这些字段原样带入 install.json。源 ZIP 的根部保留 metadata/showcase/SQL，每个逻辑 Git 快照保存一次，例如 `repositories/app/`，其中可以同时包含前端、多个函数 ID 目录和公共 Go 包。
+
+```json
+{
+  "database_required": true,
+  "private_database": true,
+  "web_repository": "app",
+  "repositories": [{
+    "key": "app",
+    "path": "repositories/app",
+    "variables": [{"name":"FUNCTION_ID:api","placeholder":"__TIANA_FUNCTION_API_91ad47ef__","description":"安装后的订单函数","files":["src/app.js"]}]
+  }],
+  "functions": [{
+    "key": "api", "name": "订单接口", "repository": "app", "source_dir": "/services/orders",
+    "parameters": {"MESSAGE":"欢迎使用订单服务"},
+    "database": {"endpoint_parameter":"SQLITE_ENDPOINT","token_parameter":"SQLITE_TOKEN"}
+  }],
+  "site_variables": [{"name":"FUNCTION_ID:api","placeholder":"__TIANA_FUNCTION_API_91ad47ef__","description":"安装后的订单函数","files":["app.js"]}]
+}
+```
+
+上例与原 metadata 的名称、简介、schema/seeds 等字段一起使用。`npm run pack` 在 web_repository 对应子目录执行 npm ci/build 并读取其 dist。源 variables 的路径相对于对应仓库，site_variables 路径相对于前端 dist，必须填写本次构建实际文件名。占位符须以普通字符串保留在编译文件中；打包器检查声明位置。Function/Git 变量为 `FUNCTION_ID:<key>`、`GIT_INSTANCE_ID:<key>`，其余资源变量沿用 WEB_ID、SQLITE_INSTANCE_ID。每个变量使用独立的随机占位符。
+
+`source_dir` 填写服务元信息中保存的仓库内目录，支持 `/` 根目录；入口目录包含 package main 的 Go 文件，所属 go.mod 可位于入口目录或仓库内上级目录；多个入口可共享同一模块。安装保留仓库目录结构，为新服务 ID 关联同一个 source_dir，不改名源码目录。同仓同目录允许多个服务引用。源码 variables 的文件路径相对于原仓库，资源 ID 引用仍按声明替换；数据库 Token 只写入运行参数。
+
+`private_database: true` 让 SQLite 仅供函数后端使用，Web 不绑定该数据库。安装创建新实例 Token，只写入函数 database 声明的参数；parameters 只允许作者主动筛选的公开业务初值，不导出在线参数全表。函数可选 cors 使用当前函数 CORS 对象。前端经 `context.functions.fetch` 调用新函数，安装器更新 Web 现有函数列表，并替换 site_variables 中的前端引用。
+
+函数源码始终包含在安装包中，安装时必需；用户不保留额外前端源码时，函数使用的 Git 仍保留，同仓前端仍关联它。不同仓库不能因为包含同名文件而合并。发布前应从另一租户实际安装、调用并验证新数据库数据及浏览器凭据隔离；保留一份共享 Git、映射新函数目录、失败重试复用已创建资源均需验收。
+
 ## 可选素材文件（格式版本 2）
 
 需要素材的模板在 metadata.json 声明 `"file_seeds":"template-files"`，并将全部素材
@@ -103,3 +134,7 @@ Git 初始内容、数据库相对路径及浏览器读取结果。检查刷新�
 
 新格式发布须等待服务端兼容版 C 已覆盖全部安装节点，以及完整功能、Gaia 续装和
 终止清理、同频异常扫描告警验收完成。此打包器实现本身不代表云端已支持新格式。
+
+## 组合后端与素材
+
+函数模板可以同时声明 `functions`/`repositories` 与 `file_seeds`。此时 install.json 同时保留上述后端字段（`private_database`、`web_repository`、`repositories`、`functions`、`site_variables`）以及 `format_version: 2`、`requires: ["template_files_v1"]` 和 `files` 对象；未声明素材的后端模板仍不写 `format_version`、`requires` 或 `files`。素材只从模板根 `template-files/` 读取，不放入 `repositories/<key>/` 子目录；16 MiB/32 MiB 等上限同时约束整个安装包。前端仍在 `web_repository` 内构建，构建结果不得复制素材或把素材重新嵌入 JavaScript，`site_variables` 占位符必须保留在编译产物中。

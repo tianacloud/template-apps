@@ -85,6 +85,20 @@ test("pack preserves photo assets larger than one MiB", async t => {
   assert.deepEqual(Buffer.from(zip["photo.jpg"]), photo);
 });
 
+test("one Function placeholder can be recorded in multiple repositories", async t => {
+  const f = await fixture(t);
+  const variable = {name: "FUNCTION_ID:api", placeholder: "__TIANA_FUNCTION_API_abc139fd__", description: "API function", files: ["config.js"]};
+  f.metadata.repositories = ["web", "worker"].map(key => ({key, path: `repositories/${key}`, variables: [variable]}));
+  for (const repo of f.metadata.repositories) {
+    await mkdir(path.join(f.directory, repo.path), {recursive: true});
+    await writeFile(path.join(f.directory, repo.path, "config.js"), `export const api = '${variable.placeholder}';`);
+  }
+  await writeFile(path.join(f.directory, "metadata.json"), JSON.stringify(f.metadata));
+  await validateTemplate(f.root, "demo");
+  await writeFile(path.join(f.directory, "src/extra.js"), variable.placeholder);
+  await assert.rejects(validateTemplate(f.root, "demo"), /unrecorded location src\/extra.js/);
+});
+
 test("installation package builds the selected source and separates preview and SQL", async t => {
   const f = await fixture(t);
   await mkdir(path.join(f.directory, "showcase"), { recursive: true });
@@ -114,6 +128,37 @@ test("installation package builds the selected source and separates preview and 
   assert.equal(strFromU8(files["seed.sql"]),await readFile(path.join(f.directory,"seed.sql"),"utf8"));
   const again = await packInstallTemplate(f.root,"demo",commit);
   assert.equal(again.sha256,result.sha256);
+});
+
+test("backend install builds Web in shared repository and preserves Function recipes", async t => {
+  const f = await fixture(t);
+  const repo = path.join(f.directory, "repositories/app");
+  await mkdir(path.join(repo, "functions/fn-old"), {recursive:true});
+  await writeFile(path.join(repo, "functions/fn-old/main.go"), "package main\nfunc main() {}\n");
+  await writeFile(path.join(repo,"package.json"),JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
+  await writeFile(path.join(repo,"package-lock.json"),JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));
+  const placeholder = "__TIANA_FUNCTION_API_abc139fd__";
+  await writeFile(path.join(repo,"app.js"),`call('${placeholder}');`);
+  await writeFile(path.join(repo,"build.cjs"),`const fs=require('fs');fs.mkdirSync('dist');fs.copyFileSync('app.js','dist/app.js');console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'app.js'}));`);
+  const variable = {name:"FUNCTION_ID:api",placeholder,description:"Function backend",files:["app.js"]};
+  Object.assign(f.metadata,{private_database:true,web_repository:"app",
+    repositories:[{key:"app",path:"repositories/app",variables:[variable]}],
+    functions:[{key:"api",name:"API",repository:"app",source_dir:"/functions/fn-old",database:{endpoint_parameter:"SQLITE_ENDPOINT",token_parameter:"SQLITE_TOKEN"}}],site_variables:[variable]});
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  await writeFile(path.join(repo, "go.mod"), "module rootservice\n\ngo 1.26\n");
+  await writeFile(path.join(repo, "main.go"), "package main\nfunc main() {}\n");
+  f.metadata.functions.push({key:"copy",name:"Shared API",repository:"app",source_dir:"/functions/fn-old"}, {key:"root",name:"Root API",repository:"app",source_dir:"/"});
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  const git = (...args) => execFileSync("git",args,{cwd:f.root,encoding:"utf8",stdio:"pipe"});
+  git("add",".");git("-c","user.name=Fixture","-c","user.email=fixture@example.test","commit","-qm","Backend materials");
+  const {packInstallTemplate} = await import("./pack-template.mjs");
+  const result = await packInstallTemplate(f.root,"demo");
+  const files = unzipSync(await readFile(result.file));
+  const manifest = JSON.parse(strFromU8(files["install.json"]));
+  for (const key of ["private_database","web_repository","repositories","functions","site_variables"])
+    assert.deepEqual(manifest[key],f.metadata[key]);
+  assert.match(strFromU8(unzipSync(files["site.tweb"])["data/app.js"]),/__TIANA_FUNCTION_API_abc139fd__/);
+  assert.ok(unzipSync(files["source.zip"])["repositories/app/functions/fn-old/main.go"]);
 });
 
 test("file seeds are validated and bounded before building", async () => {
@@ -184,4 +229,98 @@ test("required platform icon keeps its packaging exception without allowing rena
   const seeds = templateFileMaterials({"template-files/images/cover.png":bytes}, {file_seeds:"template-files"});
   assert.doesNotThrow(() => checkSeedBuildOutputs({"data/icon.png":bytes}, seeds));
   assert.throws(() => checkSeedBuildOutputs({"data/renamed.png":bytes}, seeds), /embedded/);
+});
+
+test("backend recipe and optional file seeds combine without losing either manifest", async t => {
+  const f = await fixture(t);
+  const git = (...args) => execFileSync("git", args, {cwd:f.root, encoding:"utf8", stdio:"pipe"});
+  const commit = message => {
+    git("add","-A",".");
+    git("-c","user.name=Fixture","-c","user.email=fixture@example.test","commit","-qm",message);
+    return git("rev-parse","HEAD").trim();
+  };
+  const app = path.join(f.directory,"repositories/app");
+  const worker = path.join(f.directory,"repositories/worker");
+  await mkdir(path.join(app,"functions/fn-old"),{recursive:true});
+  await mkdir(worker,{recursive:true});
+  const placeholder = "__TIANA_FUNCTION_API_abc139fd__";
+  const variable = {name:"FUNCTION_ID:api",placeholder,description:"Installed Function",files:["app.js"]};
+  await writeFile(path.join(app,"app.js"),`call('${placeholder}') // template-assets/images/cover.png\n`);
+  await writeFile(path.join(worker,"config.js"),`export const api='${placeholder}';\n`);
+  await writeFile(path.join(app,"go.mod"),"module rootservice\n\ngo 1.26\n");
+  await writeFile(path.join(app,"functions/fn-old/main.go"),"package main\nfunc main() {}\n");
+  Object.assign(f.metadata,{
+    private_database:true, web_repository:"app",
+    repositories:[
+      {key:"app",path:"repositories/app",variables:[variable]},
+      {key:"worker",path:"repositories/worker",variables:[{...variable,files:["config.js"]}]},
+    ],
+    functions:[{key:"api",name:"API",repository:"app",source_dir:"/functions/fn-old",database:{endpoint_parameter:"SQLITE_ENDPOINT",token_parameter:"SQLITE_TOKEN"}}],
+    site_variables:[variable],
+  });
+  await writeFile(path.join(app,"package.json"),JSON.stringify({name:"demo",version:"1.0.0",scripts:{build:"node build.cjs"}}));
+  await writeFile(path.join(app,"package-lock.json"),JSON.stringify({name:"demo",version:"1.0.0",lockfileVersion:3,packages:{"":{name:"demo",version:"1.0.0"}}}));
+  const legacyBuild = `const fs=require('fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('app.js','dist/app.js');console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'app.js'}));`;
+  await writeFile(path.join(app,"build.cjs"),legacyBuild);
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  const legacyCommit = commit("Backend template before file seeds");
+  const { createHash } = await import("node:crypto");
+  const { packInstallTemplate } = await import("./pack-template.mjs");
+  const legacy = await packInstallTemplate(f.root,"demo",legacyCommit);
+  const legacyFiles = unzipSync(await readFile(legacy.file));
+  const legacyManifest = JSON.parse(strFromU8(legacyFiles["install.json"]));
+  for (const key of ["private_database","web_repository","repositories","functions","site_variables"])
+    assert.deepEqual(legacyManifest[key],f.metadata[key]);
+  assert.equal(legacyManifest.format_version,undefined);
+  assert.equal(legacyManifest.files,undefined);
+  assert.ok(!Object.keys(legacyFiles).some(name => name.startsWith("files/")));
+  assert.ok(!Object.keys(unzipSync(legacyFiles["site.tweb"])).some(name => /template-(files|assets)/.test(name)));
+
+  const photo = Buffer.alloc(24576,0xcd), guide = Buffer.from("Synthetic guide for a combined backend and material template.\n");
+  await mkdir(path.join(f.directory,"template-files/images"),{recursive:true});
+  await mkdir(path.join(f.directory,"template-files/documents"),{recursive:true});
+  await writeFile(path.join(f.directory,"template-files/images/cover.png"),photo);
+  await writeFile(path.join(f.directory,"template-files/documents/guide.txt"),guide);
+  f.metadata.file_seeds = "template-files";
+  await writeFile(path.join(f.directory,"metadata.json"),JSON.stringify(f.metadata));
+  const seededBuild = `${legacyBuild}fs.copyFileSync('../../template-files/images/cover.png','dist/icon.png');`;
+  await writeFile(path.join(app,"build.cjs"),seededBuild);
+  const combinedCommit = commit("Backend template with file seeds");
+  const combined = await packInstallTemplate(f.root,"demo",combinedCommit);
+  const zip = unzipSync(await readFile(combined.file));
+  const source = unzipSync(zip["source.zip"]);
+  const site = unzipSync(zip["site.tweb"]);
+  const raw = Buffer.from(zip["install.json"]).toString();
+  const manifest = JSON.parse(raw);
+  assert.equal(manifest.format_version,2);
+  assert.deepEqual(manifest.requires,["template_files_v1"]);
+  for (const key of ["private_database","web_repository","repositories","functions","site_variables"])
+    assert.deepEqual(manifest[key],f.metadata[key]);
+  assert.deepEqual(manifest.files.entries.map(entry => entry.path),["documents/guide.txt","images/cover.png"]);
+  for (const entry of manifest.files.entries) {
+    const bytes = Buffer.from(zip[`files/${entry.path}`]);
+    assert.deepEqual(bytes,Buffer.from(source[`template-files/${entry.path}`]));
+    assert.equal(entry.size,bytes.length);
+    assert.equal(entry.sha256,createHash("sha256").update(bytes).digest("hex"));
+  }
+  assert.deepEqual(Buffer.from(zip["files/images/cover.png"]),photo);
+  assert.deepEqual(Buffer.from(zip["files/documents/guide.txt"]),guide);
+  assert.match(strFromU8(site["data/app.js"]),new RegExp(placeholder));
+  assert.deepEqual(Buffer.from(site["data/icon.png"]),photo);
+  assert.ok(!Object.keys(site).some(name => /template-(files|assets)/.test(name)));
+  assert.ok(source["repositories/app/functions/fn-old/main.go"]);
+  assert.ok(source["repositories/app/go.mod"]);
+  assert.match(strFromU8(source["repositories/worker/config.js"]),new RegExp(placeholder));
+  assert.equal(combined.file_count,2);
+  assert.equal(combined.file_bytes,photo.length+guide.length);
+  const rawFiles = raw.slice(raw.lastIndexOf('"files":')+8,raw.lastIndexOf("}"));
+  assert.equal(combined.file_manifest_sha256,createHash("sha256").update(rawFiles).digest("hex"));
+
+  await writeFile(path.join(app,"build.cjs"),`${legacyBuild}fs.copyFileSync('../../template-files/images/cover.png','dist/cover.png');`);
+  const copiedCommit = commit("Reject copied seed in dist");
+  await assert.rejects(packInstallTemplate(f.root,"demo",copiedCommit),/embedded/);
+
+  await writeFile(path.join(app,"build.cjs"),`${seededBuild}fs.writeFileSync('dist/app.js',"call('old-function-id')");`);
+  const missingCommit = commit("Reject missing built site placeholder");
+  await assert.rejects(packInstallTemplate(f.root,"demo",missingCommit),/Built site placeholder missing/);
 });
