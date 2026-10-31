@@ -1,0 +1,3454 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<title>被动收入小账本 · 每天躺赚多少钱</title>
+<meta name="description" content="统一管理银行定期、余额宝、公积金等被动收益资产，按单利自动计算每日收益并汇总今日被动收入。记录和设置保存在应用数据库。" />
+<meta name="theme-color" content="#0f766e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="被动收入小账本" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230f766e'/%3E%3Cpath d='M32 50V30' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M32 34c0-9 7-15 18-15 0 9-8 15-18 15z' fill='%23fff' fill-opacity='.92'/%3E%3Cpath d='M32 39c0-7-6-11-15-11 0 7 6 11 15 11z' fill='%23fff' fill-opacity='.62'/%3E%3C/svg%3E" />
+<style>/* ============================================================
+   被动收入小账本 · 样式
+   设计基调：财务类浅色简约，深青绿主色，收益金额用暖红
+   支持浅色 / 深色 / 跟随系统
+   ============================================================ */
+
+:root {
+  --brand: #0f766e;
+  --brand-deep: #0a5a54;
+  --brand-soft: #e5f2f0;
+  --brand-line: #cfe6e2;
+  --gain: #c8483a;
+  --gain-soft: #fbeeec;
+  --warn: #b0741a;
+  --warn-soft: #fdf4e3;
+  --warn-line: #f3e2bd;
+
+  --bg: #f2f5f6;
+  --surface: #ffffff;
+  --surface-2: #f7f9fa;
+  --ink: #16232a;
+  --ink-2: #3d4f59;
+  --muted: #7c8b95;
+  --faint: #a3b0b8;
+  --line: #e5ecee;
+  --line-2: #eef3f4;
+
+  --shadow-sm: 0 1px 2px rgba(16, 44, 52, .04), 0 6px 16px -6px rgba(16, 44, 52, .10);
+  --shadow-md: 0 2px 6px rgba(16, 44, 52, .05), 0 16px 32px -16px rgba(16, 44, 52, .18);
+  --shadow-hero: 0 18px 34px -16px rgba(10, 90, 84, .55);
+  --radius: 16px;
+  --radius-lg: 20px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+[data-theme="dark"] {
+  --brand: #35b3a4;
+  --brand-deep: #1c8b80;
+  --brand-soft: #12312e;
+  --brand-line: #1d4742;
+  --gain: #ef8375;
+  --gain-soft: #35211e;
+  --warn: #e0ac55;
+  --warn-soft: #332916;
+  --warn-line: #4a3b1f;
+
+  --bg: #0d1418;
+  --surface: #161f25;
+  --surface-2: #1b262d;
+  --ink: #e9eff2;
+  --ink-2: #b9c6cd;
+  --muted: #8b9aa3;
+  --faint: #6c7c86;
+  --line: #25323a;
+  --line-2: #202b32;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 16px -8px rgba(0, 0, 0, .5);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, .35), 0 18px 34px -18px rgba(0, 0, 0, .7);
+  --shadow-hero: 0 18px 34px -18px rgba(0, 0, 0, .8);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body.modal-open { overflow: hidden; }
+
+button { font-family: inherit; font-size: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+a { color: var(--brand); text-decoration: none; }
+
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ---------------- 骨架 ---------------- */
+
+.app {
+  max-width: 780px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(10px + var(--safe-t)) 18px 10px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar .sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  display: block;
+  margin-top: 1px;
+  letter-spacing: .2px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  flex: none;
+  transition: transform .12s, background .12s;
+}
+.icon-btn:active { transform: scale(.94); }
+.icon-btn svg { width: 19px; height: 19px; display: block; }
+
+.view {
+  flex: 1;
+  padding: 4px 16px calc(112px + var(--safe-b));
+  animation: fade .22s ease;
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------------- 底部导航 ---------------- */
+
+.tabbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12px + var(--safe-b));
+  z-index: 40;
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  width: calc(100% - 24px);
+  max-width: 460px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(18px);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  box-shadow: 0 2px 8px rgba(16, 44, 52, .06), 0 18px 30px -14px rgba(16, 44, 52, .24),
+    inset 0 0 0 1px color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.tabbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 2px 6px;
+  border-radius: 14px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color .15s, background .15s;
+  position: relative;
+}
+.tabbar button svg { width: 21px; height: 21px; }
+.tabbar button.on { color: var(--brand); background: var(--brand-soft); font-weight: 700; }
+.tabbar .dot {
+  position: absolute;
+  top: 5px;
+  right: 50%;
+  margin-right: -16px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ---------------- 卡片 / 区块 ---------------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 15px 16px;
+  margin-bottom: 11px;
+}
+
+.sec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 2px 9px;
+}
+.sec h2 { margin: 0; font-size: 14.5px; font-weight: 700; letter-spacing: .2px; }
+.sec .more { font-size: 12.5px; color: var(--brand); font-weight: 600; }
+.sec .hint { font-size: 11.5px; color: var(--muted); }
+
+/* ---------------- 首页 hero ---------------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 16px;
+  margin-bottom: 12px;
+  color: #fff;
+  background: linear-gradient(138deg, #0a5a54 0%, #0f766e 48%, #14907f 100%);
+  box-shadow: var(--shadow-hero);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  top: -90px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 68%);
+  pointer-events: none;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  left: -50px;
+  bottom: -110px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, .78);
+  position: relative;
+  z-index: 1;
+}
+.hero-pill {
+  background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .18);
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  letter-spacing: .3px;
+}
+
+.hero-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, .82);
+  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: clamp(36px, 10.5vw, 46px);
+  font-weight: 700;
+  letter-spacing: -1.2px;
+  line-height: 1.12;
+  margin: 2px 0 0;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hero-amount .cur { font-size: .48em; font-weight: 600; opacity: .82; letter-spacing: 0; }
+
+.hero-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, .72);
+  position: relative;
+  z-index: 1;
+}
+.hero-meta b { color: #fff; font-weight: 600; }
+
+.hero-foot {
+  display: flex;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+  position: relative;
+  z-index: 1;
+}
+.hero-foot > div { flex: 1; min-width: 0; }
+.hero-foot > div + div {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, .14);
+  margin-left: 12px;
+}
+.hero-foot b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.2px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-foot i {
+  font-style: normal;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, .66);
+  letter-spacing: .2px;
+}
+
+/* 目标进度 */
+.goal-wrap { margin-top: 13px; position: relative; z-index: 1; }
+.goal-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, .8);
+  margin-bottom: 5px;
+}
+.goal-bar { height: 5px; border-radius: 100px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.goal-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #fff, #bff0e6);
+  transition: width .5s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------- 统计小卡 ---------------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 12px;
+}
+.stat {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px 11px;
+  box-shadow: var(--shadow-sm);
+}
+.stat .k { font-size: 10.5px; color: var(--muted); letter-spacing: .2px; white-space: nowrap; }
+.stat .v {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.4px;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat .v.gain { color: var(--gain); }
+.stat .v.plain { color: var(--ink); }
+
+/* ---------------- 提醒条 ---------------- */
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn-line);
+  border-radius: 13px;
+  padding: 11px 13px;
+  margin-bottom: 12px;
+  width: 100%;
+  text-align: left;
+}
+.alert .ic { color: var(--warn); flex: none; margin-top: 1px; }
+.alert .ic svg { width: 17px; height: 17px; display: block; }
+.alert b { display: block; font-size: 12.5px; color: var(--warn); font-weight: 700; }
+.alert p { margin: 2px 0 0; font-size: 11.5px; color: var(--warn); opacity: .88; line-height: 1.45; }
+
+/* ---------------- 资产卡片 ---------------- */
+
+.asset {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  margin-bottom: 9px;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  text-align: left;
+  transition: transform .12s, box-shadow .15s;
+  position: relative;
+}
+.asset:active { transform: scale(.988); }
+.asset .bar {
+  width: 3px;
+  border-radius: 3px;
+  background: var(--brand-line);
+  flex: none;
+  margin: 2px 0;
+}
+.asset.off .bar { background: var(--line); }
+.asset .mid { flex: 1; min-width: 0; }
+.asset .name {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: .1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+.asset .name span.t {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  letter-spacing: .2px;
+}
+.asset.off .name span.t { background: var(--surface-2); color: var(--faint); }
+.asset .name em {
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset .sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.asset .sub .sep { color: var(--line); }
+.asset .right { text-align: right; flex: none; display: flex; flex-direction: column; justify-content: center; }
+.asset .right .d {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--gain);
+  letter-spacing: -.4px;
+  font-variant-numeric: tabular-nums;
+}
+.asset.off .right .d { color: var(--faint); }
+.asset .right .u { font-size: 10px; color: var(--faint); margin-top: 2px; }
+
+.asset .del {
+  flex: none;
+  align-self: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint);
+}
+.asset .del:active { background: var(--gain-soft); color: var(--gain); }
+.asset .del svg { width: 17px; height: 17px; }
+
+.pending-tip {
+  font-size: 10.5px;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+/* ---------------- 空状态 ---------------- */
+
+.empty {
+  text-align: center;
+  padding: 44px 24px 32px;
+}
+.empty .art {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.empty .art svg { width: 34px; height: 34px; }
+.empty h3 { margin: 0 0 6px; font-size: 15.5px; font-weight: 700; }
+.empty p { margin: 0 0 18px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+/* ---------------- 按钮 ---------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 13px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: .3px;
+  transition: transform .12s, opacity .15s, background .15s;
+  width: 100%;
+}
+.btn:active { transform: scale(.977); }
+.btn svg { width: 18px; height: 18px; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(15, 118, 110, .7);
+}
+[data-theme="dark"] .btn-primary { color: #06231f; box-shadow: none; }
+.btn-ghost { background: var(--surface); color: var(--ink-2); box-shadow: var(--shadow-sm); }
+.btn-soft { background: var(--brand-soft); color: var(--brand); }
+.btn-danger { background: var(--gain-soft); color: var(--gain); }
+.btn-sm { height: 38px; font-size: 13.5px; padding: 0 15px; width: auto; border-radius: 11px; }
+.btn-row { display: flex; gap: 9px; }
+
+/* ---------------- 表单 ---------------- */
+
+.form-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 4px 16px;
+  margin-bottom: 11px;
+}
+.field { padding: 13px 0; border-bottom: 1px solid var(--line-2); }
+.field:last-child { border-bottom: 0; }
+.field > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .3px;
+  margin-bottom: 6px;
+}
+.field > label .opt { font-weight: 500; color: var(--faint); font-size: 11px; }
+.field input,
+.field textarea {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -.1px;
+}
+.field input::placeholder, .field textarea::placeholder { font-weight: 400; color: var(--faint); }
+.field input[type="date"] { font-weight: 600; }
+.field .err {
+  font-size: 11.5px;
+  color: var(--gain);
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field.bad { border-color: var(--gain-soft); }
+.field.bad input { color: var(--gain); }
+
+.field-row { display: flex; gap: 0; }
+.field-row .field { flex: 1; }
+.field-row .field + .field { border-left: 1px solid var(--line-2); padding-left: 14px; margin-left: 14px; }
+
+.unit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.field .rel { position: relative; }
+
+/* 类型选择 */
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.type-opt {
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  padding: 10px 11px;
+  text-align: left;
+  background: var(--surface);
+  transition: border-color .15s, background .15s;
+}
+.type-opt b { display: block; font-size: 13px; font-weight: 650; }
+.type-opt i { display: block; font-style: normal; font-size: 10px; color: var(--faint); margin-top: 2px; }
+.type-opt.on { border-color: var(--brand); background: var(--brand-soft); }
+.type-opt.on b { color: var(--brand); }
+
+/* 开关 */
+.switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 100px;
+  background: var(--line);
+  flex: none;
+  transition: background .2s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+  transition: transform .2s cubic-bezier(.3, .8, .3, 1);
+}
+.switch.on { background: var(--brand); }
+.switch.on::after { transform: translateX(18px); }
+
+.sw-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-2);
+  width: 100%;
+  text-align: left;
+}
+.sw-row:last-child { border-bottom: 0; }
+.sw-row .txt { flex: 1; min-width: 0; }
+.sw-row .txt b { display: block; font-size: 14px; font-weight: 600; }
+.sw-row .txt i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+
+/* 分段控制 */
+.seg {
+  display: flex;
+  gap: 3px;
+  background: var(--surface-2);
+  border-radius: 11px;
+  padding: 3px;
+  margin-bottom: 12px;
+}
+.seg button {
+  flex: 1;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background .15s, color .15s;
+}
+.seg button.on { background: var(--surface); color: var(--brand); box-shadow: var(--shadow-sm); }
+
+/* 搜索 */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: 13px;
+  padding: 0 13px;
+  height: 44px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+.search svg { width: 16px; height: 16px; color: var(--faint); flex: none; }
+.search input { flex: 1; border: 0; outline: 0; background: none; font-size: 14px; }
+.search .clr { color: var(--faint); font-size: 15px; padding: 4px; }
+
+/* ---------------- 预览条 ---------------- */
+
+.preview {
+  background: linear-gradient(135deg, var(--brand-soft), transparent);
+  border: 1px solid var(--brand-line);
+  border-radius: 13px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.preview .l { font-size: 11px; color: var(--muted); letter-spacing: .3px; }
+.preview .n {
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--brand);
+  letter-spacing: -.6px;
+  font-variant-numeric: tabular-nums;
+  margin: 1px 0 2px;
+}
+.preview .n small { font-size: 13px; font-weight: 600; opacity: .8; }
+.preview .m { font-size: 11.5px; color: var(--muted); }
+
+/* ---------------- 图表 ---------------- */
+
+.chart-card { padding: 14px 12px 8px; }
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 8px; }
+.chart-head b { font-size: 14.5px; font-weight: 700; }
+.chart-head span { font-size: 11.5px; color: var(--muted); }
+.chart-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-svg .gl { stroke: var(--line-2); stroke-width: 1; }
+.chart-svg .lab { fill: var(--faint); font-size: 10.5px; font-weight: 500; }
+.chart-svg .area { fill: url(#gArea); }
+.chart-svg .line { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chart-svg .pt { fill: var(--surface); stroke: var(--brand); stroke-width: 2; }
+.chart-svg rect[data-action]:hover { fill: var(--brand-soft); fill-opacity: .35; }
+
+/* 历史列表 */
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line-2);
+  width: 100%;
+  text-align: left;
+}
+.hist-row:last-child { border-bottom: 0; }
+.hist-row .day { flex: none; width: 62px; }
+.hist-row .day b { display: block; font-size: 13.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.hist-row .day i { display: block; font-style: normal; font-size: 10px; color: var(--faint); }
+.hist-row .bar-w { flex: 1; height: 6px; background: var(--surface-2); border-radius: 100px; overflow: hidden; }
+.hist-row .bar-w span { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-line), var(--brand)); border-radius: 100px; }
+.hist-row .val {
+  flex: none;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--gain);
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+  text-align: right;
+}
+
+/* ---------------- 提醒分组 ---------------- */
+
+.group-t {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .4px;
+  padding: 14px 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.group-t .n {
+  font-size: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  border-radius: 100px;
+  padding: 1px 7px;
+  font-weight: 600;
+}
+
+.rem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+}
+.rem .left { flex: 1; min-width: 0; }
+.rem .left b { display: block; font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rem .left i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.rem .days { flex: none; text-align: right; margin-right: 4px; }
+.rem .days b {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--warn);
+}
+.rem .days i { font-style: normal; font-size: 9.5px; color: var(--faint); }
+.rem.urgent .days b { color: var(--gain); }
+.rem.dead { opacity: .62; }
+.rem.dead .days b { color: var(--faint); font-size: 13px; }
+
+/* ---------------- 设置 ---------------- */
+
+.set-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-2);
+  width: 100%;
+  text-align: left;
+}
+.set-item:last-child { border-bottom: 0; }
+.set-item .txt { flex: 1; min-width: 0; }
+.set-item .txt b { display: block; font-size: 14px; font-weight: 600; }
+.set-item .txt i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.set-item .val { font-size: 13px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+.set-item .chev { color: var(--faint); flex: none; display: flex; }
+.set-item .chev svg { width: 16px; height: 16px; }
+
+.dec-opts { display: flex; gap: 6px; flex: none; }
+.dec-opts button {
+  width: 34px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.dec-opts button.on { background: var(--brand); color: #fff; }
+[data-theme="dark"] .dec-opts button.on { color: #06231f; }
+
+.about {
+  text-align: center;
+  padding: 26px 16px 8px;
+  color: var(--faint);
+  font-size: 11.5px;
+  line-height: 1.8;
+}
+.about .logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 17px;
+  background: linear-gradient(138deg, #0a5a54, #14907f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+.about .logo svg { width: 28px; height: 28px; }
+.about .vn { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+
+.disc {
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--faint);
+  line-height: 1.7;
+  padding: 6px 8px 2px;
+}
+
+/* ---------------- 弹层 ---------------- */
+
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10, 24, 30, .42);
+  backdrop-filter: blur(2px);
+  animation: mfade .18s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+@keyframes mfade { from { opacity: 0; } to { opacity: 1; } }
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 20px calc(20px + var(--safe-b));
+  animation: sup .26s cubic-bezier(.2, .9, .25, 1);
+  max-height: 88dvh;
+  overflow-y: auto;
+}
+@keyframes sup { from { transform: translateY(100%); } to { transform: none; } }
+
+.sheet-bar { width: 38px; height: 4px; border-radius: 100px; background: var(--line); margin: 4px auto 14px; }
+.sheet h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: .2px; }
+.sheet .desc { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0 0 16px; }
+.sheet .acts { display: flex; gap: 9px; margin-top: 18px; }
+.sheet .acts .btn { flex: 1; }
+
+.kv { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
+.kv:last-child { border-bottom: 0; }
+.kv .k { color: var(--muted); }
+.kv .v { font-weight: 650; font-variant-numeric: tabular-nums; }
+.kv .v.gain { color: var(--gain); }
+
+/* toast */
+#toast-root {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(96px + var(--safe-b));
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(20, 35, 42, .92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 17px;
+  border-radius: 100px;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, .5);
+  animation: tin .22s ease;
+  max-width: calc(100% - 48px);
+  text-align: center;
+}
+[data-theme="dark"] .toast { background: rgba(240, 246, 248, .95); color: #101a20; }
+@keyframes tin { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: none; } }
+.toast.out { animation: tout .2s ease forwards; }
+@keyframes tout { to { opacity: 0; transform: translateY(-6px); } }
+
+/* 提示横幅 */
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--warning, var(--warn-soft));
+  border: 1px solid var(--warn-line);
+  color: var(--warn);
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+/* 桌面端微调 */
+@media (min-width: 720px) {
+  .view { padding-left: 22px; padding-right: 22px; }
+  .topbar { padding-left: 22px; padding-right: 22px; }
+  .hero { padding: 22px 24px 18px; }
+  .hero-amount { font-size: 50px; }
+  .stat-grid { gap: 12px; }
+  .stat { padding: 14px 15px; }
+  .stat .v { font-size: 18px; }
+  .asset { padding: 15px 16px; }
+  .asset .right .d { font-size: 18px; }
+  .type-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style></head>
+<body><div style="position:relative;z-index:1000;background:#e1f6ef;color:#164e45;padding:8px;text-align:center">示例体验 · 数据仅保存在当前页面 <button id="reset-demo" type="button">恢复示例</button></div>
+
+<div class="app">
+  <header class="topbar" id="topbar"></header>
+  <main class="view" id="view" role="main"></main>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="主导航">
+  <button data-action="go" data-page="home" aria-label="总览">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.2 12 3.4l9 6.8V20a1 1 0 0 1-1 1h-5.2v-6.2H9.2V21H4a1 1 0 0 1-1-1z"/></svg>
+    <span>总览</span>
+  </button>
+  <button data-action="go" data-page="assets" aria-label="资产">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="18" height="14" rx="3.2"/><path d="M3 11h18"/><circle cx="16.6" cy="16" r="1.25" fill="currentColor" stroke="none"/></svg>
+    <span>资产</span>
+  </button>
+  <button data-action="go" data-page="history" aria-label="收益记录">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5V19a1 1 0 0 0 1 1h15"/><path d="M7.6 15.2l3.6-4.2 3.1 2.7 4.3-6.1"/></svg>
+    <span>收益</span>
+  </button>
+  <button data-action="go" data-page="reminders" aria-label="到期提醒">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.2 9.2a6.2 6.2 0 1 0-12.4 0c0 5-2.1 6.3-2.1 6.3h16.6s-2.1-1.3-2.1-6.3"/><path d="M10.3 19.4a1.9 1.9 0 0 0 3.4 0"/></svg>
+    <span class="dot" style="display:none"></span>
+    <span>提醒</span>
+  </button>
+  <button data-action="go" data-page="settings" aria-label="设置">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.2h8.4"/><path d="M17.4 7.2H20"/><circle cx="15" cy="7.2" r="2.4"/><path d="M4 16.8h3.4"/><path d="M12.4 16.8H20"/><circle cx="9.1" cy="16.8" r="2.4"/></svg>
+    <span>设置</span>
+  </button>
+</nav>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<noscript>
+  <div style="padding:40px 24px;text-align:center;font-family:sans-serif">
+    被动收入小账本需要启用 JavaScript 才能使用。
+  </div>
+</noscript>
+
+<script>
+window.PILStorage = (()=>{let data={}; return {get:k=>data[k] ?? null,set:(k,v)=>{data[k]=v},reset:()=>{data={}}};})();
+</script><script>/**
+ * 被动收入小账本 · 计算内核（纯函数，无任何 UI / 存储依赖）
+ * 小程序与 Node 单元测试共用同一份代码，保证“算得对”。
+ *
+ * 统一规则（单利）：
+ *   每日收益 = 生效本金 × 生效年利率(%) ÷ 100 ÷ 365
+ *   有到期日资产：计息区间为 起息日 ~ 到期日的前一天，到期日当天起不再计息
+ *   无到期日资产：起息日起持续计息
+ *   本金 / 利率变更：通过 segments（时间分段）记录，变更日次日按新参数计息
+ */
+
+var MS_DAY = 86400000;
+
+function pad2(n) {
+  return n < 10 ? '0' + n : '' + n;
+}
+
+/** 'YYYY-MM-DD' -> UTC 毫秒；非法返回 null */
+function parseDate(key) {
+  if (!key) return null;
+  var p = String(key).slice(0, 10).split('-');
+  if (p.length !== 3) return null;
+  var y = parseInt(p[0], 10);
+  var m = parseInt(p[1], 10);
+  var d = parseInt(p[2], 10);
+  if (!y || !m || !d) return null;
+  var t = Date.UTC(y, m - 1, d);
+  return isNaN(t) ? null : t;
+}
+
+/** UTC 毫秒 -> 'YYYY-MM-DD' */
+function toKey(ms) {
+  var d = new Date(ms);
+  return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+}
+
+function isDateKey(key) {
+  return parseDate(key) !== null;
+}
+
+/** 日期加减天数，返回 'YYYY-MM-DD' */
+function addDays(key, n) {
+  var t = parseDate(key);
+  if (t === null) return key;
+  return toKey(t + n * MS_DAY);
+}
+
+/** b - a 的天数差（可为负） */
+function diffDays(a, b) {
+  var ta = parseDate(a);
+  var tb = parseDate(b);
+  if (ta === null || tb === null) return 0;
+  return Math.round((tb - ta) / MS_DAY);
+}
+
+/** 本地“今天”，'YYYY-MM-DD' */
+function todayKey() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function monthStartOf(key) {
+  return String(key).slice(0, 7) + '-01';
+}
+
+function yearStartOf(key) {
+  return String(key).slice(0, 4) + '-01-01';
+}
+
+/**
+ * 取资产的计息分段（按 from 升序）。
+ * 兼容只有 principal / rate 的老数据（自动补一段）。
+ */
+function segmentsOf(asset) {
+  if (!asset) return [];
+  var raw = Array.isArray(asset.segments) ? asset.segments : [];
+  var segs = [];
+  for (var i = 0; i < raw.length; i++) {
+    var s = raw[i];
+    if (!s || !isDateKey(s.from)) continue;
+    segs.push({
+      from: String(s.from).slice(0, 10),
+      principal: Number(s.principal) || 0,
+      rate: Number(s.rate) || 0
+    });
+  }
+  if (!segs.length && asset.startDate && isDateKey(asset.startDate)) {
+    segs.push({
+      from: String(asset.startDate).slice(0, 10),
+      principal: Number(asset.principal) || 0,
+      rate: Number(asset.rate) || 0
+    });
+  }
+  segs.sort(function (a, b) {
+    if (a.from < b.from) return -1;
+    if (a.from > b.from) return 1;
+    return 0;
+  });
+  return segs;
+}
+
+/**
+ * 某个日期生效的本金与利率。
+ * 早于第一段时沿用第一段（用于展示“当前本金”）；晚于最后一段沿用最后一段。
+ */
+function effective(asset, dateKey) {
+  var segs = segmentsOf(asset);
+  if (!segs.length) return { principal: 0, rate: 0, from: '' };
+  var k = dateKey || todayKey();
+  var cur = segs[0];
+  for (var i = 0; i < segs.length; i++) {
+    if (segs[i].from <= k) cur = segs[i];
+    else break;
+  }
+  return { principal: cur.principal, rate: cur.rate, from: cur.from };
+}
+
+/** 当前本金（按今天） */
+function currentPrincipal(asset, dateKey) {
+  return effective(asset, dateKey || todayKey()).principal;
+}
+
+/**
+ * 尚未生效的分段（今天之后才起算的本金/利率调整），用于提示“明日起按新参数计息”
+ */
+function pendingSegment(asset, dateKey) {
+  var k = dateKey || todayKey();
+  var segs = segmentsOf(asset);
+  for (var i = 0; i < segs.length; i++) {
+    if (segs[i].from > k) return segs[i];
+  }
+  return null;
+}
+
+/**
+ * 计息窗口：起息日 ~ 到期日的前一天（被 untilKey 截断）。
+ * 返回 null 表示该日期尚无收益。
+ */
+function accrualWindow(asset, untilKey) {
+  if (!asset || !isDateKey(asset.startDate)) return null;
+  var from = String(asset.startDate).slice(0, 10);
+  var to = untilKey;
+  if (asset.endDate && isDateKey(asset.endDate)) {
+    var lastAccrual = addDays(String(asset.endDate).slice(0, 10), -1);
+    if (lastAccrual < to) to = lastAccrual;
+  }
+  if (!to || to < from) return null;
+  return { from: from, to: to };
+}
+
+/** 某一天的单日收益（不含该日则为 0） */
+function dailyIncome(asset, dateKey) {
+  var k = dateKey;
+  var w = accrualWindow(asset, k);
+  if (!w) return 0;
+  if (k < w.from || k > w.to) return 0;
+  var eff = effective(asset, k);
+  return eff.principal * (eff.rate / 100) / 365;
+}
+
+/**
+ * 区间 [fromKey, toKey] 内的收益合计（按分段逐段累加，段内按天数乘日收益）
+ */
+function incomeBetween(asset, fromKey, toKey) {
+  if (!fromKey || !toKey || toKey < fromKey) return 0;
+  var w = accrualWindow(asset, toKey);
+  if (!w) return 0;
+  var from = w.from > fromKey ? w.from : fromKey;
+  var to = w.to;
+  if (to < from) return 0;
+  var segs = segmentsOf(asset);
+  if (!segs.length) return 0;
+  var total = 0;
+  for (var i = 0; i < segs.length; i++) {
+    var segFrom = segs[i].from;
+    var segTo = i + 1 < segs.length ? addDays(segs[i + 1].from, -1) : null;
+    var f = segFrom > from ? segFrom : from;
+    var t = segTo === null ? to : segTo < to ? segTo : to;
+    if (t < f) continue;
+    var days = diffDays(f, t) + 1;
+    total += days * segs[i].principal * (segs[i].rate / 100) / 365;
+  }
+  return total;
+}
+
+/** 累计已产生收益（起息日 ~ 今天，含今天；到期后自动封顶） */
+function accruedIncome(asset, today) {
+  var k = today || todayKey();
+  return incomeBetween(asset, String(asset.startDate || '').slice(0, 10), k);
+}
+
+/** 已计息天数 */
+function daysAccrued(asset, today) {
+  var w = accrualWindow(asset, today || todayKey());
+  if (!w) return 0;
+  return diffDays(w.from, w.to) + 1;
+}
+
+/** 当天是否处于计息状态 */
+function isActive(asset, dateKey) {
+  var k = dateKey || todayKey();
+  if (!isDateKey(asset.startDate) || k < String(asset.startDate).slice(0, 10)) return false;
+  if (asset.endDate && isDateKey(asset.endDate) && k >= String(asset.endDate).slice(0, 10)) return false;
+  return true;
+}
+
+function hasEndDate(asset) {
+  return !!(asset && asset.endDate && isDateKey(asset.endDate));
+}
+
+/** 汇总：今日 / 本月 / 本年 / 累计 / 本金 */
+function summarize(assets, today) {
+  var k = today || todayKey();
+  var list = Array.isArray(assets) ? assets : [];
+  var mStart = monthStartOf(k);
+  var yStart = yearStartOf(k);
+  var rows = [];
+  var todayTotal = 0;
+  var monthTotal = 0;
+  var yearTotal = 0;
+  var allTotal = 0;
+  var principalTotal = 0;
+  var activeCount = 0;
+
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i];
+    var t = dailyIncome(a, k);
+    var acc = accruedIncome(a, k);
+    var m = incomeBetween(a, mStart, k);
+    var y = incomeBetween(a, yStart, k);
+    var p = currentPrincipal(a, k);
+    var active = isActive(a, k);
+    todayTotal += t;
+    monthTotal += m;
+    yearTotal += y;
+    allTotal += acc;
+    principalTotal += p;
+    if (active) activeCount++;
+    rows.push({
+      id: a.id,
+      asset: a,
+      name: a.name,
+      today: t,
+      month: m,
+      year: y,
+      accrued: acc,
+      principal: p,
+      days: daysAccrued(a, k),
+      active: active,
+      rate: effective(a, k).rate
+    });
+  }
+
+  rows.sort(function (a, b) {
+    if (b.today !== a.today) return b.today - a.today;
+    return b.accrued - a.accrued;
+  });
+
+  return {
+    date: k,
+    rows: rows,
+    todayTotal: todayTotal,
+    monthTotal: monthTotal,
+    yearTotal: yearTotal,
+    allTotal: allTotal,
+    principalTotal: principalTotal,
+    activeCount: activeCount,
+    count: list.length,
+    // 年化视角的两个参考值
+    monthAvgDaily: 0
+  };
+}
+
+/** 近 n 天每日总收益序列（含今天），用于折线/柱状图 */
+function historySeries(assets, today, days) {
+  var k = today || todayKey();
+  var n = days || 30;
+  var out = [];
+  for (var i = n - 1; i >= 0; i--) {
+    var d = addDays(k, -i);
+    var total = 0;
+    for (var j = 0; j < (assets || []).length; j++) {
+      total += dailyIncome(assets[j], d);
+    }
+    out.push({ date: d, total: total });
+  }
+  return out;
+}
+
+/** 某一天的资产明细（只列当日有收益的） */
+function breakdown(assets, dateKey) {
+  var out = [];
+  for (var i = 0; i < (assets || []).length; i++) {
+    var a = assets[i];
+    var v = dailyIncome(a, dateKey);
+    if (v > 0) out.push({ id: a.id, asset: a, name: a.name, today: v });
+  }
+  out.sort(function (a, b) { return b.today - a.today; });
+  return out;
+}
+
+/**
+ * 到期提醒分组
+ * soon: 0~7 天；later: 8~30 天；expired: 已到期（近 90 天内）
+ */
+function reminderGroups(assets, today, opts) {
+  var k = today || todayKey();
+  var o = opts || {};
+  var soon = [];
+  var later = [];
+  var expired = [];
+  var list = Array.isArray(assets) ? assets : [];
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i];
+    if (!hasEndDate(a)) continue;
+    if (o.remindOnly !== false && a.remind === false) continue;
+    var left = diffDays(k, String(a.endDate).slice(0, 10));
+    var item = { id: a.id, asset: a, name: a.name, endDate: a.endDate, daysLeft: left, remind: a.remind !== false };
+    if (left < 0) {
+      if (left >= -90) expired.push(item);
+    } else if (left <= 7) {
+      soon.push(item);
+    } else if (left <= 30) {
+      later.push(item);
+    } else if (o.remindOnly === false) {
+      later.push(item);
+    }
+  }
+  function byLeft(a, b) { return a.daysLeft - b.daysLeft; }
+  soon.sort(byLeft);
+  later.sort(byLeft);
+  expired.sort(function (a, b) { return b.daysLeft - a.daysLeft; });
+  return { soon: soon, later: later, expired: expired, today: k };
+}
+
+/** 金额格式化：千分位 + 固定小数位 */
+function fmtMoney(n, decimals) {
+  var d = decimals === undefined || decimals === null ? 2 : Number(decimals);
+  if (!(d >= 0 && d <= 6)) d = 2;
+  var v = Number(n);
+  if (!isFinite(v)) v = 0;
+  var neg = v < 0;
+  var fixed = Math.abs(v).toFixed(d);
+  var parts = fixed.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (neg ? '-' : '') + parts.join('.');
+}
+
+/** 中文日期：2026年10月22日 */
+function fmtDateCN(key) {
+  var t = parseDate(key);
+  if (t === null) return '';
+  var d = new Date(t);
+  return d.getUTCFullYear() + '年' + (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日';
+}
+
+function fmtDateShort(key) {
+  var t = parseDate(key);
+  if (t === null) return '';
+  var d = new Date(t);
+  return (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日';
+}
+
+/**
+ * 表单校验（新增 / 编辑共用），返回 { ok, errors }
+ */
+function validateAsset(draft) {
+  var errors = {};
+  var d = draft || {};
+  var name = String(d.name || '').trim();
+  if (!name) errors.name = '请填写资产名称';
+  if (name.length > 30) errors.name = '名称请控制在 30 字以内';
+
+  var p = Number(d.principal);
+  if (!isFinite(p) || p <= 0) errors.principal = '本金需为大于 0 的数字';
+  if (p > 1000000000000) errors.principal = '本金数值过大';
+
+  var r = Number(d.rate);
+  if (!isFinite(r) || r < 0) errors.rate = '年利率不能为负数';
+  if (r > 100) errors.rate = '年利率请填写百分数（如 3.5）';
+
+  if (!isDateKey(d.startDate)) errors.startDate = '请选择起息日期';
+
+  var needEnd = d.type === 'fixed' || (d.type === 'custom' && d.hasEndDate);
+  if (needEnd) {
+    if (!isDateKey(d.endDate)) errors.endDate = '请选择到期日期';
+    else if (isDateKey(d.startDate) && diffDays(d.startDate, d.endDate) <= 0) {
+      errors.endDate = '到期日期需晚于起息日期';
+    }
+  }
+  if (d.endDate && isDateKey(d.endDate) && isDateKey(d.startDate) && diffDays(d.startDate, d.endDate) <= 0) {
+    errors.endDate = '到期日期需晚于起息日期';
+  }
+  return { ok: Object.keys(errors).length === 0, errors: errors };
+}
+
+/** 把表单数据整理成资产对象（新增用） */
+function buildAsset(draft, id, now) {
+  var d = draft || {};
+  var startDate = String(d.startDate || '').slice(0, 10);
+  var principal = Number(d.principal) || 0;
+  var rate = Number(d.rate) || 0;
+  var endDate = d.type === 'fixed' || (d.type === 'custom' && d.hasEndDate) ? String(d.endDate || '').slice(0, 10) : '';
+  return {
+    id: id || newId(),
+    type: d.type || 'fixed',
+    name: String(d.name || '').trim(),
+    note: String(d.note || '').trim(),
+    startDate: startDate,
+    endDate: endDate,
+    remind: d.remind !== false,
+    principal: principal,
+    rate: rate,
+    segments: [{ from: startDate, principal: principal, rate: rate }],
+    createdAt: now || Date.now(),
+    updatedAt: now || Date.now()
+  };
+}
+
+var idSeq = 0;
+function newId() {
+  idSeq = (idSeq + 1) % 100000;
+  return 'a' + Date.now().toString(36) + idSeq.toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+var api = {
+  MS_DAY: MS_DAY,
+  parseDate: parseDate,
+  toKey: toKey,
+  isDateKey: isDateKey,
+  addDays: addDays,
+  diffDays: diffDays,
+  todayKey: todayKey,
+  monthStartOf: monthStartOf,
+  yearStartOf: yearStartOf,
+  segmentsOf: segmentsOf,
+  effective: effective,
+  currentPrincipal: currentPrincipal,
+  pendingSegment: pendingSegment,
+  accrualWindow: accrualWindow,
+  dailyIncome: dailyIncome,
+  incomeBetween: incomeBetween,
+  accruedIncome: accruedIncome,
+  daysAccrued: daysAccrued,
+  isActive: isActive,
+  hasEndDate: hasEndDate,
+  summarize: summarize,
+  historySeries: historySeries,
+  breakdown: breakdown,
+  reminderGroups: reminderGroups,
+  fmtMoney: fmtMoney,
+  fmtDateCN: fmtDateCN,
+  fmtDateShort: fmtDateShort,
+  validateAsset: validateAsset,
+  buildAsset: buildAsset,
+  newId: newId
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = api;
+}
+if (typeof window !== 'undefined') {
+  window.PILCalc = api;
+}
+
+/**
+ * 被动收入小账本 · 数据层
+ * 使用注入的存储适配器。
+ */
+
+var calc = (typeof require === 'function') ? require('./calc.js') : window.PILCalc;
+
+var KEY_ASSETS = 'pil_assets_v1';
+var KEY_SETTINGS = 'pil_settings_v1';
+
+var DEFAULT_SETTINGS = {
+  decimals: 2,        // 收益小数位
+  notify: true,       // 到期提醒总开关
+  goalDaily: 0        // 每日被动收入目标（可选）
+};
+
+function clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
+
+function createStore(storage) {
+  var st = storage || { get: function () { return null; }, set: function () {} };
+
+  function readRaw(key, fallback) {
+    var v;
+    try {
+      v = st.get(key);
+    } catch (e) {
+      v = null;
+    }
+    if (v === '' || v === null || v === undefined) return fallback;
+    if (typeof v === 'string') {
+      try {
+        v = JSON.parse(v);
+      } catch (e2) {
+        return fallback;
+      }
+    }
+    return v === null || v === undefined ? fallback : v;
+  }
+
+  function writeRaw(key, value) {
+    try {
+      st.set(key, value);
+    } catch (e) { /* 存储写满等异常不阻断 UI */ }
+  }
+
+  /* ---------------- 资产 ---------------- */
+
+  function listAssets() {
+    var arr = readRaw(KEY_ASSETS, []);
+    if (!Array.isArray(arr)) arr = [];
+    // 过滤脏数据，避免一条坏记录让整个列表崩掉
+    return arr.filter(function (a) {
+      return a && a.id && a.startDate && calc.isDateKey(a.startDate);
+    });
+  }
+
+  function saveAssets(list) {
+    writeRaw(KEY_ASSETS, list || []);
+    return list || [];
+  }
+
+  function getAsset(id) {
+    var list = listAssets();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return null;
+  }
+
+  function addAsset(draft) {
+    var asset = calc.buildAsset(draft);
+    var list = listAssets();
+    list.push(asset);
+    saveAssets(list);
+    return asset;
+  }
+
+  /**
+   * 编辑资产。
+   * 本金 / 利率发生变化时，按“次日生效”追加一个计息分段（历史收益不被篡改）。
+   */
+  function updateAsset(id, patch, options) {
+    var list = listAssets();
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) { idx = i; break; }
+    }
+    if (idx < 0) return null;
+
+    var cur = list[idx];
+    var today = (options && options.today) || calc.todayKey();
+    var effFrom = (options && options.effectiveFrom) || calc.addDays(today, 1);
+    var eff = calc.effective(cur, today);
+
+    var next = clone(cur);
+    var keys = ['type', 'name', 'note', 'startDate', 'endDate', 'remind'];
+    for (var k = 0; k < keys.length; k++) {
+      if (patch[keys[k]] !== undefined) next[keys[k]] = patch[keys[k]];
+    }
+    if (next.name) next.name = String(next.name).trim();
+    if (next.startDate) next.startDate = String(next.startDate).slice(0, 10);
+    next.endDate = next.endDate ? String(next.endDate).slice(0, 10) : '';
+    next.remind = next.remind !== false;
+
+    var newPrincipal = patch.principal !== undefined ? Number(patch.principal) : eff.principal;
+    var newRate = patch.rate !== undefined ? Number(patch.rate) : eff.rate;
+    if (!isFinite(newPrincipal)) newPrincipal = eff.principal;
+    if (!isFinite(newRate)) newRate = eff.rate;
+
+    var changed = (newPrincipal !== eff.principal) || (newRate !== eff.rate);
+    var segs = calc.segmentsOf(cur).map(function (s) {
+      return { from: s.from, principal: s.principal, rate: s.rate };
+    });
+
+    if (!segs.length) {
+      segs = [{ from: next.startDate, principal: newPrincipal, rate: newRate }];
+    } else if (changed) {
+      if (effFrom <= segs[0].from) {
+        // 起息日在未来 / 变更日期早于首段，直接改首段
+        segs[0] = { from: segs[0].from, principal: newPrincipal, rate: newRate };
+      } else {
+        var kept = segs.filter(function (s) { return s.from !== effFrom; });
+        kept.push({ from: effFrom, principal: newPrincipal, rate: newRate });
+        kept.sort(function (a, b) { return a.from < b.from ? -1 : a.from > b.from ? 1 : 0; });
+        segs = kept;
+      }
+    }
+
+    // 用户把起息日往前改：把首段起点一起对齐，避免出现“无分段覆盖”的空档
+    if (next.startDate && segs.length && segs[0].from !== next.startDate && segs[0].from > next.startDate) {
+      segs[0] = { from: next.startDate, principal: segs[0].principal, rate: segs[0].rate };
+    }
+
+    next.segments = segs;
+    var last = segs[segs.length - 1];
+    next.principal = last.principal;
+    next.rate = last.rate;
+    next.updatedAt = Date.now();
+
+    list[idx] = next;
+    saveAssets(list);
+    return next;
+  }
+
+  /** 删除资产（返回是否真的删掉了） */
+  function removeAsset(id) {
+    if (!id) return false;
+    var list = listAssets();
+    var next = list.filter(function (a) { return a.id !== id; });
+    if (next.length === list.length) return false;
+    saveAssets(next);
+    return true;
+  }
+
+  function removeAllAssets() {
+    saveAssets([]);
+    return true;
+  }
+
+  /** 快速调整本金（转入 / 转出），次日生效 */
+  function setPrincipal(id, principal, options) {
+    return updateAsset(id, { principal: Number(principal) }, options);
+  }
+
+  /** 快速调整利率，次日生效 */
+  function setRate(id, rate, options) {
+    return updateAsset(id, { rate: Number(rate) }, options);
+  }
+
+  function toggleRemind(id, remind) {
+    var list = listAssets();
+    var out = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        list[i].remind = remind !== false;
+        out = list[i];
+        break;
+      }
+    }
+    if (out) saveAssets(list);
+    return out;
+  }
+
+  function searchAssets(keyword) {
+    var q = String(keyword || '').trim().toLowerCase();
+    var list = listAssets();
+    if (!q) return list;
+    return list.filter(function (a) {
+      return String(a.name || '').toLowerCase().indexOf(q) >= 0
+        || String(a.note || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+
+  /* ---------------- 设置 ---------------- */
+
+  function getSettings() {
+    var s = readRaw(KEY_SETTINGS, {}) || {};
+    var out = clone(DEFAULT_SETTINGS);
+    if (s && typeof s === 'object') {
+      if (typeof s.decimals === 'number') out.decimals = Math.min(4, Math.max(0, Math.round(s.decimals)));
+      if (typeof s.notify === 'boolean') out.notify = s.notify;
+      if (typeof s.goalDaily === 'number' && s.goalDaily >= 0) out.goalDaily = s.goalDaily;
+    }
+    return out;
+  }
+
+  function saveSettings(patch) {
+    var cur = getSettings();
+    var next = clone(cur);
+    if (patch && typeof patch === 'object') {
+      for (var k in patch) {
+        if (Object.prototype.hasOwnProperty.call(patch, k)) next[k] = patch[k];
+      }
+    }
+    next.decimals = Math.min(4, Math.max(0, Math.round(Number(next.decimals) || 0)));
+    next.goalDaily = Math.max(0, Number(next.goalDaily) || 0);
+    next.notify = next.notify !== false;
+    writeRaw(KEY_SETTINGS, next);
+    return next;
+  }
+
+  /* ---------------- 备份 / 恢复 ---------------- */
+
+  function exportBackup() {
+    return {
+      app: '被动收入小账本',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      assets: listAssets(),
+      settings: getSettings()
+    };
+  }
+
+  /**
+   * 导入备份。接受对象或 JSON 字符串。
+   * mode: 'replace' 覆盖 | 'merge' 合并（按 id 去重）
+   */
+  function importBackup(payload, mode) {
+    var data = payload;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        return { ok: false, error: '备份内容不是合法的 JSON' };
+      }
+    }
+    if (!data || typeof data !== 'object') return { ok: false, error: '备份内容为空' };
+    var incoming = Array.isArray(data.assets) ? data.assets : (Array.isArray(data) ? data : null);
+    if (!incoming) return { ok: false, error: '备份里没有找到资产数据' };
+
+    var cleaned = incoming.filter(function (a) {
+      return a && a.id && a.startDate && calc.isDateKey(a.startDate);
+    }).map(function (a) {
+      var segs = calc.segmentsOf(a);
+      var last = segs.length ? segs[segs.length - 1] : { principal: 0, rate: 0 };
+      return {
+        id: String(a.id),
+        type: a.type || 'custom',
+        name: String(a.name || '未命名资产').slice(0, 30),
+        note: String(a.note || ''),
+        startDate: String(a.startDate).slice(0, 10),
+        endDate: a.endDate ? String(a.endDate).slice(0, 10) : '',
+        remind: a.remind !== false,
+        principal: Number(a.principal) || last.principal,
+        rate: Number(a.rate) || last.rate,
+        segments: segs,
+        createdAt: a.createdAt || Date.now(),
+        updatedAt: a.updatedAt || Date.now()
+      };
+    });
+
+    if (mode === 'merge') {
+      var map = {};
+      var base = listAssets();
+      for (var i = 0; i < base.length; i++) map[base[i].id] = base[i];
+      for (var j = 0; j < cleaned.length; j++) map[cleaned[j].id] = cleaned[j];
+      var merged = [];
+      for (var key in map) {
+        if (Object.prototype.hasOwnProperty.call(map, key)) merged.push(map[key]);
+      }
+      saveAssets(merged);
+    } else {
+      saveAssets(cleaned);
+    }
+
+    if (data.settings && typeof data.settings === 'object') {
+      saveSettings(data.settings);
+    }
+    return { ok: true, count: cleaned.length, total: listAssets().length, mode: mode === 'merge' ? 'merge' : 'replace' };
+  }
+
+  return {
+    KEY_ASSETS: KEY_ASSETS,
+    KEY_SETTINGS: KEY_SETTINGS,
+    listAssets: listAssets,
+    getAsset: getAsset,
+    addAsset: addAsset,
+    updateAsset: updateAsset,
+    removeAsset: removeAsset,
+    removeAllAssets: removeAllAssets,
+    setPrincipal: setPrincipal,
+    setRate: setRate,
+    toggleRemind: toggleRemind,
+    searchAssets: searchAssets,
+    getSettings: getSettings,
+    saveSettings: saveSettings,
+    exportBackup: exportBackup,
+    importBackup: importBackup,
+    saveAssets: saveAssets
+  };
+}
+
+var api = { createStore: createStore, DEFAULT_SETTINGS: DEFAULT_SETTINGS };
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = api;
+}
+if (typeof window !== 'undefined') {
+  window.PILStore = api;
+}
+
+/**
+ * 被动收入小账本 · 视图模型
+ * 把 calc 的纯计算转成界面可以直接用的数值 / 文案，页面层只负责拼 HTML。
+ */
+(function (global) {
+  'use strict';
+
+  var calc = global.PILCalc;
+
+  var TYPES = [
+    { key: 'fixed', text: '银行定期', short: '定期', hint: '本金、利率、起止日期，到期停止计息' },
+    { key: 'current', text: '活期 / 余额宝', short: '活期', hint: '随存随取，按日计息，无到期日' },
+    { key: 'fund', text: '公积金', short: '公积金', hint: '按账户余额与年利率持续计息' },
+    { key: 'custom', text: '自定义', short: '自定义', hint: '大额存单、国债等，可自选有无到期日' }
+  ];
+
+  function typeOf(key) {
+    for (var i = 0; i < TYPES.length; i++) if (TYPES[i].key === key) return TYPES[i];
+    return TYPES[TYPES.length - 1];
+  }
+
+  function dec(settings) {
+    var d = settings && typeof settings.decimals === 'number' ? settings.decimals : 2;
+    return Math.min(4, Math.max(0, Math.round(d)));
+  }
+
+  function money(n, settings) {
+    return calc.fmtMoney(n, dec(settings));
+  }
+
+  function trim(n) {
+    var v = Number(n) || 0;
+    if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+    return String(Math.round(v * 10000) / 10000);
+  }
+
+  function pct(n) {
+    return trim(n) + '%';
+  }
+
+  /** 星期几 */
+  var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  function weekOf(key) {
+    var t = calc.parseDate(key);
+    if (t === null) return '';
+    return WEEK[new Date(t).getUTCDay()];
+  }
+
+  /** 某条资产的展示行 */
+  function rowOf(r, settings, today) {
+    var k = today || calc.todayKey();
+    var a = r.asset;
+    var d = dec(settings);
+    var leftText = '';
+    var leftDays = null;
+    if (calc.hasEndDate(a)) {
+      leftDays = calc.diffDays(k, a.endDate);
+      if (leftDays > 0) leftText = '还有 ' + leftDays + ' 天到期';
+      else if (leftDays === 0) leftText = '今天到期';
+      else leftText = '已于 ' + calc.fmtDateShort(a.endDate) + ' 到期';
+    }
+    var pending = calc.pendingSegment(a, k);
+    return {
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      typeText: typeOf(a.type).short,
+      note: a.note || '',
+      principal: r.principal,
+      principalText: money(r.principal, settings),
+      rateText: trim(r.rate),
+      today: r.today,
+      todayText: money(r.today, settings),
+      accruedText: money(r.accrued, settings),
+      days: r.days,
+      active: !!r.active,
+      hasEnd: calc.hasEndDate(a),
+      endDate: a.endDate || '',
+      endText: a.endDate ? calc.fmtDateCN(a.endDate) : '',
+      startText: calc.fmtDateCN(a.startDate),
+      leftText: leftText,
+      daysLeft: leftDays,
+      remind: a.remind !== false,
+      pendingText: pending
+        ? '明日起按 ¥' + money(pending.principal, settings) + ' · ' + trim(pending.rate) + '% 计息'
+        : ''
+    };
+  }
+
+  /** 首页总览 */
+  function dashboard(assets, settings, today) {
+    var k = today || calc.todayKey();
+    var s = calc.summarize(assets, k);
+    var d = dec(settings);
+    var list = s.rows.map(function (r) { return rowOf(r, settings, k); });
+
+    // 到期提醒（受总开关与单条开关双重控制）
+    var notifyOn = !(settings && settings.notify === false);
+    var groups = calc.reminderGroups(assets, k, { remindOnly: false });
+    var soon = notifyOn ? groups.soon.filter(function (i) { return i.remind; }) : [];
+    var soonText = '';
+    if (soon.length) {
+      var f = soon[0];
+      soonText = '《' + f.name + '》' + (f.daysLeft === 0 ? '今天到期' : f.daysLeft + ' 天后到期')
+        + (soon.length > 1 ? ' 等 ' + soon.length + ' 笔资产即将到期' : '，请留意资金安排');
+    }
+
+    var goal = settings && settings.goalDaily ? Number(settings.goalDaily) : 0;
+    var goalData = null;
+    if (goal > 0) {
+      var pctV = Math.min(100, Math.round((s.todayTotal / goal) * 100));
+      goalData = {
+        goalText: money(goal, settings),
+        pct: pctV,
+        reached: s.todayTotal >= goal,
+        gapText: s.todayTotal >= goal
+          ? '已达成，超出 ¥' + money(s.todayTotal - goal, settings) + ' / 天'
+          : '还差 ¥' + money(goal - s.todayTotal, settings) + ' / 天'
+      };
+    }
+
+    return {
+      date: k,
+      dateText: calc.fmtDateCN(k),
+      weekText: weekOf(k),
+      todayTotal: s.todayTotal,
+      todayText: money(s.todayTotal, settings),
+      monthText: money(s.monthTotal, settings),
+      yearText: money(s.yearTotal, settings),
+      allText: money(s.allTotal, settings),
+      principalText: money(s.principalTotal, settings),
+      yearForecastText: money(s.todayTotal * 365, settings),
+      monthForecastText: money(s.todayTotal * 30, settings),
+      count: s.count,
+      activeCount: s.activeCount,
+      rows: list,
+      goal: goalData,
+      soonCount: soon.length,
+      soonText: soonText,
+      notifyOn: notifyOn
+    };
+  }
+
+  /** 近 n 天序列（升序，含今天） */
+  function series(assets, today, n) {
+    var k = today || calc.todayKey();
+    var raw = calc.historySeries(assets, k, n || 30);
+    var max = 0;
+    for (var i = 0; i < raw.length; i++) if (raw[i].total > max) max = raw[i].total;
+    return raw.map(function (p, idx) {
+      return {
+        date: p.date,
+        total: p.total,
+        max: max,
+        label: calc.fmtDateShort(p.date),
+        isToday: idx === raw.length - 1,
+        weekText: weekOf(p.date),
+        pctOfMax: max > 0 ? p.total / max : 0
+      };
+    });
+  }
+
+  /** 到期提醒分桶 */
+  function reminders(assets, settings, today) {
+    var k = today || calc.todayKey();
+    var g = calc.reminderGroups(assets, k, { remindOnly: false });
+    var d = dec(settings);
+    function map(items) {
+      return items.map(function (it) {
+        var a = it.asset;
+        return {
+          id: it.id,
+          name: it.name,
+          endDate: it.endDate,
+          endText: calc.fmtDateCN(it.endDate),
+          daysLeft: it.daysLeft,
+          remind: it.remind,
+          principalText: money(calc.currentPrincipal(a, k), settings),
+          typeText: typeOf(a.type).short
+        };
+      });
+    }
+    return {
+      today: k,
+      notifyOn: !(settings && settings.notify === false),
+      soon: map(g.soon),
+      later: map(g.later),
+      expired: map(g.expired)
+    };
+  }
+
+  /** 到期日 + 预估利息（编辑页实时预览用） */
+  function preview(draft, settings, today) {
+    var k = today || calc.todayKey();
+    var p = Number(draft.principal) || 0;
+    var r = Number(draft.rate) || 0;
+    var daily = p * (r / 100) / 365;
+    var out = {
+      daily: daily,
+      dailyText: money(daily, settings),
+      monthText: money(daily * 30, settings),
+      yearText: money(daily * 365, settings),
+      days: null,
+      totalText: '',
+      valid: p > 0
+    };
+    if (draft.endDate && calc.isDateKey(draft.endDate) && calc.isDateKey(draft.startDate)) {
+      var days = calc.diffDays(draft.startDate, draft.endDate);
+      if (days > 0) {
+        out.days = days;
+        out.totalText = money(daily * days, settings);
+      }
+    }
+    return out;
+  }
+
+  global.PILModel = {
+    TYPES: TYPES,
+    typeOf: typeOf,
+    dec: dec,
+    money: money,
+    trim: trim,
+    pct: pct,
+    weekOf: weekOf,
+    rowOf: rowOf,
+    dashboard: dashboard,
+    series: series,
+    reminders: reminders,
+    preview: preview
+  };
+})(window);
+
+/**
+ * 被动收入小账本 · 页面模板
+ * 纯函数：接收视图模型，返回 HTML 字符串。不含任何状态与副作用。
+ */
+(function (global) {
+  'use strict';
+
+  var ICON = {
+    home: '<path d="M3 10.2 12 3.4l9 6.8V20a1 1 0 0 1-1 1h-5.2v-6.2H9.2V21H4a1 1 0 0 1-1-1z"/>',
+    wallet: '<rect x="3" y="6.5" width="18" height="14" rx="3.2"/><path d="M3 11h18"/><circle cx="16.6" cy="16" r="1.25" fill="currentColor" stroke="none"/>',
+    chart: '<path d="M4 4.5V19a1 1 0 0 0 1 1h15"/><path d="M7.6 15.2l3.6-4.2 3.1 2.7 4.3-6.1"/>',
+    bell: '<path d="M18.2 9.2a6.2 6.2 0 1 0-12.4 0c0 5-2.1 6.3-2.1 6.3h16.6s-2.1-1.3-2.1-6.3"/><path d="M10.3 19.4a1.9 1.9 0 0 0 3.4 0"/>',
+    settings: '<path d="M4 7.2h8.4"/><path d="M17.4 7.2H20"/><circle cx="15" cy="7.2" r="2.4"/><path d="M4 16.8h3.4"/><path d="M12.4 16.8H20"/><circle cx="9.1" cy="16.8" r="2.4"/>',
+    plus: '<path d="M12 5.2v13.6"/><path d="M5.2 12h13.6"/>',
+    trash: '<path d="M4 7h16"/><path d="M9.5 7V4.8h5V7"/><path d="M6.2 7l.9 12.4a1.4 1.4 0 0 0 1.4 1.3h7a1.4 1.4 0 0 0 1.4-1.3L17.8 7"/><path d="M10.3 11v5.6M13.7 11v5.6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M16.4 16.4 21 21"/>',
+    clock: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.2v5.1l3.3 2"/>',
+    back: '<path d="M15 4.8 7.6 12 15 19.2"/>',
+    right: '<path d="M9 4.8 16.4 12 9 19.2"/>',
+    moon: '<path d="M20.4 14.6A8.6 8.6 0 1 1 9.4 3.6a6.9 6.9 0 0 0 11 11z"/>',
+    sun: '<circle cx="12" cy="12" r="4.3"/><path d="M12 2.4v2.3M12 19.3v2.3M2.4 12h2.3M19.3 12h2.3M5.1 5.1l1.7 1.7M17.2 17.2l1.7 1.7M18.9 5.1l-1.7 1.7M6.8 17.2l-1.7 1.7"/>',
+    download: '<path d="M12 3.4v11.4"/><path d="M7.4 10.4 12 15l4.6-4.6"/><path d="M4 20.2h16"/>',
+    upload: '<path d="M12 16.6V4.2"/><path d="M7.4 8.8 12 4.2l4.6 4.6"/><path d="M4 20.2h16"/>',
+    sprout: '<path d="M12 21v-7.4"/><path d="M12 13.6c0-4.2 3.2-6.9 8.4-6.9 0 4.2-3.7 6.9-8.4 6.9z"/><path d="M12 15.9c0-3.2-2.8-5.3-6.9-5.3 0 3.2 3 5.3 6.9 5.3z"/>',
+    close: '<path d="M6 6l12 12M18 6 6 18"/>',
+    shield: '<path d="M12 3.2 19.4 6v6c0 4.6-3.1 7.6-7.4 8.9C7.7 19.6 4.6 16.6 4.6 12V6z"/><path d="M9 12.1l2.1 2.1 4-4"/>',
+    info: '<circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5.3"/><circle cx="12" cy="8" r="1.05" fill="currentColor" stroke="none"/>',
+    calendar: '<rect x="3.4" y="5.2" width="17.2" height="15.4" rx="2.8"/><path d="M8 3.2v4M16 3.2v4M3.4 10.2h17.2"/>',
+    target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/>',
+    coins: '<ellipse cx="9" cy="7" rx="5.4" ry="2.8"/><path d="M3.6 7v4.2c0 1.5 2.4 2.8 5.4 2.8s5.4-1.3 5.4-2.8V7"/><path d="M9 14v3.2"/><ellipse cx="15.6" cy="16.4" rx="4" ry="2.1"/><path d="M19.6 16.4v3.1"/>',
+    spark: '<path d="M12 3v4.2M12 16.8V21M4.6 12h3.2M16.2 12h3.2"/><path d="M7.1 7.1l2.2 2.2M14.7 14.7l2.2 2.2M16.9 7.1l-2.2 2.2M9.3 14.7l-2.2 2.2"/>'
+  };
+
+  function icon(name, size) {
+    var p = ICON[name] || '';
+    var s = size || 20;
+    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" '
+      + 'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+  }
+
+  function esc(s) {
+    return String(s === undefined || s === null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function attrs(map) {
+    var out = '';
+    for (var k in map) {
+      if (!Object.prototype.hasOwnProperty.call(map, k)) continue;
+      if (map[k] === null || map[k] === undefined || map[k] === false) continue;
+      out += ' ' + k + '="' + esc(map[k]) + '"';
+    }
+    return out;
+  }
+
+  /* ---------------- 首页 ---------------- */
+
+  function home(m) {
+    var d = m.dash;
+    var h = [];
+
+    if (m.storageError) {
+      h.push('<div class="banner">数据保存不可用，请重新打开应用并核对。</div>');
+    }
+
+    h.push('<section class="hero">');
+    h.push('<div class="hero-top"><span>' + esc(d.dateText) + ' ' + esc(d.weekText) + '</span>'
+      + '<span class="hero-pill">今日被动收入</span></div>');
+    h.push('<div class="hero-label">今天躺赚</div>');
+    h.push('<div class="hero-amount"><span class="cur">¥</span>' + esc(d.todayText) + '</div>');
+    h.push('<div class="hero-meta"><span>≈ 每月 <b>¥' + esc(d.monthForecastText) + '</b></span>'
+      + '<span>每年 <b>¥' + esc(d.yearForecastText) + '</b></span></div>');
+
+    h.push('<div class="hero-foot">');
+    h.push('<div><b class="num">' + esc(d.principalText) + '</b><i>总资产本金</i></div>');
+    h.push('<div><b class="num">' + esc(d.allText) + '</b><i>累计总收益</i></div>');
+    h.push('<div><b class="num">' + d.activeCount + '/' + d.count + '</b><i>计息中 / 全部</i></div>');
+    h.push('</div>');
+
+    if (d.goal) {
+      h.push('<div class="goal-wrap"><div class="goal-line"><span>每日收益目标 ¥'
+        + esc(d.goal.goalText) + '</span><span>' + d.goal.pct + '%</span></div>'
+        + '<div class="goal-bar"><span style="width:' + d.goal.pct + '%"></span></div>'
+        + '<div class="goal-line" style="margin-top:6px;margin-bottom:0"><span>'
+        + esc(d.goal.gapText) + '</span></div></div>');
+    }
+    h.push('</section>');
+
+    if (d.soonText) {
+      h.push('<button class="alert" data-action="go" data-page="reminders">'
+        + '<span class="ic">' + icon('clock', 17) + '</span>'
+        + '<span><b>有资产即将到期</b><p>' + esc(d.soonText) + '</p></span></button>');
+    }
+
+    h.push('<div class="stat-grid">');
+    h.push('<div class="stat"><div class="k">本月累计</div><div class="v gain">' + esc(d.monthText) + '</div></div>');
+    h.push('<div class="stat"><div class="k">本年累计</div><div class="v gain">' + esc(d.yearText) + '</div></div>');
+    h.push('<div class="stat"><div class="k">累计总收益</div><div class="v gain">' + esc(d.allText) + '</div></div>');
+    h.push('</div>');
+
+    h.push('<div class="sec"><h2>每笔资产今日收益</h2>'
+      + (d.count ? '<span class="hint">由高到低</span>' : '') + '</div>');
+
+    if (!d.count) {
+      h.push('<div class="empty"><div class="art">' + icon('sprout', 34) + '</div>'
+        + '<h3>还没有录入资产</h3>'
+        + '<p>把银行定期、余额宝、公积金加进来<br/>就能看到每天躺赚多少钱</p>'
+        + '<div class="btn-row"><button class="btn btn-primary" data-action="go" data-page="new">'
+        + icon('plus', 18) + '新增资产</button></div>'
+        + '<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-action="demo">'
+        + '填入 3 笔示例数据</button></div></div>');
+    } else {
+      h.push(assetList(d.rows, false));
+    }
+
+    h.push('<div class="disc">收益为估算值，仅供参考，以机构实际计息为准。</div>');
+    return h.join('');
+  }
+
+  /* ---------------- 资产列表 ---------------- */
+
+  function assetList(rows, showDelete) {
+    var h = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      h.push('<div class="asset' + (r.active ? '' : ' off') + '" data-action="edit" data-id="' + esc(r.id) + '" role="button" tabindex="0">');
+      h.push('<i class="bar"></i>');
+      h.push('<div class="mid">');
+      h.push('<div class="name"><span class="t">' + esc(r.typeText) + '</span><em>' + esc(r.name) + '</em></div>');
+      h.push('<div class="sub"><span class="num">本金 ' + esc(r.principalText) + '</span>'
+        + '<span class="sep">·</span><span>年化 ' + esc(r.rateText) + '%</span>'
+        + (r.leftText && r.active ? '<span class="sep">·</span><span>' + esc(r.leftText) + '</span>' : '')
+        + (!r.active && r.hasEnd ? '<span class="sep">·</span><span>' + esc(r.leftText) + '</span>' : '')
+        + '</div>');
+      if (r.pendingText) h.push('<div class="pending-tip">' + esc(r.pendingText) + '</div>');
+      h.push('</div>');
+      h.push('<div class="right"><div class="d num">+' + esc(r.todayText) + '</div>'
+        + '<div class="u">累计 ' + esc(r.accruedText) + '</div></div>');
+      if (showDelete) {
+        h.push('<button class="del" data-action="del" data-id="' + esc(r.id) + '" aria-label="删除">'
+          + icon('trash', 17) + '</button>');
+      }
+      h.push('</div>');
+    }
+    return h.join('');
+  }
+
+  function assets(m) {
+    var h = [];
+    h.push('<div class="search" id="search-box">' + icon('search', 16)
+      + '<input id="kw" type="search" placeholder="搜索资产名称或备注" value="' + esc(m.kw) + '" autocomplete="off" />'
+      + '<button class="clr" data-action="clear-kw" aria-label="清空" style="'
+      + (m.kw ? '' : 'display:none') + '">' + icon('close', 15) + '</button>'
+      + '</div>');
+    h.push('<div id="list-zone">' + zone(m) + '</div>');
+    return h.join('');
+  }
+
+  /** 列表区（搜索时只重绘这一块，避免输入框失焦） */
+  function zone(m) {
+    var h = [];
+    var rows = m.rows;
+    h.push('<div class="sec"><h2>' + (m.kw ? '搜索结果' : '全部资产') + '</h2>'
+      + '<span class="hint">' + rows.length + ' 笔 · 今日合计 ¥' + esc(m.todaySumText) + '</span></div>');
+
+    if (!rows.length) {
+      h.push('<div class="empty"><div class="art">' + icon(m.kw ? 'search' : 'wallet', 34) + '</div>'
+        + '<h3>' + (m.kw ? '没有匹配的资产' : '还没有资产') + '</h3>'
+        + '<p>' + (m.kw ? '换个关键词试试' : '点击右上角 + 新增第一笔被动收入资产') + '</p></div>');
+    } else {
+      h.push(assetList(rows, true));
+      h.push('<div style="text-align:center;padding:10px 0 0"><span class="hint" style="font-size:11.5px;color:var(--faint)">点卡片编辑，右侧垃圾桶删除</span></div>');
+    }
+    return h.join('');
+  }
+
+  /* ---------------- 编辑 / 新增 ---------------- */
+
+  function field(name, label, value, opt) {
+    var o = opt || {};
+    return '<div class="field' + (o.error ? ' bad' : '') + '" data-field="' + name + '">'
+      + '<label for="f-' + name + '">' + esc(label)
+      + (o.optional ? '<span class="opt">选填</span>' : '') + '</label>'
+      + '<input id="f-' + name + '" name="' + name + '"' + attrs({
+        type: o.type || 'text',
+        value: value,
+        placeholder: o.placeholder || '',
+        inputmode: o.inputmode || null,
+        autocomplete: 'off',
+        maxlength: o.maxlength || null
+      }) + ' />'
+      + (o.error ? '<div class="err">' + icon('info', 12) + esc(o.error) + '</div>' : '')
+      + '</div>';
+  }
+
+  function edit(m) {
+    var h = [];
+    var e = m.errors || {};
+
+    h.push('<div class="preview" id="pv">' + previewBlock(m) + '</div>');
+
+    h.push('<div class="form-card">');
+    h.push('<div class="type-grid">');
+    for (var i = 0; i < m.types.length; i++) {
+      var t = m.types[i];
+      h.push('<button type="button" class="type-opt' + (m.form.type === t.key ? ' on' : '')
+        + '" data-action="pick-type" data-type="' + t.key + '"><b>' + esc(t.text) + '</b>'
+        + '<i>' + esc(t.hint) + '</i></button>');
+    }
+    h.push('</div>');
+
+    h.push(field('name', '资产名称', m.form.name, {
+      placeholder: '例：工行 3 年期定期', error: e.name, maxlength: 30
+    }));
+    h.push(field('principal', '本金金额（元）', m.form.principal, {
+      placeholder: '0.00', inputmode: 'decimal', error: e.principal
+    }));
+
+    h.push('<div class="field-row">');
+    h.push(field('rate', '年利率（%）', m.form.rate, {
+      placeholder: '例：3.5', inputmode: 'decimal', error: e.rate
+    }));
+    h.push('</div>');
+
+    h.push('<div class="field-row">');
+    h.push(field('startDate', m.needEnd ? '起息日期' : '起息日期', m.form.startDate, {
+      type: 'date', error: e.startDate
+    }));
+    if (m.needEnd) {
+      h.push(field('endDate', '到期日期', m.form.endDate, { type: 'date', error: e.endDate }));
+    }
+    h.push('</div>');
+
+    if (m.form.type === 'custom') {
+      h.push('<button type="button" class="sw-row" data-action="toggle-hasend">'
+        + '<span class="txt"><b>有到期日</b><i>大额存单、国债这类到期后停止计息的资产</i></span>'
+        + '<span class="switch' + (m.form.hasEndDate ? ' on' : '') + '"></span></button>');
+    }
+
+    if (m.needEnd) {
+      h.push('<button type="button" class="sw-row" data-action="toggle-remind">'
+        + '<span class="txt"><b>到期提醒</b><i>到期前 7 天与到期当天提醒</i></span>'
+        + '<span class="switch' + (m.form.remind ? ' on' : '') + '"></span></button>');
+    }
+
+    h.push(field('note', '备注', m.form.note, {
+      placeholder: '银行卡号、支行等（选填）', optional: true, maxlength: 60
+    }));
+    h.push('</div>');
+
+    h.push('<div class="btn-row" style="margin-top:4px">');
+    h.push('<button class="btn btn-primary" data-action="save">' + (m.mode === 'edit' ? '保存修改' : '创建资产') + '</button>');
+    h.push('</div>');
+
+    if (m.mode === 'edit') {
+      h.push('<div style="margin-top:9px"><button class="btn btn-danger" data-action="del" data-id="'
+        + esc(m.form.id) + '">' + icon('trash', 17) + '删除这笔资产</button></div>');
+      h.push('<div class="disc">修改本金或利率将于<b>明日起</b>按新参数计息，历史收益不会被改写。</div>');
+    } else {
+      h.push('<div class="disc">按单利计算：每日收益 = 本金 × 年利率 ÷ 365</div>');
+    }
+    return h.join('');
+  }
+
+  function previewBlock(m) {
+    var p = m.pv;
+    if (!p) return '';
+    var h = ['<div class="l">预计每日收益</div>'];
+    h.push('<div class="n">¥<span id="pv-daily">' + esc(p.dailyText) + '</span>'
+      + '<small> / 天</small></div>');
+    h.push('<div class="m" id="pv-meta">每月约 ¥' + esc(p.monthText) + ' · 每年约 ¥' + esc(p.yearText));
+    if (p.days) h.push(' · 存 ' + p.days + ' 天到期，累计约 ¥' + esc(p.totalText));
+    h.push('</div>');
+    return h.join('');
+  }
+
+  /* ---------------- 历史 ---------------- */
+
+  function chart(points, settings) {
+    if (!points.length) return '';
+    // viewBox 宽度贴近实际渲染宽度，保证坐标文字不会被等比缩小
+    var W = 420, H = 200;
+    var padL = 42, padR = 12, padT = 14, padB = 26;
+    var iw = W - padL - padR;
+    var ih = H - padT - padB;
+    var max = 0;
+    for (var i = 0; i < points.length; i++) if (points[i].total > max) max = points[i].total;
+    if (max <= 0) max = 1;
+    // 顶部留 20% 余量，避免折线贴着上边缘
+    var top = max * 1.2;
+    var n = points.length;
+    var stepX = n > 1 ? iw / (n - 1) : iw;
+
+    function X(idx) { return padL + (n > 1 ? idx * stepX : iw / 2); }
+    function Y(v) { return padT + ih - (v / top) * ih; }
+
+    var h = ['<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="每日收益趋势">'];
+    h.push('<defs><linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0%" stop-color="var(--brand)" stop-opacity=".26"/>'
+      + '<stop offset="100%" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>');
+
+    // 网格 + Y 轴刻度
+    for (var g = 0; g <= 2; g++) {
+      var v = top * (g / 2);
+      var y = Y(v);
+      h.push('<line class="gl" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"' + (g === 0 ? '' : ' stroke-dasharray="3 4"') + '/>');
+      h.push('<text class="lab" x="' + (padL - 8) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end">'
+        + esc(shortMoney(v)) + '</text>');
+    }
+
+    // 折线 + 面积
+    var line = '';
+    var area = '';
+    var baseline = (padT + ih).toFixed(1);
+    for (var j = 0; j < n; j++) {
+      var px = X(j).toFixed(1);
+      var py = Y(points[j].total).toFixed(1);
+      line += (j === 0 ? 'M' : 'L') + px + ' ' + py;
+      if (j === 0) area += 'M' + px + ' ' + baseline + 'L' + px + ' ' + py;
+      else area += 'L' + px + ' ' + py;
+    }
+    area += 'L' + X(n - 1).toFixed(1) + ' ' + baseline + 'Z';
+    h.push('<path class="area" d="' + area + '"/>');
+    h.push('<path class="line" d="' + line + '"/>');
+
+    // 今天的高亮点
+    var lastIdx = n - 1;
+    h.push('<circle class="pt" cx="' + X(lastIdx).toFixed(1) + '" cy="' + Y(points[lastIdx].total).toFixed(1) + '" r="3.2"/>');
+
+    // X 轴标签（最多 5 个）
+    var tickCount = Math.min(5, n);
+    var used = {};
+    for (var t = 0; t < tickCount; t++) {
+      var idx = Math.round((n - 1) * (t / Math.max(1, tickCount - 1)));
+      if (used[idx]) continue;
+      used[idx] = 1;
+      var anchor = idx === 0 ? 'start' : (idx === n - 1 ? 'end' : 'middle');
+      h.push('<text class="lab" x="' + X(idx).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="' + anchor + '">'
+        + esc(points[idx].label) + '</text>');
+    }
+
+    // 点击热区
+    for (var k = 0; k < n; k++) {
+      var w = n > 1 ? stepX : iw;
+      h.push('<rect x="' + (X(k) - w / 2).toFixed(1) + '" y="' + padT + '" width="' + w.toFixed(1) + '" height="' + ih
+        + '" fill="transparent" data-action="day" data-date="' + esc(points[k].date) + '" style="cursor:pointer"/>');
+    }
+
+    h.push('</svg>');
+    return h.join('');
+  }
+
+  function shortMoney(v) {
+    if (v >= 10000) return (v / 10000).toFixed(v >= 100000 ? 0 : 1) + '万';
+    if (v >= 100) return String(Math.round(v));
+    if (v >= 1) return v.toFixed(1);
+    return v.toFixed(2);
+  }
+
+  function history(m) {
+    var h = [];
+    h.push('<div class="seg">');
+    var ranges = [{ d: 7, t: '近 7 天' }, { d: 30, t: '近 30 天' }, { d: 90, t: '近 90 天' }];
+    for (var i = 0; i < ranges.length; i++) {
+      h.push('<button data-action="range" data-days="' + ranges[i].d + '" class="'
+        + (m.days === ranges[i].d ? 'on' : '') + '">' + ranges[i].t + '</button>');
+    }
+    h.push('</div>');
+
+    h.push('<div class="card chart-card">');
+    h.push('<div class="chart-head"><b>每日被动收入趋势</b><span>' + esc(m.rangeText) + '</span></div>');
+    h.push(chart(m.points, m.settings));
+    h.push('<div style="display:flex;padding:8px 4px 6px;border-top:1px solid var(--line-2);margin-top:6px">'
+      + '<div style="flex:1"><div class="k" style="font-size:10.5px;color:var(--muted)">区间合计</div>'
+      + '<div class="v num" style="font-size:15px;font-weight:700;color:var(--gain)">¥' + esc(m.sumText) + '</div></div>'
+      + '<div style="flex:1"><div class="k" style="font-size:10.5px;color:var(--muted)">日均</div>'
+      + '<div class="v num" style="font-size:15px;font-weight:700">¥' + esc(m.avgText) + '</div></div>'
+      + '<div style="flex:1"><div class="k" style="font-size:10.5px;color:var(--muted)">最高一天</div>'
+      + '<div class="v num" style="font-size:15px;font-weight:700">¥' + esc(m.maxText) + '</div></div>'
+      + '</div>');
+    h.push('</div>');
+
+    h.push('<div class="sec"><h2>每日明细</h2><span class="hint">点任意一天看明细</span></div>');
+    h.push('<div class="card" style="padding:2px 14px">');
+    for (var j = m.points.length - 1; j >= 0; j--) {
+      var p = m.points[j];
+      h.push('<button class="hist-row" data-action="day" data-date="' + esc(p.date) + '">'
+        + '<span class="day"><b>' + esc(p.label) + '</b><i>' + esc(p.weekText) + (p.isToday ? ' · 今天' : '') + '</i></span>'
+        + '<span class="bar-w"><span style="width:' + Math.max(2, Math.round(p.pctOfMax * 100)) + '%"></span></span>'
+        + '<span class="val">' + esc(m.money(p.total)) + '</span></button>');
+    }
+    h.push('</div>');
+    h.push('<div class="disc">历史收益按当前资产参数逐日推算，修改本金或利率只影响之后的日子。</div>');
+    return h.join('');
+  }
+
+  /* ---------------- 提醒 ---------------- */
+
+  function remRow(r) {
+    var cls = 'rem';
+    if (r.daysLeft < 0) cls += ' dead';
+    else if (r.daysLeft <= 3) cls += ' urgent';
+    var daysText = r.daysLeft < 0 ? '已到期' : (r.daysLeft === 0 ? '今天' : r.daysLeft + ' 天');
+    return '<div class="' + cls + '" data-action="edit" data-id="' + esc(r.id) + '" role="button" tabindex="0">'
+      + '<span class="left"><b>' + esc(r.name) + '</b>'
+      + '<i>' + esc(r.typeText) + ' · 本金 ' + esc(r.principalText) + ' · ' + esc(r.endText) + '</i></span>'
+      + '<span class="days"><b>' + esc(daysText) + '</b><i>' + (r.daysLeft < 0 ? '' : '后到期') + '</i></span>'
+      + '<button class="switch' + (r.remind ? ' on' : '') + '" data-action="toggle-remind" data-id="' + esc(r.id)
+      + '" role="switch" aria-checked="' + (r.remind ? 'true' : 'false') + '" aria-label="到期提醒"></button>'
+      + '</div>';
+  }
+
+  function reminders(m) {
+    var h = [];
+    var r = m.rem;
+    if (!r.notifyOn) {
+      h.push('<div class="banner">' + icon('bell', 14) + '<span>到期提醒总开关已关闭，这里仍会列出到期情况。可在设置中重新开启。</span></div>');
+    }
+    var total = r.soon.length + r.later.length + r.expired.length;
+    if (!total) {
+      h.push('<div class="empty"><div class="art">' + icon('bell', 34) + '</div>'
+        + '<h3>暂无到期提醒</h3>'
+        + '<p>只有带到期日的资产（定期存款、大额存单、国债）才会出现在这里</p>'
+        + '<div class="btn-row"><button class="btn btn-ghost" data-action="go" data-page="assets">去看全部资产</button></div></div>');
+      return h.join('');
+    }
+
+    function group(title, items, note) {
+      if (!items.length) return '';
+      var s = ['<div class="group-t">' + esc(title) + '<span class="n">' + items.length + '</span>'
+        + (note ? '<span style="font-weight:500;color:var(--faint);font-size:10.5px">' + esc(note) + '</span>' : '')
+        + '</div>'];
+      for (var i = 0; i < items.length; i++) s.push(remRow(items[i]));
+      return s.join('');
+    }
+
+    h.push(group('7 天内到期', r.soon, '该安排资金了'));
+    h.push(group('8 – 30 天到期', r.later, ''));
+    h.push(group('已到期', r.expired, '近 90 天'));
+    h.push('<div class="disc">提醒在打开应用时检查；开启浏览器通知后，当天到期与 7 天内到期的资产会推送一次系统通知。</div>');
+    return h.join('');
+  }
+
+  /* ---------------- 设置 ---------------- */
+
+  function settings(m) {
+    var s = m.settings;
+    var h = [];
+    h.push('<div class="sec"><h2>显示</h2></div>');
+    h.push('<div class="form-card" style="padding:0 16px">');
+    h.push('<div class="set-item"><span class="txt"><b>收益小数位数</b><i>影响首页与列表的金额展示</i></span>'
+      + '<span class="dec-opts">');
+    for (var i = 0; i <= 3; i++) {
+      h.push('<button data-action="set-dec" data-v="' + i + '" class="' + (m.decimals === i ? 'on' : '') + '">' + i + '</button>');
+    }
+    h.push('</span></div>');
+    h.push('<div class="set-item"><span class="txt"><b>外观</b><i>深色更适合晚上算账</i></span>'
+      + '<span class="dec-opts" style="gap:4px">'
+      + '<button data-action="set-theme" data-v="light" style="width:auto;padding:0 10px" class="' + (m.theme === 'light' ? 'on' : '') + '">浅色</button>'
+      + '<button data-action="set-theme" data-v="dark" style="width:auto;padding:0 10px" class="' + (m.theme === 'dark' ? 'on' : '') + '">深色</button>'
+      + '<button data-action="set-theme" data-v="auto" style="width:auto;padding:0 10px" class="' + (m.theme === 'auto' ? 'on' : '') + '">自动</button>'
+      + '</span></div>');
+    h.push('</div>');
+
+    h.push('<div class="sec"><h2>目标</h2></div>');
+    h.push('<div class="form-card" style="padding:0 16px">');
+    h.push('<div class="set-item"><span class="txt"><b>每日被动收入目标</b><i>填 0 表示不设目标</i></span></div>');
+    h.push('<div class="field" style="border-bottom:0"><label for="f-goal">目标金额（元 / 天）</label>'
+      + '<div class="rel"><input id="f-goal" name="goalDaily" inputmode="decimal" value="'
+      + esc(s.goalDaily ? String(s.goalDaily) : '') + '" placeholder="0" />'
+      + '<span class="unit">元 / 天</span></div></div>');
+    h.push('<div style="padding:0 0 14px"><button class="btn btn-soft btn-sm" data-action="save-goal" style="width:100%">保存目标</button></div>');
+    h.push('</div>');
+
+    h.push('<div class="sec"><h2>提醒</h2></div>');
+    h.push('<div class="form-card" style="padding:0 16px">');
+    h.push('<button class="sw-row" data-action="toggle-notify">'
+      + '<span class="txt"><b>到期提醒总开关</b><i>关闭后首页不再提示，也不推送通知</i></span>'
+      + '<span class="switch' + (s.notify ? ' on' : '') + '"></span></button>');
+    h.push('<button class="sw-row" data-action="toggle-browser-notify">'
+      + '<span class="txt"><b>浏览器通知</b><i>'
+      + esc(m.notifyHint) + '</i></span>'
+      + '<span class="switch' + (m.browserNotify ? ' on' : '') + '"></span></button>');
+    h.push('</div>');
+
+    h.push('<div class="sec"><h2>数据</h2></div>');
+    h.push('<div class="form-card" style="padding:0 16px">');
+    h.push('<button class="set-item" data-action="export">'
+      + '<span class="txt"><b>导出备份</b><i>下载 JSON 文件，共 ' + m.count + ' 笔资产</i></span>'
+      + '<span class="chev">' + icon('download', 16) + '</span></button>');
+    h.push('<button class="set-item" data-action="import">'
+      + '<span class="txt"><b>从备份恢复</b><i>选择之前导出的 JSON 文件，覆盖当前数据</i></span>'
+      + '<span class="chev">' + icon('upload', 16) + '</span></button>');
+    h.push('<button class="set-item" data-action="clear-all">'
+      + '<span class="txt"><b style="color:var(--gain)">清空全部数据</b><i>删除所有资产与设置，不可撤销</i></span>'
+      + '<span class="chev">' + icon('trash', 16) + '</span></button>');
+    h.push('</div>');
+
+    h.push('<div class="about">');
+    h.push('<div class="logo">' + icon('sprout', 28) + '</div>');
+    h.push('<div class="vn">被动收入小账本 v2.0</div>');
+    h.push('<div>数据保存在应用数据库<br/>打开应用时检查到期提醒</div>');
+    h.push('</div>');
+
+    h.push('<div class="disc" style="padding-top:14px">全部按单利估算：每日收益 = 本金 × 年利率 ÷ 365。<br/>'
+      + '银行可能按 360 天计息或另有结息规则，结果会有微小差异，仅供参考。<br/>'
+      + '让我们等待退休的一天。</div>');
+    return h.join('');
+  }
+
+  global.PILViews = {
+    icon: icon,
+    esc: esc,
+    home: home,
+    assets: assets,
+    zone: zone,
+    edit: edit,
+    previewBlock: previewBlock,
+    history: history,
+    chart: chart,
+    reminders: reminders,
+    settings: settings
+  };
+})(window);
+
+/**
+ * 被动收入小账本 · 应用层
+ * 负责：状态、路由（hash）、事件委托、增删改查动作、弹层、通知
+ */
+(function (global) {
+  'use strict';
+
+  var calc = global.PILCalc;
+  var Model = global.PILModel;
+  var V = global.PILViews;
+
+  var KEY_THEME = 'pil_theme_v1';
+  var KEY_NOTICE = 'pil_last_notice_v1';
+
+  /* ---------------- 存储适配 ---------------- */
+
+  var storageBroken = false;
+
+  var storage = global.PILStorage;
+  var store = global.PILStore.createStore(storage);
+
+  /* ---------------- 状态 ---------------- */
+
+  var state = {
+    route: 'home',
+    params: {},
+    kw: '',
+    histDays: 30,
+    mode: 'new',
+    form: null,
+    errors: {},
+    editingId: '',
+    theme: 'auto',
+    browserNotify: false
+  };
+
+  var viewEl = document.getElementById('view');
+  var topEl = document.getElementById('topbar');
+  var tabEl = document.getElementById('tabbar');
+  var modalRoot = document.getElementById('modal-root');
+  var toastRoot = document.getElementById('toast-root');
+
+  /* ---------------- 主题 ---------------- */
+
+  var mq = global.matchMedia ? global.matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function loadTheme() {
+    try {
+      var t = storage.get(KEY_THEME);
+      if (t === 'light' || t === 'dark' || t === 'auto') state.theme = t;
+    } catch (e) { /* ignore */ }
+    try {
+      state.browserNotify = storage.get('pil_bn_v1') === '1';
+    } catch (e) { /* ignore */ }
+  }
+
+  function applyTheme() {
+    var t = state.theme;
+    if (t === 'auto') t = (mq && mq.matches) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#0d1418' : '#0f766e');
+  }
+
+  function setTheme(t) {
+    state.theme = t;
+    try { storage.set(KEY_THEME, t); } catch (e) { /* ignore */ }
+    applyTheme();
+    render();
+  }
+
+  /* ---------------- 路由 ---------------- */
+
+  var TITLES = {
+    home: '被动收入小账本',
+    assets: '资产台账',
+    history: '收益记录',
+    reminders: '到期提醒',
+    settings: '设置'
+  };
+
+  function parseHash() {
+    var raw = String(global.location.hash || '').replace(/^#\/?/, '');
+    if (!raw) return { path: 'home', q: {} };
+    var qi = raw.indexOf('?');
+    var path = qi >= 0 ? raw.slice(0, qi) : raw;
+    var q = {};
+    if (qi >= 0) {
+      var parts = raw.slice(qi + 1).split('&');
+      for (var i = 0; i < parts.length; i++) {
+        if (!parts[i]) continue;
+        var kv = parts[i].split('=');
+        q[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+      }
+    }
+    return { path: path || 'home', q: q };
+  }
+
+  function go(hash, replace) {
+    var target = '#/' + hash;
+    if (global.location.hash === target) { render(); return; }
+    if (replace) {
+      // 用 replaceState 替换历史记录，不触发页面跳转
+      try {
+        global.history.replaceState(null, '', target);
+        onRoute();
+        return;
+      } catch (e) { /* 降级为普通赋值 */ }
+    }
+    global.location.hash = target;
+  }
+
+  function onRoute() {
+    var r = parseHash();
+    var known = ['home', 'assets', 'history', 'reminders', 'settings', 'new', 'edit'];
+    if (known.indexOf(r.path) < 0) r.path = 'home';
+    state.route = r.path;
+    state.params = r.q;
+
+    if (r.path === 'new') {
+      state.mode = 'new';
+      state.editingId = '';
+      state.errors = {};
+      state.form = {
+        id: '',
+        type: r.q.type && Model.typeOf(r.q.type) ? r.q.type : 'fixed',
+        name: '',
+        principal: '',
+        rate: '',
+        startDate: calc.todayKey(),
+        endDate: '',
+        note: '',
+        remind: true,
+        hasEndDate: true
+      };
+      if (state.form.type === 'current' || state.form.type === 'fund') {
+        state.form.remind = false;
+      }
+    } else if (r.path === 'edit') {
+      var a = store.getAsset(r.q.id);
+      if (!a) {
+        toast('这笔资产已经不存在了');
+        go('assets', true);
+        return;
+      }
+      state.mode = 'edit';
+      state.editingId = a.id;
+      state.errors = {};
+      state.form = {
+        id: a.id,
+        type: a.type || 'custom',
+        name: a.name || '',
+        principal: String(calc.currentPrincipal(a)),
+        rate: String(calc.effective(a).rate),
+        startDate: String(a.startDate).slice(0, 10),
+        endDate: a.endDate ? String(a.endDate).slice(0, 10) : '',
+        note: a.note || '',
+        remind: a.remind !== false,
+        hasEndDate: !!a.endDate
+      };
+    }
+    render();
+    if (r.path === 'home' || r.path === 'assets') global.scrollTo(0, 0);
+    else global.scrollTo(0, 0);
+  }
+
+  /* ---------------- 渲染 ---------------- */
+
+  function needEnd(f) {
+    return f.type === 'fixed' || (f.type === 'custom' && f.hasEndDate !== false);
+  }
+
+  function renderTopbar() {
+    var r = state.route;
+    var left = '';
+    var title = '';
+    var sub = '';
+    var right = '';
+
+    if (r === 'new') {
+      left = '<button class="icon-btn" data-action="back" aria-label="返回">' + V.icon('back', 19) + '</button>';
+      title = '新增资产';
+      sub = '按单利自动计算每日收益';
+    } else if (r === 'edit') {
+      left = '<button class="icon-btn" data-action="back" aria-label="返回">' + V.icon('back', 19) + '</button>';
+      title = '编辑资产';
+      sub = '改本金或利率从明天起生效';
+    } else {
+      title = TITLES[r] || '被动收入小账本';
+      sub = r === 'home' ? calc.fmtDateCN(calc.todayKey()) + ' ' + Model.weekOf(calc.todayKey()) : '';
+      if (r === 'assets') {
+        right = '<button class="icon-btn" data-action="go" data-page="new" aria-label="新增资产">' + V.icon('plus', 20) + '</button>';
+      }
+      if (r === 'home' && store.listAssets().length) {
+        right = '<button class="icon-btn" data-action="go" data-page="new" aria-label="新增资产">' + V.icon('plus', 20) + '</button>';
+      }
+    }
+
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var themeBtn = (r === 'settings' || r === 'new' || r === 'edit') ? ''
+      : '<button class="icon-btn" data-action="quick-theme" aria-label="切换主题">'
+      + V.icon(isDark ? 'sun' : 'moon', 18) + '</button>';
+
+    topEl.innerHTML = left + '<h1>' + V.esc(title)
+      + (sub ? '<span class="sub">' + V.esc(sub) + '</span>' : '') + '</h1>'
+      + (right || '') + themeBtn;
+  }
+
+  function renderTabs() {
+    var r = state.route;
+    var active = (r === 'new' || r === 'edit') ? 'assets' : r;
+    var btns = tabEl.querySelectorAll('button[data-page]');
+    var soon = 0;
+    if (store.getSettings().notify !== false) {
+      var g = calc.reminderGroups(store.listAssets(), calc.todayKey(), { remindOnly: true });
+      soon = g.soon.length;
+    }
+    for (var i = 0; i < btns.length; i++) {
+      var page = btns[i].getAttribute('data-page');
+      btns[i].className = page === active ? 'on' : '';
+      var dot = btns[i].querySelector('.dot');
+      if (dot) dot.style.display = (page === 'reminders' && soon > 0) ? 'block' : 'none';
+    }
+  }
+
+  function render() {
+    renderTopbar();
+    renderTabs();
+
+    var settings = store.getSettings();
+    var assets = store.listAssets();
+    var today = calc.todayKey();
+    var html = '';
+
+    if (state.route === 'home') {
+      html = V.home({
+        dash: Model.dashboard(assets, settings, today),
+        storageError: storageBroken
+      });
+    } else if (state.route === 'assets') {
+      html = V.assets(zoneModel());
+    } else if (state.route === 'history') {
+      var pts = Model.series(assets, today, state.histDays);
+      var total = 0;
+      var max = 0;
+      for (var j = 0; j < pts.length; j++) {
+        total += pts[j].total;
+        if (pts[j].total > max) max = pts[j].total;
+      }
+      html = V.history({
+        days: state.histDays,
+        points: pts,
+        settings: settings,
+        rangeText: '近 ' + state.histDays + ' 天',
+        money: function (n) { return Model.money(n, settings); },
+        sumText: Model.money(total, settings),
+        avgText: Model.money(pts.length ? total / pts.length : 0, settings),
+        maxText: Model.money(max, settings)
+      });
+    } else if (state.route === 'reminders') {
+      html = V.reminders({ rem: Model.reminders(assets, settings, today) });
+    } else if (state.route === 'settings') {
+      html = V.settings({
+        settings: settings,
+        decimals: Model.dec(settings),
+        theme: state.theme,
+        browserNotify: state.browserNotify,
+        notifyHint: browserNotifyHint(),
+        count: assets.length
+      });
+    } else if (state.route === 'new' || state.route === 'edit') {
+      html = V.edit({
+        mode: state.mode,
+        types: Model.TYPES,
+        form: state.form,
+        errors: state.errors,
+        needEnd: needEnd(state.form),
+        pv: Model.preview(state.form, settings, today)
+      });
+    }
+
+    viewEl.innerHTML = html;
+    viewEl.style.animation = 'none';
+    void viewEl.offsetWidth;
+    viewEl.style.animation = '';
+  }
+
+  /** 资产列表区的数据模型（搜索时局部刷新也用这一份） */
+  function zoneModel() {
+    var settings = store.getSettings();
+    var today = calc.todayKey();
+    var list = state.kw ? store.searchAssets(state.kw) : store.listAssets();
+    var sum = 0;
+    for (var i = 0; i < list.length; i++) sum += calc.dailyIncome(list[i], today);
+    return {
+      kw: state.kw,
+      rows: Model.dashboard(list, settings, today).rows,
+      todaySumText: Model.money(sum, settings)
+    };
+  }
+
+  /** 只重绘列表区，保持搜索框焦点与光标位置 */
+  function renderListZone() {
+    var zone = document.getElementById('list-zone');
+    if (!zone) { render(); return; }
+    zone.innerHTML = V.zone(zoneModel());
+    var clr = document.querySelector('#search-box .clr');
+    if (clr) clr.style.display = state.kw ? '' : 'none';
+  }
+
+  function browserNotifyHint() {
+    if (!global.Notification) return '当前浏览器不支持通知';
+    if (global.Notification.permission === 'granted') return '到期时推送系统通知（每天最多一次）';
+    if (global.Notification.permission === 'denied') return '已被浏览器禁止，请在地址栏站点设置中允许';
+    return '点击开关时浏览器会请求通知权限';
+  }
+
+  /* ---------------- 弹层 / 提示 ---------------- */
+
+  function toast(msg) {
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    toastRoot.appendChild(el);
+    global.setTimeout(function () {
+      el.className = 'toast out';
+      global.setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 220);
+    }, 1900);
+  }
+
+  var sheetCloser = null;
+
+  function openSheet(html, onMount) {
+    closeSheet();
+    var mask = document.createElement('div');
+    mask.className = 'mask';
+    mask.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">'
+      + '<div class="sheet-bar"></div>' + html + '</div>';
+    modalRoot.appendChild(mask);
+    document.body.classList.add('modal-open');
+
+    mask.addEventListener('click', function (e) {
+      if (e.target === mask) closeSheet();
+    });
+    sheetCloser = function () {
+      if (mask.parentNode) mask.parentNode.removeChild(mask);
+      document.body.classList.remove('modal-open');
+      sheetCloser = null;
+    };
+    if (onMount) onMount(mask);
+    var btn = mask.querySelector('[data-role="ok"]');
+    if (btn) btn.focus();
+    return mask;
+  }
+
+  function closeSheet() {
+    if (sheetCloser) sheetCloser();
+  }
+
+  function confirmSheet(opts) {
+    return new Promise(function (resolve) {
+      var h = '<h3>' + V.esc(opts.title) + '</h3>'
+        + '<p class="desc">' + (opts.html ? opts.html : V.esc(opts.desc || '')) + '</p>'
+        + '<div class="acts">'
+        + '<button class="btn btn-ghost" data-role="cancel">取消</button>'
+        + '<button class="btn ' + (opts.danger ? 'btn-danger' : 'btn-primary') + '" data-role="ok">'
+        + V.esc(opts.okText || '确定') + '</button></div>';
+      var mask = openSheet(h);
+      mask.querySelector('[data-role="cancel"]').addEventListener('click', function () {
+        closeSheet(); resolve(false);
+      });
+      mask.querySelector('[data-role="ok"]').addEventListener('click', function () {
+        closeSheet(); resolve(true);
+      });
+    });
+  }
+
+  /* ---------------- 表单 ---------------- */
+
+  function readForm() {
+    var f = state.form;
+    if (!f) return f;
+    var names = ['name', 'principal', 'rate', 'startDate', 'endDate', 'note'];
+    for (var i = 0; i < names.length; i++) {
+      var el = document.getElementById('f-' + names[i]);
+      if (el) f[names[i]] = el.value;
+    }
+    return f;
+  }
+
+  function updatePreview() {
+    var box = document.getElementById('pv');
+    if (!box) return;
+    var settings = store.getSettings();
+    box.innerHTML = V.previewBlock({
+      pv: Model.preview(state.form, settings, calc.todayKey())
+    });
+  }
+
+  function draftOf(f) {
+    return {
+      type: f.type,
+      name: String(f.name || '').trim(),
+      principal: String(f.principal || '').replace(/[,\s¥]/g, ''),
+      rate: String(f.rate || '').replace(/[%\s]/g, ''),
+      startDate: f.startDate,
+      endDate: needEnd(f) ? f.endDate : '',
+      hasEndDate: f.hasEndDate !== false,
+      note: f.note,
+      remind: needEnd(f) ? f.remind !== false : false
+    };
+  }
+
+  function doSave() {
+    readForm();
+    var f = state.form;
+    var draft = draftOf(f);
+    var v = calc.validateAsset(draft);
+    if (!v.ok) {
+      state.errors = v.errors;
+      render();
+      var first = Object.keys(v.errors)[0];
+      var el = document.getElementById('f-' + first);
+      if (el) { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      toast(v.errors[first]);
+      return;
+    }
+    state.errors = {};
+
+    if (state.mode === 'edit') {
+      var updated = store.updateAsset(state.editingId, {
+        type: draft.type,
+        name: draft.name,
+        note: draft.note,
+        startDate: draft.startDate,
+        endDate: draft.endDate,
+        remind: draft.remind,
+        principal: Number(draft.principal),
+        rate: Number(draft.rate)
+      });
+      if (!updated) {
+        toast('保存失败：这笔资产已不存在');
+        go('assets', true);
+        return;
+      }
+      toast('已保存');
+      go('assets');
+    } else {
+      store.addAsset(draft);
+      toast('已添加，今天就开始躺赚');
+      go('home');
+    }
+  }
+
+  function doDelete(id) {
+    var a = store.getAsset(id);
+    if (!a) { toast('这笔资产已经不存在了'); render(); return; }
+    confirmSheet({
+      title: '删除这笔资产？',
+      html: '「' + V.esc(a.name) + '」删除后不可恢复，累计收益记录也会一并移除。',
+      okText: '删除',
+      danger: true
+    }).then(function (ok) {
+      if (!ok) return;
+      var done = store.removeAsset(id);
+      if (!done) { toast('删除失败，请重试'); return; }
+      toast('已删除');
+      if (state.route === 'edit' && state.editingId === id) {
+        state.editingId = '';
+        state.form = null;
+        go('assets', true);
+      } else {
+        render();
+      }
+    });
+  }
+
+  /* ---------------- 日期明细 ---------------- */
+
+  function openDay(date) {
+    var settings = store.getSettings();
+    var assets = store.listAssets();
+    var items = calc.breakdown(assets, date);
+    var total = 0;
+    for (var i = 0; i < items.length; i++) total += items[i].today;
+
+    var h = '<h3>' + V.esc(calc.fmtDateCN(date)) + ' ' + V.esc(Model.weekOf(date)) + '</h3>'
+      + '<p class="desc">当天总被动收入 <b style="color:var(--gain);font-size:17px">¥'
+      + V.esc(Model.money(total, settings)) + '</b></p>';
+
+    if (!items.length) {
+      h += '<div style="padding:18px 0;text-align:center;color:var(--muted);font-size:13px">这一天没有任何资产产生收益</div>';
+    } else {
+      for (var j = 0; j < items.length; j++) {
+        var it = items[j];
+        h += '<div class="kv"><span class="k">' + V.esc(it.name)
+          + ' <span style="color:var(--faint);font-size:11px">' + V.esc(Model.typeOf(it.asset.type).short) + '</span></span>'
+          + '<span class="v gain">' + V.esc(Model.money(it.today, settings)) + '</span></div>';
+      }
+    }
+    h += '<div class="acts"><button class="btn btn-ghost" data-role="close">关闭</button></div>';
+    var mask = openSheet(h);
+    mask.querySelector('[data-role="close"]').addEventListener('click', closeSheet);
+  }
+
+  /* ---------------- 备份 ---------------- */
+
+  function todayStamp() {
+    var d = new Date();
+    return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  }
+
+  function doExport() {
+    var data = store.exportBackup();
+    var text = JSON.stringify(data, null, 2);
+    var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    var name = '被动收入小账本-备份-' + todayStamp() + '.json';
+    if (global.navigator && global.navigator.msSaveBlob) {
+      global.navigator.msSaveBlob(blob, name);
+      toast('已导出备份');
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    global.setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 400);
+    toast('已导出 ' + store.listAssets().length + ' 笔资产');
+  }
+
+  function doImport() {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'application/json,.json';
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', function () {
+      var file = inp.files && inp.files[0];
+      if (!file) { document.body.removeChild(inp); return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var text = String(reader.result || '');
+        // 只解析不写入：导入前的校验绝不能改动现有数据
+        var parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        if (!parsed) { toast('文件不是合法的 JSON'); document.body.removeChild(inp); return; }
+        var n = Array.isArray(parsed.assets) ? parsed.assets.length : (Array.isArray(parsed) ? parsed.length : 0);
+        confirmSheet({
+          title: '用备份覆盖当前数据？',
+          html: '备份里有 <b>' + n + '</b> 笔资产，导入后当前数据（' + store.listAssets().length + ' 笔）将被替换。',
+          okText: '覆盖导入'
+        }).then(function (ok) {
+          if (!ok) return;
+          var out = store.importBackup(text, 'replace');
+          if (!out.ok) { toast(out.error || '导入失败'); return; }
+          toast('已恢复 ' + out.total + ' 笔资产');
+          go('home', true);
+        });
+        document.body.removeChild(inp);
+      };
+      reader.readAsText(file);
+    });
+    inp.click();
+  }
+
+  /* ---------------- 示例数据 ---------------- */
+
+  function addDemo() {
+    var t = calc.todayKey();
+    var samples = [
+      {
+        type: 'fixed', name: '工行 3 年期定期', principal: 300000, rate: 2.6,
+        startDate: calc.addDays(t, -400), endDate: calc.addDays(t, 695),
+        note: '朝阳支行', remind: true
+      },
+      { type: 'current', name: '余额宝', principal: 50000, rate: 1.62, startDate: calc.addDays(t, -180), note: '随时可取' },
+      { type: 'fund', name: '住房公积金', principal: 86000, rate: 1.5, startDate: calc.addDays(t, -900), note: '账户余额' }
+    ];
+    for (var i = 0; i < samples.length; i++) store.addAsset(samples[i]);
+    
+    render();
+  }
+
+  /* ---------------- 通知 ---------------- */
+
+  function checkNotify() {
+    if (!state.browserNotify) return;
+    if (!global.Notification || global.Notification.permission !== 'granted') return;
+    var settings = store.getSettings();
+    if (settings.notify === false) return;
+
+    var today = calc.todayKey();
+    var last = '';
+    try { last = storage.get(KEY_NOTICE) || ''; } catch (e) { last = ''; }
+    if (last === today) return;
+
+    var g = calc.reminderGroups(store.listAssets(), today, { remindOnly: true });
+    var due = g.soon.filter(function (x) { return x.remind; });
+    if (!due.length) return;
+
+    var body = due.slice(0, 3).map(function (x) {
+      return x.name + (x.daysLeft === 0 ? ' 今天到期' : ' ' + x.daysLeft + ' 天后到期');
+    }).join('；') + (due.length > 3 ? ' 等 ' + due.length + ' 笔' : '');
+    try {
+      new global.Notification('被动收入小账本 · 到期提醒', {
+        body: body,
+        tag: 'pil-due-' + today,
+        icon: 'assets/icon-192.png'
+      });
+      storage.set(KEY_NOTICE, today);
+    } catch (e) { /* 忽略 */ }
+  }
+
+  function toggleBrowserNotify() {
+    if (!global.Notification) { toast('当前浏览器不支持通知'); return; }
+    if (state.browserNotify) {
+      state.browserNotify = false;
+      try { storage.set('pil_bn_v1', '0'); } catch (e) { /* ignore */ }
+      render();
+      return;
+    }
+    if (global.Notification.permission === 'granted') {
+      state.browserNotify = true;
+      try { storage.set('pil_bn_v1', '1'); } catch (e) { /* ignore */ }
+      toast('已开启到期通知');
+      render();
+      return;
+    }
+    if (global.Notification.permission === 'denied') {
+      toast('浏览器已禁止通知，请在站点设置里允许');
+      return;
+    }
+    global.Notification.requestPermission().then(function (p) {
+      if (p === 'granted') {
+        state.browserNotify = true;
+        try { storage.set('pil_bn_v1', '1'); } catch (e) { /* ignore */ }
+        toast('已开启到期通知');
+      } else {
+        toast('未获得通知权限');
+      }
+      render();
+    });
+  }
+
+  /* ---------------- 动作分发 ---------------- */
+
+  function handleAction(action, el, e) {
+    var id = el.getAttribute('data-id') || '';
+    switch (action) {
+      case 'go':
+        go(el.getAttribute('data-page'));
+        break;
+
+      case 'back':
+        if (global.history.length > 1) global.history.back();
+        else go('home', true);
+        break;
+
+      case 'edit':
+        go('edit?id=' + encodeURIComponent(id));
+        break;
+
+      case 'del':
+        doDelete(id);
+        break;
+
+      case 'demo':
+        addDemo();
+        break;
+
+      case 'clear-kw': {
+        state.kw = '';
+        var kwEl = document.getElementById('kw');
+        if (kwEl) kwEl.value = '';
+        renderListZone();
+        if (kwEl) kwEl.focus();
+        break;
+      }
+
+      case 'pick-type':
+        readForm();
+        state.form.type = el.getAttribute('data-type');
+        if (state.form.type === 'current' || state.form.type === 'fund') {
+          state.form.endDate = '';
+          state.form.remind = false;
+        }
+        if (state.form.type === 'fixed' && !state.form.endDate) {
+          state.form.endDate = calc.addDays(state.form.startDate || calc.todayKey(), 365);
+        }
+        state.errors = {};
+        render();
+        break;
+
+      case 'toggle-hasend':
+        readForm();
+        state.form.hasEndDate = state.form.hasEndDate === false;
+        if (!state.form.hasEndDate) { state.form.endDate = ''; state.form.remind = false; }
+        render();
+        break;
+
+      case 'toggle-remind':
+        if (id) {
+          var a = store.getAsset(id);
+          if (!a) { toast('这笔资产已经不存在了'); render(); return; }
+          store.toggleRemind(id, a.remind === false);
+          render();
+        } else {
+          readForm();
+          state.form.remind = state.form.remind === false;
+          render();
+        }
+        break;
+
+      case 'save':
+        doSave();
+        break;
+
+      case 'range':
+        state.histDays = Number(el.getAttribute('data-days')) || 30;
+        render();
+        break;
+
+      case 'day':
+        openDay(el.getAttribute('data-date'));
+        break;
+
+      case 'set-dec':
+        store.saveSettings({ decimals: Number(el.getAttribute('data-v')) });
+        render();
+        break;
+
+      case 'set-theme':
+        setTheme(el.getAttribute('data-v'));
+        break;
+
+      case 'quick-theme':
+        setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        break;
+
+      case 'save-goal': {
+        var gEl = document.getElementById('f-goal');
+        var gv = gEl ? String(gEl.value).replace(/[,\s¥]/g, '') : '';
+        var num = Number(gv);
+        if (gv && (!isFinite(num) || num < 0)) { toast('请填写正确的目标金额'); return; }
+        store.saveSettings({ goalDaily: gv ? num : 0 });
+        toast(gv ? '目标已保存' : '已取消目标');
+        render();
+        break;
+      }
+
+      case 'toggle-notify':
+        store.saveSettings({ notify: store.getSettings().notify === false });
+        render();
+        break;
+
+      case 'toggle-browser-notify':
+        toast('安装应用后可开启浏览器通知');
+        break;
+
+      case 'export':
+        toast('安装应用后可导出备份');
+        break;
+
+      case 'import':
+        toast('安装应用后可从备份恢复');
+        break;
+
+      case 'clear-all':
+        confirmSheet({
+          title: '清空全部数据？',
+          desc: '所有资产、累计收益与设置都会被删除，且无法恢复。建议先导出备份。',
+          okText: '确认清空',
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          store.removeAllAssets();
+          store.saveSettings({ goalDaily: 0 });
+          state.kw = '';
+          toast('已清空');
+          go('home', true);
+        });
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!el) return;
+    // 编辑页 / 资产列表里的空区域点击不要误触发
+    if (el.getAttribute('data-action') === 'edit' && e.target.closest('button')) return;
+    e.preventDefault();
+    handleAction(el.getAttribute('data-action'), el, e);
+  });
+
+  // 表单实时预览
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || !t.id) return;
+    if (t.id === 'kw') {
+      state.kw = t.value;
+      renderListZone();
+      return;
+    }
+    if (state.route === 'new' || state.route === 'edit') {
+      if (t.name && state.form && Object.prototype.hasOwnProperty.call(state.form, t.name)) {
+        state.form[t.name] = t.value;
+        updatePreview();
+      }
+    }
+  });
+
+  // 键盘回车保存
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && (state.route === 'new' || state.route === 'edit')) {
+      var t = e.target;
+      if (t && t.tagName === 'INPUT' && t.type !== 'date') {
+        e.preventDefault();
+        doSave();
+      }
+    }
+    if (e.key === 'Escape') closeSheet();
+  });
+
+  global.addEventListener('hashchange', onRoute);
+
+  if (mq) {
+    var onChange = function () { if (state.theme === 'auto') applyTheme(); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+
+  /* ---------------- 启动 ---------------- */
+
+  loadTheme();
+  applyTheme();
+  onRoute();
+  global.setTimeout(checkNotify, 900);
+
+  global.PILApp = {
+    store: store,
+    state: state,
+    render: render,
+    go: go,
+    toast: toast,
+    checkNotify: checkNotify,
+    addDemo: addDemo,
+    setTheme: setTheme
+  };
+})(window);
+</script><script>
+function resetDemo(){ PILStorage.reset(); PILApp.state.kw=''; PILApp.state.histDays=30; PILApp.state.browserNotify=false; PILApp.setTheme('auto'); PILApp.addDemo(); PILApp.go('home',true); }
+document.getElementById('reset-demo').addEventListener('click',resetDemo); resetDemo();
+</script>
+</body>
+</html>
