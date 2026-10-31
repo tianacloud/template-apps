@@ -1,0 +1,13 @@
+import { readFile, mkdir, writeFile, copyFile } from 'node:fs/promises';
+import { build } from 'esbuild';
+const commit = process.argv[2];
+if (!/^[0-9a-f]{40}$/.test(commit || '')) throw new Error('Provide full source commit');
+const html = await readFile('src/content.html','utf8');
+const css = await readFile('src/style.css','utf8');
+const bundled = await build({entryPoints:['src/behavior.js'],bundle:true,write:false,format:'iife',platform:'browser'});
+const js = bundled.outputFiles[0].text;
+await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js', `const s=document.createElement('style');s.textContent=${JSON.stringify(css)};document.head.append(s);document.title='AI 办公提效实战课 · 课件';document.getElementById('app').innerHTML=${JSON.stringify(html)};\n${js}`);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));
