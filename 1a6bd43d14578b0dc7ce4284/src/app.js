@@ -447,8 +447,9 @@ function renderExamResult(){
     <div>模拟考试结束</div>
     <div class="score ${pass?'pass':'fail'}">${score}<span style="font-size:18px">分</span></div>
     <div style="color:var(--sub);margin-bottom:14px">答对 ${right} / ${total} · 合格线 90 分 · ${pass?'🎉 恭喜通过':'未达合格线，再练练'}</div>
-    <button class="btn primary" onclick="restartExam()">再来一次</button>
+    <button class="btn primary" id="restartResult">再来一次</button>
   </div>`;
+  document.getElementById("restartResult").addEventListener("click",restartExam);
 }
 /* 重新考试：仅重置本次考试（重新抽题 + 计时归零），不影响其它模式的进度记录 */
 function confirmRestartExam(){
@@ -589,8 +590,9 @@ function init(){
     buildList(); render();
   }
 }
+document.getElementById("sub1").addEventListener("click",()=>switchSub(1));
+document.getElementById("sub4").addEventListener("click",()=>switchSub(4));
+document.querySelector(".btn-restart").addEventListener("click",confirmRestartExam);
 init();
-
-Object.assign(window,{switchSub,confirmRestartExam,restartExam});
 
 }
