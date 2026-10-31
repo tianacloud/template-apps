@@ -38,7 +38,8 @@
   #app {
     width: 100%;
     max-width: 440px;
-    height: 100vh;
+    height: calc(100vh - 36px);
+    margin-top: 36px;
     background: var(--bg);
     display: flex;
     flex-direction: column;
@@ -4196,7 +4197,16 @@ return {
   $('sheet').onclick = e => { if (e.target.id === 'sheet') $('sheet').classList.remove('on') }
   $('nav-back').onclick = () => {
     if (ended || !S) { resetToCover(); return }
-    if (confirm('退出会丢掉这一局，确定？')) resetToCover()
+    if (document.getElementById('exit-confirm')) return
+    const dialog = document.createElement('div')
+    dialog.id = 'exit-confirm'
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-label', '退出当前游戏')
+    dialog.style.cssText = 'position:fixed;inset:0;z-index:9000;background:#0008;display:grid;place-items:center'
+    dialog.innerHTML = '<div style="background:#fff;padding:24px;border-radius:12px"><p>退出会丢掉这一局，确定？</p><button type="button" id="exit-cancel">继续游戏</button> <button type="button" id="exit-accept">退出</button></div>'
+    document.body.append(dialog)
+    $('exit-cancel').onclick = () => dialog.remove()
+    $('exit-accept').onclick = () => { generation++; dialog.remove(); resetToCover() }
   }
 
   // 每局结束后写入档案（只在结算时调用一次）
@@ -4209,11 +4219,11 @@ return {
     previewStorage.setItem('gc_hist', JSON.stringify(hist.slice(0, 30)))
   }
 
-  window.resetExample = () => { generation++; previewStorage.data = {}; document.getElementById('end')?.remove(); document.getElementById('sheet').classList.remove('on'); resetToCover() }
+  window.resetExample = () => { generation++; previewStorage.data = {}; document.getElementById('end')?.remove(); document.getElementById('exit-confirm')?.remove(); document.getElementById('sheet').classList.remove('on'); resetToCover() }
   resetToCover()
 })()
 </script>
-<span style="position:fixed;top:10px;left:10px;z-index:10000;background:#fff;padding:4px">示例体验 · 数据仅在当前页面保留</span><button type="button" id="restore-example" onclick="window.resetExample()" style="position:fixed;top:10px;right:10px;z-index:10000">恢复示例</button>
+<div style="position:fixed;top:0;left:0;right:0;height:36px;z-index:10000;background:#f7f7f7;display:flex;align-items:center;justify-content:center;gap:12px;font:12px sans-serif"><span>示例体验 · 数据仅在当前页面保留</span><button type="button" id="restore-example" onclick="window.resetExample()">恢复示例</button></div>
 <!-- portal-back:start -->
 
 <style>
