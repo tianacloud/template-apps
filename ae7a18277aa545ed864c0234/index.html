@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内审员考试试卷生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Roboto,sans-serif;
+     background:#f2f4f7;color:#1f2430;font-size:15px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{background:linear-gradient(120deg,#0f2b52,#1a5fb4);color:#fff;border-radius:10px;
+        padding:20px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar h1{font-size:22px;font-weight:600;letter-spacing:.5px}
+.topbar .sub{font-size:13px;opacity:.85;margin-top:2px}
+.topbar .spacer{flex:1}
+.bank-badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+            border-radius:6px;padding:7px 14px;font-size:13px}
+.bank-badge b{font-size:17px;margin:0 3px}
+.ico{width:22px;height:22px;fill:currentColor;flex-shrink:0}
+
+/* ---------- 步骤条 ---------- */
+.steps{display:flex;gap:8px;margin:18px 0 0;flex-wrap:wrap}
+.step{flex:1;min-width:150px;background:#fff;border:1px solid #dde4ee;border-radius:8px;
+      padding:11px 15px;font-size:13.5px;color:#7b8794;display:flex;align-items:center;gap:9px}
+.step .n{width:23px;height:23px;border-radius:50%;background:#e3e8f0;color:#7b8794;
+         display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex-shrink:0}
+.step.on{border-color:#1a5fb4;color:#0f2b52;font-weight:600;box-shadow:0 2px 8px rgba(26,95,180,.13)}
+.step.on .n{background:#1a5fb4;color:#fff}
+.step.done .n{background:#2e7d32;color:#fff}
+.step.done{color:#2e7d32;border-color:#bcd9be}
+
+/* ---------- 卡片 ---------- */
+.card{background:#fff;border:1px solid #dde4ee;border-radius:10px;padding:22px 26px;margin-top:16px}
+.card h2{font-size:17px;color:#0f2b52;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card h2 .ico{width:19px;height:19px;color:#1a5fb4}
+.card .hint{font-size:13px;color:#7b8794;margin-bottom:16px}
+.card h3{font-size:14.5px;color:#0f2b52;margin:20px 0 9px;padding-left:9px;border-left:4px solid #1a5fb4}
+
+/* ---------- 表单 ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.fld label{display:block;font-size:13px;color:#4a5568;margin-bottom:5px;font-weight:500}
+.fld input,.fld select{width:100%;padding:9px 11px;border:1px solid #cbd5e0;border-radius:6px;
+                       font-size:15px;font-family:inherit;background:#fff;color:#1f2430}
+.fld input:focus,.fld select:focus{outline:none;border-color:#1a5fb4;box-shadow:0 0 0 3px rgba(26,95,180,.12)}
+
+table.tb{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+table.tb th{background:#e8eef7;color:#0f2b52;font-weight:600}
+table.tb th,table.tb td{border:1px solid #c8d3e0;padding:7px 9px;text-align:center}
+table.tb td.lft{text-align:left}
+table.tb input{width:62px;padding:5px 6px;border:1px solid #cbd5e0;border-radius:4px;
+               text-align:center;font-size:14px;font-family:inherit}
+table.tb input.bad{border-color:#c62828;background:#fdeeee}
+table.tb tfoot td{background:#f5f8fc;font-weight:600}
+.sum-ok{color:#2e7d32;font-weight:600}
+.sum-bad{color:#c62828;font-weight:600}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border:1px solid transparent;
+     border-radius:6px;font-size:14.5px;font-family:inherit;cursor:pointer;background:#1a5fb4;color:#fff;
+     transition:.15s;font-weight:500;min-height:44px}
+.btn:hover{background:#164e94}
+.btn.sec{background:#fff;color:#1a5fb4;border-color:#a8c2e3}
+.btn.sec:hover{background:#f0f5fc}
+.btn.gray{background:#fff;color:#5a6675;border-color:#cbd5e0}
+.btn.gray:hover{background:#f5f7fa}
+.btn.green{background:#2e7d32}
+.btn.green:hover{background:#256428}
+.btn.sm{padding:6px 12px;font-size:13px;min-height:34px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}
+.btnbar .spacer{flex:1}
+
+/* ---------- 提示条 ---------- */
+.alert{border-radius:6px;padding:11px 15px;font-size:13.5px;margin-top:12px;display:flex;gap:9px;align-items:flex-start}
+.alert .ico{width:17px;height:17px;margin-top:3px}
+.alert.warn{background:#fdf3e8;border-left:4px solid #c77700;color:#7a4b00}
+.alert.err{background:#fdeeee;border-left:4px solid #c62828;color:#8d1d1d}
+.alert.ok{background:#eef6ee;border-left:4px solid #2e7d32;color:#1b5e20}
+.alert.info{background:#eef3fb;border-left:4px solid #1a5fb4;color:#123c72}
+
+/* ---------- 待确认卷 ---------- */
+.sec-hd{background:#e8eef7;border-left:5px solid #1a5fb4;padding:9px 14px;margin:22px 0 12px;
+        font-weight:600;color:#0f2b52;font-size:15px;display:flex;align-items:center;gap:10px}
+.sec-hd .cnt{font-weight:400;font-size:13px;color:#5a6675}
+.qitem{border:1px solid #dde4ee;border-radius:7px;padding:13px 16px;margin-bottom:10px;background:#fff;
+       display:flex;gap:13px;align-items:flex-start}
+.qitem:hover{border-color:#a8c2e3;background:#fcfdff}
+.qitem .qno{background:#0f2b52;color:#fff;width:28px;height:28px;border-radius:5px;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.qitem .qbody{flex:1;min-width:0}
+.qitem .qtext{font-size:14.5px;color:#1f2430;white-space:pre-wrap;word-break:break-word}
+.qitem .qopts{font-size:13.5px;color:#4a5568;margin-top:5px;white-space:pre-wrap}
+.qitem .qmeta{margin-top:8px;font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11.5px;font-weight:600}
+.pill.s1{background:#e3edfb;color:#12467f}
+.pill.s2{background:#e5f3e6;color:#1e6023}
+.pill.s3{background:#fdeee2;color:#8a4b00}
+.pill.s4{background:#f0e6f8;color:#5b2d82}
+.pill.id{background:#eef0f4;color:#5a6675;font-weight:500;font-family:Consolas,Monaco,monospace}
+.ans-tag{color:#c62828;font-weight:600}
+.clause-tag{color:#1a5fb4}
+.qitem .qact{flex-shrink:0}
+
+/* ---------- 输出区 ---------- */
+.outgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:6px}
+.outbox{border:1px solid #dde4ee;border-radius:8px;padding:16px 18px;background:#fbfcfe}
+.outbox h4{font-size:14.5px;color:#0f2b52;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.outbox p{font-size:12.5px;color:#7b8794;margin-bottom:12px;line-height:1.6}
+.outbox .btn{width:100%;justify-content:center;margin-bottom:8px}
+.outbox .btn:last-child{margin-bottom:0}
+
+/* ---------- 预览 ---------- */
+#previewMask{display:none;position:fixed;inset:0;background:rgba(15,26,45,.62);z-index:900;
+             overflow:auto;padding:24px 12px}
+#previewBox{max-width:900px;margin:0 auto;background:#e9ecf1;border-radius:9px;overflow:hidden}
+#previewBar{background:#0f2b52;color:#fff;padding:11px 18px;display:flex;align-items:center;gap:12px;
+            position:sticky;top:0;z-index:5}
+#previewBar .t{font-size:15px;font-weight:600;flex:1}
+#previewFrame{width:100%;height:78vh;border:none;background:#fff;display:block}
+
+/* 隐藏的排版测量容器 */
+#measure{position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none}
+
+@media (max-width:760px){
+  .wrap{padding:14px 12px 50px}
+  .topbar{padding:16px 18px}.topbar h1{font-size:19px}
+  .card{padding:18px 16px}
+  .step{min-width:120px;font-size:12.5px}
+  table.tb{font-size:12.5px}
+  table.tb th,table.tb td{padding:5px 4px}
+  table.tb input{width:46px}
+  .qitem{flex-direction:column;gap:9px}
+  .qitem .qact{width:100%}
+  .qitem .qact .btn{width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <svg class="ico" viewBox="0 0 24 24" style="width:30px;height:30px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2 4 4h-4V4zM8 13h8v1.5H8V13zm0 3.5h8V18H8v-1.5zM8 9.5h4V11H8V9.5z"/></svg>
+    <div>
+      <h1>内审员考试试卷生成器</h1>
+      <div class="sub">ISO 9001 · ISO 14001 · ISO 45001 · IATF 16949　四体系整合内审员考核</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="bank-badge" id="bankBadge">题库载入中…</div>
+  </div>
+
+  <div class="steps">
+    <div class="step on" id="stp1"><span class="n">1</span>组卷设置</div>
+    <div class="step" id="stp2"><span class="n">2</span>编辑待确认卷</div>
+    <div class="step" id="stp3"><span class="n">3</span>输出试卷</div>
+  </div>
+
+  <div id="bankAlert"></div>
+
+  <!-- ============ 步骤1：设置 ============ -->
+  <section id="pane1">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.3a.5.5 0 0 0-.6-.2l-2.4 1a7.3 7.3 0 0 0-1.7-1l-.4-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.4 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1a.5.5 0 0 0-.6.2L2.5 8.8a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.3c.1.2.4.3.6.2l2.4-1c.5.4 1.1.7 1.7 1l.4 2.5c0 .2.2.4.5.4h3.8c.3 0 .5-.2.5-.4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1c.2.1.5 0 .6-.2l1.9-3.3a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg>试卷基本信息</h2>
+      <div class="hint">这些信息会打印在试卷首页。</div>
+      <div class="grid">
+        <div class="fld"><label>试卷标题</label><input id="cfgTitle" value="内审员认证考核"></div>
+        <div class="fld"><label>副标题 / 适用范围</label><input id="cfgSub" value="ISO 9001 / ISO 14001 / ISO 45001 / IATF 16949 四体系"></div>
+        <div class="fld"><label>考试时长（分钟）</label><input id="cfgDur" type="number" min="10" max="300" value="90"></div>
+        <div class="fld"><label>认证合格分数线（分）</label><input id="cfgPass" type="number" min="0" max="100" value="80"></div>
+        <div class="fld"><label>卷别编号</label><input id="cfgCode" value="B卷"></div>
+        <div class="fld" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cfgShowSrc" checked style="width:auto;margin:0">
+          <label style="margin:0;white-space:nowrap">答案中显示题库来源</label>
+        </div>
+      </div>
+
+      <h3>组卷规则</h3>
+      <div class="hint">题数与分值可按需微调，总分自动计算。默认配置总分 100 分。</div>
+      <table class="tb">
+        <thead><tr><th style="width:22%">题型</th><th style="width:19%">题数</th><th style="width:19%">每题分值</th><th style="width:19%">小计分值</th><th>说明</th></tr></thead>
+        <tbody id="ruleBody"></tbody>
+        <tfoot><tr><td>合计</td><td id="ruleQTotal">48</td><td>—</td><td id="ruleSTotal">100</td><td class="lft" id="ruleNote"></td></tr></tfoot>
+      </table>
+
+      <h3>四体系题目占比</h3>
+      <div class="hint">先填权重自动分配，也可直接修改下表任一格子手动微调。每列合计必须等于该题型的题数。</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px">
+        <div class="fld"><label>ISO 9001 权重</label><input id="w0" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>ISO 14001 权重</label><input id="w1" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>ISO 45001 权重</label><input id="w2" type="number" min="0" step="0.5" value="1"></div>
+        <div class="fld"><label>IATF 16949 权重</label><input id="w3" type="number" min="0" step="0.5" value="2"></div>
+      </div>
+      <div class="btnbar" style="margin-top:0;margin-bottom:12px">
+        <button class="btn sec sm" onclick="applyWeights()">按权重重新分配</button>
+        <button class="btn gray sm" onclick="resetWeights()">恢复默认 1:1:1:2</button>
+      </div>
+      <table class="tb">
+        <thead><tr><th style="width:24%">体系</th><th>单选</th><th>多选</th><th>判断</th><th>简答</th><th>案例</th><th>小计</th></tr></thead>
+        <tbody id="allocBody"></tbody>
+        <tfoot><tr id="allocFoot"></tr></tfoot>
+      </table>
+      <div id="allocMsg"></div>
+
+      <div class="btnbar">
+        <button class="btn" id="btnMake" onclick="doDraw()">
+          <svg class="ico" viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M20.7 7.3l-4-4a1 1 0 0 0-1.4 0l-11 11c-.1.1-.2.3-.3.5l-1 4a1 1 0 0 0 1.2 1.2l4-1c.2 0 .4-.1.5-.3l11-11a1 1 0 0 0 0-1.4zM6.8 17.9l-2 .5.5-2L14 7.7l1.5 1.5-8.7 8.7zM17 8.2 15.5 6.7 16 6.2 17.5 7.7l-.5.5z"/></svg>
+          编辑试卷（生成待确认卷）</button>
+        <div class="spacer"></div>
+        <button class="btn gray sm" onclick="reloadBank()">重新载入题库</button>
+        <button class="btn gray sm" onclick="document.getElementById('txtInput').click()">导入题库 txt</button>
+        <input type="file" id="txtInput" accept=".txt" multiple style="display:none" onchange="importTxt(this.files)">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 步骤2：待确认卷 ============ -->
+  <section id="pane2" style="display:none">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h12v2H3v-2z"/></svg>待确认试卷</h2>
+      <div class="hint">逐题核对。点「换一题」将在<b>同体系、同题型</b>范围内重新抽取，并自动避开本卷已用题目。</div>
+      <div class="btnbar" style="margin-top:0">
+        <button class="btn gray sm" onclick="goStep(1)">返回设置</button>
+        <button class="btn sec sm" onclick="doDraw()">整卷重抽</button>
+        <div class="spacer"></div>
+        <span id="paperStat" style="font-size:13px;color:#5a6675"></span>
+        <button class="btn green" onclick="confirmPaper()">
+          <svg class="ico" viewBox="0 0 24 24" style="width:17px;height:17px"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          确认并生成试卷</button>
+      </div>
+      <div id="paperList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 步骤3：输出 ============ -->
+  <section id="pane3" style="display:none">
+    <div class="card">
+      <h2><svg class="ico" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>输出试卷</h2>
+      <div class="hint" id="outHint"></div>
+      <div class="outgrid">
+        <div class="outbox">
+          <h4><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px;fill:#1a5fb4"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V7h14v12z"/></svg>待印试卷（考生用）</h4>
+          <p>严格 4 页 A4，首页含标题、考生信息栏、各大题得分栏与总分栏，不含任何答案。</p>
+          <button class="btn" onclick="dl('blank','html')">下载 HTML</button>
+          <button class="btn sec" onclick="dl('blank','doc')">下载 Word</button>
+          <button class="btn gray" onclick="preview('blank')">预览 / 打印</button>
+        </div>
+        <div class="outbox">
+          <h4><svg class="ico" viewBox="0 0 24 24" style="width:16px;height:16px;fill:#c62828"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3 6.5 3.6v.1L12 11.6 5.5 8v-.1L12 4.3zM5 9.9l6 3.3v6.5l-6-3.3V9.9zm8 9.8v-6.5l6-3.3v6.5l-6 3.3z"/></svg>含答案试卷（阅卷用）</h4>
+          <p>每题后另起一行：<span style="color:#c62828;font-weight:600">红色</span>显示标准答案与解析，<span style="color:#1a5fb4;font-weight:600">蓝色</span>标注标准条款出处。</p>
+          <button class="btn" onclick="dl('key','html')">下载 HTML</button>
+          <button class="btn sec" onclick="dl('key','doc')">下载 Word</button>
+          <button class="btn gray" onclick="preview('key')">预览 / 打印</button>
+        </div>
+      </div>
+      <div class="alert info">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+        <div><b>Word 文件说明：</b>下载的 .doc 为 Word 兼容格式，可用 Microsoft Word 或 WPS 直接打开并二次编辑、另存为 .docx。若浏览器提示"保留"，选择保留即可。<br>
+        <b>转 PDF：</b>点「预览 / 打印」后在打印对话框中选择"另存为 PDF"，纸张 A4、边距默认、缩放 100%、勾选背景图形。</div>
+      </div>
+      <div class="btnbar">
+        <button class="btn gray" onclick="goStep(2)">返回修改</button>
+        <button class="btn sec" onclick="doDraw()">重新组卷</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 预览遮罩 -->
+<div id="previewMask">
+  <div id="previewBox">
+    <div id="previewBar">
+      <span class="t" id="previewTitle">预览</span>
+      <button class="btn sec sm" onclick="printPreview()">打印 / 另存为 PDF</button>
+      <button class="btn gray sm" onclick="closePreview()">关闭</button>
+    </div>
+    <iframe id="previewFrame"></iframe>
+  </div>
+</div>
+
+<div id="measure"></div>
+
+
+<script>
+/* =========================================================================
+   内审员考试试卷生成器
+   ========================================================================= */
+
+var SYS   = ['ISO9001','ISO14001','ISO45001','IATF16949'];
+var SYSCN = {ISO9001:'ISO 9001', ISO14001:'ISO 14001', ISO45001:'ISO 45001', IATF16949:'IATF 16949'};
+var SYSPILL = {ISO9001:'s1', ISO14001:'s2', ISO45001:'s3', IATF16949:'s4'};
+var TYPES = ['单选','多选','判断','简答','案例'];
+var TYPECN = {单选:'单项选择题', 多选:'多项选择题', 判断:'判断题', 简答:'简答题', 案例:'案例分析题'};
+var CNNUM = ['一','二','三','四','五'];
+var LS_CFG = 'wb_auditor_exam_cfg';
+var LS_BANK = 'wb_auditor_exam_bank';
+
+var BANK = [];        // 全部题目
+var BANKSRC = '';     // 题库来源说明
+var RULE = {单选:{n:20,s:1}, 多选:{n:10,s:2}, 判断:{n:10,s:2}, 简答:{n:4,s:5}, 案例:{n:4,s:5}};
+var ALLOC = {};       // ALLOC[sys][type] = 题数
+var PAPER = null;     // 当前试卷 {items:[{type,q}], meta:{}}
+var LAYOUT = null;    // 待印卷分页结果
+
+/* ---------------- 工具 ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+
+/* ---------------- 题库载入 ---------------- */
+function normalize(list){
+  var out=[];
+  for(var i=0;i<list.length;i++){
+    var q=list[i];
+    if(!q||!q.id||!q.sys||!q.type) continue;
+    if(SYS.indexOf(q.sys)<0||TYPES.indexOf(q.type)<0) continue;
+    out.push({id:q.id, sys:q.sys, type:q.type, q:q.q||'', options:q.options||[],
+              answer:q.answer||'', analysis:q.analysis||'', clause:q.clause||''});
+  }
+  return out;
+}
+
+function loadBank(){
+  var saved = null;
+  try{ var raw=window.examStore.getItem(LS_BANK); if(raw) saved=JSON.parse(raw); }catch(e){}
+  if(saved && saved.questions && saved.questions.length){
+    BANK = normalize(saved.questions);
+    BANKSRC = '手工导入的 txt（' + (saved.at||'') + '）';
+  } else if(window.QUESTION_BANK && window.QUESTION_BANK.questions){
+    BANK = normalize(window.QUESTION_BANK.questions);
+    BANKSRC = '内置题库（生成于 ' + (window.QUESTION_BANK.generatedAt||'') + '）';
+  } else {
+    BANK = []; BANKSRC = '';
+  }
+  renderBankInfo();
+}
+
+function reloadBank(){
+  try{ window.examStore.removeItem(LS_BANK); }catch(e){}
+  loadBank(); renderAlloc();
+}
+
+function countBank(sys,type){
+  var n=0; for(var i=0;i<BANK.length;i++) if(BANK[i].sys===sys&&BANK[i].type===type) n++;
+  return n;
+}
+
+function renderBankInfo(){
+  var box=$('bankAlert');
+  if(!BANK.length){
+    $('bankBadge').innerHTML='题库未载入';
+    box.innerHTML='<div class="alert err"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2zm0-4h-2V8h2z"/></svg><div>'+
+      '<b>未能载入题库。</b>请任选一种方式修复：<br>'+
+      '① 检查题库是否已正确安装；<br>'+
+      ''+
+      '② 直接点下方「导入题库 txt」按钮，选择题库文件（可多选）。</div></div>';
+    return;
+  }
+  $('bankBadge').innerHTML='题库 <b>'+BANK.length+'</b> 题';
+  var rows=[];
+  for(var i=0;i<SYS.length;i++){
+    var s=SYS[i],parts=[];
+    for(var j=0;j<TYPES.length;j++) parts.push(TYPES[j]+countBank(s,TYPES[j]));
+    rows.push(SYSCN[s]+'（'+parts.join('/')+'）');
+  }
+  box.innerHTML='<div class="alert ok"><svg class="ico" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg><div>'+
+    '题库已载入，来源：'+esc(BANKSRC)+'<br>'+esc(rows.join('　·　'))+'</div></div>';
+}
+
+/* 手工导入 txt（file:// 下 fetch 受限，用 FileReader 读本地文件） */
+function importTxt(files){
+  if(!files||!files.length) return;
+  var all=[], done=0, errs=[];
+  for(var i=0;i<files.length;i++){
+    (function(f){
+      var r=new FileReader();
+      r.onload=function(){
+        try{ all=all.concat(parseTxt(r.result,f.name,errs)); }
+        catch(e){ errs.push(f.name+'：'+e.message); }
+        if(++done===files.length) finishImport(all,errs);
+      };
+      r.onerror=function(){ errs.push(f.name+'：读取失败'); if(++done===files.length) finishImport(all,errs); };
+      r.readAsText(f,'UTF-8');
+    })(files[i]);
+  }
+}
+
+function parseTxt(text,fname,errs){
+  text = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n');
+  var FIELDS=['序号','体系','题型','题目','选项','答案','解析','条款'];
+  var blocks = text.split(/\n={6,}[ \t]*(?=\n|$)/);
+  var out=[];
+  for(var b=0;b<blocks.length;b++){
+    var lines=blocks[b].split('\n'), cur=null, d={};
+    for(var i=0;i<lines.length;i++){
+      var ln=lines[i];
+      if(/^\s*#/.test(ln)) continue;
+      var m=ln.match(/^(序号|体系|题型|题目|选项|答案|解析|条款)=(.*)$/);
+      if(m){ cur=m[1]; d[cur]=m[2].trim(); }
+      else if(cur!==null){ d[cur]=(d[cur]+'\n'+ln).replace(/^\n+|\n+$/g,''); }
+    }
+    if(!d['序号']||!d['体系']||!d['题型']) continue;
+    var opts=[];
+    if(d['选项']){ var oa=d['选项'].split('\n'); for(var k=0;k<oa.length;k++){ var t=oa[k].trim(); if(t) opts.push(t); } }
+    out.push({id:d['序号'].trim(), sys:d['体系'].trim(), type:d['题型'].trim(),
+              q:(d['题目']||'').trim(), options:opts, answer:(d['答案']||'').trim(),
+              analysis:(d['解析']||'').trim(), clause:(d['条款']||'').trim()});
+  }
+  if(!out.length) errs.push(fname+'：未解析出任何题目，请检查格式');
+  return out;
+}
+
+function finishImport(list,errs){
+  var norm=normalize(list);
+  if(!norm.length){ alert('导入失败，未解析出有效题目。\n\n'+errs.join('\n')); return; }
+  var seen={}, uniq=[];
+  for(var i=0;i<norm.length;i++){ if(!seen[norm[i].id]){ seen[norm[i].id]=1; uniq.push(norm[i]); } }
+  try{ window.examStore.setItem(LS_BANK, JSON.stringify({at:today(), questions:uniq})); }
+  catch(e){ alert('题库保存失败，请检查网络及数据库连接。'); }
+  BANK=uniq; BANKSRC='手工导入的 txt（'+today()+'）';
+  renderBankInfo(); renderAlloc();
+  alert('导入成功：共 '+uniq.length+' 题。'+(errs.length?('\n\n提醒：\n'+errs.join('\n')):''));
+}
+
+/* ---------------- 设置区 ---------------- */
+function renderRule(){
+  var tb=$('ruleBody'), h='', qt=0, st=0;
+  var note={单选:'四选一，每题 1 个正确答案', 多选:'多选，少选/多选均不得分',
+            判断:'正确 / 错误', 简答:'按要点给分', 案例:'开具不符合项或原因分析与纠正预防措施'};
+  for(var i=0;i<TYPES.length;i++){
+    var t=TYPES[i], r=RULE[t];
+    qt+=r.n; st+=r.n*r.s;
+    h+='<tr><td class="lft"><b>'+CNNUM[i]+'、'+TYPECN[t]+'</b></td>'+
+       '<td><input type="number" min="0" max="60" value="'+r.n+'" oninput="onRule(\''+t+'\',\'n\',this.value)"></td>'+
+       '<td><input type="number" min="0" max="20" step="0.5" value="'+r.s+'" oninput="onRule(\''+t+'\',\'s\',this.value)"></td>'+
+       '<td id="sc_'+t+'">'+(r.n*r.s)+'</td><td class="lft" style="font-size:12.5px;color:#5a6675">'+note[t]+'</td></tr>';
+  }
+  tb.innerHTML=h;
+  $('ruleQTotal').textContent=qt;
+  $('ruleSTotal').innerHTML='<span class="'+(st===100?'sum-ok':'sum-bad')+'">'+st+' 分</span>';
+  $('ruleNote').innerHTML = st===100 ? '<span class="sum-ok">总分 100 分，符合标准配置</span>'
+                                     : '<span class="sum-bad">当前总分 '+st+' 分（默认配置应为 100 分）</span>';
+}
+
+function onRule(t,k,v){
+  var n=parseFloat(v); if(isNaN(n)||n<0) n=0;
+  RULE[t][k]=n;
+  if(k==='n') applyWeights(); else renderRule();
+  saveCfg();
+}
+
+/* 最大余数法：把 total 按 weights 分成整数 */
+function allocate(total,weights){
+  var sum=0,i; for(i=0;i<weights.length;i++) sum+=weights[i];
+  var res=[],rem=[];
+  if(sum<=0){ for(i=0;i<weights.length;i++) res.push(0); res[0]=total; return res; }
+  var used=0;
+  for(i=0;i<weights.length;i++){
+    var exact=total*weights[i]/sum, f=Math.floor(exact);
+    res.push(f); rem.push({i:i,r:exact-f}); used+=f;
+  }
+  rem.sort(function(a,b){ return b.r-a.r; });
+  var left=total-used, p=0;
+  while(left>0 && rem.length){ res[rem[p%rem.length].i]++; left--; p++; }
+  return res;
+}
+
+function getWeights(){
+  var w=[];
+  for(var i=0;i<4;i++){ var v=parseFloat($('w'+i).value); w.push(isNaN(v)||v<0?0:v); }
+  return w;
+}
+
+function applyWeights(){
+  var w=getWeights();
+  for(var i=0;i<SYS.length;i++){ if(!ALLOC[SYS[i]]) ALLOC[SYS[i]]={}; }
+  for(var j=0;j<TYPES.length;j++){
+    var t=TYPES[j], a=allocate(RULE[t].n,w);
+    for(var i2=0;i2<SYS.length;i2++) ALLOC[SYS[i2]][t]=a[i2];
+  }
+  renderRule(); renderAlloc(); saveCfg();
+}
+
+function resetWeights(){
+  $('w0').value=1; $('w1').value=1; $('w2').value=1; $('w3').value=2;
+  RULE={单选:{n:20,s:1}, 多选:{n:10,s:2}, 判断:{n:10,s:2}, 简答:{n:4,s:5}, 案例:{n:4,s:5}};
+  applyWeights();
+}
+
+function renderAlloc(){
+  var h='',i,j;
+  for(i=0;i<SYS.length;i++){
+    var s=SYS[i], sub=0;
+    h+='<tr><td class="lft"><span class="pill '+SYSPILL[s]+'">'+SYSCN[s]+'</span></td>';
+    for(j=0;j<TYPES.length;j++){
+      var t=TYPES[j], v=(ALLOC[s]&&ALLOC[s][t])||0, avail=countBank(s,t);
+      sub+=v;
+      var bad = v>avail;
+      h+='<td><input type="number" min="0" value="'+v+'" class="'+(bad?'bad':'')+'" '+
+         'title="题库现有 '+avail+' 题" oninput="onAlloc(\''+s+'\',\''+t+'\',this.value)"></td>';
+    }
+    h+='<td><b>'+sub+'</b></td></tr>';
+  }
+  $('allocBody').innerHTML=h;
+
+  var f='<td>各题型合计</td>', msgs=[];
+  for(j=0;j<TYPES.length;j++){
+    var t2=TYPES[j], c=0;
+    for(i=0;i<SYS.length;i++) c+=(ALLOC[SYS[i]]&&ALLOC[SYS[i]][t2])||0;
+    var need=RULE[t2].n, ok=(c===need);
+    if(!ok) msgs.push(TYPECN[t2]+'合计 '+c+' 题，应为 '+need+' 题');
+    f+='<td><span class="'+(ok?'sum-ok':'sum-bad')+'">'+c+' / '+need+'</span></td>';
+  }
+  var tot=0; for(i=0;i<SYS.length;i++) for(j=0;j<TYPES.length;j++) tot+=(ALLOC[SYS[i]]&&ALLOC[SYS[i]][TYPES[j]])||0;
+  f+='<td><b>'+tot+'</b></td>';
+  $('allocFoot').innerHTML=f;
+
+  // 库存校验
+  for(i=0;i<SYS.length;i++) for(j=0;j<TYPES.length;j++){
+    var s3=SYS[i],t3=TYPES[j],need2=(ALLOC[s3]&&ALLOC[s3][t3])||0,av=countBank(s3,t3);
+    if(need2>av) msgs.push(SYSCN[s3]+' '+TYPECN[t3]+' 需 '+need2+' 题，题库仅 '+av+' 题');
+  }
+  $('allocMsg').innerHTML = msgs.length
+    ? '<div class="alert warn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2zm0-4h-2V8h2z"/></svg><div>'+esc(msgs.join('；'))+'</div></div>'
+    : '';
+  $('btnMake').disabled = msgs.length>0 || !BANK.length;
+}
+
+function onAlloc(s,t,v){
+  var n=parseInt(v,10); if(isNaN(n)||n<0) n=0;
+  if(!ALLOC[s]) ALLOC[s]={};
+  ALLOC[s][t]=n; renderAlloc(); saveCfg();
+}
+
+function saveCfg(){
+  try{
+    window.examStore.setItem(LS_CFG, JSON.stringify({
+      title:$('cfgTitle').value, sub:$('cfgSub').value, dur:$('cfgDur').value, pass:$('cfgPass').value,
+      code:$('cfgCode').value, showSrc:$('cfgShowSrc').checked,
+      rule:RULE, alloc:ALLOC, w:getWeights()
+    }));
+  }catch(e){}
+}
+
+function loadCfg(){
+  var c=null;
+  try{ var raw=window.examStore.getItem(LS_CFG); if(raw) c=JSON.parse(raw); }catch(e){}
+  if(c){
+    if(c.title) $('cfgTitle').value=c.title;
+    if(c.sub) $('cfgSub').value=c.sub;
+    if(c.dur) $('cfgDur').value=c.dur;
+    if(c.pass) $('cfgPass').value=c.pass;
+    if(c.code) $('cfgCode').value=c.code;
+    if(typeof c.showSrc==='boolean') $('cfgShowSrc').checked=c.showSrc;
+    if(c.rule) RULE=c.rule;
+    if(c.alloc) ALLOC=c.alloc;
+    if(c.w) for(var i=0;i<4;i++) $('w'+i).value=c.w[i];
+    renderRule(); renderAlloc();
+  } else {
+    applyWeights();
+  }
+}
+
+/* ---------------- 抽题 ---------------- */
+function pool(sys,type,exclude){
+  var r=[];
+  for(var i=0;i<BANK.length;i++){
+    var q=BANK[i];
+    if(q.sys===sys&&q.type===type&&!exclude[q.id]) r.push(q);
+  }
+  return r;
+}
+
+function doDraw(){
+  if(!BANK.length){ alert('题库未载入，无法组卷。'); return; }
+  var used={}, items=[];
+  for(var j=0;j<TYPES.length;j++){
+    var t=TYPES[j], bucket=[];
+    for(var i=0;i<SYS.length;i++){
+      var s=SYS[i], need=(ALLOC[s]&&ALLOC[s][t])||0;
+      if(!need) continue;
+      var p=shuffle(pool(s,t,used));
+      if(p.length<need){ alert(SYSCN[s]+' '+TYPECN[t]+' 题量不足（需 '+need+'，有 '+p.length+'）。'); return; }
+      for(var k=0;k<need;k++){ used[p[k].id]=1; bucket.push(p[k]); }
+    }
+    shuffle(bucket);   // 同一大题内打乱体系顺序，避免按体系扎堆
+    for(var m=0;m<bucket.length;m++) items.push({type:t, q:bucket[m]});
+  }
+  PAPER={ items:items, meta:{
+    title:$('cfgTitle').value, sub:$('cfgSub').value,
+    dur:parseInt($('cfgDur').value,10)||90, pass:parseInt($('cfgPass').value,10)||80,
+    code:$('cfgCode').value, showSrc:$('cfgShowSrc').checked,
+    date:today(), rule:JSON.parse(JSON.stringify(RULE))
+  }};
+  LAYOUT=null;
+  renderPaper(); goStep(2);
+  window.scrollTo(0,0);
+}
+
+function usedIds(){
+  var m={}; for(var i=0;i<PAPER.items.length;i++) m[PAPER.items[i].q.id]=1; return m;
+}
+
+function reroll(idx){
+  var it=PAPER.items[idx], ex=usedIds();
+  delete ex[it.q.id];
+  var p=pool(it.q.sys,it.q.type,ex);
+  if(!p.length){ alert('该体系该题型已无其他可用题目。'); return; }
+  it.q = p[Math.floor(Math.random()*p.length)];
+  LAYOUT=null;
+  renderPaper();
+  var el=document.querySelector('[data-idx="'+idx+'"]');
+  if(el){ el.style.transition='background .5s'; el.style.background='#fff8e1';
+          setTimeout(function(){ el.style.background=''; },700); }
+}
+
+function renderPaper(){
+  var h='', no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], t=it.type, q=it.q;
+    if(t!==lastType){
+      secIdx++;
+      var r=PAPER.meta.rule[t];
+      h+='<div class="sec-hd">'+CNNUM[secIdx]+'、'+TYPECN[t]+
+         '<span class="cnt">共 '+r.n+' 小题，每题 '+r.s+' 分，合计 '+(r.n*r.s)+' 分</span></div>';
+      lastType=t;
+    }
+    no[t]++;
+    h+='<div class="qitem" data-idx="'+i+'"><div class="qno">'+no[t]+'</div><div class="qbody">'+
+       '<div class="qtext">'+nl2br(q.q)+'</div>';
+    if(q.options&&q.options.length) h+='<div class="qopts">'+nl2br(q.options.join('\n'))+'</div>';
+    h+='<div class="qmeta"><span class="pill '+SYSPILL[q.sys]+'">'+SYSCN[q.sys]+'</span>'+
+       '<span class="pill id">'+esc(q.id)+'</span>'+
+       '<span class="ans-tag">答案：'+esc(q.answer.split('\n')[0].slice(0,60))+(q.answer.indexOf('\n')>0?' …':'')+'</span>'+
+       '<span class="clause-tag">'+esc(q.clause)+'</span></div></div>'+
+       '<div class="qact"><button class="btn sec sm" onclick="reroll('+i+')">'+
+       '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6a5.9 5.9 0 0 1 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>换一题</button></div></div>';
+  }
+  $('paperList').innerHTML=h;
+  var cnt={}; for(i=0;i<SYS.length;i++) cnt[SYS[i]]=0;
+  for(i=0;i<PAPER.items.length;i++) cnt[PAPER.items[i].q.sys]++;
+  var parts=[]; for(i=0;i<SYS.length;i++) parts.push(SYSCN[SYS[i]]+' '+cnt[SYS[i]]);
+  var tot=0; for(var t2 in PAPER.meta.rule) tot+=PAPER.meta.rule[t2].n*PAPER.meta.rule[t2].s;
+  $('paperStat').textContent='共 '+PAPER.items.length+' 题 / '+tot+' 分　·　'+parts.join(' · ');
+}
+
+function goStep(n){
+  $('pane1').style.display = n===1?'':'none';
+  $('pane2').style.display = n===2?'':'none';
+  $('pane3').style.display = n===3?'':'none';
+  for(var i=1;i<=3;i++){
+    var e=$('stp'+i); e.className='step'+(i===n?' on':(i<n?' done':''));
+  }
+}
+
+function confirmPaper(){
+  if(!PAPER){ return; }
+  LAYOUT = computeLayout();
+  var tot=0; for(var t in PAPER.meta.rule) tot+=PAPER.meta.rule[t].n*PAPER.meta.rule[t].s;
+  $('outHint').innerHTML='试卷已锁定：<b>'+PAPER.items.length+' 题 / 总分 '+tot+' 分 / 考试时长 '+
+     PAPER.meta.dur+' 分钟 / 合格线 '+PAPER.meta.pass+' 分</b>。待印试卷已排版为 <b>'+LAYOUT.pages.length+' 页 A4</b>'+
+     (LAYOUT.fontPt!==10.5?('（为保证 4 页排满，正文字号自动调整为 '+LAYOUT.fontPt+'pt）'):'')+'。';
+  goStep(3); window.scrollTo(0,0);
+}
+
+/* =========================================================================
+   待印试卷排版引擎：把内容精确排进 4 页 A4
+   思路：简答/案例的答题区是弹性空间。先用最小答题区试排，
+        页数 >4 就缩字号，页数 <4 就整体放大答题区，命中 4 页后
+        再把每页剩余空白按比例补给该页的答题区，使 4 页都排满。
+   ========================================================================= */
+var PAGE_W_MM = 180;    // A4 210 - 左右各 15mm
+var PAGE_H_MM = 252;    // A4 297 - 上下各 15mm - 页脚 15mm
+var MM = 96/25.4;
+
+function mm2px(v){ return v*MM; }
+
+function buildItems(){
+  var items=[], no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  items.push({kind:'head'});
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], t=it.type;
+    if(t!==lastType){
+      secIdx++;
+      if(secIdx>0) items.push({kind:'gap'});
+      items.push({kind:'sec', type:t, idx:secIdx});
+      lastType=t;
+    }
+    no[t]++;
+    items.push({kind:'q', type:t, no:no[t], q:it.q,
+                flex:(t==='简答'||t==='案例'),
+                baseAns:(t==='简答'?9:16), ansMM:(t==='简答'?9:16)});
+  }
+  return items;
+}
+
+function itemHTML(it,forMeasure){
+  var m=PAPER.meta;
+  if(it.kind==='head'){
+    var tot=0,cells='',heads='',full='';
+    for(var i=0;i<TYPES.length;i++){
+      var t=TYPES[i], r=m.rule[t], sc=r.n*r.s; tot+=sc;
+      heads+='<th>'+CNNUM[i]+'</th>'; full+='<td>'+sc+'</td>'; cells+='<td></td>';
+    }
+    return '<div class="p-head">'+
+      '<div class="p-title">'+esc(m.title)+'</div>'+
+      (m.sub?'<div class="p-sub">'+esc(m.sub)+'</div>':'')+
+      '<div class="p-code">'+esc(m.code)+'　|　考试时长：'+m.dur+' 分钟　|　总分：'+tot+' 分　|　合格线：'+m.pass+' 分</div>'+
+      '<table class="p-info"><tr>'+
+        '<td>姓&nbsp;&nbsp;&nbsp;&nbsp;名：<span class="ul"></span></td>'+
+        '<td>工&nbsp;&nbsp;&nbsp;&nbsp;号：<span class="ul"></span></td>'+
+        '<td>部&nbsp;&nbsp;&nbsp;&nbsp;门：<span class="ul"></span></td>'+
+        '<td>考试日期：<span class="ul"></span></td></tr></table>'+
+      '<table class="p-score"><tr><th>题&nbsp;号</th>'+heads+'<th>总&nbsp;分</th></tr>'+
+        '<tr><th>满&nbsp;分</th>'+full+'<td>'+tot+'</td></tr>'+
+        '<tr><th>得&nbsp;分</th>'+cells+'<td></td></tr></table>'+
+      '<div class="p-notice"><b>考试须知：</b>请先填写个人信息；选择题答案填在括号内；判断题正确填"√"、错误填"×"；简答题与案例分析题按要点给分，请分条作答。</div></div>';
+  }
+  if(it.kind==='gap'){ return '<div class="p-gap"></div>'; }
+  if(it.kind==='sec'){
+    var r2=PAPER.meta.rule[it.type];
+    return '<div class="p-sec">'+CNNUM[it.idx]+'、'+TYPECN[it.type]+
+           '（本大题共 '+r2.n+' 小题，每小题 '+r2.s+' 分，共 '+(r2.n*r2.s)+' 分）</div>';
+  }
+  var q=it.q, h='<div class="p-q">';
+  var brk = (it.type==='单选'||it.type==='多选'||it.type==='判断') ? '（　　）' : '';
+  h+='<div class="p-qt">'+it.no+'. '+nl2br(q.q)+brk+'</div>';
+  if(q.options&&q.options.length){
+    h+='<div class="p-opt">';
+    for(var k=0;k<q.options.length;k++) h+='<span class="op">'+esc(q.options[k])+'</span>';
+    h+='</div>';
+  }
+  if(it.flex){
+    h+='<div class="p-ans" style="height:'+it.ansMM+'mm"></div>';
+  }
+  return h+'</div>';
+}
+
+function paperCSS(fontPt){
+  return ''+
+  '@page{size:A4;margin:0}'+
+  '*{box-sizing:border-box;margin:0;padding:0}'+
+  'body{font-family:"Microsoft YaHei","SimSun",-apple-system,sans-serif;font-size:'+fontPt+'pt;'+
+     'line-height:1.4;color:#000;background:#e9ecf1}'+
+  '.page{width:210mm;height:297mm;padding:15mm;background:#fff;margin:0 auto 8mm;position:relative;'+
+        'page-break-after:always;overflow:hidden}'+
+  '.page:last-child{page-break-after:auto;margin-bottom:0}'+
+  '.pbody{height:252mm;overflow:hidden}'+
+  '.pfoot{position:absolute;left:15mm;right:15mm;bottom:7mm;text-align:center;font-size:9pt;color:#333;'+
+         'border-top:1px solid #999;padding-top:2mm}'+
+  '.phead{position:absolute;left:15mm;right:15mm;top:7mm;text-align:center;font-size:9pt;color:#333;'+
+         'border-bottom:1px solid #999;padding-bottom:2mm}'+
+  '.p-gap{height:5mm}'+
+  '.p-title{text-align:center;font-size:'+(fontPt+7)+'pt;font-weight:bold;letter-spacing:2px;margin-bottom:1mm}'+
+  '.p-sub{text-align:center;font-size:'+(fontPt-0.5)+'pt;margin-bottom:1.5mm}'+
+  '.p-code{text-align:center;font-size:'+(fontPt-1)+'pt;margin-bottom:2mm}'+
+  '.p-info{width:100%;margin-bottom:2mm;font-size:'+(fontPt-0.5)+'pt}'+
+  '.p-info td{padding:1mm 0;white-space:nowrap}'+
+  '.p-info .ul{display:inline-block;width:26mm;border-bottom:1px solid #000;height:1em;vertical-align:bottom}'+
+  '.p-score{width:100%;border-collapse:collapse;margin-bottom:2mm;font-size:'+(fontPt-0.5)+'pt;text-align:center}'+
+  '.p-score th,.p-score td{border:1px solid #000;padding:1.1mm .8mm;height:5.5mm}'+
+  '.p-score th{background:#f0f0f0;font-weight:normal}'+
+  '.p-notice{border:1px solid #000;padding:1.5mm 2mm;font-size:'+(fontPt-1)+'pt;line-height:1.5}'+
+  '.p-notice ol{margin:1mm 0 0 5mm}'+
+  '.p-notice li{margin:.25mm 0}'+
+  '.p-sec{font-weight:bold;font-size:'+(fontPt+0.5)+'pt;margin:2mm 0 1mm;padding-bottom:1mm;'+
+         'border-bottom:1px solid #000}'+
+  '.p-q{margin-bottom:1mm;page-break-inside:avoid;break-inside:avoid}'+
+  '.p-qt{text-align:justify}'+
+  '.p-opt{margin-top:.5mm;column-count:2;column-gap:8mm}'+
+  '.p-opt .op{display:block;break-inside:avoid;margin:.3mm 0}'+
+  '.p-ans{border-bottom:1px dashed #bbb;margin-top:1mm}'+
+  '.p-key{margin:1mm 0 3mm;padding-left:5mm}'+
+  '.p-key .ka{color:#C00000;font-weight:bold}'+
+  '.p-key .kx{color:#C00000}'+
+  '.p-key .kc{color:#0047AB}'+
+  '@media print{body{background:#fff}.page{margin:0;box-shadow:none}}';
+}
+
+/* 计算分页：返回 {pages:[[itemIdx..]], items, fontPt}
+   目标：无论随机抽到哪些题，都严格排成 4 页 A4。
+   做法：在「字号 × 答题区下限」候选配置中，顺序选第一个能装进 4 页的；
+        再用弹性答题区把每页补满到 4 页（不足则放大答题区，超出则回退）。 */
+function computeLayout(){
+  var host=$('measure');
+  // [字号, 简答答题区下限mm, 案例答题区下限mm]，按"可读字号 + 舒适答题区"优先排序
+  var CFG=[
+    [9.5,14,22],[9,14,22],[8.5,10,16],[8.5,6,12],
+    [8,16,24],[8,14,20],[8,12,18],[8,10,16],
+    [7.5,14,20],[7.5,10,16],[7.5,6,12],[7.5,0,0]
+  ];
+  function fitAt(pt,fj,fc){
+    var items=buildItems();
+    for(var i=0;i<items.length;i++) if(items[i].flex) items[i].ansMM=(items[i].type==='简答')?fj:fc;
+    var res=packOnce(host,items,pt);
+    if(res.pages.length>4) return null;
+    var grow=0;
+    while(res.pages.length<4 && grow<260){
+      grow+=4;
+      for(var j=0;j<items.length;j++) if(items[j].flex) items[j].ansMM=((items[j].type==='简答')?fj:fc)+grow;
+      var t=packOnce(host,items,pt);
+      if(t.pages.length>4){ grow-=4; for(var k=0;k<items.length;k++) if(items[k].flex) items[k].ansMM=((items[k].type==='简答')?fj:fc)+grow; res=packOnce(host,items,pt); break; }
+      res=t;
+    }
+    if(res.pages.length===4) fillPages(host,items,res,pt);
+    return {pages:res.pages, items:items, fontPt:pt};
+  }
+  for(var c=0;c<CFG.length;c++){
+    var r=fitAt(CFG[c][0],CFG[c][1],CFG[c][2]);
+    if(r){ host.innerHTML=''; return r; }
+  }
+  var r2=fitAt(7.5,0,0); host.innerHTML=''; return r2;
+}
+
+function setAns(items,extra){
+  for(var i=0;i<items.length;i++) if(items[i].flex) items[i].ansMM=items[i].baseAns+extra;
+}
+
+/* 用真实 DOM 量高，贪心装页 */
+function packOnce(host,items,pt){
+  var html='<style>'+paperCSS(pt)+'</style><div class="page"><div class="pbody" id="__mb">';
+  for(var i=0;i<items.length;i++) html+='<div data-i="'+i+'">'+itemHTML(items[i],true)+'</div>';
+  html+='</div></div>';
+  host.innerHTML=html;
+  var body=host.querySelector('#__mb');
+  var kids=body.children, limit=mm2px(PAGE_H_MM), pages=[], cur=[], h=0, heights=[];
+  for(var k=0;k<kids.length;k++){
+    var st=window.getComputedStyle(kids[k]);
+    var hh=kids[k].offsetHeight+parseFloat(st.marginTop||0)+parseFloat(st.marginBottom||0);
+    heights.push(hh);
+    // 大题标题不能落在页尾（后面至少还要跟一题）
+    var isSec = items[k].kind==='sec';
+    if(h+hh>limit+0.5 && cur.length){ pages.push(cur); cur=[]; h=0; }
+    cur.push(k); h+=hh;
+    if(isSec && k+1<kids.length){
+      var st2=window.getComputedStyle(kids[k+1]);
+      var nh=kids[k+1].offsetHeight+parseFloat(st2.marginTop||0)+parseFloat(st2.marginBottom||0);
+      if(h+nh>limit+0.5){ cur.pop(); h-=hh; if(cur.length){ pages.push(cur); } cur=[k]; h=hh; }
+    }
+  }
+  if(cur.length) pages.push(cur);
+  return {pages:pages, heights:heights};
+}
+
+/* 把每页富余空间分给该页的弹性答题区 */
+function fillPages(host,items,res,pt){
+  var limit=mm2px(PAGE_H_MM);
+  for(var p=0;p<res.pages.length;p++){
+    var idxs=res.pages[p], used=0, flexes=[];
+    for(var i=0;i<idxs.length;i++){
+      used+=res.heights[idxs[i]];
+      if(items[idxs[i]].flex) flexes.push(idxs[i]);
+    }
+    var freeMM=(limit-used)/MM-2;                 // 留 2mm 安全余量
+    if(freeMM<=0||!flexes.length) continue;
+    var add=Math.floor(freeMM/flexes.length*10)/10;
+    if(add<=0) continue;
+    for(var j=0;j<flexes.length;j++) items[flexes[j]].ansMM+=add;
+  }
+  // 复核一次，若超页则回退
+  var chk=packOnce(host,items,pt);
+  if(chk.pages.length>4){
+    for(var m=0;m<items.length;m++) if(items[m].flex) items[m].ansMM=Math.max(items[m].baseAns,items[m].ansMM-6);
+    chk=packOnce(host,items,pt);
+    if(chk.pages.length>4){ for(var n=0;n<items.length;n++) if(items[n].flex) items[n].ansMM=items[n].baseAns; chk=packOnce(host,items,pt); }
+  }
+  res.pages=chk.pages; res.heights=chk.heights;
+}
+
+/* ---------------- 生成成品 HTML ---------------- */
+function buildBlankHTML(forWord){
+  if(!LAYOUT) LAYOUT=computeLayout();
+  var L=LAYOUT, m=PAPER.meta, total=L.pages.length;
+  var body='';
+  for(var p=0;p<total;p++){
+    body+='<div class="page"><div class="pbody">';
+    for(var i=0;i<L.pages[p].length;i++) body+=itemHTML(L.items[L.pages[p][i]],false);
+    body+='</div></div>';
+    if(forWord && p<total-1) body+='<br clear="all" style="page-break-before:always">';
+  }
+  return wrapDoc(esc(m.title)+'（待印）', paperCSS(L.fontPt), body, forWord);
+}
+
+function buildKeyHTML(forWord){
+  var m=PAPER.meta, no={}, i;
+  for(i=0;i<TYPES.length;i++) no[TYPES[i]]=0;
+  var tot=0; for(var t0 in m.rule) tot+=m.rule[t0].n*m.rule[t0].s;
+  var body='<div class="page"><div class="pbody">';
+  body+='<div class="p-title">'+esc(m.title)+'　【标准答案与评分解析】</div>';
+  if(m.sub) body+='<div class="p-sub">'+esc(m.sub)+'</div>';
+  body+='<div class="p-code">'+esc(m.code)+'　|　考试时长：'+m.dur+' 分钟　|　总分：'+tot+
+        ' 分　|　合格线：'+m.pass+' 分　|　生成日期：'+m.date+'</div>';
+  var showSrc = ($('cfgShowSrc') ? $('cfgShowSrc').checked : m.showSrc);
+  if(showSrc && BANKSRC) body+='<div class="p-code" style="font-size:'+(10.5-1)+'pt;color:#1a5fb4">题库来源：'+esc(BANKSRC)+'</div>';
+  body+='<div class="p-notice" style="margin-bottom:4mm"><b>阅卷说明</b><ol>'+
+        '<li>选择题、判断题按标准答案判分，答案完全一致方可得分，多选题不设漏选分。</li>'+
+        '<li>简答题与案例分析题按要点给分，考生表述与要点意思相符即可得分。</li>'+
+        '<li>案例分析题若要求开具不符合项，须包含"不符合事实、依据条款、不符合类型"三要素；'+
+        '若要求原因分析与纠正预防措施，须包含"根本原因、纠正、纠正措施、预防措施"要素。</li>'+
+        '<li>合格线 '+m.pass+' 分。</li></ol></div>';
+  var lastType='', secIdx=-1;
+  for(i=0;i<PAPER.items.length;i++){
+    var it=PAPER.items[i], ty=it.type, q=it.q;
+    if(ty!==lastType){
+      secIdx++;
+      var r=m.rule[ty];
+      body+='<div class="p-sec">'+CNNUM[secIdx]+'、'+TYPECN[ty]+
+            '（本大题共 '+r.n+' 小题，每小题 '+r.s+' 分，共 '+(r.n*r.s)+' 分）</div>';
+      lastType=ty;
+    }
+    no[ty]++;
+    var brk=(ty==='单选'||ty==='多选'||ty==='判断')?'（　　）':'';
+    body+='<div class="p-q"><div class="p-qt">'+no[ty]+'. '+nl2br(q.q)+brk+'</div>';
+    if(q.options&&q.options.length){
+      body+='<div class="p-opt">';
+      for(var k=0;k<q.options.length;k++) body+='<span class="op">'+esc(q.options[k])+'</span>';
+      body+='</div>';
+    }
+    body+='</div><div class="p-key">'+
+          '<div class="ka">【标准答案】'+nl2br(q.answer)+'</div>';
+    if(q.analysis) body+='<div class="kx">【解析】'+nl2br(q.analysis)+'</div>';
+    body+='<div class="kc">【标准条款】'+nl2br(q.clause)+'　〔题号 '+esc(q.id)+'　'+SYSCN[q.sys]+'〕</div></div>';
+  }
+  body+='</div></div>';
+  var css=paperCSS(10.5).replace('.page{width:210mm;height:297mm;','.page{width:210mm;min-height:297mm;height:auto;')
+                        .replace('.pbody{height:252mm;overflow:hidden}','.pbody{height:auto}');
+  return wrapDoc(esc(m.title)+'（含答案）', css, body, forWord);
+}
+
+function wrapDoc(title,css,body,forWord){
+  if(forWord){
+    return '\uFEFF<html xmlns:o="urn:schemas-microsoft-com:office:office" '+
+      'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+      '<head><meta charset="utf-8"><title>'+title+'</title>'+
+      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>'+
+      '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'+
+      '<style>@page WordSection1{size:21.0cm 29.7cm;margin:1.5cm 1.5cm 1.5cm 1.5cm;}'+
+      'div.WordSection1{page:WordSection1;}'+css+
+      '.page{width:auto;height:auto;min-height:0;padding:0;margin:0;background:#fff}'+
+      '.pbody{height:auto;overflow:visible}'+
+      '.pfoot{position:static;text-align:center;font-size:9pt;color:#333;border-top:1px solid #999;'+
+      'padding-top:2mm;margin-top:3mm;left:auto;right:auto;bottom:auto}'+
+      '</style></head><body><div class="WordSection1">'+body+'</div></body></html>';
+  }
+  return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1.0">'+
+    '<title>'+title+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+}
+
+/* ---------------- 下载 / 预览 ---------------- */
+function fileBase(kind){
+  var m=PAPER.meta;
+  var t=m.title.replace(/[\\\/:*?"<>|]/g,'');
+  var d=m.date.replace(/-0?/g,'.');
+  var c=m.code.replace(/\s/g,'');
+  return t+c+'('+d+')'+(kind==='blank'?'':'(答案)');
+}
+
+function dl(kind,fmt){
+  if(!PAPER){ return; }
+  var isWord = fmt==='doc';
+  var html = kind==='blank' ? buildBlankHTML(isWord) : buildKeyHTML(isWord);
+  var mime = isWord ? 'application/msword' : 'text/html;charset=utf-8';
+  var name = fileBase(kind)+'.'+(isWord?'doc':'html');
+  var blob = new Blob([html],{type:mime});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); document.body.removeChild(a); },1200);
+}
+
+function preview(kind){
+  if(!PAPER) return;
+  var html = kind==='blank' ? buildBlankHTML(false) : buildKeyHTML(false);
+  $('previewTitle').textContent = kind==='blank'
+      ? ('待印试卷预览　（共 '+LAYOUT.pages.length+' 页 A4）') : '含答案试卷预览';
+  $('previewMask').style.display='block';
+  document.body.style.overflow='hidden';
+  var f=$('previewFrame');
+  f.srcdoc = html;
+}
+
+function closePreview(){
+  $('previewMask').style.display='none';
+  document.body.style.overflow='';
+  $('previewFrame').srcdoc='';
+}
+
+function printPreview(){
+  var f=$('previewFrame');
+  try{ f.contentWindow.focus(); f.contentWindow.print(); }
+  catch(e){ alert('请在预览区域内右键选择"打印"。'); }
+}
+
+document.getElementById('previewMask').addEventListener('click',function(e){
+  if(e.target===this) closePreview();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && $('previewMask').style.display==='block') closePreview();
+});
+
+/* ---------------- 启动 ---------------- */
+['cfgTitle','cfgSub','cfgDur','cfgPass','cfgCode','cfgShowSrc'].forEach(function(id){
+  document.addEventListener('DOMContentLoaded',function(){
+    var el=$(id); if(el) el.addEventListener('input',saveCfg);
+  });
+});
+
+(function init(){
+  loadBank();
+  renderRule();
+  loadCfg();
+  if(!Object.keys(ALLOC).length) applyWeights(); else renderAlloc();
+})();
+</script>
+</body>
+</html>
