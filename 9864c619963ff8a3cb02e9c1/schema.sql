@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS travel_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
