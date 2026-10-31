@@ -1,0 +1,11 @@
+import {readFileSync, mkdirSync, writeFileSync, copyFileSync} from 'node:fs';
+import {build} from 'esbuild';
+const html=readFileSync('index.html','utf8');
+const body=html.match(/<body>([\s\S]*?)<script src="game.js"><\/script>/)[1];
+const css=readFileSync('style.css','utf8')+'\nbody { display: block; } #app { width: 100%; max-width: 460px; margin: 0 auto; }';
+mkdirSync('dist/assets',{recursive:true});
+const result=await build({entryPoints:['entry.js'],bundle:true,format:'iife',write:false,legalComments:'inline'});
+writeFileSync('dist/assets/app.js',`document.getElementById('app').innerHTML=${JSON.stringify(body)};\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\n${result.outputFiles[0].text}`);
+copyFileSync('icon.png','dist/icon.png');copyFileSync('THIRD_PARTY_NOTICES','dist/THIRD_PARTY_NOTICES.txt');
+const source=JSON.parse(readFileSync('source.json','utf8'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));
