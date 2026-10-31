@@ -1,0 +1,11 @@
+import {readFile, mkdir, rm, writeFile, copyFile} from 'node:fs/promises';
+const commit=process.argv[2];
+if (!/^[a-f0-9]{40}$/.test(commit||'')) throw Error('需要完整 Git 提交号');
+const src=JSON.parse(await readFile('source.json','utf8'));
+if (process.env.TIANA_TEMPLATE_BUILD !== '1' && (!src.git_instance_id || src.git_instance_id.startsWith('__TIANA_'))) throw Error('请填写 Git 实例 ID');
+const read = f => readFile('src/'+f,'utf8');
+const [body,css,data,takeout,icons,app]=await Promise.all(['body.html','style.css','data.js','takeout.js','icons.js','app.js'].map(read));
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='速配一餐';\ndocument.getElementById('app').innerHTML=${JSON.stringify(body)};\nconst style=document.createElement('style');style.textContent=${JSON.stringify(css)};document.head.appendChild(style);\n${data}\n${takeout}\n${icons}\n${app}`);
+await copyFile('public/icon.png','dist/icon.png');
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...src}));
