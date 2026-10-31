@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Bug 安抚器 · 深夜 debug 伴侣</title>
+<style>
+  :root{
+    --bg:#0d1020;
+    --card:rgba(255,255,255,.055);
+    --card-solid:#181e38;
+    --line:rgba(255,255,255,.10);
+    --text:#e9ecf8;
+    --muted:#9aa3c7;
+    --amber:#ffb454;
+    --pink:#ff7a9c;
+    --teal:#6ee7d7;
+    --purple:#a78bfa;
+    --blue:#7aa2ff;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    min-height:100dvh;
+    background:
+      radial-gradient(1100px 700px at 85% -10%, #232a52 0%, transparent 60%),
+      radial-gradient(900px 620px at -10% 35%, #1d2a4a 0%, transparent 55%),
+      linear-gradient(180deg,#0d1020 0%,#0a0c18 100%);
+    color:var(--text);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+    padding:0 16px 56px;
+    line-height:1.6;
+  }
+  /* 星空背景 */
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .star{position:absolute;background:#fff;border-radius:50%;opacity:.5;animation:twinkle 3.2s ease-in-out infinite}
+  @keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.7}}
+
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto}
+
+  /* 头部 */
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:26px 0 14px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;letter-spacing:.5px}
+  .logo .badge{font-size:11px;font-weight:600;color:var(--amber);border:1px solid rgba(255,180,84,.4);background:rgba(255,180,84,.10);padding:3px 10px;border-radius:99px;letter-spacing:1px}
+  .head-stat{font-size:13px;color:var(--muted);border:1px solid var(--line);background:var(--card);padding:6px 14px;border-radius:99px}
+  .head-stat b{color:var(--amber);font-size:15px}
+
+  /* 标签栏 */
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 14px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab-btn{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:14px;padding:9px 18px;border-radius:99px;cursor:pointer;transition:all .2s;font-family:inherit}
+  .tab-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25)}
+  .tab-btn.active{color:#1a1030;background:linear-gradient(135deg,var(--amber),var(--pink));border-color:transparent;font-weight:700}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;backdrop-filter:blur(8px);margin-bottom:16px}
+  .card h2{font-size:17px;margin-bottom:4px}
+  .card .sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+
+  /* 风格 chips */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;padding:7px 14px;border-radius:99px;cursor:pointer;transition:all .2s;font-family:inherit}
+  .chip:hover{color:var(--text)}
+  .chip.active{color:var(--text);border-color:var(--amber);background:rgba(255,180,84,.12);font-weight:600}
+
+  /* 安抚室 */
+  .quote-card{position:relative;overflow:hidden;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px 22px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--radius)}
+  .quote-card::before{content:"";position:absolute;inset:-40%;background:radial-gradient(circle at 50% 0%,rgba(255,122,156,.12),transparent 55%);pointer-events:none}
+  .quote-style{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:14px}
+  .quote-text{font-size:clamp(17px,2.6vw,23px);line-height:1.8;max-width:620px;font-weight:500;min-height:2.2em}
+  .cursor{display:inline-block;color:var(--amber);animation:blink 1s steps(1) infinite;font-weight:300}
+  @keyframes blink{50%{opacity:0}}
+
+  .soothe-stage{display:flex;flex-direction:column;align-items:center;gap:14px;margin:26px 0 6px}
+  .soothe-btn{position:relative;width:150px;height:150px;border-radius:50%;border:none;cursor:pointer;color:#2a1030;font-family:inherit;font-size:21px;font-weight:800;line-height:1.35;letter-spacing:2px;background:radial-gradient(circle at 30% 25%,#ffd29b,#ff9db4 55%,#ff7a9c);box-shadow:0 0 0 8px rgba(255,122,156,.10),0 0 44px rgba(255,122,156,.45),inset 0 -6px 14px rgba(0,0,0,.15);transition:transform .15s}
+  .soothe-btn:hover{transform:scale(1.05)}
+  .soothe-btn:active{transform:scale(.94)}
+  .soothe-btn::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(255,180,84,.35);animation:ring 2.6s ease-out infinite}
+  @keyframes ring{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+  .soothe-hint{font-size:12px;color:var(--muted)}
+  .heart{position:fixed;transform:translate(-50%,-50%);font-size:20px;pointer-events:none;z-index:60;animation:floatUp 1.05s ease-out forwards}
+  @keyframes floatUp{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.5);opacity:0}}
+
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px;padding:10px 20px;border-radius:99px;cursor:pointer;transition:all .2s;font-family:inherit}
+  .btn:hover{border-color:rgba(255,255,255,.3);transform:translateY(-1px)}
+  .btn-primary{background:linear-gradient(135deg,var(--amber),var(--pink));color:#2a1030;border-color:transparent;font-weight:700}
+  .btn-primary:hover{box-shadow:0 6px 22px rgba(255,122,156,.35)}
+  .btn-danger{color:#ff9d9d;border-color:rgba(255,120,120,.35)}
+
+  /* 崩溃指数 */
+  .crash-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .crash-face{font-size:52px;line-height:1;transition:transform .2s;width:64px;text-align:center}
+  .crash-main{flex:1;min-width:220px}
+  .crash-labels{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+  .crash-labels b{color:var(--amber)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--amber),var(--pink));outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--pink);box-shadow:0 2px 10px rgba(0,0,0,.4)}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--pink)}
+  .crash-tip{margin-top:14px;font-size:14px;color:var(--muted);background:rgba(0,0,0,.18);border:1px dashed var(--line);border-radius:14px;padding:12px 16px}
+
+  /* 树洞 */
+  textarea{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;color:var(--text);font-family:inherit;font-size:14px;line-height:1.7;padding:14px;resize:vertical;min-height:110px;outline:none;transition:border-color .2s}
+  textarea:focus{border-color:var(--purple)}
+  .char-count{text-align:right;font-size:12px;color:var(--muted);margin-top:6px}
+  .hole-actions{display:flex;justify-content:flex-end;margin-top:10px}
+  .thinking{color:var(--muted);font-size:14px;padding:18px 4px}
+  .thinking::after{content:"";animation:dots 1.2s steps(4) infinite}
+  @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+  .resp-block{border-left:3px solid var(--purple);padding:4px 0 4px 16px;margin-top:14px}
+  .resp-block .tag{font-size:12px;color:var(--purple);letter-spacing:1px;font-weight:700;margin-bottom:4px}
+  .resp-block p{font-size:14.5px;color:#d6dcf5}
+  .resp-head{font-size:14px;color:var(--teal);margin-top:4px}
+  .history{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .history h3{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600}
+  .history-item{font-size:13px;color:var(--muted);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;gap:10px}
+  .history-item span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* 转盘 */
+  .wheel-wrap{position:relative;width:min(340px,86vw);aspect-ratio:1;margin:6px auto 4px}
+  #wheel-svg{width:100%;height:100%;display:block;filter:drop-shadow(0 10px 34px rgba(0,0,0,.45))}
+  #wheel-rotor{transform-origin:200px 200px}
+  .wheel-label{font-size:19px;font-weight:800;fill:#1c1330;font-family:inherit}
+  .wheel-pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:32px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));z-index:2}
+  .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:radial-gradient(circle at 35% 30%,#2a3160,#171c36);color:var(--amber);font-family:inherit;font-weight:800;font-size:14px;letter-spacing:2px;cursor:pointer;transition:transform .15s;z-index:2}
+  .wheel-hub:hover{transform:translate(-50%,-50%) scale(1.08)}
+  .wheel-hub:disabled{opacity:.55;cursor:not-allowed}
+  .wheel-result{margin-top:18px;text-align:center}
+  .wheel-result .wr-title{font-size:24px;font-weight:800}
+  .wheel-result .wr-line{font-size:14px;color:var(--muted);margin-top:8px;max-width:460px;margin-inline:auto}
+
+  /* 呼吸 */
+  .breath-stage{display:flex;flex-direction:column;align-items:center;gap:18px;padding:10px 0 4px}
+  .breath-circle{width:220px;height:220px;border-radius:50%;display:grid;place-items:center;gap:2px;transform:scale(.55);transition:transform linear;background:radial-gradient(circle at 32% 28%,rgba(110,231,215,.38),rgba(167,139,250,.22) 70%);border:1px solid rgba(255,255,255,.28);box-shadow:0 0 70px rgba(110,231,215,.22),inset 0 0 40px rgba(255,255,255,.06)}
+  .breath-phase{font-size:26px;font-weight:800;letter-spacing:6px}
+  .breath-count{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .breath-mantra{min-height:24px;font-size:14px;color:var(--teal);text-align:center;letter-spacing:1px}
+  .breath-meta{font-size:13px;color:var(--muted);text-align:center}
+
+  /* 我的 */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:8px}
+  .stat{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}
+  .stat b{display:block;font-size:28px;color:var(--amber);font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--muted)}
+  .cq-form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .cq-form select{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;outline:none}
+  .cq-form .grow{flex:1;min-width:220px}
+  .cq-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+  .cq-item{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px}
+  .cq-item .txt{flex:1;overflow-wrap:anywhere}
+  .cq-item .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:99px;flex:0 0 auto}
+  .cq-item .del{border:none;background:none;color:#ff9d9d;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:8px;flex:0 0 auto}
+  .cq-item .del:hover{background:rgba(255,120,120,.12)}
+  .empty{font-size:13px;color:var(--muted);text-align:center;padding:18px 0;border:1px dashed var(--line);border-radius:12px}
+
+  /* 弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(5,7,15,.78);display:grid;place-items:center;z-index:80;padding:16px;backdrop-filter:blur(4px)}
+  .modal-card{background:var(--card-solid);border:1px solid var(--line);border-radius:24px;padding:20px;width:100%;max-width:400px;max-height:92dvh;overflow:auto;text-align:center}
+  .modal-card h3{font-size:16px;margin-bottom:14px}
+  #share-canvas{width:100%;height:auto;border-radius:16px;border:1px solid var(--line)}
+  .modal-actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(16px);opacity:0;transition:all .25s;background:#232a52;border:1px solid var(--line);padding:10px 20px;border-radius:99px;font-size:14px;z-index:99;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{text-align:center;font-size:12px;color:var(--muted);margin-top:26px;letter-spacing:.5px}
+
+  @media (max-width:560px){
+    .soothe-btn{width:128px;height:128px;font-size:18px}
+    .card{padding:18px}
+    .crash-face{font-size:42px;width:52px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body><div style="position:fixed;right:8px;top:8px;z-index:9999"><button id="restore-example">恢复示例</button></div>
+<div class="stars" id="stars" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">🐛 Bug 安抚器 <span class="badge">深夜 debug 伴侣</span></div>
+    <div class="head-stat">今日已安抚 <b id="header-count">0</b> 次</div>
+    <button class="btn" id="sound-toggle" style="padding:6px 14px;font-size:13px" aria-label="音效开关">🔔 音效开</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="soothe" role="tab">💗 安抚室</button>
+    <button class="tab-btn" data-tab="hole" role="tab">🫂 树洞</button>
+    <button class="tab-btn" data-tab="wheel" role="tab">🎡 Bug 转盘</button>
+    <button class="tab-btn" data-tab="breath" role="tab">🧘 呼吸冥想</button>
+    <button class="tab-btn" data-tab="me" role="tab">📦 我的</button>
+  </nav>
+
+  <main>
+    <!-- 安抚室 -->
+    <section class="tab-panel" id="panel-soothe">
+      <div class="card">
+        <div class="chips" id="style-chips"></div>
+        <div class="quote-card">
+          <div class="quote-style" id="quote-style">💗 安抚室</div>
+          <div class="quote-text"><span id="quote-text"></span><span class="cursor" id="quote-cursor" hidden>▍</span></div>
+        </div>
+        <div class="soothe-stage">
+          <button class="soothe-btn" id="soothe-btn">安抚<br>一下</button>
+          <div class="soothe-hint">点击按钮，或按空格键 · 语录将被打字机温柔输出</div>
+          <div class="row-actions">
+            <button class="btn" id="skip-btn">⏭ 换一句</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🌡️ 崩溃指数测量仪</h2>
+        <div class="sub">如实拖动滑块，安抚器会按崩溃程度配一副合适的药。</div>
+        <div class="crash-row">
+          <div class="crash-face" id="crash-face">🙂</div>
+          <div class="crash-main">
+            <div class="crash-labels"><span>崩溃指数</span><b id="crash-value">0 / 100 · 微风拂面</b></div>
+            <input type="range" id="crash-slider" min="0" max="100" value="0" aria-label="崩溃指数">
+          </div>
+        </div>
+        <div class="crash-tip" id="crash-tip">问题不大。去倒杯水，回来顺手就修了。</div>
+        <div class="row-actions" style="margin-top:14px;justify-content:flex-start">
+          <button class="btn btn-primary" id="crash-rx">💊 按当前崩溃度配药</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 树洞 -->
+    <section class="tab-panel" id="panel-hole" hidden>
+      <div class="card">
+        <h2>🫂 Bug 树洞</h2>
+        <div class="sub">把 bug 的委屈全部倒在这里。树洞不会评判你，只会一本正经地胡说八道。</div>
+        <textarea id="hole-input" maxlength="500" placeholder="例：凌晨两点，一个偶发的空指针把测试环境搞崩了，日志只有一行 warning……"></textarea>
+        <div class="char-count"><span id="hole-count">0</span> / 500</div>
+        <div class="hole-actions"><button class="btn btn-primary" id="hole-submit">向树洞倾诉</button></div>
+        <div id="hole-response" hidden></div>
+        <div class="history" id="hole-history" hidden>
+          <h3>最近的倾诉</h3>
+          <div id="hole-history-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 转盘 -->
+    <section class="tab-panel" id="panel-wheel" hidden>
+      <div class="card">
+        <h2>🎡 Bug 命运转盘</h2>
+        <div class="sub">当所有手段都用尽，交给命运。转盘不说安慰话，只说大实话。</div>
+        <div class="wheel-wrap">
+          <div class="wheel-pointer">🔻</div>
+          <svg id="wheel-svg" viewBox="0 0 400 400" role="img" aria-label="Bug 命运转盘"></svg>
+          <button class="wheel-hub" id="wheel-spin">GO</button>
+        </div>
+        <div class="wheel-result" id="wheel-result" hidden>
+          <div class="wr-title" id="wheel-title"></div>
+          <div class="wr-line" id="wheel-line"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 呼吸 -->
+    <section class="tab-panel" id="panel-breath" hidden>
+      <div class="card">
+        <h2>🧘 4-7-8 呼吸冥想</h2>
+        <div class="sub">吸气 4 秒，屏息 7 秒，呼气 8 秒。跟着圆圈的节奏，把焦虑呼出去。</div>
+        <div class="breath-stage">
+          <div class="breath-circle" id="breath-circle">
+            <div class="breath-phase" id="breath-phase">准备</div>
+            <div class="breath-count" id="breath-count"></div>
+          </div>
+          <div class="breath-mantra" id="breath-mantra"></div>
+          <div class="breath-meta" id="breath-meta">尚未开始</div>
+          <button class="btn btn-primary" id="breath-toggle">开始呼吸</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 我的 -->
+    <section class="tab-panel" id="panel-me" hidden>
+      <div class="card">
+        <h2>📊 安抚战绩</h2>
+        <div class="sub">所有数据只存在你自己的浏览器本地，不上传、不同步、不背刺。</div>
+        <div class="stats-grid">
+          <div class="stat"><b id="st-today">0</b><span>今日安抚</span></div>
+          <div class="stat"><b id="st-total">0</b><span>累计安抚</span></div>
+          <div class="stat"><b id="st-hole">0</b><span>树洞倾诉</span></div>
+          <div class="stat"><b id="st-wheel">0</b><span>转盘次数</span></div>
+          <div class="stat"><b id="st-breath">0</b><span>呼吸(分钟)</span></div>
+        </div>
+        <div class="row-actions" style="justify-content:flex-start;margin-top:14px">
+          <button class="btn btn-primary" id="share-btn">🖼️ 生成分享卡片</button>
+          <button class="btn btn-danger" id="reset-btn">🗑 清空数据</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>✏️ 我的自定义语录</h2>
+        <div class="sub">写一条只属于你的安抚语，它会混进对应风格的语录池里随机出现。</div>
+        <div class="cq-form">
+          <select id="cq-style" aria-label="语录风格">
+            <option value="roast">😈 毒舌</option>
+            <option value="heal">🌿 治愈</option>
+            <option value="zen">🧘 禅意</option>
+          </select>
+          <textarea class="grow" id="cq-input" maxlength="120" placeholder="例如：这个 bug 交给我，你和奶茶待着。"></textarea>
+        </div>
+        <div class="hole-actions"><button class="btn btn-primary" id="cq-add">加入语录库</button></div>
+        <div class="cq-list" id="cq-list" style="margin-top:14px"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>零依赖单文件 · 示例数据仅在本页保留 · 愿你今晚无 P0 🌙</footer>
+</div>
+
+<!-- 分享卡片弹窗 -->
+<div class="modal" id="share-modal" hidden>
+  <div class="modal-card">
+    <h3>🖼️ 你的专属安抚卡片</h3>
+    <canvas id="share-canvas" width="750" height="1000"></canvas>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="card-download">下载 PNG</button>
+      <button class="btn" id="card-copy">复制文案</button>
+      <button class="btn" id="card-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 工具 ================= */
+var $ = function(s){ return document.querySelector(s); };
+var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+var toastTimer = null;
+function toast(msg){
+  var el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+
+/* ================= 音效引擎（WebAudio 零依赖合成） ================= */
+var actx = null;
+function ac(){
+  if(!store.sound) return null;
+  if(!actx){
+    try{ actx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if(actx.state === 'suspended' && actx.resume) actx.resume();
+  return actx;
+}
+function beep(freq, dur, type, vol, delay){
+  var c = ac();
+  if(!c) return;
+  try{
+    var t0 = c.currentTime + (delay || 0);
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || 0.15));
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0 + (dur || 0.15) + 0.05);
+  }catch(e){ /* 音频不可用时静默降级 */ }
+}
+function chime(){ beep(660, 0.12); beep(880, 0.16, 'sine', 0.045, 0.09); }
+function arp(){ [523, 659, 784, 1047].forEach(function(f, i){ beep(f, 0.14, 'triangle', 0.05, i * 0.09); }); }
+function renderSoundToggle(){
+  $('#sound-toggle').textContent = store.sound ? '🔔 音效开' : '🔕 音效关';
+}
+
+/* ================= 文案库 ================= */
+var STYLES = {
+  roast: { name:'毒舌', icon:'😈', quotes:[
+    '这个 bug 不是你的问题，是电脑对你有意见。',
+    '重启能解决 90% 的问题，剩下 10% 靠重启两次。',
+    '你不是在写 bug，你是在给未来的自己埋彩蛋。',
+    '报错信息看不懂？很正常，写这个库的人也没看懂。',
+    '别灰心，这个 bug 修完还有下一个，生生不息。',
+    '需求又改了？说明你在参与一个活跃迭代的项目，好事。',
+    '“在测试环境是好的”——这句咒语能让任何程序员道心破碎。',
+    '你改的是 A，坏的是 B，原因是 C，而 D 完全不知情。',
+    '本地跑得起来，上线就炸，这是代码在向往自由。',
+    '不要慌，日志里那句 warning 三年前就在了。',
+    '这个 bug 修复难度：⭐⭐⭐⭐⭐；你的发量：⭐⭐。',
+    '编译错误 99 个？从第一个开始修，修完你会发现变成了 1 个。',
+    '屎山不是一天堆成的，但你已经在铲了，勇士。',
+    '昨天还能跑的代码今天就不行了——它只是进入了青春期。',
+    '遇到 bug 先深呼吸，然后怀疑人生，最后怀疑缓存。',
+    '删库跑路是违法的，但删掉 node_modules 重装不是。',
+    '这段代码能跑，你就别问为什么，有些爱经不起推敲。',
+    '产品经理说“很简单”的三个需求，工作量约等于三个月。',
+    '凌晨三点的 bug 特别难修，因为你也困，CPU 也困。',
+    '“这个警告先不管它”——上次说这句话的人，现在已经离职了。',
+    '命名是个技术活，比如你现在看着 tmp2_final_最终版_真的最终.js。',
+    '世界上最好的代码是没有代码，第二好的是别人的代码。',
+    'git push --force 之前，请先想想这个世界还有你留恋的人。',
+    '这个 bug 我见过，三年前，在另一个受害者的脸上。',
+    '需求文档最后一页写着“细节前端自行发挥”，从此你走上了不归路。',
+    '能跑就别动，这是老祖宗传下来的智慧。',
+    '日志打得越多，真相藏得越深。',
+    '你以为的偶发 bug，其实每次都在，只是你没看日志。',
+    '“修完这个 bug 就下班”——人类历史上被重复最多的谎言之一。',
+    '空指针就像生活中的意外，防得住一个，防不住全部。',
+    '不是你菜，是需求太抽象，抽象到编译器都摇头。',
+    '深夜的 bug 会变异，白天的不会，所以快去睡觉。'
+  ]},
+  heal: { name:'治愈', icon:'🌿', quotes:[
+    '深呼吸，bug 只是代码在用它的方式和你说话。',
+    '每一个资深工程师，都是从无数次报错里走出来的。',
+    '今天的你，已经比昨天多懂了一个坑，这就是进步。',
+    'bug 修不完，但觉是要睡的，身体比需求重要。',
+    '慢一点没关系，好的代码值得被等待。',
+    '你已经做得很好了，真的。',
+    '这个坎会过去的，就像之前那 99 个一样。',
+    '允许自己暂停一下，世界不会因此崩塌。',
+    '咖啡凉了就续一杯，办法总比困难多。',
+    '不是你一个人在战斗，此刻全世界的程序员都在陪你 debug。',
+    '把大问题拆成小问题，你就已经赢了一半。',
+    '代码不会讨厌你，它只是需要多一点耐心。',
+    '今天的疲惫，是明天经验的养料。',
+    '记得喝水，站起来走走，眼睛也要休息。',
+    '再黑的夜也会天亮，再难的 bug 也有头绪。',
+    '你不需要一次搞定所有事，一次只做一件事就好。',
+    '犯错不可怕，可怕的是一直责怪自己。',
+    '有人靠灵感写代码，有人靠坚持——你是后者，这更可靠。',
+    '去洗把脸，回来说不定就有思路了。',
+    '这个 bug 教会你的东西，比它带走的多。',
+    '别绷太紧，橡皮筋绷太久也会累。',
+    '你正在解决一个真实存在的问题，这本身就很了不起。',
+    '进步是螺旋式的，现在只是恰好路过低谷。',
+    '对自己温柔一点，你也是需要被维护的系统。',
+    '明天再看看，睡眠是最好的编译器。',
+    '每一次求助都是勇敢，不是软弱。',
+    '代码之外，还有生活，还有猫，还有烧烤。',
+    '你不需要向任何人证明什么，包括这个 bug。',
+    '低谷是反弹的前奏，物理定律说的。',
+    '今天也平安下班了，这就是胜利。',
+    '把待办清单砍掉一半，快乐会翻倍。',
+    '你的价值，不由任何一行代码定义。',
+    '再坚持一下下，就一下下，好吗？'
+  ]},
+  zen: { name:'禅意', icon:'🧘', quotes:[
+    'bug 即我，我即 bug；修即不修，不修即修。',
+    '汝未看此代码时，此 bug 与汝心同归于寂。',
+    '应无所住而生其心——也不要住在报错信息上。',
+    '行有不得，反求诸己；查无此错，反求诸日志。',
+    '从前有座山，山里有个 bug，后来山还是山。',
+    '不是风动，不是幡动，是需求在动。',
+    '万物皆有裂缝，那是兼容性注入的地方。',
+    '空即是有，null 即是空，看破即破。',
+    '一日一 bug，一日一菩提。',
+    '莫问前程，但行好事；莫问根因，先看日志。',
+    '心若冰清，天塌不惊；CPU 若冰清，永不宕机。',
+    '当你不再寻找 bug 时，bug 自现。',
+    '所有相皆是虚妄，唯有 404 真实不虚。',
+    '饥来吃饭困来眠，bug 来了写代码。',
+    '人生如栈，后进先出；有些事，总会过去的。',
+    '不要给 bug 起情绪的名字，它只是一个缘法。',
+    '此刻的焦虑，源于你把“现在”借给了“还没发生的事”。',
+    '万行代码皆空相，能跑即是好和尚。',
+    '放下重构的执念，立地成佛。',
+    '看山是山，看栈是栈；三年后看，都是云烟。',
+    '重启不是逃避，是给因缘一次重新排列的机会。',
+    '汝之 bug，彼之 feature，角度不同，因果不同。',
+    '但行好事，莫问 bug。',
+    '心如止水：水可载舟，亦可覆舟，亦可泡咖啡。',
+    '世间万物皆有定时：编译有时，报错有时，修复亦有时。',
+    '汝之愤怒，伤汝肝胃，代码无恙。',
+    '一花一世界，一 bug 一菩提。',
+    '慢一点，才闻得到代码里的桂花香。',
+    '此刻即全部：除了这个 bug，你什么都不缺。',
+    '上善若水，水能 debug；攻坚若柔，柔能克刚。',
+    '过去心不可得，现在心不可得，未来心不可得——但日志可得。',
+    '世上本没有 bug，调的人多了，也便成了 bug。',
+    '深呼吸，气沉丹田，意守缩进。',
+    '万古长空，一朝风月；万行代码，一朝能跑。'
+  ]},
+  bible: { name:'程序员圣经', icon:'📜', quotes:[
+    '任何足够先进的 bug，都与 feature 无法区分。',
+    '这个世界上有 10 种人：懂二进制的，和不懂的。',
+    '重启、重装、重买，人生三大难题。',
+    '如果你没写注释，三年后的你会穿越过来删你耳光。',
+    '我有一个绝妙的修复方案，可惜这里空间太小，写不下。',
+    '编译通过不代表幸福，但编译不过一定不幸。',
+    '真正的高手，连自己写的病毒都杀不完。',
+    '不要理解代码，要感受代码。',
+    'Talk is cheap. 但 bug 免费，随便看。',
+    '所有程序都是玩具，直到它连上了生产数据库。',
+    '你优化的不是性能，是用户退出页面的速度。',
+    '好的代码像散文，坏的代码像加密电报，而屎山像诅咒。',
+    '世界上最近的距離，是需求文档里的“稍后补充”。',
+    '不要和遗留系统讲道理，它见过的高手比你吃过的盐多。',
+    '你以为在重构，其实只是在给化石做抛光。',
+    '杀不死你的 bug，会让你下次提交时更小心。',
+    '程序员的第一美德：承认是自己改坏的。',
+    '当你想放弃时，请记得：当初是它先动手的。'
+  ]}
+};
+
+var CRASH_TIERS = [
+  { min:0,  face:'🙂', label:'微风拂面', tip:'问题不大。去倒杯水，回来顺手就修了。' },
+  { min:21, face:'😐', label:'内心微澜', tip:'有点烦，但完全可控。先深呼吸三次再动手。' },
+  { min:41, face:'😣', label:'道心破损', tip:'建议立刻离开工位十分钟。它还没资格让你失眠。' },
+  { min:61, face:'😫', label:'即将飞升', tip:'放下键盘。现在，立刻，去接一杯热水。' },
+  { min:81, face:'😱', label:'半升仙',   tip:'今晚到此为止。把 bug 记在纸上，明天它自己会怂。' },
+  { min:96, face:'💀', label:'已羽化',   tip:'朋友，关闭 IDE。世界需要你活着。明天我陪你一起看日志。' }
+];
+
+var WHEEL = [
+  { icon:'🎉', label:'已修复',     line:'大喜！建议立刻截图存档，这是本月高光时刻。' },
+  { icon:'🧊', label:'是缓存',     line:'经典永流传。清缓存三连：强刷、无痕、清 Cookie。' },
+  { icon:'🔌', label:'重启试试',   line:'老祖宗智慧：重启解决 90% 的问题，剩下 10% 靠再重启一次。' },
+  { icon:'📝', label:'需求又改',   line:'不是你 bug，是世界变得太快，而 PM 没通知你。' },
+  { icon:'🍳', label:'不是你的锅', line:'经鉴定：此锅由上游、网络与玄学共同承担，与你无关。' },
+  { icon:'🙈', label:'线上没事',   line:'只要没有监控报警，它就是薛定谔的好代码。' },
+  { icon:'📚', label:'文档没更新', line:'别怀疑自己，是文档先动的手。' },
+  { icon:'🌙', label:'明天再说',   line:'权威认证：你现在修它，只会修出更多它。睡觉去。' }
+];
+
+var MANTRAS = [
+  '气沉丹田，意守缩进',
+  '万行代码皆空相',
+  '除了这个 bug，你什么都不缺',
+  '编译有时，报错有时，修复亦有时',
+  '慢一点，才闻得到代码里的桂花香'
+];
+
+var TREE_GENERIC = [
+  '先把问题复现一遍：必现的 bug 已经赢了一半。',
+  '打开日志，从第一条 warning 读起，别只截图发给同事。',
+  '用 git diff 看看最近的改动，嫌疑人通常在过去 48 小时。',
+  '把问题拆成“它在哪、它何时、它干了什么”三问。',
+  '拉一个同事过来讲一遍，讲着讲着答案就出来了。'
+];
+
+var TREE_RULES = [
+  { keys:['null','空指针','undefined','npe'],
+    translate:'你的程序试图跟一个不存在的人说话，而那个人连“不存在”都没实现。',
+    diag:'先确认是谁把它变成了 null——通常答案是：三天前的你自己。',
+    rx:'处方：加判空之前，先给自己加个餐。' },
+  { keys:['缓存','cache','redis','命中'],
+    translate:'恭喜，你卷入了一场两个存储之间的谍战，而你是唯一没看剧本的人。',
+    diag:'先分清谁是真相、谁是缓存，很多人一辈子都没分清。',
+    rx:'处方：清一次缓存，如果好了，请假装这是科学。' },
+  { keys:['重启','restart','reboot'],
+    translate:'你的系统选择了用失忆来换取和平，这是智慧生物的通用策略。',
+    diag:'重启前先留证据，不然重启后你会加入“灵异事件研究会”。',
+    rx:'处方：重启三连之后，记得请运维喝奶茶。' },
+  { keys:['需求','产品','pm','变更','改了'],
+    translate:'需求变了不是代码的错，是世界变得太快，而 PM 没通知你。',
+    diag:'先确认到底哪版是最终版——如果都叫 final，建议以日历为准。',
+    rx:'处方：把“这版真的不改了”打印出来贴墙上，辟邪。' },
+  { keys:['上线','发布','部署','生产','prod','宕机','p0','p1'],
+    translate:'上线是代码的成人礼，有的孩子体面，有的孩子当场表演后空翻。',
+    diag:'先看监控再回滚，顺序反了就是“直播事故”。',
+    rx:'处方：回滚成功当晚，适合吃顿好的，别复盘到失眠。' },
+  { keys:['兼容','浏览器','ie','chrome','safari','移动端','h5','手机'],
+    translate:'你的代码在自家客厅表现完美，一去别人家就社恐。',
+    diag:'逐个排除环境变量：设备、系统、浏览器、玄学。',
+    rx:'处方：给测试同学的浏览器博物馆再添一件藏品。' },
+  { keys:['慢','性能','卡','超时','timeout','内存','cpu','泄漏','oom'],
+    translate:'你的程序不是慢，是在人生的道路上想停下来思考一下哲学。',
+    diag:'先定位再优化，猜着优化等于给汽车换轮胎时顺便改装发动机。',
+    rx:'处方：压测报告打印出来，摔杯为号，全线压测。' },
+  { keys:['样式','css','ui','布局','错位','错乱','样式问题'],
+    translate:'这不是 bug，是浏览器对你的设计理念有独特见解。',
+    diag:'先 F12 看计算样式，90% 的“玄学”都有出处。',
+    rx:'处方：CSS 写不过来了就洗把脸，回来它会自己排好（并不会）。' },
+  { keys:['并发','线程','死锁','锁','竞态','race'],
+    translate:'你的线程们在开会，但没人主持，于是它们互相等到地老天荒。',
+    diag:'画时序图，让嫌疑人排队发言。',
+    rx:'处方：锁能少用就少用，就像开会能少开就少开。' },
+  { keys:['偶发','随机','概率','偶尔','玄学','复现'],
+    translate:'偶发 bug 是代码界的 UFO：见过的人很多，抓到的一个没有。',
+    diag:'加日志、加埋点，把“偶发”骗成“必现”。',
+    rx:'处方：在工位养一盆绿植，玄学问题需要玄学对冲。' },
+  { keys:['编译','报错','异常','错误','error','堆栈'],
+    translate:'编译器比对象更懂你：它把你所有问题都列成了清单。',
+    diag:'从第一条开始修，修完你会发现清单短了一大截。',
+    rx:'处方：报错信息不要只截图，要读——它其实比需求文档写得清楚。' },
+  { keys:['文档','wiki','注释'],
+    translate:'文档和代码已经分手三年了，你现在才发现。',
+    diag:'以代码为准，文档为辅，考古为辅的辅。',
+    rx:'处方：顺手补两行注释，你就是下一位的救世主。' }
+];
+var TREE_FALLBACK = {
+  translate:'这个故事没有关键词，但充满了情绪，树洞完整接收到了。',
+  diag:'把问题拆成三步：它在哪、它何时、它干了什么。',
+  rx:'处方：先复现，再定位，最后修复——顺序错了会很痛苦。'
+};
+
+/* ================= 存储 ================= */
+function freshStore(){
+  return {
+    style: 'roast',
+    sound: true,
+    unlocked: false,
+    lastTab: 'soothe',
+    stats: {
+      total: { soothe:0, hole:0, wheel:0, breathSec:0 },
+      today: { date: todayStr(), soothe:0, hole:0, wheel:0 },
+      wheel: {}
+    },
+    custom: []
+  };
+}
+function parseStore(raw){
+  try{
+    if(!raw) return freshStore();
+    var d = JSON.parse(raw);
+    var f = freshStore();
+    if(!d || typeof d !== 'object') return f;
+    if(typeof d.style === 'string' && STYLES[d.style]) f.style = d.style;
+    if(d.stats && typeof d.stats === 'object'){
+      var t = d.stats.total || {};
+      f.stats.total.soothe = Number(t.soothe) || 0;
+      f.stats.total.hole = Number(t.hole) || 0;
+      f.stats.total.wheel = Number(t.wheel) || 0;
+      f.stats.total.breathSec = Number(t.breathSec) || 0;
+      if(d.stats.today && typeof d.stats.today === 'object'){
+        f.stats.today.date = typeof d.stats.today.date === 'string' ? d.stats.today.date : todayStr();
+        f.stats.today.soothe = Number(d.stats.today.soothe) || 0;
+        f.stats.today.hole = Number(d.stats.today.hole) || 0;
+        f.stats.today.wheel = Number(d.stats.today.wheel) || 0;
+      }
+      if(d.stats.wheel && typeof d.stats.wheel === 'object') f.stats.wheel = d.stats.wheel;
+    }
+    if(Array.isArray(d.custom)){
+      d.custom.forEach(function(c){
+        if(c && typeof c.text === 'string' && STYLES[c.style] && c.text.trim()){
+          f.custom.push({ id: String(c.id || (Date.now() + '' + Math.random())), text: c.text, style: c.style });
+        }
+      });
+    }
+    f.sound = d.sound !== false;
+    f.unlocked = d.unlocked === true;
+    if(typeof d.lastTab === 'string') f.lastTab = d.lastTab;
+    return f;
+  }catch(e){ return freshStore(); }
+}
+var store = freshStore();
+function saveStore(){}
+
+function rollDay(){
+  if(store.stats.today.date !== todayStr()){
+    store.stats.today = { date: todayStr(), soothe:0, hole:0, wheel:0 };
+    saveStore();
+  }
+}
+function bump(kind, n){
+  n = n || 1;
+  rollDay();
+  store.stats.total[kind] = (store.stats.total[kind] || 0) + n;
+  if(kind !== 'breathSec') store.stats.today[kind] = (store.stats.today[kind] || 0) + n;
+  saveStore();
+  renderStats();
+}
+
+/* ================= 语录池 ================= */
+var state = { lastQuoteText: '', lastQuote: null };
+
+function pool(style){
+  var list = [];
+  var keys = style === 'random'
+    ? (store.unlocked ? ['roast','heal','zen','bible'] : ['roast','heal','zen'])
+    : [style];
+  keys.forEach(function(k){
+    STYLES[k].quotes.forEach(function(q){ list.push({ text:q, style:k, custom:false }); });
+  });
+  store.custom.forEach(function(c){
+    if(style === 'random' || c.style === style) list.push({ text:c.text, style:c.style, custom:true });
+  });
+  if(!list.length) list.push({ text:'此刻文案库空空如也，但安抚依然有效：你已经做得很好了。', style:'heal', custom:false });
+  return list;
+}
+function pickQuote(){
+  var p = pool(store.style);
+  var q = p[Math.floor(Math.random() * p.length)];
+  for(var i = 0; i < 4 && q.text === state.lastQuoteText; i++){
+    q = p[Math.floor(Math.random() * p.length)];
+  }
+  return q;
+}
+
+/* ================= 打字机 ================= */
+var typeTimer = null, typeFull = '';
+function typeText(el, text, speed){
+  clearInterval(typeTimer);
+  var chars = Array.from(text);
+  var i = 0;
+  typeFull = text;
+  el.textContent = '';
+  $('#quote-cursor').hidden = false;
+  typeTimer = setInterval(function(){
+    i++;
+    el.textContent = chars.slice(0, i).join('');
+    if(i >= chars.length){
+      clearInterval(typeTimer);
+      typeTimer = null;
+      $('#quote-cursor').hidden = true;
+    }
+  }, speed);
+}
+function skipType(el){
+  if(typeTimer){
+    clearInterval(typeTimer);
+    typeTimer = null;
+    el.textContent = typeFull;
+    $('#quote-cursor').hidden = true;
+  }
+}
+
+/* ================= 安抚核心 ================= */
+function heartsBurst(x, y){
+  var icons = ['💗','✨','💫','🫶','⭐','🌟'];
+  for(var i = 0; i < 8; i++){
+    (function(i){
+      var s = document.createElement('span');
+      s.className = 'heart';
+      s.textContent = icons[i % icons.length];
+      var dx = (Math.random() * 170 - 85).toFixed(0);
+      var dy = -(90 + Math.random() * 130).toFixed(0);
+      s.style.left = x + 'px';
+      s.style.top = y + 'px';
+      s.style.setProperty('--dx', dx + 'px');
+      s.style.setProperty('--dy', dy + 'px');
+      s.style.animationDelay = (i * 40) + 'ms';
+      document.body.appendChild(s);
+      setTimeout(function(){ s.remove(); }, 1300);
+    })(i);
+  }
+}
+function buttonCenter(btn){
+  var r = btn.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+/* ================= 彩蛋 ================= */
+var KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+var kIdx = 0;
+function screenConfetti(){
+  var icons = ['🎉','✨','💫','🎊','⭐','🧨'];
+  for(var i = 0; i < 30; i++){
+    (function(i){
+      var s = document.createElement('span');
+      s.className = 'heart';
+      s.textContent = icons[i % icons.length];
+      s.style.left = (Math.random() * 100) + 'vw';
+      s.style.top = (Math.random() * 60) + 'vh';
+      s.style.fontSize = (14 + Math.random() * 16) + 'px';
+      s.style.setProperty('--dx', (Math.random() * 200 - 100).toFixed(0) + 'px');
+      s.style.setProperty('--dy', -(140 + Math.random() * 200).toFixed(0) + 'px');
+      s.style.animationDelay = (i * 30) + 'ms';
+      document.body.appendChild(s);
+      setTimeout(function(){ s.remove(); }, 1600);
+    })(i);
+  }
+}
+function konamiUnlock(){
+  if(store.unlocked){
+    toast('📜 程序员圣经早已解锁，去随机混搭里邂逅它');
+    return;
+  }
+  store.unlocked = true;
+  saveStore();
+  renderChips();
+  toast('🕹️ 作弊码激活：隐藏语录池「程序员圣经」已解锁');
+  screenConfetti();
+  arp();
+}
+function styleLabel(q){
+  var st = STYLES[q.style];
+  return (st ? st.icon + ' ' + st.name : '✨ 自定义') + (q.custom ? ' · 我的语录' : '');
+}
+function soothe(){
+  var q = pickQuote();
+  state.lastQuote = q;
+  state.lastQuoteText = q.text;
+  $('#quote-style').textContent = styleLabel(q);
+  typeText($('#quote-text'), q.text, 42);
+  bump('soothe');
+  chime();
+  var c = buttonCenter($('#soothe-btn'));
+  heartsBurst(c.x, c.y);
+}
+
+/* ================= 风格切换 ================= */
+function renderChips(){
+  var box = $('#style-chips');
+  box.textContent = '';
+  var defs = [
+    { key:'roast', label:'😈 毒舌' },
+    { key:'heal', label:'🌿 治愈' },
+    { key:'zen', label:'🧘 禅意' },
+    { key:'random', label:'🎲 随机混搭' }
+  ];
+  if(store.unlocked) defs.splice(3, 0, { key:'bible', label:'📜 圣经' });
+  defs.forEach(function(d){
+    var b = document.createElement('button');
+    b.className = 'chip' + (store.style === d.key ? ' active' : '');
+    b.textContent = d.label;
+    b.setAttribute('data-style', d.key);
+    b.addEventListener('click', function(){
+      if(store.style === d.key) return;
+      store.style = d.key;
+      saveStore();
+      renderChips();
+      toast('已切换至「' + d.label.replace(/^\S+\s/, '') + '」风格');
+    });
+    box.appendChild(b);
+  });
+}
+
+/* ================= 崩溃指数 ================= */
+function crashTier(v){
+  var t = CRASH_TIERS[0];
+  CRASH_TIERS.forEach(function(x){ if(v >= x.min) t = x; });
+  return t;
+}
+function renderCrash(){
+  var v = Number($('#crash-slider').value) || 0;
+  var t = crashTier(v);
+  $('#crash-face').textContent = t.face;
+  $('#crash-value').textContent = v + ' / 100 · ' + t.label;
+  $('#crash-tip').textContent = t.tip;
+}
+function crashRx(){
+  var v = Number($('#crash-slider').value) || 0;
+  var t = crashTier(v);
+  var q = pickQuote();
+  state.lastQuote = q;
+  state.lastQuoteText = q.text;
+  $('#quote-style').textContent = '💊 处方 · ' + t.label;
+  typeText($('#quote-text'), '【' + t.label + '】' + t.tip + ' —— ' + q.text, 42);
+  bump('soothe');
+  beep(520, 0.18, 'triangle', 0.05);
+  beep(700, 0.22, 'triangle', 0.05, 0.12);
+  var c = buttonCenter($('#crash-rx'));
+  heartsBurst(c.x, c.y);
+}
+
+/* ================= 树洞 ================= */
+var holeHistory = [];
+var exampleEpoch = 0;
+function analyze(text){
+  var t = text.toLowerCase();
+  for(var i = 0; i < TREE_RULES.length; i++){
+    var r = TREE_RULES[i];
+    for(var j = 0; j < r.keys.length; j++){
+      if(t.indexOf(r.keys[j]) !== -1) return r;
+    }
+  }
+  return TREE_FALLBACK;
+}
+function randGeneric(n){
+  var copy = TREE_GENERIC.slice();
+  var out = [];
+  while(out.length < n && copy.length){
+    out.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+  }
+  return out;
+}
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text != null) e.textContent = text;
+  return e;
+}
+function holeSubmit(){
+  var ta = $('#hole-input');
+  var txt = ta.value.trim();
+  if(!txt){ toast('树洞还在等你开口…'); return; }
+  var box = $('#hole-response');
+  box.hidden = false;
+  box.textContent = '';
+  box.appendChild(el('div', 'thinking', '树洞正在倾听'));
+  var epoch = exampleEpoch;
+  setTimeout(function(){
+    if(epoch !== exampleEpoch) return;
+    box.textContent = '';
+    var rule = analyze(txt);
+    var diags = randGeneric(2);
+    diags.push(rule.diag);
+
+    box.appendChild(el('div', 'resp-head', '🫂 树洞已收到你的倾诉（' + Array.from(txt).length + ' 字）'));
+
+    var b1 = el('div', 'resp-block');
+    b1.appendChild(el('div', 'tag', '【树洞翻译】'));
+    b1.appendChild(el('p', null, rule.translate));
+    box.appendChild(b1);
+
+    var b2 = el('div', 'resp-block');
+    b2.appendChild(el('div', 'tag', '【不完全诊断】'));
+    var ol = document.createElement('div');
+    diags.forEach(function(d, i){
+      var p = el('p', null, (i + 1) + '. ' + d);
+      ol.appendChild(p);
+    });
+    b2.appendChild(ol);
+    box.appendChild(b2);
+
+    var b3 = el('div', 'resp-block');
+    b3.appendChild(el('div', 'tag', '【今日处方】'));
+    b3.appendChild(el('p', null, rule.rx));
+    box.appendChild(b3);
+
+    bump('hole');
+    addHistory(txt);
+    beep(392, 0.25, 'sine', 0.05);
+  }, 1400);
+}
+function addHistory(txt){
+  holeHistory.unshift({ text: txt, ts: Date.now() });
+  if(holeHistory.length > 5) holeHistory.pop();
+  var wrap = $('#hole-history');
+  var list = $('#hole-history-list');
+  wrap.hidden = false;
+  list.textContent = '';
+  holeHistory.forEach(function(h){
+    var item = el('div', 'history-item');
+    item.appendChild(el('span', null, h.text.length > 42 ? h.text.slice(0, 42) + '…' : h.text));
+    var d = new Date(h.ts);
+    item.appendChild(el('span', null, String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')));
+    list.appendChild(item);
+  });
+}
+
+/* ================= 转盘 ================= */
+var wheelRotation = 0, spinning = false;
+function buildWheel(){
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = $('#wheel-svg');
+  var cx = 200, cy = 200, r = 188;
+  var colors = ['#ff7a9c','#ffb454','#6ee7d7','#7aa2ff','#a78bfa','#ff9f6e','#5eead4','#f472b6'];
+  var g = document.createElementNS(NS, 'g');
+  g.setAttribute('id', 'wheel-rotor');
+  WHEEL.forEach(function(it, i){
+    var a0 = i * 45 * Math.PI / 180;
+    var a1 = (i + 1) * 45 * Math.PI / 180;
+    var x0 = cx + r * Math.sin(a0), y0 = cy - r * Math.cos(a0);
+    var x1 = cx + r * Math.sin(a1), y1 = cy - r * Math.cos(a1);
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', 'M' + cx + ',' + cy + ' L' + x0.toFixed(1) + ',' + y0.toFixed(1) +
+      ' A' + r + ',' + r + ' 0 0 1 ' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' Z');
+    p.setAttribute('fill', colors[i % colors.length]);
+    p.setAttribute('opacity', '0.88');
+    p.setAttribute('stroke', 'rgba(255,255,255,.35)');
+    p.setAttribute('stroke-width', '1.5');
+    g.appendChild(p);
+    var tx = document.createElementNS(NS, 'text');
+    tx.setAttribute('x', cx);
+    tx.setAttribute('y', cy - r + 48);
+    tx.setAttribute('text-anchor', 'middle');
+    tx.setAttribute('transform', 'rotate(' + (i * 45 + 22.5) + ' ' + cx + ' ' + cy + ')');
+    tx.setAttribute('class', 'wheel-label');
+    tx.textContent = it.icon + ' ' + it.label;
+    g.appendChild(tx);
+  });
+  svg.appendChild(g);
+}
+function wheelSpin(){
+  if(spinning) return;
+  spinning = true;
+  $('#wheel-spin').disabled = true;
+  $('#wheel-result').hidden = true;
+  var idx = Math.floor(Math.random() * WHEEL.length);
+  var jitter = Math.random() * 24 - 12;
+  wheelRotation += 360 * 5 + (360 - (idx * 45 + 22.5)) + jitter;
+  var rotor = $('#wheel-rotor');
+  rotor.style.transition = 'transform 4.2s cubic-bezier(.16,.84,.12,1)';
+  rotor.style.transform = 'rotate(' + wheelRotation + 'deg)';
+  var epoch = exampleEpoch;
+  setTimeout(function(){
+    if(epoch !== exampleEpoch) return;
+    spinning = false;
+    $('#wheel-spin').disabled = false;
+    var it = WHEEL[idx];
+    $('#wheel-title').textContent = it.icon + ' ' + it.label;
+    $('#wheel-line').textContent = it.line;
+    $('#wheel-result').hidden = false;
+    bump('wheel');
+    store.stats.wheel[it.label] = (store.stats.wheel[it.label] || 0) + 1;
+    saveStore();
+    var c = buttonCenter($('#wheel-spin'));
+    heartsBurst(c.x, c.y);
+    arp();
+  }, 4300);
+}
+
+/* ================= 呼吸冥想 ================= */
+var PHASES = [
+  { name:'吸气', dur:4, scale:1 },
+  { name:'屏息', dur:7, scale:1 },
+  { name:'呼气', dur:8, scale:0.55 }
+];
+var breathToken = 0, breathCycles = 0, breathRunning = false, breathCI = null;
+function updateBreathBtn(){
+  $('#breath-toggle').textContent = breathRunning ? '结束呼吸' : '开始呼吸';
+}
+function runPhase(i, token){
+  if(token !== breathToken) return;
+  var p = PHASES[i];
+  $('#breath-phase').textContent = p.name;
+  beep(p.name === '吸气' ? 440 : (p.name === '屏息' ? 392 : 330), 0.2, 'sine', 0.035);
+  var circle = $('#breath-circle');
+  circle.style.transitionDuration = p.dur + 's';
+  circle.style.transform = 'scale(' + p.scale + ')';
+  var left = p.dur;
+  $('#breath-count').textContent = left + ' s';
+  clearInterval(breathCI);
+  breathCI = setInterval(function(){
+    left--;
+    if(left >= 0) $('#breath-count').textContent = left + ' s';
+  }, 1000);
+  setTimeout(function(){
+    clearInterval(breathCI);
+    if(token !== breathToken) return;
+    bump('breathSec', p.dur);
+    if(i === 2){
+      breathCycles++;
+      $('#breath-meta').textContent = '已完成 ' + breathCycles + ' 轮 · 继续保持';
+      $('#breath-mantra').textContent = MANTRAS[breathCycles % MANTRAS.length];
+    }
+    runPhase((i + 1) % 3, token);
+  }, p.dur * 1000);
+}
+function breathStart(){
+  breathToken++;
+  breathRunning = true;
+  breathCycles = 0;
+  $('#breath-meta').textContent = '深呼吸，跟着圆圈来';
+  $('#breath-mantra').textContent = '';
+  updateBreathBtn();
+  runPhase(0, breathToken);
+}
+function breathStop(){
+  breathToken++;
+  breathRunning = false;
+  clearInterval(breathCI);
+  $('#breath-circle').style.transitionDuration = '1.2s';
+  $('#breath-circle').style.transform = 'scale(.55)';
+  $('#breath-phase').textContent = '已停止';
+  $('#breath-count').textContent = '';
+  updateBreathBtn();
+}
+
+/* ================= 统计 ================= */
+function renderStats(){
+  rollDay();
+  $('#st-today').textContent = store.stats.today.soothe;
+  $('#st-total').textContent = store.stats.total.soothe;
+  $('#st-hole').textContent = store.stats.total.hole;
+  $('#st-wheel').textContent = store.stats.total.wheel;
+  $('#st-breath').textContent = Math.floor(store.stats.total.breathSec / 60);
+  $('#header-count').textContent = store.stats.today.soothe;
+}
+
+/* ================= 自定义语录 ================= */
+function renderCustom(){
+  var list = $('#cq-list');
+  list.textContent = '';
+  if(!store.custom.length){
+    list.appendChild(el('div', 'empty', '还没有自定义语录，加第一条吧。'));
+    return;
+  }
+  store.custom.forEach(function(c){
+    var item = el('div', 'cq-item');
+    item.appendChild(el('span', 'txt', c.text));
+    item.appendChild(el('span', 'tag', (STYLES[c.style] ? STYLES[c.style].icon : '') + ' ' + (STYLES[c.style] ? STYLES[c.style].name : '')));
+    var del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '✕';
+    del.title = '删除这条语录';
+    del.setAttribute('data-id', c.id);
+    item.appendChild(del);
+    list.appendChild(item);
+  });
+}
+function addCustom(){
+  var ta = $('#cq-input');
+  var txt = ta.value.trim();
+  if(Array.from(txt).length < 2){ toast('语录太短啦，至少写两个字'); return; }
+  store.custom.push({
+    id: Date.now() + '' + Math.random(),
+    text: txt,
+    style: $('#cq-style').value
+  });
+  saveStore();
+  ta.value = '';
+  renderCustom();
+  toast('已加入语录库，随机时会出现它');
+}
+
+/* ================= 分享卡片 ================= */
+function wrapText(ctx, text, maxWidth){
+  var lines = [], line = '';
+  Array.from(text).forEach(function(ch){
+    if(ctx.measureText(line + ch).width > maxWidth && line){
+      lines.push(line);
+      line = ch;
+    }else{
+      line += ch;
+    }
+  });
+  if(line) lines.push(line);
+  return lines;
+}
+function drawCard(){
+  var q = state.lastQuote || pickQuote();
+  state.lastQuote = q;
+  var canvas = $('#share-canvas');
+  var dpr = 2;
+  canvas.width = 750 * dpr;
+  canvas.height = 1000 * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  var g = ctx.createLinearGradient(0, 0, 0, 1000);
+  g.addColorStop(0, '#1b2140');
+  g.addColorStop(1, '#0b0e1a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 750, 1000);
+
+  ctx.globalAlpha = 0.10;
+  ctx.fillStyle = '#ff7a9c';
+  ctx.beginPath(); ctx.arc(90, 120, 160, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#6ee7d7';
+  ctx.beginPath(); ctx.arc(690, 880, 190, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffb454';
+  ctx.beginPath(); ctx.arc(640, 90, 90, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffb454';
+  ctx.font = '800 46px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('🐛 Bug 安抚器', 375, 118);
+
+  ctx.fillStyle = '#9aa3c7';
+  ctx.font = '400 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('深夜 debug 伴侣', 375, 162);
+
+  var now = new Date();
+  ctx.fillStyle = '#7f89b5';
+  ctx.font = '400 20px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日', 375, 206);
+
+  // 语录卡
+  var st = STYLES[q.style];
+  ctx.fillStyle = 'rgba(255,255,255,.06)';
+  roundRect(ctx, 60, 250, 630, 400, 28);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.14)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, 60, 250, 630, 400, 28);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffb454';
+  ctx.font = '600 24px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText((st ? st.icon + ' ' + st.name : '✨ 自定义') + (q.custom ? ' · 我的语录' : ''), 375, 306);
+
+  ctx.fillStyle = '#e9ecf8';
+  ctx.font = '500 34px "PingFang SC","Microsoft YaHei",sans-serif';
+  var lines = wrapText(ctx, '「' + q.text + '」', 520);
+  var startY = 400;
+  if(lines.length > 3){
+    ctx.font = '500 28px "PingFang SC","Microsoft YaHei",sans-serif';
+    lines = wrapText(ctx, '「' + q.text + '」', 540);
+    startY = 372;
+  }
+  lines.forEach(function(l, i){
+    ctx.fillText(l, 375, startY + i * (lines.length > 3 ? 46 : 56));
+  });
+
+  // 战绩
+  var s = store.stats;
+  ctx.fillStyle = '#e9ecf8';
+  ctx.font = '700 30px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('今日安抚 ' + s.today.soothe + ' 次 · 累计 ' + s.total.soothe + ' 次', 375, 730);
+  ctx.font = '400 24px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillStyle = '#9aa3c7';
+  ctx.fillText('树洞倾诉 ' + s.total.hole + ' 次 · 转盘 ' + s.total.wheel + ' 次 · 呼吸 ' + Math.floor(s.total.breathSec / 60) + ' 分钟', 375, 776);
+
+  ctx.fillStyle = '#6ee7d7';
+  ctx.font = '400 26px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('愿你今晚无 P0，晚安 🌙', 375, 880);
+
+  ctx.fillStyle = '#5a6390';
+  ctx.font = '400 18px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('Bug 安抚器 · 深夜 debug 伴侣', 375, 944);
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast('文案已复制'); }, function(){ fallbackCopy(t); });
+  }else{
+    fallbackCopy(t);
+  }
+}
+function fallbackCopy(t){
+  var ta = document.createElement('textarea');
+  ta.value = t;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); toast('文案已复制'); }
+  catch(e){ toast('复制失败，请手动选择文本'); }
+  ta.remove();
+}
+
+/* ================= 星空 ================= */
+function buildStars(){
+  var box = $('#stars');
+  var frag = document.createDocumentFragment();
+  for(var i = 0; i < 60; i++){
+    var s = document.createElement('span');
+    s.className = 'star';
+    var size = Math.random() < 0.85 ? 2 : 3;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = (Math.random() * 100).toFixed(2) + '%';
+    s.style.top = (Math.random() * 100).toFixed(2) + '%';
+    s.style.animationDelay = (Math.random() * 3.2).toFixed(2) + 's';
+    frag.appendChild(s);
+  }
+  box.appendChild(frag);
+}
+
+/* ================= 标签页 ================= */
+function bindTabs(){
+  $$('.tab-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      $$('.tab-btn').forEach(function(x){ x.classList.toggle('active', x === b); });
+      $$('.tab-panel').forEach(function(p){ p.hidden = (p.id !== 'panel-' + b.dataset.tab); });
+      if(store.lastTab !== b.dataset.tab){
+        store.lastTab = b.dataset.tab;
+        saveStore();
+      }
+    });
+  });
+}
+function restoreTab(){
+  var tab = store.lastTab;
+  if(!tab || !document.querySelector('#panel-' + tab)) tab = 'soothe';
+  $$('.tab-btn').forEach(function(x){ x.classList.toggle('active', x.dataset.tab === tab); });
+  $$('.tab-panel').forEach(function(p){ p.hidden = (p.id !== 'panel-' + tab); });
+}
+
+/* ================= 初始化 ================= */
+function init(){
+  $('#restore-example').addEventListener('click', function(){
+    exampleEpoch++; clearInterval(typeTimer); typeTimer = null; $('#quote-cursor').hidden = true; breathStop(); breathCycles = 0; spinning = false; wheelRotation = 0; $('#wheel-spin').disabled = false; $('#wheel-result').hidden = true; $('#wheel-rotor').style.transition = 'none'; $('#wheel-rotor').style.transform = 'rotate(0deg)';
+    store = freshStore(); state.lastQuote = null; state.lastQuoteText = ''; holeHistory = []; kIdx = 0;
+    $('#hole-input').value = ''; $('#hole-count').textContent = '0'; $('#hole-response').hidden = true; $('#hole-response').textContent = ''; $('#hole-history').hidden = true; $('#hole-history-list').textContent = '';
+    $('#cq-input').value = ''; $('#crash-slider').value = $('#crash-slider').defaultValue; renderCrash();
+    restoreTab(); renderChips(); renderStats(); renderCustom(); renderSoundToggle();
+    $('#quote-style').textContent = STYLES[store.style].icon + ' ' + STYLES[store.style].name + ' · 等待安抚';
+    $('#quote-text').textContent = '点击下方按钮，领取今晚的第一份安抚。'; $('#share-modal').hidden = true;
+  });
+  buildStars();
+  bindTabs();
+  restoreTab();
+  renderChips();
+  renderCrash();
+  renderStats();
+  renderCustom();
+  renderSoundToggle();
+  buildWheel();
+
+  $('#sound-toggle').addEventListener('click', function(){
+    store.sound = !store.sound;
+    saveStore();
+    renderSoundToggle();
+    if(store.sound) chime();
+    toast(store.sound ? '🔔 音效已开启' : '🔕 音效已关闭');
+  });
+
+  $('#quote-style').textContent = (STYLES[store.style] ? STYLES[store.style].icon + ' ' + STYLES[store.style].name : '🎲 随机') + ' · 等待安抚';
+  $('#quote-text').textContent = '点击下方按钮，领取今晚的第一份安抚。';
+
+  $('#soothe-btn').addEventListener('click', soothe);
+  $('#skip-btn').addEventListener('click', function(){
+    if(typeTimer){ skipType($('#quote-text')); return; }
+    soothe();
+  });
+  $('#crash-slider').addEventListener('input', renderCrash);
+  $('#crash-rx').addEventListener('click', crashRx);
+
+  $('#hole-input').addEventListener('input', function(){
+    $('#hole-count').textContent = Array.from(this.value).length;
+  });
+  $('#hole-submit').addEventListener('click', holeSubmit);
+
+  $('#wheel-spin').addEventListener('click', wheelSpin);
+  $('#breath-toggle').addEventListener('click', function(){
+    if(breathRunning) breathStop(); else breathStart();
+  });
+
+  $('#cq-add').addEventListener('click', addCustom);
+  $('#cq-list').addEventListener('click', function(e){
+    var btn = e.target.closest('.del');
+    if(!btn) return;
+    var id = btn.getAttribute('data-id');
+    store.custom = store.custom.filter(function(c){ return c.id !== id; });
+    saveStore();
+    renderCustom();
+    toast('已删除');
+  });
+
+  $('#share-btn').addEventListener('click', function(){
+    drawCard();
+    $('#share-modal').hidden = false;
+  });
+  $('#card-close').addEventListener('click', function(){ $('#share-modal').hidden = true; });
+  $('#share-modal').addEventListener('click', function(e){ if(e.target === this) this.hidden = true; });
+  $('#card-download').addEventListener('click', function(){
+    var canvas = $('#share-canvas');
+    canvas.toBlob(function(blob){
+      if(!blob){ toast('生成失败，请重试'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'bug-soother-card-' + todayStr() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      toast('卡片已开始下载');
+    }, 'image/png');
+  });
+  $('#card-copy').addEventListener('click', function(){
+    var q = state.lastQuote;
+    if(!q){ toast('先领取一句安抚吧'); return; }
+    var st = STYLES[q.style];
+    copyText('「' + q.text + '」\n—— ' + (st ? st.icon + ' ' + st.name : '✨ 自定义') + ' · Bug 安抚器');
+  });
+
+  $('#reset-btn').addEventListener('click', function(){
+    if(!window.confirm('确定清空所有数据？自定义语录和战绩都会消失。')) return;
+    store = freshStore();
+    saveStore();
+    renderStats();
+    renderCustom();
+    renderChips();
+    toast('数据已清空');
+  });
+
+  document.addEventListener('keydown', function(e){
+    // Konami 作弊码
+    var k = (e.key || '').length === 1 ? e.key.toLowerCase() : e.key;
+    if(k === KONAMI[kIdx]){
+      kIdx++;
+      if(kIdx >= KONAMI.length){ kIdx = 0; konamiUnlock(); }
+    }else{
+      kIdx = (k === KONAMI[0]) ? 1 : 0;
+    }
+    // 空格快捷安抚
+    if(e.code !== 'Space') return;
+    var t = document.activeElement;
+    if(t && /INPUT|TEXTAREA|SELECT|BUTTON/.test(t.tagName)) return;
+    if($('#panel-soothe').hidden) return;
+    e.preventDefault();
+    soothe();
+  });
+}
+
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+})();
+</script>
+</body>
+</html>

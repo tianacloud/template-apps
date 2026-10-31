@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {readFile,mkdir,writeFile,copyFile,rm} from 'node:fs/promises';
+const html=await readFile('app.html','utf8');
+const style=html.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[1];
+const body=html.match(/<body[^>]*>([\s\S]*?)<script>/i)?.[1];
+const script=html.match(/<script>([\s\S]*?)<\/script>/i)?.[1];
+if(!style||!body||!script) throw Error('Invalid app HTML');
+await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/entry.js',`import { createTianaFetch } from '@tianacloud/serverless';\ndocument.title="Bug 安抚器";const style=document.createElement("style");style.textContent=${JSON.stringify(style)};document.head.appendChild(style);document.body.innerHTML=${JSON.stringify(body)};\n`+script);
+await build({entryPoints:['dist/assets/entry.js'],bundle:true,format:'iife',outfile:'dist/assets/app.js'});
+await rm('dist/assets/entry.js');
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await readFile('source.json','utf8'));console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id,database_instance_id:source.database_instance_id}));
