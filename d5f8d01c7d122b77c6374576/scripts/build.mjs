@@ -6,5 +6,5 @@ if(process.env.TIANA_TEMPLATE_BUILD!=='1' && [source.git_instance_id,source.data
 await rm('dist',{recursive:true,force:true}); await mkdir('dist/assets',{recursive:true});
 await build({entryPoints:['src/main.js'],outfile:'dist/assets/app.js',bundle:true,format:'esm'});
 for(let i=0;i<3;i++) await cp(`src/plan${i}.js`,`dist/assets/plan${i}.js`);
-await cp('public/icon.png','dist/icon.png');
+await cp('public/icon.png','dist/icon.png'); for(const file of ['manifest.webmanifest','sw.js']) await cp('public/'+file,'dist/'+file);
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source,source_commit:commit}));

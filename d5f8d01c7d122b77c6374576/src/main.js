@@ -289,6 +289,44 @@ window.fitStore = fitStore;
 })();
 
 
+document.getElementById("app").insertAdjacentHTML("beforeend","\n<div class=\"install-tip\" id=\"installTip\" hidden>\n  <div class=\"it-mask\" id=\"itMask\"></div>\n  <div class=\"it-card\">\n    <div class=\"it-ico\">\n      <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#00e0a4\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"7\" y=\"2\" width=\"10\" height=\"20\" rx=\"2.5\"/><path d=\"M12 18h.01\"/></svg>\n    </div>\n    <h3 class=\"it-title\">把打卡装进桌面</h3>\n    <p class=\"it-sub\">像 App 一样从桌面打开</p>\n    <div class=\"it-steps\" id=\"itSteps\"></div>\n    <button class=\"it-btn\" id=\"itClose\">知道了</button>\n  </div>\n</div>\n\n<style>\n.install-tip{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center}\n.install-tip[hidden]{display:none}\n.it-mask{position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(2px)}\n.it-card{position:relative;width:84%;max-width:340px;background:var(--card,#131a22);border:1px solid var(--line,#222e3a);border-radius:18px;padding:22px 20px 18px;text-align:center;animation:itpop .25s ease}\n@keyframes itpop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}\n.it-ico{width:46px;height:46px;margin:0 auto 10px;border-radius:13px;background:rgba(0,224,164,.12);display:flex;align-items:center;justify-content:center}\n.it-ico svg{width:26px;height:26px}\n.it-title{margin:0 0 4px;font-size:18px;font-weight:800}\n.it-sub{margin:0 0 14px;font-size:13px;color:var(--muted,#8a97a5)}\n.it-steps{text-align:left;font-size:13.5px;line-height:1.7;color:var(--text,#e8eef5);background:rgba(255,255,255,.03);border-radius:12px;padding:12px 14px;margin-bottom:16px}\n.it-steps b{color:var(--accent,#00e0a4)}\n.it-btn{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent,#00e0a4);color:#04140f;font-size:15px;font-weight:800;cursor:pointer}\n.it-btn:active{opacity:.85}\n</style>\n\n");
+if("serviceWorker" in navigator) navigator.serviceWorker.register(new URL("../sw.js",import.meta.url)).catch(console.warn);
+const manifest=document.createElement("link"); manifest.rel="manifest"; manifest.href=new URL("../manifest.webmanifest",import.meta.url); document.head.appendChild(manifest);
+
+(function(){
+  // 注册 Service Worker：实现离线缓存，也是「可安装到桌面」的前提之一
+  
+  // 添加到桌面引导（仅在未安装时提示一次）
+  function isStandalone(){
+    return (window.navigator.standalone===true) ||
+           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+  function platformSteps(){
+    var ua=navigator.userAgent;
+    if(/iPhone|iPad|iPod/i.test(ua)){
+      return '<b>iPhone / iPad：</b>使用 <b>Safari</b> 打开当前应用 → 点底部「分享」按钮 → 选「添加到主屏幕」→ 点「添加」即可。';
+    }
+    if(/Android/i.test(ua)){
+      return '<b>安卓手机：</b>使用 <b>Chrome</b> 打开当前应用 → 点右上「⋮」菜单 → 选「安装应用 / 添加到主屏幕」→ 确认。';
+    }
+    return '<b>电脑：</b>使用 <b>Chrome / Edge</b> 打开当前应用 → 地址栏右侧点「安装」图标（或菜单里「安装应用」）→ 确认。';
+  }
+  try{
+    if(!isStandalone() && !localStorage.getItem('fitapp_install_tip')){
+      var tip=document.getElementById('installTip');
+      document.getElementById('itSteps').innerHTML=platformSteps();
+      tip.removeAttribute('hidden');
+      function closeTip(){
+        tip.setAttribute('hidden','');
+        try{localStorage.setItem('fitapp_install_tip','1');}catch(e){}
+      }
+      document.getElementById('itClose').addEventListener('click',closeTip);
+      document.getElementById('itMask').addEventListener('click',closeTip);
+    }
+  }catch(e){}
+})();
+
+
 return () => { delete window.fitStore; };
 async function createStore(){
   if(!window.tiana?.auth?.getAccessToken || !window.tiana?.connection) throw Error('登录未就绪');
