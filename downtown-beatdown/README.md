@@ -48,6 +48,6 @@ npm run prepare-assets -- /path/to/template-beat-em-up
 
 ## 署名和授权
 
-原作与美术：**Quiver / Downtown Beatdown**。上游代码 MIT；上游声明美术、音乐、音效采用 **CC BY 4.0**。本版使用其中的美术，未使用上游音频或字体；新增代码 MIT，声音由新增代码实时合成。Tiana SDK 为 Apache-2.0。
+原作与美术：**Quiver / Downtown Beatdown**。上游代码 MIT；上游声明美术、音乐、音效采用 **CC BY 4.0**。本版使用其中的美术，未使用上游音频或字体；新增代码 Apache-2.0，声音由新增代码实时合成。Tiana SDK 为 Apache-2.0。
 
 具体作者署名、来源、改动、许可及免责声明见 [ATTRIBUTION.md](ATTRIBUTION.md) 与 `licenses/`。游戏底部及“署名、许可与改动说明”面板提供可见署名；构建包含许可文件。继续改编和分发时保留这些说明并补充自己的改动，不要把 Quiver 的素材当成 MIT 素材或声称获得其背书。
