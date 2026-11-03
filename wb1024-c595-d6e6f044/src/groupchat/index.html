@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>群聊模拟器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307c160'/%3E%3Cpath d='M16 20h32v20H28l-8 6v-6h-4z' fill='%23fff'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #ededed;
+    --panel: #f7f7f7;
+    --card: #ffffff;
+    --ink: #191919;
+    --ink2: #4c4c4c;
+    --muted: #9a9a9a;
+    --faint: #c4c4c4;
+    --line: #e2e2e2;
+    --bubble: #ffffff;
+    --mine: #95ec69;
+    --green: #07c160;
+    --red: #e04a3a;
+    --nav: #ededed;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: #d8d8d8;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body { display: flex; justify-content: center; min-height: 100vh; }
+
+  #app {
+    width: 100%;
+    max-width: 440px;
+    height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,.16);
+  }
+
+  .serif { font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", serif; }
+
+  @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes blink { 0%,80%,100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+
+  /* ================= 导航栏 ================= */
+  #nav {
+    flex: 0 0 auto;
+    height: 54px;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    background: rgba(237,237,237,.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    position: relative; z-index: 20;
+    padding-top: env(safe-area-inset-top);
+  }
+  .nav-back {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: #333; cursor: pointer; opacity: .9;
+  }
+  .nav-title { flex: 1; text-align: center; min-width: 0; }
+  .nav-name {
+    font-size: 16px; font-weight: 500; letter-spacing: .2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-sub { font-size: 11px; color: var(--muted); margin-top: -1px; }
+  .nav-more {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; letter-spacing: 1px; color: #333; cursor: pointer;
+  }
+
+  /* ================= 消息区 ================= */
+  #feed {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 12px 8px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  #feed::-webkit-scrollbar { width: 0; }
+
+  .dayline {
+    text-align: center;
+    margin: 14px 0 10px;
+  }
+  .dayline span {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    background: rgba(0,0,0,.06); color: #8a8a8a;
+    font-size: 11.5px; letter-spacing: .3px;
+  }
+
+  .sysline {
+    text-align: center; margin: 9px 0;
+    animation: fadeIn .35s both;
+  }
+  .sysline span {
+    display: inline-block; padding: 3px 9px; border-radius: 4px;
+    background: rgba(0,0,0,.05); color: #9a9a9a;
+    font-size: 11.5px; max-width: 86%; line-height: 1.5;
+  }
+  .sysline.act span {
+    background: transparent; color: #a8a29a; font-size: 12px;
+    font-style: normal; letter-spacing: .2px;
+  }
+
+  .row {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin: 10px 0;
+    animation: popIn .3s cubic-bezier(.22,1,.36,1) both;
+  }
+  .row.mine { flex-direction: row-reverse; }
+
+  .ava {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 15px; font-weight: 500;
+    user-select: none; letter-spacing: 0;
+  }
+
+  .col { max-width: 74%; min-width: 0; }
+  .who {
+    font-size: 11px; color: #9b9b9b; margin: 0 0 3px 2px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .who .tag {
+    font-size: 9px; padding: 0 3px; border-radius: 2px;
+    background: #e6e6e6; color: #8a8a8a; line-height: 13px;
+  }
+  .row.mine .who { justify-content: flex-end; margin-right: 2px; }
+
+  .bubble {
+    position: relative;
+    display: inline-block;
+    padding: 8px 11px;
+    background: var(--bubble);
+    border-radius: 5px;
+    font-size: 14.7px;
+    line-height: 1.58;
+    color: var(--ink);
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+    box-shadow: 0 1px 1px rgba(0,0,0,.03);
+  }
+  .row.mine .bubble { background: var(--mine); }
+  .bubble::before {
+    content: ''; position: absolute; left: -5px; top: 12px;
+    border: 5px solid transparent; border-right-color: var(--bubble); border-left: 0;
+  }
+  .row.mine .bubble::before {
+    left: auto; right: -5px;
+    border-right-color: transparent; border-left-color: var(--mine); border-left-width: 5px; border-right-width: 0;
+  }
+
+  /* 语音 */
+  .bubble.voice {
+    display: flex; align-items: center; gap: 8px;
+    min-width: 80px; cursor: pointer;
+  }
+  .vwave { display: flex; align-items: center; gap: 2px; height: 14px; }
+  .vwave i { display: block; width: 2px; background: #6b6b6b; border-radius: 1px; }
+  .vlen { font-size: 12px; color: #7a7a7a; }
+  .vtext { font-size: 13.5px; color: #4a4a4a; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ddd; display: none; }
+  .bubble.voice.open .vtext { display: block; }
+
+  /* 图片 */
+  .bubble.img { padding: 3px; }
+  .ph {
+    width: 132px; height: 96px; border-radius: 3px;
+    background:
+      linear-gradient(135deg, #dfe4e0, #cbd3ce);
+    display: flex; align-items: center; justify-content: center;
+    color: #8b948e; font-size: 11.5px; letter-spacing: 1px;
+    position: relative; overflow: hidden;
+  }
+  .ph::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), transparent 45%),
+      linear-gradient(200deg, transparent 60%, rgba(255,255,255,.35));
+  }
+  .ph.doc { width: 180px; height: 84px; flex-direction: column; gap: 4px; background: linear-gradient(135deg,#eef0f5,#dde1ea); }
+
+  /* 表情 */
+  .bubble.sticker {
+    background: transparent !important; box-shadow: none; padding: 0;
+    font-size: 46px; line-height: 1;
+  }
+  .bubble.sticker::before { display: none; }
+
+  /* 红包 */
+  .bubble.pack {
+    padding: 0; overflow: hidden; width: 216px;
+    background: #fa9d3b; color: #fff; border-radius: 5px;
+  }
+  .row.mine .bubble.pack { background: #fa9d3b; }
+  .bubble.pack::before { border-right-color: #fa9d3b; }
+  .row.mine .bubble.pack::before { border-left-color: #fa9d3b; }
+  .pk-top { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px; }
+  .pk-ico {
+    width: 34px; height: 34px; border-radius: 3px; background: rgba(255,255,255,.22);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .pk-note { font-size: 14px; line-height: 1.3; }
+  .pk-sub { font-size: 11px; opacity: .8; margin-top: 1px; }
+  .pk-foot { background: rgba(0,0,0,.08); padding: 4px 12px; font-size: 10.5px; letter-spacing: .5px; }
+
+  .recalled { font-size: 11.5px; color: #9a9a9a; text-align: center; margin: 8px 0; }
+
+  /* 正在输入 */
+  .typing { display: flex; align-items: center; gap: 8px; margin: 10px 0; animation: fadeIn .2s both; }
+  .typing .dots { display: flex; gap: 3px; padding: 10px 12px; background: #fff; border-radius: 5px; }
+  .typing .dots i {
+    width: 5px; height: 5px; border-radius: 50%; background: #b9b9b9;
+    animation: blink 1.2s infinite;
+  }
+  .typing .dots i:nth-child(2) { animation-delay: .15s; }
+  .typing .dots i:nth-child(3) { animation-delay: .3s; }
+  .typing .tname { font-size: 10.5px; color: var(--muted); }
+
+  /* 结算灰字 */
+  .note {
+    text-align: center; margin: 10px auto 16px; max-width: 88%;
+    font-size: 11.5px; color: #a09a92; line-height: 1.65;
+    animation: fadeIn .5s both;
+  }
+
+  /* 数值飘字 */
+  .deltas {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;
+    margin: -6px 0 12px; animation: fadeIn .4s both;
+  }
+  .dchip {
+    font-size: 10.5px; padding: 2px 7px; border-radius: 10px;
+    background: rgba(7,193,96,.1); color: #3d8b5f;
+  }
+  .dchip.down { background: rgba(224,74,58,.09); color: #b4523f; }
+
+  /* ================= 阶段卡 ================= */
+  .chapter {
+    margin: 20px 0; text-align: center;
+    animation: popIn .5s both;
+  }
+  .chapter .when {
+    font-size: 11px; color: #a5a09a; letter-spacing: 3px; margin-bottom: 10px;
+  }
+  .chapter .ctitle {
+    font-size: 24px; font-weight: 600; letter-spacing: 2px; color: #2a2724;
+  }
+  .chapter .cdesc {
+    font-size: 12.5px; color: #8d8781; margin-top: 10px; line-height: 1.8;
+    max-width: 280px; margin-left: auto; margin-right: auto;
+  }
+  .chapter .cline { width: 28px; height: 1px; background: #c9c2b8; margin: 14px auto; }
+
+  /* ================= 底部 ================= */
+  #composer {
+    flex: 0 0 auto;
+    background: var(--panel);
+    border-top: 1px solid rgba(0,0,0,.06);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    position: relative; z-index: 30;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; animation: slideUp .28s cubic-bezier(.22,1,.36,1) both; }
+  .choice-hint {
+    font-size: 10.5px; color: #a5a09a; letter-spacing: 1.5px;
+    text-align: center; margin-bottom: 1px;
+  }
+  .choice {
+    display: flex; align-items: flex-start; gap: 9px;
+    width: 100%; text-align: left;
+    padding: 10px 12px;
+    background: #fff; border: 1px solid #e6e6e6; border-radius: 7px;
+    font-size: 13.6px; line-height: 1.5; color: #232323;
+    font-family: inherit; cursor: pointer;
+    transition: transform .12s, background .12s, border-color .12s;
+    animation: popIn .3s both;
+  }
+  .choice:active { transform: scale(.985); background: #f2f2f2; }
+  .choice .ci {
+    flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%;
+    background: #f0f0f0; color: #9a9a9a;
+    font-size: 10px; display: flex; align-items: center; justify-content: center;
+    margin-top: 1px; font-family: "Courier New", monospace;
+  }
+  .choice.act { color: #7a756e; font-style: normal; }
+  .choice.act .ci { background: transparent; border: 1px dashed #d5d0c8; color: #b0aaa1; }
+
+  .inputbar {
+    display: flex; align-items: center; gap: 8px; padding: 2px 0;
+  }
+  .ib-icon {
+    width: 30px; height: 30px; border-radius: 50%; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #777; border: 1px solid #e6e6e6;
+  }
+  .ib-field {
+    flex: 1; height: 34px; background: #fff; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 10px;
+    font-size: 13px; color: #b3b3b3;
+    border: 1px solid #e6e6e6;
+  }
+  .ib-send {
+    height: 32px; padding: 0 14px; border: none; border-radius: 4px;
+    background: var(--green); color: #fff; font-size: 13px;
+    font-family: inherit; cursor: pointer; opacity: .35;
+  }
+  .ib-send.on { opacity: 1; }
+
+  /* ================= 封面 ================= */
+  #cover {
+    position: absolute; inset: 0; z-index: 60;
+    background: #f2f0ec;
+    display: flex; flex-direction: column;
+    padding: 0 26px;
+    overflow-y: auto;
+  }
+  .cv-inner { margin: auto 0; padding: 40px 0; width: 100%; }
+  .cv-kicker {
+    display: flex; align-items: center; gap: 9px; margin-bottom: 30px;
+  }
+  .cv-kicker i { width: 22px; height: 1px; background: #b9b0a4; display: block; }
+  .cv-kicker span {
+    font-size: 10px; letter-spacing: 2.4px; color: #a3988a;
+    font-family: "Courier New", monospace;
+  }
+  .cv-title {
+    font-size: 40px; line-height: 1.2; font-weight: 600; letter-spacing: 3px; color: #23201d;
+  }
+  .cv-sub { margin-top: 14px; font-size: 13.5px; color: #6f675d; line-height: 1.85; }
+
+  .invite {
+    margin: 30px 0 26px;
+    background: #fff; border-radius: 10px; padding: 16px;
+    box-shadow: 0 6px 24px rgba(80,68,52,.09);
+    animation: popIn .6s .15s both;
+  }
+  .invite-top { display: flex; gap: 11px; align-items: center; }
+  .gava {
+    width: 44px; height: 44px; border-radius: 8px; flex: 0 0 auto;
+    background: linear-gradient(140deg,#5c6b52,#3f4a38);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .invite-name { font-size: 15px; font-weight: 500; }
+  .invite-sub { font-size: 11.5px; color: #9a938a; margin-top: 2px; }
+  .invite-body {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0ece5;
+    font-size: 12.5px; color: #7d766c; line-height: 1.75;
+  }
+
+  .nickbox { margin-bottom: 18px; }
+  .nicklabel {
+    display: block; font-size: 10.5px; letter-spacing: 2.5px; color: #a3988a; margin-bottom: 8px;
+  }
+  .nickinput {
+    width: 100%; height: 44px; padding: 0 13px;
+    background: #fff; border: 1px solid #e3ddd2; border-radius: 6px;
+    font-size: 14.5px; font-family: inherit; color: #23201d;
+    outline: none;
+  }
+  .nickinput:focus { border-color: #a8998a; }
+
+  .btn {
+    width: 100%; height: 50px; border: none; border-radius: 6px;
+    background: #23201d; color: #f2f0ec;
+    font-size: 15px; letter-spacing: 3px; font-family: inherit;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn:active { opacity: .82; }
+  .cv-foot {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; font-size: 11px; color: #a89e91;
+  }
+
+  /* ================= 结局 ================= */
+  #end {
+    position: absolute; inset: 0; z-index: 70;
+    background: #f2f0ec;
+    overflow-y: auto;
+    padding: 0 26px 40px;
+    animation: fadeIn .5s both;
+  }
+  .end-inner { padding: 46px 0 0; }
+  .end-kicker {
+    font-size: 10px; letter-spacing: 2.4px; color: #a3988a;
+    font-family: "Courier New", monospace;
+  }
+  .end-day { font-size: 11.5px; color: #a89e91; margin-top: 12px; letter-spacing: 1px; }
+  .end-role {
+    margin-top: 8px;
+    font-size: 33px; line-height: 1.28; font-weight: 600; letter-spacing: 2px; color: #23201d;
+  }
+  .end-desc {
+    margin-top: 16px; font-size: 13.6px; line-height: 1.9; color: #5b534a;
+  }
+  .end-scene {
+    margin-top: 22px; padding: 16px 16px;
+    border-left: 2px solid #c9bfae; background: rgba(255,255,255,.55);
+  }
+  .end-scene .lbl { font-size: 10px; letter-spacing: 2px; color: #a3988a; }
+  .end-scene .nm { font-size: 17px; font-weight: 600; margin-top: 4px; color: #23201d; }
+  .end-scene .tx { font-size: 12.8px; color: #6f675d; line-height: 1.8; margin-top: 7px; }
+
+  .end-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: #ddd6c9; margin-top: 24px; border: 1px solid #ddd6c9;
+  }
+  .estat { background: #f7f5f0; padding: 12px 8px; text-align: center; }
+  .estat b { display: block; font-size: 19px; font-weight: 600; color: #2a2724; font-family: "Courier New", monospace; }
+  .estat span { font-size: 10px; color: #a09889; letter-spacing: 1px; }
+
+  .end-review { margin-top: 26px; }
+  .rv-item { margin-bottom: 13px; }
+  .rv-l { font-size: 10px; letter-spacing: 1.6px; color: #a3988a; }
+  .rv-t { font-size: 13.2px; color: #4a443c; line-height: 1.7; margin-top: 3px; }
+  .end-advice {
+    margin-top: 26px; padding-top: 20px; border-top: 1px solid #ddd6c9;
+    font-size: 13.4px; line-height: 1.95; color: #4a443c;
+    font-family: "Songti SC", "SimSun", serif;
+  }
+  .end-btns { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+  .btn.ghost {
+    background: transparent; color: #6f675d; border: 1px solid #d5cdbf;
+  }
+  .end-tip { text-align: center; font-size: 11px; color: #b0a698; margin-top: 16px; }
+
+  /* ================= 状态面板 ================= */
+  #sheet {
+    position: absolute; inset: 0; z-index: 80;
+    background: rgba(20,18,16,.34);
+    display: none;
+    align-items: flex-end;
+    animation: fadeIn .2s both;
+  }
+  #sheet.on { display: flex; }
+  .sheet-body {
+    width: 100%; background: #f7f7f7;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    animation: slideUp .28s cubic-bezier(.22,1,.36,1) both;
+  }
+  .sheet-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .sheet-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 18px; }
+  .metric { margin-bottom: 15px; }
+  .m-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .m-name { font-size: 12.5px; color: #333; }
+  .m-val { font-size: 11px; color: #999; font-family: "Courier New", monospace; }
+  .m-track { height: 4px; background: #e6e6e6; border-radius: 2px; overflow: hidden; }
+  .m-fill { height: 100%; background: #07c160; border-radius: 2px; transition: width .5s; }
+  .m-fill.warn { background: #e0a43a; }
+  .m-fill.bad { background: #d9604e; }
+  .m-hint { font-size: 10.5px; color: #b0aeaa; margin-top: 4px; }
+  .sheet-row {
+    display: flex; justify-content: space-between;
+    padding: 9px 0; border-top: 1px solid #ececec; font-size: 12.5px;
+  }
+  .sheet-row span:last-child { color: #666; font-family: "Courier New", monospace; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%);
+    background: rgba(0,0,0,.72); color: #fff; font-size: 12px;
+    padding: 7px 13px; border-radius: 16px; z-index: 90;
+    animation: fadeIn .2s both; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="nav" style="display:none">
+    <div class="nav-back" id="nav-back">‹</div>
+    <div class="nav-title">
+      <div class="nav-name" id="nav-name">梧桐里 8 号楼业主群</div>
+      <div class="nav-sub" id="nav-sub">487 人</div>
+    </div>
+    <div class="nav-more" id="nav-more">⋯</div>
+  </header>
+
+  <main id="feed"></main>
+
+  <footer id="composer" style="display:none">
+    <div id="cslot"></div>
+  </footer>
+
+  <section id="cover">
+    <div class="cv-inner">
+      <div class="cv-kicker"><i></i><span>GROUP CHAT · 001</span></div>
+      <h1 class="cv-title serif">群聊<br>模拟器</h1>
+      <p class="cv-sub">你被拉进了一个有 487 个人的群。<br>没人认识你，但每个人都在看你说话。</p>
+
+      <div class="invite">
+        <div class="invite-top">
+          <div class="gava">楼</div>
+          <div>
+            <div class="invite-name">梧桐里 8 号楼业主群</div>
+            <div class="invite-sub">487 人 · 群主 李桂芬</div>
+          </div>
+        </div>
+        <div class="invite-body">
+          「李桂芬」邀请你加入了群聊。<br>
+          你刚搬进 1602，这是你和这栋楼的第一句话。
+        </div>
+      </div>
+
+      <div class="nickbox">
+        <label class="nicklabel">你在群里的名字</label>
+        <input class="nickinput" id="nick" maxlength="12" value="1602 新邻居" />
+      </div>
+
+      <button class="btn" id="go">进 群</button>
+      <div class="cv-foot">
+        <span id="arc-info">还没有群档案</span>
+        <span>一局约 8 分钟</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="sheet">
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<script src="./core/events.js"></script>
+<script src="./core/events2.js"></script>
+<script src="./core/events3.js"></script>
+<script src="./core/data.js"></script>
+<script src="./core/engine.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id)
+  const feed = $('feed')
+  const nav = $('nav')
+  const composer = $('composer')
+  const cslot = $('cslot')
+
+  const E = window.GcEngine
+  const D = window.GcData
+
+  let S = null
+  let cur = null
+  let busy = false
+  let ended = false
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+
+  function scrollDown() {
+    requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight })
+  }
+
+  /* ---------------- 消息渲染 ---------------- */
+
+  function avatarStyle(m) {
+    if (m.mine) return 'background:linear-gradient(140deg,#8fd06a,#63b544)'
+    const h = m.hue || 0
+    return `background:linear-gradient(140deg,hsl(${h} 42% 58%),hsl(${h} 46% 44%))`
+  }
+
+  function pushSys(text, cls) {
+    const d = document.createElement('div')
+    d.className = 'sysline' + (cls ? ' ' + cls : '')
+    d.innerHTML = '<span>' + esc(text) + '</span>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  function pushDay(text) {
+    const d = document.createElement('div')
+    d.className = 'dayline'
+    d.innerHTML = '<span>' + esc(text) + '</span>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  function voiceWave(sec) {
+    const n = Math.max(3, Math.min(9, Math.round(sec / 6) + 2))
+    let h = ''
+    for (let i = 0; i < n; i++) {
+      const hh = 4 + ((i * 7 + sec) % 9)
+      h += `<i style="height:${hh}px"></i>`
+    }
+    return '<div class="vwave">' + h + '</div>'
+  }
+
+  function pushMsg(m) {
+    if (m.from === 'sys' || m.sys) { pushSys(m.text); return }
+
+    // 撤回
+    if (m.type === 'recalled') {
+      const d = document.createElement('div')
+      d.className = 'recalled'
+      d.textContent = (m.name || '有人') + '撤回了一条消息'
+      feed.appendChild(d); scrollDown(); return
+    }
+
+    const row = document.createElement('div')
+    row.className = 'row' + (m.mine ? ' mine' : '')
+
+    const ava = document.createElement('div')
+    ava.className = 'ava'
+    ava.setAttribute('style', avatarStyle(m))
+    ava.textContent = m.avatar || '?'
+
+    const col = document.createElement('div')
+    col.className = 'col'
+
+    if (!m.mine && m.name) {
+      const who = document.createElement('div')
+      who.className = 'who'
+      const mem = D.MEMBERS.find(x => x.name === m.name)
+      who.innerHTML = esc(m.name) + (mem && mem.tag ? `<span class="tag">${esc(mem.tag)}</span>` : '')
+      col.appendChild(who)
+    }
+
+    const b = document.createElement('div')
+    b.className = 'bubble'
+
+    if (m.type === 'redpack') {
+      b.classList.add('pack')
+      b.innerHTML =
+        '<div class="pk-top"><div class="pk-ico">福</div><div>' +
+        '<div class="pk-note">' + esc(m.note || '恭喜发财，大吉大利') + '</div>' +
+        '<div class="pk-sub">' + esc(m.text || '') + '</div></div></div>' +
+        '<div class="pk-foot">微信红包</div>'
+    } else if (m.type === 'voice') {
+      b.classList.add('voice')
+      b.innerHTML = voiceWave(m.sec || 10) + '<span class="vlen">' + (m.sec || 10) + '"</span>' +
+        '<div class="vtext">' + esc(m.text || '') + '</div>'
+      b.onclick = () => b.classList.toggle('open')
+    } else if (m.type === 'img') {
+      b.classList.add('img')
+      const isDoc = /\.pdf|文件/.test(m.text || '')
+      b.innerHTML = '<div class="ph' + (isDoc ? ' doc' : '') + '">' + esc((m.text || '[图片]').replace(/^\[|\]$/g, '')) + '</div>'
+    } else if (m.type === 'sticker') {
+      b.classList.add('sticker')
+      b.textContent = m.text || '🙂'
+    } else {
+      b.textContent = m.text
+    }
+
+    col.appendChild(b)
+    row.appendChild(ava)
+    row.appendChild(col)
+    feed.appendChild(row)
+    scrollDown()
+  }
+
+  function pushTyping(name, hue) {
+    const d = document.createElement('div')
+    d.className = 'typing'
+    d.id = 'typing'
+    d.innerHTML = '<div class="ava" style="background:linear-gradient(140deg,hsl(' + hue + ' 42% 58%),hsl(' + hue + ' 46% 44%))">' +
+      esc((name || '?').slice(-1)) + '</div>' +
+      '<div><div class="dots"><i></i><i></i><i></i></div>' +
+      '<div class="tname">' + esc(name) + ' 正在输入</div></div>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+  function clearTyping() {
+    const t = $('typing')
+    if (t) t.remove()
+  }
+
+  /* ---------------- 事件推进 ---------------- */
+
+  async function pump() {
+    if (busy || ended) return
+    busy = true
+    clearChoices()
+
+    const step = E.next(S)
+
+    if (step.type === 'end') {
+      ended = true
+      busy = false
+      await sleep(400)
+      recordArchive(S.ending)
+      showEnd(S.ending)
+      return
+    }
+
+    if (step.type === 'chapter') {
+      renderChapter(step)
+      busy = false
+      await sleep(1700)
+      pump()
+      return
+    }
+
+    cur = step.ev
+    await playEvent(step.ev, step.stage)
+    busy = false
+  }
+
+  function renderChapter(step) {
+    const info = step.info
+    const d = document.createElement('div')
+    d.className = 'chapter'
+    d.innerHTML =
+      '<div class="when">' + esc(info.range) + '</div>' +
+      '<div class="ctitle serif">' + esc(info.name) + '</div>' +
+      '<div class="cline"></div>' +
+      '<div class="cdesc">' + esc(info.tip) + '</div>'
+    feed.appendChild(d)
+    scrollDown()
+  }
+
+  async function playEvent(ev, stage) {
+    const msgs = E.renderEvent(S, ev)
+
+    // 时间分隔
+    if (ev.time) {
+      pushDay(dayLabel(stage, ev))
+      await sleep(180)
+    }
+
+    for (const m of msgs) {
+      if (m.from !== 'sys' && !m.sys && !m.mine) {
+        const mem = D.MEMBERS.find(x => x.name === m.name)
+        pushTyping(m.name, mem ? mem.hue : 0)
+        await sleep(320 + Math.random() * 420)
+        clearTyping()
+      }
+      pushMsg(m)
+      await sleep(m.type === 'redpack' ? 420 : 230)
+    }
+
+    await sleep(260)
+    showChoices(ev)
+  }
+
+  const DAY_BASE = { 1: 1, 2: 4, 3: 21, 4: 58, 5: 121, 6: 361 }
+
+  function dayLabel(stage, ev) {
+    const dayNum = (DAY_BASE[stage] || 1) + ((ev.day || 1) - 1)
+    return '第 ' + dayNum + ' 天  ' + (ev.time || '')
+  }
+
+  /* ---------------- 选项 ---------------- */
+
+  function clearChoices() { cslot.innerHTML = '' }
+
+  function showChoices(ev) {
+    cslot.innerHTML = ''
+    const wrap = document.createElement('div')
+    wrap.className = 'choices'
+
+    const hint = document.createElement('div')
+    hint.className = 'choice-hint'
+    hint.textContent = '你要说什么'
+    wrap.appendChild(hint)
+
+    ev.options.forEach((o, i) => {
+      const btn = document.createElement('button')
+      btn.className = 'choice' + (o.say ? '' : ' act')
+      btn.style.animationDelay = (i * 55) + 'ms'
+      btn.innerHTML = '<span class="ci">' + (i + 1) + '</span>' +
+        '<span>' + esc(o.say || o.act || '……') + '</span>'
+      btn.onclick = () => pickOption(i)
+      wrap.appendChild(btn)
+    })
+
+    cslot.appendChild(wrap)
+  }
+
+  async function pickOption(i) {
+    if (busy || !cur) return
+    busy = true
+    const ev = cur
+    cur = null
+    clearChoices()
+
+    const out = E.choose(S, ev, i)
+    if (!out) { busy = false; return }
+
+    if (out.mine) {
+      pushMsg(out.mine)
+      await sleep(520)
+    }
+    if (out.act) {
+      pushSys(out.act, 'act')
+      await sleep(680)
+    }
+
+    for (const m of out.replies) {
+      if (m.from !== 'sys' && !m.sys) {
+        const mem = D.MEMBERS.find(x => x.name === m.name)
+        pushTyping(m.name, mem ? mem.hue : 0)
+        await sleep(420 + Math.random() * 520)
+        clearTyping()
+      }
+      pushMsg(m)
+      await sleep(m.type === 'redpack' ? 420 : 240)
+    }
+
+    if (out.result) {
+      await sleep(280)
+      const n = document.createElement('div')
+      n.className = 'note'
+      n.textContent = out.result
+      feed.appendChild(n)
+      scrollDown()
+    }
+
+    if (out.deltas && out.deltas.length) {
+      const dl = document.createElement('div')
+      dl.className = 'deltas'
+      const LABEL = { face: '人缘', fame: '存在感', weird: '奇葩度', info: '内情', group: '群气氛', cash: '余额' }
+      dl.innerHTML = out.deltas.map(d => {
+        const up = d.v > 0
+        return `<span class="dchip${up ? '' : ' down'}">${LABEL[d.key] || d.key} ${up ? '+' : ''}${d.v}${d.key === 'cash' ? '元' : ''}</span>`
+      }).join('')
+      feed.appendChild(dl)
+      scrollDown()
+    }
+
+    updateHud()
+    await sleep(200)
+    busy = false
+    showContinue()
+  }
+
+  function showContinue() {
+    cslot.innerHTML = ''
+    const wrap = document.createElement('div')
+    wrap.className = 'choices'
+    const btn = document.createElement('button')
+    btn.className = 'choice'
+    btn.style.justifyContent = 'center'
+    btn.innerHTML = '<span style="letter-spacing:2px;color:#5a5a5a">继续</span>'
+    btn.onclick = () => { cslot.innerHTML = ''; pump() }
+    wrap.appendChild(btn)
+    cslot.appendChild(wrap)
+  }
+
+  /* ---------------- HUD ---------------- */
+
+  function updateHud() {
+    const snap = E.snapshot(S)
+    $('nav-sub').textContent = snap.stageName + ' · 第 ' + snap.day + ' 天'
+  }
+
+  function openSheet() {
+    if (!S) return
+    const s = E.snapshot(S)
+    const rows = [
+      ['人缘', s.face], ['存在感', s.fame], ['奇葩度', s.weird]
+    ]
+    const hints = { '人缘': '有多少人愿意替你说话', '存在感': '有多少人知道你是谁', '奇葩度': '你在这个群里的传说程度' }
+
+    $('sheet-body').innerHTML =
+      '<div class="sheet-title">' + esc(s.nick) + '</div>' +
+      '<div class="sheet-sub">' + esc(s.stageName) + ' · 已在这个群待了 ' + s.day + ' 天 · 说过 ' + s.spoke + ' 次话</div>' +
+      rows.map(r => {
+        const cls = r[1] < 30 ? ' bad' : r[1] > 68 ? ' warn' : ''
+        return '<div class="metric"><div class="m-top"><span class="m-name">' + r[0] +
+          '</span><span class="m-val">' + r[1] + '</span></div>' +
+          '<div class="m-track"><div class="m-fill' + cls + '" style="width:' + r[1] + '%"></div></div>' +
+          '<div class="m-hint">' + hints[r[0]] + '</div></div>'
+      }).join('') +
+      '<div class="sheet-row"><span>钱包</span><span>¥' + s.cash + '</span></div>' +
+      '<div class="sheet-row"><span>群气氛</span><span>' + s.group + '</span></div>' +
+      '<div class="sheet-row"><span>内情</span><span>' + s.info + '</span></div>'
+    $('sheet').classList.add('on')
+  }
+
+  /* ---------------- 结局 ---------------- */
+
+  let lastEnd = null
+  let floatBtn = null
+
+  function showEnd(end) {
+    lastEnd = end
+    if (floatBtn) { floatBtn.remove(); floatBtn = null }
+    const st = end.stats
+    const el = document.createElement('section')
+    el.id = 'end'
+
+    const rv = end.review.map(r =>
+      '<div class="rv-item"><div class="rv-l">' + esc(r.label) + '</div><div class="rv-t">「' + esc(r.text) + '」</div></div>'
+    ).join('')
+
+    el.innerHTML =
+      '<div class="end-inner">' +
+      '<div class="end-kicker">GROUP ARCHIVE · 你的群档案</div>' +
+      '<div class="end-day">一年后 · 你在「梧桐里 8 号楼业主群」的身份</div>' +
+      '<div class="end-role serif">' + esc(end.base.name) + '</div>' +
+      '<div class="end-desc">' + esc(end.base.desc) + '</div>' +
+      '<div class="end-scene"><div class="lbl">而这个群</div><div class="nm serif">' + esc(end.scene.name) + '</div>' +
+      '<div class="tx">' + esc(end.scene.desc) + '</div></div>' +
+      '<div class="end-stats">' +
+      '<div class="estat"><b>' + st.face + '</b><span>人缘</span></div>' +
+      '<div class="estat"><b>' + st.fame + '</b><span>存在感</span></div>' +
+      '<div class="estat"><b>' + st.spoke + '</b><span>说过的话</span></div>' +
+      '</div>' +
+      '<div class="end-review">' + rv + '</div>' +
+      '<div class="end-advice">' + esc(end.advice) + '</div>' +
+      '<div class="end-btns">' +
+      '<button class="btn" id="again">换一个群，再来一次</button>' +
+      '<button class="btn ghost" id="lookback">回去看看聊天记录</button>' +
+      '</div>' +
+      '<div class="end-tip">你的结局组合已记入群档案</div>' +
+      '</div>'
+
+    document.body.querySelector('#app').appendChild(el)
+    el.scrollTop = 0
+
+    $('again').onclick = () => { el.remove(); resetToCover() }
+    $('lookback').onclick = () => {
+      el.remove()
+      // 右下角留一个入口，随时能回到结局页
+      floatBtn = document.createElement('div')
+      floatBtn.style.cssText = 'position:absolute;right:14px;bottom:86px;z-index:40;background:#23201d;color:#f2f0ec;font-size:12px;padding:9px 14px;border-radius:20px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2);letter-spacing:1px'
+      floatBtn.textContent = '群档案'
+      floatBtn.onclick = () => showEnd(lastEnd)
+      document.getElementById('app').appendChild(floatBtn)
+    }
+  }
+
+  /* ---------------- 启动 ---------------- */
+
+  function resetToCover() {
+    S = null; cur = null; ended = false; busy = false; lastEnd = null
+    if (floatBtn) { floatBtn.remove(); floatBtn = null }
+    feed.innerHTML = ''
+    cslot.innerHTML = ''
+    nav.style.display = 'none'
+    composer.style.display = 'none'
+    $('cover').style.display = 'flex'
+    $('nick').value = localStorage.getItem('gc_nick') || '1602 新邻居'
+    renderArchiveInfo()
+  }
+
+  function renderArchiveInfo() {
+    const n = Number(localStorage.getItem('gc_runs') || 0)
+    $('arc-info').textContent = n ? '群档案：' + n + ' 局' : '还没有群档案'
+  }
+
+  function start() {
+    const nick = ($('nick').value || '').trim() || '1602 新邻居'
+    localStorage.setItem('gc_nick', nick)
+
+    const seen = JSON.parse(localStorage.getItem('gc_seen') || '[]')
+    E.setSeen(seen)
+
+    S = E.createRun(nick)
+    ended = false; busy = false; cur = null
+    feed.innerHTML = ''
+
+    $('cover').style.display = 'none'
+    nav.style.display = 'flex'
+    composer.style.display = 'block'
+    $('nav-name').textContent = D.GROUP_NAME
+    updateHud()
+
+    // 开场：进群提示（时间线由第一个事件自带）
+    pushSys('你已加入群聊「' + D.GROUP_NAME + '」')
+    setTimeout(() => pump(), 700)
+  }
+
+  $('go').onclick = start
+  $('nick').addEventListener('keydown', e => { if (e.key === 'Enter') start() })
+
+  $('nav-more').onclick = openSheet
+  $('sheet').onclick = e => { if (e.target.id === 'sheet') $('sheet').classList.remove('on') }
+  $('nav-back').onclick = () => {
+    if (ended || !S) { resetToCover(); return }
+    if (confirm('退出会丢掉这一局，确定？')) resetToCover()
+  }
+
+  // 每局结束后写入档案（只在结算时调用一次）
+  function recordArchive(end) {
+    const n = Number(localStorage.getItem('gc_runs') || 0) + 1
+    localStorage.setItem('gc_runs', String(n))
+    localStorage.setItem('gc_seen', JSON.stringify(E.getSeen()))
+    const hist = JSON.parse(localStorage.getItem('gc_hist') || '[]')
+    hist.unshift({ role: end.base.name, scene: end.scene.name, t: Date.now() })
+    localStorage.setItem('gc_hist', JSON.stringify(hist.slice(0, 30)))
+  }
+
+  resetToCover()
+})()
+</script>
+<!-- portal-back:start -->
+<a id="portal-back" href="../index.html" title="返回模拟器大厅" aria-label="返回模拟器大厅">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M15 5 8 12l7 7"/>
+  </svg>
+  <span>大厅</span>
+</a>
+<style>
+  #portal-back {
+    position: fixed; left: 10px; top: 10px; z-index: 2147483000;
+    display: flex; align-items: center; gap: 2px;
+    height: 29px; padding: 0 11px 0 7px;
+    border-radius: 15px; box-sizing: border-box;
+    background: rgba(28, 26, 23, .55); color: #fdfaf4;
+    font: 500 12px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    letter-spacing: .12em; text-decoration: none;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+    opacity: .5; transition: opacity .2s ease, transform .2s ease, background .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #portal-back:hover, #portal-back:focus-visible {
+    opacity: 1; background: rgba(28, 26, 23, .82); transform: translateY(-1px); outline: none;
+  }
+  @media (max-width: 480px) { #portal-back { opacity: .42; } }
+  @media print { #portal-back { display: none; } }
+</style>
+<!-- portal-back:end -->
+</body>
+</html>

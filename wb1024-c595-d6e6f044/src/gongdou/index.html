@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>宫斗模拟器 · 你刚入宫</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='6' fill='%23f4ece0'/%3E%3Crect x='7' y='7' width='50' height='50' rx='3' fill='none' stroke='%238e2f2f' stroke-width='2'/%3E%3Ctext x='32' y='44' font-size='30' font-family='serif' text-anchor='middle' fill='%23241c18'%3E%E5%AE%AB%3C/text%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #f4ece0;
+    --card: #fbf6ec;
+    --ink: #241c18;
+    --ink2: #4c4038;
+    --muted: #8a7a68;
+    --faint: #b6a48d;
+    --line: #e3d6c2;
+    --line2: #ece2d2;
+    --red: #8e2f2f;
+    --red-soft: #f4e6e2;
+    --gold: #a98a52;
+    --green: #5c6b52;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: #e7ddcd;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body { display: flex; justify-content: center; min-height: 100vh; }
+
+  #app {
+    width: 100%;
+    max-width: 460px;
+    min-height: 100vh;
+    background: var(--bg);
+    box-shadow: 0 0 80px rgba(70, 45, 30, .12);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .serif { font-family: "Songti SC", "SimSun", "STSong", "Noto Serif CJK SC", serif; }
+
+  /* ===== 动画 ===== */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes inkIn { from { opacity: 0; letter-spacing: 10px; } to { opacity: 1; letter-spacing: 5px; } }
+  .fade-up { animation: fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+  .fade-in { animation: fadeIn .65s ease both; }
+
+  /* ===== 通用 ===== */
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 50px; border: none; border-radius: 2px;
+    background: var(--ink); color: #f7f0e4;
+    font-size: 15px; letter-spacing: 3px; font-family: inherit;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn:active { opacity: .82; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid #d6c7b1; }
+  .btn.red { background: var(--red); color: #fdf4ee; }
+
+  .chip {
+    display: inline-block; padding: 3px 9px; margin: 0 7px 7px 0;
+    border-radius: 1px; background: #efe6d6; color: #6d5c4a;
+    font-size: 11px; letter-spacing: 1.2px;
+  }
+
+  /* ===== 封面 ===== */
+  .cover {
+    min-height: 100vh; padding: 0 30px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 84% 12%, rgba(169,138,82,.13) 0 26%, transparent 26.5%),
+      linear-gradient(180deg, #f6eee2 0%, #f2e8d9 100%);
+  }
+  .cover::before {
+    content: ''; position: absolute; inset: 16px;
+    border: 1px solid rgba(169,138,82,.38);
+    pointer-events: none;
+  }
+  .cover::after {
+    content: ''; position: absolute; inset: 22px;
+    border: 1px solid rgba(169,138,82,.16);
+    pointer-events: none;
+  }
+  .cover-inner { width: 100%; position: relative; z-index: 2; }
+  .court-no { display: flex; align-items: center; margin-bottom: 44px; }
+  .court-line { width: 24px; height: 1px; background: var(--red); margin-right: 9px; }
+  .court-text {
+    font-size: 10px; letter-spacing: 2.2px; color: var(--red);
+    font-family: "Courier New", monospace;
+  }
+  .title { font-size: 60px; line-height: 1.1; font-weight: 600; letter-spacing: 8px; }
+  .title span { display: block; }
+  .subtitle {
+    margin-top: 24px; font-size: 14.5px; color: #6a5b4a;
+    letter-spacing: .6px; line-height: 1.9;
+  }
+  .cover-divider { height: 1px; background: #ddd0ba; margin: 24px 0 20px; }
+  .copy-line { display: block; font-size: 13px; color: var(--muted); line-height: 2.05; letter-spacing: .4px; }
+  .cover-bottom { margin-top: 48px; }
+  .cover-hint {
+    display: block; text-align: center; margin-top: 13px;
+    font-size: 11px; color: #a5937c; letter-spacing: .8px;
+  }
+
+  /* ===== 出场设置 ===== */
+  .reveal { padding: 0 22px 42px; }
+  .reveal-head { padding: 32px 0 20px; }
+  .overline { display: block; font-size: 11px; letter-spacing: 4px; color: var(--red); margin-bottom: 10px; }
+  .reveal-title { font-size: 26px; font-weight: 600; letter-spacing: 1.5px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 2px; padding: 22px 20px; margin-bottom: 13px;
+    position: relative;
+  }
+  .card-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .card-label { font-size: 11px; letter-spacing: 4px; color: var(--muted); }
+  .card-index { font-family: "Courier New", monospace; font-size: 10px; color: #cfc0a8; }
+
+  .origin-tag { display: block; font-size: 25px; font-weight: 600; letter-spacing: 3px; margin-bottom: 11px; }
+  .origin-desc { font-size: 13.5px; line-height: 1.95; color: var(--ink2); }
+  .origin-note { display: flex; margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e0d2bc; }
+  .note-mark { color: var(--red); margin-right: 6px; }
+  .note-text { flex: 1; font-size: 12.5px; line-height: 1.85; color: #6d5c4a; }
+
+  .stat-line { display: flex; align-items: center; margin-top: 15px; }
+  .stat-track { flex: 1; height: 3px; background: var(--line2); border-radius: 2px; overflow: hidden; margin-right: 10px; }
+  .stat-fill { height: 100%; background: var(--red); border-radius: 2px; transition: width .9s ease; }
+  .stat-num { font-size: 11px; color: var(--muted); letter-spacing: .8px; min-width: 96px; text-align: right; }
+
+  .talent + .talent { margin-top: 16px; padding-top: 16px; border-top: 1px dashed #e0d2bc; }
+  .talent-name { display: block; font-size: 17px; font-weight: 600; letter-spacing: 1.5px; margin-bottom: 5px; }
+  .talent-desc { font-size: 13px; line-height: 1.85; color: #6d5c4a; }
+
+  .tag-block { padding: 6px 0 18px; }
+  .tag-label { display: block; font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 10px; }
+  .reveal-foot { padding: 2px 0 20px; }
+  .foot-copy { display: block; font-size: 13.5px; line-height: 1.9; color: var(--ink2); letter-spacing: .4px; }
+  .foot-copy.dim { color: var(--muted); font-size: 12.5px; }
+  .respin {
+    text-align: center; padding: 15px 0 0; font-size: 12px;
+    color: var(--muted); letter-spacing: .8px; cursor: pointer;
+  }
+
+  /* ===== HUD ===== */
+  .hud {
+    position: sticky; top: 0; z-index: 20; background: var(--bg);
+    padding: 13px 20px 10px; border-bottom: 1px solid var(--line);
+  }
+  .hud-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .hud-left { display: flex; align-items: baseline; }
+  .hud-rank { font-size: 17px; letter-spacing: 3px; font-weight: 600; margin-right: 9px; }
+  .hud-year { font-size: 11px; color: var(--muted); }
+  .hud-money { font-size: 11px; color: var(--red); font-family: "Courier New", monospace; }
+  .progress-track { height: 2px; background: var(--line); margin-bottom: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--ink); transition: width .5s ease; }
+
+  .metrics { display: flex; }
+  .metric { flex: 1; display: flex; align-items: center; margin-right: 9px; }
+  .metric:last-child { margin-right: 0; }
+  .m-label { font-size: 10px; color: var(--muted); margin-right: 4px; flex-shrink: 0; }
+  .m-bar { flex: 1; height: 2px; background: var(--line); border-radius: 1px; overflow: hidden; margin-right: 4px; }
+  .m-fill { height: 100%; background: var(--green); border-radius: 1px; transition: width .4s ease, background .3s; }
+  .m-fill.warn { background: var(--red); }
+  .m-num { font-size: 9.5px; color: var(--faint); font-family: "Courier New", monospace; width: 16px; text-align: right; }
+
+  /* ===== 章节 ===== */
+  .chapter {
+    min-height: calc(100vh - 96px); padding: 0 30px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .chapter-inner { padding-top: 22vh; }
+  .chapter-no { display: block; font-size: 11px; letter-spacing: 8px; color: var(--red); margin-bottom: 15px; }
+  .chapter-title-row { display: flex; align-items: baseline; margin-bottom: 16px; }
+  .chapter-name { font-size: 42px; font-weight: 600; letter-spacing: 7px; line-height: 1.16; }
+  .chapter-range { margin-left: 16px; font-size: 12px; color: var(--muted); }
+  .chapter-line { width: 38px; height: 2px; background: var(--red); margin-bottom: 18px; }
+  .chapter-tip { font-size: 14px; line-height: 2; color: var(--ink2); letter-spacing: .5px; }
+  .chapter-income {
+    display: block; margin-top: 16px; font-size: 12px; color: var(--muted);
+    font-family: "Courier New", monospace; opacity: 0; transition: opacity .6s ease .3s;
+  }
+  .chapter-income.show { opacity: 1; }
+  .chapter-foot { padding-bottom: 50px; }
+
+  /* ===== 事件 ===== */
+  .body { padding: 0 20px 42px; }
+  .event-card {
+    padding: 24px 20px 22px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 2px;
+    margin-top: 16px; position: relative;
+  }
+  .event-card::before {
+    content: ''; position: absolute; left: -1px; top: -1px;
+    width: 3px; height: 30px; background: var(--red);
+  }
+  .ev-meta { display: flex; align-items: center; margin-bottom: 12px; }
+  .ev-year { font-size: 10.5px; color: var(--red); letter-spacing: 1.5px; font-family: "Courier New", monospace; }
+  .ev-dot { margin: 0 6px; color: #cfc0a8; font-size: 10px; }
+  .ev-rank { font-size: 10.5px; color: var(--faint); letter-spacing: .8px; }
+  .ev-title { font-size: 23px; font-weight: 600; line-height: 1.5; letter-spacing: 2px; margin-bottom: 14px; }
+  .ev-scene { font-size: 14px; line-height: 2.05; color: var(--ink2); letter-spacing: .3px; text-align: justify; }
+
+  .options {
+    margin-top: 11px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 2px; overflow: hidden;
+  }
+  .option {
+    display: flex; align-items: center; width: 100%; text-align: left;
+    padding: 16px 15px; background: none; border: none; font-family: inherit;
+    position: relative; cursor: pointer; transition: background .15s;
+  }
+  .option + .option::before {
+    content: ''; position: absolute; left: 15px; right: 15px; top: 0;
+    height: 1px; background: var(--line2);
+  }
+  .option:hover { background: #f7f0e3; }
+  .option:active { background: #f2e9d9; }
+  .opt-no { font-family: "Courier New", monospace; font-size: 10px; color: #c8b79f; width: 22px; flex-shrink: 0; }
+  .opt-text { flex: 1; font-size: 14px; line-height: 1.7; color: var(--ink); letter-spacing: .3px; }
+  .opt-arrow { font-size: 17px; color: #d3c3ab; margin-left: 8px; }
+
+  .auto-wrap { margin-top: 18px; }
+
+  /* ===== 结果 ===== */
+  .result-wrap { padding-top: 22px; }
+  .picked { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px dashed #ddd0ba; }
+  .picked-label { display: block; font-size: 10px; letter-spacing: 3px; color: var(--faint); margin-bottom: 5px; }
+  .picked-text { font-size: 14px; color: var(--red); letter-spacing: .5px; line-height: 1.65; }
+  .result-body { padding-left: 13px; border-left: 2px solid var(--line); }
+  .result-body.good { border-left-color: var(--green); }
+  .result-body.bad { border-left-color: var(--red); }
+  .result-text { font-size: 14.5px; line-height: 2.1; color: #2b241f; letter-spacing: .3px; text-align: justify; white-space: pre-line; }
+
+  .deltas { display: flex; flex-wrap: wrap; margin-top: 17px; }
+  .delta {
+    font-size: 10.5px; font-family: "Courier New", monospace;
+    padding: 3px 8px; margin: 0 6px 6px 0;
+    border: 1px solid #e0d2bc; border-radius: 1px; letter-spacing: .5px;
+  }
+  .delta.up { color: var(--green); border-color: #cdd6c4; background: #f3f6ef; }
+  .delta.down { color: var(--red); border-color: #e6cfc7; background: #faf1ed; }
+  .delta.rank { color: #8a6a2a; border-color: #dfcaa0; background: #faf4e6; }
+
+  .rankup {
+    margin-top: 18px; padding: 14px 16px;
+    background: linear-gradient(180deg, #faf2e2, #f6ead3);
+    border: 1px solid #e2ceaa; border-radius: 2px;
+    display: flex; align-items: baseline;
+  }
+  .rankup-label { font-size: 10px; letter-spacing: 3px; color: var(--gold); margin-right: 10px; }
+  .rankup-text { font-size: 15px; letter-spacing: 2px; color: #6b4f22; }
+
+  .result-foot { margin-top: 30px; }
+  .foot-note { display: block; text-align: center; margin-top: 11px; font-size: 10.5px; color: var(--faint); letter-spacing: .5px; }
+
+  /* ===== 结局 ===== */
+  .hero { background: var(--card); padding: 36px 26px 30px; border-bottom: 1px solid var(--line); position: relative; }
+  .hero-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .hero-years { font-size: 10.5px; letter-spacing: 2.5px; color: var(--red); font-family: "Courier New", monospace; }
+  .hero-origin { font-size: 10.5px; letter-spacing: 1.5px; color: var(--faint); }
+  .hero-title { font-size: 34px; font-weight: 600; line-height: 1.42; letter-spacing: 3px; margin-bottom: 9px; }
+  .hero-sub { font-size: 12.5px; color: var(--muted); letter-spacing: 1.2px; line-height: 1.8; margin-bottom: 20px; }
+  .hero-line { width: 30px; height: 2px; background: var(--red); margin-bottom: 19px; }
+  .hero-desc { font-size: 14.5px; line-height: 2.15; color: #2b241f; letter-spacing: .3px; text-align: justify; white-space: pre-line; }
+  .hero-tags { margin-top: 21px; }
+
+  .section { padding: 0 20px; margin-top: 34px; }
+  .sec-head {
+    display: flex; align-items: center; margin-bottom: 19px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .sec-no { font-family: "Courier New", monospace; font-size: 10px; color: #c8b79f; width: 26px; }
+  .sec-title { font-size: 13px; letter-spacing: 4px; }
+
+  .score { margin-bottom: 14px; }
+  .score-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .score-label { font-size: 12.5px; color: var(--ink2); letter-spacing: 1.5px; }
+  .score-value { font-family: "Courier New", monospace; font-size: 12px; color: var(--muted); }
+  .score-track { height: 4px; background: var(--line2); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; width: 0; transition: width 1.1s cubic-bezier(.22,1,.36,1); }
+  .score-note { display: block; margin-top: 18px; font-size: 11.5px; line-height: 1.9; color: #9b8b76; }
+
+  .tl-item { position: relative; padding-left: 16px; padding-bottom: 16px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: 2.5px; top: 9px; bottom: 0;
+    width: 1px; background: #e3d8c6;
+  }
+  .tl-item:last-child::before { bottom: 10px; }
+  .tl-dot { position: absolute; left: 0; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: #d3c3ab; }
+  .tl-dot.good { background: var(--green); }
+  .tl-dot.bad { background: var(--red); }
+  .tl-head { display: flex; align-items: baseline; margin-bottom: 2px; }
+  .tl-year { font-family: "Courier New", monospace; font-size: 10.5px; color: var(--faint); width: 62px; flex-shrink: 0; }
+  .tl-title { font-size: 13px; letter-spacing: .5px; }
+  .tl-choice { font-size: 11.5px; color: var(--muted); line-height: 1.7; padding-left: 62px; }
+  .tl-toggle { text-align: center; padding: 7px 0; font-size: 11.5px; color: var(--red); letter-spacing: .8px; cursor: pointer; }
+
+  .review-p {
+    display: block; font-size: 14px; line-height: 2.05; color: #2b241f;
+    letter-spacing: .3px; text-align: justify;
+    margin-bottom: 14px; padding-left: 12px; border-left: 2px solid var(--line2);
+  }
+  .review-p:last-child { margin-bottom: 0; }
+
+  .advice {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 2px; padding: 17px 16px; margin-bottom: 11px;
+  }
+  .advice-head { display: flex; align-items: center; margin-bottom: 9px; }
+  .advice-index {
+    font-family: "Courier New", monospace; font-size: 10px;
+    background: var(--red); color: #fdf4ee;
+    width: 17px; height: 17px; line-height: 17px; text-align: center;
+    border-radius: 1px; margin-right: 9px; flex-shrink: 0;
+  }
+  .advice-title { font-size: 13.5px; font-weight: 600; letter-spacing: 1px; }
+  .advice-text { font-size: 13px; line-height: 2; color: var(--ink2); letter-spacing: .3px; text-align: justify; }
+
+  .closing { text-align: center; padding: 48px 20px 32px; }
+  .closing-line { width: 1px; height: 28px; background: #ddd0ba; margin: 0 auto 18px; }
+  .closing-main { display: block; font-size: 17px; letter-spacing: 5px; margin-bottom: 6px; }
+  .closing-sub { display: block; font-size: 12.5px; letter-spacing: 2px; color: var(--muted); }
+
+  .actions { padding: 0 20px 40px; }
+  .actions .btn { margin-bottom: 9px; }
+
+  .saved-note {
+    padding: 0 20px 34px; text-align: center;
+    font-size: 11px; letter-spacing: 1px; color: var(--faint);
+  }
+  .saved-link { color: var(--red); border-bottom: 1px solid #e2cfc7; padding-bottom: 1px; cursor: pointer; }
+
+  /* ===== 档案 ===== */
+  .arc-entry {
+    display: flex; align-items: baseline; justify-content: center; gap: 8px;
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px; letter-spacing: 2px; color: var(--muted);
+    cursor: pointer;
+  }
+  .arc-entry:active { opacity: .7; }
+  .arc-entry-count { color: var(--red); letter-spacing: 1px; }
+
+  .archive-page { min-height: 100vh; padding: 48px 22px 40px; display: flex; flex-direction: column; }
+  .arc-head { margin-bottom: 22px; padding: 0 2px; }
+  .arc-kicker { display: block; font-size: 9px; letter-spacing: 3px; color: var(--faint); margin-bottom: 8px; }
+  .arc-title { font-size: 29px; letter-spacing: 4px; font-weight: 400; margin-bottom: 7px; }
+  .arc-sub { font-size: 11.5px; line-height: 1.85; color: var(--muted); }
+
+  .arc-item { padding: 14px 2px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+  .arc-item:last-child { border-bottom: 1px solid var(--line); }
+  .arc-item:active { background: #f1e8d9; }
+  .arc-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .arc-item-title { font-size: 16.5px; letter-spacing: 1.5px; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arc-item-total { font-size: 13px; color: var(--red); }
+  .arc-bottom { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 10.5px; color: var(--faint); letter-spacing: .5px; }
+  .arc-sep { color: var(--line); }
+  .arc-del { margin-left: auto; padding: 4px 0 4px 12px; letter-spacing: 1px; }
+  .arc-del.armed { color: var(--red); }
+  .arc-foot { margin-top: 26px; }
+  .arc-foot .btn { margin-bottom: 9px; }
+  .btn.armed { border-color: var(--red) !important; color: var(--red) !important; }
+
+  .review-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 22px 0;
+    font-size: 11px; letter-spacing: 1.5px; color: var(--muted);
+  }
+  .review-tag {
+    font-size: 10px; letter-spacing: 3px; color: var(--red);
+    border: 1px solid #e2cfc7; background: var(--red-soft);
+    padding: 1px 6px; border-radius: 1px;
+  }
+
+  @media (max-width: 400px) {
+    .title { font-size: 50px; letter-spacing: 6px; }
+    .hero-title { font-size: 29px; }
+    .chapter-name { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="./core/events.js?v=78d3443d"></script>
+<script src="./core/events-pool.js?v=78d3443d"></script>
+<script src="./core/events-new.js?v=78d3443d"></script>
+<script src="./core/data.js?v=78d3443d"></script>
+<script src="./core/generator.js?v=78d3443d"></script>
+<script src="./core/engine.js?v=78d3443d"></script>
+<script src="./core/archive.js?v=78d3443d"></script>
+<script>
+(function () {
+  const E = window.PalaceEngine
+  const D = window.PalaceData
+  const A = window.PalaceArchive
+
+  const STAGE_NO = { 1: '序', 2: '一', 3: '二', 4: '三', 5: '四', 6: '五', 7: '六' }
+  const STAGE_RANGE = {
+    1: '入宫当年', 2: '第 1 — 2 年', 3: '第 3 — 5 年', 4: '第 6 — 10 年',
+    5: '第 11 — 16 年', 6: '第 17 — 24 年', 7: '第 25 — 30 年'
+  }
+  const DIM_COLORS = { rankScore: '#8e2f2f', favor: '#a9662f', peace: '#5c6b52', health: '#4a5a6b' }
+
+  const app = document.getElementById('app')
+
+  let life = null
+  let currentEvent = null
+  let rawOptions = []
+  let result = null
+  let showAllTimeline = false
+  let record = null
+  let pendingDel = ''
+
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+  const rankOf = n => E.rankName(n)
+
+  function hudHTML() {
+    if (!life) return ''
+    const snap = E.snapshot(life)
+    const money = `${Math.round(life.money)} 两`
+    const prog = Math.min(100, Math.round((snap.year / 30) * 100))
+    const bar = (label, val) =>
+      `<div class="metric">
+        <span class="m-label">${label}</span>
+        <div class="m-bar"><div class="m-fill ${val < 25 ? 'warn' : ''}" style="width:${val}%"></div></div>
+        <span class="m-num">${val}</span>
+      </div>`
+    return `<div class="hud">
+      <div class="hud-row">
+        <div class="hud-left">
+          <span class="hud-rank serif">${snap.rankName}</span>
+          <span class="hud-year">入宫第 ${snap.year} 年</span>
+        </div>
+        <span class="hud-money">${money}</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${prog}%"></div></div>
+      <div class="metrics">
+        ${bar('宠', snap.favor)}${bar('名', snap.fame)}${bar('谋', snap.scheme)}${bar('身', snap.health)}
+      </div>
+    </div>`
+  }
+
+  function scrollTop() { window.scrollTo({ top: 0, behavior: 'auto' }) }
+
+  /* ---------------- 封面 ---------------- */
+  function showCover() {
+    const no = String(Math.floor(Math.random() * 9000) + 1000)
+    app.innerHTML = `
+      <section class="cover">
+        <div class="cover-inner fade-in">
+          <div class="court-no">
+            <span class="court-line"></span>
+            <span class="court-text">内廷档 · 承平十二年 · No.${no}</span>
+          </div>
+          <h1 class="title serif"><span>宫斗</span><span>模拟器</span></h1>
+          <p class="subtitle">你刚入宫。这里的每一样东西，都要用另一样去换。</p>
+          <div class="cover-divider"></div>
+          <div>
+            <span class="copy-line">宫门在你身后合上，声音很轻。</span>
+            <span class="copy-line">从这一刻起，你说的每句话都会有人记住。</span>
+          </div>
+          <div class="cover-bottom">
+            <button class="btn red" id="btn-roll">入 宫</button>
+            <span class="cover-hint">一局约 30 个抉择 · 不可撤回</span>
+            <div class="arc-entry" id="btn-archive" ${A.count() ? '' : 'style="display:none"'}>
+              <span>旧档</span>
+              <span class="arc-entry-count">${A.count() ? A.count() + ' 局' : ''}</span>
+            </div>
+          </div>
+        </div>
+      </section>`
+    document.getElementById('btn-roll').onclick = rollLife
+    document.getElementById('btn-archive').onclick = () => { if (A.count()) showArchive() }
+    scrollTop()
+  }
+
+  /* ---------------- 出厂设置 ---------------- */
+  function rollLife() {
+    life = E.createLife()
+    result = null
+    record = null
+    showAllTimeline = false
+
+    const tags = E.fateLabel(life)
+    const talentHTML = life.talents.map(t => `
+      <div class="talent">
+        <span class="talent-name serif">${esc(t.name)}</span>
+        <span class="talent-desc">${esc(t.desc)}</span>
+      </div>`).join('')
+
+    app.innerHTML = `
+      <section class="reveal">
+        <div class="reveal-head fade-up">
+          <span class="overline">入宫的名册</span>
+          <h2 class="reveal-title serif">出身和这张脸，你没得选</h2>
+        </div>
+
+        <div class="card fade-up" style="animation-delay:.06s">
+          <div class="card-label-row"><span class="card-label">出身</span><span class="card-index">01</span></div>
+          <span class="origin-tag serif">${esc(life.origin.tag)}</span>
+          <p class="origin-desc">${esc(life.origin.desc)}</p>
+          <div class="stat-line">
+            <div class="stat-track"><div class="stat-fill" style="width:${Math.min(100, (life.rank + 1) * 12)}%"></div></div>
+            <span class="stat-num">起家：${rankOf(life.rank)}</span>
+          </div>
+          <div class="origin-note">
+            <span class="note-mark">·</span>
+            <span class="note-text">${esc(life.origin.note)}</span>
+          </div>
+        </div>
+
+        <div class="card fade-up" style="animation-delay:.12s">
+          <div class="card-label-row"><span class="card-label">身上带的</span><span class="card-index">02</span></div>
+          ${talentHTML}
+        </div>
+
+        <div class="card fade-up" style="animation-delay:.18s">
+          <div class="card-label-row"><span class="card-label">底子</span><span class="card-index">03</span></div>
+          <div class="stat-line" style="margin-top:0">
+            <div class="stat-track"><div class="stat-fill" style="width:${life.cha}%"></div></div>
+            <span class="stat-num">容貌 ${life.cha}</span>
+          </div>
+          <div class="stat-line">
+            <div class="stat-track"><div class="stat-fill" style="width:${life.int}%"></div></div>
+            <span class="stat-num">聪慧 ${life.int}</span>
+          </div>
+          <div class="stat-line">
+            <div class="stat-track"><div class="stat-fill" style="width:${life.con}%"></div></div>
+            <span class="stat-num">体质 ${life.con}</span>
+          </div>
+          <div class="stat-line">
+            <div class="stat-track"><div class="stat-fill" style="width:${life.luk}%"></div></div>
+            <span class="stat-num">运气 ${life.luk}</span>
+          </div>
+        </div>
+
+        <div class="tag-block fade-up" style="animation-delay:.24s">
+          <span class="tag-label">别人一眼能看出来的</span>
+          <div>${(tags.length ? tags : ['平平无奇']).map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>
+        </div>
+
+        <div class="reveal-foot fade-up" style="animation-delay:.3s">
+          <span class="foot-copy">从这里开始，每一句话都由你来说。</span>
+          <span class="foot-copy dim">走完之后，你会看到一份迟到的复盘。</span>
+        </div>
+
+        <button class="btn red" id="btn-begin">进 宫</button>
+        <div class="respin" id="btn-respin">换一个出身</div>
+      </section>`
+
+    document.getElementById('btn-begin').onclick = () => {
+      const first = E.getNextEvent(life)
+      if (!first) return showEnding()
+      currentEvent = first
+      showChapter()
+    }
+    document.getElementById('btn-respin').onclick = rollLife
+    scrollTop()
+  }
+
+  /* ---------------- 章节 ---------------- */
+  function showChapter() {
+    const stage = life.stage
+    const st = D.STAGES[stage] || {}
+    const inc = life.stageIncome
+    if (inc) life.stageIncome = null
+
+    app.innerHTML = `
+      ${hudHTML()}
+      <section class="chapter">
+        <div class="chapter-inner fade-up">
+          <span class="chapter-no">${STAGE_NO[stage] || ''}</span>
+          <div class="chapter-title-row">
+            <span class="chapter-name serif">${esc(st.name || '')}</span>
+            <span class="chapter-range">${STAGE_RANGE[stage] || ''}</span>
+          </div>
+          <div class="chapter-line"></div>
+          <p class="chapter-tip">${esc(st.tip || '')}</p>
+          ${inc ? `<span class="chapter-income" id="inc">这 ${inc.years} 年，你攒下了 ${inc.gained} 两。</span>` : ''}
+        </div>
+        <div class="chapter-foot fade-up" style="animation-delay:.2s">
+          <button class="btn" id="btn-next-chapter">继续</button>
+        </div>
+      </section>`
+
+    if (inc) setTimeout(() => {
+      const el = document.getElementById('inc')
+      if (el) el.classList.add('show')
+    }, 220)
+
+    document.getElementById('btn-next-chapter').onclick = () => showEvent()
+    scrollTop()
+  }
+
+  /* ---------------- 事件 ---------------- */
+  function showEvent() {
+    const ev = currentEvent
+    let list = (ev.options || []).filter(o => {
+      if (!o || !o.cond) return true
+      try { return o.cond(life) } catch (e) { return true }
+    })
+    if (!list.length) list = ev.options || []
+    rawOptions = list
+
+    app.innerHTML = `
+      ${hudHTML()}
+      <div class="body">
+        <div class="event-card fade-up">
+          <div class="ev-meta">
+            <span class="ev-year">入宫第 ${ev.year} 年</span>
+            <span class="ev-dot">·</span>
+            <span class="ev-rank">${rankOf(life.rank)}</span>
+          </div>
+          <h2 class="ev-title serif">${esc(ev.title)}</h2>
+          <p class="ev-scene">${esc(ev.scene)}</p>
+        </div>
+
+        ${ev.options && ev.options.length
+          ? `<div class="options fade-up" style="animation-delay:.08s">
+              ${list.map((o, i) => `
+                <button class="option" data-i="${i}">
+                  <span class="opt-no">${String(i + 1).padStart(2, '0')}</span>
+                  <span class="opt-text">${esc(o.text)}</span>
+                  <span class="opt-arrow">›</span>
+                </button>`).join('')}
+            </div>`
+          : `<div class="auto-wrap fade-up" style="animation-delay:.08s"><button class="btn" id="btn-auto">继续</button></div>`
+        }
+      </div>`
+
+    if (!ev.options || !ev.options.length) {
+      document.getElementById('btn-auto').onclick = doAuto
+    } else {
+      app.querySelectorAll('.option').forEach(btn => {
+        btn.onclick = () => pickOption(Number(btn.dataset.i))
+      })
+    }
+    scrollTop()
+  }
+
+  function snapshotStats() {
+    return { favor: life.favor, fame: life.fame, power: life.power, peace: life.peace, health: life.health, scheme: life.scheme, money: life.money, rank: life.rank }
+  }
+
+  function pickOption(i) {
+    const opt = rawOptions[i]
+    if (!opt) return
+    const before = snapshotStats()
+    const realIndex = currentEvent.options.indexOf(opt)
+    const out = E.choose(life, currentEvent, realIndex < 0 ? i : realIndex)
+    showResult(before, opt.text, out || {})
+  }
+
+  function doAuto() {
+    const before = snapshotStats()
+    const out = E.autoResolve(life, currentEvent)
+    showResult(before, '', out || {})
+  }
+
+  /* ---------------- 结果 ---------------- */
+  function showResult(before, pickedText, out) {
+    const deltas = []
+    const push = (label, key, unit, cls) => {
+      const d = Math.round(life[key] - before[key])
+      if (d !== 0) deltas.push({ label, text: (d > 0 ? '+' : '') + d + (unit || ''), up: d > 0, cls: cls || '' })
+    }
+    push('圣宠', 'favor')
+    push('声望', 'fame')
+    push('心计', 'scheme')
+    push('势力', 'power')
+    push('心境', 'peace')
+    push('身体', 'health')
+    push('银两', 'money', ' 两')
+    const dr = life.rank - before.rank
+    if (dr !== 0) deltas.unshift({ label: dr > 0 ? '晋位' : '降位', text: (dr > 0 ? '+' : '') + dr, up: dr > 0, cls: 'rank' })
+
+    app.innerHTML = `
+      ${hudHTML()}
+      <div class="body">
+        <div class="result-wrap fade-up">
+          ${pickedText ? `
+            <div class="picked">
+              <span class="picked-label">你选择了</span>
+              <span class="picked-text">「${esc(pickedText)}」</span>
+            </div>` : ''}
+          <div class="result-body ${out.tone || 'neutral'}">
+            <p class="result-text">${esc(out.text || '')}</p>
+          </div>
+          ${deltas.length ? `<div class="deltas">
+            ${deltas.map(d => `<span class="delta ${d.cls || (d.up ? 'up' : 'down')}">${d.label} ${d.text}</span>`).join('')}
+          </div>` : ''}
+          ${out.rankUp > 0 ? `<div class="rankup">
+            <span class="rankup-label">晋位</span>
+            <span class="rankup-text serif">${rankOf(life.rank)}</span>
+          </div>` : ''}
+          ${life.dead ? `<div class="rankup" style="background:#f7eee9;border-color:#e0c9bf">
+            <span class="rankup-label" style="color:#8e2f2f">止于此</span>
+            <span class="rankup-text serif" style="color:#6b3020">这一局，到这里了</span>
+          </div>` : ''}
+        </div>
+        <div class="result-foot fade-up" style="animation-delay:.1s">
+          <button class="btn" id="btn-continue">${life.dead ? '看看这一生' : '继续'}</button>
+          <span class="foot-note">宫里不会停下来等你反应过来</span>
+        </div>
+      </div>`
+
+    document.getElementById('btn-continue').onclick = () => {
+      if (life.dead) return showEnding()
+      nextEvent()
+    }
+    scrollTop()
+  }
+
+  function nextEvent() {
+    const prevStage = life.stage
+    const ev = E.getNextEvent(life)
+    if (!ev) return showEnding()
+    currentEvent = ev
+    if (life.stage !== prevStage) showChapter()
+    else showEvent()
+  }
+
+  /* ---------------- 结局 ---------------- */
+  function showEnding() {
+    if (!result) {
+      try { E.setSeenPairs(A.seenPairs()) } catch (e) {}
+      result = E.settle(life)
+      try { A.addSeen(result.ending._base + '|' + result.ending._scene) } catch (e) {}
+    }
+    if (!record) {
+      record = A.make(life, result, { tags: E.fateLabel(life), rankName: rankOf(life.rank) })
+    }
+    A.upsert(record)
+    renderEnding(record, true)
+  }
+
+  function renderEnding(rec, live) {
+    const sc = rec.sc
+    const scores = [
+      { label: '权位', value: sc.rankScore, color: DIM_COLORS.rankScore },
+      { label: '圣宠', value: sc.favor, color: DIM_COLORS.favor },
+      { label: '心境', value: sc.peace, color: DIM_COLORS.peace },
+      { label: '安康', value: sc.health, color: DIM_COLORS.health }
+    ]
+    const timeline = (rec.log || []).map(l => ({
+      year: l.year, title: l.title, choice: l.choice || '', tone: l.tone || 'neutral'
+    }))
+    const shown = 8
+    const visible = showAllTimeline ? timeline : timeline.slice(0, shown)
+    const more = timeline.length - shown
+    const total = A.count()
+
+    app.innerHTML = `
+      ${live ? '' : `<div class="review-bar"><span class="review-tag">旧档</span><span>${esc(A.stamp(rec.ts))} 存下的一局</span></div>`}
+      <section class="hero fade-up">
+        <div class="hero-meta">
+          <span class="hero-years">入宫 ${rec.year} 年 · 位至${esc(rec.rankName || '')}</span>
+          <span class="hero-origin">${esc(rec.origin || '')}出身</span>
+        </div>
+        <h1 class="hero-title serif">${esc(rec.title)}</h1>
+        <p class="hero-sub">${esc(rec.subtitle)}</p>
+        <div class="hero-line"></div>
+        <p class="hero-desc">${esc(rec.desc)}</p>
+        <div class="hero-tags">
+          ${(rec.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join('')}
+        </div>
+      </section>
+
+      <div class="section">
+        <div class="sec-head"><span class="sec-no">01</span><span class="sec-title">你留下了什么</span></div>
+        ${scores.map(x => `
+          <div class="score">
+            <div class="score-top">
+              <span class="score-label">${x.label}</span>
+              <span class="score-value">${x.value}</span>
+            </div>
+            <div class="score-track"><div class="score-fill" data-w="${x.value}" style="background:${x.color}"></div></div>
+          </div>`).join('')}
+        <span class="score-note">这些数字不是评判，只是坐标。它告诉你，这 ${rec.year} 年你把力气花在了哪里。</span>
+      </div>
+
+      <div class="section">
+        <div class="sec-head"><span class="sec-no">02</span><span class="sec-title">你走过的路</span></div>
+        <div class="timeline">
+          ${visible.map(l => `
+            <div class="tl-item">
+              <span class="tl-dot ${l.tone}"></span>
+              <div class="tl-head">
+                <span class="tl-year">第 ${l.year} 年</span>
+                <span class="tl-title">${esc(l.title)}</span>
+              </div>
+              ${l.choice ? `<span class="tl-choice">${esc(l.choice)}</span>` : ''}
+            </div>`).join('')}
+        </div>
+        ${(!showAllTimeline && more > 0) ? `<div class="tl-toggle" id="btn-more">展开前 ${more} 件事</div>` : ''}
+      </div>
+
+      <div class="section">
+        <div class="sec-head"><span class="sec-no">03</span><span class="sec-title">回头看一眼</span></div>
+        ${(rec.review || []).map(p => `<p class="review-p">${esc(p)}</p>`).join('')}
+      </div>
+
+      <div class="section">
+        <div class="sec-head"><span class="sec-no">04</span><span class="sec-title">如果还能说点什么</span></div>
+        ${(rec.advice || []).map((a, i) => `
+          <div class="advice">
+            <div class="advice-head">
+              <span class="advice-index">${i + 1}</span>
+              <span class="advice-title">${esc(a.title)}</span>
+            </div>
+            <p class="advice-text">${esc(a.text)}</p>
+          </div>`).join('')}
+      </div>
+
+      <div class="closing">
+        <div class="closing-line"></div>
+        <span class="closing-main serif">这一局结束了。</span>
+        <span class="closing-sub">宫墙还在，只是不再为你开。</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn red" id="btn-again">再入一次宫</button>
+        <button class="btn ghost" id="btn-copy">把这些话复制下来</button>
+        ${live ? '' : `<button class="btn ghost" id="btn-back">回到旧档</button>`}
+      </div>
+
+      ${live
+        ? `<p class="saved-note">这一局已存进旧档 · <span class="saved-link" id="btn-archive2">回看全部 ${total} 局</span></p>`
+        : `<p class="saved-note">存档只在本机，换设备或清缓存就没了</p>`}`
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        app.querySelectorAll('.score-fill').forEach(el => { el.style.width = el.dataset.w + '%' })
+      }, 150)
+    })
+
+    const moreBtn = document.getElementById('btn-more')
+    if (moreBtn) moreBtn.onclick = () => { showAllTimeline = true; renderEnding(rec, live) }
+
+    document.getElementById('btn-again').onclick = restart
+    document.getElementById('btn-copy').onclick = copyAdvice
+
+    const back = document.getElementById('btn-back')
+    if (back) back.onclick = showArchive
+
+    const arcLink = document.getElementById('btn-archive2')
+    if (arcLink) arcLink.onclick = showArchive
+    scrollTop()
+  }
+
+  function restart() {
+    life = null; result = null; record = null; showAllTimeline = false
+    showCover()
+  }
+
+  /* ---------------- 档案 ---------------- */
+  function showArchive() {
+    const list = A.all()
+    app.innerHTML = `
+      <section class="archive-page fade-in">
+        <div class="arc-head">
+          <span class="arc-kicker">INNER COURT ARCHIVE</span>
+          <h2 class="arc-title serif">旧档</h2>
+          <p class="arc-sub">${list.length
+            ? `存下 ${list.length} 局 · 最多留 ${A.capacity()} 局，超出挤掉最旧的`
+            : '还没有存下的局。走完一局，它会自己出现在这里。'}</p>
+        </div>
+
+        ${list.length ? `<div class="arc-list">
+          ${list.map(r => {
+            const b = A.brief(r)
+            return `<div class="arc-item" data-open="${b.id}">
+              <div class="arc-row">
+                <span class="arc-item-title serif">${esc(b.title)}</span>
+                <span class="arc-item-total">${b.total}</span>
+              </div>
+              <div class="arc-bottom">
+                <span>${b.stamp}</span>
+                <span class="arc-sep">·</span>
+                <span>${esc(b.origin)} · ${esc(b.rankName)} · ${b.year} 年</span>
+                <span class="arc-del" data-del="${b.id}">删除</span>
+              </div>
+            </div>`
+          }).join('')}
+        </div>` : ''}
+
+        <div class="arc-foot">
+          ${list.length ? `<button class="btn ghost" id="arc-clear">清空全部</button>` : ''}
+          <button class="btn" id="arc-back">${list.length ? '回到封面' : '去入宫'}</button>
+        </div>
+      </section>`
+
+    app.querySelectorAll('[data-open]').forEach(el => {
+      el.onclick = e => {
+        if (e.target.closest('[data-del]')) return
+        openRecord(el.dataset.open)
+      }
+    })
+
+    app.querySelectorAll('[data-del]').forEach(el => {
+      el.onclick = e => {
+        e.stopPropagation()
+        const id = el.dataset.del
+        if (pendingDel !== id) {
+          pendingDel = id
+          el.textContent = '再点一次'
+          el.classList.add('armed')
+          setTimeout(() => {
+            if (pendingDel === id) {
+              pendingDel = ''
+              const cur = app.querySelector(`[data-del="${id}"]`)
+              if (cur) { cur.textContent = '删除'; cur.classList.remove('armed') }
+            }
+          }, 3000)
+          return
+        }
+        pendingDel = ''
+        A.remove(id)
+        showArchive()
+      }
+    })
+
+    const clr = document.getElementById('arc-clear')
+    if (clr) {
+      let armed = false
+      clr.onclick = () => {
+        if (!armed) {
+          armed = true
+          clr.textContent = '再点一次，全部删掉'
+          clr.classList.add('armed')
+          setTimeout(() => {
+            if (armed) { armed = false; clr.textContent = '清空全部'; clr.classList.remove('armed') }
+          }, 3000)
+          return
+        }
+        A.clear()
+        showArchive()
+      }
+    }
+
+    document.getElementById('arc-back').onclick = () => {
+      if (A.count()) showCover()
+      else restart()
+    }
+    scrollTop()
+  }
+
+  function openRecord(id) {
+    const rec = A.get(id)
+    if (!rec) { showArchive(); return }
+    life = null
+    result = null
+    record = rec
+    showAllTimeline = false
+    renderEnding(rec, false)
+  }
+
+  function copyAdvice() {
+    if (!record) return
+    const txt = [
+      `「${record.title}」`,
+      record.subtitle,
+      '',
+      record.desc,
+      '',
+      '—— 回头看一眼 ——',
+      ...(record.review || []).map(p => '· ' + p),
+      '',
+      '—— 如果还能说点什么 ——',
+      ...(record.advice || []).map((a, i) => `${i + 1}. ${a.title}\n${a.text}`)
+    ].join('\n')
+
+    const done = () => {
+      const btn = document.getElementById('btn-copy')
+      if (!btn) return
+      const old = btn.textContent
+      btn.textContent = '已复制'
+      setTimeout(() => { btn.textContent = old }, 1800)
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(fallback)
+    } else fallback()
+
+    function fallback() {
+      const ta = document.createElement('textarea')
+      ta.value = txt
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch (e) {}
+      document.body.removeChild(ta)
+      done()
+    }
+  }
+
+  showCover()
+  window.__palaceSim = { get life() { return life }, get result() { return result } }
+})()
+</script>
+<!-- portal-back:start -->
+<a id="portal-back" href="../index.html" title="返回模拟器大厅" aria-label="返回模拟器大厅">
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M15 5 8 12l7 7"/>
+  </svg>
+  <span>大厅</span>
+</a>
+<style>
+  #portal-back {
+    position: fixed; left: 10px; top: 10px; z-index: 2147483000;
+    display: flex; align-items: center; gap: 2px;
+    height: 29px; padding: 0 11px 0 7px;
+    border-radius: 15px; box-sizing: border-box;
+    background: rgba(28, 26, 23, .55); color: #fdfaf4;
+    font: 500 12px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    letter-spacing: .12em; text-decoration: none;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+    opacity: .5; transition: opacity .2s ease, transform .2s ease, background .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #portal-back:hover, #portal-back:focus-visible {
+    opacity: 1; background: rgba(28, 26, 23, .82); transform: translateY(-1px); outline: none;
+  }
+  @media (max-width: 480px) { #portal-back { opacity: .42; } }
+  @media print { #portal-back { display: none; } }
+</style>
+<!-- portal-back:end -->
+</body>
+</html>
