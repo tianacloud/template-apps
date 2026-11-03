@@ -1408,7 +1408,7 @@ function fallbackCopy(txt) {
   const ta = document.createElement("textarea");
   ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand("copy"); toast("营造说明书已复制到剪贴板"); }
+  try { if (document.execCommand("copy")) toast("营造说明书已复制到剪贴板"); else toast("复制失败，请手动选择文本"); }
   catch (e) { toast("复制失败，请手动选择文本"); }
   ta.remove();
 }
@@ -1423,6 +1423,7 @@ $("btn-reset").addEventListener("click", function () {
   ["r-cai", "r-jian", "r-col", "r-pu", "r-ju", "r-neon", "r-rain", "r-fog", "r-refl"].forEach(function (id) {
     $(id).dispatchEvent(new Event("input"));
   });
+  [].forEach.call($("seg-smooth").querySelectorAll("button"), function (x) { x.classList.toggle("on", Number(x.dataset.v) === state.smooth); });
   [].forEach.call(palWrap.querySelectorAll("button"), function (x, i) { x.classList.toggle("on", PALETTES[i].id === state.pal); });
   animate();
   toast("已复原初始值");
