@@ -328,7 +328,7 @@ function lineSVG(series, labels, w, h, opts) {
   const lblStep = Math.ceil(labels.length / 8);
   labels.forEach((lb, i) => {
     if (i % lblStep !== 0 && i !== labels.length - 1) return;
-    s += `<text x="${X(i)}" y="${h - 7}" text-anchor="middle" font-size="9.5" fill="#a8a294">${lb}</text>`;
+    s += `<text x="${X(i)}" y="${h - 7}" text-anchor="middle" font-size="9.5" fill="#a8a294">${esc(lb)}</text>`;
   });
   opts && opts.legend && series.forEach((se, i) => {
     s += `<text x="${w - 80 - i * 90}" y="9" font-size="9.5" fill="#a8a294"><tspan fill="${se.color}">■</tspan> ${se.name}</text>`;
@@ -407,7 +407,7 @@ function renderToday() {
       <div class="tl-item ${it.cls || ''}">
         <span class="tl-tag ${it.tag}">${it.tagTxt}</span>
         <span class="t">${esc(it.t)}</span>
-        <button class="btn btn-soft btn-mini" data-do="${it.act}" data-id="${it.id}">处理</button>
+        <button class="btn btn-soft btn-mini" data-do="${it.act}" data-id="${esc(it.id)}">处理</button>
       </div>`).join('');
   }
 }
@@ -434,7 +434,7 @@ function quickCheckin(hid) {
       <h3>打卡 · ${esc(h.name)}</h3>
       <div class="mbody">${h.type === 'count' ? '今日已完成次数' : '今日数值（单位 ' + esc(h.unit || '') + '）'}：</div>
       <div style="margin-top:14px">
-        <input type="number" id="qcVal" min="0" step="${h.type === 'count' ? 1 : 0.1}" style="font-size:22px;text-align:center;padding:10px 4px" value="${h.type === 'count' ? (habitTodayVal(h) || 0) : (habitTodayVal(h) || '')}"/>
+        <input type="number" id="qcVal" min="0" step="${h.type === 'count' ? 1 : 0.1}" style="font-size:22px;text-align:center;padding:10px 4px" value="${esc(h.type === 'count' ? (habitTodayVal(h) || 0) : (habitTodayVal(h) || ''))}"/>
       </div>
       <div class="mfoot">
         <button class="btn btn-soft" id="qcCancel">取消</button>
@@ -595,7 +595,7 @@ function renderFinance() {
     const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
     optsM.push({ v: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), t: (d.getMonth() + 1) + '月' });
   }
-  mf.innerHTML = optsM.map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+  mf.innerHTML = optsM.map(o => `<option value="${esc(o.v)}">${o.t}</option>`).join('');
   mf.value = optsM.some(o => o.v === prevM) ? prevM : ym;
   // 明细
   renderFinList();
@@ -609,12 +609,12 @@ function renderFinList() {
   if (!list.length) { box.innerHTML = '<div class="fin-empty">该条件下暂无记录</div>'; return; }
   box.innerHTML = list.slice(0, 60).map(r => `
     <div class="fl-row">
-      <span class="fl-date">${r.date.slice(5)}</span>
+      <span class="fl-date">${esc(String(r.date).slice(5))}</span>
       ${r.slot && r.slot !== 'other' ? `<span class="fl-cat" style="background:var(--blue-soft);color:var(--blue)">${SLOT_CN[r.slot] || esc(r.slot)}</span>` : ''}
       <span class="fl-cat" style="background:${r.type === 'expense' ? 'var(--red-soft)' : 'var(--green-soft)'};color:${r.type === 'expense' ? 'var(--red)' : 'var(--green)'}">${esc(r.category)}</span>
       <span class="fl-note">${esc(r.note || '')}</span>
       <span class="fl-amt num ${r.type === 'expense' ? 'money-red' : 'money-green'}">${r.type === 'expense' ? '-' : '+'}${fmtMoney(r.amount)}</span>
-      <button class="sg-del" data-fdel="${r.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+      <button class="sg-del" data-fdel="${esc(r.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
     </div>`).join('');
 }
 /* 时段快捷记录（上午 / 下午 / 晚上） */
@@ -682,9 +682,9 @@ $('#btnBudget').addEventListener('click', () => {
   openModal(`
     <h3>预算设置 · 日 / 周 / 月</h3>
     <div class="mbody" style="margin-bottom:16px">不手动覆盖时：周预算 = 本周 7 天日预算之和，月预算 = 本月每天日预算之和。</div>
-    <div class="frow"><label>每日预算 ¥（默认值，适用于每一天）</label><input type="number" id="bdDaily" min="0" step="10" value="${b.daily || ''}"/></div>
-    <div class="frow"><label>本周预算覆盖 ¥（${fmtDateCn(wk).slice(0, 8)} 起，留空 = 自动求和）</label><input type="number" id="bdWeek" min="0" step="50" value="${(b.weekOver && b.weekOver[wk] != null) ? b.weekOver[wk] : ''}"/></div>
-    <div class="frow"><label>本月预算覆盖 ¥（${ym}，留空 = 自动求和）</label><input type="number" id="bdMonth" min="0" step="100" value="${(b.monthOver && b.monthOver[ym] != null) ? b.monthOver[ym] : ''}"/></div>
+    <div class="frow"><label>每日预算 ¥（默认值，适用于每一天）</label><input type="number" id="bdDaily" min="0" step="10" value="${esc(b.daily || '')}"/></div>
+    <div class="frow"><label>本周预算覆盖 ¥（${fmtDateCn(wk).slice(0, 8)} 起，留空 = 自动求和）</label><input type="number" id="bdWeek" min="0" step="50" value="${esc((b.weekOver && b.weekOver[wk] != null) ? b.weekOver[wk] : '')}"/></div>
+    <div class="frow"><label>本月预算覆盖 ¥（${ym}，留空 = 自动求和）</label><input type="number" id="bdMonth" min="0" step="100" value="${esc((b.monthOver && b.monthOver[ym] != null) ? b.monthOver[ym] : '')}"/></div>
     <div class="frow"><label>特殊日期覆盖（可留空；例如出差日临时加预算）</label><input type="date" id="bdDayDate" style="width:auto;display:inline-block"/><input type="number" id="bdDayAmt" min="0" step="10" placeholder="当日预算 ¥" style="width:130px;display:inline-block;margin-left:8px"/></div>
     <div class="mfoot">
       <button class="btn btn-soft" id="bdCancel">取消</button>
@@ -849,7 +849,7 @@ function calGoalOf(date) {
 function calIntakeMeal(date, meal) { return State.calorie.filter(c => c.date === date && c.meal === meal).reduce((s, c) => s + (+c.kcal || 0), 0); }
 function calIntakeTotal(date) { return State.calorie.filter(c => c.date === date).reduce((s, c) => s + (+c.kcal || 0), 0); }
 function calItemHTML(c) {
-  return `<span class="cal-item">${MEAL_CN[c.meal]} · ${esc(c.food)} ×${c.qty}${esc(c.unit || '')} <b class="kl num">${(+c.kcal).toFixed(0)}</b> <button class="ck" data-cdel="${c.id}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button></span>`;
+  return `<span class="cal-item">${MEAL_CN[c.meal]} · ${esc(c.food)} ×${esc(c.qty)}${esc(c.unit || '')} <b class="kl num">${(+c.kcal).toFixed(0)}</b> <button class="ck" data-cdel="${esc(c.id)}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button></span>`;
 }
 function recoHTML(left, goal) {
   if (left >= 800) return `<h4>晚餐建议 · 余量充足</h4><div class="rline">可正常吃：<b>米饭 1 碗（232）＋ 清炒时蔬（60）＋ 鸡胸肉 100g（165）＋ 番茄蛋汤（80）≈ 537 kcal</b>，还能留 <b>${left.toFixed(0) - 537} kcal</b> 给水果或酸奶。</div>`;
@@ -910,7 +910,7 @@ function renderCalTrend() {
 function renderCalFoods() {
   $('#cfList').innerHTML = State.calFood.length ? State.calFood.map(f => `
     <span class="cal-item">${esc(f.name)} ×1${esc(f.unit)} <b class="kl num">${(+f.kcal).toFixed(0)}</b>
-      <button class="ck" data-fdel="${f.id}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button>
+      <button class="ck" data-fdel="${esc(f.id)}" title="删除"><svg class="icon" style="width:12px;height:12px"><use href="#i-trash"/></svg></button>
     </span>`).join('') : '<span style="color:var(--ink3);font-size:12px">空 · 可添加食堂菜、外卖单品等高频食物</span>';
 }
 function renderCalorie() {
@@ -999,8 +999,8 @@ $('#btnCalGoal').addEventListener('click', () => {
   const today = todayStr();
   openModal(`
     <h3>每日卡路里目标</h3>
-    <div class="frow"><label>默认每日目标 kcal</label><input type="number" id="cgDefault" min="800" max="5000" step="50" value="${State.meta.calGoalDefault || 1800}"/></div>
-    <div class="frow"><label>今天单独设定（留空 = 用默认值）</label><input type="number" id="cgToday" min="800" max="5000" step="50" value="${State.calGoal[today] != null ? State.calGoal[today] : ''}" placeholder="留空用默认"/></div>
+    <div class="frow"><label>默认每日目标 kcal</label><input type="number" id="cgDefault" min="800" max="5000" step="50" value="${esc(State.meta.calGoalDefault || 1800)}"/></div>
+    <div class="frow"><label>今天单独设定（留空 = 用默认值）</label><input type="number" id="cgToday" min="800" max="5000" step="50" value="${esc(State.calGoal[today] != null ? State.calGoal[today] : '')}" placeholder="留空用默认"/></div>
     <div class="mfoot">
       <button class="btn btn-soft" id="cgCancel">取消</button>
       <button class="btn btn-solid" id="cgOk">保存</button>
@@ -1042,16 +1042,16 @@ function renderHabits() {
     const todayVal = habitTodayVal(h);
     const streak = calcStreak(h);
     const actHtml = h.type === 'check'
-      ? `<span class="hcheck ${todayVal === 1 ? 'on' : ''}" data-hc="${h.id}"><svg class="icon"><use href="#i-check"/></svg></span>`
+      ? `<span class="hcheck ${todayVal === 1 ? 'on' : ''}" data-hc="${esc(h.id)}"><svg class="icon"><use href="#i-check"/></svg></span>`
       : h.type === 'count'
         ? `<span class="hcount">
-             <button data-hminus="${h.id}">−</button>
-             <span class="n num">${todayVal || 0}</span><span class="of">/ ${h.goal || '∞'}${esc(h.unit || '')}</span>
-             <button data-hplus="${h.id}">＋</button>
+             <button data-hminus="${esc(h.id)}">−</button>
+             <span class="n num">${esc(todayVal || 0)}</span><span class="of">/ ${esc(h.goal || '∞')}${esc(h.unit || '')}</span>
+             <button data-hplus="${esc(h.id)}">＋</button>
            </span>`
         : `<span class="hval">
-             <input type="number" step="0.1" min="0" value="${todayVal != null ? todayVal : ''}" placeholder="—" data-hval="${h.id}"/>
-             <span class="unit">${esc(h.unit || '')}${h.goal ? ' / 目标 ' + h.goal : ''}</span>
+             <input type="number" step="0.1" min="0" value="${esc(todayVal != null ? todayVal : '')}" placeholder="—" data-hval="${esc(h.id)}"/>
+             <span class="unit">${esc(h.unit || '')}${h.goal ? ' / 目标 ' + esc(h.goal) : ''}</span>
            </span>`;
     return `
     <div class="habit-row">
@@ -1059,7 +1059,7 @@ function renderHabits() {
         <span class="habit-name">${esc(h.name)}</span>
         ${streak > 0 ? `<span class="streak">🔥 ${streak} 天</span>` : ''}
         <span class="habit-act">${actHtml}
-          <button class="hmisc del" data-hdel="${h.id}" title="删除习惯"><svg class="icon"><use href="#i-trash"/></svg></button>
+          <button class="hmisc del" data-hdel="${esc(h.id)}" title="删除习惯"><svg class="icon"><use href="#i-trash"/></svg></button>
         </span>
       </div>
       <div class="hmisc">
@@ -1165,15 +1165,15 @@ function renderFitness() {
   const pct = prog == null ? null : Math.max(0, Math.min(1, prog));
   $('#fitStats').innerHTML = `
     <div class="fit-stat"><div class="k">最新体重</div>
-      <div class="v num">${last && last.weight ? last.weight + '<small> kg</small>' : '—'}</div>
+      <div class="v num">${last && last.weight ? esc(last.weight) + '<small> kg</small>' : '—'}</div>
       <div class="sub num">7 日均 ${avg7 ? avg7.toFixed(1) : '—'} kg</div></div>
     <div class="fit-stat"><div class="k">体脂率</div>
-      <div class="v num">${last && last.fat != null ? last.fat + '<small> %</small>' : '—'}</div>
+      <div class="v num">${last && last.fat != null ? esc(last.fat) + '<small> %</small>' : '—'}</div>
       <div class="sub">${last ? fmtDateCn(last.date) : ''}</div></div>
-    <div class="fit-stat"><div class="k">BMI${meta.height ? '（身高 ' + meta.height + 'cm）' : ''}</div>
+    <div class="fit-stat"><div class="k">BMI${meta.height ? '（身高 ' + esc(meta.height) + 'cm）' : ''}</div>
       <div class="v num">${bmi ? bmi.toFixed(1) : '—'}</div>
       ${bmiTag ? `<span class="bmi-tag" style="background:${bmi >= 18.5 && bmi < 24 ? 'var(--green-soft);color:var(--green)' : 'var(--gold-soft);color:var(--gold)'}">${bmiTag}</span>` : ''}</div>
-    <div class="fit-stat"><div class="k">目标进度${meta.targetWeight ? ' → ' + meta.targetWeight + 'kg' : ''}</div>
+    <div class="fit-stat"><div class="k">目标进度${meta.targetWeight ? ' → ' + esc(meta.targetWeight) + 'kg' : ''}</div>
       <div class="v num" style="display:flex;align-items:center;gap:8px">
         <span>${pct == null ? '—' : Math.round(pct * 100) + '%'}</span>
         ${pct != null ? `<svg class="ring-small" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#ece7da" stroke-width="5"/><circle cx="20" cy="20" r="16" fill="none" stroke="#64803f" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(100.5 * pct).toFixed(1)} 100.5" transform="rotate(-90 20 20)"/></svg>` : ''}
@@ -1216,10 +1216,10 @@ function renderPlan() {
       <div class="plan-items">
         ${items.length ? items.map(p => `
           <div class="pitem">
-            <span class="ck ${p.done ? 'done' : ''}" data-pck="${p.id}"><svg class="icon" style="width:11px;height:11px"><use href="#i-check"/></svg></span>
+            <span class="ck ${p.done ? 'done' : ''}" data-pck="${esc(p.id)}"><svg class="icon" style="width:11px;height:11px"><use href="#i-check"/></svg></span>
             <span class="tm">${esc(p.time || '')}</span>
             <span class="tx ${p.done ? 'done' : ''}">${esc(p.text)}</span>
-            <button class="x" data-pdel="${p.id}">×</button>
+            <button class="x" data-pdel="${esc(p.id)}">×</button>
           </div>`).join('') : '<div style="font-size:11px;color:var(--ink3);padding:6px 0">空闲</div>'}
       </div>
       <div class="plan-add">
@@ -1239,7 +1239,7 @@ $('#planGrid').addEventListener('click', e => {
     if (p) { p.done = !p.done; saveModule('plan'); renderPlan(); }
   } else if (del) {
     const p = State.plan.find(x => x.id === del.getAttribute('data-pdel'));
-    confirmBox('删除该计划项？', p ? '「' + p.text + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除该计划项？', p ? '「' + esc(p.text) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.plan = State.plan.filter(x => x.id !== del.getAttribute('data-pdel'));
       saveModule('plan'); renderPlan();
     });
@@ -1272,9 +1272,9 @@ $('#btnFitGoal').addEventListener('click', () => {
   const meta = State.meta;
   openModal(`
     <h3>减脂目标设置</h3>
-    <div class="frow"><label>身高（cm）</label><input type="number" id="fgH" min="100" max="230" value="${meta.height || ''}"/></div>
-    <div class="frow"><label>目标体重（kg）</label><input type="number" id="fgW" min="30" max="200" step="0.1" value="${meta.targetWeight || ''}"/></div>
-    <div class="frow"><label>起始体重（kg，留空则用第一条记录）</label><input type="number" id="fgS" min="30" max="300" step="0.1" value="${meta.startWeight || ''}"/></div>
+    <div class="frow"><label>身高（cm）</label><input type="number" id="fgH" min="100" max="230" value="${esc(meta.height || '')}"/></div>
+    <div class="frow"><label>目标体重（kg）</label><input type="number" id="fgW" min="30" max="200" step="0.1" value="${esc(meta.targetWeight || '')}"/></div>
+    <div class="frow"><label>起始体重（kg，留空则用第一条记录）</label><input type="number" id="fgS" min="30" max="300" step="0.1" value="${esc(meta.startWeight || '')}"/></div>
     <div class="mfoot">
       <button class="btn btn-soft" id="fgCancel">取消</button>
       <button class="btn btn-solid" id="fgOk">保存</button>
@@ -1306,11 +1306,11 @@ function renderSchedule() {
       <h3>${g.title} <span class="cnt">${g.list.length}</span></h3>
       ${g.list.map(s => `
         <div class="sg-row ${g.key === 'over' ? 'over-row' : ''}">
-          <span class="sg-ck ${s.done ? 'done' : ''}" data-sck="${s.id}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
-          <span class="sg-time num">${s.date.slice(5)}${s.time ? ' ' + s.time : ''}</span>
+          <span class="sg-ck ${s.done ? 'done' : ''}" data-sck="${esc(s.id)}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
+          <span class="sg-time num">${esc(String(s.date).slice(5))}${s.time ? ' ' + esc(s.time) : ''}</span>
           <span class="sg-title ${s.done ? 'done' : ''}">${esc(s.title)}</span>
-          <span class="prio ${(s.prio || 'P3').toLowerCase()}">${esc(s.prio || 'P3')}</span>
-          <button class="sg-del" data-sdel="${s.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+          <span class="prio ${esc(String(s.prio || 'P3').toLowerCase())}">${esc(s.prio || 'P3')}</span>
+          <button class="sg-del" data-sdel="${esc(s.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
         </div>`).join('')}
     </div>`;
   }).join('') || '<div class="empty">暂无日程，添加一条试试。</div>';
@@ -1333,7 +1333,7 @@ $('#schedList').addEventListener('click', e => {
   } else if (del) {
     const id = del.getAttribute('data-sdel');
     const s = State.schedule.find(x => x.id === id);
-    confirmBox('删除日程？', s ? '「' + s.title + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除日程？', s ? '「' + esc(s.title) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.schedule = State.schedule.filter(x => x.id !== id);
       saveModule('schedule'); renderAll();
     });
@@ -1357,11 +1357,11 @@ function renderShopping() {
   if (!list.length) { box.innerHTML = '<div class="empty">清单为空。</div>'; return; }
   box.innerHTML = list.map(s => `
     <div class="shp-row">
-      <span class="shp-ck ${s.done ? 'done' : ''}" data-shck="${s.id}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
+      <span class="shp-ck ${s.done ? 'done' : ''}" data-shck="${esc(s.id)}"><svg class="icon" style="width:14px;height:14px"><use href="#i-check"/></svg></span>
       <span class="shp-name ${s.done ? 'done' : ''}">${esc(s.name)}</span>
       <span class="shp-cat">${esc(s.cat)}</span>
       <span class="shp-price num">${s.price != null ? '¥' + Number(s.price).toFixed(2) : ''}</span>
-      <button class="shp-del" data-shdel="${s.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+      <button class="shp-del" data-shdel="${esc(s.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
     </div>`).join('');
 }
 $('#shopForm').addEventListener('submit', e => {
@@ -1383,7 +1383,7 @@ $('#shopList').addEventListener('click', e => {
   } else if (del) {
     const id = del.getAttribute('data-shdel');
     const s = State.shopping.find(x => x.id === id);
-    confirmBox('从清单移除？', s ? '「' + s.name + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('从清单移除？', s ? '「' + esc(s.name) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.shopping = State.shopping.filter(x => x.id !== id);
       saveModule('shopping'); renderAll();
     });
@@ -1423,21 +1423,21 @@ function renderMedia() {
     return;
   }
   wall.innerHTML = State.media.slice().sort((a, b) => (b.year || 0) - (a.year || 0)).map(m => `
-    <div class="cover ${m.type}" data-mopen="${m.id}">
+    <div class="cover ${esc(m.type)}" data-mopen="${esc(m.id)}">
       <div class="ct"><span>${TYPE_CN[m.type]}</span><span>${esc(m.status === 'done' ? '已完成' : STATUS_CN[m.status])}</span></div>
       <div class="title">${esc(m.title)}</div>
-      <div class="meta">${m.year || ''}${m.creator ? ' · ' + esc(m.creator) : ''}</div>
+      <div class="meta">${esc(m.year || '')}${m.creator ? ' · ' + esc(m.creator) : ''}</div>
       <div class="stars">${m.rating ? starRowHTML(m.rating, 9) : ''}</div>
     </div>`).join('');
   list.innerHTML = State.media.map(m => `
     <div class="ml-row">
-      <span class="ml-type ${m.type}">${TYPE_CN[m.type]}</span>
+      <span class="ml-type ${esc(m.type)}">${TYPE_CN[m.type]}</span>
       <span class="ml-title">${esc(m.title)}${m.creator ? ' <span style="color:var(--ink3)">· ' + esc(m.creator) + '</span>' : ''}</span>
       <span class="ml-status">${STATUS_CN[m.status] || ''}</span>
       <span class="ml-stars">${m.rating ? starRowHTML(m.rating, 11) : ''}</span>
       <span class="ml-ops">
-        <button class="sg-del" data-medit="${m.id}" title="编辑"><svg class="icon" style="width:15px;height:15px"><use href="#i-edit"/></svg></button>
-        <button class="sg-del" data-mdel="${m.id}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
+        <button class="sg-del" data-medit="${esc(m.id)}" title="编辑"><svg class="icon" style="width:15px;height:15px"><use href="#i-edit"/></svg></button>
+        <button class="sg-del" data-mdel="${esc(m.id)}" title="删除"><svg class="icon" style="width:15px;height:15px"><use href="#i-trash"/></svg></button>
       </span>
     </div>`).join('');
 }
@@ -1477,7 +1477,7 @@ function openMediaDetail(id) {
     <div class="mbody">
       <div style="margin-bottom:12px">${m.rating ? starRowHTML(m.rating, 16) : '<span style="color:var(--ink3)">未评分</span>'}</div>
       ${m.creator ? '<div>作者：' + esc(m.creator) + '</div>' : ''}
-      ${m.year ? '<div>年份：' + m.year + '</div>' : ''}
+      ${m.year ? '<div>年份：' + esc(m.year) + '</div>' : ''}
       <div>状态：${STATUS_CN[m.status] || ''}</div>
       ${m.review ? '<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:10px;font-style:italic">「' + esc(m.review) + '」</div>' : ''}
     </div>
@@ -1488,7 +1488,7 @@ function openMediaDetail(id) {
     </div>`);
   $('#mdClose').onclick = closeModal;
   $('#mdDel').onclick = () => {
-    confirmBox('删除该收藏？', '「' + m.title + '」将被删除。', '删除', 'btn-danger', () => {
+    confirmBox('删除该收藏？', '「' + esc(m.title) + '」将被删除。', '删除', 'btn-danger', () => {
       State.media = State.media.filter(x => x.id !== id);
       saveModule('media'); closeModal(); renderAll();
     });
@@ -1508,7 +1508,7 @@ $('#mediaList').addEventListener('click', e => {
   if (del) {
     const id = del.getAttribute('data-mdel');
     const m = State.media.find(x => x.id === id);
-    confirmBox('删除该收藏？', m ? '「' + m.title + '」将被删除。' : '', '删除', 'btn-danger', () => {
+    confirmBox('删除该收藏？', m ? '「' + esc(m.title) + '」将被删除。' : '', '删除', 'btn-danger', () => {
       State.media = State.media.filter(x => x.id !== id);
       saveModule('media'); renderAll();
     });
@@ -1612,7 +1612,7 @@ function renderAll() {
     const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
     opts.push({ v: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), t: d.getFullYear() + '年' + (d.getMonth() + 1) + '月' });
   }
-  $('#finMonthFilter').innerHTML = opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+  $('#finMonthFilter').innerHTML = opts.map(o => `<option value="${esc(o.v)}">${o.t}</option>`).join('');
   $('#finMonthFilter').value = monthKey();
   $('#finCatFilter').innerHTML = '<option value="all">全部分类</option>' + FIN_EXP.concat(FIN_INC).map(c => `<option>${c}</option>`).join('');
   setMediaView('wall');
