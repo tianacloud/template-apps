@@ -515,6 +515,7 @@ function renderWrong(){
 let drilling=false;
 function startDrill(){
   if(!state.wrong.length)return;
+  switchView("challenge");
   drilling=true;const items=state.wrong.slice();let di=0;const body=$("#challengeBody");
   function show(){
     if(di>=items.length){drilling=false;renderChallenge();renderWrong();toast("错题重做完成");return;}
@@ -533,7 +534,7 @@ function startDrill(){
     opts.forEach((o,i)=>{const b=document.createElement("button");b.className="opt";b.innerHTML=`<span class="k">${"ABCD"[i]}</span>${o}`;b.onclick=()=>{
       const ok=o===answer;
       ob.querySelectorAll(".opt").forEach((x,j)=>{x.disabled=true;if(j===i)x.classList.add(ok?"correct":"wrong");else if(opts[j]===answer)x.classList.add("correct");else x.classList.add("dim");});
-      state.wrong=state.wrong.filter(x=>x.key!==w.key);
+      if(ok)state.wrong=state.wrong.filter(x=>x.key!==w.key);
       if(ok&&!state.ach.includes("killer"))state.ach.push("killer");
       saveState();renderPoints();
       const fb=document.getElementById("fbBox");
