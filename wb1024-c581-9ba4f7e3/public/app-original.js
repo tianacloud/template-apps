@@ -197,33 +197,6 @@ function ensureSeed() {
     saveQuota(SEED_QUOTA);
   }
   applyQuotaPatch();
-  cleanProbeLeftovers();
-}
-
-/* 一次性清理"运行时探针"写进 localStorage 的测试残留（幂等；跑过就标记 done）
-   —— 探针记录的科目/地点是固定测试值，只删这两类，不碰用户真实数据 */
-const PROBE_CLEAN_KEY = 'wb_neon_probe_cleanup_v1';
-const PROBE_SUBJECTS = ['PROBE_SUBJECT'];
-const PROBE_LOCATIONS = ['PROBE_LOCATION'];
-
-function cleanProbeLeftovers() {
-  try {
-    if (localStorage.getItem(PROBE_CLEAN_KEY) === 'done') return;
-    const arr = loadRecords();
-    const kept = arr.filter(r =>
-      !PROBE_SUBJECTS.includes((r.subject || '').trim()) &&
-      !PROBE_LOCATIONS.includes((r.location || '').trim()));
-    const removed = arr.length - kept.length;
-    if (removed > 0) {
-      saveRecords(kept);
-      const q = loadQuota();
-      let qChanged = false;
-      PROBE_SUBJECTS.forEach(s => { if (q[s]) { delete q[s]; qChanged = true; } });
-      if (qChanged) saveQuota(q);
-      console.log('[小课表] 已清理探针测试残留 ' + removed + ' 条');
-    }
-    localStorage.setItem(PROBE_CLEAN_KEY, 'done');
-  } catch (e) { /* 静默失败，不影响主流程 */ }
 }
 
 /* ========== 状态 ========== */
@@ -2161,7 +2134,7 @@ function init() {
 init();
 
 window.NEON = window.APP = { state, refreshAll, switchPage, addRecord, deleteRecord,
-  showSubjectManager, renameSubjectAt, deleteSubjectAt, subjectAllNames, cleanProbeLeftovers,
+  showSubjectManager, renameSubjectAt, deleteSubjectAt, subjectAllNames,
   setQuotaAt, renderChips, recentValues, lastUsedValue, DEFAULT_DURATION,
   openSyncModal, buildSyncCode, parseSyncCode, previewSync, mergeSyncData, applySyncCode, SYNC_PREFIX,
   // 云同步（探针验收用）
