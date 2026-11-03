@@ -46,7 +46,7 @@ function parseDocument(text){
         rows = tableBuf.map(r=>r.split(/\t+/).map(c=>c.trim()).filter(c=>c.length));
       }
       // 去掉纯分隔行
-      rows = rows.filter(r=>!(r.length===1 && /^[-:|\s]+$/.test(r[0])));
+      rows = rows.filter(r=>!r.every(cell=>/^:?-{3,}:?$/.test(cell)));
       if(rows.length){
         const maxc = Math.max(...rows.map(r=>r.length));
         const head = rows[0];
