@@ -1,4 +1,6 @@
 import { rollWheels } from "./wheels.js";
+import { createRenderQuality } from "./render-quality.js";
+import { simulationSteps } from "./simulation-time.js";
 import * as T from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -68,7 +70,8 @@ const renderer = new T.WebGLRenderer({
   antialias: true,
   powerPreference: "high-performance",
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+const renderQuality = createRenderQuality(Math.min(devicePixelRatio || 1, 1.5));
+renderer.setPixelRatio(renderQuality.ratio);
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
@@ -1116,13 +1119,28 @@ function updateCamera(dt) {
 }
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt =
-    lastTime === null ? 0 : T.MathUtils.clamp((now - lastTime) / 1000, 0, 0.1);
+  if (lastTime !== null && document.visibilityState === "visible" && !paused) {
+    if (renderQuality.sample(now - lastTime)) {
+      renderer.setPixelRatio(renderQuality.ratio);
+      composer.setPixelRatio(renderQuality.ratio);
+      fxaa.material.uniforms.resolution.value.set(
+        1 / (innerWidth * renderQuality.ratio),
+        1 / (innerHeight * renderQuality.ratio),
+      );
+    }
+  } else {
+    renderQuality.resetSamples();
+  }
+  const steps = simulationSteps(lastTime === null ? 0 : now - lastTime);
   lastTime = now;
-  elapsed += dt;
-  if (started && !paused) advance(dt);
-  if (!paused)
-    world.update(started ? dt : dt * 0.4, elapsed, player, playerCar, police);
+  let dt = 0;
+  for (const step of steps) {
+    dt += step;
+    elapsed += step;
+    if (started && !paused) advance(step);
+    if (!paused)
+      world.update(started ? step : step * 0.4, elapsed, player, playerCar, police);
+  }
   updateCamera(dt);
   if (elapsed - lastUI > 0.1) {
     updateHUD();
@@ -1140,6 +1158,11 @@ function frame(now) {
     save();
   composer.render();
 }
+document.addEventListener("visibilitychange", () => {
+  lastTime = null;
+  renderQuality.resetSamples();
+  keys.clear();
+});
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();

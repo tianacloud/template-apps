@@ -43,9 +43,9 @@ The entry injects its own CSS and loads its display font from the application fi
 - `src/audio.js`: synthesized engine, gear changes, tire slip and road noise.
 - `src/db.js`: parameterized SQL and verification of uncertain writes.
 
-Rendering requires WebGL 2. Desktop keyboard play is the primary experience; use a browser with hardware acceleration. Mobile touch layout is supported, but frame rate depends on the device. Rendering and movement run locally; SQLite handles persistent progression.
+Rendering requires WebGL 2. Desktop keyboard play is the primary experience; use a browser with hardware acceleration. Mobile touch layout is supported, but frame rate depends on the device. Distant traffic uses a simpler visual model while nearby cars retain their detailed models; sustained slow frames lower rendering resolution and recover it when performance permits. Lighting and shadows remain enabled. Rendering and movement run locally; SQLite handles persistent progression.
 
-Run `npm test` for game economy, collision and wheel-axis checks. Browser acceptance should additionally cover driving, entering/leaving the car, missions, garage purchases, cloud-save reload, disconnected writes, and mobile controls with a real Tiana preview.
+Run `npm test` for game economy, collision, wheel-axis, rendering-quality, traffic detail and simulation timing checks. Browser acceptance should additionally cover driving, entering/leaving the car, missions, garage purchases, cloud-save reload, disconnected writes, and mobile controls with a real Tiana preview.
 
 ## Credits
 
