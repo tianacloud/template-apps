@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width,initial-scale=1" name="viewport">
+<title>GroupDNA · 群聊人格画像</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070B10; --ink:#E9EFF6; --ink2:#8C9AAA; --ink3:#5D6A78;
+  --line:rgba(255,255,255,.09); --panel:rgba(255,255,255,.035);
+  --brand:#12C87A; --brand2:#0BA86A; --accent:#7C6BFF; --hot:#FF5C7A; --warn:#FFB020;
+}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.5; padding-bottom:60px;
+  background-image:radial-gradient(900px 500px at 12% -8%,rgba(18,200,122,.16),transparent 62%),
+                   radial-gradient(800px 520px at 92% 4%,rgba(124,107,255,.14),transparent 60%),
+                   radial-gradient(700px 600px at 60% 100%,rgba(18,200,122,.05),transparent 60%);
+  background-attachment:fixed;
+}
+.app{max-width:1220px;margin:0 auto;padding:0 20px}
+/* ── 头部 ── */
+.hd{display:flex;align-items:center;gap:16px;padding:22px 0 18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;flex:1;min-width:220px}
+.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;
+  background:linear-gradient(140deg,rgba(18,200,122,.26),rgba(124,107,255,.2));border:1px solid rgba(18,200,122,.35)}
+.brand h1{font-size:19px;letter-spacing:.2px;font-weight:700}
+.brand h1 em{font-style:normal;color:var(--brand)}
+.brand p{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.hd-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.privacy{font-size:11.5px;color:var(--brand);background:rgba(18,200,122,.1);
+  border:1px solid rgba(18,200,122,.28);padding:6px 11px;border-radius:999px;white-space:nowrap}
+.btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--line);
+  background:rgba(255,255,255,.05);color:var(--ink);padding:9px 15px;cursor:pointer;transition:.16s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border:none;color:#04170F;
+  box-shadow:0 4px 16px rgba(18,200,122,.28)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* ── 通用面板 ── */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 20px 18px;
+  backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.panel h2{font-size:13.5px;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.panel h2 s{text-decoration:none;width:4px;height:14px;border-radius:2px;background:var(--brand);display:inline-block}
+.panel .sub{font-size:11.5px;color:var(--ink3);margin-bottom:16px}
+/* ── 上传区 ── */
+.drop{border:1.5px dashed rgba(255,255,255,.16);border-radius:16px;padding:34px 22px;text-align:center;
+  transition:.18s;cursor:pointer;background:rgba(255,255,255,.015)}
+.drop:hover,.drop.on{border-color:var(--brand);background:rgba(18,200,122,.06)}
+.drop .di{font-size:34px;margin-bottom:10px}
+.drop b{display:block;font-size:15px;margin-bottom:6px}
+.drop span{font-size:12.5px;color:var(--ink2)}
+.or{display:flex;align-items:center;gap:12px;color:var(--ink3);font-size:11.5px;margin:16px 0}
+.or i{flex:1;height:1px;background:var(--line);font-style:normal}
+textarea{width:100%;min-height:132px;resize:vertical;background:rgba(0,0,0,.28);border:1px solid var(--line);
+  border-radius:12px;color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px;line-height:1.7;padding:13px 14px;outline:none;transition:.16s}
+textarea::placeholder{color:#46525E}
+textarea:focus{border-color:rgba(18,200,122,.5);box-shadow:0 0 0 3px rgba(18,200,122,.1)}
+.infoot{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.infoot .hint{font-size:11.5px;color:var(--ink3);flex:1;min-width:180px}
+.fmts{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.chip{font-size:11px;color:var(--ink2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;background:rgba(255,255,255,.03)}
+.chip b{color:var(--brand);font-weight:600}
+.err{font-size:12.5px;color:#FF8FA3;background:rgba(255,92,122,.09);border:1px solid rgba(255,92,122,.28);
+  border-radius:10px;padding:10px 13px;margin-top:14px;line-height:1.6;display:none}
+.err.on{display:block}
+/* ── 概览 ── */
+.rep-head{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:26px 0 16px}
+.rep-head .gname{font-size:26px;font-weight:800;letter-spacing:-.3px;line-height:1.2;
+  background:linear-gradient(100deg,#fff 20%,#9FF3C8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.rep-head .meta{font-size:12px;color:var(--ink2);padding-bottom:5px}
+.rep-head .meta b{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.kpi .v{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1.15;
+  font-variant-numeric:tabular-nums;background:linear-gradient(120deg,#fff,#8FE8BE);-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent}
+.kpi .v u{text-decoration:none;font-size:14px;font-weight:600;margin-left:3px;-webkit-text-fill-color:var(--ink2);color:var(--ink2)}
+.kpi .k{font-size:11.5px;color:var(--ink2);margin-top:5px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:14px}
+.grid .full{grid-column:1/-1}
+/* ── 成员榜 ── */
+.mem{display:flex;flex-direction:column;gap:13px}
+.mrow{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:11px;align-items:center}
+.ava{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#04170F}
+.mrow .nm{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.mrow .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:6px;overflow:hidden}
+.mrow .bar i{display:block;height:100%;border-radius:99px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.mrow .rt{text-align:right;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mrow .rt b{font-weight:700}
+.mrow .rt span{display:block;font-size:10.5px;color:var(--ink3);margin-top:2px}
+.tag{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(124,107,255,.14);color:#BDB4FF;
+  border:1px solid rgba(124,107,255,.3);white-space:nowrap;font-weight:500}
+.tag.g{background:rgba(18,200,122,.13);color:#7FE3B4;border-color:rgba(18,200,122,.3)}
+.tag.y{background:rgba(255,176,32,.12);color:#FFCE73;border-color:rgba(255,176,32,.3)}
+/* ── 热力图 ── */
+.hm{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px}
+.hm-lbl{display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:var(--ink3);padding:1px 0}
+.hm-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hm-hours{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;font-size:9px;color:var(--ink3);margin-bottom:2px}
+.hm-hours span{text-align:left;overflow:hidden;white-space:nowrap}
+.hm-row{display:grid;grid-template-columns:repeat(24,1fr);gap:3px}
+.hm-c{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);transition:.3s;cursor:default}
+.hm-c:hover{outline:1px solid rgba(255,255,255,.6);outline-offset:1px}
+.hm-days{display:flex;flex-direction:column;padding-top:17px;font-size:11px;color:#7A8898}
+.hm-days span{flex:1;display:flex;align-items:center;justify-content:center;line-height:1}
+.hm-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:11px;color:var(--ink3)}
+.leg{display:flex;align-items:center;gap:4px}
+.leg i{width:11px;height:11px;border-radius:3px;display:block}
+.hotdot{color:var(--brand);font-weight:600}
+/* ── 延迟 ── */
+.lat{display:flex;flex-direction:column;gap:11px}
+.lrow{display:grid;grid-template-columns:58px 1fr 62px;gap:10px;align-items:center;font-size:12.5px}
+.lrow .lb{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .tr{height:9px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden}
+.lrow .tr i{display:block;height:100%;border-radius:99px;transition:width .5s}
+.lrow .vv{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:12px}
+/* ── 词云 ── */
+.cloud{display:flex;flex-wrap:wrap;gap:9px 13px;align-items:baseline;padding:4px 0 2px}
+.cloud b{font-weight:700;line-height:1.15;transition:.16s;cursor:default}
+.cloud b:hover{color:#fff!important;transform:scale(1.06)}
+/* ── 洞察 ── */
+.ins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.icard{border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:rgba(255,255,255,.022);position:relative;overflow:hidden}
+.icard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand);opacity:.85}
+.icard.p:before{background:var(--accent)}
+.icard.y:before{background:var(--warn)}
+.icard b{display:block;font-size:11px;color:var(--ink3);font-weight:600;letter-spacing:.4px;margin-bottom:7px}
+.icard p{font-size:13.5px;line-height:1.62;color:var(--ink)}
+.icard p em{font-style:normal;color:var(--brand);font-weight:700}
+.icard.p p em{color:#BDB4FF}
+.icard.y p em{color:#FFCE73}
+/* ── 弹层 ── */
+.modal{position:fixed;inset:0;background:rgba(3,6,9,.82);backdrop-filter:blur(6px);z-index:80;
+  display:none;align-items:center;justify-content:center;padding:24px 16px}
+.modal.on{display:flex}
+.mbox{background:#0C1219;border:1px solid var(--line);border-radius:20px;max-width:560px;width:100%;
+  max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.mhd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.mhd b{font-size:14.5px;flex:1}
+.mhd .x{cursor:pointer;color:var(--ink3);font-size:19px;line-height:1;background:none;border:none;font-family:inherit}
+.mbd{padding:16px 18px;overflow-y:auto;flex:1;display:flex;justify-content:center}
+.mbd canvas{max-width:100%;height:auto;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.mft{display:flex;gap:10px;padding:13px 18px;border-top:1px solid var(--line);align-items:center}
+.mft .tip{font-size:11px;color:var(--ink3);flex:1;line-height:1.45}
+/* ── 空/隐藏 ── */
+[hidden]{display:none!important}
+.empty{text-align:center;padding:30px 10px;color:var(--ink3);font-size:13px}
+@media (max-width:880px){
+  .app{padding:0 14px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:13px 15px}
+  .kpi .v{font-size:25px}
+  .kpi .k{font-size:11px}
+  .grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .ins{grid-template-columns:1fr}
+  .panel{padding:16px 15px 14px;border-radius:15px}
+  .rep-head .gname{font-size:21px;line-height:1.35}
+  .rep-head{margin:18px 0 12px;gap:6px}
+  .rep-head .meta{font-size:11.5px;padding-bottom:0}
+  .hd{padding:14px 0 10px;gap:10px}
+  .brand{min-width:0;flex:1 0 100%}
+  .brand h1{font-size:17px}
+  .brand p{font-size:11.5px}
+  .hd-act{gap:8px;width:100%}
+  .hd-act .btn{flex:1;padding:9px 8px;font-size:12.5px}
+  .privacy{order:-1;flex:0 0 100%;text-align:center;font-size:11px}
+  .hm{grid-template-columns:24px minmax(0,1fr);gap:6px}
+  .hm-body{overflow-x:auto;padding-bottom:4px}
+  .hm-row,.hm-hours{min-width:496px}
+  .hm-c{border-radius:2px}
+  .hm-hours{font-size:8px}
+  .lrow{grid-template-columns:48px 1fr 56px;font-size:12px}
+  .mrow .bar{height:5px}
+  .mrow .nm{font-size:13px}
+  .mrow .rt{font-size:12px}
+  .mrow .rt span{font-size:9.5px}
+  .cloud{gap:7px 10px}
+  .icard p{font-size:12.8px}
+}
+</style>
+</head>
+<body><div style="position:fixed;bottom:4px;right:4px;z-index:9999;background:#fff;padding:4px;font-size:12px">示例体验，数据仅保留在本页</div>
+<div class="app">
+  <header class="hd">
+    <div class="brand">
+      <div class="logo">🧬</div>
+      <div>
+        <h1>Group<em>DNA</em></h1>
+        <p>把一段聊天记录，变成一张群聊人格画像</p>
+      </div>
+    </div>
+    <div class="hd-act">
+      <span class="privacy">🔒 全程本地解析 · 数据不出浏览器</span>
+      <button class="btn" id="btnSample">载入示例群聊</button>
+      <button class="btn" hidden id="btnReset">重新开始</button>
+      <button class="btn primary" hidden id="btnCard">生成分享卡</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ══ 输入 ══ -->
+    <section class="panel" id="stageInput">
+      <h2><s></s>第一步 · 把聊天记录丢进来</h2>
+      <div class="sub">支持微信 / QQ 导出的 .txt，也可以直接粘贴。<b style="color:var(--brand)">不做任何上传</b>，解析全在你的浏览器里跑完。</div>
+
+      <div class="drop" id="drop">
+        <div class="di">📄</div>
+        <b>点击选择 .txt 文件，或拖拽到这里</b>
+        <span>建议 200 条以上，统计才有意思（10 MB 以内）</span>
+      </div>
+      <input accept=".txt,.log,text/plain" hidden id="file" type="file">
+
+      <div class="or"><i></i>或者直接粘贴<i></i></div>
+      <textarea id="paste" placeholder="粘贴聊天记录，例如：
+老张 2026-08-05 09:12:31
+今天站会挪到十点半
+
+小陈 2026-08-05 09:12:58
+收到"></textarea>
+
+      <div class="infoot">
+        <span class="hint">识别到自己编的格式也没关系 —— 只要每行长得像「谁 什么时候 说了什么」，就能解析。</span>
+        <button class="btn primary" id="btnParse">开始体检</button>
+      </div>
+      <div class="err" id="err"></div>
+
+      <div class="fmts">
+        <span class="chip">微信 PC 导出 <b>昵称 2026-08-05 09:12:31</b></span>
+        <span class="chip">QQ 导出 <b>2026-08-05 09:12:31 昵称(123)</b></span>
+        <span class="chip">带方括号 <b>[2026-08-05 09:12] 昵称: 内容</b></span>
+        <span class="chip">无时间戳 <b>昵称：内容</b></span>
+      </div>
+    </section>
+
+    <!-- ══ 结果 ══ -->
+    <section hidden id="stageResult">
+      <div class="rep-head">
+        <div class="gname" id="gname">群聊</div>
+        <div class="meta" id="gmeta"></div>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="grid">
+        <div class="panel" id="pMem">
+          <h2><s></s>谁在说话</h2>
+          <div class="sub">消息数 · 每人标签由他自己发出来的行为决定</div>
+          <div class="mem" id="memList"></div>
+        </div>
+
+        <div class="panel" id="pLat">
+          <h2><s></s>回消息有多快</h2>
+          <div class="sub">中位响应时长（别人说完到你接话）</div>
+          <div class="lat" id="latList"></div>
+        </div>
+
+        <div class="panel full" id="pHm">
+          <h2><s></s>群里的一天</h2>
+          <div class="sub">7 × 24 活跃热力图，越亮说明那个时刻越热闹</div>
+          <div class="hm" id="hmWrap"></div>
+          <div class="hm-foot">
+            <span id="hmPeak"></span>
+            <span class="leg">低<i style="background:rgba(18,200,122,.13)"></i><i style="background:rgba(18,200,122,.35)"></i><i style="background:rgba(18,200,122,.62)"></i><i style="background:#12C87A"></i>高</span>
+          </div>
+        </div>
+
+        <div class="panel full" id="pWord">
+          <h2><s></s>这个群的关键词</h2>
+          <div class="sub">去掉表情、链接和口水话之后，你们真正在聊的东西</div>
+          <div class="cloud" id="cloud"></div>
+        </div>
+
+        <div class="panel full" id="pIns">
+          <h2><s></s>三个真相</h2>
+          <div class="sub">只陈述数据，不负责解释你们的关系</div>
+          <div class="ins" id="insList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ══ 分享卡 ══ -->
+<div class="modal" id="modal">
+  <div class="mbox">
+    <div class="mhd"><b>群聊人格画像</b><button class="x" id="mClose">✕</button></div>
+    <div class="mbd"><canvas height="1600" id="card" width="1200" style="width:100%"></canvas></div>
+    <div class="mft">
+      <span class="tip">图由本地数据绘制，不含原始聊天内容。<br>分享到小红书 / 朋友圈时记得带上 #WorkBuddy #1024程序员节</span>
+      <button class="btn primary" id="btnDl">下载 PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   GroupDNA · 群聊人格画像
+   纯前端 · 零依赖 · 数据不出浏览器
+   ══════════════════════════════════════════════════════════ */
+(function(){
+"use strict";
+
+/* ---------- 工具 ---------- */
+function $(id){return document.getElementById(id);}
+function pad(n){return n<10?'0'+n:''+n;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDur(sec){
+  if(sec==null||!isFinite(sec)) return '—';
+  if(sec<60) return Math.round(sec)+'秒';
+  if(sec<3600) return (sec/60).toFixed(sec<600?1:0)+'分';
+  if(sec<86400){var h=sec/3600;return h.toFixed(h<10?1:0)+'小时';}
+  return (sec/86400).toFixed(1)+'天';
+}
+function fmtDate(d){
+  if(!d) return '';
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+var HUES=[168,150,262,32,196,320,12,92];
+function avaColor(i){var h=HUES[i%HUES.length];return 'hsl('+h+',72%,62%)';}
+function hashColor(s){
+  var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;
+  return 'hsl('+h+',68%,62%)';
+}
+
+/* ══════════ 解析器 ══════════ */
+var R_MD_AFTER = /^(.{1,24}?)[\s\u3000]+(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})日?[\s\u3000]*(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+var R_MD_BEFORE = /^(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})日?[\s\u3000]*(\d{1,2}):(\d{2})(?::(\d{2}))?[\s\u3000]+(.{1,30}?)(?:\(\d+\))?$/;
+var R_BRACKET = /^[\[\(【]?(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})日?[\s\u3000]*(\d{1,2}):(\d{2})(?::(\d{2}))?[\]\)】]?[\s\u3000]*(.{1,24}?)[：:][\s\u3000]*(.*)$/;
+var R_TIMEONLY = /^(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})日?[\s\u3000]*(上午|下午|中午|凌晨|早上|晚上)?[\s\u3000]*(\d{1,2}):(\d{2})(?::(\d{2}))?[\s\u3000]*$/;
+var R_NAME_COLON = /^([^\s：:]{1,20})[：:][\s\u3000]*(.*)$/;
+
+function looksLikeName(s){
+  if(!s) return false;
+  s=s.trim();
+  if(s.length<1||s.length>20) return false;
+  if(/[。，,！!？?、；;…~～]/.test(s)) return false;
+  if(/^\d+$/.test(s)) return false;
+  if(/https?:\/\//.test(s)) return false;
+  return true;
+}
+function mkTime(y,mo,d,h,mi,sec,ampm){
+  h=parseInt(h,10); mi=parseInt(mi,10); sec=sec?parseInt(sec,10):0;
+  if(ampm==='下午'||ampm==='晚上'){ if(h<12) h+=12; }
+  else if(ampm==='中午'){ if(h<11) h+=12; }
+  else if(ampm==='凌晨'){ if(h===12) h=0; }
+  else if(ampm==='上午'||ampm==='早上'){ if(h===12) h=0; }
+  var dt=new Date(parseInt(y,10),parseInt(mo,10)-1,parseInt(d,10),h,mi,sec,0);
+  return isNaN(dt.getTime())?null:dt;
+}
+
+function parseChat(text){
+  var raw=String(text).replace(/\r\n?/g,'\n').replace(/\u200b/g,'').split('\n');
+  var msgs=[], cur=null, skipped=0, noTime=0, waitName=false, pendingTime=null;
+
+  /* 预扫描：带时间戳的昵称白名单。
+     "昵称：内容" 规则只在昵称可信时启用，否则消息正文里的「注意：xxx」会被误判成发言人。 */
+  var knownNames={}, hasTime=false, pi, pm;
+  for(pi=0;pi<raw.length;pi++){
+    var pt=String(raw[pi]).replace(/^\s+|\s+$/g,'');
+    if(!pt) continue;
+    if((pm=R_MD_AFTER.exec(pt))&&looksLikeName(pm[1])){ knownNames[pm[1].replace(/[：:]$/,'')]=1; hasTime=true; }
+    else if((pm=R_MD_BEFORE.exec(pt))&&looksLikeName(pm[7])){ knownNames[pm[7].replace(/\(\d+\)$/,'')]=1; hasTime=true; }
+    else if((pm=R_BRACKET.exec(pt))&&looksLikeName(pm[7])){ knownNames[pm[7]]=1; hasTime=true; }
+  }
+
+  function push(){
+    if(cur){
+      cur.text=cur.text.replace(/^\s+|\s+$/g,'');
+      cur.text=cur.text.replace(/\n{3,}/g,'\n\n');
+      if(cur.text) msgs.push(cur);
+    }
+    cur=null;
+  }
+
+  for(var i=0;i<raw.length;i++){
+    var line=raw[i];
+    var t=line.replace(/^\s+|\s+$/g,'');
+    if(!t){ if(cur) cur.text+='\n'; continue; }
+
+    /* 上一行是纯时间行 → 这一行当昵称 */
+    if(waitName){
+      waitName=false;
+      var nm=t.replace(/[：:]$/,'');
+      if(looksLikeName(nm)&&pendingTime){
+        push();
+        cur={name:nm,time:pendingTime,text:''};
+        pendingTime=null;
+        continue;
+      }
+      /* 不像昵称：把这行当内容，昵称沿用上一条 */
+      if(pendingTime){
+        push();
+        cur={name:(msgs.length?msgs[msgs.length-1].name:'未知'),time:pendingTime,text:t};
+        pendingTime=null;
+        continue;
+      }
+    }
+
+    var m;
+
+    /* 1) 昵称 + 时间（微信 PC 导出） */
+    if((m=R_MD_AFTER.exec(t))&&looksLikeName(m[1])){
+      push();
+      cur={name:m[1].replace(/[：:]$/,''),time:mkTime(m[2],m[3],m[4],m[5],m[6],m[7]),text:''};
+      continue;
+    }
+    /* 2) 时间 + 昵称（QQ 导出） */
+    if((m=R_MD_BEFORE.exec(t))&&looksLikeName(m[7])){
+      push();
+      cur={name:m[7].replace(/\(\d+\)$/,''),time:mkTime(m[1],m[2],m[3],m[4],m[5],m[6]),text:''};
+      continue;
+    }
+    /* 3) [时间] 昵称: 内容 */
+    if((m=R_BRACKET.exec(t))&&looksLikeName(m[7])){
+      push();
+      cur={name:m[7],time:mkTime(m[1],m[2],m[3],m[4],m[5],m[6]),text:(m[8]||'')+'\n'};
+      continue;
+    }
+    /* 4) 纯时间行 → 下一行是昵称（手机长按复制） */
+    if((m=R_TIMEONLY.exec(t))){
+      pendingTime=mkTime(m[1],m[2],m[3],m[5],m[6],m[7],m[4]);
+      waitName=true;
+      continue;
+    }
+    /* 5) 昵称：内容（无时间戳，且昵称可信） */
+    if((m=R_NAME_COLON.exec(t))&&looksLikeName(m[1])&&(!hasTime||knownNames[m[1]])){
+      push();
+      cur={name:m[1],time:null,text:(m[2]||'')+'\n'};
+      noTime++;
+      continue;
+    }
+    /* 6) 续行 */
+    if(cur){ cur.text+=t+'\n'; }
+    else { skipped++; }
+  }
+  push();
+
+  /* 时间戳缺失的一条也没有 → 认为无时间信息 */
+  var timed=0;
+  for(var k=0;k<msgs.length;k++){ if(msgs[k].time) timed++; }
+
+  /* 交接时间：无时间戳的消息，按顺序向后补（仅用于排序，不用于热力图） */
+  return {msgs:msgs,timed:timed,skipped:skipped};
+}
+
+/* ══════════ 分析 ══════════ */
+function analyze(msgs){
+  var N=msgs.length;
+  var byName={}, order=[], i, m;
+  for(i=0;i<N;i++){
+    m=msgs[i];
+    if(!byName[m.name]){
+      byName[m.name]={name:m.name,count:0,chars:0,maxLen:0,times:[],emoji:0,longN:0,first:m.time,last:m.time};
+      order.push(m.name);
+    }
+    var p=byName[m.name];
+    p.count++;
+    var len=m.text.replace(/\s/g,'').length;
+    p.chars+=len;
+    if(len>p.maxLen) p.maxLen=len;
+    if(len>=40) p.longN++;
+    var emo=(m.text.match(/\[[^\]\n]{1,6}\]/g)||[]).length+(m.text.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g)||[]).length;
+    p.emoji+=emo;
+    if(m.time){
+      p.times.push(m.time);
+      if(!p.first||m.time<p.first) p.first=m.time;
+      if(!p.last||m.time>p.last) p.last=m.time;
+    }
+  }
+  var people=order.map(function(n){return byName[n];});
+
+  /* 排序（消息数） */
+  var ranked=people.slice().sort(function(a,b){return b.count-a.count;});
+
+  /* 时间范围 */
+  var timedMsgs=msgs.filter(function(x){return !!x.time;});
+  timedMsgs.sort(function(a,b){return a.time-b.time;});
+  var t0=timedMsgs.length?timedMsgs[0].time:null;
+  var t1=timedMsgs.length?timedMsgs[timedMsgs.length-1].time:null;
+  var spanDays=(t0&&t1)?Math.max(1,Math.round((t1-t0)/86400000)+1):0;
+
+  /* 热力图 7×24 */
+  var hm=[],d,h;
+  for(d=0;d<7;d++){ hm.push(new Array(24)); for(h=0;h<24;h++) hm[d][h]=0; }
+  var hourTot=new Array(24); for(h=0;h<24;h++) hourTot[h]=0;
+  var weekTot=[0,0,0,0,0,0,0];
+  for(i=0;i<timedMsgs.length;i++){
+    var dt=timedMsgs[i].time;
+    var wd=dt.getDay(); var hr=dt.getHours();
+    hm[wd][hr]++; hourTot[hr]++; weekTot[wd]++;
+  }
+
+  /* 回复延迟：A 接在 B 后面说话 → 记为 A 的一次响应 */
+  var lat={};
+  for(i=1;i<timedMsgs.length;i++){
+    var a=timedMsgs[i], b=timedMsgs[i-1];
+    if(a.name===b.name) continue;
+    var gap=(a.time-b.time)/1000;
+    if(gap<0||gap>86400*3) continue;
+    if(!lat[a.name]) lat[a.name]=[];
+    lat[a.name].push(gap);
+  }
+  function median(arr){
+    if(!arr||!arr.length) return null;
+    var s=arr.slice().sort(function(x,y){return x-y;});
+    var mid=s.length>>1;
+    return s.length%2?s[mid]:(s[mid-1]+s[mid])/2;
+  }
+
+  /* 月度趋势 */
+  var monthMap={},monthKeys=[],dayMap={},dayMax=0;
+  for(i=0;i<timedMsgs.length;i++){
+    var mk=timedMsgs[i].time.getFullYear()+'-'+pad(timedMsgs[i].time.getMonth()+1);
+    if(!monthMap[mk]){monthMap[mk]=0;monthKeys.push(mk);}
+    monthMap[mk]++;
+    var dk=mk+'-'+pad(timedMsgs[i].time.getDate());
+    dayMap[dk]=(dayMap[dk]||0)+1;
+    if(dayMap[dk]>dayMax) dayMax=dayMap[dk];
+  }
+  monthKeys.sort();
+
+  /* 每人最活跃时段 + 夜间占比 */
+  for(i=0;i<people.length;i++){
+    var pp=people[i], nightN=0, earlyN=0, h24=new Array(24);
+    for(h=0;h<24;h++) h24[h]=0;
+    for(var j=0;j<pp.times.length;j++){
+      var hh=pp.times[j].getHours();
+      h24[hh]++;
+      if(hh>=22||hh<3) nightN++;
+      if(hh>=6&&hh<9) earlyN++;
+    }
+    pp.hourHist=h24;
+    pp.nightRatio=pp.times.length?nightN/pp.times.length:0;
+    pp.earlyRatio=pp.times.length?earlyN/pp.times.length:0;
+    var best=0,bh=0;
+    for(h=0;h<24;h++){ if(h24[h]>best){best=h24[h];bh=h;} }
+    pp.peakHour=bh;
+    pp.share=pp.count/N;
+    pp.avgLen=pp.count?pp.chars/pp.count:0;
+    pp.med=median(lat[pp.name]);
+    pp.latN=lat[pp.name]?lat[pp.name].length:0;
+    pp.emojiRatio=pp.count?pp.emoji/pp.count:0;
+  }
+
+  /* 词频 */
+  var words=extractWords(timedMsgs.length?timedMsgs:msgs);
+
+  return {
+    total:N, people:people, ranked:ranked, hm:hm, hourTot:hourTot, weekTot:weekTot,
+    spanDays:spanDays, t0:t0, t1:t1, timed:timedMsgs.length, dayMax:dayMax,
+    monthKeys:monthKeys, monthMap:monthMap, words:words
+  };
+}
+
+/* ---------- 中文词频（2~3 gram + 停用词） ---------- */
+var STOP='的 了 吗 呢 吧 啊 呀 哦 嗯 哈 是 我 你 他 她 它 们 在 有 就 都 也 很 不 没 这 那 个 和 与 或 但 而 及 把 被 让 给 对 从 到 向 于 之 其 为 以 一个 一下 一点 有点 一些 一样 这样 那样 怎样 什么 怎么 为啥 多少 几个 两个 三个 我们 你们 他们 咱们 自己 大家 别人 这个 那个 这些 那些 所以 因为 但是 而且 如果 虽然 不过 只是 还有 以及 然后 现在 今天 明天 昨天 刚才 已经 还是 就是 不是 没有 可以 应该 需要 知道 觉得 感觉 时候 真的 其实 可能 比较 一直 直接 马上 起来 出来 过来 回来 上去 下去 地方 东西 事情 办法 时间 问题 小时 十点 点半 这周 上周 下周 我这 我在 有人 这边 那边 确实 说话 上面 下面 里面 外面 之前 之后 以后 以前 一下 一次 一天 两天 三天 好吧 好的 收到 行吧 哈哈 哈哈哈 呵呵 嘿嘿 我去 emmm';
+var STOP_SET={};
+(function(){
+  var a=STOP.split(/\s+/);
+  for(var i=0;i<a.length;i++) if(a[i]) STOP_SET[a[i]]=1;
+})();
+var CJK=/[\u4e00-\u9fa5]/;
+
+function lcsLen(a,b){
+  var best=0,x,y,k;
+  for(x=0;x<a.length;x++){
+    for(y=0;y<b.length;y++){
+      k=0;
+      while(a.charAt(x+k)&&a.charAt(x+k)===b.charAt(y+k)) k++;
+      if(k>best) best=k;
+    }
+  }
+  return best;
+}
+function extractWords(msgs){
+  var freq={}, i, j, k;
+  for(i=0;i<msgs.length;i++){
+    var tx=msgs[i].text
+      .replace(/\[[^\]\n]{1,8}\]/g,' ')
+      .replace(/https?:\/\/\S+/g,' ')
+      .replace(/@\S{1,20}/g,' ')
+      .replace(/[A-Za-z0-9]+/g,' ')
+      .replace(/[^\u4e00-\u9fa5]+/g,'|');
+    var parts=tx.split('|');
+    for(j=0;j<parts.length;j++){
+      var seg=parts[j];
+      if(seg.length<2) continue;
+      /* 2-gram */
+      for(k=0;k+2<=seg.length;k++){
+        var w2=seg.substr(k,2);
+        if(STOP_SET[w2]) continue;
+        freq[w2]=(freq[w2]||0)+1;
+      }
+      /* 3-gram */
+      for(k=0;k+3<=seg.length;k++){
+        var w3=seg.substr(k,3);
+        if(STOP_SET[w3]) continue;
+        freq[w3]=(freq[w3]||0)+1;
+      }
+    }
+  }
+  /* 去重：3-gram 吃掉 2-gram */
+  var arr=[];
+  for(var w in freq) if(freq.hasOwnProperty(w)) arr.push({w:w,n:freq[w],len:w.length});
+  arr.sort(function(a,b){return b.n-a.n||b.len-a.len;});
+  var picked=[], used={};
+  var WEAK='的我你他她它们在是就都也很不没个和与或但而及把被让给对从到向于这那有会要能可以了吗呢吧啊呀哦嗯先再还才又更最太挺好';
+  for(i=0;i<arr.length&&picked.length<24;i++){
+    var it=arr[i];
+    if(it.n<3) break;
+    if(it.len===2&&it.n<3) continue;
+    if(it.n<8&&(WEAK.indexOf(it.w.charAt(0))>=0||WEAK.indexOf(it.w.charAt(it.w.length-1))>=0)) continue;
+    var bad=false;
+    for(j=0;j<picked.length;j++){
+      if(picked[j].w.indexOf(it.w)>=0||it.w.indexOf(picked[j].w)>=0){
+        /* 短的被长的覆盖时，若频次差距不大则跳过短的 */
+        if(picked[j].w.length>it.w.length && picked[j].n>=it.n*0.6){ bad=true; break; }
+        if(picked[j].w.length<it.w.length && it.n>=picked[j].n*0.6){ picked.splice(j,1); j--; continue; }
+      }else if(lcsLen(picked[j].w,it.w)>=2){
+        /* 高度重叠（如「虚拟滚」「拟滚动」）只留一个 */
+        if(picked[j].n>=it.n){ bad=true; break; }
+        picked.splice(j,1); j--; continue;
+      }
+    }
+    if(!bad) picked.push(it);
+  }
+  return picked.slice(0,24);
+}
+
+/* ══════════ 示例数据 ══════════ */
+var SAMPLE=[
+{d:0,h:9.2,m:[
+["老张","说个事，明天站会挪到十点半，我先去趟客户那边"],
+["小陈","收到，我先把昨天那个接口文档补完",42],
+["阿泽","好",26],
+["大熊","十点半的话我周报就赶不上了，能提前十分钟吗",96],
+["老张","那十点二十",1140],
+["大熊","行",33],
+["阿May","反正我九点半才起[捂脸]",74],
+["静静","收到",240]
+]},
+{d:2,h:14.4,m:[
+["小陈","刚开完会，需求又变了"],
+["小陈","昨天说的那个筛选条件，今天改成三级联动了",18],
+["大熊","哪个筛选",55],
+["小陈","列表页那个，本来两个下拉，现在要三级联动还要支持多选",21],
+["阿泽","哈哈哈哈这才周三",40],
+["大熊","你先评估下工作量吧，别又通宵",63],
+["小陈","我算了下，两天起步，而且后端接口得改",35],
+["老张","先跟产品确认一下，是不是一定要这周上",1080],
+["小陈","问了，说尽量",48],
+["大熊","尽量就是必须",29],
+["阿May","[裂开][裂开]",88],
+["静静","那我这边测试用例也得重写",150]
+]},
+{d:7,h:11.9,m:[
+["阿May","中午吃什么，别再说随便了"],
+["阿泽","随便",22],
+["阿May","[发怒]",9],
+["小陈","楼下那家湘菜还行，就是有点咸",37],
+["大熊","我投麻辣烫",44],
+["静静","我带了饭",61],
+["阿泽","那你自己吃吧",18],
+["静静","我带了饭但不影响我参与讨论",33],
+["阿May","那就麻辣烫，十一点半下单，谁要加菜",52],
+["小陈","加个宽粉",14],
+["大熊","加个午餐肉",17],
+["阿May","老张呢",35],
+["老张","我不吃辣，帮我带个盖饭",620],
+["阿May","行，十二点楼下见",26]
+]},
+{d:13,h:22.4,m:[
+["阿May","还有人吗"],
+["阿May","我还在改那个动画，卡了三个小时了",31],
+["小陈","在，我这刚提交",64],
+["阿May","为什么这个滚动在 iOS 上就是会抖",27],
+["小陈","你是不是用了 transform 里的百分比",38],
+["阿May","对",11],
+["小陈","换成 px，或者加 translateZ(0) 试试",24],
+["阿May","……好了",46],
+["阿May","我恨它",7],
+["小陈","习惯就好",19],
+["阿May","你们都不下班的吗",88],
+["小陈","等 CI",31],
+["大熊","我在写周报，八点才开始写",240],
+["阿May","[困]",15],
+["静静","你们早点睡",330],
+["阿May","你不也没睡",22],
+["静静","我在看剧",40],
+["阿May","[微笑]",12]
+]},
+{d:21,h:10.1,m:[
+["大熊","分享一个我觉得写得挺好的文章"],
+["大熊","它讲的是为什么大部分团队的评审会最后都变成了通知会。核心观点是：如果会上没有真正能拍板的人，那这场会就只是一次信息同步。正确的做法是提前把方案发出去，给别人时间形成反对意见，而不是让大家在会上现场想",140],
+["大熊","我对照了下我们现在的流程，确实是这样。每次评审都是产品讲完问一句大家有问题吗，然后没人说话，散会",95],
+["小陈","有道理，但提前发方案没人看啊",72],
+["大熊","所以要指定必须回复的人，不回复就当默认同意，责任就转移了",58],
+["老张","这个可以试试，下次评审我提前一天发",1560],
+["阿泽","学到了",44],
+["阿May","收藏了但不会看",66],
+["大熊","[捂脸]",20]
+]},
+{d:28,h:15.7,m:[
+["小陈","刚看到有人把整个列表逻辑写在一个八百行的组件里"],
+["大熊","哪个",48],
+["小陈","就不点名了",12],
+["老张","能跑就行",1480],
+["小陈","能跑和能维护是两回事",29],
+["大熊","我同意小陈，这种后面谁接手谁痛苦",41],
+["老张","我不是说不用重构，我是说这周先把版本发了，别在发版前动大结构",980],
+["小陈","这个我同意",33],
+["大熊","那排到下周",27],
+["阿May","你们讨论得好认真，我只关心它会不会崩",95],
+["静静","会",18],
+["阿May","[裂开]",9],
+["阿泽","哈哈哈哈哈哈",31],
+["老张","行，下周开个专项，先记一下",260]
+]},
+{d:35,h:23.2,m:[
+["阿May","有人上号吗"],
+["阿泽","来",25],
+["阿May","缺一个",14],
+["阿泽","叫大熊",17],
+["大熊","我菜",120],
+["阿泽","没关系我们更菜",23],
+["大熊","那来",16],
+["阿May","开语音",11],
+["小陈","你们明天不上班吗",180],
+["阿May","上啊",14],
+["小陈","……",22],
+["阿May","你也来",19],
+["小陈","我不玩这个",26],
+["阿May","那你挂机",13],
+["小陈","行吧",31],
+["阿泽","这就是传说中的真香",24]
+]},
+{d:41,h:9.8,m:[
+["老张","团建投票，三个选项：密室、露营、吃饭"],
+["小陈","吃饭",36],
+["阿泽","吃饭",21],
+["阿May","密室！",29],
+["大熊","露营太累了，我投吃饭",74],
+["静静","吃饭",130],
+["老张","密室一票，吃饭四票",300],
+["阿May","你们好没意思",18],
+["阿泽","吃饭也能玩啊",26],
+["阿May","吃饭能玩什么",12],
+["阿泽","玩吃饭",15],
+["阿May","[微笑][微笑]",9],
+["老张","那就定吃饭，我订位",240]
+]},
+{d:49,h:16.3,m:[
+["小陈","线上报警了"],
+["老张","哪个模块",28],
+["小陈","订单列表，500",9],
+["大熊","我看下日志",15],
+["小陈","我怀疑是刚才那个缓存改动",11],
+["大熊","不是，是数据库连接池满了",38],
+["老张","先回滚",7],
+["小陈","已经在回滚了",13],
+["阿泽","需要我做什么",22],
+["老张","阿泽你先盯监控，有变化随时说",16],
+["阿泽","好",8],
+["大熊","回滚完成了",64],
+["小陈","报警停了",12],
+["老张","好，明天复盘，把这次连接池配置问题写进周报",31],
+["静静","我这边补一个监控告警",88],
+["老张","辛苦",19],
+["阿May","我刚打开就看到你们在救火[捂脸]",120]
+]},
+{d:56,h:21.6,m:[
+["阿May","明天就放假了，今天谁还有心思干活"],
+["阿泽","我",24],
+["阿May","你不对劲",11],
+["阿泽","我在等下班",18],
+["阿May","……",7],
+["小陈","我把这周收尾做完就走",64],
+["大熊","我打算假期把那个重构方案写完",95],
+["阿May","你才是真的不对劲",16],
+["大熊","假期写代码没人打扰，效率最高",42],
+["老张","注意休息",210],
+["阿May","我假期要睡三天",28],
+["静静","我要回家",150],
+["阿May","带点特产",21]
+]},
+{d:64,h:9.4,m:[
+["阿泽","节后第一天，我的脑子还在高速上"],
+["小陈","我连密码都忘了",38],
+["阿May","我闹钟设错了，早到一小时",52],
+["大熊","我假期把方案写完了，等下发你们",71],
+["老张","好，上午十点对一下",340],
+["静静","我这周要补三天的测试",120],
+["阿泽","节后综合症实锤",26],
+["小陈","建议公司放七天假让我们恢复",33],
+["阿May","支持",14],
+["老张","我转达[微笑]",28]
+]},
+{d:70,h:15.1,m:[
+["大熊","问个事，你们觉得现在这个行情，跳槽涨多少算合理"],
+["小陈","看基数吧，百分之二十到三十",44],
+["大熊","我问了几个猎头，说现在普遍平薪，甚至降薪",63],
+["阿May","这么夸张",19],
+["大熊","主要是岗位少了，要求还变高了。以前会 Vue 就行，现在要会 Vue 还要懂工程化还要能带人",88],
+["小陈","那我觉得不如先把手里的事做深",35],
+["大熊","我也是这么想的，与其焦虑不如把项目做扎实，明年再看",52],
+["老张","这个判断是对的，行情不好的时候跳槽风险很高",480],
+["阿泽","那我先不投简历了",29],
+["阿May","你什么时候投的",12],
+["阿泽","昨天",9],
+["阿May","[微笑]",8],
+["静静","我去年跳的，说实话有点后悔",210],
+["大熊","怎么说",16],
+["静静","团队更大了，但话语权更小了，很多事只能执行",33],
+["大熊","这个确实，规模不等于成长",27]
+]},
+{d:76,h:0.6,m:[
+["阿May","有人醒着吗"],
+["阿泽","在",41],
+["阿May","我最近有点怀疑自己适不适合做这行",28],
+["阿泽","怎么了",16],
+["阿May","就是感觉做了三年，还是在做增删改查，换个框架就得重新学，好像没什么积累",33],
+["阿泽","我懂这种感觉",22],
+["阿May","而且我看别人都在搞 AI 搞大模型，我连那个方向的门都摸不到",19],
+["阿泽","我觉得积累不是技术栈，是你解决问题的能力，这个东西换框架也不会丢",44],
+["阿May","……你什么时候变得这么会说话了",31],
+["阿泽","我一直很会，只是平时懒得说",18],
+["阿May","谢谢",26],
+["阿泽","睡吧，明天还要上班",14],
+["阿May","嗯",9]
+]},
+{d:77,h:15.4,m:[
+["小陈","看到个比赛，1024 程序员节那个，做个应用就能投"],
+["阿May","奖品是什么",33],
+["小陈","一等奖四千积分加个书包",21],
+["阿May","书包？",11],
+["小陈","BuddyCat 书包",14],
+["阿May","有点可爱",9],
+["大熊","要求高吗",48],
+["小陈","不高，网页应用就行，主要看完成度和创意",26],
+["阿泽","你打算做吗",19],
+["小陈","我在想做一个把聊天记录变画像的东西",31],
+["阿May","那不就是我们群？",13],
+["小陈","对，我拿我们群当样本",17],
+["阿May","你敢",8],
+["小陈","我脱敏，只出统计不出原话",22],
+["阿May","那还行",14],
+["老张","做完了发群里，我们给你点赞",390],
+["阿泽","社媒分靠我们了",26],
+["小陈","[抱拳]",11]
+]}
+];
+
+var SAMPLE2=[
+{d:4,h:17.5,m:[
+["小陈","今天的进度同步一下，我这边接口做完了，明天联调"],
+["大熊","我这边列表页还差一个导出功能",96],
+["阿泽","我那个 bug 修完了，等测试验证",140],
+["静静","我明天开始测",180],
+["老张","好，明天上午十点对一下联调时间",660],
+["阿May","我的动画还要半天",88],
+["小陈","有阻塞吗",24],
+["阿May","没有，就是慢",16],
+["老张","行，今天到这儿，早点走",720],
+["阿泽","收到",12]
+]},
+{d:9,h:13.2,m:[
+["大熊","关于列表页的性能，我想了下，可能要上虚拟滚动"],
+["小陈","数据量多少",52],
+["大熊","最多两万条",18],
+["小陈","两万条确实要虚拟滚动，不然卡",26],
+["阿May","改起来麻烦吗",44],
+["大熊","一周吧，还要处理高度自适应",31],
+["老张","有没有更简单的办法",840],
+["小陈","先分页，把默认页大小改成五十",35],
+["大熊","这只能缓解",29],
+["老张","那先分页，虚拟滚动排到下个迭代",420],
+["阿May","同意",17],
+["静静","测试那边要同步改用例",95],
+["大熊","我来写方案文档",33]
+]},
+{d:16,h:10.5,m:[
+["老张","新同事今天入职，叫小林，做前端的"],
+["阿May","欢迎欢迎",62],
+["阿泽","欢迎",48],
+["小陈","欢迎，有问题随时问",55],
+["大熊","欢迎，文档都在共享盘里",73],
+["静静","欢迎",120],
+["老张","小林你先看下项目文档，熟悉下代码",210],
+["小林","好的，谢谢大家",96],
+["阿May","有事群里喊",41],
+["小林","好",29]
+]},
+{d:19,h:18.4,m:[
+["阿泽","今天周五，有人一起吃饭吗"],
+["阿May","有",31],
+["小陈","算我一个",44],
+["大熊","我今晚有事",66],
+["静静","我也不行",58],
+["阿泽","那就三个",22],
+["阿May","吃什么",15],
+["阿泽","烧烤",12],
+["小陈","可以",19],
+["阿May","那就烧烤，六点半楼下",28],
+["阿泽","我去订位",14]
+]},
+{d:24,h:9.6,m:[
+["老张","周会纪要：本周重点是联调和上线准备"],
+["老张","周三之前完成联调，周四提测，周五上线",35],
+["大熊","周四提测有点紧",88],
+["老张","那周四下班前提测",240],
+["小陈","接口这边没问题",46],
+["静静","测试资源这周够",71],
+["阿泽","我这边 bug 今天清完",53],
+["老张","好，有问题随时说",180],
+["阿May","收到",26]
+]},
+{d:31,h:22.8,m:[
+["阿May","十点开抢，谁帮我一起抢"],
+["阿泽","我来",29],
+["小陈","我也来",36],
+["阿May","两张就行，别多抢",18],
+["阿泽","哪个价位",24],
+["阿May","内场",11],
+["小陈","准备好了",33],
+["阿May","三、二、一",9],
+["阿泽","没了",7],
+["小陈","秒没",6],
+["阿May","[裂开]",8],
+["阿泽","下次吧",15]
+]},
+{d:38,h:14.8,m:[
+["大熊","最近在用 AI 写代码，确实快了不少"],
+["小陈","我用来写单测，省一半时间",64],
+["老张","生成的代码能直接用吗",520],
+["大熊","不能，得改，但框架能出来",38],
+["小陈","关键是它不懂我们的业务",41],
+["阿May","我用来写文案",52],
+["阿泽","我用它写周报",37],
+["大熊","周报也让它写？",29],
+["阿泽","写了三行，我自己改了半小时",23],
+["阿May","哈哈哈哈哈",12],
+["小陈","所以还是得会判断",44],
+["老张","工具是工具，判断力是自己的",380]
+]},
+{d:45,h:11.2,m:[
+["大熊","提个建议，我们的代码规范要不要统一一下"],
+["小陈","现在确实乱，有人用分号有人不用",58],
+["阿May","我无所谓，跟着项目走",66],
+["大熊","那我把 ESLint 配置整理一份发群里",71],
+["老张","可以，别搞太严，不然天天报错",640],
+["大熊","先开 warn，慢慢收",34],
+["小陈","支持",19],
+["静静","测试这边也受益",110],
+["阿May","别再让我改缩进了",27],
+["大熊","[捂脸]",14]
+]},
+{d:52,h:16.9,m:[
+["老张","客户反馈导出的表格少了两列"],
+["小陈","哪个导出",38],
+["老张","订单导出，说少了金额和状态",26],
+["大熊","我看下，可能是模板没更新",55],
+["小陈","上周改过导出字段",49],
+["大熊","找到了，模板里写死了列",88],
+["老张","能今天修吗",320],
+["大熊","可以，半小时",21],
+["老张","改完让静静验一下",190],
+["静静","好",44],
+["老张","顺便把导出的测试用例补上",210],
+["静静","收到",31]
+]},
+{d:60,h:20.5,m:[
+["大熊","听说下个月搬办公室"],
+["阿May","真的假的",24],
+["大熊","行政发的通知，搬到对面那栋",19],
+["小陈","通勤时间差不多",63],
+["阿泽","我的显示器怎么办",37],
+["老张","公司统一搬，个人物品自己打包",480],
+["阿May","那我得提前收拾",29],
+["静静","新工位有窗吗",140],
+["大熊","听说靠窗的都被老员工占了",33],
+["阿May","[微笑]",11]
+]},
+{d:67,h:10.8,m:[
+["老张","这个季度的目标定了，主要是两件事：性能优化和新功能上线"],
+["大熊","性能这块我来",74],
+["小陈","新功能是哪个",41],
+["老张","报表模块，客户提了很久了",58],
+["小陈","报表挺复杂的，工期要给够",36],
+["老张","所以先做基础版，下季度再迭代",92],
+["静静","测试这边要提前介入",120],
+["老张","对，需求评审就让静静参加",48],
+["阿May","我负责样式",33],
+["老张","好，散会",26]
+]},
+{d:73,h:13.5,m:[
+["阿May","我下周三请一天假，家里有事"],
+["老张","好，工作交接一下",260],
+["阿May","我的事小陈能接",22],
+["小陈","没问题",31],
+["大熊","说到请假，我年假还剩五天",78],
+["阿泽","我剩八天",44],
+["静静","你们怎么都剩这么多",95],
+["阿泽","因为不敢请",18],
+["阿May","[捂脸]",12],
+["老张","该休就休，别攒着",340]
+]}
+];
+
+function buildSample(){
+  var ALL=SAMPLE.concat(SAMPLE2).sort(function(a,b){return (a.d-b.d)||(a.h-b.h);});
+  var base=+new Date(2026,7,5,0,0,0);
+  var seed=1024587;
+  function rnd(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+  var out=[];
+  for(var i=0;i<ALL.length;i++){
+    var tp=ALL[i], cur=base+tp.d*86400000+tp.h*3600000;
+    for(var j=0;j<tp.m.length;j++){
+      var it=tp.m[j];
+      if(j>0) cur+=(it[2]!=null?it[2]:(30+rnd()*150))*1000;
+      var dt=new Date(cur);
+      out.push(it[0]+' '+dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+
+        ' '+pad(dt.getHours())+':'+pad(dt.getMinutes())+':'+pad(dt.getSeconds())+'\n'+it[1]);
+    }
+  }
+  return out.join('\n\n');
+}
+
+/* ══════════ 渲染 ══════════ */
+var state={data:null,meta:null};
+
+/* ---------- 标签 ---------- */
+function tagsFor(d){
+  var ppl=d.people, N=d.total, out={};
+  ppl.forEach(function(p){out[p.name]=[];});
+  function give(p,tag,cls){
+    if(!p||out[p.name].length>=2) return false;
+    out[p.name].push({t:tag,c:cls||''});
+    return true;
+  }
+  if(ppl.length<2) return out;
+  var byN=ppl.slice().sort(function(a,b){return b.count-a.count;});
+  var top=byN[0], low=byN[byN.length-1];
+
+  if(N>=10&&top.count/N>=0.28) give(top,'话痨王','g');
+  if(N>=10&&low.count/N<=0.08&&low!==top) give(low,'潜水员','y');
+
+  var night=ppl.filter(function(p){return p.times.length>=4&&p.nightRatio>=0.34;})
+               .sort(function(a,b){return b.nightRatio-a.nightRatio;})[0];
+  if(night) give(night,'夜猫子','');
+
+  var fasts=ppl.filter(function(p){return p.med!=null&&p.latN>=3&&p.med<150;})
+               .sort(function(a,b){return a.med-b.med;});
+  for(var i=0;i<fasts.length;i++){ if(give(fasts[i],'秒回怪','g')) break; }
+
+  var early=ppl.filter(function(p){return p.times.length>=4&&p.earlyRatio>=0.1;})
+               .sort(function(a,b){return b.earlyRatio-a.earlyRatio;})[0];
+  if(early) give(early,'早鸟','');
+
+  var slows=ppl.filter(function(p){return p.med!=null&&p.latN>=3&&p.med>300;})
+               .sort(function(a,b){return b.med-a.med;});
+  for(var j=0;j<slows.length;j++){ if(give(slows[j],'慢半拍','y')) break; }
+
+  var long=ppl.slice().sort(function(a,b){return b.avgLen-a.avgLen;})[0];
+  if(long&&long.avgLen>=12) give(long,'长文大师','');
+
+  var shorts=ppl.slice().sort(function(a,b){return a.avgLen-b.avgLen;});
+  for(var s2=0;s2<shorts.length;s2++){
+    if(shorts[s2].avgLen>10) break;
+    if(shorts[s2].count<4) continue;
+    if(give(shorts[s2],'捧哏','')) break;
+  }
+
+  var talks=ppl.filter(function(p){return p.latN>=15;}).sort(function(a,b){return b.latN-a.latN;});
+  for(var t2=0;t2<talks.length;t2++){ if(give(talks[t2],'接话王','g')) break; }
+
+  var emo=ppl.filter(function(p){return p.emojiRatio>=0.2&&p.count>=4;})
+             .sort(function(a,b){return b.emojiRatio-a.emojiRatio;});
+  for(var k=0;k<emo.length;k++){ if(give(emo[k],'表情大户','y')) break; }
+
+  /* 兜底：没人愿意被落下 */
+  ppl.forEach(function(p){
+    if(out[p.name].length) return;
+    if(p.share>=0.12) give(p,'常驻人口','');
+    else if(p.share>=0.03) give(p,'边缘观察者','y');
+    else give(p,'偶尔路过','y');
+  });
+  return out;
+}
+
+/* ---------- 渲染 ---------- */
+function render(d,meta){
+  state.data=d; state.meta=meta;
+  $('stageInput').hidden=true;
+  $('stageResult').hidden=false;
+  $('btnReset').hidden=false;
+  $('btnCard').hidden=false;
+  $('btnSample').textContent='换一组示例';
+
+  var gn=$('gname');
+  if(!gn.textContent||gn.textContent==='群聊') gn.textContent='未命名群聊';
+  $('gmeta').innerHTML='<b>'+d.total+'</b> 条消息 · <b>'+d.people.length+'</b> 人 · '+
+    (d.t0?fmtDate(d.t0)+' → '+fmtDate(d.t1):'未识别时间戳');
+
+  /* KPI */
+  var avgDay=d.spanDays?d.total/d.spanDays:null;
+  var kpi=[
+    {v:d.total,k:'条消息',u:''},
+    {v:d.people.length,k:'位参与者',u:''},
+    {v:d.spanDays||'—',k:'时间跨度（天）',u:''},
+    {v:d.dayMax||'—',k:'单日最高消息',u:''}
+  ];
+  var kh='';
+  kpi.forEach(function(x){
+    kh+='<div class="kpi"><div class="v">'+x.v+(x.u?'<u>'+x.u+'</u>':'')+'</div><div class="k">'+x.k+'</div></div>';
+  });
+  $('kpis').innerHTML=kh;
+
+  var tg=tagsFor(d);
+  var maxCount=d.ranked[0]?d.ranked[0].count:1;
+  var show=d.ranked.slice(0,12), rest=d.ranked.length-show.length;
+  var mh='';
+  show.forEach(function(p,i){
+    var pct=(p.share*100).toFixed(p.share>=0.1?0:1);
+    var tags=(tg[p.name]||[]).map(function(t){return '<span class="tag '+t.c+'">'+esc(t.t)+'</span>';}).join('');
+    mh+='<div class="mrow">'+
+      '<div class="ava" style="background:'+avaColor(i)+'">'+esc(p.name.slice(0,1))+'</div>'+
+      '<div><div class="nm">'+esc(p.name)+tags+'</div>'+
+        '<div class="bar"><i style="width:'+(p.count/maxCount*100)+'%;background:linear-gradient(90deg,'+avaColor(i)+',rgba(18,200,122,.75))"></i></div></div>'+
+      '<div class="rt"><b>'+p.count+'</b><span>'+pct+'% · 均 '+Math.round(p.avgLen)+' 字</span></div></div>';
+  });
+  if(rest>0) mh+='<div class="empty">还有 '+rest+' 人没有进榜（每人不到 '+(show[show.length-1].count)+' 条）</div>';
+  $('memList').innerHTML=mh;
+
+  /* 延迟 */
+  var withLat=d.people.filter(function(p){return p.med!=null&&p.latN>=2;});
+  if(withLat.length<2||!d.t0){
+    $('latList').innerHTML='<div class="empty">时间戳不足，算不出谁回得快</div>';
+  }else{
+    withLat.sort(function(a,b){return a.med-b.med;});
+    var mx=Math.log(1+Math.max.apply(null,withLat.map(function(p){return p.med;})));
+    var lh='';
+    withLat.forEach(function(p,i){
+      var w=Math.max(6,Math.log(1+p.med)/mx*100);
+      var col=p.med<60?'#12C87A':(p.med<600?'#FFB020':'#FF5C7A');
+      lh+='<div class="lrow"><span class="lb">'+esc(p.name)+'</span>'+
+        '<span class="tr"><i style="width:'+w+'%;background:'+col+'"></i></span>'+
+        '<span class="vv">'+fmtDur(p.med)+'</span></div>';
+    });
+    $('latList').innerHTML=lh;
+  }
+
+  /* 热力图 */
+  if(!d.t0){
+    $('pHm').hidden=true;
+  }else{
+    $('pHm').hidden=false;
+    var maxCell=0;
+    d.hm.forEach(function(row){row.forEach(function(v){if(v>maxCell)maxCell=v;});});
+    var order=[1,2,3,4,5,6,0], wname=['一','二','三','四','五','六','日'];
+    var body='<div class="hm-body">'+
+      '<div class="hm-hours">'+Array.apply(null,{length:24}).map(function(_,h){return '<span>'+(h%3===0?h:'')+'</span>';}).join('')+'</div>';
+    for(var r2=0;r2<7;r2++){
+      body+='<div class="hm-row">';
+      for(var c2=0;c2<24;c2++){
+        var v2=d.hm[order[r2]][c2];
+        var a2=v2?0.2+0.8*Math.sqrt(v2/maxCell):0;
+        var bg2=v2?('rgba(18,200,122,'+a2.toFixed(2)+')'):'rgba(255,255,255,.045)';
+        body+='<i class="hm-c" style="background:'+bg2+'" title="周'+wname[r2]+' '+pad(c2)+':00 · '+v2+' 条"></i>';
+      }
+      body+='</div>';
+    }
+    body+='</div>';
+    $('hmWrap').innerHTML='<div class="hm-days">'+wname.map(function(x){return '<span>'+x+'</span>';}).join('')+'</div>'+body;
+    /* 峰值 */
+    var bh=0,bv=-1;
+    d.hourTot.forEach(function(v,h){if(v>bv){bv=v;bh=h;}});
+    var peakPct=Math.round(bv/d.total*100);
+    $('hmPeak').innerHTML='高光时刻 <span class="hotdot">'+pad(bh)+':00</span> · '+bv+' 条（占 '+peakPct+'%）';
+  }
+
+  /* 词云 */
+  if(!d.words.length){
+    $('cloud').innerHTML='<div class="empty">文本太短，还没形成明显的口头禅</div>';
+  }else{
+    var wmax=d.words[0].n, ch='';
+    d.words.forEach(function(w,i){
+      var t=w.n/wmax;
+      var size=Math.round(13+29*Math.pow(t,0.62));
+      var hue=[168,262,196,32,150,320,92][i%7];
+      var light=62+Math.round(t*20);
+      ch+='<b style="font-size:'+size+'px;color:hsl('+hue+',72%,'+light+'%)" title="出现 '+w.n+' 次">'+esc(w.w)+'</b>';
+    });
+    $('cloud').innerHTML=ch;
+  }
+
+  /* 洞察 */
+  var ins=[];
+  if(d.t0){
+    var bh2=0,bv2=-1;
+    d.hourTot.forEach(function(v,h){if(v>bv2){bv2=v;bh2=h;}});
+    ins.push({c:'',b:'高光时刻',p:'<em>'+pad(bh2)+':00</em> 是这个群最热闹的时刻，一共 '+bv2+' 条消息，占全天的 '+Math.round(bv2/d.total*100)+'%。'});
+  }
+  if(d.ranked.length>=3){
+    var t1=d.ranked[0],t2=d.ranked[1];
+    ins.push({c:'',b:'谁在撑场',p:'<em>'+esc(t1.name)+'</em> 一个人发了 '+Math.round(t1.share*100)+'% 的消息（'+t1.count+' 条），'+
+      esc(t2.name)+' 紧随其后；剩下 '+Math.max(0,d.people.length-2)+' 个人加起来才 '+Math.round((1-t1.share-t2.share)*100)+'%。'});
+  }
+  var withLat2=d.people.filter(function(p){return p.med!=null&&p.latN>=3;});
+  if(withLat2.length>=2){
+    withLat2.sort(function(a,b){return a.med-b.med;});
+    var f=withLat2[0], s=withLat2[withLat2.length-1];
+    var ratio=f.med>0?Math.round(s.med/f.med):0;
+    ins.push({c:'p',b:'回复速度差',p:'<em>'+esc(f.name)+'</em> 中位响应 '+fmtDur(f.med)+'，'+esc(s.name)+' 要 '+fmtDur(s.med)+
+      (ratio>=2?' —— 差 '+ratio+' 倍。':';差不多，这组数据里没有拖延症。')});
+  }
+  var nightSum=0,nightAll=0;
+  d.people.forEach(function(p){nightAll+=p.times.length;nightSum+=Math.round(p.nightRatio*p.times.length);});
+  if(nightAll>0&&nightSum/nightAll>0.15){
+    ins.push({c:'y',b:'深夜浓度',p:'有 <em>'+Math.round(nightSum/nightAll*100)+'%</em> 的消息发生在 22 点之后，这个群的主场在深夜，不是在白天。'});
+  }
+  if(d.people.length>=3){
+    var lg=d.people.slice().sort(function(a,b){return b.avgLen-a.avgLen;})[0];
+    var sh=d.people.slice().sort(function(a,b){return a.avgLen-b.avgLen;})[0];
+    if(lg.avgLen>sh.avgLen*2){
+      ins.push({c:'p',b:'字数和存在感',p:'<em>'+esc(lg.name)+'</em> 平均每条 '+Math.round(lg.avgLen)+' 字，'+esc(sh.name)+' 只有 '+Math.round(sh.avgLen)+' 字 —— '+
+        (lg.count<sh.count?'说得少但说得多。':'既说得多也说得长。')});
+    }
+  }
+  var ih='';
+  ins.slice(0,3).forEach(function(x){
+    ih+='<div class="icard '+x.c+'"><b>'+x.b+'</b><p>'+x.p+'</p></div>';
+  });
+  $('insList').innerHTML=ih||'<div class="empty">样本太小，暂时看不出什么</div>';
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- 错误 ---------- */
+function showErr(html){
+  var e=$('err');
+  e.innerHTML=html+'<br><span style="color:#A9B6C4">识别到 0 条消息。请确认每行是「昵称 2026-08-05 09:12:31」或「昵称：内容」这样的结构。</span>';
+  e.className='err on';
+}
+function hideErr(){ $('err').className='err'; $('err').innerHTML=''; }
+
+/* ---------- 运行 ---------- */
+function run(text){
+  hideErr();
+  if(!text||text.trim().length<10){
+    showErr('内容太短了，先贴一段聊天记录进来。');
+    return;
+  }
+  var res=parseChat(text);
+  if(res.msgs.length<3){
+    showErr('一条都没解析出来。');
+    return;
+  }
+  var d=analyze(res.msgs);
+  render(d,res);
+}
+
+/* ---------- 分享卡 ---------- */
+function drawCard(){
+  var d=state.data; if(!d) return;
+  var cv=$('card'), ctx=cv.getContext('2d');
+  var W=1200,H=1600;
+  cv.width=W; cv.height=H;
+
+  /* 背景 */
+  var g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#0A1016'); g.addColorStop(.55,'#070C11'); g.addColorStop(1,'#0B1310');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  var rg=ctx.createRadialGradient(W*0.12,-120,40,W*0.12,-120,760);
+  rg.addColorStop(0,'rgba(18,200,122,.30)'); rg.addColorStop(1,'rgba(18,200,122,0)');
+  ctx.fillStyle=rg; ctx.fillRect(0,0,W,900);
+
+  var rg2=ctx.createRadialGradient(W*0.94,180,40,W*0.94,180,620);
+  rg2.addColorStop(0,'rgba(124,107,255,.20)'); rg2.addColorStop(1,'rgba(124,107,255,0)');
+  ctx.fillStyle=rg2; ctx.fillRect(0,0,W,900);
+
+  /* 网格 */
+  ctx.strokeStyle='rgba(255,255,255,.028)'; ctx.lineWidth=1;
+  for(var x=0;x<W;x+=60){ ctx.beginPath();ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,H);ctx.stroke(); }
+  for(var y=0;y<H;y+=60){ ctx.beginPath();ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);ctx.stroke(); }
+
+  var F='"PingFang SC","Microsoft YaHei",-apple-system,sans-serif';
+  function T(txt,x,y,size,weight,color,align){
+    ctx.font=(weight||'400')+' '+size+'px '+F;
+    ctx.fillStyle=color||'#E9EFF6';
+    ctx.textAlign=align||'left';
+    ctx.fillText(txt,x,y);
+  }
+  function wrap(txt,x,y,size,maxW,lh,color,limit){
+    ctx.font='400 '+size+'px '+F; ctx.fillStyle=color||'#C7D3DF'; ctx.textAlign='left';
+    var line='',lines=[];
+    for(var i=0;i<txt.length;i++){
+      var t=line+txt[i];
+      if(ctx.measureText(t).width>maxW&&line){ lines.push(line); line=txt[i]; }
+      else line=t;
+    }
+    if(line) lines.push(line);
+    if(limit&&lines.length>limit){ lines=lines.slice(0,limit); lines[limit-1]=lines[limit-1].slice(0,-1)+'…'; }
+    lines.forEach(function(l,i){ ctx.fillText(l,x,y+i*lh); });
+    return y+lines.length*lh;
+  }
+
+  /* 顶部标识 */
+  ctx.fillStyle='rgba(18,200,122,.14)';
+  ctx.strokeStyle='rgba(18,200,122,.42)'; ctx.lineWidth=1.5;
+  roundRect(ctx,72,74,214,46,23); ctx.fill(); ctx.stroke();
+  T('🧬 GroupDNA',96,105,22,'700','#7FE3B4');
+  T('群聊人格画像',72,172,26,'400','#6E7C8B');
+
+  /* 群名 */
+  var gn=($('gname').textContent||'群聊').replace(/\s+/g,'');
+  T(gn.length>12?gn.slice(0,12)+'…':gn,72,268,68,'800','#FFFFFF');
+  T(fmtDate(d.t0)+' — '+fmtDate(d.t1)+' · 共 '+d.spanDays+' 天',72,316,25,'400','#7E8C9B');
+
+  /* KPI */
+  var kx=[72,420,768];
+  var kv=[d.total,d.people.length,d.spanDays];
+  var kk=['条消息','位参与者','天'];
+  for(var i=0;i<3;i++){
+    T(String(kv[i]||'—'),kx[i],452,82,'800','#FFFFFF');
+    T(kk[i],kx[i],494,24,'400','#6E7C8B');
+  }
+  ctx.strokeStyle='rgba(255,255,255,.09)';
+  ctx.beginPath();ctx.moveTo(72,548);ctx.lineTo(1128,548);ctx.stroke();
+
+  /* TOP 3 */
+  T('发言 TOP 3',72,612,25,'600','#8C9AAA');
+  var maxC=d.ranked[0]?d.ranked[0].count:1;
+  d.ranked.slice(0,3).forEach(function(p,i){
+    var y=666+i*94;
+    ctx.fillStyle=avaColor(i);
+    ctx.beginPath();ctx.arc(96,y-10,22,0,Math.PI*2);ctx.fill();
+    T(p.name.slice(0,1),96,y-2,22,'700','#04170F','center');
+    T(p.name,140,y,28,'600','#E9EFF6');
+    var bw=520*(p.count/maxC);
+    ctx.fillStyle='rgba(255,255,255,.07)';
+    roundRect(ctx,140,y+16,520,10,5); ctx.fill();
+    var lg2=ctx.createLinearGradient(140,0,140+bw,0);
+    lg2.addColorStop(0,avaColor(i)); lg2.addColorStop(1,'#12C87A');
+    ctx.fillStyle=lg2;
+    roundRect(ctx,140,y+16,Math.max(10,bw),10,5); ctx.fill();
+    T(Math.round(p.share*100)+'%',700,y+2,26,'700','#C7D3DF');
+    T(p.count+' 条',700,y+28,20,'400','#7A8898');
+  });
+
+  /* 迷你热力图 */
+  T('活跃热力图',72,1010,25,'600','#8C9AAA');
+  var cellW=38, gap=6, startX=72, startY=1058;
+  var maxCell=0;
+  d.hm.forEach(function(r){r.forEach(function(v){if(v>maxCell)maxCell=v;});});
+  var order=[1,2,3,4,5,6,0];
+  for(var r=0;r<7;r++){
+    for(var c=0;c<24;c++){
+      var v=d.hm[order[r]][c];
+      var a=v?0.12+0.88*Math.sqrt(v/maxCell):0;
+      ctx.fillStyle=v?('rgba(18,200,122,'+a.toFixed(2)+')'):'rgba(255,255,255,.05)';
+      roundRect(ctx,startX+c*(cellW+gap),startY+r*(cellW+gap),cellW,cellW,7); ctx.fill();
+    }
+  }
+  T('00',startX,startY+7*44+22,18,'400','#5D6A78');
+  T('23',startX+23*(cellW+gap)+cellW-18,startY+7*44+22,18,'400','#5D6A78');
+
+  /* 一句话洞察 */
+  var quote='';
+  var t1=d.ranked[0];
+  if(t1){
+    var bh=0,bv=-1;
+    d.hourTot.forEach(function(v,h){if(v>bv){bv=v;bh=h;}});
+    quote=t1.name+' 发了 '+Math.round(t1.share*100)+'% 的消息，而这个群最热闹的时刻是 '+pad(bh)+':00。';
+  }
+  ctx.fillStyle='rgba(18,200,122,.07)';
+  ctx.strokeStyle='rgba(18,200,122,.24)'; ctx.lineWidth=1.5;
+  roundRect(ctx,72,1400,1056,116,18); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(18,200,122,.55)';
+  roundRect(ctx,72,1400,5,116,3); ctx.fill();
+  wrap(quote,102,1448,27,996,40,'#CFE9DC',2);
+
+  /* 页脚 */
+  ctx.strokeStyle='rgba(255,255,255,.07)';
+  ctx.beginPath();ctx.moveTo(72,1548);ctx.lineTo(1128,1548);ctx.stroke();
+  T('#WorkBuddy  #1024程序员节',72,1585,21,'600','#3E4C5A');
+  T('本地生成 · 不含原始聊天内容',1128,1585,19,'400','#3E4C5A','right');
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* ---------- 事件 ---------- */
+function readFile(f){
+  if(!f) return;
+  if(f.size>10*1024*1024){
+    showErr('文件超过 10 MB，换个小一点的片段吧。');
+    return;
+  }
+  var r=new FileReader();
+  r.onload=function(){
+    var txt=String(r.result||'');
+    $('paste').value=txt.slice(0,400000);
+    run(txt);
+  };
+  r.readAsText(f,'utf-8');
+}
+
+$('drop').addEventListener('click',function(){ $('file').click(); });
+$('file').addEventListener('change',function(e){ readFile(e.target.files[0]); });
+['dragenter','dragover'].forEach(function(ev){
+  $('drop').addEventListener(ev,function(e){ e.preventDefault(); $('drop').classList.add('on'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  $('drop').addEventListener(ev,function(e){ e.preventDefault(); $('drop').classList.remove('on'); });
+});
+$('drop').addEventListener('drop',function(e){
+  var f=e.dataTransfer.files&&e.dataTransfer.files[0];
+  readFile(f);
+});
+$('btnParse').addEventListener('click',function(){ run($('paste').value); });
+$('btnSample').addEventListener('click',function(){
+  $('gname').textContent='打工人自救群';
+  $('paste').value=buildSample();
+  run($('paste').value);
+});
+$('btnReset').addEventListener('click',function(){
+  $('stageResult').hidden=true;
+  $('stageInput').hidden=false;
+  $('btnReset').hidden=true;
+  $('btnCard').hidden=true;
+  $('btnSample').textContent='载入示例群聊';
+  $('paste').value='';
+  $('gname').textContent='群聊';
+  hideErr();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+$('btnCard').addEventListener('click',function(){
+  drawCard();
+  $('modal').classList.add('on');
+});
+$('mClose').addEventListener('click',function(){ $('modal').classList.remove('on'); });
+$('modal').addEventListener('click',function(e){ if(e.target===$('modal')) $('modal').classList.remove('on'); });
+$('btnDl').addEventListener('click',function(){ if (window.parent !== window) { $('btnDl').textContent='安装后可下载分享卡'; return; }
+  var cv=$('card');
+  var a=document.createElement('a');
+  a.download='群聊人格画像-'+(($('gname').textContent||'群聊').replace(/[\\/:*?"<>|\s]/g,''))+'.png';
+  try{
+    a.href=cv.toDataURL('image/png');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }catch(err){
+    a.href=cv.toDataURL('image/png'); a.click();
+  }
+});
+$('gname').addEventListener('click',function(){
+  this.setAttribute('contenteditable','true');
+  this.focus();
+});
+$('gname').addEventListener('blur',function(){
+  this.removeAttribute('contenteditable');
+  if(!this.textContent.trim()) this.textContent='未命名群聊';
+});
+
+/* 演示直链：?demo=1 自动载入示例，?card=1 追加打开分享卡 */
+(function(){
+  var q=location.search||'';
+  if(/demo=1/.test(q)){
+    $('gname').textContent='打工人自救群';
+    $('paste').value=buildSample();
+    run($('paste').value);
+    if(/card=1/.test(q)){
+      setTimeout(function(){ drawCard(); $('modal').classList.add('on'); },300);
+    }
+  }
+})();
+
+})();
+</script>
+</body>
+</html>
