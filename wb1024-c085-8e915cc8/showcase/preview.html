@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
+<title>到手 · 全年工资与个税推演器</title>
+<style>
+:root{
+  --bg:#F7F6F3;
+  --card:#FFFFFF;
+  --line:#E8E5DE;
+  --line2:#F0EDE6;
+  --ink:#17191C;
+  --ink2:#525863;
+  --ink3:#8E949F;
+  --brand:#0E6B4F;
+  --brand2:#17A272;
+  --brandbg:#EAF5F0;
+  --warn:#B23A2E;
+  --warnbg:#FCF0ED;
+  --gold:#9A7B2E;
+  --goldbg:#FBF6E8;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.62;font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+img{max-width:100%;height:auto}
+button{font-family:inherit}
+input{font-family:inherit}
+
+/* ── 顶栏 ── */
+.hd{background:rgba(255,255,255,.92);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;backdrop-filter:saturate(1.6) blur(8px)}
+.hd-in{max-width:1060px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;gap:10px}
+.brand{font-weight:800;font-size:17px;letter-spacing:.6px;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:3px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:inline-block}
+.hd-tag{color:var(--ink3);font-size:12.5px;border-left:1px solid var(--line);padding-left:10px}
+.hd-note{margin-left:auto;font-size:11.5px;color:var(--brand);background:var(--brandbg);padding:4px 10px;border-radius:999px;white-space:nowrap}
+
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px 80px}
+
+/* ── Hero ── */
+.hero{padding:64px 0 40px;text-align:center}
+.kicker{font-size:11.5px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin-bottom:16px;font-weight:700}
+.hero h1{font-size:clamp(26px,5.4vw,42px);line-height:1.28;margin:0 0 18px;font-weight:800;letter-spacing:-.8px}
+.hero h1 em{font-style:normal;color:var(--brand);white-space:nowrap;padding:0 2px;
+  background:linear-gradient(180deg,transparent 64%,var(--brandbg) 64%,var(--brandbg) 94%,transparent 94%)}
+.hero p{color:var(--ink2);font-size:clamp(13.5px,2.4vw,15.5px);margin:0;line-height:1.95}
+
+/* ── 卡片 ── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;
+  box-shadow:0 1px 2px rgba(23,25,28,.03),0 10px 28px -16px rgba(23,25,28,.10)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);gap:18px;align-items:start}
+.ct{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;margin:0 0 20px;letter-spacing:.2px}
+.ci{font-size:10.5px;font-weight:800;color:var(--brand);background:var(--brandbg);border-radius:6px;padding:3px 7px;letter-spacing:.5px}
+
+/* ── 输入 ── */
+.fi{margin-bottom:18px}
+.fi:last-child{margin-bottom:0}
+.fi label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:8px}
+.fi label small{display:block;font-weight:400;color:var(--ink3);font-size:11.5px;margin-top:2px;letter-spacing:.1px}
+.field{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:12px;
+  padding:9px 14px;background:#FCFBF9;transition:border-color .16s,background .16s,box-shadow .16s}
+.field:focus-within{border-color:var(--brand);background:#fff;box-shadow:0 0 0 4px rgba(14,107,79,.07)}
+.field b{color:var(--ink3);font-size:15px;font-weight:600;flex:0 0 auto}
+.field input{border:none;outline:none;background:transparent;font-size:19px;font-weight:700;width:100%;
+  min-width:0;color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.mini{margin-top:7px;font-size:11.5px;color:var(--ink3)}
+.lk{background:none;border:none;padding:0;color:var(--brand);font-size:11.5px;cursor:pointer;
+  text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.lk:hover{color:var(--brand2)}
+
+.spbox{margin-top:11px;border:1px dashed var(--line);border-radius:12px;padding:12px 14px;background:#FCFBF9}
+.chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);padding:5px 0;cursor:pointer}
+.chk input{width:15px;height:15px;accent-color:var(--brand);margin:0;flex:0 0 auto;cursor:pointer}
+.chk em{font-style:normal;margin-left:auto;color:var(--ink3);font-size:11.5px;font-variant-numeric:tabular-nums}
+.sp-tip{margin-top:8px;padding-top:9px;border-top:1px solid var(--line2);font-size:11px;color:var(--ink3);line-height:1.7}
+
+/* ── 结果 ── */
+.res{overflow:hidden}
+.bigbox{padding:4px 0 20px;border-bottom:1px solid var(--line2)}
+.big{font-size:clamp(30px,6.6vw,44px);font-weight:800;letter-spacing:-1.6px;color:var(--brand);line-height:1.08}
+.big small{font-size:16px;font-weight:700;letter-spacing:0;margin-right:2px;color:var(--brand);opacity:.65}
+.big-sub{margin-top:7px;font-size:12px;color:var(--ink3);letter-spacing:.3px}
+
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line2);border-radius:10px;overflow:hidden;margin:18px 0}
+.kv>div{background:#fff;padding:12px 14px}
+.kv span{display:block;font-size:11.5px;color:var(--ink3);margin-bottom:3px}
+.kv b{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.kv b i{font-style:normal;font-size:11px;color:var(--ink3);font-weight:600;margin-left:3px}
+
+/* 钱去哪了 */
+.wk-t{font-size:11.5px;color:var(--ink3);margin-bottom:9px;display:flex;justify-content:space-between}
+.wk-t b{color:var(--ink2)}
+.wkrows{margin:8px 0 2px}
+.wr{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12px}
+.wr-l{flex:0 0 auto;width:68px;color:var(--ink2);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.wr-b{flex:1;height:7px;background:#F2F0EB;border-radius:4px;overflow:hidden;min-width:0}
+.wr-b i{display:block;height:100%;width:0%;border-radius:4px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+.wr-v{flex:0 0 auto;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.sw{width:8px;height:8px;border-radius:2px;display:inline-block;flex:0 0 auto}
+
+/* ── 年终奖方案 ── */
+.lead{color:var(--ink2);font-size:13.5px;margin:-8px 0 20px;line-height:1.8}
+.ab{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ab-card{border:1.5px solid var(--line);border-radius:14px;padding:16px 16px 14px;background:#FCFBF9;position:relative;transition:.2s}
+.ab-card.best{border-color:var(--brand);background:linear-gradient(180deg,var(--brandbg),#fff 70%);box-shadow:0 6px 20px -12px rgba(14,107,79,.45)}
+.ab-h{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ab-n{font-size:clamp(19px,4.2vw,24px);font-weight:800;letter-spacing:-.9px;color:var(--ink)}
+.ab-s{font-size:11.5px;color:var(--ink3);margin-top:5px}
+.ab-note{font-size:11px;color:var(--ink3);margin-top:8px;padding-top:8px;border-top:1px solid var(--line2);line-height:1.65}
+.badge{font-size:10px;font-weight:800;color:#fff;background:var(--brand);border-radius:5px;padding:2px 6px;letter-spacing:.3px}
+.verdict{margin-top:14px;padding:13px 16px;border-radius:12px;background:var(--brandbg);font-size:13.5px;color:var(--brand);font-weight:600;line-height:1.7}
+.verdict.none{background:#F5F3EE;color:var(--ink2);font-weight:400}
+.trap{margin-top:12px;padding:15px 16px;border-radius:12px;background:var(--warnbg);border:1px solid #F2D9D3}
+.trap-h{font-size:13px;font-weight:800;color:var(--warn);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.trap-b{font-size:12.5px;color:#7A4239;line-height:1.8}
+.trap-b b{color:var(--warn)}
+
+/* ── 曲线 ── */
+.chartbox{margin-top:2px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart-note{font-size:11.5px;color:var(--ink3);margin-top:10px;line-height:1.8}
+.chart-note b{color:var(--ink2)}
+
+/* ── 拆解 ── */
+details.dec{margin-top:18px}
+details.dec summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--brand);list-style:none;
+  display:flex;align-items:center;gap:7px;padding:4px 0;user-select:none}
+details.dec summary::-webkit-details-marker{display:none}
+details.dec summary::before{content:"＋";font-weight:800;font-size:15px;color:var(--brand2)}
+details.dec[open] summary::before{content:"－"}
+.step{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2);font-size:12.5px}
+.step:last-child{border-bottom:none}
+.step .n{flex:0 0 20px;color:var(--ink3);font-size:11px;font-weight:700}
+.step .t{flex:1;color:var(--ink2);line-height:1.6}
+.step .v{font-weight:800;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.step.sum .t{color:var(--ink);font-weight:700}
+.step.sum .v{color:var(--brand);font-size:14px}
+.formula{margin:10px 0 0;padding:11px 14px;background:#FCFBF9;border-left:2px solid var(--brand2);
+  border-radius:0 8px 8px 0;font-size:11.5px;color:var(--ink2);line-height:1.85;font-variant-numeric:tabular-nums}
+.formula code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--brand);font-weight:700}
+
+/* ── 页脚 ── */
+.ft{margin-top:34px;padding:24px 0 0;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3);line-height:1.95}
+.ft h4{font-size:11.5px;color:var(--ink2);margin:0 0 10px;letter-spacing:1.2px;font-weight:800}
+.ft h4+h4{margin-top:22px}
+.ft .about{margin:0;color:var(--ink2);font-size:12.5px;line-height:1.95}
+.ft ul{margin:0;padding-left:16px}
+.ft li{margin-bottom:6px}
+.ft .disc{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);color:#A0A6AF}
+
+@media (max-width:820px){
+  .hero{padding:40px 0 30px}
+  .grid{grid-template-columns:1fr}
+  .card{padding:20px 18px;border-radius:16px}
+}
+@media (max-width:640px){
+  .grid{grid-template-columns:1fr}
+  .kv{grid-template-columns:1fr}
+  .kv b i{display:block;margin-left:0;margin-top:3px}
+  .ab{grid-template-columns:1fr}
+  .chart .mx{font-size:22px}
+  .chart .vl{font-size:25px}
+  .chart .nt{font-size:18px}
+  .hd-tag{display:none}
+  .hd-note{font-size:10.5px;padding:3px 8px}
+  .wrap{padding:0 14px 60px}
+  .hero h1{letter-spacing:-.4px}
+}
+</style>
+</head>
+<body><div style="background:#eaf5ee;text-align:center;padding:8px;font-size:12px">示例体验，数据仅保留在本页 <button type="button" onclick="document.querySelectorAll('.spc').forEach(x=>x.checked=false);document.getElementById('salary').value=20000;document.getElementById('social').value=3500;document.getElementById('special').value=0;document.getElementById('bonus').value=60000;calc()">恢复示例</button></div>
+
+<header class="hd">
+  <div class="hd-in">
+    <div class="brand"><i class="dot"></i>到手</div>
+    <div class="hd-tag">全年工资与个税推演器</div>
+    <div class="hd-note">政策口径 · 2026</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="kicker">个人所得税 · 年度测算</div>
+    <h1>为什么 12 月的工资<br>总比 1 月<em>少一截</em>？</h1>
+    <p>不是财务算错了，也不是税率涨了 —— 是「累计预扣」在起作用。<br>填四个数，看这一年每一块钱去了哪。</p>
+  </section>
+
+  <div class="grid">
+
+    <!-- ══ 01 输入 ══ -->
+    <section class="card">
+      <div class="ct"><span class="ci">01</span>你的收入与扣除</div>
+
+      <div class="fi">
+        <label for="salary">月应发工资<small>税前，含绩效，不含年终奖</small></label>
+        <div class="field"><b>¥</b><input id="salary" inputmode="decimal" min="0" step="500" type="number" value="20000"></div>
+      </div>
+
+      <div class="fi">
+        <label for="social">三险一金 · 每月个人缴纳<small>养老 + 医疗 + 失业 + 住房公积金</small></label>
+        <div class="field"><b>¥</b><input id="social" inputmode="decimal" min="0" step="100" type="number" value="3500"></div>
+        <div class="mini">不确定？<button class="lk" id="btnAvg" type="button">按工资的 17.5% 估算</button></div>
+      </div>
+
+      <div class="fi">
+        <label for="special">专项附加扣除 · 每月合计<small>子女教育、房贷房租、赡养老人等</small></label>
+        <div class="field"><b>¥</b><input id="special" inputmode="decimal" min="0" step="500" type="number" value="0"></div>
+        <div class="mini"><button class="lk" id="btnSp" type="button">展开勾选，自动累加</button></div>
+        <div class="spbox" hidden id="spbox">
+          <label class="chk"><input class="spc" data-v="2000" type="checkbox">子女教育（1 人）<em>2,000 /月</em></label>
+          <label class="chk"><input class="spc" data-v="2000" type="checkbox">3 岁以下婴幼儿照护（1 人）<em>2,000 /月</em></label>
+          <label class="chk"><input class="spc" data-v="3000" type="checkbox">赡养老人（独生子女）<em>3,000 /月</em></label>
+          <label class="chk"><input class="spc" data-v="1000" type="checkbox">住房贷款利息<em>1,000 /月</em></label>
+          <label class="chk"><input class="spc" data-v="1500" type="checkbox">住房租金（直辖市 / 省会等）<em>1,500 /月</em></label>
+          <label class="chk"><input class="spc" data-v="400" type="checkbox">继续教育（学历学位）<em>400 /月</em></label>
+          <div class="sp-tip">多子女、非独生子女分摊、其他城市租金，勾选后手动改数字即可。房贷利息与住房租金只能二选一。</div>
+        </div>
+      </div>
+
+      <div class="fi">
+        <label for="bonus">年终奖 · 全年一次性奖金<small>没有就填 0</small></label>
+        <div class="field"><b>¥</b><input id="bonus" inputmode="decimal" min="0" step="1000" type="number" value="60000"></div>
+      </div>
+    </section>
+
+    <!-- ══ 02 结果 ══ -->
+    <section class="card res">
+      <div class="ct"><span class="ci">02</span>这一年你到手</div>
+
+      <div class="bigbox">
+        <div class="big"><small>¥</small><span id="netYear">—</span></div>
+        <div class="big-sub">全年税后到手（工资 + 年终奖）</div>
+      </div>
+
+      <div class="kv">
+        <div><span>全年个税</span><b id="taxYear">—</b></div>
+        <div><span>实际税负率</span><b id="taxRate">—</b></div>
+        <div><span>平均每月到手</span><b id="netAvg">—</b></div>
+        <div><span>到手最少的月份</span><b id="netMin">—</b><i id="netMinM">—</i></div>
+      </div>
+
+      <div class="wk-t"><span>钱去哪了</span><b id="wkGross">—</b></div>
+      <div class="wkrows">
+        <div class="wr"><span class="wr-l"><i class="sw" style="background:var(--brand)"></i>到手</span><span class="wr-b"><i id="wk1" style="background:linear-gradient(90deg,var(--brand),var(--brand2))"></i></span><span class="wr-v" id="l1">—</span></div>
+        <div class="wr"><span class="wr-l"><i class="sw" style="background:#C9C3B4"></i>三险一金</span><span class="wr-b"><i id="wk2" style="background:#C9C3B4"></i></span><span class="wr-v" id="l2">—</span></div>
+        <div class="wr"><span class="wr-l"><i class="sw" style="background:#D9A392"></i>个税</span><span class="wr-b"><i id="wk3" style="background:#D9A392"></i></span><span class="wr-v" id="l3">—</span></div>
+      </div>
+
+      <details class="dec">
+        <summary>拆开看：每一笔税怎么算的</summary>
+        <div style="padding-top:12px">
+          <div class="step"><span class="n">1</span><span class="t">全年工资收入（月薪 × 12）</span><span class="v" id="s1">—</span></div>
+          <div class="step"><span class="n">2</span><span class="t">减：全年减除费用（5,000 × 12）</span><span class="v" id="s2">—</span></div>
+          <div class="step"><span class="n">3</span><span class="t">减：全年三险一金（个人部分）</span><span class="v" id="s3">—</span></div>
+          <div class="step"><span class="n">4</span><span class="t">减：全年专项附加扣除</span><span class="v" id="s4">—</span></div>
+          <div class="step sum"><span class="n">5</span><span class="t">＝ 综合所得应纳税所得额</span><span class="v" id="s5">—</span></div>
+          <div class="step"><span class="n">6</span><span class="t" id="s6t">适用税率与速算扣除数</span><span class="v" id="s6">—</span></div>
+          <div class="step sum"><span class="n">7</span><span class="t">工资部分全年个税</span><span class="v" id="s7">—</span></div>
+          <div class="step"><span class="n">8</span><span class="t" id="s8t">年终奖个税</span><span class="v" id="s8">—</span></div>
+          <div class="step sum"><span class="n">9</span><span class="t">全年个税合计</span><span class="v" id="s9">—</span></div>
+          <div class="formula">应纳税所得额 <code id="fxA">—</code> × <span id="fxB">—</span> − 速算扣除 <code id="fxC">—</code> ＝ 工资个税 <code id="fxD">—</code></div>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <!-- ══ 03 年终奖 ══ -->
+  <section class="card" style="margin-top:18px">
+    <div class="ct"><span class="ci">03</span>年终奖怎么发，差多少</div>
+    <p class="lead">同一笔钱，两种计税方式，税额可能差出半个月工资。政策允许你自己选 —— 每年汇算时在个税 APP 里点一下就行。</p>
+
+    <div class="ab">
+      <div class="ab-card" id="cardA">
+        <div class="ab-h">方案 A · 单独计税<span class="badge" hidden id="badgeA">更省</span></div>
+        <div class="ab-n" id="aTax">—</div>
+        <div class="ab-s" id="aSub">全年个税合计</div>
+        <div class="ab-note" id="aNote">—</div>
+      </div>
+      <div class="ab-card" id="cardB">
+        <div class="ab-h">方案 B · 并入综合所得<span class="badge" hidden id="badgeB">更省</span></div>
+        <div class="ab-n" id="bTax">—</div>
+        <div class="ab-s" id="bSub">全年个税合计</div>
+        <div class="ab-note" id="bNote">—</div>
+      </div>
+    </div>
+
+    <div class="verdict" id="verdict">—</div>
+    <div class="trap" hidden id="trap">
+      <div class="trap-h">⚠ 你的年终奖落在临界点陷阱里</div>
+      <div class="trap-b" id="trapB">—</div>
+    </div>
+  </section>
+
+  <!-- ══ 04 曲线 ══ -->
+  <section class="card" style="margin-top:18px">
+    <div class="ct"><span class="ci">04</span>12 个月到手曲线</div>
+    <div class="chartbox">
+      <svg aria-label="全年各月税后到手工资曲线" class="chart" id="chart" role="img" viewBox="0 0 720 240"></svg>
+    </div>
+    <div class="chart-note" id="chartNote">—</div>
+  </section>
+
+  <!-- ══ 页脚 ══ -->
+  <footer class="ft">
+    <h4>这个工具做了什么</h4>
+    <p class="about">「到手」是一个纯前端的小工具，只做三件事：把年度个税拆成可以逐行核对的步骤、把年终奖的两种计税方式摆在一起比出高下、把 12 个月的到手曲线画出来 —— 顺便回答那个很多人从没搞懂的问题：为什么年底的工资会比年初少。没有后端，不采集数据，不需要登录，所有计算都在你的浏览器里完成。</p>
+    <h4>口径与依据</h4>
+    <ul>
+      <li>计算范围：居民个人工资薪金所得与全年一次性奖金，不含劳务报酬、稿酬、特许权使用费、经营所得。</li>
+      <li>减除费用 60,000 元 / 年（5,000 元 / 月）；综合所得适用 3%—45% 七级超额累进税率。</li>
+      <li>专项附加扣除按现行标准：子女教育 2,000 元 / 月 / 人、3 岁以下婴幼儿照护 2,000 元 / 月 / 人、赡养老人 3,000 元 / 月（非独生子女分摊每人不超过 1,500 元）、住房贷款利息 1,000 元 / 月、住房租金 1,500 / 1,100 / 800 元 / 月、继续教育 400 元 / 月。依据《国务院关于提高个人所得税有关专项附加扣除标准的通知》（国发〔2023〕13 号）。</li>
+      <li>全年一次性奖金单独计税：以奖金除以 12 个月确定适用税率和速算扣除数，单独计算纳税；也可选择并入当年综合所得。该政策执行至 2027 年 12 月 31 日。依据《财政部 税务总局关于延续实施全年一次性奖金个人所得税政策的公告》（财政部 税务总局公告 2023 年第 30 号）。</li>
+      <li>月度到手按「累计预扣预缴」法测算，假设全年各月工资与扣除均相同，未考虑调薪、补发、奖金分月发放、地方性补贴及区域性个税优惠差异。</li>
+    </ul>
+    <div class="disc">本工具为测算演示，结果仅供参考，实际以扣缴义务人申报及主管税务机关口径为准。所有计算在你的浏览器内完成，不上传任何数据。</div>
+  </footer>
+
+</div>
+
+<script>
+/* ═══════ 税率表 ═══════ */
+/* 综合所得年度税率表：七级超额累进 */
+var BR = [
+  { limit: 36000,   rate: 0.03, quick: 0 },
+  { limit: 144000,  rate: 0.10, quick: 2520 },
+  { limit: 300000,  rate: 0.20, quick: 16920 },
+  { limit: 420000,  rate: 0.25, quick: 31920 },
+  { limit: 660000,  rate: 0.30, quick: 52920 },
+  { limit: 960000,  rate: 0.35, quick: 85920 },
+  { limit: Infinity, rate: 0.45, quick: 181920 }
+];
+/* 按月换算税率表：年终奖单独计税用 */
+var MB = [
+  { limit: 3000,   rate: 0.03, quick: 0 },
+  { limit: 12000,  rate: 0.10, quick: 210 },
+  { limit: 25000,  rate: 0.20, quick: 1410 },
+  { limit: 35000,  rate: 0.25, quick: 2660 },
+  { limit: 55000,  rate: 0.30, quick: 4410 },
+  { limit: 80000,  rate: 0.35, quick: 7160 },
+  { limit: Infinity, rate: 0.45, quick: 15160 }
+];
+/* 年终奖临界点（单独计税档位跳变点） */
+var CRIT = [36000, 144000, 300000, 420000, 660000, 960000];
+
+function nth(n){ return n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function money(n){
+  if (!isFinite(n)) return "—";
+  var neg = n < 0;
+  n = Math.abs(n);
+  var s = n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return (neg ? "-" : "") + "¥" + s;
+}
+function plain(n){
+  if (!isFinite(n)) return "—";
+  return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function pct(n){ return (n * 100).toFixed(2) + "%"; }
+
+/* 年度应纳税额 */
+function taxOf(taxable){
+  if (!(taxable > 0)) return 0;
+  for (var i = 0; i < BR.length; i++){
+    if (taxable <= BR[i].limit) return taxable * BR[i].rate - BR[i].quick;
+  }
+  return 0;
+}
+function bracketIndex(taxable){
+  if (!(taxable > 0)) return 0;
+  for (var i = 0; i < BR.length; i++){
+    if (taxable <= BR[i].limit) return i;
+  }
+  return BR.length - 1;
+}
+/* 年终奖单独计税 */
+function bonusSeparate(bonus){
+  var out = { tax: 0, rate: 0, quick: 0, avg: 0, idx: 0 };
+  if (!(bonus > 0)) return out;
+  out.avg = bonus / 12;
+  var idx = 0;
+  for (var i = 0; i < MB.length; i++){
+    if (out.avg <= MB[i].limit){ idx = i; break; }
+  }
+  out.idx = idx;
+  out.rate = MB[idx].rate;
+  out.quick = MB[idx].quick;
+  out.tax = Math.max(0, bonus * out.rate - out.quick);
+  return out;
+}
+
+/* ═══════ 取数 ═══════ */
+function num(id){
+  var el = document.getElementById(id);
+  var v = parseFloat(el.value);
+  return (isFinite(v) && v > 0) ? v : 0;
+}
+
+/* ═══════ 主计算 ═══════ */
+function calc(){
+  var salary  = num("salary");
+  var social  = num("social");
+  var special = num("special");
+  var bonus   = num("bonus");
+
+  /* 工资部分年度应纳税所得额 */
+  var gross   = salary * 12;
+  var ssYear  = social * 12;
+  var sdYear  = special * 12;
+  var deduct  = 60000;
+  var taxable = Math.max(0, gross - deduct - ssYear - sdYear);
+
+  var taxSalary = taxOf(taxable);
+  var bSep = bonusSeparate(bonus);
+
+  /* 方案 A：奖金单独计税 */
+  var planA = taxSalary + bSep.tax;
+  /* 方案 B：奖金并入综合所得（增量法） */
+  var planB = taxOf(taxable + bonus);
+
+  var useSep = planA <= planB;
+  var totalTax = Math.min(planA, planB);
+  var totalIn  = gross + bonus;
+  var netYear  = totalIn - ssYear - totalTax;
+
+  /* ── 结果卡 ── */
+  document.getElementById("netYear").textContent = plain(netYear);
+  document.getElementById("taxYear").textContent = money(totalTax);
+  document.getElementById("taxRate").textContent = totalIn > 0 ? pct(totalTax / totalIn) : "—";
+  document.getElementById("netAvg").textContent  = money(netYear / 12);
+
+  /* ── 月度曲线：累计预扣预缴 ── */
+  var monthly = [];
+  var cumPrev = 0, sumNet = 0;
+  for (var m = 1; m <= 12; m++){
+    var cumTaxable = Math.max(0, m * (salary - social - 5000 - special));
+    var cumTax = taxOf(cumTaxable);
+    var mTax = cumTax - cumPrev;
+    cumPrev = cumTax;
+    var mNet = salary - social - mTax;
+    monthly.push(mNet);
+    sumNet += mNet;
+  }
+  var minV = Math.min.apply(null, monthly);
+  var minM = monthly.indexOf(minV) + 1;
+  document.getElementById("netMin").textContent = money(minV);
+  document.getElementById("netMinM").textContent = "第 " + minM + " 月";
+  drawChart(monthly);
+
+  /* ── 钱去哪了 ── */
+  document.getElementById("wkGross").textContent = money(totalIn);
+  var p1 = totalIn > 0 ? (netYear / totalIn * 100) : 0;
+  var p2 = totalIn > 0 ? (ssYear / totalIn * 100) : 0;
+  var p3 = totalIn > 0 ? (totalTax / totalIn * 100) : 0;
+  document.getElementById("wk1").style.width = p1.toFixed(2) + "%";
+  document.getElementById("wk2").style.width = p2.toFixed(2) + "%";
+  document.getElementById("wk3").style.width = p3.toFixed(2) + "%";
+  document.getElementById("l1").textContent = money(netYear);
+  document.getElementById("l2").textContent = money(ssYear);
+  document.getElementById("l3").textContent = money(totalTax);
+
+  /* ── 拆解 ── */
+  document.getElementById("s1").textContent = money(gross);
+  document.getElementById("s2").textContent = "- " + money(deduct);
+  document.getElementById("s3").textContent = "- " + money(ssYear);
+  document.getElementById("s4").textContent = "- " + money(sdYear);
+  document.getElementById("s5").textContent = money(taxable);
+  var bi = bracketIndex(taxable);
+  document.getElementById("s6t").textContent = taxable > 0
+    ? ("适用第 " + (bi + 1) + " 级 · 速算扣除 " + nth(BR[bi].quick))
+    : "未达起征点，适用 3%";
+  document.getElementById("s6").textContent = taxable > 0
+    ? pct(BR[bi].rate)
+    : "—";
+  document.getElementById("s7").textContent = money(taxSalary);
+  document.getElementById("s8t").textContent = bonus > 0
+    ? ("年终奖 " + money(bonus) + " · " + (useSep ? "单独计税" : "并入综合所得"))
+    : "无年终奖";
+  document.getElementById("s8").textContent = money(totalTax - taxSalary);
+  document.getElementById("s9").textContent = money(totalTax);
+
+  document.getElementById("fxA").textContent = nth(taxable);
+  document.getElementById("fxB").textContent = pct(BR[bi].rate);
+  document.getElementById("fxC").textContent = nth(BR[bi].quick);
+  document.getElementById("fxD").textContent = nth(taxSalary);
+
+  /* ── 方案对比 ── */
+  document.getElementById("aTax").textContent  = money(planA);
+  document.getElementById("bTax").textContent  = money(planB);
+  document.getElementById("aNote").textContent = bonus > 0
+    ? ("奖金 ÷ 12 = " + money(bSep.avg) + "，对应月度税率 " + pct(bSep.rate) + "，速算扣除 " + nth(bSep.quick) + "；奖金部分税额 " + money(bSep.tax) + "。")
+    : "无年终奖，两种方案结果相同。";
+  var bInc = planB - taxSalary;
+  document.getElementById("bNote").textContent = bonus > 0
+    ? ("奖金并入综合所得后，适用税率从 " + pct(BR[bracketIndex(taxable)].rate) + " 变为 " + pct(BR[bracketIndex(taxable + bonus)].rate) + "；奖金部分带来的增量税额 " + money(bInc) + "。")
+    : "无年终奖，两种方案结果相同。";
+
+  document.getElementById("cardA").className = "ab-card" + (bonus > 0 && useSep ? " best" : "");
+  document.getElementById("cardB").className = "ab-card" + (bonus > 0 && !useSep ? " best" : "");
+  var badgeA = document.getElementById("badgeA"), badgeB = document.getElementById("badgeB");
+  badgeA.hidden = !(bonus > 0 && useSep && Math.abs(planA - planB) >= 1);
+  badgeB.hidden = !(bonus > 0 && !useSep && Math.abs(planA - planB) >= 1);
+
+  var vd = document.getElementById("verdict");
+  if (bonus <= 0){
+    vd.className = "verdict none";
+    vd.textContent = "填入年终奖后，这里会告诉你哪种计税方式更省。";
+  } else if (Math.abs(planA - planB) < 1){
+    vd.className = "verdict none";
+    vd.textContent = "两种方式税额几乎相同，随便选。";
+  } else {
+    vd.className = "verdict";
+    vd.textContent = useSep
+      ? ("选「单独计税」更省：全年少缴 " + money(planB - planA) + "，相当于多拿到手的钱。")
+      : ("选「并入综合所得」更省：全年少缴 " + money(planA - planB) + "，相当于多拿到手的钱。");
+  }
+
+  /* ── 临界点检测 ── */
+  var trap = document.getElementById("trap");
+  var hit = findTrap(bonus);
+  if (hit && hit.loss >= 1){
+    trap.hidden = false;
+    document.getElementById("trapB").textContent =
+      "你的年终奖 " + money(bonus) + "，正好落在 " + nth(hit.lo) + " — " + nth(hit.hi)
+      + " 这段「多发一点、到手更少」的区间里。如果奖金正好是 " + nth(hit.lo) + "，到手 "
+      + money(hit.netLo) + "；现在是 " + money(hit.netNow) + "，反而少拿了 " + money(hit.loss) + "。"
+      + "把奖金压到 " + nth(hit.lo) + " 元，或者冲过 " + nth(Math.ceil(hit.hi)) + " 元，到手才会回升。";
+  } else {
+    trap.hidden = true;
+  }
+
+  /* ── 曲线说明 ── */
+  var firstNet = monthly[0], lastNet = monthly[11];
+  var note = document.getElementById("chartNote");
+  if (salary <= 0){
+    note.textContent = "填入月薪后，这里会画出你 1 到 12 月每个月实际到手的变化。";
+  } else if (Math.abs(firstNet - lastNet) < 1){
+    note.textContent = "你全年各月到手基本一致，说明收入没有跨过预扣率档位。";
+  } else {
+    note.textContent = "你 1 月到手 " + money(firstNet) + "，12 月只有 " + money(lastNet)
+      + "，少了 " + money(firstNet - lastNet) + "。原因是累计预扣：随着全年累计收入往上走，适用税率从低档跳到高档，后面几个月扣得更狠 —— 但全年总额是对的，只是扣钱的节奏不同。";
+  }
+}
+
+/* 找临界点陷阱；返回 null 表示没踩 */
+function findTrap(bonus){
+  if (!(bonus > 0)) return null;
+  for (var i = 0; i < CRIT.length; i++){
+    var C = CRIT[i];
+    if (bonus <= C) continue;
+    /* C 所属档位 */
+    var idxC = 0;
+    for (var k = 0; k < MB.length; k++){
+      if ((C / 12) <= MB[k].limit){ idxC = k; break; }
+    }
+    var rate1 = MB[idxC].rate, quick1 = MB[idxC].quick;
+    var netLo = C - (C * rate1 - quick1);
+    var next = MB[idxC + 1];
+    if (!next) continue;
+    var hi = (netLo - next.quick) / (1 - next.rate);
+    if (bonus > C && bonus <= hi){
+      var netNow = bonus - (bonus * next.rate - next.quick);
+      return {
+        lo: C, hi: hi, netLo: netLo, netNow: netNow,
+        loss: netLo - netNow, crit: C
+      };
+    }
+  }
+  return null;
+}
+
+/* ═══════ 曲线 ═══════ */
+function drawChart(arr){
+  var svg = document.getElementById("chart");
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs){ if (attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+  var W = 720, H = 240;
+  var L = 46, R = 686, T = 34, B = 186;
+  var mn = Math.min.apply(null, arr);
+  var mx = Math.max.apply(null, arr);
+  var span = (mx - mn);
+  var flat = span < 1;
+  if (flat) span = 1;
+  var pts = [];
+  for (var i = 0; i < arr.length; i++){
+    var x = L + i * ((R - L) / 11);
+    var y = flat ? (T + B) / 2 : (B - ((arr[i] - mn) / span) * (B - T));
+    pts.push([x, y]);
+  }
+
+  /* 网格线 */
+  for (var g = 0; g <= 3; g++){
+    var gy = T + (B - T) * g / 3;
+    svg.appendChild(el("line", {
+      x1: L - 8, y1: gy, x2: R, y2: gy,
+      stroke: "#F0EDE6", "stroke-width": 1
+    }));
+  }
+
+  /* 面积 */
+  var dArea = "M " + pts[0][0] + " " + (B + 14);
+  for (var a = 0; a < pts.length; a++){ dArea += " L " + pts[a][0] + " " + pts[a][1]; }
+  dArea += " L " + pts[pts.length - 1][0] + " " + (B + 14) + " Z";
+
+  var grad = el("linearGradient", { id: "gArea", x1: "0", y1: "0", x2: "0", y2: "1" });
+  grad.appendChild(el("stop", { offset: "0%", "stop-color": "#17A272", "stop-opacity": "0.20" }));
+  grad.appendChild(el("stop", { offset: "100%", "stop-color": "#17A272", "stop-opacity": "0.01" }));
+  var defs = el("defs", {});
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+  svg.appendChild(el("path", { d: dArea, fill: "url(#gArea)", stroke: "none" }));
+
+  /* 折线 */
+  var dLine = "";
+  for (var l = 0; l < pts.length; l++){
+    dLine += (l === 0 ? "M " : " L ") + pts[l][0] + " " + pts[l][1];
+  }
+  svg.appendChild(el("path", {
+    d: dLine, fill: "none", stroke: "#0E6B4F",
+    "stroke-width": 2.2, "stroke-linejoin": "round", "stroke-linecap": "round"
+  }));
+
+  /* 点 + 月份 */
+  var narrow = (window.innerWidth || document.documentElement.clientWidth) < 640;
+  for (var p = 0; p < pts.length; p++){
+    var c = el("circle", {
+      cx: pts[p][0], cy: pts[p][1], r: narrow ? 5.2 : 3.6,
+      fill: "#fff", stroke: "#0E6B4F", "stroke-width": 2
+    });
+    var tt = el("title", {});
+    tt.textContent = (p + 1) + " 月到手 " + money(arr[p]);
+    c.appendChild(tt);
+    svg.appendChild(c);
+
+    var showLbl = !narrow || p === 0 || p === 3 || p === 6 || p === 9 || p === 11;
+    if (showLbl){
+      var tx = el("text", {
+        x: pts[p][0], y: B + 32, "text-anchor": "middle",
+        "font-size": "10.5", fill: "#8E949F"
+      });
+      tx.setAttribute("class", "mx");
+      tx.textContent = (p + 1) + "月";
+      svg.appendChild(tx);
+    }
+  }
+
+  /* 两端数值标注 */
+  var t1 = el("text", {
+    x: pts[0][0] + (pts[0][0] < 200 ? 6 : -6), y: pts[0][1] - 12,
+    "text-anchor": pts[0][0] < 200 ? "start" : "end",
+    "font-size": "11.5", "font-weight": "700", fill: "#0E6B4F"
+  });
+  t1.textContent = money(arr[0]);
+  t1.setAttribute("class", "vl");
+  svg.appendChild(t1);
+
+  var t2 = el("text", {
+    x: pts[pts.length - 1][0] - 4, y: pts[pts.length - 1][1] - 12,
+    "text-anchor": "end", "font-size": "11.5", "font-weight": "700", fill: "#0E6B4F"
+  });
+  t2.textContent = money(arr[arr.length - 1]);
+  t2.setAttribute("class", "vl");
+  svg.appendChild(t2);
+
+  if (!flat){
+    var nt = el("text", {
+      x: R, y: T - 16, "text-anchor": "end",
+      "font-size": "10", fill: "#AFB4BC"
+    });
+    nt.textContent = "纵轴已放大 · 非零起点";
+    nt.setAttribute("class", "nt");
+    svg.appendChild(nt);
+  }
+}
+
+/* ═══════ 交互 ═══════ */
+["salary", "social", "special", "bonus"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", calc);
+});
+
+document.getElementById("btnAvg").addEventListener("click", function(){
+  var s = num("salary");
+  document.getElementById("social").value = Math.round(s * 0.175);
+  calc();
+});
+
+document.getElementById("btnSp").addEventListener("click", function(){
+  var box = document.getElementById("spbox");
+  box.hidden = !box.hidden;
+  this.textContent = box.hidden ? "展开勾选，自动累加" : "收起";
+});
+
+var spcs = document.querySelectorAll(".spc");
+for (var i = 0; i < spcs.length; i++){
+  spcs[i].addEventListener("change", function(){
+    var sum = 0;
+    for (var j = 0; j < spcs.length; j++){
+      if (spcs[j].checked) sum += parseInt(spcs[j].getAttribute("data-v"), 10);
+    }
+    document.getElementById("special").value = sum;
+    calc();
+  });
+}
+
+/* 起手 */
+calc();
+
+/* 窗口尺寸变化时重绘曲线（切换标签密度） */
+var _rt = null;
+window.addEventListener("resize", function(){
+  if (_rt) clearTimeout(_rt);
+  _rt = setTimeout(calc, 180);
+});
+</script>
+</body>
+</html>
