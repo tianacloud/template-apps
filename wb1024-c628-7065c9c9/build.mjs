@@ -1,0 +1,2 @@
+import {mkdir,copyFile,readFile} from "node:fs/promises";
+await mkdir("dist/assets",{recursive:true}); for (const f of ["app.js","logic.js"]) await copyFile("src/"+f,"dist/assets/"+f); await copyFile("public/icon.png","dist/icon.png"); const source=JSON.parse(await readFile("source.json","utf8")); console.log("TIANA_PROJECT_PARAMS "+JSON.stringify({entry:"assets/app.js",git_instance_id:source.git_instance_id}));
