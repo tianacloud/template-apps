@@ -476,7 +476,6 @@
         q.answered = true;
         var my = ta.value.trim();
         ta.disabled = true; btn.disabled = true;
-        cacheDel(draftKey(txt(q.kb["知识点"])));
         var ex = el("div", "explain");
         ex.appendChild(el("b", null, "参考答案"));
         ex.appendChild(el("div", "k", q.ref));
@@ -486,9 +485,10 @@
         stage.appendChild(ex);
         saveRec(q.kb, true, my).then(function(){
           ALL_REC.push({ "知识点": txt(q.kb["知识点"]), "教材模块": txt(q.kb["教材模块"]), "知识类别": txt(q.kb["知识类别"]), "难度": txt(q.kb["难度"]), "答题情况": "正确", "我的答案": my, "练习时间": new Date().toISOString() });
+          cacheDel(draftKey(txt(q.kb["知识点"])));
           renderDash();
-        });
-        nextBtn.disabled = false;
+          nextBtn.disabled = false;
+        }).catch(function(){ q.answered = false; ta.disabled = false; btn.disabled = false; ex.remove(); });
       };
       box.appendChild(btn);
       stage.appendChild(box);
@@ -536,8 +536,12 @@
               .then(function(){
                 ALL_REC.push({ "知识点": txt(q.kb["知识点"]), "教材模块": txt(q.kb["教材模块"]), "知识类别": txt(q.kb["知识类别"]), "难度": txt(q.kb["难度"]), "答题情况": isRight ? "正确" : "错误", "我的答案": "", "练习时间": new Date().toISOString() });
                 renderDash();
+                nextBtn.disabled = false;
+              }).catch(function(){
+                q.answered = false;
+                for(var j = 0; j < btns.length; j++){ btns[j].disabled = false; btns[j].classList.remove("right", "wrong"); }
+                ex.remove();
               });
-            nextBtn.disabled = false;
           };
           optsBox.appendChild(b);
         })(i);
