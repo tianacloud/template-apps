@@ -1,0 +1,10 @@
+import {mkdir,readFile,writeFile,copyFile} from 'node:fs/promises';
+const read = p => readFile(p,'utf8');
+const body=await read('body.html');
+const css=(await Promise.all(['tokens','app','pump'].map(n=>read(`css/${n}.css`)))).join('\n');
+const js=(await Promise.all(['audio','store','app'].map(n=>read(`js/${n}.js`)))).join('\n');
+await mkdir('dist/assets',{recursive:true});
+await writeFile('dist/assets/app.js',`document.title='宝贝请起身';\nconst style=document.createElement('style'); style.textContent=${JSON.stringify(css)}; document.head.append(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\n${js}`);
+await copyFile('public/icon.png','dist/icon.png');
+const source=JSON.parse(await read('source.json'));
+console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',git_instance_id:source.git_instance_id}));
