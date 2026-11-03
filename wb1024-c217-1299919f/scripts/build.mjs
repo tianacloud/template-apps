@@ -1,4 +1,5 @@
 import {readFile, mkdir, writeFile, copyFile} from 'node:fs/promises';
+import {build} from 'esbuild';
 const commit=process.argv[2];
 if(!/^[0-9a-f]{40}$/.test(commit||'')) throw Error('需要完整源码提交号');
 const source=JSON.parse(await readFile('source.json','utf8'));
@@ -8,7 +9,7 @@ const style=html.match(/<style>([\s\S]*?)<\/style>/)[1];
 const body=html.match(/<body[^>]*>([\s\S]*?)<script>/)[1];
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 await mkdir('dist/assets',{recursive:true});
-await writeFile('dist/assets/logic.js',script);
+await build({stdin:{contents:`import DOMPurify from 'dompurify';\n${script}`,resolveDir:process.cwd(),sourcefile:'logic.js'},bundle:true,format:'iife',outfile:'dist/assets/logic.js'});
 await writeFile('dist/assets/app.js',`document.title='阳光积分乐园';\nconst style=document.createElement('style');style.textContent=${JSON.stringify(style)};document.head.appendChild(style);\ndocument.body.innerHTML=${JSON.stringify(body)};\nconst script=document.createElement('script');script.src=new URL('./logic.js',import.meta.url).href;document.body.appendChild(script);`);
 await copyFile('public/icon.png','dist/icon.png');
 console.log('TIANA_PROJECT_PARAMS '+JSON.stringify({entry:'assets/app.js',...source}));

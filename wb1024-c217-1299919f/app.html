@@ -1338,6 +1338,7 @@
  * =================================================================== */
 
 // ====== 数据层：localStorage 读写 ======
+function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]); }
 const STORAGE_KEY = 'wb_kid_points_v1';
 const DEFAULT_PASSWORD = '0000';
 
@@ -1868,7 +1869,7 @@ function renderOverviewCard() {
       </div>
       <div class="overview-text">
         <h3>${dateStr}</h3>
-        <p>${state.childName}，今天真棒！</p>
+        <p>${escapeHtml(state.childName)}，今天真棒！</p>
       </div>
       <div class="overview-stats">
         <div class="num">${earned}</div>
@@ -1885,14 +1886,14 @@ function renderTaskList() {
     const isDone = completed[task.id];
     const sign = task.type === 'earn' ? '+' : '-';
     return `
-      <div class="task-card ${isDone ? 'done' : ''} ${task.type === 'bad' ? 'bad' : ''}" data-task-id="${task.id}">
+      <div class="task-card ${isDone ? 'done' : ''} ${task.type === 'bad' ? 'bad' : ''}" data-task-id="${escapeHtml(task.id)}">
         <div class="task-icon">${getIcon(task.icon)}</div>
         <div class="task-info">
-          <div class="task-title">${task.title}</div>
-          <div class="task-desc">${task.desc}</div>
+          <div class="task-title">${escapeHtml(task.title)}</div>
+          <div class="task-desc">${escapeHtml(task.desc)}</div>
         </div>
         <div class="task-points">${sign}${task.points}</div>
-        <button class="task-check" data-action="toggle-task" data-task-id="${task.id}" aria-label="完成任务">
+        <button class="task-check" data-action="toggle-task" data-task-id="${escapeHtml(task.id)}" aria-label="完成任务">
           ${isDone ? '✓' : (task.type === 'earn' ? '+' : '−')}
         </button>
       </div>
@@ -1925,9 +1926,9 @@ function renderShop() {
     <div class="reward-card ${r.id === 'r6' ? 'featured' : ''}">
       ${r.stock < 5 ? `<div class="reward-stock">剩 ${r.stock}</div>` : ''}
       <div class="reward-icon">${getIcon(r.icon, 32)}</div>
-      <div class="reward-title">${r.title}</div>
+      <div class="reward-title">${escapeHtml(r.title)}</div>
       <div class="reward-cost">${getIcon('coin', 14)} ${r.cost}分</div>
-      <button class="reward-btn" data-action="redeem" data-reward-id="${r.id}" ${state.totalPoints < r.cost ? 'disabled' : ''}>
+      <button class="reward-btn" data-action="redeem" data-reward-id="${escapeHtml(r.id)}" ${state.totalPoints < r.cost ? 'disabled' : ''}>
         ${state.totalPoints < r.cost ? '积分不足' : '兑换'}
       </button>
     </div>
@@ -1978,7 +1979,7 @@ function renderShop() {
               <div class="mystery-detail-item ${type}">
                 <div class="mystery-detail-emoji">${iconHtml}</div>
                 <div class="mystery-detail-info">
-                  <div class="mystery-detail-name">${p.name} ${TYPE_LABEL[type] || ''}</div>
+                  <div class="mystery-detail-name">${escapeHtml(p.name)} ${TYPE_LABEL[type] || ''}</div>
                   <div class="mystery-detail-meta">${value}</div>
                 </div>
                 <div class="mystery-detail-prob">${prob}%</div>
@@ -2122,9 +2123,9 @@ function renderRewardCard(r) {
   // 操作按钮
   let actionHtml = '';
   if (r.status === 'active') {
-    actionHtml = `<button class="btn-redeem" data-action="redeem-reward" data-redemption-id="${r.id}">✓ 核销</button>`;
+    actionHtml = `<button class="btn-redeem" data-action="redeem-reward" data-redemption-id="${escapeHtml(r.id)}">✓ 核销</button>`;
   } else if (r.status === 'redeemed') {
-    actionHtml = `<button class="btn-unredeeem" data-action="unredeem-reward" data-redemption-id="${r.id}">↺ 撤销</button>`;
+    actionHtml = `<button class="btn-unredeeem" data-action="unredeem-reward" data-redemption-id="${escapeHtml(r.id)}">↺ 撤销</button>`;
   }
 
   return `
@@ -2132,7 +2133,7 @@ function renderRewardCard(r) {
       <div class="reward-card-large-head">
         <div class="reward-card-icon">${iconHtml}</div>
         <div class="reward-card-info">
-          <div class="reward-card-title">${r.title || '神秘奖励'}<span class="reward-card-type">${typeLabel}</span></div>
+          <div class="reward-card-title">${escapeHtml(r.title || '神秘奖励')}<span class="reward-card-type">${typeLabel}</span></div>
           <div class="reward-card-meta">
             ${r.cost ? `消耗 ${r.cost} 分` : ''} · ${statusBadge}
             <br/>${formatRelativeTime(r.createdAt || Date.now())}
@@ -2526,20 +2527,20 @@ function renderParentPanel() {
 
   // 任务管理列表（支持拖拽排序）
   const taskManageHtml = state.tasks.map(t => `
-    <div class="manage-task-item" draggable="true" data-task-id="${t.id}" data-sort-handle>
+    <div class="manage-task-item" draggable="true" data-task-id="${escapeHtml(t.id)}" data-sort-handle>
       <div class="drag-handle" title="长按/拖动以排序">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
       </div>
       <div class="icon-box">${getIcon(t.icon, 22)}</div>
       <div class="info">
-        <div class="title">${t.title}</div>
+        <div class="title">${escapeHtml(t.title)}</div>
         <div class="meta">${t.type === 'earn' ? '+' : '−'}${t.points} 分 · ${t.days.length === 7 ? '每天' : '周' + t.days.join('、')}</div>
       </div>
       <div class="actions">
-        <button class="mini-btn" data-action="edit-task" data-task-id="${t.id}" title="编辑">
+        <button class="mini-btn" data-action="edit-task" data-task-id="${escapeHtml(t.id)}" title="编辑">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
         </button>
-        <button class="mini-btn del" data-action="del-task" data-task-id="${t.id}" title="删除">
+        <button class="mini-btn del" data-action="del-task" data-task-id="${escapeHtml(t.id)}" title="删除">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
       </div>
@@ -2553,20 +2554,20 @@ function renderParentPanel() {
     const redeemedCount = related.filter(rd => rd.status === 'redeemed').length;
     const activeCount = related.filter(rd => rd.status === 'active').length;
     return `
-    <div class="manage-task-item" draggable="true" data-reward-id="${r.id}" data-sort-handle>
+    <div class="manage-task-item" draggable="true" data-reward-id="${escapeHtml(r.id)}" data-sort-handle>
       <div class="drag-handle" title="长按/拖动以排序">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
       </div>
       <div class="icon-box">${getIcon(r.icon, 22)}</div>
       <div class="info">
-        <div class="title">${r.title}</div>
+        <div class="title">${escapeHtml(r.title)}</div>
         <div class="meta">${r.cost} 分 · 库存 ${r.stock} · 有效期 ${r.validityDays || 90}天 · 未核销 ${activeCount} / 已核销 ${redeemedCount}</div>
       </div>
       <div class="actions">
-        <button class="mini-btn" data-action="edit-reward" data-reward-id="${r.id}" title="编辑">
+        <button class="mini-btn" data-action="edit-reward" data-reward-id="${escapeHtml(r.id)}" title="编辑">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
         </button>
-        <button class="mini-btn del" data-action="del-reward" data-reward-id="${r.id}" title="删除">
+        <button class="mini-btn del" data-action="del-reward" data-reward-id="${escapeHtml(r.id)}" title="删除">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
       </div>
@@ -2655,14 +2656,14 @@ function renderParentPanel() {
           const iconRaw = p.icon || '🎁';
           const iconHtml = ICONS[iconRaw] ? getIcon(iconRaw, 22) : `<span style="font-size: 22px;">${iconRaw}</span>`;
           return `
-          <div class="prize-item ${p.type === 'hidden-small' ? 'hidden-small' : ''} ${p.type === 'hidden-big' ? 'hidden-big' : ''}" draggable="true" data-prize-id="${p.id}" data-sort-handle>
+          <div class="prize-item ${p.type === 'hidden-small' ? 'hidden-small' : ''} ${p.type === 'hidden-big' ? 'hidden-big' : ''}" draggable="true" data-prize-id="${escapeHtml(p.id)}" data-sort-handle>
             <div class="drag-handle" title="长按/拖动以排序">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
             </div>
             <div class="prize-emoji">${iconHtml}</div>
             <div class="prize-info">
               <div class="prize-name">
-                ${p.name}
+                ${escapeHtml(p.name)}
                 ${p.type === 'hidden-small' ? '<span class="prize-tag">小隐藏</span>' : ''}
                 ${p.type === 'hidden-big' ? '<span class="prize-tag big">大隐藏</span>' : ''}
               </div>
@@ -2671,10 +2672,10 @@ function renderParentPanel() {
               </div>
             </div>
             <div class="prize-actions">
-              <button class="mini-btn" data-action="edit-mystery-prize" data-prize-id="${p.id}" title="编辑">
+              <button class="mini-btn" data-action="edit-mystery-prize" data-prize-id="${escapeHtml(p.id)}" title="编辑">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
               </button>
-              <button class="mini-btn del" data-action="del-mystery-prize" data-prize-id="${p.id}" title="删除">
+              <button class="mini-btn del" data-action="del-mystery-prize" data-prize-id="${escapeHtml(p.id)}" title="删除">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
               </button>
             </div>
@@ -2738,7 +2739,7 @@ function renderParentPanel() {
       <h3>⚙️ 高级设置</h3>
       <div class="form-row">
         <label>孩子昵称</label>
-        <input type="text" id="childNameInput" value="${state.childName}" maxlength="8" />
+        <input type="text" id="childNameInput" value="${escapeHtml(state.childName)}" maxlength="8" />
       </div>
       <button class="btn btn-primary" data-action="save-child-name" style="margin-bottom: 12px;">保存昵称</button>
       <div class="btn-row">
@@ -2817,7 +2818,7 @@ function renderAchievements() {
     <div class="achievement-progress-card">
       <div class="achievement-progress-ring"><span class="num">${unlockedCount}/${total}</span></div>
       <div class="achievement-progress-info" style="flex:1;">
-        <h3>${state.childName} 的徽章墙</h3>
+        <h3>${escapeHtml(state.childName)} 的徽章墙</h3>
         <p>${unlockedCount === 0 ? '继续努力，点亮第一个徽章吧！' : (unlockedCount === total ? '太棒了，全部徽章集齐！' : `已点亮 ${unlockedCount} 个，继续加油！`)}</p>
         <div class="achievement-progress-bar"><div class="fill" style="width:${Math.round(unlockedCount / total * 100)}%;"></div></div>
       </div>
@@ -3031,7 +3032,7 @@ function refreshAll() {
     case 'records': html = renderRecords(); break;
     case 'parent': html = renderParentPanel(); break;
   }
-  main.innerHTML = html;
+  main.innerHTML = DOMPurify.sanitize(html);
   // 更新 Tab 高亮
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === currentTab);
@@ -3188,7 +3189,7 @@ function showToast(msg) {
 function showModal(contentHtml, options) {
   const mask = document.getElementById('modalMask');
   const content = document.getElementById('modalContent');
-  content.innerHTML = contentHtml;
+  content.innerHTML = DOMPurify.sanitize(contentHtml);
   // 默认允许点击遮罩关闭；noMaskClose = true 时禁用（如盲盒结果弹窗）
   content.classList.toggle('no-mask-close', !!(options && options.noMaskClose));
   mask.classList.add('show');
@@ -3331,11 +3332,11 @@ function openMysteryBox() {
       <div class="mystery-result-anim" id="mysteryBoxAnim">🎁</div>
       <div class="mystery-result-body" id="mysteryResultBody" style="display: none;">
         <div class="mystery-result-icon" id="resultIcon">${prizeIcon}</div>
-        <div class="mystery-result-name" id="resultName">${prize.name}</div>
+        <div class="mystery-result-name" id="resultName">${escapeHtml(prize.name)}</div>
         <div class="mystery-result-tag" id="resultTag">
           <span class="result-tag ${prizeType}">${typeBadge ? typeBadge + ' ' + typeLabel : '🎁 ' + typeLabel}</span>
         </div>
-        <div class="mystery-result-desc" id="resultDesc">${prize.desc || ''}</div>
+        <div class="mystery-result-desc" id="resultDesc">${escapeHtml(prize.desc || '')}</div>
         <div class="mystery-result-value" id="resultValue">${prizeValue > 0 ? '+' + prizeValue + ' 分' : '已存入【我的奖励】，记得核销哦！'}</div>
       </div>
       <button class="btn btn-primary" id="mysteryClaimBtn" style="display: none;" data-close-action="refresh">收下奖励</button>
@@ -3409,7 +3410,7 @@ function redeemReward(rewardId) {
 
   showModal(`
     <h3>🎉 兑换成功！</h3>
-    <p class="modal-desc">恭喜获得：<br/><strong style="color: var(--primary-dark); font-size: 18px;">${r.title}</strong></p>
+    <p class="modal-desc">恭喜获得：<br/><strong style="color: var(--primary-dark); font-size: 18px;">${escapeHtml(r.title)}</strong></p>
     <p class="modal-desc" style="color: var(--text-soft);">已扣除 ${r.cost} 积分 · 有效期 ${validityDays} 天</p>
     <p class="modal-desc" style="color: var(--text-soft); font-size: 12px;">💡 可在「我的奖励」核销</p>
     <div style="margin-top: 24px;">
@@ -3546,7 +3547,7 @@ function showRedemptionRecords() {
 // ====== 家长模式：密码输入弹窗 ======
 function showPasswordPrompt(onSuccess, title) {
   showModal(`
-    <h3>${title || '输入密码'}</h3>
+    <h3>${escapeHtml(title || '输入密码')}</h3>
     <p class="modal-desc">家长中心密码（默认 0000）</p>
     <div class="pin-input">
       <input type="password" maxlength="1" inputmode="numeric" data-idx="0" autofocus>
@@ -3602,11 +3603,11 @@ function showTaskEditor(taskId) {
   const dayChips = dayNames.map((n, i) => {
     const v = i + 1;
     const active = t_data.days.includes(v);
-    return `<button class="day-chip ${active ? 'active' : ''}" data-day="${v}">${n}</button>`;
+    return `<button class="day-chip ${active ? 'active' : ''}" data-day="${escapeHtml(v)}">${n}</button>`;
   }).join('');
 
   const iconCells = ICON_LIST.map(i => `
-    <button type="button" class="icon-cell ${t_data.icon === i.name ? 'active' : ''}" data-icon-name="${i.name}">
+    <button type="button" class="icon-cell ${t_data.icon === i.name ? 'active' : ''}" data-icon-name="${escapeHtml(i.name)}">
       <div class="icon-preview">${getIcon(i.name, 22)}</div>
       <div class="icon-label">${i.label}</div>
     </button>
@@ -3616,11 +3617,11 @@ function showTaskEditor(taskId) {
     <h3>${isEdit ? '编辑任务' : '新增任务'}</h3>
     <div class="form-row">
       <label>任务名称</label>
-      <input type="text" id="tTitle" value="${t_data.title}" placeholder="例如：认真刷牙" maxlength="20" />
+      <input type="text" id="tTitle" value="${escapeHtml(t_data.title)}" placeholder="例如：认真刷牙" maxlength="20" />
     </div>
     <div class="form-row">
       <label>任务说明</label>
-      <input type="text" id="tDesc" value="${t_data.desc}" placeholder="可选：补充说明" maxlength="30" />
+      <input type="text" id="tDesc" value="${escapeHtml(t_data.desc)}" placeholder="可选：补充说明" maxlength="30" />
     </div>
     <div class="form-row">
       <label>积分（正数=奖励，负数=扣分）</label>
@@ -3643,7 +3644,7 @@ function showTaskEditor(taskId) {
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" data-close-action="close">取消</button>
-      <button class="btn btn-primary" data-action="save-task" ${isEdit ? `data-task-id="${taskId}"` : ''}>保存</button>
+      <button class="btn btn-primary" data-action="save-task" ${isEdit ? `data-task-id="${escapeHtml(taskId)}"` : ''}>保存</button>
     </div>
   `);
 
@@ -3742,7 +3743,7 @@ function showRewardEditor(rewardId) {
     'toy', 'home', 'shield', 'ticket', 'heart', 'coupon', 'coupon2'
   ].includes(i.name));
   const iconCells = rewardIcons.map(i => `
-    <button type="button" class="icon-cell ${r_data.icon === i.name ? 'active' : ''}" data-icon-name="${i.name}">
+    <button type="button" class="icon-cell ${r_data.icon === i.name ? 'active' : ''}" data-icon-name="${escapeHtml(i.name)}">
       <div class="icon-preview">${getIcon(i.name, 22)}</div>
       <div class="icon-label">${i.label}</div>
     </button>
@@ -3752,7 +3753,7 @@ function showRewardEditor(rewardId) {
     <h3>${rewardId ? '编辑礼物' : '新增礼物'}</h3>
     <div class="form-row">
       <label>礼物名称</label>
-      <input type="text" id="rTitle" value="${r_data.title}" placeholder="例如：新绘本一本" maxlength="20" />
+      <input type="text" id="rTitle" value="${escapeHtml(r_data.title)}" placeholder="例如：新绘本一本" maxlength="20" />
     </div>
     <div class="form-row">
       <label>所需积分</label>
@@ -3772,7 +3773,7 @@ function showRewardEditor(rewardId) {
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" data-close-action="close">取消</button>
-      <button class="btn btn-primary" data-action="save-reward" ${rewardId ? `data-reward-id="${rewardId}"` : ''}>保存</button>
+      <button class="btn btn-primary" data-action="save-reward" ${rewardId ? `data-reward-id="${escapeHtml(rewardId)}"` : ''}>保存</button>
     </div>
   `);
 
@@ -3844,7 +3845,7 @@ function showMysteryPrizeEditor(prizeId, forceType) {
   };
 
   const emojiCells = MYSTERY_EMOJIS.map(e => `
-    <button type="button" class="icon-cell ${p_data.icon === e ? 'active' : ''}" data-emoji="${e}" style="font-size: 22px; padding: 6px;">
+    <button type="button" class="icon-cell ${p_data.icon === e ? 'active' : ''}" data-emoji="${escapeHtml(e)}" style="font-size: 22px; padding: 6px;">
       <div class="icon-preview">${e}</div>
     </button>
   `).join('');
@@ -3877,11 +3878,11 @@ function showMysteryPrizeEditor(prizeId, forceType) {
     <h3>${isEdit ? '编辑盲盒奖品' : '新增盲盒奖品'}</h3>
     <div class="form-row">
       <label>奖品名称</label>
-      <input type="text" id="mpName" value="${(p_data.name || '').replace(/"/g, '&quot;')}" placeholder="例如：神秘贴纸" maxlength="20" />
+      <input type="text" id="mpName" value="${escapeHtml(p_data.name || '')}" placeholder="例如：神秘贴纸" maxlength="20" />
     </div>
     <div class="form-row">
       <label>奖品说明（抽中时显示）</label>
-      <input type="text" id="mpDesc" value="${(p_data.desc || '').replace(/"/g, '&quot;')}" placeholder="例如：恭喜获得限定贴纸！" maxlength="40" />
+      <input type="text" id="mpDesc" value="${escapeHtml(p_data.desc || '')}" placeholder="例如：恭喜获得限定贴纸！" maxlength="40" />
     </div>
     <div class="prize-prob-row">
       <div class="form-row">
@@ -3900,7 +3901,7 @@ function showMysteryPrizeEditor(prizeId, forceType) {
     </div>
     <div class="btn-row">
       <button class="btn btn-ghost" data-close-action="close">取消</button>
-      <button class="btn btn-primary" data-action="save-mystery-prize" ${prizeId ? `data-prize-id="${prizeId}"` : ''} ${forceType ? `data-force-type="${forceType}"` : ''}>保存</button>
+      <button class="btn btn-primary" data-action="save-mystery-prize" ${prizeId ? `data-prize-id="${escapeHtml(prizeId)}"` : ''} ${forceType ? `data-force-type="${escapeHtml(forceType)}"` : ''}>保存</button>
     </div>
   `);
 
