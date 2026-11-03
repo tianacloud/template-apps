@@ -403,7 +403,9 @@ function classify(F){
     return '双叶双曲面（如 z^2/4 - x^2/9 - y^2/4 = 1）';
   }
 
-  // 含一次项 + 平方项 → 抛物面类
+  // 两个相反符号的平方项，加上沿剩余轴的一次项，是双曲抛物面。
+  const linear = [q.x, q.y, q.z];
+  if (nz.length === 2 && nz[0] * nz[1] < 0 && sq.some((v,i) => Math.abs(v) <= EPS && Math.abs(linear[i]) > EPS)) return '双曲抛物面（马鞍面）';
   if (nz.length >= 1) return '抛物面类（旋转抛物面 / 椭圆抛物面）';
   return '平面（一次曲面）';
 }
