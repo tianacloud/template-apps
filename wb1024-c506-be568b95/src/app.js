@@ -150,5 +150,6 @@ document.getElementById("app").innerHTML="\n<header>\n  <div class=\"logo\">\n  
   window.addEventListener('resize',()=>{ if(CH.asset.length) drawChart(CH.asset,CH.invest,CH.real,CH.years); });
 
   // 初始化
+  $('f-lump').style.display='none';
   syncLabels(); syncNums(); compute();
 })();
