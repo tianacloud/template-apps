@@ -254,12 +254,7 @@ document.getElementById("ovClose").onclick=()=>document.getElementById("over").c
 
 /* ---------- 启动 ---------- */
 load();
-if(/[?&]demo=1/.test(location.search)){
-  grid=[[2,4,8,16],[4,8,16,32],[8,16,32,64],[16,32,64,128]];
-  score=18420;best=Math.max(best,18420);
-}else{
-  grid=empty();addRand(grid);addRand(grid);
-}
+grid=empty();addRand(grid);addRand(grid);
 document.getElementById("best").textContent=best;
 document.getElementById("footdate").textContent="Build "+dateSeed();
 document.getElementById("btnSound").textContent=soundOn?"🔊 音效":"🔇 静音";
