@@ -24,7 +24,7 @@ tabs.addEventListener("click",function(e){
 
 /* ================= 模块 1：钩子工坊 ================= */
 var FX="ALL";
-function setFx(v){FX=v;["A","B","ALL"].forEach(function(k){document.getElementById("fx"+k).classList.toggle("on",k===v)})}
+function setFx(v){FX=v;["A","B","ALL"].forEach(function(k){document.getElementById(k==="ALL"?"fxAll":"fx"+k).classList.toggle("on",k===v)})}
 function resetHook(){
   document.getElementById("hProd").value="凯美瑞双擎";
   document.getElementById("hWho").value="每天通勤 60 公里的上班族";
@@ -314,6 +314,7 @@ function drawBoard(){
 function updStore(){ document.getElementById("chipStore").textContent=load("board",[]).length }
 
 /* ================= 初始化 ================= */
+setFx(FX);
 document.getElementById("bDate").value=today();
 renderScript();
 genHook();
