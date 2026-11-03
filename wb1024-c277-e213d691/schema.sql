@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS practice_records (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
