@@ -345,6 +345,7 @@ function dbApi(){
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function escapeHtml(value){ return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]); }
 function isoDate(v){ return typeof v === "string" ? (v.length >= 10 ? v.slice(0,10) : v) : ""; }
 
 function loadStore(){
@@ -634,7 +635,7 @@ function evalBlock(metric, val, mFloat, judge, prev){
     const pj = judgePos(getRow(P.sex, metric, age2.dm), prev[metric]);
     const db = judge.levelIdx - pj.levelIdx;
     const unit = metric==="weight" ? "kg" : "cm";
-    trend = "<div class='mini' style='margin-top:6px;'>与上次（"+prev.date+"）对比："
+    trend = "<div class='mini' style='margin-top:6px;'>与上次（"+escapeHtml(prev.date)+"）对比："
       + "<b style='color:"+(dv>=0?"var(--green)":"var(--red)")+"'>"+(dv>=0?"+":"")+dv.toFixed(1)+unit+"</b>"
       + "，等级变化：" + BANDS_CN(pj.levelIdx) + " → " + BANDS_CN(judge.levelIdx);
     if(Math.abs(db)>=2) trend += " <span style='color:var(--red);font-weight:700;'>⚠️ 百分位跨越 2 条线，建议儿保就诊</span>";
@@ -717,11 +718,11 @@ function renderHome(){
   // 最近测量
   if(last){
     const ev = last.eval || {};
-    $("homeGrowth").innerHTML = "<h2>📏 最近测量（"+last.date+" · "+last.ageMonths+" 月"+last.ageDays+" 天）</h2>"
+    $("homeGrowth").innerHTML = "<h2>📏 最近测量（"+escapeHtml(last.date)+" · "+escapeHtml(last.ageMonths)+" 月"+escapeHtml(last.ageDays)+" 天）</h2>"
       + "<div class='grid2'>"
-      + (last.height!=null ? "<div>身长/身高：<b>"+last.height+" cm</b><br><span class='mini'>"+(ev.height||"")+"</span></div>" : "")
-      + (last.weight!=null ? "<div>体重：<b>"+last.weight+" kg</b><br><span class='mini'>"+(ev.weight||"")+"</span></div>" : "")
-      + (last.head!=null ? "<div>头围：<b>"+last.head+" cm</b><br><span class='mini'>"+(ev.head||"")+"</span></div>" : "")
+      + (last.height!=null ? "<div>身长/身高：<b>"+escapeHtml(last.height)+" cm</b><br><span class='mini'>"+escapeHtml(ev.height||"")+"</span></div>" : "")
+      + (last.weight!=null ? "<div>体重：<b>"+escapeHtml(last.weight)+" kg</b><br><span class='mini'>"+escapeHtml(ev.weight||"")+"</span></div>" : "")
+      + (last.head!=null ? "<div>头围：<b>"+escapeHtml(last.head)+" cm</b><br><span class='mini'>"+escapeHtml(ev.head||"")+"</span></div>" : "")
       + "</div><div class='mini' style='margin-top:6px;'>详细趋势与录入见「生长」页</div>";
   } else {
     $("homeGrowth").innerHTML = "<h2>📏 生长记录</h2><div class='mini'>暂无记录，去「生长」页录入。</div>";
@@ -804,11 +805,11 @@ function renderGrowthPage(){
   else{
     let h = "<div style='overflow-x:auto;'><table class='data'><tr><th>日期</th><th>月龄</th><th>身长/身高</th><th>体重</th><th>头围</th><th>操作</th></tr>";
     RECORDS.slice().reverse().forEach(r=>{
-      h += "<tr"+(r===RECORDS[RECORDS.length-1]?" class='cur'":"")+"><td>"+r.date+"</td><td>"+r.ageMonths+"月"+r.ageDays+"天</td>"
-        + "<td>"+(r.height!=null?r.height+"cm<br><span class='mini'>"+(r.eval.height||"")+"</span>":"—")+"</td>"
-        + "<td>"+(r.weight!=null?r.weight+"kg<br><span class='mini'>"+(r.eval.weight||"")+"</span>":"—")+"</td>"
-        + "<td>"+(r.head!=null?r.head+"cm<br><span class='mini'>"+(r.eval.head||"")+"</span>":"—")+"</td>"
-        + "<td><a href='#' data-delete-record='"+r.id+"' style='color:var(--red);'>删</a></td></tr>";
+      h += "<tr"+(r===RECORDS[RECORDS.length-1]?" class='cur'":"")+"><td>"+escapeHtml(r.date)+"</td><td>"+escapeHtml(r.ageMonths)+"月"+escapeHtml(r.ageDays)+"天</td>"
+        + "<td>"+(r.height!=null?escapeHtml(r.height)+"cm<br><span class='mini'>"+escapeHtml(r.eval?.height||"")+"</span>":"—")+"</td>"
+        + "<td>"+(r.weight!=null?escapeHtml(r.weight)+"kg<br><span class='mini'>"+escapeHtml(r.eval?.weight||"")+"</span>":"—")+"</td>"
+        + "<td>"+(r.head!=null?escapeHtml(r.head)+"cm<br><span class='mini'>"+escapeHtml(r.eval?.head||"")+"</span>":"—")+"</td>"
+        + "<td><a href='#' data-delete-record='"+Number(r.id)+"' style='color:var(--red);'>删</a></td></tr>";
     });
     h += "</table></div><div class='mini' style='margin-top:6px;'>关注<b>趋势</b>：等级跨越 2 条带（如「中」→「下」）或体重带位连续下滑时，建议儿保就诊。当前行高亮显示。</div>";
     box.innerHTML = h;
@@ -940,7 +941,7 @@ function copyData(){
 function fallbackCopy(text){
   const ta = document.createElement("textarea");
   ta.value = text; document.body.appendChild(ta); ta.select();
-  try{ document.execCommand("copy"); toast("已复制 ✓"); }catch(e){ toast("复制失败，请用导出文件"); }
+  try{ if(document.execCommand("copy")) toast("已复制 ✓"); else toast("复制失败，请用导出文件"); }catch(e){ toast("复制失败，请用导出文件"); }
   ta.remove();
 }
 function importFromText(){
