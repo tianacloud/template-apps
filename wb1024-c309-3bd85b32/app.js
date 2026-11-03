@@ -51,8 +51,9 @@ function getRates(){
 rateBody.addEventListener('input',()=>{getRates();compute();});
 
 function parseMonth(str){
+  if (!/^\d{4,}-\d{2}$/.test(str)) return null;
   const [y,m]=str.split('-').map(Number);
-  return {y,m};
+  return m >= 1 && m <= 12 ? {y,m} : null;
 }
 function monthDiff(s,e){
   return (e.y-s.y)*12+(e.m-s.m)+1;
@@ -94,12 +95,15 @@ function compute(){
   document.getElementById('baseDiff').value='¥'+fmtMoney(base)+' / 月';
   document.getElementById('diffShow').textContent='¥'+fmtMoney(base);
 
-  if(!sM||!eM||isNaN(payD.getTime())){
-    return;
-  }
-  if((eM.y*12+eM.m)<(sM.y*12+sM.m)){
-    document.getElementById('monthBody').innerHTML=
-      '<tr><td colspan="6" class="empty">结束月早于起始月，请检查</td></tr>';
+  const invalid = !sM || !eM || isNaN(payD.getTime());
+  const reversed = !invalid && (eM.y*12+eM.m)<(sM.y*12+sM.m);
+  if (invalid || reversed) {
+    ['totalPrincipal','totalPenalty','grandTotal','empPart','indPart','monthCount'].forEach(id => {
+      document.getElementById(id).textContent='—';
+    });
+    const message = invalid ? '请填写有效的月份和补缴日期' : '结束月早于起始月，请检查';
+    document.getElementById('insBody').innerHTML='<tr><td colspan="5" class="empty">'+message+'</td></tr>';
+    document.getElementById('monthBody').innerHTML='<tr><td colspan="6" class="empty">'+message+'</td></tr>';
     return;
   }
   // 实际基数不低于应缴基数，无欠缴
