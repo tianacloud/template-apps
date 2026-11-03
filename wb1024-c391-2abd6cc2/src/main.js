@@ -14,12 +14,10 @@ async function execute(sql,values=[]) {
 "use strict";
 const OUTLINE_DIR = "20-大纲/细纲";
 const SKIP = new Set([".versions",".workbuddy","tools"]);
-const TKEY = "wr_token";
 const PKEY = "wr_project";
 let allDocs = {};     // path -> {category,name,content,updated_at}（path 形如 项目名/目录/文件.md）
 let curPath = null;
 let curProject = localStorage.getItem(PKEY) || "";
-let token = localStorage.getItem(TKEY) || "";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -39,11 +37,9 @@ async function api(path, opts = {}) {
  throw Error('未知操作');
 }
 /* ================= 登录 ================= */
-async function tryEnter(tk, silent){
-  token = tk;
+async function tryEnter(silent){
   try {
     const d = await api("/api/docs?full=1");
-    localStorage.setItem(TKEY, tk);
     allDocs = {};
     (d.docs||[]).forEach(r => { allDocs[r.path] = r; });
     $("loginView").style.display = "none";
@@ -56,20 +52,12 @@ async function tryEnter(tk, silent){
     }
     return true;
   } catch(e) {
-    token = "";
-    localStorage.removeItem(TKEY);
     if (!silent) $("loginErr").textContent = e.message;
-    else $("loginErr").textContent = "上次的口令已失效，请重新输入。";
+    else $("loginErr").textContent = "连接失败，请重试。";
     return false;
   }
 }
-$("btnLogin").onclick = async () => {
-  const v = $("inToken").value.trim();
-  if (!v) { $("loginErr").textContent = "请输入访问口令"; return; }
-  $("loginErr").textContent = "验证中…";
-  await tryEnter(v, false);
-};
-$("inToken").addEventListener("keydown", e => { if (e.key === "Enter") $("btnLogin").click(); });
+$("btnLogin").onclick = () => tryEnter(false);
 $("btnLogout").onclick = () => { location.href = window.tiana?.logoutUrl || "/"; };
 $("btnBack").onclick = () => {
   if (document.referrer) history.back();
@@ -517,4 +505,4 @@ function renderPanels(tab){
 }
 
 window.backToEditor = backToEditor;
-tryEnter("", false);
+tryEnter(false);
