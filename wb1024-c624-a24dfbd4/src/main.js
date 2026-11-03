@@ -210,6 +210,35 @@ function nowTime(){ var d=new Date(); return pad(d.getHours()) + ':' + pad(d.get
 function mdOf(iso){ if (iso && /^\d{4}-(\d{2})-(\d{2})$/.test(iso)){ var m=iso.match(/^\d{4}-(\d{2})-(\d{2})$/); return m[1] + '.' + m[2]; } return iso || '日期未知'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
+function photoSource(value){
+  return typeof value === 'string' && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(value) ? value : '';
+}
+function validateBackup(obj){
+  if (!obj || !Array.isArray(obj.tasks) || (obj.done != null && (typeof obj.done !== 'object' || Array.isArray(obj.done)))) throw Error('备份格式无效');
+  var ids = new Set();
+  var tasks = obj.tasks.map(function(task){
+    if (!task || (typeof task.id !== 'string' && typeof task.id !== 'number') || !/^(?:[1-9]\d*|c\d+)$/.test(String(task.id)) || (typeof task.id === 'number' && !Number.isSafeInteger(task.id)) || ids.has(String(task.id)) || !ORDER.includes(task.cat) || typeof task.text !== 'string' || (task.custom != null && typeof task.custom !== 'boolean')) throw Error('备份清单无效');
+    ids.add(String(task.id));
+    return {id:task.id, cat:task.cat, text:task.text, custom:!!task.custom};
+  });
+  var done = Object.create(null);
+  Object.entries(obj.done || {}).forEach(function(entry){
+    var id = entry[0], record = entry[1];
+    if (!ids.has(id) || !record || typeof record !== 'object' || Array.isArray(record) || ['date','time','mood','note','photo'].some(function(key){ return record[key] != null && typeof record[key] !== 'string'; })) throw Error('备份记录无效');
+    var date = record.date || '', time = record.time || '', photo = record.photo || '';
+    if (date) {
+      var parts = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(date);
+      if (!parts) throw Error('备份日期无效');
+      date = parts[1] + '-' + pad(Number(parts[2])) + '-' + pad(Number(parts[3]));
+      if (!Number.isFinite(Date.parse(date + 'T00:00:00Z')) || new Date(date + 'T00:00:00Z').toISOString().slice(0,10) !== date) throw Error('备份日期无效');
+    }
+    if (time && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw Error('备份时间无效');
+    if (photo && !photoSource(photo)) throw Error('备份照片无效');
+    done[id] = {date:date,time:time,mood:record.mood || '',note:record.note || '',photo:photo};
+  });
+  return {tasks:tasks,done:done};
+}
+
 function lsSize(){
   var n = 0;
   for (var k in localStorage){ try { n += (localStorage[k].length + k.length); } catch(e){} }
@@ -267,21 +296,21 @@ function buildList(){
         var bits = [];
         if (r.mood) bits.push('<span class="tag">' + esc(r.mood) + '</span>');
         if (r.photo) bits.push('<span class="tag">📷 照片</span>');
-        bits.push('<span class="tag">' + mdOf(r.date) + '</span>');
-        meta = '<div class="imeta" data-tool="rec" data-i="' + t.id + '">' + bits.join('') + '</div>';
+        bits.push('<span class="tag">' + esc(mdOf(r.date)) + '</span>');
+        meta = '<div class="imeta" data-tool="rec" data-i="' + esc(t.id) + '">' + bits.join('') + '</div>';
       }
-      html += '<div class="item' + (on ? ' done' : '') + '" data-i="' + t.id + '">' +
-              '<span class="no">' + (t.custom ? '★' : (t.id < 10 ? '0' + t.id : t.id)) + '</span>' +
+      html += '<div class="item' + (on ? ' done' : '') + '" data-i="' + esc(t.id) + '">' +
+              '<span class="no">' + (t.custom ? '★' : esc(t.id < 10 ? '0' + t.id : t.id)) + '</span>' +
               '<span class="txt">' + esc(t.text) + '</span>' +
               '<span class="box"><svg width="11" height="11" viewBox="0 0 12 12">' +
               '<path d="M2.4 6.3L4.8 8.6L9.6 3.4" fill="none" stroke="#FFFFFF" stroke-width="1.9" ' +
               'stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
               meta +
               '<div class="itools">' +
-                '<button class="itool" data-tool="edit" data-i="' + t.id + '">编辑</button>' +
-                '<button class="itool" data-tool="rec" data-i="' + t.id + '">' +
+                '<button class="itool" data-tool="edit" data-i="' + esc(t.id) + '">编辑</button>' +
+                '<button class="itool" data-tool="rec" data-i="' + esc(t.id) + '">' +
                   (on ? '记录' : '记一笔') + '</button>' +
-                '<button class="itool del" data-tool="del" data-i="' + t.id + '">删除</button>' +
+                '<button class="itool del" data-tool="del" data-i="' + esc(t.id) + '">删除</button>' +
               '</div>' +
               '</div>';
     });
@@ -359,11 +388,12 @@ function renderRecent(){
   var html = '';
   top.forEach(function(r){
     if (!r.t) return;
-    var thumb = r.photo ? '<img class="rec-thumb" src="' + r.photo + '" data-tool="rec" data-i="' + r.id + '" alt="照片">' : '';
+    var photo = photoSource(r.photo);
+    var thumb = photo ? '<img class="rec-thumb" src="' + esc(photo) + '" data-tool="rec" data-i="' + esc(r.id) + '" alt="照片">' : '';
     var meta = '';
     if (r.mood) meta += '<span>' + esc(r.mood) + '</span>';
     if (r.photo) meta += '<span>📷</span>';
-    html += '<div class="rec"><span class="rec-d">' + mdOf(r.date) + '</span>' +
+    html += '<div class="rec"><span class="rec-d">' + esc(mdOf(r.date)) + '</span>' +
             '<div class="rec-body"><div class="rec-t">' + esc(r.t.text) + '</div>' +
             (meta ? '<div class="rec-meta">' + meta + '</div>' : '') + '</div>' + thumb + '</div>';
   });
@@ -746,6 +776,7 @@ function setMood(m){
 
 var recPhotoData = '';
 function showPhoto(d){
+  d = photoSource(d);
   var img = document.getElementById('recPhoto');
   var del = document.getElementById('recDelPhoto');
   if (d){
@@ -914,10 +945,10 @@ function importFile(file){
   reader.onload = function(){
     try {
       var obj = JSON.parse(reader.result);
-      if (!obj || !obj.tasks) throw new Error('no tasks');
+      var backup = validateBackup(obj);
       if (!confirm('导入文件将覆盖当前这台设备的清单和打卡记录，确定吗？')) return;
-      state.tasks = obj.tasks;
-      state.done = obj.done || {};
+      state.tasks = backup.tasks;
+      state.done = backup.done;
       normalizeDone();
       state.todayPick = null;
       saveTasks();
@@ -1435,7 +1466,7 @@ scheduleSync = function(){ clearTimeout(syncTimer); setSync('syncing'); syncTime
 document.getElementById('app').style.pointerEvents='none';
 (async function(){
  try { const rows=(await sql('SELECT payload FROM life_state WHERE id = ?', ['main'])).rows;
- if(rows.length){ const p=JSON.parse(rows[0].payload); state.tasks=p.tasks; state.done=p.done; achUnlocked=p.ach || {}; normalizeDone(); }
+ if(rows.length){ const p=JSON.parse(rows[0].payload), backup=validateBackup(p); state.tasks=backup.tasks; state.done=backup.done; achUnlocked=p.ach || {}; normalizeDone(); }
  else { state.tasks=buildDefaultTasks(); state.done={}; achUnlocked={}; }
  refreshAll(); switchView('home'); setSync('synced'); document.getElementById('app').style.pointerEvents='';
  } catch(e) { setSync('error','读取失败，请刷新重试'); console.error(e); }
