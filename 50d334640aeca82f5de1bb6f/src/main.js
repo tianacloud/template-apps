@@ -1,6 +1,7 @@
 import { rollWheels } from "./wheels.js";
 import { createRenderQuality } from "./render-quality.js";
 import { simulationSteps } from "./simulation-time.js";
+import { createSaveQueue } from "./save-queue.js";
 import * as T from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -238,9 +239,7 @@ function syncState() {
     state.heading = playerCar.rotation.y;
   }
 }
-async function save(manual = false) {
-  if (!loaded || saveBusy) return;
-  if (saveFailed && !manual) return;
+const saveQueue = createSaveQueue(async (manual) => {
   syncState();
   saveBusy = true;
   status("正在保存…");
@@ -265,15 +264,21 @@ async function save(manual = false) {
     dirty = JSON.stringify(state) !== data;
     saveFailed = false;
     lastSave = elapsed;
-    status("进度已保存");
-    if (manual) notify("已保存，可随时回来继续驾驶");
+    status(dirty ? "进度有更新 · 待保存" : "进度已保存");
+    if (manual && !dirty) notify("已保存，可随时回来继续驾驶");
+    return true;
   } catch (e) {
     saveFailed = true;
     status("存档未确认 · 点击保存重查", true);
     notify(e.message);
+    return false;
   } finally {
     saveBusy = false;
   }
+});
+function save(manual = false) {
+  if (!loaded || (saveFailed && !manual)) return;
+  return saveQueue.request(manual);
 }
 async function load() {
   try {

@@ -16,7 +16,7 @@ The application uses the Tiana Bootstrap's dynamic account authentication and `@
 
 Position, vehicle ownership, cash, upgrades, distance, completed contracts, and active contract progress are saved. Mission time pauses when the game is paused or closed. The next visit resumes driving the saved car. Taking over a street vehicle changes the saved current vehicle, while garage ownership changes only on purchase. Other parked cars and traffic are recreated when the city reloads.
 
-Contract changes, rewards, vehicle purchases, and upgrades request a save; driving progress also saves periodically. Use the save button and wait for confirmation before leaving. Failed or uncertain writes are checked with a separate read; the interface reports an unconfirmed save instead of claiming success. Restore the connection and use the save button to save the current in-memory progress.
+Contract changes, rewards, vehicle purchases, and upgrades request a save; driving progress also saves periodically. Requests made during a pending save are coalesced and written after it completes. Use the save button and wait for confirmation before leaving. Failed or uncertain writes are checked with a separate read; the interface reports an unconfirmed save instead of claiming success. Restore the connection and use the save button to save the current in-memory progress.
 
 ## Initialize and build
 
@@ -45,7 +45,7 @@ The entry injects its own CSS and loads its display font from the application fi
 
 Rendering requires WebGL 2. Desktop keyboard play is the primary experience; use a browser with hardware acceleration. Mobile touch layout is supported, but frame rate depends on the device. Distant traffic uses a simpler visual model while nearby cars retain their detailed models; sustained slow frames lower rendering resolution and recover it when performance permits. Lighting and shadows remain enabled. Rendering and movement run locally; SQLite handles persistent progression.
 
-Run `npm test` for game economy, collision, wheel-axis, rendering-quality, traffic detail and simulation timing checks. Browser acceptance should additionally cover driving, entering/leaving the car, missions, garage purchases, cloud-save reload, disconnected writes, and mobile controls with a real Tiana preview.
+Run `npm test` for game economy, collision, wheel-axis, save-queue, rendering-quality, traffic detail and simulation timing checks. Browser acceptance should additionally cover driving, entering/leaving the car, missions, garage purchases, cloud-save reload, disconnected writes, and mobile controls with a real Tiana preview.
 
 ## Credits
 
