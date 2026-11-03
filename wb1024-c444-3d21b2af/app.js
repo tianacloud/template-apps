@@ -143,7 +143,7 @@ window.personaDatabase = database;
     var now = new Date(); var monday = new Date(now); 
     var dow = (now.getDay()===0)?7:now.getDay();
     monday.setDate(now.getDate()-dow+1); monday.setHours(0,0,0,0);
-    return d >= monday;
+    var end = new Date(monday); end.setDate(end.getDate()+7); return d >= monday && d < end;
   }
 
   function renderStreak(){
