@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PostureGuard · 姿势矫正与久坐提醒</title>
+<style>
+:root{
+  --bg:#070c18; --bg2:#0c1322;
+  --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+  --txt:#e9eef8; --dim:#8b98b2; --mute:#5d6a83;
+  --good:#2ee6a8; --fair:#9be15d; --warn:#ffb340; --bad:#ff5c72; --info:#5b8cff;
+  --r:16px; --ring:#2ee6a8;
+  --shadow:0 10px 34px rgba(0,0,0,.42);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1100px 620px at 12% -12%, rgba(91,140,255,.16), transparent 60%),
+    radial-gradient(900px 560px at 96% 8%, rgba(46,230,168,.12), transparent 62%),
+    linear-gradient(180deg,var(--bg),var(--bg2) 55%,#0a101d);
+  color:var(--txt);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:14px clamp(10px,2.2vw,26px) 26px;
+  min-height:100vh;
+}
+.app{max-width:1420px;margin:0 auto}
+h1{font-size:17px;font-weight:650;letter-spacing:.2px}
+h2{font-size:13px;font-weight:640;color:var(--dim);letter-spacing:.4px;text-transform:uppercase}
+.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* ---------- 顶栏 ---------- */
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 2px 14px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:18px;
+  background:linear-gradient(150deg,#1b2a4a,#0f1a30);border:1px solid var(--line2)}
+.brand small{display:block;font-size:11px;color:var(--mute);font-weight:500}
+.topbar .grow{flex:1}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;
+  background:var(--panel);border:1px solid var(--line);font-size:12.5px;color:var(--dim);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mute);flex:none}
+.dot.on{background:var(--good);box-shadow:0 0 0 3px rgba(46,230,168,.16)}
+.dot.warn{background:var(--warn)}
+.dot.bad{background:var(--bad)}
+.btn{appearance:none;border:1px solid var(--line2);background:var(--panel);color:var(--txt);
+  padding:9px 15px;border-radius:11px;font-size:13.5px;font-weight:560;cursor:pointer;
+  transition:.16s ease;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{background:var(--panel2);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:linear-gradient(150deg,#2ee6a8,#12b981);color:#04241a;border-color:transparent;font-weight:680}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+.btn[disabled]{opacity:.42;pointer-events:none}
+.btn.stop{background:linear-gradient(150deg,#ff6d81,#e5484d);color:#2a0409;border-color:transparent;font-weight:680}
+
+/* ---------- 布局 ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(320px,.88fr);gap:16px;align-items:start}
+@media(max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.card .hd h2{letter-spacing:.6px}
+.card .bd{padding:16px}
+
+/* ---------- 摄像区 ---------- */
+.stage-wrap{min-width:0}
+.stage{position:relative;width:100%;aspect-ratio:4/3;background:#04070e;border-radius:var(--r);
+  overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage.mirror video,.stage.mirror canvas{transform:scaleX(-1)}
+#overlay{pointer-events:none}
+.stage .vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 100% at 50% 45%, transparent 55%, rgba(0,0,0,.5))}
+.hud{position:absolute;inset:auto 12px 12px 12px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;pointer-events:none}
+.hint-chip{background:rgba(6,10,20,.78);backdrop-filter:blur(9px);border:1px solid var(--line2);
+  border-radius:13px;padding:10px 14px;max-width:100%;font-size:13.5px;line-height:1.5;color:var(--txt)}
+.hint-chip b{color:var(--warn);font-weight:660}
+.stage-tag{position:absolute;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-size:11.5px;padding:5px 10px;border-radius:8px;background:rgba(6,10,20,.7);
+  border:1px solid var(--line2);color:var(--dim);backdrop-filter:blur(8px)}
+.tag b{color:var(--txt);font-weight:640}
+.tag.cal{color:#04241a;background:var(--good);border-color:transparent;font-weight:680}
+.stage-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;
+  background:linear-gradient(160deg,rgba(12,19,34,.9),rgba(4,7,14,.94))}
+.stage-empty.hide{display:none}
+.stage-empty .ic{font-size:44px;margin-bottom:10px;opacity:.85}
+.stage-empty p{color:var(--dim);font-size:13.5px;max-width:430px;margin:0 auto 14px}
+.stage-empty code{background:var(--panel2);padding:2px 6px;border-radius:6px;font-size:12px}
+.err-box{background:rgba(255,92,114,.1);border:1px solid rgba(255,92,114,.36);border-radius:12px;
+  padding:12px 14px;font-size:13px;color:#ffc9d1;max-width:520px;margin:0 auto;text-align:left;white-space:pre-wrap;word-break:break-word}
+.stage-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 2px 0}
+.stage-bar .grow{flex:1}
+select,input[type=number]{appearance:none;background:var(--panel);border:1px solid var(--line2);color:var(--txt);
+  padding:7px 10px;border-radius:9px;font-size:13px;font-family:inherit}
+select:focus,input:focus{outline:none;border-color:var(--info)}
+
+/* ---------- 评分卡 ---------- */
+.score-card .bd{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.ring-wrap{position:relative;width:128px;height:128px;flex:none}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-wrap .bgc{fill:none;stroke:rgba(255,255,255,.08);stroke-width:11}
+.ring-wrap .fgc{fill:none;stroke:var(--ring);stroke-width:11;stroke-linecap:round;
+  transition:stroke-dashoffset .5s cubic-bezier(.22,1,.36,1),stroke .4s}
+.ring-txt{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring-txt .n{font-size:34px;font-weight:740;line-height:1;letter-spacing:-.5px}
+.ring-txt .u{font-size:11px;color:var(--mute);margin-top:3px;letter-spacing:1px}
+.score-main{flex:1;min-width:180px}
+.level{display:inline-flex;align-items:center;gap:8px;font-size:19px;font-weight:720;letter-spacing:.4px}
+.level .lv-dot{width:11px;height:11px;border-radius:50%;background:var(--ring);box-shadow:0 0 12px var(--ring)}
+.score-msg{color:var(--dim);font-size:13.5px;margin-top:7px;line-height:1.6}
+.conf{font-size:11.5px;color:var(--mute);margin-top:9px}
+
+/* ---------- 指标条 ---------- */
+.metric{margin-bottom:11px}
+.metric:last-child{margin-bottom:0}
+.metric .row{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+.metric .row .k{color:var(--dim)}
+.metric .row .v{font-weight:600}
+.bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--good);transition:width .3s,background .3s}
+.bar .base{display:none}
+.metric.off{opacity:.34}
+
+/* ---------- 久坐计时 ---------- */
+.timer-big{font-size:42px;font-weight:740;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.timer-big small{font-size:15px;color:var(--mute);font-weight:560;letter-spacing:0}
+.timer-sub{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--dim)}
+.timer-sub b{color:var(--txt)}
+.prog{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:13px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,#2ee6a8,#5b8cff);border-radius:99px;transition:width .6s linear}
+.prog.break i{background:linear-gradient(90deg,#ffb340,#ff8a5c)}
+.timer-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.badge{display:inline-block;font-size:11px;padding:3px 8px;border-radius:7px;background:var(--panel2);
+  border:1px solid var(--line);color:var(--dim);letter-spacing:.3px}
+.badge.g{color:var(--good);border-color:rgba(46,230,168,.3)}
+.badge.w{color:var(--warn);border-color:rgba(255,179,64,.3)}
+.badge.b{color:var(--bad);border-color:rgba(255,92,114,.3)}
+
+/* ---------- 图表 ---------- */
+.bottom{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px;margin-top:16px}
+@media(max-width:960px){.bottom{grid-template-columns:minmax(0,1fr)}}
+.chart-box{position:relative;width:100%;height:170px}
+.chart-box canvas{width:100%;height:100%;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.stat .l{font-size:11.5px;color:var(--mute);letter-spacing:.3px}
+.stat .n{font-size:21px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .n small{font-size:12px;color:var(--mute);font-weight:560}
+
+/* ---------- 弹窗 ---------- */
+dialog{border:none;border-radius:18px;padding:0;background:#0e1524;color:var(--txt);
+  box-shadow:0 24px 80px rgba(0,0,0,.6);max-width:min(560px,94vw);width:100%}
+dialog::backdrop{background:rgba(3,6,12,.66);backdrop-filter:blur(4px)}
+.dlg-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}
+.dlg-hd h3{font-size:15.5px;font-weight:680}
+.dlg-bd{padding:6px 18px 18px;max-height:70vh;overflow:auto}
+.frow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+.frow:last-child{border-bottom:none}
+.frow .fl{font-size:13.5px}
+.frow .fl small{display:block;color:var(--mute);font-size:11.5px;margin-top:2px;line-height:1.45}
+.frow .fr{flex:none;display:flex;align-items:center;gap:8px}
+.sw{position:relative;width:42px;height:24px;border-radius:99px;background:rgba(255,255,255,.13);cursor:pointer;transition:.2s;flex:none;border:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--good)}
+.sw.on::after{transform:translateX(18px)}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:3px;gap:2px}
+.seg button{appearance:none;border:none;background:transparent;color:var(--dim);font:inherit;font-size:12.5px;
+  padding:5px 11px;border-radius:7px;cursor:pointer;transition:.15s}
+.seg button.on{background:var(--panel2);color:var(--txt);font-weight:620}
+.range{width:130px;accent-color:#2ee6a8}
+.note{font-size:12px;color:var(--mute);line-height:1.65;padding:10px 0 0}
+.note b{color:var(--dim)}
+.help-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.65}
+.help-item:last-child{border:none}
+.help-item b{color:var(--txt)}
+.help-item .em{color:var(--warn)}
+
+/* ---------- 校准遮罩 ---------- */
+.cal-mask{position:absolute;inset:0;display:none;place-content:center;text-align:center;
+  background:rgba(4,8,16,.82);backdrop-filter:blur(3px);z-index:5}
+.cal-mask.show{display:grid}
+.cal-mask .big{font-size:52px;font-weight:780;font-variant-numeric:tabular-nums;line-height:1.1}
+.cal-mask p{color:var(--dim);font-size:14px;margin-top:8px}
+
+/* ---------- 休息遮罩 ---------- */
+.brk-mask{position:absolute;inset:0;display:none;place-content:center;text-align:center;
+  background:rgba(4,10,14,.9);backdrop-filter:blur(7px);z-index:6;padding:22px}
+.brk-mask.show{display:grid}
+.brk-mask .ic{font-size:46px}
+.brk-mask h3{font-size:23px;font-weight:740;margin:10px 0 6px}
+.brk-mask .cd{font-size:44px;font-weight:760;font-variant-numeric:tabular-nums;color:var(--warn)}
+.brk-mask p{color:var(--dim);font-size:13.5px;max-width:400px;margin:8px auto 0;line-height:1.7}
+.brk-mask .tips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.brk-mask .tips span{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--panel2);border:1px solid var(--line2)}
+.brk-btns{display:flex;gap:9px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:#131c2e;border:1px solid var(--line2);border-radius:12px;padding:11px 17px;font-size:13.5px;
+  box-shadow:var(--shadow);transition:.28s cubic-bezier(.22,1,.36,1);z-index:60;max-width:88vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.foot{text-align:center;color:var(--mute);font-size:11.5px;margin-top:20px;line-height:1.7}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+/* ---------- 报告 ---------- */
+#dlgReport{max-width:min(820px,96vw)}
+.ins-list{list-style:none;display:grid;gap:7px;font-size:13.5px}
+.ins-list li{padding:8px 11px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+.store-err{margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,92,114,.12);border:1px solid rgba(255,92,114,.4);color:#ffc9d1;font-size:13px}
+.store-err:empty{display:none}
+.rp-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 0}
+.rp-bar .grow{flex:1}
+.seg button:focus-visible,.btn:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.rp-chart{position:relative;width:100%;height:200px;margin:6px 0 10px}
+.rp-chart canvas{width:100%;height:100%;display:block}
+.rp-warn{font-size:12.5px;color:var(--warn);margin:6px 0}
+.rp-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.rp-table th,.rp-table td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+.rp-table th:first-child,.rp-table td:first-child{text-align:left}
+.rp-table th{color:var(--mute);font-weight:560}
+.iss{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:5px 0}
+.iss span:first-child{width:76px;color:var(--dim)}
+.iss .bar{flex:1}
+</style>
+</head>
+<body><div style="padding:8px;background:#fff3d3;text-align:center">示例体验，数据仅保留在本页；点击开始并校准查看模拟结果。<button onclick="reset()">恢复示例</button></div>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🧘</div>
+      <div>
+        <h1>PostureGuard</h1>
+        <small>姿势矫正 · 久坐提醒 · 全程本地推理</small>
+      </div>
+    </div>
+    <div class="grow"></div>
+    <div class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusTxt">未启动</span></div>
+    <button class="btn ghost sm" id="btnReport">查看报告</button>
+    <button class="btn ghost sm" id="btnHelp">使用说明</button>
+    <button class="btn ghost sm" id="btnSettings">⚙ 设置</button>
+  </header>
+
+  <div class="grid">
+    <!-- 摄像区 -->
+    <section class="stage-wrap">
+      <div class="stage mirror" id="stage">
+        <video id="video" playsinline muted autoplay></video>
+        <canvas id="overlay"></canvas>
+        <div class="vig"></div>
+        <div class="stage-tag">
+          <span class="tag" id="tagFps"><b>—</b> FPS</span>
+          <span class="tag" id="tagYaw">朝向 <b>—</b></span>
+          <span class="tag" id="tagPres">—</span>
+        </div>
+        <div class="cal-mask" id="calMask">
+          <div>
+            <div class="big" id="calCount">3</div>
+            <p>请摆出<b>标准坐姿</b>：腰背挺直、双肩放松下沉、<br>目视前方屏幕、头部居中——保持住</p>
+          </div>
+        </div>
+        <div class="brk-mask" id="brkMask">
+          <div>
+            <div class="ic" id="brkIcon">🧍</div>
+            <h3 id="brkTitle">该起来活动了</h3>
+            <div class="cd mono" id="brkCd">5:00</div>
+            <p id="brkMsg">起身接杯水、望望窗外远处。检测到您离开座位会自动记为有效休息。</p>
+            <div class="tips">
+              <span>🚶 走动 60 秒</span><span>💧 喝口水</span><span>👀 远眺 20 秒</span><span>🤸 扩胸 + 转颈</span>
+            </div>
+            <div class="brk-btns">
+              <button class="btn primary" id="brkDone">我休息好了</button>
+              <button class="btn ghost" id="brkSnooze">再坐 5 分钟</button>
+            </div>
+          </div>
+        </div>
+        <div class="stage-empty" id="stageEmpty">
+          <div>
+            <div class="ic">🎥</div>
+            <p id="emptyMsg">点击「开始监测」授权摄像头后即可实时检测坐姿。<br>画面<b style="color:var(--txt)">仅在本机处理</b>，不上传任何数据。</p>
+            <div id="errBox"></div>
+            <button class="btn primary" id="btnStartEmpty">开始监测</button>
+          </div>
+        </div>
+        <div class="hud">
+          <div class="hint-chip" id="hintChip" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="stage-bar">
+        <button class="btn primary" id="btnStart">▶ 开始监测</button>
+        <button class="btn stop" id="btnStop" disabled>■ 停止</button>
+        <button class="btn" id="btnCal" disabled>◎ 姿态校准</button>
+        <div class="grow"></div>
+        <label style="font-size:12.5px;color:var(--mute)">摄像头</label>
+        <select id="camSel" style="max-width:200px"><option value="">默认摄像头</option></select>
+      </div>
+    </section>
+
+    <!-- 侧栏 -->
+    <aside class="side">
+      <div class="card score-card">
+        <div class="hd"><h2>坐姿评分</h2><span class="badge" id="confBadge">—</span></div>
+        <div class="bd">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120">
+              <circle class="bgc" cx="60" cy="60" r="52"></circle>
+              <circle class="fgc" id="ring" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+            </svg>
+            <div class="ring-txt"><div class="n mono" id="scoreN">—</div><div class="u">SCORE</div></div>
+          </div>
+          <div class="score-main">
+            <div class="level"><span class="lv-dot"></span><span id="levelTxt">待监测</span></div>
+            <div class="score-msg" id="scoreMsg">启动监测并完成校准后，这里会实时给出坐姿建议。</div>
+            <div class="conf" id="confTxt"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="hd"><h2>久坐提醒</h2><span class="badge" id="phaseBadge">未开始</span></div>
+        <div class="bd">
+          <div class="timer-big" id="seatedTxt">0:00 <small>/ 45:00</small></div>
+          <div class="prog" id="seatedProg"><i style="width:0%"></i></div>
+          <div class="timer-sub">
+            <span>连续久坐 <b class="mono" id="seatStreak">0分</b></span>
+            <span>今日已休息 <b class="mono" id="breakDone">0</b> 次</span>
+            <span>用眼提醒 <b class="mono" id="eyeCnt">0</b></span>
+          </div>
+          <div class="timer-btns">
+            <button class="btn sm" id="btnPauseBreak" disabled>☕ 现在就休息</button>
+            <button class="btn sm ghost" id="btnResetSeat">清零计时</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="hd"><h2>姿势指标</h2><span class="badge" id="baseBadge">未校准</span></div>
+        <div class="bd" id="metricList"></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:16px" aria-label="今日洞察">
+    <div class="hd"><h2>今日洞察</h2><button class="btn sm" id="btnReportHome">打开姿势报告</button></div>
+    <div class="bd"><ul class="ins-list" id="todayInsights"><li>暂无有效监测数据，完成监测后生成洞察。</li></ul>
+      <div class="note">仅依据真实有效样本生成；报告免费直接查看，近 30 天保存在本浏览器。</div>
+      <div class="store-err" id="storageError" role="alert"></div>
+    </div>
+  </section>
+
+  <!-- 底部统计 -->
+  <div class="bottom">
+    <div class="card">
+      <div class="hd"><h2>本次会话 · 坐姿曲线</h2><span style="display:flex;gap:7px"><button class="btn sm ghost" id="btnExport">导出报告</button><button class="btn sm ghost" id="btnClear">清空数据</button></span></div>
+      <div class="bd">
+        <div class="chart-box"><canvas id="chart"></canvas></div>
+        <div class="legend">
+          <span><i style="background:var(--good)"></i>优 ≥85</span>
+          <span><i style="background:var(--fair)"></i>良 70-84</span>
+          <span><i style="background:var(--warn)"></i>需调整 50-69</span>
+          <span><i style="background:var(--bad)"></i>差 &lt;50</span>
+          <span><i style="background:#3a455c"></i>离开座位</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="hd"><h2>会话统计</h2><span class="badge" id="todayBadge">今日</span></div>
+      <div class="bd">
+        <div class="stat-grid">
+          <div class="stat"><div class="l">监测时长</div><div class="n mono" id="stDur">0<small> 分</small></div></div>
+          <div class="stat"><div class="l">平均评分</div><div class="n mono" id="stAvg">—</div></div>
+          <div class="stat"><div class="l">良好坐姿占比</div><div class="n mono" id="stGood">—</div></div>
+          <div class="stat"><div class="l">最长连续久坐</div><div class="n mono" id="stStreak">0<small> 分</small></div></div>
+        </div>
+        <div class="note" id="advice">开始监测后，这里会根据数据给出个性化建议。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    所有画面与数据均在本机浏览器内处理，不联网上传 · 模型来自 MediaPipe Pose（首次加载约 6MB，之后有缓存）<br>
+    检测结果仅供健康习惯参考，不构成医疗建议
+  </div>
+</div>
+
+<!-- 设置 -->
+<dialog id="dlgSettings">
+  <div class="dlg-hd"><h3>设置</h3><button class="btn sm ghost" id="dlgClose1">关闭</button></div>
+  <div class="dlg-bd">
+    <div class="frow"><div class="fl">检测灵敏度<small>越高越容易触发提醒，建议从「标准」开始</small></div>
+      <div class="fr"><div class="seg" id="segSens">
+        <button data-v="0.78">敏感</button><button data-v="1" class="on">标准</button><button data-v="1.35">宽松</button>
+      </div></div></div>
+    <div class="frow"><div class="fl">久坐提醒间隔<small>连续坐多久后提醒起身</small></div>
+      <div class="fr"><select id="selWork"><option value="20">20 分钟</option><option value="30">30 分钟</option><option value="45" selected>45 分钟</option><option value="60">60 分钟</option><option value="90">90 分钟</option></select></div></div>
+    <div class="frow"><div class="fl">休息时长<small>建议至少 3 分钟，起身走动效果最好</small></div>
+      <div class="fr"><select id="selBreak"><option value="180">3 分钟</option><option value="300" selected>5 分钟</option><option value="600">10 分钟</option></select></div></div>
+    <div class="frow"><div class="fl">用眼提醒（20-20-20）<small>每 20 分钟提醒远眺 20 秒</small></div>
+      <div class="fr"><button class="sw on" id="swEye"></button></div></div>
+    <div class="frow"><div class="fl">声音提醒</div>
+      <div class="fr"><input type="range" class="range" id="rgVol" min="0" max="100" value="55"><button class="sw on" id="swSound"></button></div></div>
+    <div class="frow"><div class="fl">系统通知<small>切到其他窗口时也能收到提醒</small></div>
+      <div class="fr"><button class="sw" id="swNotif"></button></div></div>
+    <div class="frow"><div class="fl">镜像画面<small>像照镜子一样显示（推荐开启）</small></div>
+      <div class="fr"><button class="sw on" id="swMirror"></button></div></div>
+    <div class="frow"><div class="fl">骨架叠加</div>
+      <div class="fr"><button class="sw on" id="swSkel"></button></div></div>
+    <div class="frow"><div class="fl">检测帧率<small>越低越省电</small></div>
+      <div class="fr"><div class="seg" id="segFps">
+        <button data-v="12">12</button><button data-v="20" class="on">20</button><button data-v="30">30</button>
+      </div></div></div>
+    <div class="note"><b>隐私说明：</b>本应用全部计算在浏览器本地完成，视频帧不会发送到任何服务器；评分与统计仅保存在浏览器本地存储（localStorage），可在「清空数据」中一键删除。</div>
+  </div>
+</dialog>
+
+<!-- 帮助 -->
+<dialog id="dlgHelp">
+  <div class="dlg-hd"><h3>使用说明</h3><button class="btn sm ghost" id="dlgClose2">关闭</button></div>
+  <div class="dlg-bd">
+    <div class="help-item"><b>1. 摆放摄像头</b>：摄像头与眼睛大致同高，能拍到<b>头、肩、上臂</b>；距离 60–100cm。髋部若在画面内，还能额外检测塌腰前倾。</div>
+    <div class="help-item"><b>2. 姿态校准（关键）</b>：先坐正——腰背挺直、双肩放松、目视前方——再点「姿态校准」，保持 3 秒。系统以你的标准坐姿为基线，之后所有偏差都相对它计算。<span class="em">换座椅、换摄像头位置后请重新校准。</span></div>
+    <div class="help-item"><b>3. 实时纠正</b>：评分低于 70 时会给出最需要改进的一条建议，并有声音/通知提醒；恢复良好坐姿会有提示音。</div>
+    <div class="help-item"><b>4. 久坐提醒</b>：连续坐够设定时长后进入休息流程。<b>离开画面或站起会被自动识别为有效休息</b>；坐着不动休息效果会打折。</div>
+    <div class="help-item"><b>5. 正对摄像头</b>：身体偏转超过 45° 时正面特征会失真，此时评分仅供参考（会标注低置信度），建议正对屏幕。</div>
+    <div class="help-item"><b>检测原理与局限</b>：正面摄像头无法直接测量「颈椎前伸」的角度，系统用<b>头肩竖直距离缩短</b>、<b>肩宽/耳距变窄（含胸）</b>、<b>躯干变矮</b>、<b>身体尺寸变大（前倾凑近）</b>等尺度无关的比值特征来近似。若需要精确的矢状面测量，请把摄像头移到侧面拍摄。</div>
+  </div>
+</dialog>
+
+<!-- 报告 -->
+<dialog id="dlgReport" aria-labelledby="rpTitle">
+  <div class="dlg-hd"><h3 id="rpTitle">PostureGuard 姿势报告</h3><button class="btn sm ghost" id="dlgClose3">关闭</button></div>
+  <div class="dlg-bd">
+    <div class="rp-bar">
+      <div class="seg" role="tablist" aria-label="报告范围">
+        <button role="tab" id="tabHour" data-tab="hour" aria-controls="rpPanel" aria-selected="true" class="on">小时</button>
+        <button role="tab" id="tabDay" data-tab="day" aria-controls="rpPanel" aria-selected="false" tabindex="-1">日</button>
+        <button role="tab" id="tabWeek" data-tab="week" aria-controls="rpPanel" aria-selected="false" tabindex="-1">周</button>
+      </div>
+      <label for="rpDate" style="font-size:12.5px;color:var(--mute)">日期</label>
+      <select id="rpDate"></select>
+      <div class="grow"></div>
+      <button class="btn sm" id="btnRpCsv">导出 CSV</button>
+    </div>
+    <div id="rpPanel" role="tabpanel" aria-labelledby="tabHour"></div>
+    <div class="note">报告口径：评分 ≥70 记为良好时长（80 为高分参考线，不按 80 计时）；单日良好时长 ≥10 分钟且良好占比 ≥60% 记为达标。仅统计在位、正面高置信度、已提取到特征的监测时间，校准期间不计入。口径如有更新会在此说明。<br>旧版会话记录只有按天累计、不含小时评分，不会补造为小时报告。</div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>const $=x=>document.getElementById(x); let active=false; function reset(){active=false;$('statusTxt').textContent='未启动';$('scoreN').textContent='—';$('levelTxt').textContent='待监测';$('scoreMsg').textContent='启动监测并完成校准后，这里会实时给出坐姿建议。';$('baseBadge').textContent='未校准';$('btnCal').disabled=true;$('btnStop').disabled=true;$('btnStart').disabled=false;$('emptyMsg').textContent='示例体验：点击开始查看模拟评分，安装后可使用摄像头。'} function start(){active=true;$('statusTxt').textContent='示例监测中';$('emptyMsg').textContent='示例画面：安装后使用摄像头进行真实监测';$('btnCal').disabled=false;$('btnStop').disabled=false;$('btnStart').disabled=true;$('scoreN').textContent='82';$('levelTxt').textContent='良好';$('scoreMsg').textContent='保持肩背舒展，头部微微后收。';} $('btnStart').onclick=start;$('btnStartEmpty').onclick=start;$('btnStop').onclick=reset;$('btnCal').onclick=()=>{$('baseBadge').textContent='示例已校准';$('scoreN').textContent='95';$('levelTxt').textContent='优秀';$('scoreMsg').textContent='已按示例坐姿校准。'}; document.querySelectorAll('button').forEach(b=>{if(!b.onclick)b.disabled=true});reset();</script></body></html>
