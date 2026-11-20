@@ -349,6 +349,33 @@ function resolvePortByNavToken(navToken) {
 
 async function resolvePortForEvent(event, url) {
   const directClientId = event.clientId || '';
+  const dest = event.request.destination || '';
+  const referrer = event.request.referrer || '';
+  if (dest === 'iframe' || dest === 'frame') {
+    if (referrer) {
+      if (!isTrustedAppUrl(referrer)) {
+        return null;
+      }
+    } else {
+      const secFetchSite = String(event.request.headers.get('sec-fetch-site') || '').trim().toLowerCase();
+      if (secFetchSite !== 'same-origin') {
+        return null;
+      }
+      if (!directClientId) {
+        return null;
+      }
+      let parentClient = null;
+      try {
+        parentClient = await self.clients.get(directClientId);
+      } catch {
+        parentClient = null;
+      }
+      if (!isTrustedWindowClient(parentClient)) {
+        return null;
+      }
+    }
+  }
+
   if (directClientId) {
     const existingDirect = portsByClientId.get(directClientId);
     if (existingDirect) return existingDirect;
@@ -366,11 +393,6 @@ async function resolvePortForEvent(event, url) {
 
   const navToken = extractNavToken(event.request, url);
   if (navToken) {
-    const dest = event.request.destination || '';
-    const referrer = event.request.referrer || '';
-    if ((dest === 'iframe' || dest === 'frame') && !isTrustedAppUrl(referrer)) {
-      return null;
-    }
     if (referrer && (referrer.startsWith('http://') || referrer.startsWith('https://')) && !isTrustedAppUrl(referrer)) {
       return null;
     }

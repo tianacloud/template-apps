@@ -1874,6 +1874,7 @@ function installSwScopeAlignment(appBasePath, signal, getNavToken) {
     const dlUrl = new URL(next, location.href);
     dlUrl.searchParams.set('__dsh_dl', (anchor.getAttribute('download') || '').trim() || '1');
     const f = document.createElement('iframe');
+    f.referrerPolicy = 'same-origin';
     f.style.display = 'none';
     f.setAttribute('aria-hidden', 'true');
     f.src = dlUrl.href;
@@ -1883,6 +1884,13 @@ function installSwScopeAlignment(appBasePath, signal, getNavToken) {
 
   if (!iframeNavHooksInstalled && typeof HTMLIFrameElement !== 'undefined') {
     iframeNavHooksInstalled = true;
+    const ensureSameOriginReferrer = (el, nextUrl) => {
+      if (nextUrl && nextUrl.includes('__dsh_nav=')) {
+        // Override document-level `Referrer-Policy: no-referrer` strictly for same-origin SW-tunneled iframes
+        // without ever leaking referrers cross-origin.
+        try { el.referrerPolicy = 'same-origin'; } catch { /* ignore */ }
+      }
+    };
     const desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
     if (desc?.set && desc.configurable) {
       Object.defineProperty(HTMLIFrameElement.prototype, 'src', {
@@ -1891,6 +1899,7 @@ function installSwScopeAlignment(appBasePath, signal, getNavToken) {
         get: desc.get,
         set(val) {
           const next = activeSwNavRewriter ? activeSwNavRewriter(String(val)) : String(val);
+          ensureSameOriginReferrer(this, next);
           return desc.set.call(this, next);
         },
       });
@@ -1899,6 +1908,7 @@ function installSwScopeAlignment(appBasePath, signal, getNavToken) {
     HTMLIFrameElement.prototype.setAttribute = function setAttribute(name, value) {
       if (String(name).toLowerCase() === 'src') {
         const next = activeSwNavRewriter ? activeSwNavRewriter(String(value)) : String(value);
+        ensureSameOriginReferrer(this, next);
         return origSetAttr.call(this, name, next);
       }
       return origSetAttr.call(this, name, value);
