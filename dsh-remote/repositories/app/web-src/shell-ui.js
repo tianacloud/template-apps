@@ -10,6 +10,7 @@ const SHELL_STYLES = ':root{color-scheme:light dark;--dsh-bg-l:#f1f5f9;--dsh-bg-
   '.dsh-shell-tabs{display:flex;gap:8px;flex-wrap:wrap}.dsh-shell-tab{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--dsh-border);background:transparent;color:var(--dsh-muted)}.dsh-shell-tab[aria-selected="true"]{background:#2563eb;border-color:#2563eb;color:#fff}' +
   '.dsh-shell-codebox{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;min-width:0;max-width:100%;box-sizing:border-box;background:var(--dsh-code);border:1px solid var(--dsh-border)}' +
   '.dsh-shell-code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font:13px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}' +
+  '#dsh-remote-key-cmd{white-space:normal;overflow-wrap:anywhere}' +
   '.dsh-shell-btn{padding:9px 14px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--dsh-border);background:transparent;color:var(--dsh-text);white-space:nowrap}.dsh-shell-btn-primary{background:#2563eb;border-color:#2563eb;color:#fff}.dsh-shell-btn:hover{filter:brightness(1.06)}' +
   '.dsh-shell-input-row{display:flex;gap:8px;align-items:center}.dsh-shell-input{flex:1;min-width:0;padding:11px 13px;border-radius:9px;border:1px solid var(--dsh-border);background:var(--dsh-code);color:var(--dsh-text);font:13px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}' +
   '.dsh-shell-err{padding:10px 12px;border-radius:9px;font-size:13px;line-height:1.45;background:rgba(220,38,38,.14);border:1px solid rgba(248,113,113,.45);color:#ef4444}' +
@@ -22,6 +23,7 @@ const SHELL_STYLES = ':root{color-scheme:light dark;--dsh-bg-l:#f1f5f9;--dsh-bg-
   '@media (max-width:560px){#dsh-remote-shell{padding:14px}.dsh-shell-card{padding:20px}}';
 
 const PAIRING_KEY_PATTERN = /^(?:dshk1_)?[A-Za-z0-9_-]{43}$/u;
+export const KEY_VIEW_COMMAND = 'npx --yes @tianacloud/dsh-remote@latest key';
 
 export function validatePairingKeyInput(raw) {
   const trimmed = String(raw ?? '').trim();
@@ -45,6 +47,23 @@ function el(tag, props, ...children) {
   }
   if (children.length) node.append(...children);
   return node;
+}
+
+function makeCopyButton(getText, { id, primary = false } = {}) {
+  const btn = el('button', {
+    id: id ?? '', type: 'button', className: `dsh-shell-btn${primary ? ' dsh-shell-btn-primary' : ''}`,
+    textContent: '复制命令',
+  });
+  let reset;
+  btn.addEventListener('click', async () => {
+    clearTimeout(reset);
+    try {
+      await navigator.clipboard.writeText(getText());
+      btn.textContent = '已复制';
+      reset = setTimeout(() => { btn.textContent = '复制命令'; }, 1800);
+    } catch { btn.textContent = '请手动复制'; }
+  });
+  return btn;
 }
 
 function ensureShellStyles() {
@@ -130,14 +149,7 @@ export function createShellUI(rootEl) {
         tabButtons[key] = btn;
         tabs.append(btn);
       }
-      const copyBtn = el('button', { type: 'button', id: 'dsh-remote-copy-cmd', className: 'dsh-shell-btn dsh-shell-btn-primary', textContent: '复制命令' });
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(osCommands[activeOs].cmd);
-          copyBtn.textContent = '已复制';
-          setTimeout(() => { copyBtn.textContent = '复制命令'; }, 1800);
-        } catch { copyBtn.textContent = '请手动复制'; }
-      });
+      const copyBtn = makeCopyButton(() => osCommands[activeOs].cmd, { id: 'dsh-remote-copy-cmd', primary: true });
       const codeBox = el('div', { className: 'dsh-shell-codebox' }, codeEl, copyBtn);
       waitStatusEl = el('span', { textContent: '正在等待你的电脑完成配置并上线…（上线后自动进入解锁页）' });
       const waitBar = el('div', { className: 'dsh-shell-wait', id: 'dsh-remote-onboarding-wait' }, el('span', { className: 'dsh-shell-pulse' }), waitStatusEl);
@@ -209,8 +221,13 @@ export function createShellUI(rootEl) {
         const rememberLabel = el('label', { className: 'dsh-shell-check' }, rememberBox, '在此受信任浏览器记住密钥（取消勾选后密钥仅驻留当前页面内存，刷新或关闭标签页立即销毁）');
         const hint = el('div', { className: 'dsh-shell-sub', style: 'font-size:12px;', textContent: '密钥仅在浏览器与你的电脑之间进行端到端加密校验，Tiana 云端无法解密任何内容。可从刚运行的 connect 剪贴板粘贴，或在本地 DSH 侧栏「Tiana Remote」复制。' });
         const submitBtn = el('button', { id: 'dsh-remote-e2ee-submit', type: 'submit', className: 'dsh-shell-btn dsh-shell-btn-primary', textContent: '解锁并进入工作台' });
+        const keyHint = el('p', { className: 'dsh-shell-sub', textContent: '忘记或需要查看当前配对密钥？在本地主机终端运行：' });
+        const keyBox = el('div', { className: 'dsh-shell-codebox' },
+          el('code', { id: 'dsh-remote-key-cmd', className: 'dsh-shell-code', textContent: KEY_VIEW_COMMAND }),
+          makeCopyButton(() => KEY_VIEW_COMMAND, { id: 'dsh-remote-copy-key-cmd' }),
+        );
 
-        const form = el('form', { style: 'display:grid;gap:12px;' }, errBox, el('div', { className: 'dsh-shell-input-row' }, input, toggleBtn), validationEl, rememberLabel, hint, submitBtn);
+        const form = el('form', { style: 'display:grid;gap:12px;' }, errBox, el('div', { className: 'dsh-shell-input-row' }, input, toggleBtn), validationEl, rememberLabel, hint, submitBtn, keyHint, keyBox);
         form.addEventListener('submit', (e) => {
           e.preventDefault();
           const check = updateValidation();
