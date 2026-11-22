@@ -1,4 +1,5 @@
 import { rollWheels } from "./wheels.js";
+import { trafficLod } from "./traffic-lod.js";
 import * as T from "three";
 import { VEHICLES } from "./state.js";
 import { moveBody, blockedBody, vehicleBody } from "./physics.js";
@@ -487,10 +488,10 @@ export function createWorld(scene, assetBase) {
       }
     }
   });
-  scene.add(batchStatic(staticGroup));
+  scene.add(batchStatic(staticGroup, 80));
   for (let i = 0; i < 16; i++) {
-    const id = VEHICLES[i % VEHICLES.length].id,
-      model = car(id);
+    const vehicle = VEHICLES[i % VEHICLES.length],
+      model = trafficLod(car(vehicle.id), vehicle);
     const vertical = i % 2 === 0,
       direction = i % 4 < 2 ? 1 : -1;
     model.position.set(
@@ -520,7 +521,7 @@ export function createWorld(scene, assetBase) {
     traffic.push({ model, vertical, direction, speed: 6 + rand() * 3 });
   }
   for (let i = 0; i < 8; i++) {
-    const model = car(VEHICLES[i].id);
+    const vehicle = VEHICLES[i], model = trafficLod(car(vehicle.id), vehicle);
     model.position.set(127, 0, -140 + i * 39);
     model.rotation.y = Math.PI;
     if (

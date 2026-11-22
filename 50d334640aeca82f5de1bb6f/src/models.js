@@ -32,14 +32,20 @@ export function cylinder(rt, rb, h, m, n = 10) {
   o.receiveShadow = true;
   return o;
 }
-export function batchStatic(group) {
+export function batchStatic(group, cellSize = 0) {
   const buckets = new Map();
   group.updateMatrixWorld(true);
   const moving = [];
   group.traverse((o) => {
     if (!o.isMesh || !o.geometry.attributes.normal || Array.isArray(o.material))
       return;
-    const key = o.material.uuid;
+    // Keep city geometry in spatial batches so Three.js can cull off-screen
+    // blocks, while cars retain their existing single-batch behavior.
+    const position = new T.Vector3().setFromMatrixPosition(o.matrixWorld);
+    const cell = cellSize
+      ? `${Math.floor(position.x / cellSize)},${Math.floor(position.z / cellSize)}`
+      : "all";
+    const key = `${o.material.uuid}:${cell}`;
     const g = (
       o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()
     ).applyMatrix4(o.matrixWorld);
